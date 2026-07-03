@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - name: Lint
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+          $(go env GOPATH)/bin/golangci-lint run --timeout=3m
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race -count=1 -coverprofile=coverage.out ./... -coverpkg=./internal/...
+
+      - name: Check coverage
+        run: |
+          COV=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: ${COV}%"
+          if [ "$(echo "$COV < 50" | bc)" -eq 1 ]; then
+            echo "Coverage ${COV}% is below 50% threshold"
+            exit 1
+          fi
+
+      - name: Build
+        run: go build -o /dev/null ./cmd/liki/
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: go-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+      - name: Build binary
+        run: CGO_ENABLED=0 go build -o bin/liki ./cmd/liki/
+      - uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        run: docker build -f deploy/liki/Dockerfile -t liki:ci .
+        env:
+          DOCKER_BUILDKIT: 1
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: 1
+
+  frontend-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: cd web && npm ci
+
+      - name: HTML check
+        run: node web/scripts/check-html.cjs
+
+      - name: Compile Vue template
+        run: node web/scripts/compile-vue-template.cjs
+
+      - name: i18n check
+        run: node web/scripts/check-i18n.cjs
+
+      - name: Run Vitest
+        run: cd web && npx vitest run js/__tests__/
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: go-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install Node deps
+        run: cd web && npm ci
+
+      - name: Install Playwright browsers
+        run: cd web && npx playwright install chromium
+
+      - name: Install Caddy
+        run: |
+          curl -sfL "https://caddyserver.com/api/download?os=linux&arch=amd64" -o caddy
+          chmod +x caddy
+
+      - name: Build Go server
+        run: go build -o bin/liki ./cmd/liki/
+
+      - name: Start servers
+        env:
+          JWT_SECRET: liki-ci-e2e
+        run: |
+          ./bin/liki -addr :8081 -db /tmp/liki-ci.db &
+          # Wait for Go server to be ready before starting Caddy (avoids 503 on reverse_proxy)
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:8081/api/health 2>/dev/null | grep -q '"ok"'; then
+              echo "Go server ready"
+              break
+            fi
+            sleep 1
+          done
+          if [ "$i" = "10" ]; then echo "Go server failed to start" >&2; exit 1; fi
+          ./caddy run --config deploy/liki/Caddyfile.local &
+          # Wait for Caddy to be ready (static files + API proxy)
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/zh-Hans/ 2>/dev/null | grep -q '<html'; then
+              if curl -sf http://localhost:8080/api/health 2>/dev/null | grep -q '"ok"'; then
+                echo "Server ready"
+                break
+              fi
+            fi
+            sleep 2
+          done
+          if [ "$i" = "30" ]; then echo "Server failed to start" >&2; exit 1; fi
+
+      - name: Run page tests
+        run: cd web && BASE_URL=http://localhost:8080 npx playwright test --config e2e/playwright.config.js journeys/pages.spec.js
+
+      - name: Run full E2E
+        run: cd web && BASE_URL=http://localhost:8080 npx playwright test --config e2e/playwright.config.js --ignore-snapshots
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: web/test-results/

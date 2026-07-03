@@ -1,0 +1,28 @@
+# Go binaries
+/bin/
+*.exe
+*.test
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Test artifacts
+coverage.out
+web/test-results/
+
+# Logs
+*.log

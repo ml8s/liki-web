@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-i18n-title="chat.title" data-i18n-title-suffix="site.name">
+<head>
+<meta charset="UTF-8">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="description" data-i18n-content="chat.metaDesc" content="靈機（Liki）AI 起名顧問，根據八字用神推薦名字，7 天內持續諮詢。">
+<meta property="og:title" data-i18n-content="chat.meta.ogTitle" content="靈機對話 · 靈機 Liki">
+<meta property="og:description" data-i18n-content="chat.meta.ogDesc" content="靈機（Liki）AI 起名顧問，根據八字用神推薦名字，7 天內持續諮詢。">
+<meta property="og:url" content="https://liki.hk/chat.html">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" data-i18n-content="chat.meta.twitterTitle" content="靈機對話 · 靈機 Liki">
+<meta name="twitter:description" data-i18n-content="chat.meta.twitterDesc" content="靈機（Liki）AI 起名顧問，根據八字用神推薦名字，7 天內持續諮詢。">
+<meta property="og:image" content="https://liki.hk/img/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:image" content="https://liki.hk/img/og-image.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>靈機對話 · 靈機 Liki</title>
+<script defer src="/js/vue.runtime.global.prod.js"></script>
+<script defer src="/js/chat-template.js"></script>
+<script defer src="/js/marked.min.js"></script>
+<script defer src="/js/purify.min.js"></script>
+<script defer src="/js/api.js"></script>
+<script defer src="/js/chat.js"></script>
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/chat.css">
+<script src="/js/common.js"></script>
+</head>
+<body class="bg-stone-50">
+<div id="app" v-cloak>
+<a href="#main" class="skip-link">{{ t('a11y.skipLink') }}</a>
+
+<!-- Main chat shell — always fills the viewport -->
+<div class="chat-shell" id="main">
+
+  <!-- Header -->
+  <header class="chat-header">
+    <a :href="'/' + (state === 'chat' ? lang + '/' : '')" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><polyline points="15 18 9 12 15 6"/></svg>
+      {{ t('chat.back') }}</a>
+    <span class="brand">{{ state === 'select' ? t('chat.selectTitle') : t('chat.title') }}</span>
+    <div class="flex items-center gap-2">
+      <span v-if="state === 'chat' && countdown" class="text-xs text-stone-400" v-text="countdown"></span>
+      <button v-if="state === 'chat'" class="text-xs btn-newchat transition-colors" @click="newChat()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="flex-shrink-0"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {{ t('chat.newChat') }}</button>
+      <lang-switcher></lang-switcher>
+    </div>
+  </header>
+
+  <!-- Messages area -->
+  <div ref="chatMessagesEl" class="chat-messages" role="log" aria-live="polite">
+    <template v-for="(m, i) in messages" :key="i">
+      <div>
+        <!-- User bubble -->
+        <div v-if="m.role === 'user'" class="msg msg-user" v-text="m.content"></div>
+        <div v-if="m.role === 'user' && m.time" class="msg-time msg-time-user" v-text="formatTime(m.time)"></div>
+        <!-- Assistant bubble -->
+        <div v-if="m.role === 'advisor' && m.html" class="msg msg-asst" v-html="m.html"></div>
+        <div v-if="m.role === 'advisor' && m.html && m.time" class="msg-time msg-time-asst" v-text="formatTime(m.time)"></div>
+        <!-- Loading dots in assistant bubble -->
+        <div v-if="m.role === 'advisor' && !m.html && ui.substate === 'loading'" class="msg msg-asst">
+          <div v-show="phaseStatus" class="phase-status" v-text="phaseStatus"></div>
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Error toast -->
+  <div v-show="ui.error" class="error-toast" role="alert">
+    <span v-text="ui.error"></span>
+    <button class="text-xs text-red-400 hover:text-red-600 ml-2" @click="ui.error=''">&times;</button>
+  </div>
+
+  <!-- Input hint (chat state only) -->
+  <div class="input-hint" v-show="state === 'chat' && !expired && messages.length <= 1" v-text="greeting || t('chat.inputHint')"></div>
+
+  <!-- Input bar (chat state only) -->
+  <div class="chat-input-bar" v-show="state === 'chat' && !expired">
+    <label for="chat-input" class="sr-only" v-text="t('chat.inputHint')"></label>
+    <input
+      id="chat-input"
+      ref="chatInputEl"
+      type="text"
+      v-model="input"
+      :placeholder="t('chat.placeholderReply')"
+      @keydown.enter="sendMessage()"
+      @compositionstart="onCompositionStart()"
+      @compositionend="onCompositionEnd()"
+      :disabled="ui.substate === 'loading'"
+      autocomplete="off"
+    >
+    <button
+      v-show="ui.substate !== 'loading'"
+      class="btn-send"
+      @click="sendMessage()"
+      :disabled="!input.trim() || ui.substate === 'loading'"
+      :aria-label="t('chat.send')"
+    >&uarr;</button>
+    <button
+      v-show="ui.substate === 'loading'"
+      class="btn-stop"
+      @click="stopStream()"
+    >{{ t('chat.stop') }}</button>
+  </div>
+
+  <!-- Expired banner -->
+  <div v-if="expired" class="expired-banner">
+    <p v-text="t('chat.expired')"></p>
+  </div>
+
+  <liki-footer hide-mobile></liki-footer>
+
+</div><!-- /chat-shell -->
+
+<!-- ── Login overlay (outside chat-shell, covers viewport) ── -->
+<div v-if="state === 'login'" class="login-overlay">
+  <div class="login-card">
+    <h2>{{ t('chat.loginTitle') }}</h2>
+    <p>{{ t('chat.loginDesc') }}</p>
+    <input
+      v-model="email"
+      type="email"
+      :placeholder="t('chat.emailPlaceholder')"
+      @keydown.enter="doLogin"
+      autocomplete="email"
+    >
+    <button
+      @click="doLogin"
+      :disabled="!email || loginLoading"
+    >{{ loginLoading ? '…' : t('chat.loginButton') }}</button>
+    <p v-if="loginError" v-text="loginError" role="alert"></p>
+    <p class="login-no-order">
+      <a href="/">{{ t('chat.noOrderLink') }}</a>
+    </p>
+  </div>
+</div>
+
+<!-- ── Select order overlay (outside chat-shell) ── -->
+<div v-if="state === 'select'" class="select-overlay">
+  <div class="select-card">
+    <p>{{ t('chat.selectDesc') }}</p>
+    <div v-for="o in orderList" class="order-card" role="button" tabindex="0" @click="selectOrder(o.order_id)" @keydown.enter="selectOrder(o.order_id)" @keydown.space.prevent="selectOrder(o.order_id)">
+      <div class="flex justify-between items-center">
+        <span class="font-medium text-stone-800" v-text="o.summary"></span>
+        <span class="text-xs text-stone-400" v-text="formatExpiry(o.expires_at)"></span>
+      </div>
+      <div class="text-xs text-stone-400 mt-1">
+        <span v-if="o.has_birth_info">{{ t('chat.birthConfirmed') }}</span>
+        <span v-else>{{ t('chat.birthPending') }}</span>
+      </div>
+    </div>
+    <p v-if="loginError" class="text-red-500 text-xs mt-2" v-text="loginError" role="alert"></p>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

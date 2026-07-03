@@ -1,0 +1,21 @@
+{
+  "name": "liki-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:js": "npx vitest run js/__tests__/",
+    "test:js:watch": "npx vitest js/__tests__/",
+    "test:e2e": "npx playwright test --config e2e/playwright.config.js",
+    "test:e2e:ui": "npx playwright test --ui --config e2e/playwright.config.js"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.59.1",
+    "vitest": "^4.1.6"
+  },
+  "dependencies": {
+    "@vue/compiler-dom": "^3.5.38",
+    "lit-html": "^3.3.3",
+    "vue": "^3.5.38"
+  }
+}
