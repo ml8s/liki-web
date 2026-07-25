@@ -83,7 +83,7 @@ afterEach(() => {
 
 const API_BASE = '/api';
 const DEFAULT_TIMEOUT = 30000;
-const MAX_RETRIES = 2;
+
 const RETRY_DELAY = 1000;
 
 async function handleResponse(resp) {
@@ -98,25 +98,7 @@ async function handleResponse(resp) {
 }
 
 function isRetryable(err) {
-  return err.name === 'TypeError' || err.name === 'AbortError' && err.message !== 'TimeoutError';
-}
-
-async function apiGet(path, opts = {}) {
-  const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
-  const retries = opts.retries ?? MAX_RETRIES;
-  let lastErr;
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const init = {};
-      if (timeout > 0) init.signal = AbortSignal.timeout(timeout);
-      return handleResponse(await fetch(API_BASE + path, init));
-    } catch (err) {
-      lastErr = err;
-      if (!isRetryable(err) || i >= retries) throw err;
-      await new Promise(r => setTimeout(r, RETRY_DELAY * (i + 1)));
-    }
-  }
-  throw lastErr;
+  return (err.name === 'TypeError' || err.name === 'AbortError') && err.message !== 'TimeoutError';
 }
 
 async function apiPost(path, body, opts = {}) {
@@ -142,71 +124,45 @@ async function apiPost(path, body, opts = {}) {
 }
 
 
-function showQRModal(qrcodeUrl, fallbackUrl) {
-  var existing = document.querySelector('.qr-modal-overlay');
+function showQRModal(orderID, qrcodeUrl, fallbackUrl) {
+  var existing = document.querySelector('.qr-modal');
   if (existing) existing.remove();
 
-  var overlay = document.createElement('div');
-  overlay.className = 'qr-modal-overlay';
-  overlay.innerHTML =
-    '<div class="qr-modal" role="dialog" aria-modal="true" aria-label="' + escapeHTML(i18next.t('payment.scanQR')) + '">' +
+  var dialog = document.createElement('dialog');
+  dialog.className = 'qr-modal';
+  dialog.innerHTML =
+    '<form method="dialog">' +
       '<button class="qr-modal-close" aria-label="' + escapeHTML(i18next.t('payment.qrClose')) + '">&times;</button>' +
-      '<p class="qr-modal-title">' + escapeHTML(i18next.t('payment.scanQR')) + '</p>' +
-      '<img class="qr-modal-img" alt="QR Code">' +
-      '<p class="qr-modal-hint">' + escapeHTML(i18next.t('payment.qrHint')) + '</p>' +
-    '</div>';
+    '</form>' +
+    '<p class="qr-modal-title">' + escapeHTML(i18next.t('payment.scanQR')) + '</p>' +
+    '<img class="qr-modal-img" alt="QR Code">' +
+    '<p class="qr-modal-hint" data-qr-hint>' + escapeHTML(i18next.t('payment.qrHint')) + '</p>';
 
-  var img = overlay.querySelector('.qr-modal-img');
+  var img = dialog.querySelector('.qr-modal-img');
   img.src = qrcodeUrl;
   if (fallbackUrl) {
     img.onerror = function() { this.onerror = null; location.href = fallbackUrl; };
   }
-
-  var prevFocus = document.activeElement;
-  var closeBtn = overlay.querySelector('.qr-modal-close');
-
-  var close = function() {
-    overlay.remove();
-    document.removeEventListener('keydown', trapFocus);
-    if (prevFocus && typeof prevFocus.focus === 'function') {
-      try { prevFocus.focus(); } catch (_) {}
-    }
-  };
-
-  var trapFocus = function(e) {
-    if (e.key !== 'Tab') return;
-    var modal = overlay.querySelector('.qr-modal');
-    var focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    if (focusable.length === 0) return;
-    var first = focusable[0];
-    var last = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-    } else {
-      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-    }
-  };
-
-  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
-  closeBtn.addEventListener('click', close);
-  document.addEventListener('keydown', trapFocus);
-
-  document.body.appendChild(overlay);
-  closeBtn.focus();
+  document.body.appendChild(dialog);
+  if (!dialog.showModal) dialog.showModal = function() { this.setAttribute('open', ''); };
+  dialog.showModal();
+  return dialog;
 }
 
-async function goPay(orderID) {
-  var data = await apiPost('/payments/checkout', { order_id: orderID });
+async function goCheckout(product, orderID, extra) {
+  var payload = { order_id: orderID };
+  if (extra) Object.assign(payload, extra);
+  var data = await apiPost('/' + product + '/checkout', payload);
   if (!data) throw new Error(i18next.t('error.noCheckoutUrl'));
 
   if (data.qrcode_url) {
-    showQRModal(data.qrcode_url, data.checkout_url);
-    return;
+    showQRModal(orderID, data.qrcode_url, data.checkout_url);
+    return { mode: 'qr' };
   }
-
   var url = data.checkout_url;
   if (!url) throw new Error(i18next.t('error.noCheckoutUrl'));
   window.location.href = url;
+  return { mode: 'redirect' };
 }
 
 function escapeHTML(text) {
@@ -274,42 +230,6 @@ describe('handleResponse', () => {
   });
 });
 
-describe('apiGet', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
-    vi.useFakeTimers();
-  });
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('calls fetch with API_BASE + path and returns data', async () => {
-    fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: { result: 'ok' } }) });
-    expect(await apiGet('/test')).toEqual({ result: 'ok' });
-    expect(fetch).toHaveBeenCalledWith('/api/test', expect.objectContaining({}));
-  });
-
-  it('sets AbortSignal.timeout from custom timeout option', async () => {
-    fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
-    await apiGet('/test', { timeout: 5000 });
-    expect(fetch).toHaveBeenCalledWith('/api/test', expect.objectContaining({
-      signal: expect.any(Object),
-    }));
-  });
-
-  it('uses DEFAULT_TIMEOUT when no timeout specified', async () => {
-    fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
-    await apiGet('/test');
-    expect(fetch.mock.calls[0][1].signal).toBeDefined();
-  });
-
-  it('skips signal when timeout is 0', async () => {
-    fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
-    await apiGet('/test', { timeout: 0 });
-    expect(fetch.mock.calls[0][1].signal).toBeUndefined();
-  });
-});
-
 describe('apiPost', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
@@ -332,7 +252,7 @@ describe('apiPost', () => {
   });
 });
 
-describe('goPay', () => {
+describe('goCheckout', () => {
   let qrUrls = [];
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
@@ -345,7 +265,7 @@ describe('goPay', () => {
 
   it('throws when checkout_url is missing from response', async () => {
     fetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({ data: {} }) });
-    await expect(goPay('order-1')).rejects.toThrow('error.noCheckoutUrl');
+    await expect(goCheckout('naming', 'order-1')).rejects.toThrow('error.noCheckoutUrl');
   });
 
   it('redirects to checkout_url on success', async () => {
@@ -353,20 +273,20 @@ describe('goPay', () => {
       ok: true,
       json: () => Promise.resolve({ data: { checkout_url: 'https://pay.example.com/checkout/xyz' } }),
     });
-    await goPay('order-1');
+    await goCheckout('naming', 'order-1');
     expect(window.location.href).toBe('https://pay.example.com/checkout/xyz');
   });
 
   it('shows QR modal on desktop when qrcode_url is present', async () => {
     var calledUrl = null, calledFallback = null;
     var orig = showQRModal;
-    showQRModal = function(url, fb) { calledUrl = url; calledFallback = fb; };
+    showQRModal = function(oid, url, fb) { calledUrl = url; calledFallback = fb; };
     try {
       fetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ data: { checkout_url: 'https://pay.example.com/checkout/xyz', qrcode_url: 'https://qr.example.com/qr.png' } }),
       });
-      await goPay('order-1');
+      await goCheckout('naming', 'order-1');
       expect(window.location.href).toBe('');
       expect(calledUrl).toBe('https://qr.example.com/qr.png');
       expect(calledFallback).toBe('https://pay.example.com/checkout/xyz');
@@ -381,7 +301,7 @@ describe('goPay', () => {
       ok: true,
       json: () => Promise.resolve({ data: { checkout_url: 'https://pay.example.com/checkout/xyz' } }),
     });
-    await goPay('order-1');
+    await goCheckout('naming', 'order-1');
     expect(window.location.href).toBe('https://pay.example.com/checkout/xyz');
   });
 
@@ -390,32 +310,13 @@ describe('goPay', () => {
       ok: true,
       json: () => Promise.resolve({ data: { checkout_url: 'https://pay.example.com/checkout/xyz', qrcode_url: '' } }),
     });
-    await goPay('order-1');
+    await goCheckout('naming', 'order-1');
     expect(window.location.href).toBe('https://pay.example.com/checkout/xyz');
   });
 
   it('propagates network error from apiPost', async () => {
     fetch.mockRejectedValue(new TypeError('Failed to fetch'));
-    await expect(goPay('order-1')).rejects.toThrow('Failed to fetch');
-  });
-});
-
-describe('apiGet retry', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
-  });
-
-  it('does not retry on HTTP errors', async () => {
-    fetch.mockResolvedValue({ ok: false, status: 422, json: () => Promise.resolve({ error: { message: 'bad input' } }) });
-    await expect(apiGet('/test')).rejects.toThrow('bad input');
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('accepts retries option and propagates error when all fail', async () => {
-    // With retries:0, no retry
-    fetch.mockRejectedValue(new TypeError('Failed'));
-    await expect(apiGet('/test', { retries: 0 })).rejects.toThrow('Failed');
-    expect(fetch).toHaveBeenCalledTimes(1);
+    await expect(goCheckout('naming', 'order-1')).rejects.toThrow('Failed to fetch');
   });
 });
 
@@ -445,6 +346,16 @@ describe('isRetryable', () => {
   it('returns true for AbortError (not TimeoutError)', () => {
     const e = new DOMException('The operation was aborted', 'AbortError');
     expect(isRetryable(e)).toBe(true);
+  });
+
+  it('returns false for AbortError with TimeoutError message', () => {
+    const e = new DOMException('Timeout', 'TimeoutError');
+    expect(isRetryable(e)).toBe(false);
+  });
+
+  it('returns false for TypeError with TimeoutError message', () => {
+    const e = new TypeError('TimeoutError');
+    expect(isRetryable(e)).toBe(false);
   });
 
   it('returns false for regular Error', () => {

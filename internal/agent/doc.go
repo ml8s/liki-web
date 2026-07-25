@@ -7,8 +7,8 @@
 //
 // Chat
 //
-//	ChatAgent        — holds LLM client, tools, prompt
-//	NewChatAgent     — constructor
+//	Agent        — holds LLM client, tools, prompt
+//	NewAgent     — constructor
 //	NamingChat       — streaming naming chat: collection → computation → report
 //
 // Products
@@ -18,7 +18,7 @@
 // Events (SSE streaming)
 //
 //	ChatEventType              — classification for client-side routing
-//	EventTextDelta, EventPhase, EventError, EventThinking, EventThinkingDelta, EventReportReady
+//	EventTextDelta, EventPhase, EventError, EventThinking, EventThinkingDelta
 //	ChatEvent                  — structured event emitted during streaming
 //
 // Test helpers

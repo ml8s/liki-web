@@ -1,6 +1,6 @@
 #!/bin/bash
-# Liki — JSON-RPC smoke test
-set -uo pipefail
+# Liki — API smoke test (HTTP)
+set -euo pipefail
 
 BASE="${1:-http://localhost:8080}"
 if [ $# -ge 2 ]; then
@@ -10,15 +10,9 @@ elif echo "$BASE" | /bin/grep -q '^http://localhost'; then
 else
   API="$BASE"
 fi
-# JSON-RPC engine URL — default to LIKI_ENGINE_URL env, then fallback to API
-RPC_URL="${LIKI_ENGINE_URL:-${3:-$API/jsonrpc}}"
-# If RPC_URL doesn't end with /jsonrpc, append it
-if [[ "$RPC_URL" != */jsonrpc ]]; then
-  RPC_URL="$RPC_URL/jsonrpc"
-fi
 PASS=0; FAIL=0
 
-RED=""; GREEN=""; BOLD=""; NC=""
+RED=""; GREEN=""; YELLOW=""; BOLD=""; NC=""
 [ -t 1 ] && { RED='\033[31m'; GREEN='\033[32m'; BOLD='\033[1m'; NC='\033[0m'; }
 
 TMP=$(mktemp -d /tmp/test-api-XXXXXX)
@@ -40,7 +34,19 @@ api() {
       -H 'Content-Type: application/json' \
       -H "X-Forwarded-For: $fake_ip" || echo "000"
   fi
-  sleep 0.1
+}
+
+api_with_cookie() {
+  local method="$1" path="$2" cookie="$3" data="${4:-}"
+  local f="$TMP/body"
+  local fake_ip="10.$((RANDOM % 256)).$((RANDOM % 256)).$((RANDOM % 254 + 1))"
+  local hdrs=(-H 'Content-Type: application/json' -H "X-Forwarded-For: $fake_ip")
+  [ -n "$cookie" ] && hdrs+=(-H "Cookie: $cookie")
+  if [ -n "$data" ]; then
+    curl -s -w '%{http_code}' -o "$f" -X "$method" "$API$path" "${hdrs[@]}" -d "$data" || echo "000"
+  else
+    curl -s -w '%{http_code}' -o "$f" -X "$method" "$API$path" "${hdrs[@]}" || echo "000"
+  fi
 }
 
 caddy() {
@@ -71,95 +77,45 @@ check() {
   fi
 }
 
-check_200()  { check "$1 HTTP" "200" "${2:-}"; }
-check_204()  { check "$1 HTTP" "204" "${2:-}"; }
-check_302()  { check "$1 HTTP" "302" "${2:-}"; }
-check_400()  { check "$1 HTTP" "400" "${2:-}"; }
-check_403()  { check "$1 HTTP" "403" "${2:-}"; }
-check_404()  { check "$1 HTTP" "404" "${2:-}"; }
-check_422()  { check "$1 HTTP" "422" "${2:-}"; }
-
-# ── RPC helpers ───────────────────────────────────────────────────
-
-RPC_ID=0
-RPC_CODE=""
-RPC_BODY=""
-RPC_DATA=""
-
-# rpc <method> <params_json>
-# Sets RPC_CODE (HTTP status) and RPC_BODY (full response).
-rpc() {
-  local method="$1"
-  local params='{}'
-  [ $# -ge 2 ] && params="$2"
-  RPC_ID=$((RPC_ID + 1))
-  local payload
-  payload=$(jq -nc --arg m "$method" --argjson p "$params" --argjson id "$RPC_ID" \
-    '{jsonrpc:"2.0", id:$id, method:$m, params:$p}')
-  # Send directly to engine JSON-RPC endpoint
-  local f="$TMP/rpc_body"
-  local fake_ip="10.$((RANDOM % 256)).$((RANDOM % 256)).$((RANDOM % 254 + 1))"
-  RPC_CODE=$(curl -s -w '%{http_code}' -o "$f" -X POST "$RPC_URL" \
-    -H 'Content-Type: application/json' \
-    -H "X-Forwarded-For: $fake_ip" \
-    -d "$payload" || echo "000")
-  RPC_BODY=$(cat "$f")
-  RPC_DATA=$(echo "$RPC_BODY" | jq -c '.result // .error // empty' 2>/dev/null || echo "")
-  # Also write to TMP/body for legacy body() access
-  cp "$f" "$TMP/body"
-}
-
-# check_rpc <desc> <jq_filter> <expected>
-check_rpc() {
-  local desc="$1" filter="$2" expected="$3"
-  local actual
-  actual=$(json_val "$RPC_BODY" "$filter")
-  check "$desc" "$expected" "$actual"
-}
-
-# check_rpc_ok <desc>
-check_rpc_ok() {
-  local has_err
-  has_err=$(json_val "$RPC_BODY" '.error != null')
-  if [ "$has_err" = "false" ]; then
-    echo -e "  ${GREEN}\xe2\x9c\x93${NC} $1"
-    PASS=$((PASS + 1))
-  else
-    local emsg
-    emsg=$(json_val "$RPC_BODY" '.error.message')
-    echo -e "  ${RED}\xe2\x9c\x97${NC} $1 (RPC error: $emsg)"
-    FAIL=$((FAIL + 1))
-  fi
-}
-
-# check_rpc_err <desc> <expected_code>
-check_rpc_err() {
-  local desc="$1" expected_code="$2"
-  local has_err actual_code
-  has_err=$(json_val "$RPC_BODY" '.error != null')
-  actual_code=$(json_val "$RPC_BODY" '.error.code')
-  if [ "$has_err" = "true" ] && [ "$actual_code" = "$expected_code" ]; then
+check_range() {
+  local desc="$1" expected_re="$2" actual="${3:-}"
+  if echo "$actual" | /bin/grep -qE "$expected_re"; then
     echo -e "  ${GREEN}\xe2\x9c\x93${NC} $desc"
     PASS=$((PASS + 1))
   else
-    echo -e "  ${RED}\xe2\x9c\x97${NC} $desc (expected error $expected_code, has_err=$has_err code=$actual_code)"
+    echo -e "  ${RED}\xe2\x9c\x97${NC} $desc (expected match '$expected_re', got '$actual')"
     FAIL=$((FAIL + 1))
   fi
 }
 
+check_200()  { check "$1 HTTP" "200" "${2:-}"; }
+check_201()  { check "$1 HTTP" "201" "${2:-}"; }
+check_204()  { check "$1 HTTP" "204" "${2:-}"; }
+check_302()  { check "$1 HTTP" "302" "${2:-}"; }
+check_400()  { check "$1 HTTP" "400" "${2:-}"; }
+check_401()  { check "$1 HTTP" "401" "${2:-}"; }
+check_403()  { check "$1 HTTP" "403" "${2:-}"; }
+check_404()  { check "$1 HTTP" "404" "${2:-}"; }
+check_422()  { check "$1 HTTP" "422" "${2:-}"; }
+check_405()  { check "$1 HTTP" "405" "${2:-}"; }
+check_any()  { check_range "$1 HTTP" "${2:-}" "${3:-}"; }
+
 # ── test data ─────────────────────────────────────────────────────
 
-BT='{"time":"1984-02-04T18:30:00+08:00","longitude":116.4}'
-BT_A='{"time":"1990-03-20T10:30:00+08:00","longitude":120}'
-BT_B='{"time":"1992-07-08T14:30:00+08:00","longitude":120}'
-BR="{\"birth\":$BT,\"gender\":\"male\"}"
-BR_A="{\"birth\":$BT_A,\"gender\":\"male\"}"
-BR_B="{\"birth\":$BT_B,\"gender\":\"female\"}"
+TEST_EMAIL="api-test@example.com"
+ORDER_ID=""
+
+# Track created order ID for chained tests
+save_order_id() {
+  local b=$(body)
+  ORDER_ID=$(json_val "$b" '.data.order_id // .data.order_id // empty')
+  [ -n "$ORDER_ID" ] && echo "  → saved order_id: $ORDER_ID"
+}
 
 # ============================================================================
-echo "${BOLD}Liki — JSON-RPC Smoke Test${NC}"
+echo "${BOLD}Liki — API Smoke Test${NC}"
 echo "Target: Caddy=$BASE API=$API"
-command -v jq &>/dev/null || { echo "jq is required for RPC smoke tests"; exit 1; }
+command -v jq &>/dev/null || { echo "jq is required"; exit 1; }
 echo ""
 
 # ============================================================================
@@ -176,49 +132,241 @@ check "  status ok" "ok" "$(json_val "$b" '.data.status')"
 # ============================================================================
 echo ""
 echo "${BOLD}── Static ──${NC}"
-if curl -s --connect-timeout 2 -o /dev/null -w '%{http_code}' "$BASE/api/health" 2>/dev/null | /bin/grep -q .; then
+# Check if Caddy is in front by testing redirect behavior: Caddy redirects / → locale
+_caddy_check=$(curl -s -o /dev/null -w '%{http_code}' -H "Accept-Language: zh-CN" "$BASE/" 2>/dev/null)
+if [ "$_caddy_check" = "302" ] || [ "$_caddy_check" = "308" ]; then
   s=$(caddy GET /)
-  check_200 "GET /" "$s"
+  check_302 "GET / (locale redirect)" "$s"
+  s=$(caddy GET /zh-Hant/)
+  check_200 "GET /zh-Hant/" "$s"
   b=$(body)
-  check "  has 靈機" "false" "$(echo "$b" | /bin/grep -q '靈機' && echo false || echo true)"
+  check "  has liki.hk" "true" "$(echo "$b" | /bin/grep -q 'liki.hk' && echo true || echo false)"
+
+  # ── Locale redirects (防回归: 路径限制 + slash) ──
+  echo ""
+  echo "${BOLD}── Locale Redirects ──${NC}"
+
+  # Helper: get redirect Location header
+  redir_to() {
+    curl -s -o /dev/null -w '%{redirect_url}' -H "Accept-Language: $1" "$BASE$2"
+  }
+
+  # Bare paths → locale-prefixed (must have / between locale and path)
+  loc=$(redir_to "zh-CN" /naming)
+  check "  /naming zh-CN → /zh-Hans/naming"  "$BASE/zh-Hans/naming"  "$loc"
+  loc=$(redir_to "en" /naming)
+  check "  /naming en → /en/naming"          "$BASE/en/naming"       "$loc"
+  loc=$(redir_to "zh-CN" /mingshu)
+  check "  /mingshu zh-CN → /zh-Hans/mingshu" "$BASE/zh-Hans/mingshu" "$loc"
+  loc=$(redir_to "en" /mingshu)
+  check "  /mingshu en → /en/mingshu"      "$BASE/en/mingshu"     "$loc"
+  loc=$(redir_to "zh-CN" /hepan)
+  check "  /hepan zh-CN → /zh-Hans/hepan"    "$BASE/zh-Hans/hepan"   "$loc"
+  loc=$(redir_to "en" /hepan)
+  check "  /hepan en → /en/hepan"            "$BASE/en/hepan"         "$loc"
+
+  # Already locale-prefixed → 200 (no redirect loop)
+  s=$(caddy GET /zh-Hans/naming)
+  check_200 "GET /zh-Hans/naming (no redirect)" "$s"
+  s=$(caddy GET /zh-Hant/naming)
+  check_200 "GET /zh-Hant/naming (no redirect)" "$s"
+  s=$(caddy GET /en/naming)
+  check_200 "GET /en/naming (no redirect)" "$s"
+
+  # No slash-loss regression: must not redirect to /zh-Hansnaming
+  loc=$(redir_to "zh-CN" /naming)
+  check "  slash in path: NOT /zh-Hansnaming" "$BASE/zh-Hans/naming" "$loc"
 else
   echo "  (Caddy not running — skipping static checks)"
 fi
 
 # ============================================================================
-# Wiki
+# Orders
 # ============================================================================
 echo ""
-echo "${BOLD}── Wiki ──${NC}"
-if [ "$BASE" = "http://localhost:8080" ] || [ "$BASE" = "http://127.0.0.1:8080" ]; then
-  echo "  (local Caddy — skipping wiki checks)"
-else
-  s=$(caddy GET /wiki/)
-  check_200 "GET /wiki/" "$s"
-  b=$(body)
-  check "  redirects to zh-hant" "false" "$(echo "$b" | /bin/grep -q 'zh-hant/index.html' && echo false || echo true)"
-  s=$(caddy GET /wiki/zh-hant/index.html)
-  check_200 "GET /wiki/zh-hant/index.html" "$s"
-  s=$(caddy GET /wiki/zh-hant/how-to-choose-a-good-name.html)
-  check_200 "GET /wiki/zh-hant/how-to-choose-a-good-name.html" "$s"
+echo "${BOLD}── Orders ──${NC}"
+
+# Create order
+s=$(api POST /api/naming/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"naming\",\"currency\":\"USD\",\"lang\":\"zh-Hans\"}")
+check_200 "POST /api/naming/orders (create)" "$s"
+save_order_id
+
+# Create order with unsupported currency → falls back to CNY (no validation)
+s=$(api POST /api/naming/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"naming\",\"currency\":\"XYZ\"}")
+check_200 "POST /api/naming/orders (unsupported currency)" "$s"
+
+# Create order without email → accepted (handler ignores unknown fields)
+s=$(api POST /api/naming/orders '{"product":"naming","currency":"USD"}')
+check_200 "POST /api/naming/orders (no email field)" "$s"
+
+# Create order with unsupported product → falls back to naming (no validation)
+s=$(api POST /api/naming/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"unknown\",\"currency\":\"USD\"}")
+check_200 "POST /api/naming/orders (unknown product)" "$s"
+
+# Select order (chained from created order)
+if [ -n "$ORDER_ID" ]; then
+  s=$(api POST /api/naming/orders/select "{\"order_id\":\"$ORDER_ID\",\"email\":\"$TEST_EMAIL\"}")
+  check_any "POST /api/naming/orders/select (valid)" "^(200|403)$" "$s"
 fi
+
+# Select order — non-existent
+s=$(api POST /api/naming/orders/select '{"order_id":"no-such-id","email":"test@example.com"}')
+check_404 "POST /api/naming/orders/select (not found)" "$s"
+
+# Select order — email mismatch
+if [ -n "$ORDER_ID" ]; then
+  s=$(api POST /api/naming/orders/select "{\"order_id\":\"$ORDER_ID\",\"email\":\"wrong@example.com\"}")
+  check_403 "POST /api/naming/orders/select (email mismatch)" "$s"
+fi
+
+# Order status — existing
+if [ -n "$ORDER_ID" ]; then
+  s=$(api GET "/api/naming/orders/$ORDER_ID/status")
+  check_200 "GET /api/naming/orders/{id}/status (existing)" "$s"
+fi
+
+# Order status — non-existent
+s=$(api GET /api/naming/orders/nonexistent/status)
+check_404 "GET /api/naming/orders/{id}/status (not found)" "$s"
+
+# Retry payment — non-existent order
+s=$(api POST /api/naming/orders/nonexistent/retry '{}')
+check_404 "POST /api/naming/orders/{id}/retry (not found)" "$s"
+
+# ============================================================================
+# Auth
+# ============================================================================
+echo ""
+echo "${BOLD}── Auth ──${NC}"
+
+# Login with email that has an order (unpaid → 401)
+if [ -n "$ORDER_ID" ]; then
+  s=$(api POST /api/naming/auth/login "{\"email\":\"$TEST_EMAIL\"}")
+  check_401 "POST /api/naming/auth/login (unpaid order)" "$s"
+fi
+
+# Login with non-existent email
+s=$(api POST /api/naming/auth/login '{"email":"no-such@example.com"}')
+check_401 "POST /api/naming/auth/login (no orders)" "$s"
+
+# Login with missing email
+s=$(api POST /api/naming/auth/login '{}')
+check_422 "POST /api/naming/auth/login (missing email)" "$s"
 
 # ============================================================================
 # Payment
 # ============================================================================
 echo ""
 echo "${BOLD}── Payment ──${NC}"
-s=$(api POST /api/payments/checkout '{"order_id":"nonexistent","email":"test@example.com"}')
-check_404 "POST /api/payments/checkout (no order)" "$s"
+s=$(api POST /api/naming/checkout "{\"order_id\":\"nonexistent\",\"email\":\"$TEST_EMAIL\"}")
+check_404 "POST /api/naming/checkout (no order)" "$s"
 
-s=$(api GET /api/orders/nonexistent/report)
-check_302 "GET /api/orders/{id}/report" "$s"
+s=$(api POST /api/naming/webhook '{"type":"order.paid","data":{"order_id":"test"}}')
+check_400 "POST /api/naming/webhook (no sig)" "$s"
 
-s=$(api POST /api/payments/webhook '{"type":"order.paid","data":{"order_id":"test"}}')
-check_400 "POST /api/payments/webhook (no sig)" "$s"
+# Payment return — invalid token → 302 redirect to /
+s=$(api GET "/api/naming/payments/return/nonexistent?status=succeeded&t=bad")
+check_302 "GET /api/naming/payments/return/{id} (bad token)" "$s"
 
-s=$(api GET /api/orders/nonexistent/status)
-check_404 "GET /api/orders/{id}/status (not found)" "$s"
+# ============================================================================
+# Agent
+# ============================================================================
+echo ""
+echo "${BOLD}── Agent ──${NC}"
+
+	# Broken JSON — auth check before body parse (runs here before burst exhausted)
+	s=$(api POST /api/naming/agent/chat '{broken}')
+	check_401 "POST /api/naming/agent/chat (broken JSON - auth before body)" "$s"
+
+# With invalid JWT cookie → 401
+s=$(curl -s -w '%{http_code}' -o "$TMP/body" -X POST "$API/api/naming/agent/chat" \
+  -H 'Content-Type: application/json' \
+  -H "Cookie: liki_token=not-a-valid-jwt" \
+  -d '{"message":"hello","lang":"zh-Hans"}')
+check_401 "POST /api/naming/agent/chat (invalid JWT)" "$s"
+
+# With invalid JWT in Authorization header
+s=$(curl -s -w '%{http_code}' -o "$TMP/body" -X POST "$API/api/naming/agent/chat" \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer invalid' \
+  -d '{"message":"hello","lang":"zh-Hans"}')
+check_401 "POST /api/naming/agent/chat (invalid Bearer)" "$s"
+
+# Chat history — no JWT
+s=$(api GET /api/naming/orders/nonexistent/messages)
+check_401 "GET /api/naming/orders/{id}/messages (no JWT)" "$s"
+
+# Chat history — with invalid JWT
+s=$(curl -s -w '%{http_code}' -o "$TMP/body" -X GET "$API/api/naming/orders/nonexistent/messages" \
+  -H "Cookie: liki_token=not-a-valid-jwt")
+check_401 "GET /api/naming/orders/{id}/messages (invalid JWT)" "$s"
+
+# ============================================================================
+# Admin
+# ============================================================================
+echo ""
+echo "${BOLD}── Admin ──${NC}"
+
+# Send code (always succeeds to avoid enumeration)
+s=$(api POST /api/admin/send-code "{\"email\":\"$TEST_EMAIL\"}")
+check_200 "POST /api/admin/send-code (valid)" "$s"
+
+# Send code — bad JSON
+s=$(api POST /api/admin/send-code 'not-json')
+check_400 "POST /api/admin/send-code (bad JSON)" "$s"
+
+# Verify code — wrong code
+s=$(api POST /api/admin/verify-code "{\"email\":\"$TEST_EMAIL\",\"code\":\"000000\"}")
+check_403 "POST /api/admin/verify-code (wrong code)" "$s"
+
+# Verify code — missing fields
+s=$(api POST /api/admin/verify-code '{}')
+check_403 "POST /api/admin/verify-code (missing fields)" "$s"
+
+# Admin list orders — no JWT (should not reach handler, auth fails first)
+s=$(api GET "/api/admin/orders?email=$TEST_EMAIL")
+check_403 "GET /api/admin/orders (no JWT)" "$s"
+
+# Admin create order — no JWT
+s=$(api POST /api/admin/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"naming\"}")
+check_403 "POST /api/admin/orders (no JWT)" "$s"
+
+# Admin expire order — no JWT
+s=$(api PATCH "/api/admin/orders/$ORDER_ID/expire" '{"expires_at":"2026-07-10 00:00:00"}')
+check_403 "PATCH /api/admin/orders/{id}/expire (no JWT)" "$s"
+
+# Admin verification codes — no JWT
+s=$(api GET /api/admin/verification-codes)
+check_403 "GET /api/admin/verification-codes (no JWT)" "$s"
+
+s=$(api POST /api/admin/verification-codes '{"count":1}')
+check_403 "POST /api/admin/verification-codes (no JWT)" "$s"
+
+# ============================================================================
+# Verification Codes
+# ============================================================================
+echo ""
+echo "${BOLD}── Verification Codes ──${NC}"
+
+# Redeem non-existent code
+s=$(api POST /api/naming/verification-codes/redeem '{"code":"XXXXXXXX","email":"test@example.com"}')
+check_400 "POST /api/naming/verification-codes/redeem (not found)" "$s"
+
+# Redeem code too short (normalized length != 8)
+s=$(api POST /api/naming/verification-codes/redeem '{"code":"ABC","email":"test@example.com"}')
+check_400 "POST /api/naming/verification-codes/redeem (invalid format)" "$s"
+
+# Redeem missing fields
+s=$(api POST /api/naming/verification-codes/redeem '{}')
+check_any "POST /api/naming/verification-codes/redeem (missing fields)" "^(400|429)$" "$s"
+
+# Redeem missing email
+s=$(api POST /api/naming/verification-codes/redeem '{"code":"XXXXXXXX"}')
+check_any "POST /api/naming/verification-codes/redeem (missing email)" "^(400|429)$" "$s"
+
+# Redeem missing code
+s=$(api POST /api/naming/verification-codes/redeem '{"email":"test@example.com"}')
+check_any "POST /api/naming/verification-codes/redeem (missing code)" "^(400|429)$" "$s"
 
 # ============================================================================
 # Misc
@@ -227,6 +375,9 @@ echo ""
 echo "${BOLD}── Misc ──${NC}"
 s=$(api GET /api/version)
 check_200 "GET /api/version" "$s"
+b=$(body)
+check_range "  has build_time" ".+" "$(json_val "$b" '.data.build_time // ""')"
+check_range "  has version" ".+" "$(json_val "$b" '.data.version // ""')"
 
 s=$(api GET /api/location)
 check_200 "GET /api/location" "$s"
@@ -238,303 +389,72 @@ s=$(api POST /api/analytics/pageview '{"path":"/zh-Hans/"}')
 check_204 "POST /api/analytics/pageview" "$s"
 
 # ============================================================================
-# Agent
+# Edge Cases — input validation
 # ============================================================================
 echo ""
-echo "${BOLD}── Agent ──${NC}"
+echo "${BOLD}── Edge Cases ──${NC}"
 
-s=$(api POST /api/agent/naming '{"message":"hello","lang":"zh-Hans"}')
-check "POST /api/agent/naming (no JWT)" "401" "$s"
+# Malformed JSON (1 representative — L4 Go unit covers all endpoints in detail)
+s=$(api POST /api/naming/orders '{broken}')
+check_400 "POST /api/naming/orders (broken JSON)" "$s"
 
-s=$(curl -s -w '%{http_code}' -o /dev/null -X POST "$API/api/agent/naming" \
-  -H 'Content-Type: application/json' \
-  -H "Cookie: liki_token=not-a-valid-jwt" \
-  -d '{"message":"hello","lang":"zh-Hans"}')
-check "POST /api/agent/naming (invalid JWT)" "401" "$s"
+# Unknown endpoints
+s=$(api GET /api/unknown)
+check_404 "GET /api/unknown (not found)" "$s"
 
-# ============================================================================
-# JSON-RPC Engine
-# ============================================================================
-echo ""
-echo "${BOLD}── RPC Protocol ──${NC}"
+s=$(api POST /api/unknown '{}')
+check_404 "POST /api/unknown (not found)" "$s"
 
-# Parse error
-rpc '""' '{}'
-check_rpc_err "rpc: invalid method" "-32601"
-
-# Missing jsonrpc
-RPC_ID=$((RPC_ID + 1))
-s=$(curl -s -w '%{http_code}' -o "$TMP/body" -X POST "$RPC_URL" -H 'Content-Type: application/json' -d '{"id":1,"method":"bazi.chart","params":{}}')
-check "rpc: missing jsonrpc 200" "200" "$s"
-RPC_BODY=$(body)
-check_rpc_err "rpc: missing jsonrpc error" "-32600"
-
-# rpc.discover
-rpc rpc.discover '{}'
-check_rpc_ok "rpc.discover"
-check_rpc "  openrpc version" '.result.openrpc' '1.4.1'
+# Method not allowed — GET on POST-only endpoints
+s=$(api GET '/api/naming/orders?email=test@example.com')
+check_405 "GET /api/naming/orders (method not allowed)" "$s"
 
 # ============================================================================
-# BaZi (8 methods)
+# Rate Limiting (optional — only runs when SKIP_EXTERNAL=1 is NOT set)
 # ============================================================================
-echo ""
-echo "${BOLD}── BaZi ──${NC}"
-
-rpc bazi.chart "$BR"
-check_rpc_ok "bazi.chart"
-check_rpc "  has nian" '.result.data.nian.gan != null' 'true'
-check_rpc "  has da_yun" '.result.data.da_yun != null' 'true'
-check_rpc "  has san_yuan" '.result.data.san_yuan != null' 'true'
-
-rpc bazi.chart '{"birth":{"time":"1984-02-04T18:30:00+08:00"}}'
-check_rpc_err "bazi.chart (missing gender)" "-32000"
-
-rpc bazi.bond "{\"a\":$BR_A,\"b\":$BR_B}"
-check_rpc_ok "bazi.bond"
-check_rpc "  has zhu_cross" '.result.data.zhu_cross != null' 'true'
-
-rpc bazi.liunian "{\"year\":2026,\"birth\":$BT,\"gender\":\"male\"}"
-check_rpc_ok "bazi.liunian"
-
-rpc bazi.liuyue "{\"year\":2026,\"month\":6,\"birth\":$BT,\"gender\":\"male\"}"
-check_rpc_ok "bazi.liuyue"
-
-rpc bazi.liuri "{\"year\":2026,\"month\":6,\"day\":15,\"birth\":$BT,\"gender\":\"male\"}"
-check_rpc_ok "bazi.liuri"
-
-rpc bazi.liushi "{\"year\":2026,\"month\":6,\"day\":15,\"hour\":12,\"birth\":$BT,\"gender\":\"male\"}"
-check_rpc_ok "bazi.liushi"
-
-rpc bazi.xiaoyun "{\"birth\":$BT,\"gender\":\"male\"}"
-check_rpc_ok "bazi.xiaoyun"
-
-rpc bazi.xiaoxian '{"gender":"male"}'
-check_rpc_ok "bazi.xiaoxian"
-
-# ============================================================================
-# ZiWei (6 methods)
-# ============================================================================
-echo ""
-echo "${BOLD}── ZiWei ──${NC}"
-
-rpc ziwei.chart "$BR"
-check_rpc_ok "ziwei.chart"
-check_rpc "  has palaces" '.result.data.palaces != null' 'true'
-
-# Dependent: ziwei.daxian needs chart from ziwei.chart
-ZW_CHART=$(json_val "$RPC_BODY" '.result.data')
-
-rpc ziwei.daxian "{\"chart\":$ZW_CHART}"
-check_rpc_ok "ziwei.daxian"
-
-rpc ziwei.liunian "{\"liu_year\":2026,\"chart\":$ZW_CHART}"
-check_rpc_ok "ziwei.liunian"
-
-rpc ziwei.liuyue "{\"liu_year\":2026,\"lunar_month\":5,\"chart\":$ZW_CHART}"
-check_rpc_ok "ziwei.liuyue"
-
-rpc ziwei.liuri "{\"liu_year\":2026,\"lunar_month\":5,\"lunar_day\":10,\"chart\":$ZW_CHART}"
-check_rpc_ok "ziwei.liuri"
-
-# ziwei.bond needs two charts
-rpc ziwei.chart "$BR_A"
-CHART_A=$(json_val "$RPC_BODY" '.result.data')
-rpc ziwei.chart "$BR_B"
-CHART_B=$(json_val "$RPC_BODY" '.result.data')
-rpc ziwei.bond "{\"a\":$CHART_A,\"b\":$CHART_B}"
-check_rpc_ok "ziwei.bond"
-
-rpc ziwei.chart '{"birth":{"time":"1984-02-04T18:30:00+08:00"}}'
-check_rpc_err "ziwei.chart (missing gender)" "-32000"
-
-# ============================================================================
-# QiMen (1 method)
-# ============================================================================
-echo ""
-echo "${BOLD}── QiMen ──${NC}"
-
-rpc qimen.pan "{\"birth\":$BT,\"kind\":\"shi\"}"
-check_rpc_ok "qimen.pan (shi)"
-
-rpc qimen.pan "{\"birth\":$BT,\"kind\":\"invalid\"}"
-check_rpc_err "qimen.pan (bad kind)" "-32000"
-
-# ============================================================================
-# QiMing (4 methods)
-# ============================================================================
-echo ""
-echo "${BOLD}── QiMing ──${NC}"
-
-rpc qiming.sancai '{"surname":"李"}'
-check_rpc_ok "qiming.sancai"
-check_rpc "  has combos" '.result.data.combos != null' 'true'
-
-rpc qiming.chars '{"wuxing":"水"}'
-check_rpc_ok "qiming.chars"
-check_rpc "  has chars" '.result.data.chars != null' 'true'
-
-rpc qiming.compose '{"surname":"李","combos":[],"yong_chars":{}}'
-check_rpc_ok "qiming.compose"
-
-rpc qiming.evaluate '{"surname":"李","names":["沐泽"],"yong_shen":"水"}'
-check_rpc_ok "qiming.evaluate"
-check_rpc "  has wuxing_match" '.result.data[0].wuxing_match != null' 'true'
-
-rpc qiming.evaluate '{"surname":"李","names":["沐泽"],"yong_shen":"水","xi_shen":["金"],"ji_shen":["土"]}'
-check_rpc_ok "qiming.evaluate (with xi/ji)"
-check_rpc "  has wuxing.yong" '.result.data[0].wuxing.yong != null' 'true'
-
-rpc qiming.evaluate '{}'
-check_rpc_err "qiming.evaluate (missing surname)" "-32000"
-
-# ============================================================================
-# Bazhai (2 methods)
-# ============================================================================
-echo ""
-echo "${BOLD}── Bazhai ──${NC}"
-
-rpc bazhai.minggua '{"gender":"male","birth_year":1984}'
-check_rpc_ok "bazhai.minggua"
-
-rpc bazhai.chart "$BR"
-check_rpc_ok "bazhai.chart"
-
-rpc bazhai.minggua '{"gender":"other","birth_year":1984}'
-check_rpc_err "bazhai.minggua (bad gender)" "-32000"
-
-rpc bazhai.minggua '{"gender":"male"}'
-check_rpc_ok "bazhai.minggua (missing year, defaults to 0)"
-
-# ============================================================================
-# XuanKong (2 methods)
-# ============================================================================
-echo ""
-echo "${BOLD}── XuanKong ──${NC}"
-
-rpc xuankong.sanyuan '{"year":2026}'
-check_rpc_ok "xuankong.sanyuan"
-
-rpc xuankong.chart "{\"birth\":$BT,\"sit_mountain\":0,\"face_mountain\":11}"
-check_rpc_ok "xuankong.chart"
-
-rpc xuankong.chart "{\"birth\":$BT}"
-check_rpc_err "xuankong.chart (missing mountains)" "-32000"
-
-# ============================================================================
-# LiuYao (1 method)
-# ============================================================================
-echo ""
-echo "${BOLD}── LiuYao ──${NC}"
-
-rpc liuyao.qigua '{}'
-check_rpc_ok "liuyao.qigua"
-
-# Extract yaos from qigua result for use in chart
-YAOS=$(json_val "$RPC_BODY" '.result.data.yaos')
-YAOS_JSON=$(echo "$YAOS" | jq -c '.')
-
-rpc liuyao.chart "{\"birth\":$BT,\"yaos\":$YAOS_JSON}"
-check_rpc_ok "liuyao.chart"
-
-rpc liuyao.chart "{\"birth\":$BT,\"yaos\":[6,7,8,9,6,7],\"yong_shen\":\"妻财\"}"
-check_rpc_ok "liuyao.chart (with yong_shen)"
-
-rpc liuyao.chart "{\"birth\":$BT,\"yaos\":[7,8,7,6,9,7]}"
-check_rpc_ok "liuyao.chart (mixed yaos)"
-
-# ============================================================================
-# Huangli (4 methods)
-# ============================================================================
-echo ""
-echo "${BOLD}── Huangli ──${NC}"
-
-rpc huangli.date '{"date":"2026-06-19","event":"嫁娶"}'
-check_rpc_ok "huangli.date"
-
-rpc huangli.month '{"month":"2026-06","event":"嫁娶"}'
-check_rpc_ok "huangli.month"
-
-HL_BOND='{"birth":'"$BT"',"event_type":"嫁娶","date":"2026-06-19"}'
-rpc huangli.bond.date "$HL_BOND"
-check_rpc_ok "huangli.bond.date"
-
-rpc huangli.bond.month '{"birth":'"$BT"',"event_type":"嫁娶","month":"2026-06"}'
-check_rpc_ok "huangli.bond.month"
-
-rpc huangli.date '{}'
-check_rpc_err "huangli.date (missing params)" "-32000"
-
-HL_BAD_BIRTH='{"birth":{},"event_type":"嫁娶","date":"2026-06-19"}'
-rpc huangli.bond.date "$HL_BAD_BIRTH"
-check_rpc_err "huangli.bond.date (empty birth)" "-32000"
-
-# ============================================================================
-# Infra (2 methods)
-# ============================================================================
-echo ""
-echo "${BOLD}── Infra ──${NC}"
-
-rpc time.now '{}'
-check_rpc_ok "time.now"
-b=$(body)
-check "  has utc" "false" "$(json_val "$b" '.result.data.utc' | grep -q . && echo false || echo true)"
-check "  has cst" "false" "$(json_val "$b" '.result.data.cst' | grep -q . && echo false || echo true)"
-
-# city depends on external Nominatim API — skip if SKIP_EXTERNAL is set.
-CITY_OK=false
-if [ "${SKIP_EXTERNAL:-}" = "1" ]; then
-  echo -e "  ${BOLD}↷${NC} city (skipped: SKIP_EXTERNAL=1)"
-else
-  for _ in 1 2; do
-    rpc city '{"city":"Beijing"}'
-    if [ "$(json_val "$RPC_BODY" '.error != null')" = "false" ]; then
-      CITY_OK=true; break
+if [ -z "${SKIP_EXTERNAL:-}" ]; then
+  echo ""
+  echo "${BOLD}── Rate Limiting ──${NC}"
+  # Fire burst + 1 requests quickly to trigger rate limit on checkout
+  for i in $(seq 1 5); do
+    s=$(api POST /api/naming/checkout "{\"order_id\":\"rate-test-$i\",\"email\":\"$TEST_EMAIL\"}")
+    if [ "$s" = "429" ]; then
+      echo -e "  ${GREEN}\xe2\x9c\x93${NC} Rate limit triggered at request #$i"
+      PASS=$((PASS + 1))
+      rate_limited=true
+      break
     fi
-    sleep 3
   done
-  if $CITY_OK; then
-    echo -e "  ${GREEN}\xe2\x9c\x93${NC} city"
-    PASS=$((PASS + 1))
-  else
-    echo -e "  ${BOLD}↷${NC} city (external API unavailable)"
+  if [ "${rate_limited:-false}" = false ]; then
+    echo -e "  ${YELLOW}  - Rate limit not triggered (may depend on IP tracking)${NC}"
   fi
+else
+  echo ""
+  echo "${BOLD}── Rate Limiting ──${NC}"
+  echo "  (skipped — set SKIP_EXTERNAL=1)"
 fi
 
 # ============================================================================
-# Access Policy
+# CORS Headers (only when Caddy is running)
 # ============================================================================
+echo ""
+echo "${BOLD}── CORS ──${NC}"
 if curl -s --connect-timeout 2 -o /dev/null -w '%{http_code}' "$BASE/api/health" 2>/dev/null | /bin/grep -q .; then
-  echo ""
-  echo "${BOLD}── Access Policy ──${NC}"
-
-  if [ "$BASE" = "http://localhost:8080" ] || [ "$BASE" = "http://127.0.0.1:8080" ]; then
-    echo "  (local Caddy — skipping access policy checks)"
+  # Test preflight
+  local_f="$TMP/cors_headers"
+  curl -s -D "$local_f" -o /dev/null -X OPTIONS "$API/api/health" \
+    -H 'Origin: https://liki.hk' \
+    -H 'Access-Control-Request-Method: GET'
+  acao=$(grep -i 'Access-Control-Allow-Origin' "$local_f" 2>/dev/null | head -1 | tr -d '\r')
+  if [ -n "$acao" ]; then
+    echo -e "  ${GREEN}\xe2\x9c\x93${NC} CORS preflight returns Allow-Origin header"
+    PASS=$((PASS + 1))
   else
-    s=$(curl -s -w '%{http_code}' -o /dev/null -X POST "$BASE/api/agent/naming" \
-      -H 'Content-Type: application/json' \
-      -H 'Origin: https://evil.com' \
-      -d '{"message":"hello"}')
-    check_403 "POST /api/agent/naming (external Origin)" "$s"
-
-    s=$(curl -s -w '%{http_code}' -o /dev/null -X POST "$BASE/api/orders/nonexistent/retry" \
-      -H 'Origin: https://evil.com')
-    check_403 "POST /api/orders/{id}/retry (external Origin)" "$s"
-
-    # Free API — accessible by external agents (no Origin header)
-    s=$(curl -s -w '%{http_code}' -o /dev/null -X POST "$BASE/jsonrpc" \
-      -H 'Content-Type: application/json' \
-      -d '{"jsonrpc":"2.0","id":1,"method":"bazi.chart","params":{"birth":'"$BT"',"gender":"male"}}')
-    check_200 "bazi.chart (no Origin, external agent)" "$s"
-
-    # Free API — also accessible cross-origin
-    s=$(curl -s -w '%{http_code}' -o /dev/null -X POST "$BASE/jsonrpc" \
-      -H 'Content-Type: application/json' \
-      -H 'Origin: https://evil.com' \
-      -d '{"jsonrpc":"2.0","id":1,"method":"bazi.chart","params":{"birth":'"$BT"',"gender":"male"}}')
-    check_200 "bazi.chart (external Origin ignored)" "$s"
+    echo -e "  ${RED}\xe2\x9c\x97${NC} CORS preflight missing Allow-Origin header"
+    FAIL=$((FAIL + 1))
   fi
 else
-  echo "  (Caddy not running — skipping access policy checks)"
+  echo "  (Caddy not running — skipping CORS checks)"
 fi
 
 # ============================================================================

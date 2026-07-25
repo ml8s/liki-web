@@ -7,17 +7,17 @@ export function sseLine(obj) {
 }
 
 export async function mockLogin(page, orderID = 'e2e-order-123') {
-  await page.route('**/api/auth/login', async (route) => {
+  await page.route('**/api/naming/auth/login', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ data: { order_id: orderID, has_birth_info: false, redirect: '/chat' } }),
+      body: JSON.stringify({ data: { order_id: orderID } }),
     });
   });
 }
 
 export async function mockOrderStatus(page, orderID = 'e2e-order-123') {
-  await page.route(`**/api/orders/${orderID}/status`, async (route) => {
+  await page.route(`**/api/naming/orders/${orderID}/status`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -28,8 +28,34 @@ export async function mockOrderStatus(page, orderID = 'e2e-order-123') {
   });
 }
 
+export async function mockChatHistory(page, orderID = 'e2e-order-123', messages = []) {
+  await page.route(`**/api/naming/orders/${orderID}/messages`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: messages }),
+    });
+  });
+}
+
+export async function setupAuthenticatedMocks(page, orderID = 'e2e-order-123') {
+  await mockLogin(page, orderID);
+  await mockOrderStatus(page, orderID);
+  await mockChatHistory(page, orderID);
+}
+
+export async function mockLocation(page, currency = 'CNY') {
+  await page.route('**/api/location', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { currency } }),
+    });
+  });
+}
+
 export async function mockNamingSSE(page, events) {
-  await page.route('**/api/agent/naming', async (route) => {
+  await page.route('**/api/naming/agent/chat', async (route) => {
     await route.fulfill({
       status: 200,
       headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },

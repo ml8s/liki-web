@@ -1,31 +1,70 @@
 {
-	admin localhost:20190
+	auto_https off
 }
 
-http://localhost:8080 {
+http://{$CADDY_LISTEN_ADDR:localhost:8080} {
+	encode gzip
+
 	header {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://liki.hk; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://liki.hk; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		Cross-Origin-Opener-Policy "same-origin"
 		Cross-Origin-Resource-Policy "same-origin"
 		-Server
 	}
 
-	route /api/* {
-		reverse_proxy localhost:8081 {
+	# Allow cross-origin access to OG image for social preview cards
+	header /img/og-image.png Cross-Origin-Resource-Policy "cross-origin"
+
+	# Cache static assets
+	header /js/* Cache-Control "public, max-age=31536000, immutable"
+	header /css/* Cache-Control "public, max-age=31536000, immutable"
+	header /i18n/* Cache-Control "public, max-age=60"
+
+	# Application pages with no indexable content
+	@noindex path */chat */chat.html /report */report.html */report/*
+	header @noindex X-Robots-Tag "noindex"
+
+	log {
+		output stdout
+		format json
+	}
+
+	# Protected routes — require same-origin
+	handle /api/agent/* {
+		@external {
+			header Origin *
+			not header Origin http://localhost:8080
+		}
+		respond @external 403
+		reverse_proxy {$LIKI_WEB_HOST:web}:8081 {
+			flush_interval -1
+		}
+	}
+	handle /api/orders/*/retry {
+		@external {
+			header Origin *
+			not header Origin http://localhost:8080
+		}
+		respond @external 403
+		reverse_proxy {$LIKI_WEB_HOST:web}:8081
+	}
+
+	# JSON-RPC
+	handle /jsonrpc {
+		reverse_proxy {$LIKI_ENGINE_HOST:engine}:8082
+	}
+
+	handle /api/* {
+		reverse_proxy {$LIKI_WEB_HOST:web}:8081 {
 			flush_interval -1
 			health_uri /api/health
 			health_interval 30s
 			health_timeout 5s
 		}
-	}
-
-	# JSON-RPC for external AI agents — proxy to liki_engine
-	handle /jsonrpc {
-		reverse_proxy localhost:8082
 	}
 
 	# Standard BCP 47 paths
@@ -41,55 +80,248 @@ http://localhost:8080 {
 	@hk-legacy path_regexp hk ^/hk/(.*)
 	redir @hk-legacy /zh-Hant/{re.hk.1} 308
 
-	# Report pages — serve report.html for all /report/* URLs
-	handle_path /zh-Hans/report/* {
-		root * web
-		try_files /report.html
+	# ── Bare-path → locale-prefixed redirects (Accept-Language) ──
+
+	# Root / and /index.html
+	@rootZhHans {
+		path / /index.html
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
 	}
-	handle_path /zh-Hant/report/* {
-		root * web
-		try_files /report.html
+	@rootZhHant {
+		path / /index.html
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
 	}
-	handle_path /en/report/* {
-		root * web
-		try_files /report.html
+	@rootZh {
+		path / /index.html
+		expression {header.Accept-Language}.startsWith('zh')
 	}
-	handle_path /report/* {
-		root * web
-		try_files /report.html
+	@rootEn {
+		path / /index.html
+		expression {header.Accept-Language}.startsWith('en')
 	}
 
-	handle_path /zh-Hans/* {
-		root * web
-		try_files {path} {path}.html /index.html
+	redir @rootZhHans /zh-Hans/ 302
+	redir @rootZhHant /zh-Hant/ 302
+	redir @rootZh /zh-Hant/ 302
+	redir @rootEn /en/ 302
+	redir / /zh-Hant/ 302
+	redir /index.html /zh-Hant/ 302
+
+	# /chat
+	@chatZhHans {
+		path /chat /naming/chat
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
 	}
-	handle_path /zh-Hant/* {
-		root * web
-		try_files {path} {path}.html /index.html
+	@chatZhHant {
+		path /chat /naming/chat
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
 	}
-	handle_path /en/* {
-		root * web
-		try_files {path} {path}.html /index.html
+	@chatZh {
+		path /chat /naming/chat
+		expression {header.Accept-Language}.startsWith('zh')
 	}
-	handle_path /wiki/* {
-		root * web/wiki
-		file_server
+	@chatEn {
+		path /chat /naming/chat
+		expression {header.Accept-Language}.startsWith('en')
 	}
 
-	route {
-		root * web
-		try_files {path} {path}.html /index.html
-		file_server
+	redir @chatZhHans /zh-Hans/chat 302
+	redir @chatZhHant /zh-Hant/chat 302
+	redir @chatZh /zh-Hant/chat 302
+	redir @chatEn /en/chat 302
+	redir /chat /zh-Hant/naming/chat 301
+
+	# /naming
+	@namingZhHans {
+		path /naming
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@namingZhHant {
+		path /naming
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@namingZh {
+		path /naming
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@namingEn {
+		path /naming
+		expression {header.Accept-Language}.startsWith('en')
 	}
 
+	redir @namingZhHans /zh-Hans/naming 302
+	redir @namingZhHant /zh-Hant/naming 302
+	redir @namingZh /zh-Hant/naming 302
+	redir @namingEn /en/naming 302
+	redir /naming /zh-Hant/naming 302
 
+	# /hepan
+	@hepanZhHans {
+		path /hepan
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@hepanZhHant {
+		path /hepan
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@hepanZh {
+		path /hepan
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@hepanEn {
+		path /hepan
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @hepanZhHans /zh-Hans/hepan 302
+	redir @hepanZhHant /zh-Hant/hepan 302
+	redir @hepanZh /zh-Hant/hepan 302
+	redir @hepanEn /en/hepan 302
+	redir /hepan /zh-Hant/hepan 302
 
-		handle_errors {
-			@404 expression {http.error.status_code} == 404
-			handle @404 {
-				root * web
-				rewrite * /404.html
-				file_server
-			}
-		}
+	# /mingshu
+	@mingshuZhHans {
+		path /mingshu
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@mingshuZhHant {
+		path /mingshu
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@mingshuZh {
+		path /mingshu
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@mingshuEn {
+		path /mingshu
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @mingshuZhHans /zh-Hans/mingshu 302
+	redir @mingshuZhHant /zh-Hant/mingshu 302
+	redir @mingshuZh /zh-Hant/mingshu 302
+	redir @mingshuEn /en/mingshu 302
+	redir /mingshu /zh-Hant/mingshu 302
+
+	# /about
+	@aboutZhHans {
+		path /about
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@aboutZhHant {
+		path /about
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@aboutZh {
+		path /about
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@aboutEn {
+		path /about
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @aboutZhHans /zh-Hans/about 302
+	redir @aboutZhHant /zh-Hant/about 302
+	redir @aboutZh /zh-Hant/about 302
+	redir @aboutEn /en/about 302
+	redir /about /zh-Hant/about 302
+
+	# /contact
+	@contactZhHans {
+		path /contact
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@contactZhHant {
+		path /contact
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@contactZh {
+		path /contact
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@contactEn {
+		path /contact
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @contactZhHans /zh-Hans/contact 302
+	redir @contactZhHant /zh-Hant/contact 302
+	redir @contactZh /zh-Hant/contact 302
+	redir @contactEn /en/contact 302
+	redir /contact /zh-Hant/contact 302
+
+	# /disclaimer
+	@disclaimerZhHans {
+		path /disclaimer
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@disclaimerZhHant {
+		path /disclaimer
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@disclaimerZh {
+		path /disclaimer
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@disclaimerEn {
+		path /disclaimer
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @disclaimerZhHans /zh-Hans/disclaimer 302
+	redir @disclaimerZhHant /zh-Hant/disclaimer 302
+	redir @disclaimerZh /zh-Hant/disclaimer 302
+	redir @disclaimerEn /en/disclaimer 302
+	redir /disclaimer /zh-Hant/disclaimer 302
+
+	# /privacy
+	@privacyZhHans {
+		path /privacy
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@privacyZhHant {
+		path /privacy
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@privacyZh {
+		path /privacy
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@privacyEn {
+		path /privacy
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @privacyZhHans /zh-Hans/privacy 302
+	redir @privacyZhHant /zh-Hant/privacy 302
+	redir @privacyZh /zh-Hant/privacy 302
+	redir @privacyEn /en/privacy 302
+	redir /privacy /zh-Hant/privacy 302
+
+	# /terms
+	@termsZhHans {
+		path /terms
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@termsZhHant {
+		path /terms
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@termsZh {
+		path /terms
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@termsEn {
+		path /terms
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @termsZhHans /zh-Hans/terms 302
+	redir @termsZhHant /zh-Hant/terms 302
+	redir @termsZh /zh-Hant/terms 302
+	redir @termsEn /en/terms 302
+	redir /terms /zh-Hant/terms 302
+
+	# Skills — serve SKILL.md for AI agent discovery
+	redir /skills /skills/SKILL.md 308
+	header /skills/* Cache-Control "public, max-age=60"
+
+	# All other routes → Go handles API + static files
+	handle {
+		reverse_proxy {$LIKI_WEB_HOST:web}:8081
+	}
 }

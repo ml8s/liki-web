@@ -160,17 +160,32 @@ function checkSourceMaps() {
   }
 }
 
+// Collect Astro source files.
+function collectFiles() {
+  const entries = [];
+  const pagesDir = path.join(WEB_DIR, 'src', 'pages');
+  function walk(dir) {
+    if (!fs.existsSync(dir)) return;
+    for (const name of fs.readdirSync(dir)) {
+      const fp = path.join(dir, name);
+      if (fs.statSync(fp).isDirectory()) { walk(fp); continue; }
+      if (name.endsWith('.astro')) entries.push({ file: path.relative(WEB_DIR, fp), filepath: fp });
+    }
+  }
+  walk(pagesDir);
+  return entries;
+}
+
 // Main.
 function main() {
-  const files = fs.readdirSync(WEB_DIR).filter(f => f.endsWith('.html'));
+  const files = collectFiles();
 
   if (files.length === 0) {
     console.log('No HTML files found.');
     process.exit(0);
   }
 
-  for (const file of files) {
-    const filepath = path.join(WEB_DIR, file);
+  for (const { file, filepath } of files) {
     const html = fs.readFileSync(filepath, 'utf-8');
     const framework = detectFramework(html, file);
 

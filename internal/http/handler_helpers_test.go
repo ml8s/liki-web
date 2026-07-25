@@ -7,16 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"liki-web/internal/httputil"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
-
-func TestRespondValidationError(t *testing.T) {
-	w := httptest.NewRecorder()
-	respondValidationError(w, validation.Errors{})
-	if w.Code != http.StatusUnprocessableEntity {
-		t.Errorf("status=%d, want 422", w.Code)
-	}
-}
 
 type testReq struct {
 	Name string `json:"name"`
@@ -31,11 +24,12 @@ func (r testReq) Validate() error {
 }
 
 func TestDecodeAndValidate_Valid(t *testing.T) {
+	t.Parallel()
 	body := `{"name":"test","age":25}`
 	r := httptest.NewRequest("POST", "/", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
-	req, ok := decodeAndValidate[testReq](w, r)
+	req, ok := decodeJSON[testReq](w, r)
 	if !ok {
 		t.Fatal("expected ok=true")
 	}
@@ -45,13 +39,17 @@ func TestDecodeAndValidate_Valid(t *testing.T) {
 	if req.Age != 25 {
 		t.Errorf("Age = %d, want 25", req.Age)
 	}
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
 }
 
 func TestDecodeAndValidate_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{bad`))
 	w := httptest.NewRecorder()
 
-	_, ok := decodeAndValidate[testReq](w, r)
+	_, ok := httputil.DecodeAndValidate[testReq](w, r)
 	if ok {
 		t.Error("expected ok=false for bad JSON")
 	}
@@ -61,10 +59,11 @@ func TestDecodeAndValidate_InvalidJSON(t *testing.T) {
 }
 
 func TestDecodeAndValidate_EmptyBody(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("POST", "/", strings.NewReader(``))
 	w := httptest.NewRecorder()
 
-	_, ok := decodeAndValidate[testReq](w, r)
+	_, ok := httputil.DecodeAndValidate[testReq](w, r)
 	if ok {
 		t.Error("expected ok=false for empty body")
 	}
@@ -74,11 +73,12 @@ func TestDecodeAndValidate_EmptyBody(t *testing.T) {
 }
 
 func TestDecodeAndValidate_ValidationError(t *testing.T) {
+	t.Parallel()
 	body := `{"name":"","age":0}`
 	r := httptest.NewRequest("POST", "/", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
-	_, ok := decodeAndValidate[testReq](w, r)
+	_, ok := httputil.DecodeAndValidate[testReq](w, r)
 	if ok {
 		t.Error("expected ok=false")
 	}
@@ -88,11 +88,12 @@ func TestDecodeAndValidate_ValidationError(t *testing.T) {
 }
 
 func TestDecodeAndValidate_MissingField(t *testing.T) {
+	t.Parallel()
 	body := `{"name":"test"}`
 	r := httptest.NewRequest("POST", "/", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
-	_, ok := decodeAndValidate[testReq](w, r)
+	_, ok := httputil.DecodeAndValidate[testReq](w, r)
 	if ok {
 		t.Error("expected ok=false")
 	}
@@ -102,10 +103,11 @@ func TestDecodeAndValidate_MissingField(t *testing.T) {
 }
 
 func TestDecodeAndValidate_WritesErrorResponse(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{bad`))
 	w := httptest.NewRecorder()
 
-	decodeAndValidate[testReq](w, r)
+	httputil.DecodeAndValidate[testReq](w, r)
 
 	body, err := io.ReadAll(w.Result().Body)
 	if err != nil { t.Fatal(err) }
@@ -115,17 +117,19 @@ func TestDecodeAndValidate_WritesErrorResponse(t *testing.T) {
 }
 
 func TestLangToLocale(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		lang     string
 		expected string
 	}{
-		{"zh", "zh-Hans"},
+		{"zh", "zh-Hant"},
+		{"zh-CN", "zh-Hans"},
 		{"zh-Hans", "zh-Hans"},
 		{"hk", "zh-Hant"},
 		{"zh-Hant", "zh-Hant"},
 		{"en", "en"},
-		{"unknown", "zh-Hans"},
-		{"", "zh-Hans"},
+		{"unknown", "zh-Hant"},
+		{"", "zh-Hant"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.lang, func(t *testing.T) {

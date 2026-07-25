@@ -1,0 +1,29 @@
+---
+import { t } from '../i18n.js';
+
+export interface Props {
+  locale: string;
+  emailId?: string;
+  errId?: string;
+  btnId?: string;
+  emailKey?: string;
+  emailLabelKey?: string;
+  btnKey?: string;
+  product?: string;
+}
+
+const {
+  locale,
+  emailId = 'email',
+  errId = 'form-error',
+  btnId = 'buy-btn',
+  emailKey = 'form.email',
+  emailLabelKey = emailKey,
+  btnKey = 'form.submit',
+  product = '',
+} = Astro.props;
+---
+
+<input type="email" id={emailId} aria-label={t(locale, emailLabelKey)} placeholder={t(locale, emailKey)} class="w-full px-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent mb-3" autocomplete="email" required>
+<p id={errId} class="text-red-400 text-xs mt-2 hidden" role="alert"></p>
+<button type="submit" id={btnId} class="btn-primary">{t(locale, btnKey)} <span data-price={product}></span></button>

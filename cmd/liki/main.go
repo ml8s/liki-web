@@ -2,98 +2,198 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
+	"time"
+	"liki-web/internal/product"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"syscall"
-	"time"
 
-	"liki_web/internal/agent"
-	"liki_web/internal/dodo"
-	"liki_web/internal/product"
-	"liki_web/internal/xunhu"
+	"liki-web/internal/agent"
+	"liki-web/internal/hepan"
+	"liki-web/internal/mingshu"
+	"liki-web/internal/naming"
+	"liki-web/internal/dodo"
+	"liki-web/internal/xunhu"
 
-	"liki_web/internal/email"
-	apphttp "liki_web/internal/http"
-	"liki_web/internal/llm"
-	"liki_web/internal/payment"
+	_ "modernc.org/sqlite"
+
+	"liki-web/internal/email"
+	apphttp "liki-web/internal/http"
+	"liki-web/internal/httputil"
+	"liki-web/internal/llm"
+	"liki-web/internal/payment"
 )
 
-// BuildTime is set at compile time via -ldflags.
-var BuildTime = "dev"
+// Build-time variables injected via -ldflags.
+var (
+	BuildTime = "dev"
+	Version   = "dev"
+)
+
+type Config struct {
+	DBPath          string
+	LifebookDBPath  string
+	HepanDBPath     string
+	ResendAPIKey    string
+	ResendFrom      string
+	DodoAPIKey      string
+	DodoWebhookKey  string
+	DodoTestMode    bool
+	DodoProductNaming string
+	XunhuAppID      string
+	XunhuAppSecret  string
+	DeepseekAPIKey  string
+	LLMModel        string
+	LLMThinking     bool
+	SkillsDir       string
+	PromptFile      string
+	EngineURL       string
+	ReturnURL       string
+	JWTSecret       string
+	ListenAddr      string
+	DevMode         bool
+}
+
+func LoadConfig() Config {
+	return Config{
+		DBPath:            envOr("DB_PATH", "/var/lib/liki/naming.db"),
+		LifebookDBPath:    envOr("MINGSHU_DB_PATH", "/var/lib/liki/mingshu.db"),
+		HepanDBPath:       envOr("HEPAN_DB_PATH", "/var/lib/liki/hepan.db"),
+		ResendAPIKey:      os.Getenv("RESEND_API_KEY"),
+		ResendFrom:        envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
+		DodoAPIKey:        envOr("DODO_API_KEY", ""),
+		DodoWebhookKey:    envOr("DODO_WEBHOOK_KEY", ""),
+		DodoTestMode:      envOrBool("DODO_TEST_MODE", false),
+		DodoProductNaming: os.Getenv("DODO_PRODUCT_NAMING"),
+		XunhuAppID:        envOr("XUNHU_APPID", ""),
+		XunhuAppSecret:    envOr("XUNHU_APPSECRET", ""),
+		DeepseekAPIKey:    envOr("DEEPSEEK_API_KEY", ""),
+		LLMModel:          envOr("LLM_MODEL", ""),
+		LLMThinking:       envOrBool("LLM_THINKING", false),
+		SkillsDir:         envOr("LIKI_SKILLS_DIR", "web/skills"),
+		PromptFile:        envOr("LIKI_PROMPT_FILE", "naming/SKILL.md"),
+		EngineURL:         envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
+		ReturnURL:         envOr("RETURN_URL", ""),
+		JWTSecret:         os.Getenv("JWT_SECRET"),
+		ListenAddr:        envOr("LISTEN_ADDR", ":8080"),
+		DevMode:           envOrBool("DEV_MODE", false),
+	}
+}
 
 func main() {
 	addr := flag.String("addr", ":8080", "listen address")
-	dbPath := flag.String("db", "/var/lib/liki/liki.db", "SQLite database path")
+	dbPath := flag.String("db", "/var/lib/liki/naming.db", "SQLite database path")
 	flag.Parse()
+
+	cfg := LoadConfig()
 
 	// Structured logging
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
+	// Validate required config
+	requireEnv("JWT_SECRET", cfg.JWTSecret, "DEEPSEEK_API_KEY", cfg.DeepseekAPIKey, "LLM_MODEL", cfg.LLMModel)
+
+	// Flags override env when explicitly set
+	if *addr != ":8080" {
+		cfg.ListenAddr = *addr
+	}
+	if *dbPath != "/var/lib/liki/naming.db" {
+		cfg.DBPath = *dbPath
+	}
+
 	// Init database
-	db, err := payment.OpenDB(envOr("DB_PATH", *dbPath))
+	db, err := payment.OpenDB(cfg.DBPath)
 	if err != nil {
 		slog.Error("open db", "err", err)
 		os.Exit(1)
 	}
 	defer db.Close()
 
-	store, err := payment.NewStore(db)
+	namingStore := naming.NewStore(db)
+
+	mingshuDB, err := payment.OpenDB(cfg.LifebookDBPath)
 	if err != nil {
-		slog.Error("init store", "err", err)
+		slog.Error("init mingshu db", "err", err)
 		os.Exit(1)
 	}
+	mingshuStore := mingshu.NewStore(mingshuDB)
 
 	// Init services
-	emailFrom := envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>"))
-	emailClient := email.New(envOr("RESEND_API_KEY", ""), emailFrom)
+	emailClient := email.New(cfg.ResendAPIKey, cfg.ResendFrom)
 
-	dodoTest := envOrBool("DODO_TEST_MODE", false)
 	dodoProducts := map[product.Product]string{
-		product.ProductNaming: os.Getenv("DODO_PRODUCT_NAMING"),
+		product.ProductNaming: cfg.DodoProductNaming,
 	}
-	dodoClient := dodo.New(envOr("DODO_API_KEY", ""), envOr("DODO_WEBHOOK_KEY", ""), dodoTest, dodoProducts)
+	dodoClient := dodo.New(cfg.DodoAPIKey, cfg.DodoWebhookKey, cfg.DodoTestMode, dodoProducts)
 
-	xunhuClient := xunhu.New(
-		envOr("XUNHU_APPID", ""),
-		envOr("XUNHU_APPSECRET", ""),
-	)
+	xunhuClient := xunhu.New(cfg.XunhuAppID, cfg.XunhuAppSecret)
 
-	// Validate tools.json at startup so config errors fail fast.
-	if err := agent.ValidateTools(); err != nil {
-		slog.Error("validate tools.json", "err", err)
+	llmClient := llm.New(cfg.DeepseekAPIKey, cfg.LLMModel, cfg.LLMThinking)
+	prompt, err := os.ReadFile(filepath.Join(cfg.SkillsDir, cfg.PromptFile))
+	if err != nil {
+		slog.Error("read prompt file", "err", err, "dir", cfg.SkillsDir, "file", cfg.PromptFile)
 		os.Exit(1)
 	}
 
-	// Naming chat tools.
-	llmClient := llm.New(envOr("DEEPSEEK_API_KEY", ""))
-	namingTools := agent.NewNamingToolRegistry(envOr("LIKI_ENGINE_URL", "http://localhost:8080/jsonrpc"))
-	chatAgent := agent.NewChatAgent(llmClient, namingTools, agent.NamingPrompt)
+	tools := agent.NewToolRegistry(cfg.EngineURL)
+	tools.Register("read_file",
+		"Read a file from the skills directory. Use this to load skill instructions or report templates.",
+		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. qiming/SKILL.md"}},"required":["path"]}`),
+		agent.ReadFileHandler(cfg.SkillsDir))
 
-	returnURL := envOr("RETURN_URL", "")
-	if returnURL == "" {
-		slog.Warn("RETURN_URL not set — post-payment redirect will fail")
+	chatAgent := agent.NewAgent(llmClient, tools, string(prompt))
+	mingshuGenerator := mingshu.NewGenerator(chatAgent, mingshuStore)
+	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "reports/mingshu")); err != nil {
+		slog.Error("mingshu: load prompts", "err", err)
+		os.Exit(1)
 	}
 
-	adminEmail := envOr("ADMIN_EMAIL", "")
+	// ── hepan ──
+	hepanDB, err := payment.OpenDB(cfg.HepanDBPath)
+	if err != nil {
+		slog.Error("open hepan db", "err", err)
+		os.Exit(1)
+	}
+	defer hepanDB.Close()
+	if _, err := hepanDB.Exec(hepan.Schema); err != nil {
+		slog.Error("init hepan schema", "err", err)
+		os.Exit(1)
+	}
+	hepanStore := hepan.NewStore(hepanDB)
+	hepanGenerator := hepan.NewGenerator(chatAgent, hepanStore)
+	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "reports/hepan")); err != nil {
+		slog.Error("load hepan prompts", "err", err)
+		os.Exit(1)
+	}
+
+	if cfg.ReturnURL == "" {
+		slog.Warn("RETURN_URL not set — post-payment redirect will fail")
+	}
 
 	// Context for background tasks and server BaseContext.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	paymentSvc := payment.NewService(dodoClient, xunhuClient, emailClient, store, returnURL, adminEmail, ctx)
+	// ── Callbacks ──
+	onPaid := namingOnPaid(namingStore, emailClient, cfg.ReturnURL)
+	onMingReady := mingshuOnReportReady(mingshuStore, emailClient, cfg.ReturnURL)
+	onHepanReady := hepanOnReportReady(hepanStore, emailClient, cfg.ReturnURL)
+	onVerification := adminVerification(emailClient)
+
+	paymentSvc := payment.NewService(dodoClient, xunhuClient, cfg.ReturnURL)
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
-	if err := apphttp.ValidateJWTSecret(); err != nil {
+	if err := httputil.ValidateJWTSecret(cfg.JWTSecret); err != nil {
 		slog.Error("validate JWT_SECRET", "err", err)
 		os.Exit(1)
 	}
-
-	devMode := envOrBool("DEV_MODE", false)
 
 	// Setup HTTP
 	rateLimiter := apphttp.NewRateLimiter()
@@ -101,16 +201,26 @@ func main() {
 
 	mux := http.NewServeMux()
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
+		OnPaid:         onPaid,
+		OnReportReady:  func(ctx context.Context, orderID string) {
+			onMingReady(ctx, orderID)
+			onHepanReady(ctx, orderID)
+		},
+		OnVerification: onVerification,
 		Payment:   paymentSvc,
-		Store:     store,
-		ChatAgent: chatAgent,
+		NamingStore:    namingStore,
+		MingShuStore:    mingshuStore,
+		MingShuGenerator: mingshuGenerator,
+		HepanStore:       hepanStore,
+		HepanGenerator:    hepanGenerator,
+		Agent: chatAgent,
 		Analytics: apphttp.NewAnalytics(),
-		DevMode:   devMode,
-	}, BuildTime, rateLimiter)
+		DevMode:   cfg.DevMode,
+	}, BuildTime, Version, rateLimiter)
 
 	// Write timeout must accommodate LLM calls (~120s)
 	srv := &http.Server{
-		Addr:         envOr("LISTEN_ADDR", *addr),
+		Addr:         cfg.ListenAddr,
 		Handler:      h,
 		BaseContext:  func(_ net.Listener) context.Context { return ctx },
 		ReadTimeout:  10 * time.Second,
@@ -119,7 +229,27 @@ func main() {
 	}
 
 	// Background stale order cleanup
-	go cleanupStaleOrders(ctx, store)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.Error("panic in cleanupStaleOrders", "panic", r)
+			}
+		}()
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if n, err := namingStore.CleanStale(ctx); err != nil {
+					slog.Error("clean stale orders", "err", err)
+				} else if n > 0 {
+					slog.Info("cleaned stale orders", "count", n)
+				}
+			}
+		}
+	}()
 
 	// Signal handling
 	go handleSignals(srv)
@@ -131,11 +261,14 @@ func main() {
 	}
 	slog.Info("server stopped")
 
-	// Phased shutdown: drain emails within a deadline so we don't block forever.
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer shutdownCancel()
-	if err := paymentSvc.Shutdown(shutdownCtx); err != nil {
-		slog.Error("shutdown payment service", "err", err)
+	}
+
+func requireEnv(pairs ...string) {
+	for i := 0; i < len(pairs); i += 2 {
+		if pairs[i+1] == "" {
+			slog.Error("required environment variable not set", "var", pairs[i])
+			os.Exit(1)
+		}
 	}
 }
 
@@ -158,25 +291,7 @@ func envOrBool(key string, def bool) bool {
 	return def
 }
 
-func cleanupStaleOrders(ctx context.Context, store *payment.Store) {
-	defer func() {
-		if r := recover(); r != nil {
-			slog.Error("panic in cleanupStaleOrders", "panic", r)
-		}
-	}()
-	ticker := time.NewTicker(1 * time.Hour)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			if err := store.CleanStale(ctx, 24*time.Hour); err != nil {
-				slog.Error("clean stale orders", "err", err)
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
+
 
 func handleSignals(srv *http.Server) {
 	defer func() {

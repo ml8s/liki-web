@@ -1,13 +1,13 @@
-// Chat page tests — JWT login + POST /api/agent/naming SSE streaming.
+// Chat page tests — JWT login + POST /api/naming/agent/chat SSE streaming.
 // Mocks all backend APIs since JWT is HttpOnly and can't be set from tests.
 
 import { test, expect } from '../fixtures.js';
-import { sseLine, mockLogin, mockOrderStatus, mockNamingSSE } from '../mocks.js';
+import { sseLine, mockLogin, mockOrderStatus, mockChatHistory, mockNamingSSE, setupAuthenticatedMocks } from '../mocks.js';
 
 // ── chat-specific mock helpers ──
 
 async function mockLoginError(page) {
-  await page.route('**/api/auth/login', async (route) => {
+  await page.route('**/api/naming/auth/login', async (route) => {
     await route.fulfill({
       status: 401,
       contentType: 'application/json',
@@ -17,15 +17,15 @@ async function mockLoginError(page) {
 }
 
 async function mockLoginMulti(page) {
-  await page.route('**/api/auth/login', async (route) => {
+  await page.route('**/api/naming/auth/login', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         data: {
           orders: [
-            { order_id: 'o-001', summary: '起名服务 #1', expires_at: '2027-01-01T00:00:00Z', has_birth_info: false },
-            { order_id: 'o-002', summary: '起名服务 #2', expires_at: '2027-02-01T00:00:00Z', has_birth_info: true },
+            { order_id: 'o-001', summary: '起名服务 #1', expires_at: '2027-01-01T00:00:00Z' },
+            { order_id: 'o-002', summary: '起名服务 #2', expires_at: '2027-02-01T00:00:00Z' },
           ],
         },
       }),
@@ -34,7 +34,7 @@ async function mockLoginMulti(page) {
 }
 
 async function mockOrderStatusExpired(page, orderID = 'e2e-order-123') {
-  await page.route(`**/api/orders/${orderID}/status`, async (route) => {
+  await page.route(`**/api/naming/orders/${orderID}/status`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -46,7 +46,7 @@ async function mockOrderStatusExpired(page, orderID = 'e2e-order-123') {
 }
 
 async function mockOrderSelect(page, orderID = 'o-001') {
-  await page.route('**/api/orders/select', async (route) => {
+  await page.route('**/api/naming/orders/select', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -58,9 +58,9 @@ async function mockOrderSelect(page, orderID = 'o-001') {
 // ── shared flows ──
 
 async function gotoChat(page, lang = 'zh-Hans') {
-  await page.goto(`/${lang}/chat.html`);
-  await page.waitForSelector('.chat-shell');
-  await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 10000 });
+  await page.goto(`/${lang}/naming/chat`);
+  await page.waitForSelector('#view-login', { timeout: 15000 });
+  await expect(page.locator('#view-login')).toBeVisible({ timeout: 10000 });
 }
 
 async function enterChatViaLogin(page) {
@@ -105,7 +105,7 @@ const SSE_ERROR_CASES = [
   {
     name: 'HTTP 500 shows in toast',
     setup: async (page) => {
-      await page.route('**/api/agent/naming', async (route) => {
+      await page.route('**/api/naming/agent/chat', async (route) => {
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -121,7 +121,7 @@ const SSE_ERROR_CASES = [
   {
     name: '401 during SSE returns to login state',
     setup: async (page) => {
-      await page.route('**/api/agent/naming', async (route) => {
+      await page.route('**/api/naming/agent/chat', async (route) => {
         await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' });
       });
     },
@@ -132,7 +132,7 @@ const SSE_ERROR_CASES = [
   {
     name: 'SSE abort mid-stream preserves partial content',
     setup: async (page) => {
-      await page.route('**/api/agent/naming', async (route) => {
+      await page.route('**/api/naming/agent/chat', async (route) => {
         await route.fulfill({
           status: 200,
           headers: { 'Content-Type': 'text/event-stream' },
@@ -151,7 +151,7 @@ const SSE_ERROR_CASES = [
   {
     name: 'SSE partial content preserved on stream end',
     setup: async (page) => {
-      await page.route('**/api/agent/naming', async (route) => {
+      await page.route('**/api/naming/agent/chat', async (route) => {
         await route.fulfill({
           status: 200,
           headers: { 'Content-Type': 'text/event-stream' },
@@ -188,7 +188,7 @@ test.describe('Chat page', () => {
     await gotoChat(page);
     await expect(page.locator('.login-overlay')).toBeVisible();
     await expect(page.locator('.login-card button')).toContainText('继续');
-    await expect(page.locator('.chat-shell')).toBeVisible();
+    await expect(page.locator('.chat-shell')).not.toBeVisible();
   });
 
   test('login button is disabled when email is empty', async () => {
@@ -199,13 +199,12 @@ test.describe('Chat page', () => {
   // ── login flow ──
 
   test('successful login with single order transitions to chat', async () => {
-    await mockLogin(page);
-    await mockOrderStatus(page);
+    await setupAuthenticatedMocks(page);
     await gotoChat(page);
     await enterChatViaLogin(page);
 
     await expect(page.locator('.login-overlay')).not.toBeVisible();
-    await expect(page.locator('.msg-asst')).toBeVisible();
+    await expect(page.locator('.chat-input-bar')).toBeVisible();
   });
 
   test('login error shows inline error message', async () => {
@@ -248,8 +247,7 @@ test.describe('Chat page', () => {
 
   test.describe('authenticated', () => {
     test.beforeEach(async () => {
-      await mockLogin(page);
-      await mockOrderStatus(page);
+      await setupAuthenticatedMocks(page);
       await gotoChat(page);
       await enterChatViaLogin(page);
     });
@@ -273,8 +271,10 @@ test.describe('Chat page', () => {
       await page.locator('#chat-input').fill('帮我起名');
       await page.locator('.btn-send').click();
 
+      // Wait for streaming to finish before checking content
+      await expect(page.locator('.btn-send')).toBeVisible({ timeout: 10000 });
+
       const lastAsst = page.locator('.msg-asst').last();
-      await expect(lastAsst).toBeVisible({ timeout: 10000 });
       const html = await lastAsst.innerHTML();
       expect(html).toContain('八字分析');
       expect(html).toContain('甲木');
@@ -290,7 +290,7 @@ test.describe('Chat page', () => {
     });
 
     test('stop button appears during streaming and aborts', async () => {
-      await page.route('**/api/agent/naming', () => new Promise(() => {}));
+      await page.route('**/api/naming/agent/chat', () => new Promise(() => {}));
 
       await page.locator('#chat-input').fill('hi');
       await page.locator('.btn-send').click();
@@ -327,7 +327,7 @@ test.describe('Chat page', () => {
       await page.locator('.btn-send').click();
       await expect(page.locator('.error-toast')).toBeVisible({ timeout: 5000 });
 
-      await page.locator('.error-toast button').click();
+      await page.locator('#error-toast-close').click();
       await expect(page.locator('.error-toast')).not.toBeVisible();
     });
 
@@ -347,13 +347,40 @@ test.describe('Chat page', () => {
     }
   });
 
+  // ── chat history on re-entry ──
+
+  test('chat history renders on re-entry', async () => {
+    await mockChatHistory(page, 'e2e-order-123', [
+      { role: 'user', content: '我的姓氏是陈', created_at: '2027-06-01T10:00:00Z' },
+      { role: 'assistant', content: '好的，请提供出生日期', created_at: '2027-06-01T10:00:01Z' },
+      { role: 'user', content: '2024年5月15日早上8点，北京', created_at: '2027-06-01T10:00:30Z' },
+      { role: 'assistant', content: '## 起名建议\n\n推荐：**陈明轩**', created_at: '2027-06-01T10:01:00Z' },
+    ]);
+    await mockLogin(page);
+    await mockOrderStatus(page);
+    await gotoChat(page);
+    await enterChatViaLogin(page);
+
+    await expect(page.locator('.msg-user').first()).toContainText('我的姓氏是陈');
+    await expect(page.locator('.msg-asst').last()).toContainText('陈明轩');
+  });
+
+  test('empty chat history shows greeting', async () => {
+    await mockChatHistory(page, 'e2e-order-123', []);
+    await mockLogin(page);
+    await mockOrderStatus(page);
+    await gotoChat(page);
+    await enterChatViaLogin(page);
+
+    await expect(page.locator('.msg-asst').first()).toContainText('起名顾问');
+  });
+
   // ── mobile ──
 
   test.describe('mobile viewport', () => {
     test.beforeEach(async () => {
       await page.setViewportSize({ width: 375, height: 812 });
-      await mockLogin(page);
-      await mockOrderStatus(page);
+      await setupAuthenticatedMocks(page);
       await gotoChat(page);
       await enterChatViaLogin(page);
     });
@@ -367,7 +394,7 @@ test.describe('Chat page', () => {
       await expect(page.locator('.msg-user')).toContainText('你好');
     });
 
-    test('shows header in compact layout', async ({ context }) => {
+    test('shows login card in compact layout', async ({ context }) => {
       // Need fresh page — only check layout before entering chat.
       await page.close();
       page = await context.newPage();
@@ -375,7 +402,7 @@ test.describe('Chat page', () => {
       await mockLogin(page);
       await mockOrderStatus(page);
       await gotoChat(page);
-      await expect(page.locator('header')).toBeVisible();
+      await expect(page.locator('#view-login')).toBeVisible();
     });
   });
 

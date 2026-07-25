@@ -1,0 +1,113 @@
+---
+import { t } from '../i18n.js';
+import { v } from '../version.js';
+import LangSwitcher from '../components/LangSwitcher.astro';
+import Footer from '../components/Footer.astro';
+
+export interface Props {
+  locale: string;
+  page: string;
+  heading?: string;
+  metaDesc?: string;
+  type?: 'article' | 'brand' | 'bare';
+  twitterCard?: string;
+  viewportFit?: boolean;
+}
+
+const {
+  locale,
+  page,
+  heading = '',
+  metaDesc = '',
+  type = 'article',
+  twitterCard = 'summary',
+  viewportFit = false,
+} = Astro.props;
+
+const pagePath = page === 'index' ? '' : page;
+const canonical = `https://liki.hk/${locale}/${pagePath ? pagePath + '/' : ''}`;
+const ogImage = 'https://liki.hk/img/og-image.png';
+---
+
+<!DOCTYPE html>
+<html lang={locale}>
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<link rel="canonical" href={canonical}>
+<link rel="alternate" hreflang="zh-Hant" href={`https://liki.hk/zh-Hant/${pagePath}`}>
+<link rel="alternate" hreflang="zh-Hans" href={`https://liki.hk/zh-Hans/${pagePath}`}>
+<link rel="alternate" hreflang="en" href={`https://liki.hk/en/${pagePath}`}>
+<link rel="alternate" hreflang="x-default" href={`https://liki.hk/zh-Hant/${pagePath}`}>
+
+<meta name="description" content={metaDesc || t(locale, `${page}.metaDesc`)}>
+<meta name="viewport" content={`width=device-width, initial-scale=1.0${viewportFit ? ', viewport-fit=cover' : ''}`}>
+<meta property="og:title" content={t(locale, `${page}.meta.ogTitle`)}>
+<meta property="og:description" content={t(locale, `${page}.meta.ogDesc`)}>
+<meta property="og:url" content={canonical}>
+<meta property="og:type" content="website">
+<meta property="og:image" content={ogImage}>
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content={twitterCard}>
+<meta name="twitter:title" content={t(locale, `${page}.meta.twitterTitle`)}>
+<meta name="twitter:description" content={t(locale, `${page}.meta.twitterDesc`)}>
+<meta name="twitter:image" content={ogImage}>
+
+<title>{t(locale, `${page}.title`)} · {t(locale, 'site.name')}</title>
+
+<slot name="head" />
+
+<link rel="stylesheet" href={`/css/app.css?v=${v}`}>
+</head>
+<body class="bg-stone-50">
+
+{type === 'bare' ? (
+  <slot />
+) : (
+  <>
+  <div style="display:flex;flex-direction:column;min-height:100vh;min-height:100dvh">
+
+  <a href="#main" class="skip-link">{t(locale, 'a11y.skipLink')}</a>
+
+  {type === 'brand' ? (
+  <header class="header-dark page-header">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div><a href={`/${locale}/`} class="text-xl font-brand tracking-tight brand-link">{heading}</a></div>
+      <div class="flex items-center gap-3">
+        <LangSwitcher locale={locale} />
+      </div>
+    </div>
+  </header>
+) : (
+  <header class="header-dark page-header">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href={`/${locale}/`} class="back-link">{t(locale, 'site.backHome')}</a>
+      <h1 class="text-xl font-bold">{heading}</h1>
+      <div class="flex items-center gap-3">
+        <LangSwitcher locale={locale} />
+      </div>
+    </div>
+  </header>
+)}
+
+<main id="main" class={type === 'article' ? 'page-main page-main--py' : 'page-main'} tabindex="-1">
+  {type === 'article' ? <div class="page-card"><slot /></div> : <slot />}
+</main>
+
+<Footer locale={locale} />
+
+  </div>
+
+  <script is:inline>
+    fetch('/api/analytics/pageview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: location.pathname }),
+    }).catch(function(){});
+  </script>
+  </>
+)}
+</body>
+</html>

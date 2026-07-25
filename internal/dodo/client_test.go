@@ -15,14 +15,14 @@ import (
 	"github.com/dodopayments/dodopayments-go/option"
 	standardwebhooks "github.com/standard-webhooks/standard-webhooks/libraries/go"
 
-	"liki_web/internal/product"
+	"liki-web/internal/product"
 )
 
 // helperKey is a 32-byte raw key whose base64 is in helperSecret.
 var helperKey = []byte("0123456789abcdef0123456789abcdef") // 32 bytes
 
 // helperSecret is the whsec_<base64> form of helperKey.
-const helperSecret = "whsec_MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+const helperSecret = "whsec_MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=" //nolint:gosec
 
 // helperSign signs a payload with helperKey and returns signature headers.
 func helperSign(t *testing.T, msgID string, body string) http.Header {
@@ -50,6 +50,7 @@ func newTestClient() *Client {
 // --- VerifyWebhook tests (uses official Dodo SDK Unwrap) ---
 
 func TestVerifyWebhook_PaymentSucceeded(t *testing.T) {
+	t.Parallel()
 	payload := `{"type":"payment.succeeded","business_id":"bus_1","timestamp":"2026-01-01T00:00:00Z","data":{"payment_id":"pay_1","total_amount":990,"customer":{"customer_id":"cus_1","email":"test@example.com","name":"Test"},"metadata":{"order_id":"order-1","email":""}}}}`
 	headers := helperSign(t, "msg_789", payload)
 
@@ -76,6 +77,7 @@ func TestVerifyWebhook_PaymentSucceeded(t *testing.T) {
 }
 
 func TestVerifyWebhook_EmailFromCustomer(t *testing.T) {
+	t.Parallel()
 	payload := `{"type":"payment.succeeded","business_id":"bus_1","timestamp":"2026-01-01T00:00:00Z","data":{"payment_id":"pay_2","total_amount":100,"customer":{"customer_id":"cus_2","email":"customer@test.com","name":"Cust"},"metadata":{"order_id":"order-2","email":""}}}}`
 	headers := helperSign(t, "msg_abc", payload)
 
@@ -89,6 +91,7 @@ func TestVerifyWebhook_EmailFromCustomer(t *testing.T) {
 }
 
 func TestVerifyWebhook_EmailFallbackToMetadata(t *testing.T) {
+	t.Parallel()
 	payload := `{"type":"payment.succeeded","business_id":"bus_1","timestamp":"2026-01-01T00:00:00Z","data":{"payment_id":"pay_3","total_amount":200,"customer":{"customer_id":"cus_3","email":"","name":"Cust"},"metadata":{"order_id":"order-3","email":"meta@test.com"}}}}`
 	headers := helperSign(t, "msg_def", payload)
 
@@ -102,6 +105,7 @@ func TestVerifyWebhook_EmailFallbackToMetadata(t *testing.T) {
 }
 
 func TestVerifyWebhook_NonPayment(t *testing.T) {
+	t.Parallel()
 	payload := `{"type":"refund.succeeded","business_id":"bus_1","timestamp":"2026-01-01T00:00:00Z","data":{"payment_id":"pay_4","total_amount":100,"customer":{"customer_id":"cus_4","email":"","name":"C"},"metadata":{"order_id":"order-4","email":""}}}}`
 	headers := helperSign(t, "msg_ghi", payload)
 
@@ -115,6 +119,7 @@ func TestVerifyWebhook_NonPayment(t *testing.T) {
 }
 
 func TestVerifyWebhook_BadSignature(t *testing.T) {
+	t.Parallel()
 	body := []byte(`{"type":"test"}`)
 	headers := http.Header{
 		"Webhook-Id":        {"msg_bad"},
@@ -128,6 +133,7 @@ func TestVerifyWebhook_BadSignature(t *testing.T) {
 }
 
 func TestVerifyWebhook_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	body := []byte(`not json`)
 	headers := helperSign(t, "msg_jkl", string(body))
 
@@ -141,7 +147,8 @@ func TestVerifyWebhook_InvalidJSON(t *testing.T) {
 // and verifies it through the official SDK Unwrap path. If this test fails,
 // the DODO_WEBHOOK_KEY in .env is invalid or has been rotated.
 func TestVerifyWebhook_RealKey(t *testing.T) {
-	const secret = "whsec_/9fvZdg0IQrgxJ55H4yerZoUrn38x0ZA"
+	t.Parallel()
+	const secret = "whsec_/9fvZdg0IQrgxJ55H4yerZoUrn38x0ZA" //nolint:gosec
 
 	rawKey, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(secret, "whsec_"))
 	if err != nil {
@@ -183,6 +190,7 @@ func TestVerifyWebhook_RealKey(t *testing.T) {
 
 // TestRealPayloadParses confirms Dodo's webhook JSON matches the SDK structs.
 func TestRealPayloadParses(t *testing.T) {
+	t.Parallel()
 	const body = `{"business_id":"bus_0NeNx5oyfSqpPlqd9vNNt","data":{"billing":{"city":"Chang Sha Shi","country":"CN","state":"Hu Nan sheng","street":"Hengda Yayuan （Northwest Gate）,  Wan Jia Li Bei Lu, Kai Fu Qu","zipcode":"410073"},"brand_id":"bus_0NeNx5oyfSqpPlqd9vNNt","business_id":"bus_0NeNx5oyfSqpPlqd9vNNt","card_holder_name":null,"card_issuing_country":null,"card_last_four":null,"card_network":null,"card_type":null,"checkout_session_id":"cks_0Ngx30md6Tx01bE8Kcraw","created_at":"2026-06-13T10:33:11.206983Z","currency":"CNY","custom_field_responses":null,"customer":{"customer_id":"cus_0Nf6ti9AfKgZzonHRtgq2","email":"suiqiang@foxmail.com","metadata":{},"name":"Miles Sui","phone_number":"+8613973113693"},"digital_products_delivered":false,"discount_id":null,"discounts":null,"disputes":[],"error_code":null,"error_message":null,"invoice_id":"inv_0Ngx37uRimY678alVnawL","invoice_url":"https://test.dodopayments.com/invoices/payments/pay_0Ngx37uRimY678ae3uiSZ","metadata":{"email":"","order_id":"e03494f2-d9f4-4af2-97dc-cee4faa20e5c"},"payload_type":"Payment","payment_id":"pay_0Ngx37uRimY678ae3uiSZ","payment_link":"https://test.checkout.dodopayments.com/W7tRl8K5","payment_method":"wallet","payment_method_type":"we_chat_pay","payment_provider":"dodo","product_cart":[{"product_id":"pdt_0NfnRrzO5xcK5HfLZv1jZ","quantity":1}],"refund_status":null,"refunds":[],"retry_attempt":0,"settlement_amount":990,"settlement_currency":"USD","settlement_tax":0,"status":"succeeded","subscription_id":null,"tax":0,"total_amount":6963,"updated_at":null},"timestamp":"2026-06-13T10:33:35.160144Z","type":"payment.succeeded"}`
 
 	var event dodopayments.UnwrapWebhookEvent
@@ -211,6 +219,7 @@ func TestRealPayloadParses(t *testing.T) {
 }
 
 func TestNew_LiveMode(t *testing.T) {
+	t.Parallel()
 	c := New("sk_live", "whsec_test", false, nil)
 	if c == nil {
 		t.Fatal("New returned nil")
@@ -225,6 +234,7 @@ func TestNew_LiveMode(t *testing.T) {
 }
 
 func TestNew_TestMode(t *testing.T) {
+	t.Parallel()
 	c := New("sk_test", "whsec_test", true, nil)
 	if c == nil {
 		t.Fatal("New returned nil")
@@ -246,6 +256,7 @@ func newTestClientWithURL(apiKey, baseURL string) *Client {
 }
 
 func TestCreateCheckout_Success(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/checkouts" {
 			http.NotFound(w, r)
@@ -267,7 +278,7 @@ func TestCreateCheckout_Success(t *testing.T) {
 	c := newTestClientWithURL("sk_test", srv.URL)
 	ctx := context.Background()
 
-	result, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "user@test.com", "https://liki.hk/return", "")
+	result, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "user@test.com", "https://liki.hk/return")
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
@@ -280,6 +291,7 @@ func TestCreateCheckout_Success(t *testing.T) {
 }
 
 func TestCreateCheckout_HTTPError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":"internal"}`)) //nolint:errcheck
@@ -289,19 +301,20 @@ func TestCreateCheckout_HTTPError(t *testing.T) {
 	c := newTestClientWithURL("sk_test", srv.URL)
 	ctx := context.Background()
 
-	_, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "", "https://liki.hk/return", "")
+	_, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
 	if err == nil {
 		t.Fatal("expected error for 500 response")
 	}
 }
 
 func TestCreateCheckout_InvalidBaseURL(t *testing.T) {
+	t.Parallel()
 	// Use an unroutable address to trigger connection error.
 	c := newTestClientWithURL("sk_test", "http://127.0.0.1:1")
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "", "https://liki.hk/return", "")
+	_, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
 	if err == nil {
 		t.Fatal("expected connection error for invalid URL")
 	}

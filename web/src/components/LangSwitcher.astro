@@ -1,0 +1,77 @@
+---
+const { locale } = Astro.props;
+
+const langs = [
+  { code: 'zh-Hans', name: '简体中文' },
+  { code: 'zh-Hant', name: '繁體中文' },
+  { code: 'en',      name: 'English'   },
+];
+const sorted = [
+  ...langs.filter(l => l.code === locale),
+  ...langs.filter(l => l.code !== locale),
+];
+---
+
+<div id="lang-switcher" style="position:relative">
+  <button id="lang-toggle" data-lang-toggle class="btn-header" aria-label="Switch language" aria-expanded="false">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+  </button>
+  <div id="lang-dropdown" data-lang-dropdown class="hidden absolute right-0 top-full mt-1 bg-paper border border-stone-100 rounded-lg py-1 z-50 min-w-[130px]" role="menu">
+    {sorted.map(l => (
+      <button type="button" data-lang={l.code} data-lang-option={l.code} class={l.code === locale ? 'bg-wood-soft text-wood font-medium block px-4 py-2 text-sm transition-colors' : 'text-stone-400 hover:bg-stone-50 block px-4 py-2 text-sm transition-colors'} role="menuitem">
+        {l.name}
+      </button>
+    ))}
+  </div>
+</div>
+
+<script>
+(function() {
+  var toggle = document.getElementById('lang-toggle');
+  var dropdown = document.getElementById('lang-dropdown');
+  if (!toggle || !dropdown) return;
+
+  function open() {
+    dropdown.classList.remove('hidden');
+    toggle.setAttribute('aria-expanded', 'true');
+  }
+  function close() {
+    dropdown.classList.add('hidden');
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function getLang() {
+    return (location.pathname.match(/^\/(zh-Hans|zh-Hant|en)\//) || [])[1] || 'zh-Hant';
+  }
+  window.Liki = window.Liki || {};
+  window.Liki.localeFromPath = getLang;
+
+  toggle.addEventListener('click', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    dropdown.classList.contains('hidden') ? open() : close();
+  });
+
+  dropdown.querySelectorAll('[data-lang]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var loc = this.getAttribute('data-lang');
+      var path = location.pathname.replace(/^\/(zh-Hans|zh-Hant|en)\/?/, '/');
+      location.href = '/' + loc + (path === '/' ? '/' : path);
+    });
+  });
+
+  document.addEventListener('click', function(e) {
+    var sw = document.getElementById('lang-switcher');
+    if (sw && !sw.contains(e.target)) close();
+  });
+
+  toggle.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { close(); toggle.focus(); }
+  });
+  dropdown.querySelectorAll('[data-lang]').forEach(function(btn) {
+    btn.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { close(); toggle.focus(); }
+    });
+  });
+})();
+</script>

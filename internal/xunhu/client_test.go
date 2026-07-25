@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"liki_web/internal/product"
+	"liki-web/internal/product"
 )
 
 func TestSign(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		params  map[string]string
@@ -48,6 +49,7 @@ func TestSign(t *testing.T) {
 }
 
 func TestSign_DifferentSecret(t *testing.T) {
+	t.Parallel()
 	params := map[string]string{"appid": "test", "version": "1.0"}
 	if sign(params, "secretA") == sign(params, "secretB") {
 		t.Error("sign() should differ with different secrets")
@@ -55,6 +57,7 @@ func TestSign_DifferentSecret(t *testing.T) {
 }
 
 func TestSign_DifferentParams(t *testing.T) {
+	t.Parallel()
 	a := map[string]string{"appid": "test", "version": "1.0"}
 	b := map[string]string{"appid": "test", "version": "1.1"}
 	if sign(a, "secret") == sign(b, "secret") {
@@ -63,6 +66,7 @@ func TestSign_DifferentParams(t *testing.T) {
 }
 
 func TestSign_OrderIndependent(t *testing.T) {
+	t.Parallel()
 	// Same key-values in different map iteration order should produce same hash.
 	// We create equivalent map literal — Go map iteration is random, so
 	// calling sign twice on the same map tests ordering stability.
@@ -84,6 +88,7 @@ func newTestClient(srv *httptest.Server) *Client {
 }
 
 func TestCreateCheckout_Success(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -118,7 +123,7 @@ func TestCreateCheckout_Success(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	result, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "user@test.com", "https://liki.hk/return", "")
+	result, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "user@test.com", "https://liki.hk/return")
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
@@ -134,6 +139,7 @@ func TestCreateCheckout_Success(t *testing.T) {
 }
 
 func TestCreateCheckout_APIError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
@@ -144,28 +150,30 @@ func TestCreateCheckout_APIError(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return", "")
+	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
 	if err == nil {
 		t.Fatal("expected error for API error response")
 	}
 }
 
 func TestCreateCheckout_HTTPError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return", "")
+	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
 	if err == nil {
 		t.Fatal("expected error for 500 response")
 	}
 }
 
 func TestCreateCheckout_Timeout(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(2 * time.Second)
+		time.Sleep(500 * time.Millisecond) // longer than client timeout (200ms)
 	}))
 	defer srv.Close()
 
@@ -173,13 +181,14 @@ func TestCreateCheckout_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
-	_, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "", "https://liki.hk/return", "")
+	_, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
 }
 
 func TestVerifyWebhook_PaymentSuccess(t *testing.T) {
+	t.Parallel()
 	c := &Client{
 		appID:     "test_appid",
 		appSecret: "test_secret",
@@ -226,6 +235,7 @@ func TestVerifyWebhook_PaymentSuccess(t *testing.T) {
 }
 
 func TestVerifyWebhook_BadSignature(t *testing.T) {
+	t.Parallel()
 	c := &Client{
 		appID:     "test_appid",
 		appSecret: "test_secret",
@@ -248,6 +258,7 @@ func TestVerifyWebhook_BadSignature(t *testing.T) {
 }
 
 func TestVerifyWebhook_MissingHash(t *testing.T) {
+	t.Parallel()
 	c := &Client{
 		appID:     "test_appid",
 		appSecret: "test_secret",
@@ -268,6 +279,7 @@ func TestVerifyWebhook_MissingHash(t *testing.T) {
 }
 
 func TestVerifyWebhook_NonPaymentStatus(t *testing.T) {
+	t.Parallel()
 	c := &Client{
 		appID:     "test_appid",
 		appSecret: "test_secret",
@@ -298,6 +310,7 @@ func TestVerifyWebhook_NonPaymentStatus(t *testing.T) {
 }
 
 func TestVerifyWebhook_InvalidBody(t *testing.T) {
+	t.Parallel()
 	c := &Client{
 		appID:     "test_appid",
 		appSecret: "test_secret",
@@ -310,6 +323,7 @@ func TestVerifyWebhook_InvalidBody(t *testing.T) {
 }
 
 func TestVerifyWebhook_EmptyBody(t *testing.T) {
+	t.Parallel()
 	c := &Client{
 		appID:     "test_appid",
 		appSecret: "test_secret",
@@ -322,6 +336,7 @@ func TestVerifyWebhook_EmptyBody(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
+	t.Parallel()
 	c := New("app_123", "secret_456")
 	if c == nil {
 		t.Fatal("New returned nil")
@@ -341,6 +356,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestDeriveWebhookURL(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		returnURL string
@@ -364,6 +380,7 @@ func TestDeriveWebhookURL(t *testing.T) {
 }
 
 func TestCreateCheckout_ProductPricing(t *testing.T) {
+	t.Parallel()
 	// Verify all known products produce a valid checkout call.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -389,7 +406,7 @@ func TestCreateCheckout_ProductPricing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := c.CreateCheckout(context.Background(), tt.prod, tt.amount, "order-1", "", "https://liki.hk/return", "")
+			result, err := c.CreateCheckout(context.Background(), tt.prod, tt.amount, "order-1", "", "https://liki.hk/return")
 			if err != nil {
 				t.Fatalf("CreateCheckout(%s): %v", tt.name, err)
 			}
@@ -401,6 +418,7 @@ func TestCreateCheckout_ProductPricing(t *testing.T) {
 }
 
 func TestCreateCheckout_ParamFormat(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "bad form", http.StatusBadRequest)
@@ -434,13 +452,14 @@ func TestCreateCheckout_ParamFormat(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return", "")
+	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
 }
 
 func TestCreateCheckout_AmountFormat(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		amount int
@@ -468,7 +487,7 @@ func TestCreateCheckout_AmountFormat(t *testing.T) {
 			defer srv.Close()
 
 			c := newTestClient(srv)
-			_, err := c.CreateCheckout(context.Background(), product.ProductNaming, tt.amount, "order-1", "", "https://liki.hk/return", "")
+			_, err := c.CreateCheckout(context.Background(), product.ProductNaming, tt.amount, "order-1", "", "https://liki.hk/return")
 			if err != nil {
 				t.Fatalf("CreateCheckout: %v", err)
 			}
@@ -477,6 +496,7 @@ func TestCreateCheckout_AmountFormat(t *testing.T) {
 }
 
 func TestVerifyWebhook_LegacyOrderID(t *testing.T) {
+	t.Parallel()
 	c := &Client{
 		appID:     "test_appid",
 		appSecret: "test_secret",
@@ -508,6 +528,7 @@ func TestVerifyWebhook_LegacyOrderID(t *testing.T) {
 }
 
 func TestCreateCheckout_HashPresent(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm() //nolint:errcheck
 		h := r.Form.Get("hash")
@@ -525,13 +546,14 @@ func TestCreateCheckout_HashPresent(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return", "")
+	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
 }
 
 func TestSign_Deterministic(t *testing.T) {
+	t.Parallel()
 	params := map[string]string{
 		"appid":          "201906182089",
 		"version":        "1.1",

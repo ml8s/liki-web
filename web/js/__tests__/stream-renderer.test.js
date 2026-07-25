@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Duplicated from chat.js createStreamRenderer for unit testing the invariants.
-// The real function lives inside Vue setup() and is not directly importable.
+// The real function lives inside chat.js and is duplicated here for test isolation.
 // These tests catch regressions of the flush/accept/cancel invariants.
 function createStreamRenderer(asst, renderMD, escapeHTML, scrollDown, t) {
   let timer = null;
   let lastRender = 0;
+  let lastRenderedLen = 0;
 
   const _thinkingHTML = () => {
     if (!asst.thinking) return '';
@@ -13,10 +14,27 @@ function createStreamRenderer(asst, renderMD, escapeHTML, scrollDown, t) {
     return '<details class="thinking-block"' + open + '><summary>' + t('chat.thinking') + '</summary><div>' + escapeHTML(asst.thinking) + '</div></details>';
   };
 
-  const doRender = () => {
+  const doRender = (final = false) => {
     timer = null;
     lastRender = Date.now();
-    asst.html = _thinkingHTML() + renderMD(asst.content);
+
+    if (final) {
+      asst.html = _thinkingHTML() + renderMD(asst.content);
+      lastRenderedLen = asst.content.length;
+    } else {
+      const newContent = asst.content.slice(lastRenderedLen);
+      if (!newContent) {
+        if (lastRenderedLen === 0) asst.html = _thinkingHTML();
+        scrollDown();
+        return;
+      }
+      if (lastRenderedLen === 0) {
+        asst.html = _thinkingHTML() + renderMD(newContent);
+      } else {
+        asst.html += renderMD(newContent);
+      }
+      lastRenderedLen = asst.content.length;
+    }
     scrollDown();
   };
 
@@ -24,12 +42,12 @@ function createStreamRenderer(asst, renderMD, escapeHTML, scrollDown, t) {
     accept() {
       if (timer) return;
       const elapsed = Date.now() - lastRender;
-      if (elapsed >= 80) doRender();
-      else timer = setTimeout(doRender, 80 - elapsed);
+      if (elapsed >= 120) doRender();
+      else timer = setTimeout(() => doRender(), 120 - elapsed);
     },
     flush() {
       if (timer) { clearTimeout(timer); timer = null; }
-      doRender();
+      doRender(true);
     },
     cancel() {
       if (timer) { clearTimeout(timer); timer = null; }
@@ -68,7 +86,7 @@ describe('StreamRenderer', () => {
     expect(scrollCount).toBe(1);
   });
 
-  it('second accept within 80ms is throttled', () => {
+  it('second accept within 120ms is throttled', () => {
     // First render
     asst.content = 'a';
     renderer.accept();
@@ -87,22 +105,22 @@ describe('StreamRenderer', () => {
     expect(asst.html).toBe(afterFirst);
 
     // Advance past throttle — single render with all content
-    vi.advanceTimersByTime(80);
-    expect(asst.html).toContain('abc');
+    vi.advanceTimersByTime(120);
+    expect(asst.html).toContain('bc');
     expect(scrollCount).toBe(2); // initial + one deferred
   });
 
-  it('render immediately if 80ms elapsed since last render', () => {
+  it('render immediately if 120ms elapsed since last render', () => {
     asst.content = 'first';
     renderer.accept();
     expect(asst.html).toContain('first');
 
-    // Advance past 80ms
-    vi.advanceTimersByTime(100);
+    // Advance past 120ms
+    vi.advanceTimersByTime(130);
 
     asst.content += ' second';
-    renderer.accept(); // elapsed > 80ms → immediate render
-    expect(asst.html).toContain('first second');
+    renderer.accept(); // elapsed > 120ms → immediate render
+    expect(asst.html).toContain('second');
     expect(scrollCount).toBe(2);
   });
 

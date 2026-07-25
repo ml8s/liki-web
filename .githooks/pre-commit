@@ -12,26 +12,19 @@ else
 fi
 
 echo "=== go test ==="
-go test ./internal/...
+go test ./...
 
 echo "=== html check ==="
 node web/scripts/check-html.cjs
-
-echo "=== vue template ==="
-node web/scripts/compile-vue-template.cjs
 
 echo "=== i18n check ==="
 node web/scripts/check-i18n.cjs
 
 echo "=== vitest ==="
-if [ -f web/package.json ]; then
-  (cd web && npx vitest run js/__tests__/ 2>/dev/null) || echo "vitest: skipped (npm install required)"
-fi
-
-# Smoke test (if server running and frontend files changed)
-if git diff --cached --name-only | /bin/grep -q '^web/' && curl -sf -o /dev/null http://localhost:8080/api/health 2>/dev/null; then
-  echo "=== smoke ==="
-  (cd web && npx playwright test --config e2e/playwright.config.js journeys/smoke.spec.js 2>/dev/null) || echo "⚠ smoke test failed — fix before push"
+if [ -d web/node_modules ]; then
+  (cd web && npx vitest run js/__tests__/)
+else
+  echo "vitest: skipped (npm install required)"
 fi
 
 echo ""

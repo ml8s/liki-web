@@ -8,6 +8,7 @@ import (
 )
 
 func TestRespondJSON(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	respondJSON(w, http.StatusOK, map[string]string{"key": "value"})
 
@@ -33,6 +34,7 @@ func TestRespondJSON(t *testing.T) {
 }
 
 func TestRespondError(t *testing.T) {
+	t.Parallel()
 	w := httptest.NewRecorder()
 	respondError(w, http.StatusBadRequest, "bad_input", "something wrong")
 
@@ -52,28 +54,8 @@ func TestRespondError(t *testing.T) {
 	}
 }
 
-func TestRespondStatus(t *testing.T) {
-	w := httptest.NewRecorder()
-	respondStatus(w, http.StatusOK, "ok")
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-	}
-
-	var env envelope
-	if err := json.NewDecoder(w.Body).Decode(&env); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	data, ok := env.Data.(map[string]interface{})
-	if !ok {
-		t.Fatal("data is not a map")
-	}
-	if data["status"] != "ok" {
-		t.Errorf("status = %s, want ok", data["status"])
-	}
-}
-
 func TestRespondError_StatusCodes(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		status int
 		code   string

@@ -1,0 +1,14 @@
+# Changelog
+- 0.16.1: 英文品牌统一 Liki — Chinese Astrology Skill
+- 0.16.0: 英文品牌 Chinese Astrology（去掉 & Metaphysics Skill）
+- 0.14.0: 英文 lifebook title 去重 + CTA 统一 Life Reading + zh-Hans 空格统一
+- 0.13.7: 修复报告页 catch () 语法错误导致 E2E 报 Unexpected token ')'
+- 0.13.6: E2E a11y 修复（scrollable-region-focusable + color-contrast 4 轮），hepan/lifebook 产品页可访问性全部通过
+- 0.13.5: checkout HTTP handler 测试 + httputil 59% 覆盖；报告页骨架屏 + 30s 超时 + 错误/重试
+- 0.13.4: 报告页独立路由 /hepan/report + /lifebook/report；pipeline 测试补齐
+- 0.13.3: 代码清理（死代码、404 CSS/JS 引用、route.go Go doc、Makefile help）
+- 0.13.2: 统一报告渲染器 render-report.js；hepan + lifebook JSON 格式统一
+- 0.13.1: naming 独立域 + admin 独立域 + payment 回调化
+- 0.13.0: chat 去 Vue 改 vanilla JS，三产品页组件化
+- 0.12.8: Astro 迁移 — 旧 build-html 体系替换为 Astro 静态生成
+- 0.11.0: 架构重构 — 邮件事件回调 + Pipeline→Generator

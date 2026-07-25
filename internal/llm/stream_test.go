@@ -11,6 +11,7 @@ import (
 )
 
 func TestChatStream_Tokens(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {
 			http.NotFound(w, r)
@@ -61,6 +62,7 @@ func TestChatStream_Tokens(t *testing.T) {
 }
 
 func TestChatStream_ContextCancel(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		flusher, _ := w.(http.Flusher)
@@ -98,12 +100,13 @@ func TestChatStream_ContextCancel(t *testing.T) {
 		if ok {
 			t.Error("channel should be closed after cancel")
 		}
-	case <-time.After(5 * time.Second):
-		t.Error("channel did not close within 5s of cancel")
+	case <-time.After(500 * time.Millisecond):
+		t.Error("channel did not close within 500ms of cancel")
 	}
 }
 
 func TestChatStream_HTTPError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 	}))
@@ -124,6 +127,7 @@ func TestChatStream_HTTPError(t *testing.T) {
 }
 
 func TestChatStreamWithTools_ToolCalls(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {
 			http.NotFound(w, r)
@@ -184,6 +188,7 @@ func TestChatStreamWithTools_ToolCalls(t *testing.T) {
 }
 
 func TestChatStreamWithTools_Content(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		flusher, _ := w.(http.Flusher)
@@ -228,6 +233,7 @@ func TestChatStreamWithTools_Content(t *testing.T) {
 }
 
 func TestChatStreamWithTools_HTTPError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 	}))

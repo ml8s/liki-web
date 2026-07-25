@@ -1,0 +1,62 @@
+import js from "@eslint/js";
+
+export default [
+  {
+    ignores: [
+      "js/__tests__/",
+      "**/*.min.js",
+    ],
+  },
+  js.configs.recommended,
+  {
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "script",
+      globals: {
+        window: "readonly",
+        document: "readonly",
+        fetch: "readonly",
+        console: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        HTMLElement: "readonly",
+        HTMLFormElement: "readonly",
+        HTMLInputElement: "readonly",
+        HTMLSelectElement: "readonly",
+        HTMLTextAreaElement: "readonly",
+        FormData: "readonly",
+        URLSearchParams: "readonly",
+        URL: "readonly",
+        DOMParser: "readonly",
+        MutationObserver: "readonly",
+        IntersectionObserver: "readonly",
+        navigator: "readonly",
+        location: "readonly",
+        history: "readonly",
+        localStorage: "readonly",
+        sessionStorage: "readonly",
+        CustomEvent: "readonly",
+        Event: "readonly",
+        WebSocket: "readonly",
+        AbortController: "readonly",
+        AbortSignal: "readonly",
+        TextDecoder: "readonly",
+        TextEncoder: "readonly",
+        requestAnimationFrame: "readonly",
+        btoa: "readonly",
+        atob: "readonly",
+        i18next: "readonly",
+  
+        marked: "readonly",
+        DOMPurify: "readonly",
+      },
+    },
+    rules: {
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "no-undef": "warn",
+      "no-empty": ["error", { allowEmptyCatch: true }],
+    },
+  },
+];

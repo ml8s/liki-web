@@ -1,0 +1,47 @@
+---
+// Compile-time i18n dictionary for page JS.
+import { t } from '../i18n.js';
+
+const { locale } = Astro.props;
+
+const KEYS = [
+  'error.backOnline', 'error.offline', 'error.requestFailed',
+  'error.noCheckoutUrl',
+  'payment.qrClose', 'payment.scanQR', 'payment.qrHint',
+  'payment.qrChecking', 'payment.qrPaid',
+  'hepan.form.error.name', 'hepan.form.error.birth', 'hepan.form.error.email',
+  'hepan.cta.button',
+  'mingshu.form.error.birth', 'mingshu.form.error.request',
+  'naming.cta.errorEmail',
+  'err.network',
+  'loading',
+  'activate.errorInvalidCode', 'activate.errorUsed', 'activate.errorExpired',
+  'activate.errorNetwork', 'activate.button',
+  'mingshu.example.bazi.pillar_label', 'mingshu.example.bazi.pillar_value',
+  'mingshu.example.bazi.daymaster_label', 'mingshu.example.bazi.daymaster_value',
+  'mingshu.example.bazi.strength_label', 'mingshu.example.bazi.strength_value',
+  'mingshu.example.bazi.pattern_label', 'mingshu.example.bazi.pattern_value',
+  'mingshu.example.bazi.god_label', 'mingshu.example.bazi.god_value',
+  'mingshu.example.ziwei.palace_label', 'mingshu.example.ziwei.palace_value',
+  'mingshu.example.ziwei.rating_label', 'mingshu.example.ziwei.rating_value',
+  'mingshu.example.ziwei.pattern_label', 'mingshu.example.ziwei.pattern_value',
+];
+
+const i18nObj = {};
+for (const k of KEYS) {
+  i18nObj[k] = t(locale, k);
+}
+const payload = JSON.stringify({ i18n: i18nObj, lang: locale });
+---
+<script type="application/json" id="liki-i18n-data" set:html={payload}></script>
+<script is:inline>
+(function() {
+  var el = document.getElementById('liki-i18n-data');
+  var data = JSON.parse(el.textContent);
+  window.Liki = window.Liki || {};
+  window.Liki.lang = data.lang;
+  window.Liki.i18n = data.i18n;
+  window.Liki.t = function(key) { return data.i18n[key] || key; };
+  window.i18next = { t: window.Liki.t, language: data.lang, isInitialized: true };
+})();
+</script>

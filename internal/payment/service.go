@@ -4,105 +4,36 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
-	"sync"
-	"time"
 
-	"liki_web/internal/product"
+	"liki-web/internal/product"
 )
 
 // paymentProvider abstracts a payment gateway (Dodo, Xunhu, etc.).
 type paymentProvider interface {
-	CreateCheckout(ctx context.Context, product product.Product, amount int, orderID, email, returnURL, returnToken string) (*CheckoutResult, error)
+	CreateCheckout(ctx context.Context, product product.Product, amount int, orderID, email, returnURL string) (*CheckoutResult, error)
 	VerifyWebhook(rawBody []byte, headers http.Header) (*WebhookEvent, error)
 }
 
-type emailClient interface {
-	SendReport(ctx context.Context, to, subject, htmlBody string) error
-}
-
-// Service handles the full payment lifecycle: checkout creation, webhook processing,
-// and report retrieval.
+// Service handles payment provider operations: checkout creation and webhook verification.
+// Domain-specific stores (naming/mingshu/hepan) handle their own order lifecycle.
 type Service struct {
-	dodo       paymentProvider
-	xunhu      paymentProvider
-	email      emailClient
-	Store      *Store
-	returnURL  string
-	adminEmail string
-
-	bgCtx context.Context
-	wg    sync.WaitGroup
+	dodo      paymentProvider
+	xunhu     paymentProvider
+	returnURL string
 }
 
 // NewService creates a payment service with the given dependencies.
-func NewService(dodo, xunhu paymentProvider, email emailClient, store *Store, returnURL, adminEmail string, bgCtx context.Context) *Service {
+func NewService(dodo, xunhu paymentProvider, returnURL string) *Service {
 	return &Service{
-		dodo:       dodo,
-		xunhu:      xunhu,
-		email:      email,
-		Store:      store,
-		returnURL:  returnURL,
-		adminEmail: adminEmail,
-		bgCtx:      bgCtx,
+		dodo:      dodo,
+		xunhu:     xunhu,
+		returnURL: returnURL,
 	}
 }
 
-// Shutdown waits for in-flight background goroutines (e.g. email sends) to finish,
-// or returns when ctx is cancelled. Derive from the shutdown deadline so a stuck
-// SMTP connection doesn't block forever.
-func (s *Service) Shutdown(ctx context.Context) error {
-	done := make(chan struct{})
-	go func() {
-		s.wg.Wait()
-		close(done)
-	}()
-	select {
-	case <-done:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-// CreateCheckout creates a checkout session for an existing order via the given provider.
-// The returnToken is an HMAC-SHA256 token used to verify the payment return callback.
-func (s *Service) CreateCheckout(ctx context.Context, provider, orderID, userEmail, returnToken string) (*CheckoutResult, error) {
-	order, err := s.Store.GetOrder(ctx, orderID)
-	if err != nil {
-		return nil, fmt.Errorf("payment: checkout: %w", err)
-	}
-
-	p, err := s.provider(provider)
-	if err != nil {
-		return nil, err
-	}
-
-	if userEmail != "" {
-		if err := s.Store.UpdateEmail(ctx, orderID, userEmail); err != nil {
-			return nil, fmt.Errorf("payment: update email: %w", err)
-		}
-	} else {
-		userEmail = order.Email
-	}
-	if err := s.Store.UpdateProvider(ctx, orderID, provider); err != nil {
-		return nil, fmt.Errorf("payment: update provider: %w", err)
-	}
-
-	returnURL := s.returnURL + "/api/payments/return/" + orderID
-	if returnToken != "" {
-		returnURL += "?t=" + returnToken
-	}
-	result, err := p.CreateCheckout(ctx, order.Product, order.Amount, orderID, userEmail, returnURL, returnToken)
-	if err != nil {
-		return nil, fmt.Errorf("payment: %s checkout: %w", provider, err)
-	}
-	return result, nil
-}
-
-// provider returns the payment provider for the given name.
-func (s *Service) provider(name string) (paymentProvider, error) {
+// Provider returns the payment provider for the given name.
+func (s *Service) Provider(name string) (paymentProvider, error) {
 	switch name {
 	case ProviderDodo:
 		return s.dodo, nil
@@ -113,8 +44,12 @@ func (s *Service) provider(name string) (paymentProvider, error) {
 	}
 }
 
-// HandleWebhook processes a payment webhook event from any provider.
-func (s *Service) HandleWebhook(ctx context.Context, body []byte, headers http.Header) error {
+// ReturnURL returns the configured return URL for post-payment redirect.
+func (s *Service) ReturnURL() string { return s.returnURL }
+
+// VerifyWebhook attempts to verify a raw webhook payload against all registered providers.
+// It returns the first matching event, or an error if all providers reject it.
+func (s *Service) VerifyWebhook(body []byte, headers http.Header) (*WebhookEvent, error) {
 	var errs []error
 	for _, p := range []paymentProvider{s.dodo, s.xunhu} {
 		event, err := p.VerifyWebhook(body, headers)
@@ -123,98 +58,9 @@ func (s *Service) HandleWebhook(ctx context.Context, body []byte, headers http.H
 			continue
 		}
 		if event == nil {
-			errs = append(errs, fmt.Errorf("nil event from provider"))
 			continue
 		}
-		return s.handleEvent(ctx, event)
+		return event, nil
 	}
-	return fmt.Errorf("payment: webhook verify: %w: %w", ErrWebhookVerify, errors.Join(errs...))
-}
-
-func (s *Service) handleEvent(ctx context.Context, event *WebhookEvent) error {
-	if event.Type != EventPaymentSucceeded {
-		level := slog.Info
-		if event.Type == EventPaymentRefunded || event.Type == EventPaymentDisputed {
-			level = slog.Error
-		}
-		level("payment: non-payment webhook event", "type", event.Type, "order_id", event.Data.OrderID)
-		return nil
-	}
-
-	orderID := event.Data.OrderID
-	if orderID == "" {
-		slog.Error("payment: webhook with empty order_id", "payment_id", event.Data.PaymentID)
-		return fmt.Errorf("payment: empty order_id in webhook event")
-	}
-	newPayment, email, product, err := s.Store.MarkPaidIdempotent(ctx, orderID, event.Data.PaymentID)
-	if err != nil {
-		return fmt.Errorf("payment: mark paid: %w", err)
-	}
-
-	if newPayment {
-		if email != "" {
-			customerHTML := fmt.Sprintf(`<p>感谢购买！<a href="%s/chat">点击开始起名</a></p>
-				<p>7 天内可随时回来继续磋商，输入此邮箱即可恢复对话。</p>
-				<p>如有疑问请回复此邮件。</p>`, s.returnURL)
-			s.wg.Add(1)
-			go func() {
-				defer s.wg.Done()
-				if err := s.email.SendReport(s.bgCtx, email, product.EmailSubject(), customerHTML); err != nil {
-					slog.Error("send customer report", "err", err)
-				}
-			}()
-		}
-
-		if s.adminEmail != "" {
-			adminHTML := fmt.Sprintf(
-				`<p>新订单 <strong>%s</strong> | %s</p>
-				<p>产品: %s | 金额: ¥%.2f | 用户: %s</p>
-				<p><a href="%s/report/%s">查看报告</a></p>`,
-				orderID, time.Now().UTC().Format(time.DateTime),
-				product, float64(event.Data.Amount)/100, email,
-				s.returnURL, orderID,
-			)
-			s.wg.Add(1)
-			go func() {
-				defer s.wg.Done()
-				if err := s.email.SendReport(s.bgCtx, s.adminEmail,
-					fmt.Sprintf("[灵机] %s · %s", product, orderID), adminHTML); err != nil {
-					slog.Error("send admin report", "err", err)
-				}
-			}()
-		}
-	}
-
-	return nil
-}
-
-// GetOrderData returns order status, product, and llm_json for the retry endpoint.
-func (s *Service) GetOrderData(ctx context.Context, orderID string) (OrderStatus, product.Product, string, error) {
-	order, err := s.Store.GetOrder(ctx, orderID)
-	if err != nil {
-		return "", "", "", err
-	}
-	return order.Status, order.Product, order.LlmJSON, nil
-}
-
-// GetReport returns the full report data for an order.
-func (s *Service) GetReport(ctx context.Context, orderID string) (*ReportData, error) {
-	order, err := s.Store.GetOrder(ctx, orderID)
-	if err != nil {
-		return nil, fmt.Errorf("payment: get report: %w", err)
-	}
-
-	rd := &ReportData{
-		OrderID:   order.OrderID,
-		Product:   order.Product,
-		Status:    order.Status,
-		Email:     order.Email,
-		ChartJSON: order.ChartJSON,
-	}
-
-	if order.Status == OrderPaid {
-		rd.LlmJSON = order.LlmJSON
-	}
-
-	return rd, nil
+	return nil, fmt.Errorf("payment: verify webhook: %w", errors.Join(errs...))
 }

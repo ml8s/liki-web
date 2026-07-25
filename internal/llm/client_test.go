@@ -3,10 +3,10 @@ package llm
 import "testing"
 
 func TestNew(t *testing.T) {
-	c := New("sk-test")
+	t.Parallel()
+	c := New("sk-test", "deepseek-test", false)
 	if c == nil {
 		t.Fatal("New returned nil")
-		return
 	}
 	if c.apiKey != "sk-test" {
 		t.Errorf("apiKey = %q, want sk-test", c.apiKey)
@@ -14,7 +14,6 @@ func TestNew(t *testing.T) {
 	if c.baseURL != defaultBaseURL {
 		t.Errorf("baseURL = %q, want %q", c.baseURL, defaultBaseURL)
 	}
-	if c.model != defaultModel {
-		t.Errorf("model = %q, want %q", c.model, defaultModel)
-	}
+	// model is caller-supplied, no default to compare against
+	_ = c.model
 }

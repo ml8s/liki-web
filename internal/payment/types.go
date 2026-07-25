@@ -2,68 +2,10 @@
 package payment
 
 import (
+	"database/sql"
 	"errors"
-	"time"
-
-	"liki_web/internal/product"
+	"fmt"
 )
-
-// ---------------------------------------------------------------------------
-// Order
-// ---------------------------------------------------------------------------
-
-// OrderStatus is the payment status of an order.
-type OrderStatus string
-
-const (
-	OrderPending OrderStatus = "pending"
-	OrderPaid    OrderStatus = "paid"
-)
-
-// Order holds the database record for a payment order.
-type Order struct {
-	OrderID       string
-	Product       product.Product
-	Amount        int
-	Currency      string
-	Provider      string
-	Email         string
-	ChartJSON     string
-	LlmJSON       string
-	BirthInfo     string
-	ChatExpiresAt string
-	Status        OrderStatus
-	PaymentID     string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-}
-
-// ChatExpiryDuration is the chat window from payment success.
-const ChatExpiryDuration = 7 * 24 * time.Hour
-
-// DefaultChatExpiry returns the expiry time for a newly paid naming order.
-func DefaultChatExpiry() string {
-	return time.Now().Add(ChatExpiryDuration).UTC().Format(time.DateTime)
-}
-
-// ---------------------------------------------------------------------------
-// Chat message
-// ---------------------------------------------------------------------------
-
-// Role is the chat message role.
-type Role string
-
-const (
-	RoleUser      Role = "user"
-	RoleAssistant Role = "assistant"
-	RoleTool      Role = "tool"
-)
-
-// ChatMessage holds a single persisted chat message.
-type ChatMessage struct {
-	Role    Role   `json:"role"`
-	Content string `json:"content"`
-}
 
 // ---------------------------------------------------------------------------
 // Checkout
@@ -83,8 +25,6 @@ type CheckoutResult struct {
 // Webhook event types from payment providers.
 const (
 	EventPaymentSucceeded = "payment.succeeded"
-	EventPaymentRefunded  = "payment.refunded"
-	EventPaymentDisputed  = "payment.disputed"
 )
 
 // Provider names.
@@ -108,26 +48,20 @@ type WebhookEventData struct {
 }
 
 // ---------------------------------------------------------------------------
-// Report
-// ---------------------------------------------------------------------------
-
-// ReportData holds the full report data for a paid order.
-type ReportData struct {
-	OrderID   string          `json:"order_id"`
-	Product   product.Product `json:"product"`
-	Status    OrderStatus     `json:"status"`
-	Email     string          `json:"email,omitempty"`
-	ChartJSON string          `json:"chart_json"`
-	LlmJSON   string          `json:"llm_json"`
-}
-
-// ---------------------------------------------------------------------------
 // Sentinel errors
 // ---------------------------------------------------------------------------
 
 var (
-	ErrOrderNotFound   = errors.New("payment: order not found")
-	ErrOrderNotPaid    = errors.New("payment: order not paid")
-	ErrWebhookVerify   = errors.New("payment: webhook verification failed")
 	ErrUnknownProvider = errors.New("payment: unknown provider")
 )
+
+
+// OpenDB opens a SQLite database and creates it if needed.
+func OpenDB(path string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite", path+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)")
+	if err != nil {
+		return nil, fmt.Errorf("open db: %w", err)
+	}
+	db.SetMaxOpenConns(1)
+	return db, nil
+}

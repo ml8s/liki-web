@@ -1,13 +1,13 @@
 # Liki — AI Chinese Metaphysics Service
-# Architecture: liki-engine (JSON-RPC) + liki-web (API + frontend) + caddy (reverse proxy)
+# Architecture: engine (JSON-RPC) + web (API + frontend) + caddy (reverse proxy)
 # Build:  docker compose -f deploy/liki/docker-compose.yml build
 # Start:  docker compose -f deploy/liki/docker-compose.yml up -d
 
 services:
-  liki-engine:
+  engine:
     image: liki-engine:latest
     build:
-      context: ../../../liki_engine
+      context: ../../../liki-engine
       dockerfile: deploy/Dockerfile
     expose: ["8082"]
     restart: unless-stopped
@@ -19,7 +19,7 @@ services:
           memory: 256M
           cpus: '1'
 
-  liki-web:
+  web:
     image: liki-web:latest
     build:
       context: ../..
@@ -31,11 +31,12 @@ services:
     environment:
       - LISTEN_ADDR=:8081
       - DB_PATH=/var/lib/liki/liki.db
-      - LIKI_ENGINE_URL=http://liki-engine:8082/jsonrpc
+      - LIKI_ENGINE_URL=http://engine:8082/jsonrpc
+      - LIKI_SKILLS_DIR=/web/skills
     volumes:
       - liki_data:/var/lib/liki
     depends_on:
-      liki-engine:
+      engine:
         condition: service_started
     deploy:
       resources:
@@ -52,10 +53,9 @@ services:
       - DOMAIN=${DOMAIN:-liki.hk}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - web_data:/srv/web:ro
       - caddy_data:/data
     depends_on:
-      liki-web:
+      web:
         condition: service_started
     restart: unless-stopped
     deploy:
@@ -68,5 +68,3 @@ volumes:
   liki_data:
     name: liki_data
   caddy_data:
-  web_data:
-    name: liki_web_data

@@ -1,5 +1,6 @@
 # Go binaries
 /bin/
+/liki
 *.exe
 *.test
 
@@ -12,6 +13,15 @@
 .vscode/
 .idea/
 
+# Claude / AI tools
+CLAUDE.local.md
+.claude/
+.continue/
+.qwen/
+.reasonix/
+.agents/
+reasonix.toml
+
 # OS
 .DS_Store
 Thumbs.db
@@ -23,6 +33,25 @@ Thumbs.db
 # Test artifacts
 coverage.out
 web/test-results/
+skills-lock.json
+
+# Node
+node_modules/
+web/node_modules/
+
+# Skills (synced from ../liki)
+web/skills/
+
+# Generated
+web/sitemap.xml
+web/dist/
+web/.astro/
+
+# Site verification
+/web/e2af3ac5940b47a78a12e8018331ac6e.txt
 
 # Logs
 *.log
+
+# Temp
+social.md

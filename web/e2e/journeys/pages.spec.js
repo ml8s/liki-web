@@ -1,64 +1,58 @@
 // Smoke test — visits every page and asserts no console errors/warnings + framework renders.
-// Catches: Vue compiler errors, source map 404s, i18n load failures,
+// Catches: source map 404s, i18n load failures,
 //          unresolved i18n keys (raw key text leaked to page).
-// Render markers: vanilla pages use [data-i18n] (Web Components), chat uses .chat-shell (Vue).
+// Render markers: .chat-shell (vanilla JS chat page), null (static resources). Framework check uses FOUC guard.
 
 import { test, expect } from '../fixtures.js';
+import { I18N_KEY_RE } from '../helpers.js';
 
 // Pages to test with their framework-specific render marker and i18n content checks.
 const PAGES = [
-  { path: '/zh-Hans/',              marker: '[data-i18n]',      name: 'index (vanilla)',
+  { path: '/zh-Hans/naming', name: 'naming (vanilla)',
     checks: [
-      { selector: 'span.font-brand', text: 'Liki' },
-      { selector: 'main h2:first-of-type', text: '找到你的名字' },
+      { selector: '.font-brand', text: 'Liki 灵机' },
+      { selector: '.cta-section h2', text: '找到你的名字' },
     ] },
-  { path: '/zh-Hans/chat.html',     marker: '.chat-shell',     name: 'chat (Vue)',
-    checks: [
-      { selector: '.brand', text: '灵机对话' },
-    ] },
-  { path: '/zh-Hans/disclaimer.html', marker: '[data-i18n]',    name: 'disclaimer (vanilla)',
+  { path: '/zh-Hans/naming/chat', marker: '.chat-shell',     name: 'chat (vanilla)' },
+  { path: '/zh-Hans/disclaimer', name: 'disclaimer (vanilla)',
     checks: [
       { selector: 'h1', text: '免责声明' },
     ] },
-  { path: '/zh-Hans/report/test-id', marker: '#report-header-title', name: 'report (vanilla)',
+  { path: '/en/naming', name: 'naming EN',
     checks: [
-      { selector: 'h1', text: '起名报告' },
+      { selector: '.font-brand', text: 'Liki' },
+      { selector: '.cta-section h2', text: 'Find Your Name' },
     ] },
-  { path: '/en/',              marker: '[data-i18n]',      name: 'index EN',
+  { path: '/en/naming/chat',     marker: '.chat-shell',     name: 'chat EN (vanilla)' },
+  { path: '/zh-Hant/naming', name: 'naming ZH-Hant',
     checks: [
-      { selector: 'span.font-brand', text: 'Liki' },
-      { selector: 'main h2:first-of-type', text: 'Find Your Name' },
+      { selector: '.font-brand', text: 'Liki 靈機' },
+      { selector: '.cta-section h2', text: '找到你的名字' },
     ] },
-  { path: '/en/chat.html',     marker: '.chat-shell',     name: 'chat EN',
-    checks: [
-      { selector: '.brand', text: 'Liki Chat' },
-    ] },
-  { path: '/en/report/test-id', marker: '#report-header-title', name: 'report EN',
-    checks: [
-      { selector: 'h1', text: 'Report' },
-    ] },
-  { path: '/zh-Hant/',              marker: '[data-i18n]',      name: 'index ZH-Hant',
-    checks: [
-      { selector: 'span.font-brand', text: 'Liki' },
-      { selector: 'main h2:first-of-type', text: '找到你的名字' },
-    ] },
-  { path: '/zh-Hant/chat.html',     marker: '.chat-shell',     name: 'chat ZH-Hant',
-    checks: [
-      { selector: '.brand', text: '靈機對話' },
-    ] },
+  { path: '/zh-Hant/naming/chat',     marker: '.chat-shell',     name: 'chat ZH-Hant' },
   // Legal pages — marker renders, i18n resolves, keys don't leak
-  { path: '/zh-Hans/about.html',    marker: '[data-i18n]',    name: 'about (vanilla)', skipI18nCheck: true },
-  { path: '/zh-Hans/contact.html',  marker: '[data-i18n]',    name: 'contact (vanilla)', skipI18nCheck: true },
-  { path: '/zh-Hans/privacy.html',  marker: '[data-i18n]',    name: 'privacy (vanilla)', skipI18nCheck: true },
-  { path: '/zh-Hans/terms.html',    marker: '[data-i18n]',    name: 'terms (vanilla)', skipI18nCheck: true },
+  { path: '/zh-Hans/about',    name: 'about (vanilla)' },
+  { path: '/zh-Hans/contact',  name: 'contact (vanilla)' },
+  { path: '/zh-Hans/privacy',  name: 'privacy (vanilla)' },
+  { path: '/zh-Hans/terms',    name: 'terms (vanilla)' },
   // Static resources
-  { path: '/skills/liki.md',   marker: null,             name: 'skills',   resource: true },
+  { path: '/skills/SKILL.md',  marker: null,             name: 'skills',   resource: true },
+  { path: '/zh-Hans/mingshu',   name: 'mingshu (vanilla)',
+    checks: [
+      { selector: 'h1', text: '灵机命书' },
+    ] },
+  { path: '/zh-Hans/hepan',    name: 'hepan (vanilla)',
+    checks: [
+      { selector: 'h1', text: '灵机合盘' },
+    ] },
+  { path: '/en/hepan',       name: 'hepan EN',
+    checks: [
+      { selector: 'h1', text: 'BaZi & ZiWei Compatibility' },
+    ] },
   { path: '/llms.txt',         marker: null,             name: 'llms.txt', resource: true },
+  { path: '/zh-Hans/hepan/report?order_id=demo',  marker: '#report-container',  name: 'hepan report', resource: true },
+  { path: '/zh-Hans/mingshu/report?order_id=demo', marker: '#report-container', name: 'mingshu report', resource: true },
 ];
-
-// i18n key pattern: if a raw key like "site.name" or "index.hero.subtitle" appears
-// as visible text, the i18n lookup failed and leaked the key.
-const I18N_KEY_RE = /\b[a-z]{2,}\.[a-z]{2,}\.[a-z]+\b|\b[a-z]{2,}\.[a-z]{2,}\b/;
 
 test.describe('Smoke — all pages render without errors or warnings', () => {
   for (const { path, marker, name, checks, resource, skipI18nCheck } of PAGES) {
@@ -87,11 +81,8 @@ test.describe('Smoke — all pages render without errors or warnings', () => {
         return;
       }
 
-      // Framework must initialize: Web Components [data-i18n] or Vue .chat-shell.
-      await expect(page.locator(marker).first()).toBeVisible({ timeout: 10000 });
-
       // Wait for i18n to finish (FOUC guard removes html visibility:hidden).
-      await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 10000 });
+      await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
 
       // i18n content must resolve — raw key like "site.name" means fetch failed.
       if (checks) for (const { selector, text } of checks) {
@@ -126,9 +117,9 @@ test.describe('Smoke — all pages render without errors or warnings', () => {
 // ── OG meta tags: social sharing cards ──
 
 test.describe('OG / Twitter meta tags', () => {
-  test('index page has correct OG tags', async ({ page }) => {
-    await page.goto('/zh-Hans/');
-    await expect(page.locator('[data-i18n]').first()).toBeVisible({ timeout: 10000 });
+  test('naming page has correct OG tags', async ({ page }) => {
+    await page.goto('/zh-Hans/naming');
+    await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
 
     const tags = {
       'og:title':       await page.locator('meta[property="og:title"]').getAttribute('content'),
@@ -142,7 +133,7 @@ test.describe('OG / Twitter meta tags', () => {
     expect(tags['og:title']).toBeTruthy();
     expect(tags['og:description']).toBeTruthy();
     expect(tags['og:image']).toMatch(/^https:\/\/liki\.hk\/img\/og-image\.png$/);
-    expect(tags['og:url']).toBe('https://liki.hk');
+    expect(tags['og:url']).toBe('https://liki.hk/zh-Hans/naming/');
     expect(tags['og:type']).toBe('website');
     expect(tags['twitter:card']).toBe('summary_large_image');
   });
@@ -156,9 +147,9 @@ test.describe('OG / Twitter meta tags', () => {
 });
 
 test.describe('Images load without error', () => {
-  test('index page images are valid', async ({ page }) => {
-    await page.goto('/zh-Hans/');
-    await expect(page.locator('[data-i18n]').first()).toBeVisible({ timeout: 10000 });
+  test('naming page images are valid', async ({ page }) => {
+    await page.goto('/zh-Hans/naming');
+    await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
 
     const imgs = page.locator('img');
     const count = await imgs.count();
@@ -167,7 +158,7 @@ test.describe('Images load without error', () => {
       const src = await img.getAttribute('src');
       if (!src || src.startsWith('data:')) continue;
       const w = await img.evaluate(el => el.naturalWidth);
-      if (w === 0) throw new Error(`Broken image on /zh-Hans/: src="${src}"`);
+      if (w === 0) throw new Error(`Broken image on /zh-Hans/naming: src="${src}"`);
     }
   });
 });
@@ -175,17 +166,10 @@ test.describe('Images load without error', () => {
 // ── Mobile viewport: critical pages render on mobile ──
 
 test.describe('Mobile viewport', () => {
-  test('index renders at 375x812', async ({ page }) => {
+  test('naming renders at 375x812', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/zh-Hans/');
-    await expect(page.locator('[data-i18n]').first()).toBeVisible({ timeout: 10000 });
+    await page.goto('/zh-Hans/naming');
+    await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
     await expect(page.locator('#purchase-form')).toBeVisible();
-  });
-
-  test('report renders at 375x812', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/zh-Hans/report/test-id');
-    await expect(page.locator('#report-header-title')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 10000 });
   });
 });

@@ -1,63 +1,78 @@
 package http
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"liki_web/internal/agent"
-	"liki_web/internal/payment"
+	"liki-web/internal/admin"
+	"liki-web/internal/agent"
+	"liki-web/internal/hepan"
+	"liki-web/internal/mingshu"
+	"liki-web/internal/naming"
+	"liki-web/internal/payment"
 )
 
 type ServerDeps struct {
-	Payment   *payment.Service
-	Store     *payment.Store
-	ChatAgent *agent.ChatAgent
-	Analytics *Analytics
-	DevMode   bool
+	OnPaid         func(ctx context.Context, orderID string)
+	OnReportReady  func(ctx context.Context, orderID string)
+	OnVerification func(ctx context.Context, email, code string)
+	Payment    *payment.Service
+	NamingStore    *naming.Store
+	MingShuStore    *mingshu.Store
+	MingShuGenerator *mingshu.Generator
+	HepanStore       *hepan.Store
+	HepanGenerator    *hepan.Generator
+	Agent  *agent.Agent
+	Analytics  *Analytics
+	DevMode    bool
 }
 
-func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime string, rl *RateLimiter) http.Handler {
-	// Orders
-	mux.HandleFunc("POST /api/orders", handleCreateOrder(deps.Store))
-	mux.HandleFunc("POST /api/orders/select", handleOrderSelect(deps.Store))
+func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl *RateLimiter) http.Handler {
+	// ── naming product routes ──
+	if deps.NamingStore != nil {
+		rateLimit := func(h http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(5.0/60, 6, h)
+		}
+		naming.RegisterRoutes(mux, deps.NamingStore, deps.Payment, deps.Agent, deps.OnPaid, rateLimit)
+	}
 
-	// Auth
-	mux.HandleFunc("POST /api/auth/login", handleLogin(deps.Store))
-
-	// Payments
-	mux.HandleFunc("POST /api/payments/checkout", rl.Wrap(3.0/60, 1, handleCheckout(deps.Payment, deps.Analytics)))
-	mux.HandleFunc("POST /api/payments/webhook", handleWebhook(deps.Payment))
-	mux.HandleFunc("GET /api/payments/return/{id}", handlePaymentReturn(deps.Store))
-	mux.HandleFunc("GET /api/orders/{id}/report", redirectReport())
-	mux.HandleFunc("GET /api/orders/{id}/status", handleOrderStatus(deps.Store))
-	mux.HandleFunc("POST /api/orders/{id}/retry", handleRetryOrder(deps.Payment))
-	mux.HandleFunc("GET /api/reports/{id}", handleReport(deps.Payment, deps.Analytics))
 	mux.HandleFunc("GET /api/health", handleHealth())
 	mux.HandleFunc("POST /api/analytics/pageview", handlePageView(deps.Analytics))
 	mux.HandleFunc("GET /api/stats", handleStats(deps.Analytics))
-	mux.HandleFunc("GET /api/version", handleVersion(buildTime))
+	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
 	mux.HandleFunc("GET /api/location", handleLocation)
 
-	// Agent chat
-	mux.HandleFunc("POST /api/agent/naming", rl.Wrap(5.0/60, 3, namingHandler(deps.ChatAgent, deps.Store)))
+	// ── mingshu product routes ──
+	if deps.MingShuStore != nil {
+		mingshu.RegisterRoutes(mux, deps.MingShuStore, deps.Payment, deps.MingShuGenerator, deps.OnPaid, deps.OnReportReady)
+	}
+
+	// ── hepan product routes ──
+	if deps.HepanStore != nil {
+		hepan.RegisterRoutes(mux, deps.HepanStore, deps.Payment, deps.HepanGenerator, deps.OnPaid, deps.OnReportReady)
+	}
+
+	// ── admin routes (naming-specific — registered here to avoid import cycle) ──
+	if deps.NamingStore != nil {
+		admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid)
+	}
+	// ── admin auth routes ──
+	mux.HandleFunc("POST /api/admin/send-code", handleAdminSendCode(deps.OnVerification))
+	mux.HandleFunc("POST /api/admin/verify-code", handleAdminVerifyCode())
 
 	handler := Recover(SecurityHeaders(CORSMiddleware(deps.DevMode, BodyLimit(mux))))
 
-	// In dev mode, serve static files from the web/ directory as a fallback.
-	// In production, Caddy handles this.
-	if deps.DevMode {
-		webDir := findWebDir()
-		if webDir != "" {
-			handler = devFileServer(webDir, handler)
-		}
+	webDir := findWebDir()
+	if webDir != "" {
+		handler = fileServer(webDir, handler)
 	}
 
 	return handler
 }
 
-// findWebDir looks for the web/ directory relative to the working directory.
 func findWebDir() string {
 	for _, d := range []string{"web", "../web", "../../web"} {
 		if fi, err := os.Stat(d); err == nil && fi.IsDir() {
@@ -69,23 +84,77 @@ func findWebDir() string {
 	return ""
 }
 
-// devFileServer wraps an API handler with a static file server fallback.
-func devFileServer(webDir string, next http.Handler) http.Handler {
-	fs := http.FileServer(http.Dir(webDir))
+func fileServer(webDir string, next http.Handler) http.Handler {
+	distDir := filepath.Join(webDir, "dist")
+	_, distErr := os.Stat(distDir)
+	distExists := distErr == nil
+
+	serve := func(w http.ResponseWriter, r *http.Request, root string) bool {
+		clean := filepath.Clean(r.URL.Path)
+		p := filepath.Join(root, clean[1:])
+
+		if info, err := os.Stat(p); err == nil {
+			if info.IsDir() {
+				serveFileNoRedirect(w, r, filepath.Join(p, "index.html"))
+				return true
+			}
+			http.ServeFile(w, r, p)
+			return true
+		}
+		if _, err := os.Stat(p + ".html"); err == nil {
+			serveFileNoRedirect(w, r, p+".html")
+			return true
+		}
+		for _, loc := range []string{"/zh-Hans", "/zh-Hant", "/en"} {
+			if strings.HasPrefix(clean, loc+"/") || clean == loc {
+				serveFileNoRedirect(w, r, filepath.Join(root, loc[1:], "index.html"))
+				return true
+			}
+		}
+		defLoc := "zh-Hant"
+		defP := filepath.Join(root, defLoc, clean)
+		if info, err := os.Stat(defP); err == nil {
+			if info.IsDir() {
+				serveFileNoRedirect(w, r, filepath.Join(defP, "index.html"))
+				return true
+			}
+			http.ServeFile(w, r, defP)
+			return true
+		}
+		if _, err := os.Stat(defP + ".html"); err == nil {
+			serveFileNoRedirect(w, r, defP+".html")
+			return true
+		}
+		return false
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/jsonrpc" {
+		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/jsonrpc") {
 			next.ServeHTTP(w, r)
 			return
 		}
-		p := filepath.Join(webDir, filepath.Clean(r.URL.Path))
-		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
-			fs.ServeHTTP(w, r)
-		} else if fi, err := os.Stat(p + ".html"); err == nil && !fi.IsDir() {
-			r2 := r.Clone(r.Context())
-			r2.URL.Path = r.URL.Path + ".html"
-			fs.ServeHTTP(w, r2)
-		} else {
-			next.ServeHTTP(w, r)
+		if distExists && serve(w, r, distDir) {
+			return
 		}
+		if serve(w, r, webDir) {
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+		serveFileNoRedirect(w, r, filepath.Join(webDir, "404.html"))
 	})
+}
+
+func serveFileNoRedirect(w http.ResponseWriter, r *http.Request, path string) {
+	f, err := os.Open(path)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeContent(w, r, filepath.Base(path), fi.ModTime(), f)
 }

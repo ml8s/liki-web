@@ -1,0 +1,61 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { t, locales } from '../../i18n.js';
+
+export function getStaticPaths() {
+  return locales.map(locale => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+---
+
+<BaseLayout
+  locale={locale}
+  page="privacy"
+  heading={t(locale, 'privacy.heading')}
+  type="article"
+>
+  <h1 class="sr-only">{t(locale, 'privacy.heading')}</h1>
+  <p class="text-stone-400 text-xs mb-6">{t(locale, 'privacy.updated')}</p>
+
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s1.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s1.body')}</p>
+  </section>
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s2.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s2.body')}</p>
+  </section>
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s3.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s3.body')}</p>
+  </section>
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s4.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s4.body')}</p>
+  </section>
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s5.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s5.body')}</p>
+  </section>
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s6.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s6.body')}</p>
+  </section>
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s7.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s7.body')}</p>
+  </section>
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s8.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s8.body')}</p>
+  </section>
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s9.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s9.body')}</p>
+  </section>
+  <section>
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'privacy.s10.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'privacy.s10.body')}</p>
+  </section>
+</BaseLayout>

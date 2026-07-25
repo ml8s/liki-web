@@ -16,15 +16,18 @@ import (
 )
 
 const defaultBaseURL = "https://api.deepseek.com"
-const defaultModel = "deepseek-v4-pro"
 
 // Client is a DeepSeek LLM client with tool calling support.
 type Client struct {
 	apiKey       string
 	baseURL      string
 	model        string
+	thinking     *thinkingParam
 	streamClient *http.Client
 }
+
+// ToolTypeFunction is the only tool type OpenAI/DeepSeek supports.
+const ToolTypeFunction = "function"
 
 // ToolDef is a tool definition passed to the LLM.
 type ToolDef struct {
@@ -48,12 +51,17 @@ type StreamEvent struct {
 	FinishReason     string            // "stop" | "tool_calls" | "length" | ""
 }
 
-// New creates a new LLM client with the default model (deepseek-v4-pro).
-func New(apiKey string) *Client {
+// New creates a new LLM client.
+func New(apiKey, model string, enableThinking bool) *Client {
+	tp := &thinkingParam{Type: "disabled"}
+	if enableThinking {
+		tp = &thinkingParam{Type: "enabled"}
+	}
 	return &Client{
 		apiKey:       apiKey,
 		baseURL:      defaultBaseURL,
-		model:        defaultModel,
+		model:        model,
+		thinking:     tp,
 		streamClient: &http.Client{
 		Timeout: 180 * time.Second, // safety net above chatRoundTimeout (120s)
 		Transport: &http.Transport{
@@ -158,12 +166,13 @@ func sseScanner(ctx context.Context, body io.ReadCloser, fn func([]byte) bool) e
 // of StreamEvents. Text deltas and reasoning arrive incrementally; tool calls arrive
 // with FinishReason set to "tool_calls" or "stop". Used for Phase 1 parameter collection.
 func (c *Client) ChatStreamWithTools(ctx context.Context, messages []Message, tools []ToolDef) (<-chan StreamEvent, error) {
+	thinking := c.thinking
 	resp, err := c.doStreamReq(ctx, streamRequest{
 		Model:    c.model,
 		Messages: messages,
 		Stream:   true,
 		Tools:    tools,
-		Thinking: &thinkingParam{Type: "disabled"}, // disabled for deterministic tool-calling latency; enable for report generation if needed
+		Thinking: thinking,
 	})
 	if err != nil {
 		return nil, err

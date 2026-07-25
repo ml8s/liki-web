@@ -1,11 +1,9 @@
-FROM alpine:3.21 AS certs
-RUN apk add --no-cache ca-certificates
-RUN adduser -D -u 1000 liki
-
-FROM scratch
-COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=certs /etc/passwd /etc/passwd
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates && adduser -D -u 1000 liki
+RUN mkdir -p /var/lib/liki && chown liki:liki /var/lib/liki
 COPY bin/liki-web /usr/local/bin/liki-web
+COPY web/ /web/
+ENV LIKI_SKILLS_DIR=/web/skills
 USER liki
 EXPOSE 8081
 ENTRYPOINT ["/usr/local/bin/liki-web", "--addr", ":8081"]

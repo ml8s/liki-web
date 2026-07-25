@@ -1,5 +1,5 @@
-// tools.go — LLM Chat Tool Registry for liki_web
-// Refactored: calls the engine via HTTP JSON-RPC instead of direct Go function calls.
+// tools.go — LLM Chat Tool Registry for liki-web
+// Tools are discovered lazily from the engine via rpc.discover on first use.
 package agent
 
 import (
@@ -8,100 +8,36 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
-	"liki_web/internal/llm"
+	"liki-web/internal/llm"
 )
 
-var (
-	toolsOnce sync.Once
-	toolsMap  map[string]toolEntry
-)
-
-type toolEntry struct {
-	Description string          `json:"description"`
-	Parameters  json.RawMessage `json:"parameters"`
-}
-
-func initTools() {
-	var f struct {
-		Tools []struct {
-			Name        string          `json:"name"`
-			Description string          `json:"description"`
-			Parameters  json.RawMessage `json:"parameters"`
-		} `json:"tools"`
-	}
-	if err := json.Unmarshal(ToolsJSON, &f); err != nil {
-		panic("initTools: " + err.Error())
-	}
-	toolsMap = make(map[string]toolEntry, len(f.Tools))
-	for _, t := range f.Tools {
-		toolsMap[t.Name] = toolEntry{Description: t.Description, Parameters: t.Parameters}
-	}
-}
-
-// ValidateTools parses tools.json eagerly so configuration errors fail at startup.
-func ValidateTools() error {
-	var err error
-	toolsOnce.Do(func() {
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("tools: %v", r)
-			}
-		}()
-		initTools()
-	})
-	return err
-}
-
-func toolParams(name string) (string, json.RawMessage, error) {
-	toolsOnce.Do(initTools)
-	e, ok := toolsMap[name]
-	if !ok {
-		return "", nil, fmt.Errorf("tool not found in tools.json: %s", name)
-	}
-	return e.Description, e.Parameters, nil
-}
-
-// toolRPCMethod maps LLM tool names to engine JSON-RPC method names.
-var toolRPCMethod = map[string]string{
-	"query_city":              "city",
-	"compute_time":            "time.now",
-	"compute_chart":           "bazi.chart",
-	"compute_ziwei":           "ziwei.chart",
-	"compute_naming_wuge":     "qiming.wuge",
-	"compute_naming_compose":  "qiming.compose",
-	"compute_naming_detail":   "qiming.detail",
-	"compute_naming_evaluate": "qiming.evaluate",
-}
-
-const (
-	ToolQueryCity          = "query_city"
-	ToolComputeTime        = "compute_time"
-	ToolComputeChart       = "compute_chart"
-	ToolComputeZiwei       = "compute_ziwei"
-	ToolComputeNamingWuge  = "compute_naming_wuge"
-	ToolComputeNamingCompose = "compute_naming_compose"
-	ToolComputeNamingDetail  = "compute_naming_detail"
-	ToolComputeNamingEvaluate = "compute_naming_evaluate"
-)
+const rpcDiscover = "rpc.discover"
 
 // ChatToolRegistry executes LLM tool calls by forwarding them as JSON-RPC
-// requests to the liki engine server.
+// requests to the liki engine server. Tools are discovered lazily via
+// rpc.discover on first use.
 type ChatToolRegistry struct {
-	engineURL string
-	client    *http.Client
-	handlers  map[string]func(context.Context, json.RawMessage) (json.RawMessage, error)
-	defs      []json.RawMessage
+	engineURL     string
+	client        *http.Client
+	handlers      map[string]func(context.Context, json.RawMessage) (json.RawMessage, error)
+	cachedSchemas []llm.ToolDef
+
+	initOnce sync.Once
 }
 
-// NewNamingToolRegistry creates a tool registry that calls the engine via JSON-RPC.
-// If engineURL is empty, it reads from the LIKI_ENGINE_URL env var, defaulting to
-// "http://localhost:8080/jsonrpc".
-func NewNamingToolRegistry(engineURL string) *ChatToolRegistry {
+// NewToolRegistry creates a tool registry. Tools are not discovered until
+// Schemas() or Execute() is called for the first time. If the engine is
+// unavailable at discovery time, tools remain empty and subsequent calls
+// use whatever was cached (possibly empty).
+func NewToolRegistry(engineURL string) *ChatToolRegistry {
 	if engineURL == "" {
 		engineURL = os.Getenv("LIKI_ENGINE_URL")
 	}
@@ -109,35 +45,126 @@ func NewNamingToolRegistry(engineURL string) *ChatToolRegistry {
 		engineURL = "http://localhost:8080/jsonrpc"
 	}
 
-	r := &ChatToolRegistry{
+	return &ChatToolRegistry{
 		engineURL: engineURL,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 		handlers: map[string]func(context.Context, json.RawMessage) (json.RawMessage, error){},
 	}
+}
 
-	for toolName, rpcMethod := range toolRPCMethod {
-		name, method := toolName, rpcMethod
-		r.handlers[name] = func(ctx context.Context, args json.RawMessage) (json.RawMessage, error) {
-			return r.callEngine(ctx, method, args)
+// Register adds a built-in tool that does not come from engine discovery.
+// Must be called before Schemas() or Execute() triggers discoverEngineTools.
+func (r *ChatToolRegistry) Register(name, desc string, params json.RawMessage, handler func(context.Context, json.RawMessage) (json.RawMessage, error)) {
+	r.handlers[name] = handler
+	r.addSchema(toolDef(name, desc, params))
+}
+
+func (r *ChatToolRegistry) addSchema(def json.RawMessage) {
+	r.cachedSchemas = append(r.cachedSchemas, llm.ToolDef{Type: llm.ToolTypeFunction, Function: def})
+}
+
+// ReadFileHandler returns a tool handler that reads files from the given
+// directory. It rejects paths that escape the directory (.., absolute paths).
+func ReadFileHandler(root string) func(context.Context, json.RawMessage) (json.RawMessage, error) {
+	return func(ctx context.Context, args json.RawMessage) (json.RawMessage, error) {
+		var p struct{ Path string `json:"path"` }
+		if err := json.Unmarshal(args, &p); err != nil {
+			return nil, fmt.Errorf("read_file: invalid args: %w", err)
 		}
-	}
-
-	for _, name := range []string{
-		ToolQueryCity, ToolComputeTime,
-		ToolComputeChart, ToolComputeZiwei,
-		ToolComputeNamingWuge, ToolComputeNamingCompose,
-		ToolComputeNamingDetail, ToolComputeNamingEvaluate,
-	} {
-		desc, params, err := toolParams(name)
+		if p.Path == "" {
+			return nil, fmt.Errorf("read_file: path is required")
+		}
+		fullPath := filepath.Join(root, p.Path)
+		if !filepath.IsLocal(p.Path) || !strings.HasPrefix(fullPath, root) {
+			return nil, fmt.Errorf("read_file: path escapes skills directory")
+		}
+		content, err := os.ReadFile(fullPath)
 		if err != nil {
-			panic("registerTool: " + err.Error())
+			return nil, fmt.Errorf("read_file: %w", err)
 		}
-		r.defs = append(r.defs, toolDef(name, desc, params))
+		data, err := json.Marshal(struct{ Content string }{string(content)})
+		if err != nil {
+			return nil, fmt.Errorf("read_file: marshal: %w", err)
+		}
+		return json.RawMessage(data), nil
+	}
+}
+
+// discoverEngineTools discovers engine tools on first call. Safe for concurrent use.
+func (r *ChatToolRegistry) discoverEngineTools() {
+	r.initOnce.Do(func() {
+		discovered, err := r.discoverTools()
+		if err != nil {
+			slog.Warn("liki-web: tool discovery failed, engine tools unavailable", "err", err)
+			return
+		}
+
+		for rpcMethod, info := range discovered {
+			if rpcMethod == rpcDiscover {
+				continue
+			}
+			toolName := strings.ReplaceAll(rpcMethod, ".", "_")
+			method := rpcMethod
+			r.handlers[toolName] = func(ctx context.Context, args json.RawMessage) (json.RawMessage, error) {
+				return r.callEngine(ctx, method, args)
+			}
+			r.addSchema(toolDef(toolName, info.Description, info.Params))
+		}
+	})
+}
+
+type discoveredMethod struct {
+	Description string
+	Params      json.RawMessage
+}
+
+// discoverTools calls rpc.discover and returns a map of RPC method name → info.
+// Retries up to 3 times with 2s backoff. Returns error if engine is unreachable.
+func (r *ChatToolRegistry) discoverTools() (map[string]discoveredMethod, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var lastErr error
+	for i := 0; i < 3; i++ {
+		result, err := r.callEngine(ctx, rpcDiscover, nil)
+		if err != nil {
+			lastErr = err
+			if i < 2 {
+				timer := time.NewTimer(2 * time.Second)
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					return nil, fmt.Errorf("rpc.discover: %w", ctx.Err())
+				case <-timer.C:
+				}
+			}
+			continue
+		}
+
+		var doc struct {
+			Methods []struct {
+				Name        string          `json:"name"`
+				Description string          `json:"description"`
+				Params      json.RawMessage `json:"params"`
+			} `json:"methods"`
+		}
+		if err := json.Unmarshal(result, &doc); err != nil {
+			return nil, fmt.Errorf("parse rpc.discover: %w", err)
+		}
+
+		m := make(map[string]discoveredMethod, len(doc.Methods))
+		for _, method := range doc.Methods {
+			m[method.Name] = discoveredMethod{
+				Description: method.Description,
+				Params:      method.Params,
+			}
+		}
+		return m, nil
 	}
 
-	return r
+	return nil, fmt.Errorf("rpc.discover failed after 3 retries: %w", lastErr)
 }
 
 func (r *ChatToolRegistry) callEngine(ctx context.Context, method string, params json.RawMessage) (json.RawMessage, error) {
@@ -190,6 +217,7 @@ func (r *ChatToolRegistry) callEngine(ctx context.Context, method string, params
 }
 
 func (r *ChatToolRegistry) Execute(ctx context.Context, name string, args json.RawMessage) (json.RawMessage, error) {
+	r.discoverEngineTools()
 	h, ok := r.handlers[name]
 	if !ok {
 		return nil, fmt.Errorf("unknown tool: %s", name)
@@ -198,11 +226,8 @@ func (r *ChatToolRegistry) Execute(ctx context.Context, name string, args json.R
 }
 
 func (r *ChatToolRegistry) Schemas() []llm.ToolDef {
-	out := make([]llm.ToolDef, len(r.defs))
-	for i, fn := range r.defs {
-		out[i] = llm.ToolDef{Type: "function", Function: fn}
-	}
-	return out
+	r.discoverEngineTools()
+	return r.cachedSchemas
 }
 
 func toolDef(name, desc string, params json.RawMessage) json.RawMessage {

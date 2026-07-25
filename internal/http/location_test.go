@@ -10,6 +10,7 @@ import (
 )
 
 func TestHandleLocation_CFCountryCN(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("GET", "/api/location", nil)
 	r.Header.Set("CF-IPCountry", "CN")
 	r.RemoteAddr = "127.0.0.1:12345"
@@ -37,6 +38,7 @@ func TestHandleLocation_CFCountryCN(t *testing.T) {
 }
 
 func TestHandleLocation_CFCountryUS(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("GET", "/api/location", nil)
 	r.Header.Set("CF-IPCountry", "US")
 	r.RemoteAddr = "10.0.0.1:12345"
@@ -61,6 +63,7 @@ func TestHandleLocation_CFCountryUS(t *testing.T) {
 }
 
 func TestHandleLocation_NoCFHeader_PrivateIP(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("GET", "/api/location", nil)
 	r.RemoteAddr = "192.168.1.1:12345"
 	w := httptest.NewRecorder()
@@ -84,6 +87,7 @@ func TestHandleLocation_NoCFHeader_PrivateIP(t *testing.T) {
 }
 
 func TestHandleLocation_InvalidIP(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("GET", "/api/location", nil)
 	r.RemoteAddr = "not-an-ip"
 	w := httptest.NewRecorder()
@@ -106,6 +110,7 @@ func TestHandleLocation_InvalidIP(t *testing.T) {
 // TestHandleLocation_GeoAPI tests the ip-api.com integration path.
 // Must mock the HTTP transport to avoid real external calls.
 func TestHandleLocation_GeoAPI(t *testing.T) {
+
 	orig := locationClient
 	locationClient = &http.Client{
 		Transport: &mockLocationTransport{
@@ -139,6 +144,7 @@ func TestHandleLocation_GeoAPI(t *testing.T) {
 
 // TestHandleLocation_CFOverridesGeoAPI: CF-IPCountry header takes priority over geo API.
 func TestHandleLocation_CFOverridesGeoAPI(t *testing.T) {
+
 	orig := locationClient
 	locationClient = &http.Client{
 		Transport: &mockLocationTransport{
@@ -173,6 +179,7 @@ func TestHandleLocation_CFOverridesGeoAPI(t *testing.T) {
 
 // TestHandleLocation_GeoAPIError: geo API failure should not break the handler.
 func TestHandleLocation_GeoAPIError(t *testing.T) {
+
 	orig := locationClient
 	locationClient = &http.Client{
 		Transport: &mockLocationTransport{
@@ -218,6 +225,7 @@ func (m *mockLocationTransport) RoundTrip(_ *http.Request) (*http.Response, erro
 }
 
 func TestEd3_Location_DifferentTPs(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		xff  string
@@ -262,6 +270,7 @@ func TestEd3_Location_DifferentTPs(t *testing.T) {
 }
 
 func TestEd3_Location_CFHeaders(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("GET", "/api/location", nil)
 	r.Header.Set("CF-IPCountry", "CN")
 	r.RemoteAddr = "127.0.0.1:12345"

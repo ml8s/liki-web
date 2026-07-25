@@ -1,0 +1,60 @@
+# Go source (binary is pre-built)
+cmd/
+internal/
+go.mod
+go.sum
+Makefile
+.golangci.yml
+
+# Git
+**/.git/
+**/.gitignore
+**/.githooks/
+**/.github/
+
+# IDE / AI tools
+.vscode/
+.idea/
+**/.claude/
+**/.agents/
+.continue/
+.qwen/
+**/.reasonix/
+**/reasonix.toml
+
+# Node
+**/node_modules
+**/package.json
+**/package-lock.json
+**/vitest.config.js
+
+# Web dev
+web/src/
+web/e2e/
+web/test-results/
+web/scripts/
+
+# Deploy dev
+deploy/liki/Caddyfile.local
+deploy/liki/docker-compose*.yml
+deploy/liki/env.example
+
+# Env / secrets
+.env
+.env.local
+.env.example
+
+# DB
+*.db
+*.db-shm
+*.db-wal
+
+# Test
+coverage.out
+**/skills-lock.json
+
+# Generated / temp
+web/build.txt
+urls.txt
+*.log
+/*.md

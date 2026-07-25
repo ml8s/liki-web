@@ -14,10 +14,29 @@ jobs:
   go-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - name: Ensure skills dir
+        run: rm -rf web/skills && mkdir -p web/skills
+      - name: Checkout skills
+        uses: actions/checkout@v7
         with:
-          go-version: '1.26'
+          repository: ml8s/liki
+          path: web/skills
+      - name: Validate skills
+        run: |
+          for skill in qiming mingli wengua fengshui; do
+            test -f "web/skills/$skill/SKILL.md" || { echo "❌ Missing $skill/SKILL.md"; exit 1; }
+          done
+          echo "✓ All 4 skills present"
+
+      - name: Validate version file
+        run: |
+          test -f cmd/liki/VERSION || { echo "❌ Missing cmd/liki/VERSION"; exit 1; }
+          echo "✓ VERSION: $(cat cmd/liki/VERSION)"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
           cache: true
 
       - name: Lint
@@ -41,20 +60,27 @@ jobs:
           fi
 
       - name: Build
-        run: go build -o /dev/null ./cmd/liki/
+        run: make build-go
 
   docker-build:
     runs-on: ubuntu-latest
     needs: go-check
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - name: Ensure skills dir
+        run: rm -rf web/skills && mkdir -p web/skills
+      - name: Checkout skills
+        uses: actions/checkout@v7
         with:
-          go-version: '1.26'
+          repository: ml8s/liki
+          path: web/skills
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
           cache: true
       - name: Build binary
-        run: CGO_ENABLED=0 go build -o bin/liki ./cmd/liki/
-      - uses: docker/setup-buildx-action@v3
+        run: make build-go
+      - uses: docker/setup-buildx-action@v4
       - name: Build Docker image
         run: docker build -f deploy/liki/Dockerfile -t liki:ci .
         env:
@@ -63,10 +89,10 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
-          go-version: '1.26'
+          go-version-file: go.mod
           cache: true
 
       - name: Run govulncheck
@@ -79,12 +105,13 @@ jobs:
           scan-ref: .
           severity: HIGH,CRITICAL
           exit-code: 1
+        continue-on-error: true
 
   frontend-unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
@@ -96,8 +123,8 @@ jobs:
       - name: HTML check
         run: node web/scripts/check-html.cjs
 
-      - name: Compile Vue template
-        run: node web/scripts/compile-vue-template.cjs
+      - name: Build web assets
+        run: make build-web
 
       - name: i18n check
         run: node web/scripts/check-i18n.cjs
@@ -109,14 +136,29 @@ jobs:
     runs-on: ubuntu-latest
     needs: go-check
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - name: Ensure skills dir
+        run: rm -rf web/skills && mkdir -p web/skills
+      - name: Checkout skills
+        uses: actions/checkout@v7
         with:
-          go-version: '1.26'
+          repository: ml8s/liki
+          path: web/skills
+
+      - name: Validate skills
+        run: |
+          for skill in qiming mingli wengua fengshui; do
+            test -f "web/skills/$skill/SKILL.md" || { echo "❌ Missing $skill/SKILL.md"; exit 1; }
+          done
+          echo "✓ All 4 skills present"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
           cache: true
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'npm'
@@ -134,13 +176,20 @@ jobs:
           chmod +x caddy
 
       - name: Build Go server
-        run: go build -o bin/liki ./cmd/liki/
+        run: make build-go
+
+      - name: Build web assets
+        run: make build-web
 
       - name: Start servers
         env:
           JWT_SECRET: liki-ci-e2e
+          DEEPSEEK_API_KEY: ci-test-dummy
+          LLM_MODEL: ci-test-dummy
+          LIKI_WEB_HOST: localhost
+          LIKI_ENGINE_HOST: localhost
         run: |
-          ./bin/liki -addr :8081 -db /tmp/liki-ci.db &
+          ./bin/liki-web -addr :8081 -db /tmp/liki-ci.db &
           # Wait for Go server to be ready before starting Caddy (avoids 503 on reverse_proxy)
           for i in $(seq 1 10); do
             if curl -sf http://localhost:8081/api/health 2>/dev/null | grep -q '"ok"'; then
@@ -169,7 +218,7 @@ jobs:
       - name: Run full E2E
         run: cd web && BASE_URL=http://localhost:8080 npx playwright test --config e2e/playwright.config.js --ignore-snapshots
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: playwright-results

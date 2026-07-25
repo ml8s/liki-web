@@ -13,6 +13,7 @@ import (
 )
 
 func TestSendReport_ServerError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -34,6 +35,7 @@ func TestSendReport_ServerError(t *testing.T) {
 // TestSendReport_Integration sends a real email via Resend.
 // Run with: RESEND_API_KEY=... EMAIL_FROM=... go test -tags integration -run TestSendReport_Integration ./internal/email/
 func TestSendReport_Integration(t *testing.T) {
+	t.Parallel()
 	apiKey := os.Getenv("RESEND_API_KEY")
 	if apiKey == "" {
 		t.Skip("RESEND_API_KEY not set")
@@ -44,10 +46,10 @@ func TestSendReport_Integration(t *testing.T) {
 	}
 
 	to := "suiqiang@foxmail.com"
-	subject := "[灵机测试] 邮件发送集成测试"
+	subject := "[liki.hk 测试] 邮件发送集成测试"
 	htmlBody := `<html><body>
-	<h1>灵机邮件测试</h1>
-	<p>这是一封来自灵机系统的测试邮件。</p>
+	<h1>liki.hk 邮件测试</h1>
+	<p>这是一封来自 liki.hk 系统的测试邮件。</p>
 	<p>如果你收到这封邮件，说明 Resend 邮件服务配置正确。</p>
 	</body></html>`
 
@@ -73,6 +75,7 @@ func newTestClientWithBaseURL(t *testing.T, apiKey, from, baseURL string) *Clien
 }
 
 func TestSendReport_Success(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/emails" {
 			http.NotFound(w, r)
@@ -95,6 +98,7 @@ func TestSendReport_Success(t *testing.T) {
 }
 
 func TestSendReport_RateLimitRetry(t *testing.T) {
+	t.Parallel()
 	attempts := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
@@ -125,6 +129,7 @@ func TestSendReport_RateLimitRetry(t *testing.T) {
 }
 
 func TestSendReport_AllRetriesFail(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

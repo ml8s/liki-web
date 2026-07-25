@@ -15,6 +15,7 @@ linters:
     - wastedassign
     - makezero
     - copyloopvar
+    - gosec
 
 linters-settings:
   errcheck:
@@ -25,5 +26,6 @@ linters-settings:
 issues:
   exclude-dirs:
     - vendor
+    - web/node_modules
   max-issues-per-linter: 0
   max-same-issues: 0

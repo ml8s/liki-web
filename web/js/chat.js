@@ -1,544 +1,812 @@
-const { createApp, ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } = Vue;
+(function(){
+var API_BASE = '/api';
+var t = window.Liki.t;
+var locale = window.Liki.locale || 'zh-Hant';
+var esc = function(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+var renderMD = function(s) { try { return DOMPurify.sanitize(marked.parse(s), { ALLOWED_TAGS: ['h2','h3','h4','p','br','strong','em','ul','ol','li','code','pre','blockquote','table','thead','tbody','tr','th','td','hr'], ALLOWED_ATTR: [] }); } catch { return esc(s); } };
 
-// ── SSE helper ──
+var SSE_EVT = { THINKING: 'thinking', PHASE: 'phase', THINKING_DELTA: 'thinking-delta', TEXT_DELTA: 'text-delta', ERROR: 'error' };
+var DRAFT_KEY = 'likiChatDraft';
+var MAX_RETRIES = 3;
 
-function useSSE(t) {
-  let ctrl = null;
-  const MAX_RETRIES = 3;
+// ── DOM refs ──
+var $ = function(id) { return document.getElementById(id); };
+var viewLogin = $('view-login');
+var viewSelect = $('view-select');
+var viewChat = $('view-chat');
+var loginEmail = $('login-email');
+var btnLogin = $('btn-login');
+var loginBtnText = $('login-btn-text');
+var loginLoading = $('login-loading');
+var loginError = $('login-error');
+var orderList = $('order-list');
+var chatCountdown = $('chat-countdown');
+var btnReset = $('btn-reset');
+var chatMessages = $('chat-messages');
+var errorToast = $('error-toast');
+var errorToastMsg = $('error-toast-msg');
+var chatInputBar = $('chat-input-bar');
+var chatInput = $('chat-input');
+var btnSend = $('btn-send');
+var btnStop = $('btn-stop');
+var expiredBanner = $('expired-banner');
+var errorToastRetry = $('error-toast-retry');
 
-  function parseEvents(buf, onEvent) {
-    for (const event of buf.split('\n\n')) {
-      for (const line of event.split('\n')) {
-        if (!line.startsWith('data: ')) continue;
-        const raw = line.slice(6).trim();
-        if (!raw || raw === '[DONE]') continue;
-        try { onEvent(JSON.parse(raw)); } catch (_) {}
-      }
-    }
-  }
+// ── State ──
+var orderID = '';
+var email = '';
+var loginLoadingState = false;
+var orderListData = [];
+var messages = [];
+var ui = { phase: 'welcome', substate: 'idle', error: '' };
+var phaseStatus = '';
+var chatExpiresAt = null;
+var expired = false;
+var pending = false;
+var isComposing = false;
+var sseCtrl = null;
+var renderer = null;
 
-  async function readStream(reader, onEvent) {
-    const decoder = new TextDecoder();
-    let buf = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const events = buf.split('\n\n');
-      buf = events.pop();
-      parseEvents(events.join('\n\n'), onEvent);
-    }
-    buf += decoder.decode();
-    parseEvents(buf, onEvent);
-  }
-
-  async function send(url, body, onEvent) {
-    let lastErr;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      ctrl = new AbortController();
-      try {
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: ctrl.signal,
-        });
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          const e = new Error(err.error?.message || t('error.requestFailed'));
-          e.code = err.error?.code || '';
-          e.status = resp.status;
-          throw e;
-        }
-        await readStream(resp.body.getReader(), onEvent);
-        return resp;
-      } catch (e) {
-        lastErr = e;
-        if (e.name === 'AbortError' || e.status) break; // user abort or HTTP error
-        if (attempt < MAX_RETRIES) {
-          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
-        }
-      }
-    }
-    throw lastErr;
-  }
-
-  function abort() {
-    if (ctrl) { ctrl.abort(); ctrl = null; }
-  }
-
-  onUnmounted(() => abort());
-
-  return { send, abort };
+// ── View switching ──
+function showView(v) {
+  viewLogin.classList.toggle('hidden', v !== 'login');
+  viewSelect.classList.toggle('hidden', v !== 'select');
+  viewChat.classList.toggle('hidden', v !== 'chat');
+  if (v === 'login') updateSendButton();
 }
 
-// ── app ──
+// ── Utilities ──
+function formatTime(ts) {
+  if (!ts) return '';
+  var d = new Date(ts);
+  var now = new Date();
+  var pad = function(n) { return String(n).padStart(2, '0'); };
+  var hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  if (d.toDateString() === now.toDateString()) return hm;
+  return pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + hm;
+}
 
-function mountApp() {
-  createApp({
-    setup() {
-    const t = window.Liki.t;
-    const sse = useSSE(t);
+function formatExpiry(expiresAt) {
+  if (!expiresAt) return '';
+  try {
+    var d = new Date(expiresAt.replace(' ', 'T') + 'Z');
+    var now = new Date();
+    var diff = d - now;
+    if (diff <= 0) return t('chat.expired');
+    var days = Math.floor(diff / 86400000);
+    var hours = Math.floor((diff % 86400000) / 3600000);
+    if (days > 0) return t('chat.remainingDays').replace('{n}', days);
+    return t('chat.remainingHours').replace('{n}', hours);
+  } catch { return ''; }
+}
 
-    // ── state ──
-    const state = ref('login');     // login | select | chat
-    const orderID = ref('');
-    const email = ref('');
-    const loginLoading = ref(false);
-    const loginError = ref('');
-    const orderList = ref([]);
-    const currency = ref('CNY');
-    const currencies = ref(['CNY', 'USD']);
-    const buyLoading = ref(false);
+function refreshMeta() {
+  var len = messages.length;
+  if (!len) return;
+  messages[len - 1].showTime = true;
+  if (len >= 2) messages[len - 2].showTime = messages[len - 2].role !== messages[len - 1].role;
+}
 
-    const messages = ref([]);
-    const ui = reactive({
-      phase: 'welcome',
-      substate: 'idle',
-      error: '',
+function scrollDown(force) {
+  var el = chatMessages;
+  if (!el) return;
+  if (force || el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+function focusInput() {
+  chatInput.focus();
+}
+
+function saveDraft() {
+  try { sessionStorage.setItem(DRAFT_KEY, chatInput.value); } catch {}
+}
+
+function clearDraft() {
+  try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+}
+
+function showError(msg) {
+  ui.error = msg;
+  errorToastMsg.textContent = msg;
+  errorToast.classList.remove('hidden');
+}
+
+function hideError() {
+  ui.error = '';
+  errorToast.classList.add('hidden');
+}
+
+function retryLastMessage() {
+  hideError();
+  var lastUserText = '';
+  for (var i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') {
+      lastUserText = messages[i].content;
+      break;
+    }
+  }
+  if (!lastUserText) return;
+  while (messages.length > 0 && messages[messages.length - 1].role !== 'user') {
+    messages.pop();
+  }
+  if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
+    messages.pop();
+  }
+  renderMessages();
+  sendMessage(lastUserText);
+}
+
+// ── Countdown ──
+function tickCountdown() {
+  if (!chatExpiresAt) return;
+  var txt = formatExpiry(chatExpiresAt);
+  chatCountdown.textContent = txt;
+  if (txt === t('chat.expired')) {
+    expired = true;
+    chatCountdown.classList.add('hidden');
+    chatInputBar.classList.add('hidden');
+    expiredBanner.classList.remove('hidden');
+    btnReset.classList.add('hidden');
+    return;
+  }
+  chatCountdown.classList.remove('hidden');
+  setTimeout(tickCountdown, 60000);
+}
+
+// ── Message rendering ──
+var COPY_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+
+function createRow(m, idx) {
+  var row = document.createElement('div');
+  if (m.role === 'user') {
+    row.className = 'msg-row msg-row-user';
+    row.setAttribute('data-role', 'user');
+    row.innerHTML = '<div class="msg msg-user">' + esc(m.content) + '</div>' +
+      (m.time && m.showTime ? '<div class="msg-time">' + formatTime(m.time) + '</div>' : '');
+  } else if (m.html) {
+    row.className = 'msg-row msg-row-advisor';
+    row.setAttribute('data-role', 'advisor');
+    row.innerHTML = '<div class="msg-asst-wrap"><div class="msg msg-asst">' + m.html +
+      '<button class="msg-copy" data-msg-idx="' + idx + '" aria-label="' + t('chat.copy') + '">' + COPY_SVG + '</button></div></div>' +
+      (m.time && m.showTime ? '<div class="msg-time">' + formatTime(m.time) + '</div>' : '');
+    row.querySelector('.msg-copy').addEventListener('click', function() {
+      copyMsg(messages[parseInt(this.getAttribute('data-msg-idx'), 10)], this);
     });
-    const input = ref('');
-    const phaseStatus = ref('');
-    const greeting = ref('');
-    const countdown = ref('');
-    let chatExpiresAt = null;
-    const expired = ref(false);
-    const chatMessagesEl = ref(null);
-    const chatInputEl = ref(null);
+  } else {
+    row.className = 'msg-row msg-row-advisor';
+    row.setAttribute('data-role', 'advisor');
+    row.innerHTML = '<div class="msg msg-asst">' +
+      (phaseStatus ? '<div class="phase-status">' + esc(phaseStatus) + '</div>' : '') +
+      '<div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  }
+  row._html = m.html;
+  row._showTime = m.showTime;
+  return row;
+}
 
-    let pending = false;
-    let isComposing = false;
-    let renderer = null;
-    let countdownTimer = null;
+function syncPhaseStatus(row) {
+  var ps = row.querySelector('.phase-status');
+  if (phaseStatus) {
+    if (ps) ps.textContent = phaseStatus;
+    else {
+      var td = row.querySelector('.typing-dots');
+      if (td) { var el = document.createElement('div'); el.className = 'phase-status'; el.textContent = phaseStatus; td.parentNode.insertBefore(el, td); }
+    }
+  } else if (ps) {
+    ps.remove();
+  }
+}
 
-    const lang = i18next.language;
+function renderMessages() {
+  var children = chatMessages.children;
+  var childCount = children.length;
+  var msgCount = messages.length;
+  var minLen = childCount < msgCount ? childCount : msgCount;
 
-    // ── cleanup ──
-    onUnmounted(() => {
-      if (renderer) { renderer.cancel(); renderer = null; }
-      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-    });
+  for (var i = 0; i < minLen; i++) {
+    var m = messages[i];
+    var row = children[i];
 
-    // ── utilities ──
-    const formatTime = (ts) => {
-      if (!ts) return '';
-      const d = new Date(ts);
-      const now = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      const hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
-      if (d.toDateString() === now.toDateString()) return hm;
-      return pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + hm;
-    };
+    if (row._html === m.html && row._showTime === m.showTime) {
+      if (!m.html) syncPhaseStatus(row);
+      continue;
+    }
 
-    const formatExpiry = (expiresAt) => {
-      if (!expiresAt) return '';
-      try {
-        const d = new Date(expiresAt.replace(' ', 'T') + 'Z');
-        const now = new Date();
-        const diff = d - now;
-        if (diff <= 0) return t('chat.expired');
-        const days = Math.floor(diff / 86400000);
-        const hours = Math.floor((diff % 86400000) / 3600000);
-        if (days > 0) return t('chat.remainingDays').replace('{n}', days);
-        return t('chat.remainingHours').replace('{n}', hours);
-      } catch (_) { return ''; }
-    };
+    var replaced = false;
+    if (!row._html && !m.html && row.getAttribute('data-role') === m.role) {
+      syncPhaseStatus(row);
+    } else if (!m.html || !row._html) {
+      var newRow = createRow(m, i);
+      chatMessages.replaceChild(newRow, row);
+      replaced = true;
+    } else {
+      var asst = row.querySelector('.msg-asst');
+      if (asst) asst.innerHTML = m.html;
+      if (m.showTime !== row._showTime) {
+        var timeEl = row.querySelector('.msg-time');
+        if (m.showTime && m.time) {
+          if (timeEl) timeEl.textContent = formatTime(m.time);
+          else row.insertAdjacentHTML('beforeend', '<div class="msg-time">' + formatTime(m.time) + '</div>');
+        } else if (timeEl) {
+          timeEl.remove();
+        }
+      }
+    }
+    if (!replaced) {
+      row._html = m.html;
+      row._showTime = m.showTime;
+    }
+  }
 
-    const finishStream = () => {
-      renderer.flush();
-      phaseStatus.value = '';
-      ui.phase = 'chatting';
-      ui.substate = 'idle';
-    };
+  for (var j = childCount; j < msgCount; j++) {
+    chatMessages.appendChild(createRow(messages[j], j));
+  }
 
-    const tickCountdown = () => {
-      if (!chatExpiresAt) return;
-      countdown.value = formatExpiry(chatExpiresAt);
-      if (countdown.value === t('chat.expired')) {
-        expired.value = true;
-        countdownTimer = null;
+  while (chatMessages.children.length > msgCount) {
+    chatMessages.removeChild(chatMessages.lastChild);
+  }
+
+  scrollDown(true);
+}
+
+// ── Stream renderer ──
+function createStreamRenderer(asst) {
+  var timer = null;
+  var lastRender = 0;
+  var lastRenderedLen = 0;
+
+  function thinkingHTML() {
+    if (!asst.thinking) return '';
+    var open = (!asst.content && !asst._thinkingDismissed) ? ' open' : '';
+    return '<details class="thinking-block"' + open + '><summary>' + t('chat.thinking') + '</summary><div>' + esc(asst.thinking) + '</div></details>';
+  }
+
+  function doRender(final_) {
+    timer = null;
+    lastRender = Date.now();
+
+    if (final_) {
+      asst.html = thinkingHTML() + renderMD(asst.content);
+      lastRenderedLen = asst.content.length;
+    } else {
+      var newContent = asst.content.slice(lastRenderedLen);
+      if (!newContent) {
+        if (lastRenderedLen === 0) asst.html = thinkingHTML();
+        renderMessages();
         return;
       }
-      countdownTimer = setTimeout(tickCountdown, 60000);
-    };
-
-    const startCountdown = () => {
-      tickCountdown();
-    };
-
-    const DRAFT_KEY = 'likiChatDraft';
-
-    const saveDraft = () => {
-      try { sessionStorage.setItem(DRAFT_KEY, input.value); } catch (_) {}
-    };
-
-    watch(input, saveDraft);
-
-    const clearDraft = () => {
-      try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) {}
-    };
-
-    const focusInput = () => {
-      nextTick(() => {
-        const el = chatInputEl.value;
-        if (el) el.focus();
-      });
-    };
-
-    const onCompositionStart = () => { isComposing = true; };
-    const onCompositionEnd = () => { isComposing = false; };
-
-    const scrollDown = () => {
-      nextTick(() => {
-        const el = chatMessagesEl.value;
-        if (!el) return;
-        const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-        if (atBottom) el.scrollTop = el.scrollHeight;
-      });
-    };
-
-    // ── Stream renderer ──
-    function createStreamRenderer(asst) {
-      let timer = null;
-      let lastRender = 0;
-
-      const _thinkingHTML = () => {
-        if (!asst.thinking) return '';
-        const open = (!asst.content && !asst._thinkingDismissed) ? ' open' : '';
-        return '<details class="thinking-block"' + open + '><summary>' + t('chat.thinking') + '</summary><div>' + window.Liki.escapeHTML(asst.thinking) + '</div></details>';
-      };
-
-      const doRender = () => {
-        timer = null;
-        lastRender = Date.now();
-        asst.html = _thinkingHTML() + renderMD(asst.content);
-        // Always scroll to bottom during streaming.
-        nextTick(() => {
-          const el = chatMessagesEl.value;
-          if (el) el.scrollTop = el.scrollHeight;
-        });
-      };
-
-      return {
-        accept() {
-          if (timer) return;
-          const elapsed = Date.now() - lastRender;
-          if (elapsed >= 80) doRender();
-          else timer = setTimeout(doRender, 80 - elapsed);
-        },
-        flush() {
-          if (timer) { clearTimeout(timer); timer = null; }
-          doRender();
-        },
-        cancel() {
-          if (timer) { clearTimeout(timer); timer = null; }
-        },
-      };
+      if (lastRenderedLen === 0) {
+        asst.html = thinkingHTML() + renderMD(newContent);
+      } else {
+        asst.html += renderMD(newContent);
+      }
+      lastRenderedLen = asst.content.length;
     }
+    renderMessages();
+  }
 
-    // ── error ──
-    const handleError = (msg) => {
-      pending = false;
-      ui.error = msg;
-      ui.phase = 'chatting';
-      ui.substate = 'idle';
-    };
+  return {
+    accept: function() {
+      if (timer) return;
+      var elapsed = Date.now() - lastRender;
+      if (elapsed >= 120) doRender();
+      else timer = setTimeout(function() { doRender(); }, 120 - elapsed);
+    },
+    flush: function() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      doRender(true);
+    },
+    cancel: function() {
+      if (timer) { clearTimeout(timer); timer = null; }
+    }
+  };
+}
 
-    // ── SSE event dispatch ──
-    const handleEvent = (evt, asst, renderer) => {
-      switch (evt.type) {
-        case 'thinking':
-          phaseStatus.value = t('chat.thinkingStatus');
-          break;
+// ── SSE ──
+function parseEvents(buf, onEvent) {
+  var events = buf.split('\n\n');
+  for (var i = 0; i < events.length; i++) {
+    var lines = events[i].split('\n');
+    for (var j = 0; j < lines.length; j++) {
+      var line = lines[j];
+      if (line.indexOf('data: ') !== 0) continue;
+      var raw = line.slice(6).trim();
+      if (!raw || raw === '[DONE]') continue;
+      try { onEvent(JSON.parse(raw)); } catch {}
+    }
+  }
+}
 
-        case 'phase':
-          phaseStatus.value = evt.content || '';
-          break;
-
-        case 'thinking-delta':
-          asst.thinking += evt.content;
-          if (!asst.content) renderer.accept();
-          break;
-
-        case 'text-delta':
-          if (!asst.content) {
-            asst._thinkingDismissed = true;
-            phaseStatus.value = '';
-          }
-          ui.phase = 'streaming';
-          asst.content += evt.content;
-          renderer.accept();
-          break;
-
-        case 'report-ready':
-          finishStream();
-          setTimeout(() => { location.href = evt.content; }, 1500);
-          break;
-
-        case 'error':
-          renderer.flush();
-          phaseStatus.value = '';
-          handleError(evt.content);
-          break;
-      }
-    };
-
-    // ── send message ──
-    const sendMessage = async (msg) => {
-      if (pending) return;
-      if (isComposing) return;
-      if (expired.value) return;
-      const text = (msg || input.value).trim();
-      if (!text) return;
-
-      pending = true;
-      input.value = '';
-      clearDraft();
-      ui.error = '';
-      ui.phase = 'chatting';
-      ui.substate = 'loading';
-
-      messages.value.push({ role: 'user', content: text, time: new Date().toISOString() });
-
-      const asst = reactive({ role: 'advisor', content: '', thinking: '', html: '', time: new Date().toISOString() });
-      messages.value.push(asst);
-      renderer = createStreamRenderer(asst);
-      scrollDown();
-
-      try {
-        await sse.send('/api/agent/naming', { message: text, lang: lang },
-          (evt) => handleEvent(evt, asst, renderer),
-        );
-      } catch (e) {
-        if (e.name !== 'AbortError') {
-          if (e.status === 401) {
-            // JWT expired — back to login
-            state.value = 'login';
-            loginError.value = t('chat.sessionExpired');
-            return;
-          }
-          handleError(e.message);
-          if (!asst.content && !asst.thinking && !asst.html) messages.value.pop();
-        }
-      } finally {
-        pending = false;
-        renderer.flush();
-        if (ui.phase === 'streaming') {
-          ui.phase = 'chatting';
-          ui.substate = 'idle';
-          phaseStatus.value = '';
-          focusInput();
-        }
-        renderer = null;
-      }
-    };
-
-    const stopStream = () => {
-      sse.abort();
-      if (renderer) renderer.flush();
-      ui.phase = 'chatting';
-      ui.substate = 'idle';
-      pending = false;
-      focusInput();
-    };
-
-    const newChat = () => {
-      if (renderer) { renderer.cancel(); renderer = null; }
-      messages.value = [];
-      ui.phase = 'welcome';
-      ui.substate = 'idle';
-      ui.error = '';
-      phaseStatus.value = '';
-      pending = false;
-      focusInput();
-    };
-
-    // ── login ──
-    const doLogin = async () => {
-      if (!email.value || loginLoading.value) return;
-      loginLoading.value = true;
-      loginError.value = '';
-
-      try {
-        const resp = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.value }),
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error?.message || t('error.requestFailed'));
-
-        const result = data.data;
-        if (result.orders) {
-          orderList.value = result.orders;
-          state.value = 'select';
-        } else if (result.order_id) {
-          orderID.value = result.order_id;
-          sessionStorage.setItem('likiOrderID', result.order_id);
-          await enterChat();
-        }
-      } catch (e) {
-        loginError.value = e.message;
-      } finally {
-        loginLoading.value = false;
-      }
-    };
-
-    const selectOrder = async (oid) => {
-      try {
-        const resp = await fetch('/api/orders/select', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_id: oid, email: email.value }),
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error?.message || t('error.requestFailed'));
-
-        orderID.value = oid;
-        sessionStorage.setItem('likiOrderID', oid);
-        await enterChat();
-      } catch (e) {
-        loginError.value = e.message;
-        state.value = 'login';
-      }
-    };
-
-    // ── buy ──
-    const doBuy = async () => {
-      if (!email.value || buyLoading.value) return;
-      buyLoading.value = true;
-      loginError.value = '';
-      try {
-        // 1. Create order
-        let resp = await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.value, product: 'naming', currency: currency.value }),
-        });
-        let data = await resp.json();
-        if (!resp.ok) throw new Error(data.error?.message || t('error.requestFailed'));
-        const oid = data.data?.order_id;
-        if (!oid) throw new Error('Missing order_id');
-
-        // 2. Checkout
-        resp = await fetch('/api/payments/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ order_id: oid, email: email.value }),
-        });
-        data = await resp.json();
-        if (!resp.ok) throw new Error(data.error?.message || t('error.requestFailed'));
-        const url = data.data?.checkout_url;
-        if (!url) throw new Error('Missing checkout_url');
-
-        sessionStorage.setItem('likiOrderID', oid);
-        location.href = url;
-      } catch (e) {
-        loginError.value = e.message;
-      } finally {
-        buyLoading.value = false;
-      }
-    };
-
-    // ── enter chat ──
-    const enterChat = async (prefetched) => {
-      try {
-        let o;
-        if (prefetched) {
-          o = prefetched;
-        } else {
-          const resp = await fetch('/api/orders/' + orderID.value + '/status');
-          const data = await resp.json();
-          if (!resp.ok) throw new Error('order not found');
-          o = data.data;
-        }
-
-        if (o.status !== 'paid') {
-          loginError.value = t('chat.orderNotPaid');
-          state.value = 'login';
+function readStream(reader, onEvent) {
+  return new Promise(function(resolve, reject) {
+    var decoder = new TextDecoder();
+    var buf = '';
+    function pump() {
+      reader.read().then(function(result) {
+        if (result.done) {
+          buf += decoder.decode();
+          parseEvents(buf, onEvent);
+          resolve();
           return;
         }
+        buf += decoder.decode(result.value, { stream: true });
+        var events = buf.split('\n\n');
+        buf = events.pop();
+        parseEvents(events.join('\n\n'), onEvent);
+        pump();
+      }).catch(reject);
+    }
+    pump();
+  });
+}
 
-        chatExpiresAt = o.chat_expires_at || null;
-        countdown.value = formatExpiry(o.chat_expires_at);
-        if (countdown.value === t('chat.expired')) expired.value = true;
+function sseSend(url, body, onEvent) {
+  return new Promise(function(resolve, reject) {
+    var attempt = 0;
+    function trySend() {
+      sseCtrl = new AbortController();
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: sseCtrl.signal
+      }).then(function(resp) {
+        if (!resp.ok) {
+          return resp.json().catch(function() { return {}; }).then(function(err) {
+            var e = new Error((err.error && err.error.message) || t('error.requestFailed'));
+            e.code = (err.error && err.error.code) || '';
+            e.status = resp.status;
+            throw e;
+          });
+        }
+        if (!resp.body) throw new Error('Empty response body');
+        return readStream(resp.body.getReader(), onEvent).then(function() { resolve(resp); });
+      }).catch(function(err) {
+        if (err.name === 'AbortError') { resolve(); return; }
+        if (err.status) { reject(err); return; } // HTTP error — don't retry
+        if (attempt < MAX_RETRIES) {
+          attempt++;
+          setTimeout(trySend, Math.pow(2, attempt - 1) * 1000);
+        } else {
+          reject(err);
+        }
+      });
+    }
+    trySend();
+  });
+}
 
-        state.value = 'chat';
-        startCountdown();
-        try { const d = sessionStorage.getItem(DRAFT_KEY); if (d) input.value = d; } catch (_) {}
-        focusInput();
+function sseAbort() {
+  if (sseCtrl) { sseCtrl.abort(); sseCtrl = null; }
+}
 
-        greeting.value = t('chat.greeting');
-        messages.value.push({
-          role: 'advisor',
-          content: greeting.value,
-          html: renderMD(greeting.value),
-          time: new Date().toISOString(),
-        });
-      } catch (e) {
-        loginError.value = e.message;
-        state.value = 'login';
+// ── Event handlers ──
+function handleSSEEvent(evt, asst, rend) {
+  switch (evt.type) {
+    case SSE_EVT.THINKING:
+      phaseStatus = t('chat.thinkingStatus');
+      renderMessages();
+      break;
+    case SSE_EVT.PHASE:
+      phaseStatus = evt.content || '';
+      renderMessages();
+      break;
+    case SSE_EVT.THINKING_DELTA:
+      asst.thinking += evt.content;
+      if (!asst.content) rend.accept();
+      break;
+    case SSE_EVT.TEXT_DELTA:
+      if (!asst.content) {
+        asst._thinkingDismissed = true;
+        phaseStatus = '';
       }
-    };
+      ui.phase = 'streaming';
+      asst.content += evt.content;
+      rend.accept();
+      break;
+    case SSE_EVT.ERROR:
+      rend.flush();
+      phaseStatus = '';
+      handleError(evt.content);
+      break;
+  }
+}
 
-    // ── init ──
-    onMounted(async () => {
-      const appEl = document.getElementById('app');
-      if (appEl) appEl.removeAttribute('v-cloak');
+function handleError(msg) {
+  pending = false;
+  showError(msg);
+  ui.phase = 'chatting';
+  ui.substate = 'idle';
+  updateInputUI();
+}
 
-      // Check for order_id from URL (payment callback) or sessionStorage.
-      const qp = new URLSearchParams(location.search);
-      let oid = qp.get('order_id');
-      if (oid) {
-        sessionStorage.setItem('likiOrderID', oid);
-        // Clean URL
-        history.replaceState(null, '', '/chat');
-      } else {
-        oid = sessionStorage.getItem('likiOrderID');
+function updateInputUI() {
+  var loading = ui.substate === 'loading';
+  var empty = !chatInput.value.trim();
+  btnSend.classList.toggle('hidden', loading);
+  btnStop.classList.toggle('hidden', !loading);
+  btnSend.disabled = empty || loading;
+  chatInput.disabled = loading;
+}
+
+// ── Send message ──
+function sendMessage(msg) {
+  if (pending) return;
+  if (isComposing) return;
+  if (expired) return;
+  var text = (msg || chatInput.value).trim();
+  if (!text) return;
+
+  pending = true;
+  chatInput.value = '';
+  clearDraft();
+  hideError();
+  ui.phase = 'chatting';
+  ui.substate = 'loading';
+  updateInputUI();
+
+  messages.push({ role: 'user', content: text, time: new Date().toISOString() });
+
+  var asst = { role: 'advisor', content: '', thinking: '', html: '', time: new Date().toISOString() };
+  messages.push(asst);
+  refreshMeta();
+  renderer = createStreamRenderer(asst);
+  renderMessages();
+
+  sseSend(API_BASE + '/naming/agent/chat', { message: text, lang: locale }, function(evt) {
+    handleSSEEvent(evt, asst, renderer);
+  }).then(function() {
+    pending = false;
+    if (renderer) renderer.flush();
+    if (ui.phase === 'streaming') {
+      ui.phase = 'chatting';
+      ui.substate = 'idle';
+      phaseStatus = '';
+      updateInputUI();
+      focusInput();
+      renderMessages();
+    }
+    renderer = null;
+  }).catch(function(err) {
+    if (err.name === 'AbortError') return;
+    pending = false;
+    if (err.status === 401) {
+      showView('login');
+      setLoginError(t('chat.sessionExpired'));
+      return;
+    }
+    if (renderer) renderer.flush();
+    handleError(err.message);
+    if (!asst.content && !asst.thinking && !asst.html) messages.pop();
+    renderMessages();
+    renderer = null;
+  });
+}
+
+function stopStream() {
+  sseAbort();
+  if (renderer) renderer.flush();
+  phaseStatus = '';
+  ui.phase = 'chatting';
+  ui.substate = 'idle';
+  pending = false;
+  renderMessages();
+  updateInputUI();
+  focusInput();
+}
+
+// ── Greeting ──
+function greet() {
+  var greeting = t('chat.greeting');
+  messages.push({ role: 'advisor', content: greeting, html: renderMD(greeting), time: new Date().toISOString() });
+  refreshMeta();
+  renderMessages();
+}
+
+// ── Reset ──
+function reset() {
+  sseAbort();
+  if (renderer) { renderer.cancel(); renderer = null; }
+  fetch('/api/naming/orders/' + orderID + '/messages', { method: 'DELETE', credentials: 'include' }).catch(function(){});
+  messages = [];
+  ui.phase = 'welcome';
+  ui.substate = 'idle';
+  ui.error = '';
+  phaseStatus = '';
+  pending = false;
+  chatInput.value = ''; clearDraft(); focusInput();
+  updateInputUI();
+  greet();
+}
+
+// ── Copy ──
+function copyMsg(m, btn) {
+  if (!navigator.clipboard) return;
+  navigator.clipboard.writeText(m.content).then(function() {
+    if (btn) {
+      var orig = btn.innerHTML;
+      btn.innerHTML = '<span style="font-size:12px">✓</span>';
+      setTimeout(function() { btn.innerHTML = orig; }, 1200);
+    }
+  }).catch(function(){});
+}
+
+// ── Login ──
+function setLoginError(msg) {
+  loginError.textContent = msg;
+  loginError.classList.toggle('hidden', !msg);
+  if (msg) {
+    loginError.closest('.login-card').classList.add('has-error');
+  } else {
+    loginError.closest('.login-card').classList.remove('has-error');
+  }
+}
+
+function setLoginLoading(loading) {
+  loginLoadingState = loading;
+  loginBtnText.classList.toggle('hidden', loading);
+  loginLoading.classList.toggle('hidden', !loading);
+  btnLogin.disabled = loading || !loginEmail.value;
+}
+
+function doLogin() {
+  if (!loginEmail.value || loginLoadingState) return;
+  setLoginLoading(true);
+  setLoginError('');
+
+  fetch('/api/naming/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: loginEmail.value })
+  }).then(function(resp) {
+    return resp.json().then(function(data) {
+      if (!resp.ok) throw new Error((data.error && data.error.message) || t('error.requestFailed'));
+      return data.data;
+    });
+  }).then(function(result) {
+    setLoginLoading(false);
+    email = loginEmail.value;
+    if (result.orders) {
+      orderListData = result.orders;
+      renderOrderList();
+      showView('select');
+    } else if (result.order_id) {
+      orderID = result.order_id;
+      try { sessionStorage.setItem('likiOrderID', result.order_id); } catch {}
+      enterChat();
+    }
+  }).catch(function(err) {
+    setLoginLoading(false);
+    setLoginError(err.message);
+  });
+}
+
+// ── Order list ──
+function renderOrderList() {
+  var html = '';
+  for (var i = 0; i < orderListData.length; i++) {
+    var o = orderListData[i];
+    var delay = i * 80;
+    html += '<div class="order-card" role="button" tabindex="0" data-order-id="' + o.order_id + '" style="animation-delay: ' + delay + 'ms">' +
+      '<div class="flex justify-between items-center">' +
+      '<div class="font-medium text-stone-800">' + esc(o.summary) + '</div>' +
+      '<span class="text-xs text-stone-400">' + formatExpiry(o.expires_at) + '</span>' +
+      '</div></div>';
+  }
+  orderList.innerHTML = html;
+
+  var cards = orderList.querySelectorAll('.order-card');
+  for (var j = 0; j < cards.length; j++) {
+    cards[j].addEventListener('click', function() {
+      selectOrder(this.getAttribute('data-order-id'));
+    });
+    cards[j].addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectOrder(this.getAttribute('data-order-id'));
       }
+    });
+  }
+}
 
-      if (oid) {
-        orderID.value = oid;
-        try {
-          const resp = await fetch('/api/orders/' + oid + '/status');
-          if (resp.status === 401) {
-            // JWT expired
-            state.value = 'login';
+function selectOrder(oid) {
+  fetch('/api/naming/orders/select', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order_id: oid, email: email })
+  }).then(function(resp) {
+    return resp.json().then(function(data) {
+      if (!resp.ok) throw new Error((data.error && data.error.message) || t('error.requestFailed'));
+      return data;
+    });
+  }).then(function() {
+    orderID = oid;
+    try { sessionStorage.setItem('likiOrderID', oid); } catch {}
+    enterChat();
+  }).catch(function(err) {
+    setLoginError(err.message);
+    showView('login');
+  });
+}
+
+// ── Enter chat ──
+function enterChat(prefetched) {
+  var p;
+  if (prefetched) {
+    p = Promise.resolve(prefetched);
+  } else {
+    p = fetch('/api/naming/orders/' + orderID + '/status').then(function(resp) {
+      return resp.json().then(function(data) {
+        if (!resp.ok) throw new Error('order not found');
+        return data.data;
+      });
+    });
+  }
+
+  p.then(function(o) {
+    if (o.status !== 'paid') {
+      setLoginError(t('chat.orderNotPaid'));
+      showView('login');
+      return;
+    }
+
+    chatExpiresAt = o.chat_expires_at || null;
+    var cd = formatExpiry(o.chat_expires_at);
+    if (cd === t('chat.expired')) expired = true;
+
+    showView('chat');
+    if (expired) {
+      expiredBanner.classList.remove('hidden');
+      chatInputBar.classList.add('hidden');
+    } else {
+      expiredBanner.classList.add('hidden');
+      chatInputBar.classList.remove('hidden');
+      btnReset.classList.remove('hidden');
+      tickCountdown();
+    }
+
+    try { var d = sessionStorage.getItem(DRAFT_KEY); if (d) chatInput.value = d; } catch {}
+    focusInput();
+    updateInputUI();
+
+    // Show loading indicator while history loads
+    messages = [{ role: 'advisor', content: '', html: '', time: new Date().toISOString() }];
+    renderMessages();
+
+    // Load history
+    fetch('/api/naming/orders/' + orderID + '/messages').then(function(histResp) {
+      if (!histResp.ok) {
+        messages = [];
+        greet();
+        showError(t('error.requestFailed'));
+        return;
+      }
+      return histResp.json().then(function(histData) {
+        var msgs = histData.data || [];
+        messages = [];
+        if (msgs.length > 0) {
+          for (var i = 0; i < msgs.length; i++) {
+            var m = msgs[i];
+            if (m.role === 'tool') continue;
+            if (m.role === 'assistant' && !m.content) continue;
+            messages.push({
+              role: m.role === 'assistant' ? 'advisor' : 'user',
+              content: m.content,
+              html: m.role === 'assistant' ? renderMD(m.content) : undefined,
+              time: m.created_at
+            });
+          }
+          refreshMeta();
+          renderMessages();
+          return;
+        }
+        greet();
+      });
+    }).catch(function() {
+      messages = [];
+      greet();
+      showError(t('error.requestFailed'));
+    });
+  }).catch(function(err) {
+    setLoginError(err.message);
+    showView('login');
+  });
+}
+
+// ── Keyboard shortcuts ──
+function onGlobalKeydown(e) {
+  if (e.key === 'Escape' && ui.substate === 'loading') {
+    stopStream();
+  }
+}
+
+// ── Event bindings ──
+btnLogin.addEventListener('click', doLogin);
+loginEmail.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+  updateSendButton();
+});
+loginEmail.addEventListener('input', function() {
+  setLoginError('');
+  updateSendButton();
+});
+
+function updateSendButton() {
+  btnLogin.disabled = !loginEmail.value || loginLoadingState;
+}
+
+btnReset.addEventListener('click', reset);
+btnSend.addEventListener('click', function() { sendMessage(); });
+btnStop.addEventListener('click', stopStream);
+
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') sendMessage();
+});
+chatInput.addEventListener('input', function() { saveDraft(); updateInputUI(); });
+chatInput.addEventListener('compositionstart', function() { isComposing = true; });
+chatInput.addEventListener('compositionend', function() { isComposing = false; });
+
+$('error-toast-close').addEventListener('click', hideError);
+errorToastRetry.addEventListener('click', retryLastMessage);
+
+document.addEventListener('keydown', onGlobalKeydown);
+
+// ── Init ──
+(function init() {
+  var appEl = $('app');
+  if (appEl) appEl.removeAttribute('v-cloak');
+
+  var qp = new URLSearchParams(location.search);
+  var oid = qp.get('order_id');
+  if (oid) {
+    try { sessionStorage.setItem('likiOrderID', oid); } catch {}
+    var loc = (location.pathname.match(/^\/(zh-Hans|zh-Hant|en)\//) || [])[1];
+    history.replaceState(null, '', '/' + (loc || 'zh-Hant') + '/chat');
+  } else {
+    try { oid = sessionStorage.getItem('likiOrderID'); } catch {}
+  }
+
+  if (oid) {
+    orderID = oid;
+    fetch('/api/naming/orders/' + oid + '/status').then(function(resp) {
+      if (resp.status === 401) {
+        showView('login');
+        return;
+      }
+      if (resp.ok) {
+        return resp.json().then(function(data) {
+          if (data.data && data.data.status === 'paid') {
+            enterChat(data.data);
             return;
           }
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data.data?.status === 'paid') {
-              await enterChat(data.data);
-              return;
-            }
-          }
-        } catch (_) {}
-        // If we get here, the order is invalid — fall through to login
-        sessionStorage.removeItem('likiOrderID');
+          throw new Error('not paid');
+        });
       }
-
-      state.value = 'login';
+      throw new Error('not found');
+    }).catch(function() {
+      try { sessionStorage.removeItem('likiOrderID'); } catch {}
+      showView('login');
     });
+  } else {
+    showView('login');
+  }
 
-    // ── expose ──
-    return {
-      state, orderID, email, loginLoading, loginError, orderList,
-      currency, currencies, buyLoading,
-      messages, ui, input, phaseStatus, greeting, countdown, expired,
-      chatMessagesEl, chatInputEl, lang,
-      formatTime, formatExpiry, onCompositionStart, onCompositionEnd,
-      sendMessage, stopStream, newChat,
-      doLogin, selectOrder, doBuy,
-      t,
-    };
-  },
-  render: window.__chatAppRender,
-  }).mount('#app');
-}
+  // ── mobile: keyboard 适配 ──
+  var _shell = $('view-chat');
+  if (window.visualViewport && _shell) {
+    function fitShell() {
+      _shell.style.height = window.visualViewport.height + 'px';
+      scrollDown(true);
+    }
+    window.visualViewport.addEventListener('resize', fitShell);
+  }
+  if (chatInput) {
+    chatInput.addEventListener('focus', function () {
+      setTimeout(function () { scrollDown(true); }, 300);
+    });
+  }
+})();
 
-if (i18next.isInitialized) {
-  mountApp();
-} else {
-  i18next.on('initialized', mountApp);
-}
+})();

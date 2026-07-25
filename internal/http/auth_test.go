@@ -12,35 +12,33 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"liki_web/internal/payment"
-	"liki_web/internal/product"
+	"liki-web/internal/httputil"
+	"liki-web/internal/naming"
+	"liki-web/internal/product"
 
 	_ "modernc.org/sqlite"
 )
 
-func newAuthTestStore(t *testing.T) *payment.Store {
+func newAuthTestStore(t *testing.T) *naming.Store {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
 	}
 	db.SetMaxOpenConns(1)
-	store, err := payment.NewStore(db)
-	if err != nil {
-		t.Fatalf("NewStore: %v", err)
-	}
+	store := naming.NewStore(db)
 	return store
 }
 
-func seedActiveOrder(t *testing.T, store *payment.Store, orderID, email string, prod product.Product, expiresAt string) {
+func seedActiveOrder(t *testing.T, store *naming.Store, orderID, email string, prod product.Product, expiresAt string) {
 	t.Helper()
-	if err := store.CreateOrder(context.Background(), orderID, prod, 2990, "CNY", "", "", "", "dodo"); err != nil {
+	if err := store.CreateOrder(context.Background(), orderID, string(prod), product.NamingAmountCents(product.CNY), "CNY", "", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
 	if err := store.UpdateEmail(context.Background(), orderID, email); err != nil {
 		t.Fatalf("update email: %v", err)
 	}
-	if _, _, _, err := store.MarkPaidIdempotent(context.Background(), orderID, "pay-"+orderID); err != nil {
+	if _, err := store.MarkPaidIdempotent(context.Background(), orderID, "pay-"+orderID); err != nil {
 		t.Fatalf("mark paid: %v", err)
 	}
 	if expiresAt == "" {
@@ -54,8 +52,9 @@ func seedActiveOrder(t *testing.T, store *payment.Store, orderID, email string, 
 }
 
 func TestHandleLogin_NoOrders(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
-	handler := handleLogin(store)
+	handler := naming.HandleLogin(store)
 
 	body := `{"email":"nobody@example.com"}`
 	r := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(body))
@@ -68,9 +67,10 @@ func TestHandleLogin_NoOrders(t *testing.T) {
 }
 
 func TestHandleLogin_OneOrder(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
 	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
-	handler := handleLogin(store)
+	handler := naming.HandleLogin(store)
 
 	body := `{"email":"user@example.com"}`
 	r := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(body))
@@ -82,7 +82,7 @@ func TestHandleLogin_OneOrder(t *testing.T) {
 	}
 
 	var resp struct {
-		Data loginResponse `json:"data"`
+		Data naming.LoginResponse `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -91,10 +91,6 @@ func TestHandleLogin_OneOrder(t *testing.T) {
 	if resp.Data.OrderID != "order-1" {
 		t.Errorf("order_id = %q, want order-1", resp.Data.OrderID)
 	}
-	if resp.Data.Redirect != "/chat" {
-		t.Errorf("redirect = %q, want /chat", resp.Data.Redirect)
-	}
-
 	// Check JWT cookie is set.
 	cookies := w.Result().Cookies()
 	var tokenCookie *http.Cookie
@@ -110,10 +106,11 @@ func TestHandleLogin_OneOrder(t *testing.T) {
 }
 
 func TestHandleLogin_MultipleOrders(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
 	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
 	seedActiveOrder(t, store, "order-2", "user@example.com", product.ProductNaming, "2027-02-01 00:00:00")
-	handler := handleLogin(store)
+	handler := naming.HandleLogin(store)
 
 	body := `{"email":"user@example.com"}`
 	r := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(body))
@@ -125,7 +122,7 @@ func TestHandleLogin_MultipleOrders(t *testing.T) {
 	}
 
 	var resp struct {
-		Data loginResponse `json:"data"`
+		Data naming.LoginResponse `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -140,21 +137,23 @@ func TestHandleLogin_MultipleOrders(t *testing.T) {
 }
 
 func TestHandleLogin_EmptyEmail(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
-	handler := handleLogin(store)
+	handler := naming.HandleLogin(store)
 
 	r := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(`{"email":""}`))
 	w := httptest.NewRecorder()
 	handler(w, r)
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want 422", w.Code)
 	}
 }
 
 func TestHandleLogin_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
-	handler := handleLogin(store)
+	handler := naming.HandleLogin(store)
 
 	r := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(`{bad`))
 	w := httptest.NewRecorder()
@@ -166,9 +165,10 @@ func TestHandleLogin_InvalidJSON(t *testing.T) {
 }
 
 func TestHandleOrderSelect_Success(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
 	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
-	handler := handleOrderSelect(store)
+	handler := naming.HandleOrderSelect(store)
 
 	body := `{"order_id":"order-1","email":"user@example.com"}`
 	r := httptest.NewRequest("POST", "/api/orders/select", strings.NewReader(body))
@@ -194,9 +194,10 @@ func TestHandleOrderSelect_Success(t *testing.T) {
 }
 
 func TestHandleOrderSelect_WrongEmail(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
 	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
-	handler := handleOrderSelect(store)
+	handler := naming.HandleOrderSelect(store)
 
 	body := `{"order_id":"order-1","email":"attacker@example.com"}`
 	r := httptest.NewRequest("POST", "/api/orders/select", strings.NewReader(body))
@@ -209,8 +210,9 @@ func TestHandleOrderSelect_WrongEmail(t *testing.T) {
 }
 
 func TestHandleOrderSelect_OrderNotFound(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
-	handler := handleOrderSelect(store)
+	handler := naming.HandleOrderSelect(store)
 
 	body := `{"order_id":"nonexistent","email":"user@example.com"}`
 	r := httptest.NewRequest("POST", "/api/orders/select", strings.NewReader(body))
@@ -223,8 +225,9 @@ func TestHandleOrderSelect_OrderNotFound(t *testing.T) {
 }
 
 func TestHandleOrderSelect_MissingFields(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
-	handler := handleOrderSelect(store)
+	handler := naming.HandleOrderSelect(store)
 
 	tests := []struct {
 		name string
@@ -239,31 +242,34 @@ func TestHandleOrderSelect_MissingFields(t *testing.T) {
 			r := httptest.NewRequest("POST", "/api/orders/select", strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
 			handler(w, r)
-			if w.Code != http.StatusBadRequest {
-				t.Errorf("status = %d, want 400", w.Code)
+			if w.Code != http.StatusUnprocessableEntity {
+				t.Errorf("status = %d, want 422", w.Code)
 			}
 		})
 	}
 }
 
 func TestJWTAuth_NoCookie(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("GET", "/", nil)
-	_, _, ok := jwtAuth(r)
+	_, _, ok := httputil.JWTAuth(r)
 	if ok {
 		t.Error("expected no auth without cookie")
 	}
 }
 
 func TestJWTAuth_InvalidToken(t *testing.T) {
+	t.Parallel()
 	r := httptest.NewRequest("GET", "/", nil)
 	r.AddCookie(&http.Cookie{Name: "liki_token", Value: "not-a-valid-jwt"})
-	_, _, ok := jwtAuth(r)
+	_, _, ok := httputil.JWTAuth(r)
 	if ok {
 		t.Error("expected no auth with invalid token")
 	}
 }
 
 func TestJWTAuth_ExpiredToken(t *testing.T) {
+	t.Parallel()
 	// Tokens with an expired exp claim should be rejected.
 	claims := jwt.MapClaims{
 		"email":    "user@example.com",
@@ -271,23 +277,26 @@ func TestJWTAuth_ExpiredToken(t *testing.T) {
 		"exp":      time.Now().Add(-1 * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(jwtSecret())
+	signed, err := token.SignedString(httputil.JWTSecret())
 	if err != nil {
 		t.Fatalf("sign expired token: %v", err)
 	}
 
 	r := httptest.NewRequest("GET", "/", nil)
 	r.AddCookie(&http.Cookie{Name: "liki_token", Value: signed})
-	_, _, ok := jwtAuth(r)
+	_, _, ok := httputil.JWTAuth(r)
 	if ok {
 		t.Error("expected no auth with expired token")
 	}
 }
 
 func TestJWTAuth_RoundTrip(t *testing.T) {
+	t.Parallel()
 	// Set cookie, then verify jwtAuth can read it back.
 	w := httptest.NewRecorder()
-	setJWTCookie(w, "user@example.com", "order-1")
+	if err := httputil.SetJWTCookie(w, "user@example.com", "order-1"); err != nil {
+		t.Fatal("SetJWTCookie failed:", err)
+	}
 
 	cookies := w.Result().Cookies()
 	var tokenValue string
@@ -303,7 +312,7 @@ func TestJWTAuth_RoundTrip(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", nil)
 	r.AddCookie(&http.Cookie{Name: "liki_token", Value: tokenValue})
-	email, orderID, ok := jwtAuth(r)
+	email, orderID, ok := httputil.JWTAuth(r)
 	if !ok {
 		t.Fatal("jwtAuth failed")
 	}
@@ -315,52 +324,46 @@ func TestJWTAuth_RoundTrip(t *testing.T) {
 	}
 }
 
-func TestHandleLogin_HasBirthInfo(t *testing.T) {
-	store := newAuthTestStore(t)
-	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
-	// Set birth_info on the order.
-	if _, err := store.UpdateBirthInfoIfEmpty(context.Background(), "order-1", `{"raw":{"year":2026}}`); err != nil {
-		t.Fatalf("UpdateBirthInfoIfEmpty: %v", err)
+func TestJWTAuth_RejectsAlgorithmNone(t *testing.T) {
+	t.Parallel()
+	// Token signed with "none" algorithm must be rejected.
+	token := jwt.New(jwt.SigningMethodNone)
+	token.Claims = jwt.MapClaims{
+		"email":    "user@example.com",
+		"order_id": "order-1",
+		"exp":      time.Now().Add(1 * time.Hour).Unix(),
 	}
-	handler := handleLogin(store)
-
-	body := `{"email":"user@example.com"}`
-	r := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	handler(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", w.Code)
+	signed, err := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	if err != nil {
+		t.Fatalf("sign none token: %v", err)
 	}
 
-	var resp struct {
-		Data loginResponse `json:"data"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if !resp.Data.HasBirthInfo {
-		t.Error("HasBirthInfo should be true when birth_info is set")
+	r := httptest.NewRequest("GET", "/", nil)
+	r.AddCookie(&http.Cookie{Name: "liki_token", Value: signed})
+	_, _, ok := httputil.JWTAuth(r)
+	if ok {
+		t.Error("JWTAuth accepted token with algorithm=none")
 	}
 }
 
 func TestHandleLogin_ExpiredOrderNotReturned(t *testing.T) {
+	t.Parallel()
 	store := newAuthTestStore(t)
 	// Seed an expired paid order — should NOT be returned.
-	if err := store.CreateOrder(context.Background(), "order-expired", product.ProductNaming, 2990, "CNY", "", "", "", "dodo"); err != nil {
+	if err := store.CreateOrder(context.Background(), "order-expired", "naming", product.NamingAmountCents(product.CNY), "CNY", "", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
 	if err := store.UpdateEmail(context.Background(), "order-expired", "user@example.com"); err != nil {
 		t.Fatalf("update email: %v", err)
 	}
-	if _, _, _, err := store.MarkPaidIdempotent(context.Background(), "order-expired", "pay-expired"); err != nil {
+	if _, err := store.MarkPaidIdempotent(context.Background(), "order-expired", "pay-expired"); err != nil {
 		t.Fatalf("mark paid: %v", err)
 	}
 	if err := store.OverrideChatExpiresAt(context.Background(), "order-expired", "2020-01-01 00:00:00"); err != nil {
 		t.Fatalf("set chat expiry: %v", err)
 	}
 
-	handler := handleLogin(store)
+	handler := naming.HandleLogin(store)
 	body := `{"email":"user@example.com"}`
 	r := httptest.NewRequest("POST", "/api/auth/login", strings.NewReader(body))
 	w := httptest.NewRecorder()
@@ -371,30 +374,3 @@ func TestHandleLogin_ExpiredOrderNotReturned(t *testing.T) {
 	}
 }
 
-func TestHandleOrderSelect_HasBirthInfo(t *testing.T) {
-	store := newAuthTestStore(t)
-	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
-	if _, err := store.UpdateBirthInfoIfEmpty(context.Background(), "order-1", `{"raw":{"year":2026}}`); err != nil {
-		t.Fatalf("UpdateBirthInfoIfEmpty: %v", err)
-	}
-	handler := handleOrderSelect(store)
-
-	body := `{"order_id":"order-1","email":"user@example.com"}`
-	r := httptest.NewRequest("POST", "/api/orders/select", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	handler(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", w.Code)
-	}
-
-	var resp struct {
-		Data loginResponse `json:"data"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if !resp.Data.HasBirthInfo {
-		t.Error("HasBirthInfo should be true when birth_info is set")
-	}
-}

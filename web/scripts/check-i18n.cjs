@@ -61,24 +61,284 @@ function checkPrices(locales) {
 }
 
 function checkHtmlKeys(locales) {
-  // Extract all data-i18n keys from HTML files and verify they exist in all locales.
   const allKeys = new Set();
   for (const [name, data] of Object.entries(locales)) {
     for (const k of Object.keys(data)) allKeys.add(k);
   }
 
-  const htmlDir = path.resolve(__dirname, '..');
-  const htmlFiles = fs.readdirSync(htmlDir).filter(f => f.endsWith('.html'));
-  const keyRe = /data-i18n="([^"]+)"/g;
+  const astroFiles = gatherAstroFiles();
+  const tRe = /t\(locale,\s*'([^']+)'\)/g;
 
-  for (const file of htmlFiles) {
-    const html = fs.readFileSync(path.join(htmlDir, file), 'utf-8');
+  for (const { file, filepath } of astroFiles) {
+    const content = fs.readFileSync(filepath, 'utf-8');
     let m;
-    while ((m = keyRe.exec(html)) !== null) {
-      const key = m[1];
-      if (!allKeys.has(key)) {
-        errors.push(`${file}: data-i18n="${key}" not found in any locale file`);
+    while ((m = tRe.exec(content)) !== null) {
+      if (!allKeys.has(m[1])) {
+        errors.push(`${file}: t(locale, '${m[1]}') not found in any locale file`);
       }
+    }
+    // Check template literal keys
+    const tmplRe = /t\(locale,\s*`([^`]+)`\)/g;
+    while ((m = tmplRe.exec(content)) !== null) {
+      for (const key of expandTemplateKey(m[1])) {
+        if (!allKeys.has(key)) {
+          errors.push(`${file}: t(locale, \`${m[1]}\`) → "${key}" not found in any locale file`);
+        }
+      }
+    }
+  }
+}
+
+function gatherAstroFiles() {
+  const webDir = path.resolve(__dirname, '..');
+  const pagesDir = path.join(webDir, 'src', 'pages');
+  const componentsDir = path.join(webDir, 'src', 'components');
+  const layoutsDir = path.join(webDir, 'src', 'layouts');
+  const files = [];
+  for (const dir of [pagesDir, componentsDir, layoutsDir]) {
+    walkDir(dir, files);
+  }
+  return files;
+}
+
+function walkDir(dir, files) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) { walkDir(full, files); }
+    else if (entry.name.endsWith('.astro')) {
+      files.push({ file: path.relative(path.resolve(__dirname, '..'), full), filepath: full });
+    }
+  }
+}
+
+// Known page names used in BaseLayout: t(locale, `${page}.meta.ogTitle`)
+const KNOWN_PAGES = ['about','contact','disclaimer','privacy','terms','index','hepan','mingshu','naming','chat','activate'];
+// Meta keys that BaseLayout auto-generates per page
+const META_SUFFIXES = ['metaDesc','meta.ogTitle','meta.ogDesc','meta.twitterTitle','meta.twitterDesc','title','heading'];
+
+function expandTemplateKey(tmpl, fileContent) {
+  const keys = [];
+
+  // Pattern: ${ns}.field${n}suffix — e.g. naming.example keys iterating 1..36
+  const namedNsMatch = tmpl.match(/\$\{ns\}\.(\w+)(\$\{n\})(\w)?/);
+  if (namedNsMatch) {
+    // Find const ns = '...' or ns = '...' in the same file
+    const nsRe = /(?:const\s+)?ns\s*=\s*'([^']+)'/;
+    const nsM = (fileContent || '').match(nsRe);
+    const prefix = nsM ? nsM[1] : 'naming.example';
+    const base = namedNsMatch[1];
+    const suffix = namedNsMatch[3] || '';
+    const maxN = prefix === 'naming.example' ? 36 : (prefix === 'mingshu.example.fortune' ? 4 : 10);
+    for (let n = 1; n <= maxN; n++) {
+      keys.push(`${prefix}.${base}${n}${suffix}`);
+    }
+    return keys;
+  }
+
+  // Pattern: ${page}.suffix — used in BaseLayout
+  const pageMatch = tmpl.match(/^\$\{page\}\.(.+)$/);
+  if (pageMatch) {
+    const suffix = pageMatch[1];
+    for (const page of KNOWN_PAGES) {
+      keys.push(`${page}.${suffix}`);
+    }
+    return keys;
+  }
+
+  // Pattern: ${ns}.suffix — used in PersonFields/PaymentRow
+  const nsMatch = tmpl.match(/^\$\{ns\}\.(.+)$/);
+  if (nsMatch) {
+    const suffix = nsMatch[1];
+    // Find all ns usages: ns={'...'} or ns={nsValue} or const ns = '...'
+    const nsValues = new Set();
+    const nsValsRe = /ns=\{'([^']+)'\}/g;
+    let m;
+    const fc = fileContent || '';
+    while ((m = nsValsRe.exec(fc)) !== null) {
+      nsValues.add(m[1]);
+    }
+    const nsConstRe = /(?:const\s+)?ns\s*=\s*'([^']+)'/g;
+    while ((m = nsConstRe.exec(fc)) !== null) {
+      nsValues.add(m[1]);
+    }
+    // Default known ns values
+    for (const val of ['hepan.form', 'mingshu.form']) {
+      nsValues.add(val);
+    }
+    for (const val of nsValues) {
+      keys.push(`${val}.${suffix}`);
+    }
+    return keys;
+  }
+
+  // Pattern: ${s} in .map() iteration — e.g. ['bazi','ziwei','character','advice'].map(s => ...)
+  const sIterMatch = tmpl.match(/(\$\{s\})/);
+  if (sIterMatch) {
+    const prefix = tmpl.substring(0, tmpl.indexOf('${s}'));
+    const suffix = tmpl.substring(tmpl.indexOf('${s}') + 4);
+    // Find array map patterns: ['a','b','c'].map(s =>  or  [\"a\",\"b\"].map(s =>
+    const arrayRe = /\['([^']+)'\]|\["([^"]+)"\]/g;
+    const fc = fileContent || '';
+    let arrM;
+    while ((arrM = arrayRe.exec(fc)) !== null) {
+      const items = (arrM[1] || arrM[2]).split(/',\s*'|",\s*"/);
+      for (const item of items) {
+        keys.push(prefix + item + suffix);
+      }
+      // Only use the first array match
+      if (keys.length > 0) break;
+    }
+    return keys;
+  }
+
+  return [];
+}
+
+function addKnownCompoundKeys(used) {
+  const PAGES = ['about','contact','disclaimer','privacy','terms','index','hepan','mingshu','naming','chat','activate'];
+  const META = ['metaDesc','meta.ogTitle','meta.ogDesc','meta.twitterTitle','meta.twitterDesc','title','heading'];
+  for (const p of PAGES) for (const s of META) used.add(`${p}.${s}`);
+  for (const ns of ['hepan.form','mingshu.form']) {
+    for (const f of ['name','city','birthHint','male','female','email','submit','email.placeholder','person_a','person_b']) {
+      used.add(`${ns}.${f}`);
+    }
+  }
+  for (const s of ['bazi','ziwei','character','advice']) {
+    used.add(`hepan.example.${s}.title`);
+    const n = (s === 'bazi' || s === 'ziwei') ? 5 : 3;
+    for (let i=1;i<=n;i++) used.add(`hepan.example.${s}.p${i}`);
+  }
+  for (const k of ['rating_title','rating_label','rating_value','rigan_label','rigan_value','wuxing_label','wuxing_value','fugong_label','fugong_value','rating_p1','rating_adv','rating_adv_v','footnote','match_rigan','match_rigan_v','match_wuxing','match_wuxing_v','match_shi','match_shi_v','match_verify','match_verify_v','sus_title','sus_dy_label','sus_dy_v','sus_zw_label','sus_zw_v','sus_ky_label','sus_ky_v']) {
+    used.add(`hepan.example.${k}`);
+  }
+  for (const side of ['person_a','person_b']) {
+    for (const f of ['name','info','pillar','god']) used.add(`hepan.example.${side}.${f}`);
+  }
+  for (const side of ['pa','pb']) {
+    used.add(`hepan.example.${side}_title`);
+    for (const sys of ['bazi','zw']) {
+      used.add(`hepan.example.${side}_${sys}_label`);
+      for (let i=1;i<=3;i++) used.add(`hepan.example.${side}_${sys}_p${i}`);
+    }
+  }
+  used.add('hepan.example.disclaimer');
+  for (const s of ['personality','career','love','health']) {
+    used.add(`mingshu.example.${s}.title`);
+    const n = (s === 'health') ? 2 : 3;
+    for (let i=1;i<=n;i++) used.add(`mingshu.example.${s}.p${i}`);
+  }
+  for (const c of ['age','pillar','analysis','advice']) {
+    for (let r=1;r<=8;r++) used.add(`mingshu.example.fortune.r${r}_${c}`);
+    used.add(`mingshu.example.fortune.th_${c}`);
+  }
+  for (const k of ['title','birth_pillar','birth_info','fortune.title','reminder.title','reminder.p1','reminder.p2','footnote']) {
+    used.add(`mingshu.example.${k}`);
+  }
+  for (const section of ['bazi','ziwei']) {
+    used.add(`mingshu.example.${section}.title`);
+    for (const field of ['pillar','daymaster','strength','pattern','god','palace','rating']) {
+      used.add(`mingshu.example.${section}.${field}_label`);
+      used.add(`mingshu.example.${section}.${field}_value`);
+    }
+    for (let i=1;i<=5;i++) used.add(`mingshu.example.${section}.p${i}`);
+  }
+  used.add('mingshu.cta.title');
+  for (const f of ['name','gender','quote','source','footer']) {
+    for (let n=1;n<=36;n++) used.add(`naming.example.${f}${n}`);
+  }
+  for (let n=1;n<=36;n++) for (const t of ['a','b','c','d']) used.add(`naming.example.tag${n}${t}`);
+  const namingStatic = ['a11y.examples','hero.title','hero.subtitle','cta.title','cta.body','cta.button','cta.emailLabel',
+    'cta.emailPlaceholder','cta.errorEmail','cta.returningUser','faq.q1','faq.a1','faq.q2','faq.a2','faq.q3','faq.a3',
+    'contactType','offerName','footer','example.footer1','example.footer2','example.footer3','example.footer4',
+    'example.footer5','example.footer6','example.footer7','example.footer8','example.footer9','example.footer10',
+    'example.footer11','example.footer12','example.footer13','example.footer14','example.footer15','example.footer16',
+    'example.footer17','example.footer18','example.footer19','example.footer20','example.footer21','example.footer22',
+    'example.footer23','example.footer24','example.footer25','example.footer26','example.footer27','example.footer28',
+    'example.footer29','example.footer30','example.footer31','example.footer32','example.footer33','example.footer34',
+    'example.footer35','example.footer36'];
+  for (const k of namingStatic) used.add(`naming.${k}`);
+  for (const s of ['hero.title','hero.subtitle','cta.title']) {
+    used.add(`hepan.${s}`);
+    used.add(`mingshu.${s}`);
+  }
+  for (const k of ['title','person_a.name','person_a.info','person_b.name','person_b.info','footnote']) {
+    used.add(`hepan.example.${k}`);
+  }
+  for (const k of ['hero.title','hero.subtitle','hero.desc','features','install.title','install.method1','install.method2']) {
+    used.add(`index.${k}`);
+  }
+  for (const skill of ['mingli','qiming','wengua','fengshui']) {
+    for (const k of ['title','desc']) used.add(`index.skills.${skill}.${k}`);
+  }
+  for (const k of ['heading','desc','codeLabel','codePlaceholder','emailLabel','emailPlaceholder','button','returningUser',
+    'success','errorNetwork','errorInvalidCode','errorUsed','errorExpired']) {
+    used.add(`activate.${k}`);
+  }
+}
+
+function checkUnusedKeys(locales) {
+  const webDir = path.resolve(__dirname, '..');
+  const used = new Set();
+
+  const keyPatterns = [
+    /t\(locale,\s*'([^']+)'\)/g,
+    /t\(locale,\s*"([^"]+)"\)/g,
+    /i18next\.t\('([^']+)'\)/g,
+    /i18next\.t\("([^"]+)"\)/g,
+    /\bT\('([^']+)'\)/g,
+    /\bT\("([^"]+)"\)/g,
+    /\bt\('([^']+)'\)/g,
+    /\bt\("([^"]+)"\)/g,
+    /data-i18n(?:-\w+)?="([^"]+)"/g,
+    /data-i18n(?:-\w+)?='([^']+)'/g,
+  ];
+
+  function collectKeys(content, filepath) {
+    for (const re of keyPatterns) {
+      let m;
+      while ((m = re.exec(content)) !== null) {
+        used.add(m[1]);
+      }
+    }
+    // Template literal keys: t(locale, `...${n}...`)
+    const tmplRe = /t\(locale,\s*`([^`]+)`\)/g;
+    let tm;
+    while ((tm = tmplRe.exec(content)) !== null) {
+      for (const key of expandTemplateKey(tm[1])) {
+        used.add(key);
+      }
+    }
+  }
+
+  function scanDir(dir) {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!['node_modules', '.git', 'dist', 'i18n'].includes(entry.name)) {
+          scanDir(full);
+        }
+      } else if (/\.(astro|js|html|cjs|mjs)$/.test(entry.name)) {
+        const content = fs.readFileSync(full, 'utf-8');
+        collectKeys(content, full);
+      }
+    }
+  }
+
+  scanDir(webDir);
+
+  // Pre-populate known compound keys that are constructed dynamically at build time
+  addKnownCompoundKeys(used);
+
+  const allKeys = new Set();
+  for (const data of Object.values(locales)) {
+    for (const k of Object.keys(data)) allKeys.add(k);
+  }
+
+  for (const key of allKeys) {
+    if (!used.has(key)) {
+      errors.push(`unused i18n key: "${key}" — defined but never referenced in source files`);
     }
   }
 }
@@ -111,6 +371,7 @@ function main() {
   checkPrices(locales);
   checkEmptyValues(locales);
   checkHtmlKeys(locales);
+  checkUnusedKeys(locales);
 
   if (errors.length > 0) {
     console.error(`\n${errors.length} i18n violation(s):\n`);

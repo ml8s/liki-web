@@ -1,6 +1,5 @@
 {$DOMAIN:localhost} {
-	# Allow cross-origin access to OG image for social preview cards
-	header /img/og-image.png Cross-Origin-Resource-Policy "cross-origin"
+	encode gzip
 
 	header {
 		X-Content-Type-Options "nosniff"
@@ -14,10 +13,17 @@
 		-Server
 	}
 
+	# Allow cross-origin access to OG image for social preview cards
+	header /img/og-image.png Cross-Origin-Resource-Policy "cross-origin"
+
 	# Cache static assets
 	header /js/* Cache-Control "public, max-age=31536000, immutable"
 	header /css/* Cache-Control "public, max-age=31536000, immutable"
 	header /i18n/* Cache-Control "public, max-age=60"
+
+	# Application pages with no indexable content
+	@noindex path_regexp noindex .*/(chat|report)(/.*)?$
+	header @noindex X-Robots-Tag "noindex"
 
 	log {
 		output stdout
@@ -31,7 +37,7 @@
 			not header Origin https://{$DOMAIN:localhost}
 		}
 		respond @external 403
-		reverse_proxy liki-web:8081 {
+		reverse_proxy web:8081 {
 			flush_interval -1
 		}
 	}
@@ -41,17 +47,17 @@
 			not header Origin https://{$DOMAIN:localhost}
 		}
 		respond @external 403
-		reverse_proxy liki-web:8081
+		reverse_proxy web:8081
 	}
 
 	# JSON-RPC for external AI agents — proxy to engine
 	handle /jsonrpc {
-		reverse_proxy liki-engine:8082
+		reverse_proxy engine:8082
 	}
 
 	# Free API, health — no Origin check
 	handle /api/* {
-		reverse_proxy liki-web:8081 {
+		reverse_proxy web:8081 {
 			flush_interval -1
 			health_uri /api/health
 			health_interval 30s
@@ -71,54 +77,98 @@
 	redir @zh-legacy /zh-Hans/{re.zh.1} 308
 	@hk-legacy path_regexp hk ^/hk/(.*)
 	redir @hk-legacy /zh-Hant/{re.hk.1} 308
+	# ── Bare-path → locale-prefixed redirects (Accept-Language) ──
 
-	handle_path /zh-Hans/report/* {
-		root * /srv/web
-		try_files /report.html
+	# Root / and /index.html
+	@rootZhHans {
+		path / /index.html
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
 	}
-	handle_path /zh-Hant/report/* {
-		root * /srv/web
-		try_files /report.html
+	@rootZhHant {
+		path / /index.html
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
 	}
-	handle_path /en/report/* {
-		root * /srv/web
-		try_files /report.html
+	@rootZh {
+		path / /index.html
+		expression {header.Accept-Language}.startsWith('zh')
 	}
-
-	handle_path /zh-Hans/* {
-		root * /srv/web
-		try_files {path} {path}.html /index.html
-	}
-	handle_path /zh-Hant/* {
-		root * /srv/web
-		try_files {path} {path}.html /index.html
-	}
-	handle_path /en/* {
-		root * /srv/web
-		try_files {path} {path}.html /index.html
+	@rootEn {
+		path / /index.html
+		expression {header.Accept-Language}.startsWith('en')
 	}
 
-	handle_path /report/* {
-		root * /srv/web
-		try_files /report.html
-	}
+	redir @rootZhHans /zh-Hans/ 302
+	redir @rootZhHant /zh-Hant/ 302
+	redir @rootZh /zh-Hant/ 302
+	redir @rootEn /en/ 302
+	redir / /zh-Hant/ 302
+	redir /index.html /zh-Hant/ 302
 
-	handle_path /wiki/* {
-		root * /srv/web/wiki
-		file_server
-	}
 
-	route {
-		root * /srv/web
-		try_files {path} {path}.html /index.html
-		file_server
+
+
+
+
+
+	# /hepan
+	@hepanZhHans {
+		path /hepan
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
 	}
-	handle_errors {
-		@404 expression {http.error.status_code} == 404
-		handle @404 {
-			root * /srv/web
-			rewrite * /404.html
-			file_server
-		}
+	@hepanZhHant {
+		path /hepan
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@hepanZh {
+		path /hepan
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@hepanEn {
+		path /hepan
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @hepanZhHans /zh-Hans/hepan 302
+	redir @hepanZhHant /zh-Hant/hepan 302
+	redir @hepanZh /zh-Hant/hepan 302
+	redir @hepanEn /en/hepan 302
+	redir /hepan /zh-Hant/hepan 302
+
+	@localeZhHans {
+		path_regexp pages ^/(chat|naming|naming/chat|mingshu|about|contact|disclaimer|privacy|terms|index\.html)?$
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@localeZhHant {
+		path_regexp pages ^/(chat|naming|naming/chat|mingshu|about|contact|disclaimer|privacy|terms|index\.html)?$
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@localeZh {
+		path_regexp pages ^/(chat|naming|naming/chat|mingshu|about|contact|disclaimer|privacy|terms|index\.html)?$
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@localeEn {
+		path_regexp pages ^/(chat|naming|naming/chat|mingshu|about|contact|disclaimer|privacy|terms|index\.html)?$
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @localeZhHans /zh-Hans/{re.pages.1} 302
+	redir @localeZhHant /zh-Hant/{re.pages.1} 302
+	redir @localeZh /zh-Hant/{re.pages.1} 302
+	redir @localeEn /en/{re.pages.1} 302
+	redir /chat /zh-Hant/naming/chat 302
+	redir /naming /zh-Hant/naming 302
+	redir /mingshu /zh-Hant/mingshu 302
+	redir /about /zh-Hant/about 302
+	redir /contact /zh-Hant/contact 302
+	redir /disclaimer /zh-Hant/disclaimer 302
+	redir /privacy /zh-Hant/privacy 302
+	redir /terms /zh-Hant/terms 302
+
+
+	# Skills — serve SKILL.md for AI agent discovery
+	redir /skills /skills/SKILL.md 308
+	header /skills/* Cache-Control "public, max-age=60"
+
+	# All other routes → Go handles API + static files
+	handle {
+		reverse_proxy web:8081
 	}
 }

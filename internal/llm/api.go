@@ -3,7 +3,7 @@
 // Client
 //
 //	Client                   — DeepSeek API client
-//	New                      — constructor with default model (deepseek-v4-pro)
+//	New                      — constructor (apiKey, model)
 //	ChatStream               — streaming chat, text-only
 //	ChatStreamWithTools      — streaming chat with tool calling support
 //

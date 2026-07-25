@@ -10,6 +10,7 @@ import (
 )
 
 func TestAnalytics(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 
 	// Record page views
@@ -18,7 +19,6 @@ func TestAnalytics(t *testing.T) {
 	a.RecordPageView("/chart")
 	a.RecordCheckout()
 	a.RecordCheckout()
-	a.RecordReportView()
 
 	snap := a.Snapshot()
 	pv := snap["page_views"].(map[string]int64)
@@ -31,12 +31,10 @@ func TestAnalytics(t *testing.T) {
 	if c := snap["checkouts"].(int64); c != 2 {
 		t.Errorf("checkouts=%d, want 2", c)
 	}
-	if r := snap["reports"].(int64); r != 1 {
-		t.Errorf("reports=%d, want 1", r)
-	}
 }
 
 func TestHandlePageView(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 	handler := handlePageView(a)
 
@@ -75,6 +73,7 @@ func TestHandlePageView(t *testing.T) {
 }
 
 func TestHandleStats(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 	a.RecordPageView("/")
 	a.RecordCheckout()
@@ -97,6 +96,7 @@ func TestHandleStats(t *testing.T) {
 }
 
 func TestEd3_Analytics_PageView_Valid(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 	h := handlePageView(a)
 
@@ -126,6 +126,7 @@ func TestEd3_Analytics_PageView_Valid(t *testing.T) {
 }
 
 func TestEd3_Analytics_PageView_EmptyBody(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 	h := handlePageView(a)
 
@@ -139,6 +140,7 @@ func TestEd3_Analytics_PageView_EmptyBody(t *testing.T) {
 }
 
 func TestEd3_Analytics_PageView_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 	h := handlePageView(a)
 
@@ -151,6 +153,7 @@ func TestEd3_Analytics_PageView_InvalidJSON(t *testing.T) {
 }
 
 func TestEd3_Analytics_PageView_VeryLongPath(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 	h := handlePageView(a)
 
@@ -165,6 +168,7 @@ func TestEd3_Analytics_PageView_VeryLongPath(t *testing.T) {
 }
 
 func TestEd3_Analytics_Stats_Concurrent(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 	// 应能安全并发读写
 	done := make(chan bool)
@@ -185,6 +189,7 @@ func TestEd3_Analytics_Stats_Concurrent(t *testing.T) {
 }
 
 func TestEd3_Stats_AllMethods(t *testing.T) {
+	t.Parallel()
 	a := NewAnalytics()
 	h := handleStats(a)
 	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
@@ -192,8 +197,17 @@ func TestEd3_Stats_AllMethods(t *testing.T) {
 			r := httptest.NewRequest(method, "/api/stats", nil)
 			w := httptest.NewRecorder()
 			h(w, r)
-			if w.Code >= 500 {
-				t.Errorf("%s stats: status=%d", method, w.Code)
+			if w.Code != http.StatusOK {
+				t.Errorf("%s stats: status=%d, want 200", method, w.Code)
+			}
+			var body struct {
+				Data map[string]any `json:"data"`
+			}
+			if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+				t.Fatalf("%s stats: decode: %v", method, err)
+			}
+			if body.Data == nil {
+				t.Errorf("%s stats: data is nil", method)
 			}
 		})
 	}

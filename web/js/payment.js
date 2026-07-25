@@ -1,77 +1,108 @@
-// payment.js — Checkout flow with QR code support for desktop.
+/* global apiPost, escapeHTML */
+// payment.js — Generic checkout flow with QR code support.
+// Provides product-agnostic payment tools for all pages.
 // Uses apiPost from api.js and i18next for translations.
+// Products use: POST /api/{product}/checkout → { qrcode_url?, checkout_url }
 
+// ── Checkout: POST /api/{product}/checkout ──
+async function makeCheckout(product, payload) {
+  var data = await apiPost('/' + product + '/checkout', payload);
+  if (!data) throw new Error(i18next.t('error.noCheckoutUrl'));
+  return data;
+}
 
-function showQRModal(qrcodeUrl, fallbackUrl) {
-  var existing = document.querySelector('.qr-modal-overlay');
+// ── QR Modal (native <dialog>) ──
+function showQRModal(product, orderID, qrcodeUrl, fallbackUrl) {
+  var existing = document.querySelector('.qr-modal');
   if (existing) existing.remove();
 
-  var overlay = document.createElement('div');
-  overlay.className = 'qr-modal-overlay';
-  overlay.innerHTML =
-    '<div class="qr-modal" role="dialog" aria-modal="true" aria-label="' + escapeHTML(i18next.t('payment.scanQR')) + '">' +
+  var dialog = document.createElement('dialog');
+  dialog.className = 'qr-modal';
+  dialog.innerHTML =
+    '<form method="dialog">' +
       '<button class="qr-modal-close" aria-label="' + escapeHTML(i18next.t('payment.qrClose')) + '">&times;</button>' +
-      '<p class="qr-modal-title">' + escapeHTML(i18next.t('payment.scanQR')) + '</p>' +
-      '<img class="qr-modal-img" alt="QR Code">' +
-      '<p class="qr-modal-hint">' + escapeHTML(i18next.t('payment.qrHint')) + '</p>' +
-    '</div>';
+    '</form>' +
+    '<p class="qr-modal-title">' + escapeHTML(i18next.t('payment.scanQR')) + '</p>' +
+    '<img class="qr-modal-img" alt="QR Code">' +
+    '<p class="qr-modal-hint" data-qr-hint>' + escapeHTML(i18next.t('payment.qrHint')) + '</p>';
 
-  var img = overlay.querySelector('.qr-modal-img');
+  var img = dialog.querySelector('.qr-modal-img');
   img.src = qrcodeUrl;
   if (fallbackUrl) {
     img.onerror = function() { this.onerror = null; location.href = fallbackUrl; };
   }
 
-  var prevFocus = document.activeElement;
-  var closeBtn = overlay.querySelector('.qr-modal-close');
+  var hintEl = dialog.querySelector('[data-qr-hint]');
+  var pollTimer = null;
+  var stopped = false;
+  var pollCount = 0;
+  var MAX_POLLS = 100;
 
-  var close = function() {
-    overlay.remove();
-    document.removeEventListener('keydown', trapFocus);
-    if (prevFocus && typeof prevFocus.focus === 'function') {
-      try { prevFocus.focus(); } catch (_) {}
-    }
-  };
-
-  var trapFocus = function(e) {
-    if (e.key !== 'Tab') return;
-    var modal = overlay.querySelector('.qr-modal');
-    var focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    if (focusable.length === 0) return;
-    var first = focusable[0];
-    var last = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-    } else {
-      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-    }
-  };
-
-  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
-  closeBtn.addEventListener('click', close);
-  document.addEventListener('keydown', trapFocus);
-
-  document.body.appendChild(overlay);
-  closeBtn.focus();
-}
-
-async function goPay(orderID) {
-  var data = await apiPost('/payments/checkout', { order_id: orderID });
-  if (!data) throw new Error(i18next.t('error.noCheckoutUrl'));
-
-  // Desktop with QR code available: show modal
-  if (data.qrcode_url) {
-    showQRModal(data.qrcode_url, data.checkout_url);
-    return;
+  function stop() {
+    stopped = true;
+    if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
   }
 
-  // Mobile or no QR: redirect
+  dialog.addEventListener('close', function() { stop(); });
+
+  function poll() {
+    if (stopped) return;
+    pollCount++;
+    if (pollCount > MAX_POLLS) { stop(); return; }
+    hintEl.textContent = i18next.t('payment.qrChecking');
+    fetch('/api/' + product + '/orders/' + encodeURIComponent(orderID) + '/status')
+      .then(function(r) {
+        if (!r.ok && r.status === 401) { stop(); dialog.close(); return; }
+        return r.json();
+      })
+      .then(function(d) {
+        if (!d || stopped) return;
+        if (d.data && d.data.status === 'paid') {
+          hintEl.textContent = i18next.t('payment.qrPaid');
+          setTimeout(function() {
+            dialog.close();
+            document.dispatchEvent(new CustomEvent('payment:paid', { detail: { orderID: orderID } }));
+          }, 800);
+        } else {
+          pollTimer = setTimeout(poll, 3000);
+        }
+      })
+      .catch(function() {
+        if (!stopped) pollTimer = setTimeout(poll, 3000);
+      });
+  }
+
+  document.body.appendChild(dialog);
+  if (typeof dialog.showModal !== 'function') {
+    if (fallbackUrl) location.href = fallbackUrl;
+    return;
+  }
+  dialog.showModal();
+  pollTimer = setTimeout(poll, 3000);
+}
+
+// ── Go through checkout
+// ── Go through checkout: create QR or redirect ──
+async function goCheckout(product, orderID, extra) {
+  var payload = { order_id: orderID };
+  if (extra) Object.assign(payload, extra);
+  if (!payload.provider) {
+    payload.provider = window.Liki.currency === 'CNY' ? 'xunhu' : 'dodo';
+  }
+  var data = await makeCheckout(product, payload);
+  if (!data) throw new Error(i18next.t('error.noCheckoutUrl'));
+
+  if (data.qrcode_url) {
+    showQRModal(product, orderID, data.qrcode_url, data.checkout_url);
+    return { mode: 'qr' };
+  }
   var url = data.checkout_url;
   if (!url) throw new Error(i18next.t('error.noCheckoutUrl'));
   window.location.href = url;
+  return { mode: 'redirect' };
 }
 
 // ── namespace extension ──
 window.Liki = window.Liki || {};
-window.Liki.goPay = goPay;
+window.Liki.goCheckout = goCheckout;
 window.Liki.showQRModal = showQRModal;

@@ -10,27 +10,28 @@ import (
 	"strings"
 	"testing"
 
-	"liki_web/internal/agent"
-	"liki_web/internal/llm"
-	"liki_web/internal/payment"
-	"liki_web/internal/product"
+	"liki-web/internal/agent"
+	"liki-web/internal/httputil"
+	"liki-web/internal/llm"
+	"liki-web/internal/naming"
+	"liki-web/internal/product"
 )
 
-func setupNamingHandler(t *testing.T, store *payment.Store) http.HandlerFunc {
+func setupNamingHandler(t *testing.T, store *naming.Store) http.HandlerFunc {
 	t.Helper()
 	mockLLM := &agent.MockLLM{
 		ToolResps: []*llm.ChatResult{agent.ChatRes(nil, "你好，请告诉我你的出生日期")},
 	}
 	mockTools := &agent.MockToolRegistry{}
-	chat := agent.NewChatAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
-	return namingHandler(chat, store)
+	chat := agent.NewAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
+	return naming.HandleChat(chat, store)
 }
 
 func TestNamingHandler_NoJWT(t *testing.T) {
 	store := newAuthTestStore(t)
 	handler := setupNamingHandler(t, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"你好"}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"你好"}`))
 	w := httptest.NewRecorder()
 	handler(w, r)
 
@@ -41,12 +42,12 @@ func TestNamingHandler_NoJWT(t *testing.T) {
 
 func TestNamingHandler_OrderNotPaid(t *testing.T) {
 	store := newAuthTestStore(t)
-	if err := store.CreateOrder(context.Background(), "order-1", product.ProductNaming, 2990, "CNY", "", "", "", "dodo"); err != nil {
+	if err := store.CreateOrder(context.Background(), "order-1", "naming", product.NamingAmountCents(product.CNY), "CNY", "", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
 	handler := setupNamingHandler(t, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"你好"}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"你好"}`))
 	setJWTForTest(t, r,"user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
@@ -61,7 +62,7 @@ func TestNamingHandler_Expired(t *testing.T) {
 	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2020-01-01 00:00:00")
 	handler := setupNamingHandler(t, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"你好"}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"你好"}`))
 	setJWTForTest(t, r,"user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
@@ -76,13 +77,13 @@ func TestNamingHandler_EmptyMessage(t *testing.T) {
 	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
 	handler := setupNamingHandler(t, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":""}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":""}`))
 	setJWTForTest(t, r,"user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want 422", w.Code)
 	}
 }
 
@@ -94,10 +95,10 @@ func TestNamingHandler_SSEStream(t *testing.T) {
 		ToolResps: []*llm.ChatResult{agent.ChatRes(nil, "你好，请告诉我你的出生日期")},
 	}
 	mockTools := &agent.MockToolRegistry{}
-	chat := agent.NewChatAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
-	handler := namingHandler(chat, store)
+	chat := agent.NewAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
+	handler := naming.HandleChat(chat, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"你好"}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"你好"}`))
 	setJWTForTest(t, r,"user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
@@ -127,12 +128,14 @@ func TestNamingHandler_SSEStream(t *testing.T) {
 
 	hasThinking := false
 	hasTextDelta := false
+	var textContent string
 	for _, ev := range events {
 		switch ev.Type {
 		case agent.EventThinking:
 			hasThinking = true
 		case agent.EventTextDelta:
 			hasTextDelta = true
+			textContent += ev.Content
 		}
 	}
 	if !hasThinking {
@@ -140,6 +143,9 @@ func TestNamingHandler_SSEStream(t *testing.T) {
 	}
 	if !hasTextDelta {
 		t.Error("missing text-delta SSE event")
+	}
+	if textContent != "你好，请告诉我你的出生日期" {
+		t.Errorf("text-delta content = %q, want %q", textContent, "你好，请告诉我你的出生日期")
 	}
 }
 
@@ -154,10 +160,10 @@ func TestNamingHandler_ToolCallPhaseEvent(t *testing.T) {
 		},
 	}
 	mockTools := &agent.MockToolRegistry{}
-	chat := agent.NewChatAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
-	handler := namingHandler(chat, store)
+	chat := agent.NewAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
+	handler := naming.HandleChat(chat, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"帮我起名"}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"帮我起名"}`))
 	setJWTForTest(t, r,"user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
@@ -183,14 +189,19 @@ func TestNamingHandler_ToolCallPhaseEvent(t *testing.T) {
 	hasThinking := false
 	hasPhase := false
 	hasTextDelta := false
+	var allText string
 	for _, ev := range events {
 		switch ev.Type {
 		case agent.EventThinking:
 			hasThinking = true
 		case agent.EventPhase:
 			hasPhase = true
+			if ev.Content != "正在计算命理数据…" {
+				t.Errorf("phase content = %q, want %q", ev.Content, "正在计算命理数据…")
+			}
 		case agent.EventTextDelta:
 			hasTextDelta = true
+			allText += ev.Content
 		}
 	}
 	if !hasThinking {
@@ -202,47 +213,11 @@ func TestNamingHandler_ToolCallPhaseEvent(t *testing.T) {
 	if !hasTextDelta {
 		t.Error("missing text-delta event")
 	}
-}
-
-func TestNamingHandler_ReportReady(t *testing.T) {
-	store := newAuthTestStore(t)
-	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
-
-	mockLLM := &agent.MockLLM{
-		ToolResps: []*llm.ChatResult{
-			agent.ChatRes(nil, "好的，以下是您的起名报告：\n\n# 起名报告\n\n## 一、命盘分析\n\n日主为甲木…"),
-		},
+	if !strings.Contains(allText, "好的，让我先推算八字") {
+		t.Errorf("missing first response content, got: %q", allText)
 	}
-	mockTools := &agent.MockToolRegistry{}
-	chat := agent.NewChatAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
-	handler := namingHandler(chat, store)
-
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"给我出报告"}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
-	w := httptest.NewRecorder()
-	handler(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", w.Code)
-	}
-
-	var hasReportReady bool
-	scanner := bufio.NewScanner(w.Body)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "data: ") {
-			data := strings.TrimPrefix(line, "data: ")
-			var ev agent.ChatEvent
-			if err := json.Unmarshal([]byte(data), &ev); err != nil {
-				continue
-			}
-			if ev.Type == agent.EventReportReady {
-				hasReportReady = true
-			}
-		}
-	}
-	if !hasReportReady {
-		t.Error("missing report-ready event for output containing # 起名报告")
+	if !strings.Contains(allText, "基于您的八字，我建议…") {
+		t.Errorf("missing second response content, got: %q", allText)
 	}
 }
 
@@ -254,10 +229,10 @@ func TestNamingHandler_LLMError(t *testing.T) {
 		ToolErrs: []error{fmt.Errorf("LLM service unavailable")},
 	}
 	mockTools := &agent.MockToolRegistry{}
-	chat := agent.NewChatAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
-	handler := namingHandler(chat, store)
+	chat := agent.NewAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
+	handler := naming.HandleChat(chat, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"帮我起名"}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"帮我起名"}`))
 	setJWTForTest(t, r,"user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
@@ -284,6 +259,18 @@ func TestNamingHandler_LLMError(t *testing.T) {
 	if !hasError {
 		t.Error("missing error event for LLM failure")
 	}
+
+	// Verify user message was persisted even though LLM failed.
+	msgs, err := store.LoadChatHistory(context.Background(), "order-1")
+	if err != nil {
+		t.Fatalf("LoadChatHistory: %v", err)
+	}
+	if len(msgs) != 1 {
+		t.Fatalf("message count = %d, want 1 (user message persisted before error)", len(msgs))
+	}
+	if msgs[0].Role != "user" || msgs[0].Content != "帮我起名" {
+		t.Errorf("msg[0] = {%q, %q}, want {user, 帮我起名}", msgs[0].Role, msgs[0].Content)
+	}
 }
 
 func TestNamingHandler_PersistsMessages(t *testing.T) {
@@ -294,10 +281,10 @@ func TestNamingHandler_PersistsMessages(t *testing.T) {
 		ToolResps: []*llm.ChatResult{agent.ChatRes(nil, "起名建议如下…")},
 	}
 	mockTools := &agent.MockToolRegistry{}
-	chat := agent.NewChatAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
-	handler := namingHandler(chat, store)
+	chat := agent.NewAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
+	handler := naming.HandleChat(chat, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"帮我起名"}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"帮我起名"}`))
 	setJWTForTest(t, r,"user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
@@ -325,10 +312,10 @@ func TestNamingHandler_LoadsHistory(t *testing.T) {
 	store := newAuthTestStore(t)
 	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
 
-	if err := store.CreateChatMessage(context.Background(), "order-1", payment.RoleUser, "我的出生日期是2026-06-25"); err != nil {
+	if err := store.CreateChatMessage(context.Background(), "order-1", string(llm.RoleUser), "我的出生日期是2026-06-25"); err != nil {
 		t.Fatalf("seed history: %v", err)
 	}
-	if err := store.CreateChatMessage(context.Background(), "order-1", payment.RoleAssistant, "好的，请确认"); err != nil {
+	if err := store.CreateChatMessage(context.Background(), "order-1", string(llm.RoleAssistant), "好的，请确认"); err != nil {
 		t.Fatalf("seed history: %v", err)
 	}
 
@@ -336,10 +323,10 @@ func TestNamingHandler_LoadsHistory(t *testing.T) {
 		ToolResps: []*llm.ChatResult{agent.ChatRes(nil, "确认无误，开始起名")},
 	}
 	mockTools := &agent.MockToolRegistry{}
-	chat := agent.NewChatAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
-	handler := namingHandler(chat, store)
+	chat := agent.NewAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
+	handler := naming.HandleChat(chat, store)
 
-	r := httptest.NewRequest("POST", "/api/agent/naming", strings.NewReader(`{"message":"确认"}`))
+	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"确认"}`))
 	setJWTForTest(t, r,"user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
@@ -356,16 +343,157 @@ func TestNamingHandler_LoadsHistory(t *testing.T) {
 	if len(msgs) != 4 {
 		t.Fatalf("message count = %d, want 4", len(msgs))
 	}
+
+	// Verify LLM received the history messages.
+	if len(mockLLM.Calls) == 0 {
+		t.Fatal("LLM was not called")
+	}
+	var foundHistoryUser, foundHistoryAsst, foundCurrent bool
+	for _, m := range mockLLM.Calls[0] {
+		if m.Role == llm.RoleUser && m.Content == "我的出生日期是2026-06-25" {
+			foundHistoryUser = true
+		}
+		if m.Role == llm.RoleAssistant && m.Content == "好的，请确认" {
+			foundHistoryAsst = true
+		}
+		if m.Role == llm.RoleUser && m.Content == "确认" {
+			foundCurrent = true
+		}
+	}
+	if !foundHistoryUser {
+		t.Error("LLM did not receive historical user message")
+	}
+	if !foundHistoryAsst {
+		t.Error("LLM did not receive historical assistant message")
+	}
+	if !foundCurrent {
+		t.Error("LLM did not receive current user message")
+	}
 }
 
 func setJWTForTest(t *testing.T, r *http.Request, email, orderID string) {
 	t.Helper()
 	w := httptest.NewRecorder()
-	setJWTCookie(w, email, orderID)
+	if err := httputil.SetJWTCookie(w, email, orderID); err != nil {
+		t.Fatal("SetJWTCookie failed:", err)
+	}
 	for _, c := range w.Result().Cookies() {
 		if c.Name == "liki_token" {
 			r.AddCookie(c)
 			return
 		}
+	}
+}
+
+// ── chat history handler ──
+
+func TestChatHistory_NoJWT(t *testing.T) {
+	store := newAuthTestStore(t)
+	handler := naming.HandleChatHistory(store)
+
+	r := httptest.NewRequest("GET", "/api/naming/orders/order-1/messages", nil)
+	w := httptest.NewRecorder()
+	handler(w, r)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestChatHistory_CrossOrder(t *testing.T) {
+	store := newAuthTestStore(t)
+	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
+	handler := naming.HandleChatHistory(store)
+
+	// JWT is for order-1, but URL path is order-2.
+	r := httptest.NewRequest("GET", "/api/naming/orders/order-2/messages", nil)
+	r.SetPathValue("id", "order-2")
+	setJWTForTest(t, r, "user@example.com", "order-1")
+	w := httptest.NewRecorder()
+	handler(w, r)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("status = %d, want 403", w.Code)
+	}
+}
+
+func TestChatHistory_Empty(t *testing.T) {
+	store := newAuthTestStore(t)
+	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
+	handler := naming.HandleChatHistory(store)
+
+	r := httptest.NewRequest("GET", "/api/naming/orders/order-1/messages", nil)
+	r.SetPathValue("id", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
+	w := httptest.NewRecorder()
+	handler(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+
+	var env envelope
+	if err := json.NewDecoder(w.Body).Decode(&env); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	msgs, ok := env.Data.([]any)
+	if !ok {
+		t.Fatalf("data is not an array: %T", env.Data)
+	}
+	if len(msgs) != 0 {
+		t.Errorf("len = %d, want 0", len(msgs))
+	}
+}
+
+func TestChatHistory_WithMessages(t *testing.T) {
+	store := newAuthTestStore(t)
+	seedActiveOrder(t, store, "order-1", "user@example.com", product.ProductNaming, "2027-01-01 00:00:00")
+
+	if err := store.CreateChatMessage(context.Background(), "order-1", string(llm.RoleUser), "我的姓氏是陈"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if err := store.CreateChatMessage(context.Background(), "order-1", string(llm.RoleAssistant), "好的，请提供出生日期"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	handler := naming.HandleChatHistory(store)
+
+	r := httptest.NewRequest("GET", "/api/naming/orders/order-1/messages", nil)
+	r.SetPathValue("id", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
+	w := httptest.NewRecorder()
+	handler(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+
+	var env envelope
+	if err := json.NewDecoder(w.Body).Decode(&env); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	// envelope.Data is []any after JSON decode.
+	arr, ok := env.Data.([]any)
+	if !ok {
+		t.Fatalf("data is not an array: %T", env.Data)
+	}
+	if len(arr) != 2 {
+		t.Fatalf("len = %d, want 2", len(arr))
+	}
+
+	m0 := arr[0].(map[string]any)
+	if m0["role"] != "user" || m0["content"] != "我的姓氏是陈" {
+		t.Errorf("msg[0] = {%v, %v}", m0["role"], m0["content"])
+	}
+	if m0["created_at"] == nil || m0["created_at"].(string) == "" {
+		t.Error("msg[0].created_at is empty")
+	}
+
+	m1 := arr[1].(map[string]any)
+	if m1["role"] != "assistant" || m1["content"] != "好的，请提供出生日期" {
+		t.Errorf("msg[1] = {%v, %v}", m1["role"], m1["content"])
+	}
+	if m1["created_at"] == nil || m1["created_at"].(string) == "" {
+		t.Error("msg[1].created_at is empty")
 	}
 }

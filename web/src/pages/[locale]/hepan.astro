@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PersonFields from '../../components/PersonFields.astro';
+import PaymentRow from '../../components/PaymentRow.astro';
+import I18nData from '../../components/I18nData.astro';
+import { t, locales } from '../../i18n.js';
+import { v } from '../../version.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+export function getStaticPaths() {
+  return locales.map(locale => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+const hepanDemo = JSON.parse(readFileSync(join(process.cwd(), 'js/hepan-report-demo.json'), 'utf-8'));
+---
+
+<BaseLayout
+  locale={locale}
+  page="hepan"
+  heading={t(locale, 'site.brand')}
+  type="brand"
+  twitterCard="summary_large_image"
+>
+  <Fragment slot="head">
+    <meta name="keywords" content="合盘,八字合婚,八字配对,紫微斗数,合盘">
+        <script>
+(function() {
+  var lang = document.querySelector('html').getAttribute('lang') || 'zh-Hans';
+  var names = {}; var descs = {};
+  names.zhHans = '灵机合盘';
+  names.zhHant = '靈機合盤';
+  names.en = 'Compatibility';
+  descs.zhHans = '双人八字与紫微斗数综合合盘分析';
+  descs.zhHant = '雙人八字與紫微斗數綜合合盤分析';
+  descs.en = 'Dual Bazi and ZiWei compatibility analysis';
+  var name = names[lang] || names.zhHans;
+  var desc = descs[lang] || descs.zhHans;
+  var sd = document.createElement('script');
+  sd.type = 'application/ld+json';
+  sd.textContent = JSON.stringify({"@context":"https://schema.org","@type":"Product","name":name,"description":desc,"offers":{"@type":"Offer","price":"199","priceCurrency":"USD"}});
+  document.head.appendChild(sd);
+})();
+</script>
+    <I18nData locale={locale} />
+    <script defer src={`/js/api.js?v=${v}`}></script>
+    <script defer src={`/js/payment.js?v=${v}`}></script>
+    <script defer src={`/js/marked.min.js?v=${v}`}></script>
+    <script defer src={`/js/render-report.js?v=${v}`}></script>
+    <script defer src={`/js/hepan.js?v=${v}`}></script>
+    <script type="application/json" id="hepan-demo-data" set:html={JSON.stringify(hepanDemo)}></script>
+    <script>document.addEventListener('DOMContentLoaded',function(){var e=document.getElementById('hepan-report-example'),d=document.getElementById('hepan-demo-data');if(e&&d){try{var data=JSON.parse(d.textContent);e.innerHTML=window.renderReport(data)}catch(ex){e.innerHTML='<p>渲染异常</p>'}}});</script>
+  </Fragment>
+
+  <section class="hero-brand" style="margin-top:2rem">
+    <div>
+      <h1 class="text-center text-4xl md:text-5xl font-serif font-bold text-stone-800 mb-2 tracking-tight">{t(locale, 'hepan.hero.title')}</h1>
+      <p class="text-center text-base font-serif text-stone-600 mb-3">{t(locale, 'hepan.hero.subtitle')}</p>
+    </div>
+  </section>
+
+  <section class="py-8 md:py-12 px-4">
+    <div class="bg-white border border-stone-200 rounded-lg overflow-hidden" tabindex="0" style="max-height:640px;overflow-y:auto">
+      <div class="p-4">
+        <p class="text-xs text-stone-400 text-center mb-2 italic">示例内容为虚构，仅用于展示内容结构</p>
+        <div id="hepan-report-example"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section lb-form-section" style="max-width:42rem">
+    <h2 class="text-center text-xl font-bold text-stone-800 mb-6">{t(locale, 'hepan.cta.title')}</h2>
+    <form id="hepan-form" onsubmit="return false;">
+      <div class="flex flex-col md:flex-row gap-3 mb-3">
+        <div class="flex-1">
+          <h3 class="text-sm font-medium text-stone-600 mb-3 text-center">{t(locale, 'hepan.form.person_a')}</h3>
+          <PersonFields prefix="hp-a" locale={locale} ns="hepan.form" birth="1990-05-20T00:00" />
+        </div>
+        <div class="flex-1">
+          <h3 class="text-sm font-medium text-stone-600 mb-3 text-center">{t(locale, 'hepan.form.person_b')}</h3>
+          <PersonFields prefix="hp-b" locale={locale} ns="hepan.form" birth="1992-08-15T00:00" />
+        </div>
+      </div>
+      <div class="max-w-sm mx-auto">
+        <PaymentRow locale={locale} emailId="hp-email" errId="form-error" btnId="hp-buy" emailKey="hepan.form.email" btnKey="hepan.cta.button" product="hepan" />
+      </div>
+    </form>
+  </section>
+
+  <div id="report-container" class="hidden"></div>
+</BaseLayout>

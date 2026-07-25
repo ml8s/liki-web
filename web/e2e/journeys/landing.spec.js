@@ -1,9 +1,9 @@
 // Landing page + purchase flow tests.
 // Covers: content rendering, order creation, checkout, payment return, full flow.
-// Source: index.html, pricing.js, chat.js, report.js.
+// Source: naming.astro, payment.js, chat.js.
 
 import { test, expect } from '../fixtures.js';
-import { sseLine, mockLogin, mockOrderStatus, mockNamingSSE } from '../mocks.js';
+import { sseLine, mockLogin, mockOrderStatus, mockChatHistory, mockNamingSSE, setupAuthenticatedMocks } from '../mocks.js';
 
 const ORDER_ID = 'e2e-pf-001';
 
@@ -18,7 +18,7 @@ const namingSSEFlow = [
 // landing-specific mock helpers
 
 async function mockCreateOrder(page, orderID = ORDER_ID) {
-  await page.route('**/api/orders', async (route) => {
+  await page.route('**/api/naming/orders', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -28,7 +28,7 @@ async function mockCreateOrder(page, orderID = ORDER_ID) {
 }
 
 async function mockCheckout(page) {
-  await page.route('**/api/payments/checkout', async (route) => {
+  await page.route('**/api/naming/checkout', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -37,7 +37,7 @@ async function mockCheckout(page) {
   });
 }
 async function mockCheckoutError(page) {
-  await page.route('**/api/payments/checkout', async (route) => {
+  await page.route('**/api/naming/checkout', async (route) => {
     await route.fulfill({
       status: 500,
       contentType: 'application/json',
@@ -60,11 +60,12 @@ test.describe('Landing page', () => {
   // ── content rendering ──
 
   test('EN page renders branding, tagline, pay form, and pricing', async () => {
-    await page.goto('/en/');
-    await page.waitForSelector('[data-i18n]', { timeout: 10000 });
+    await page.goto('/en/naming');
+    // Wait for FOUC guard to clear (scripts + i18n ready)
+    await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
 
-    await expect(page.locator('.header-dark span.font-brand')).toContainText('Liki');
-    await expect(page.locator('main h2:first-of-type')).toContainText('Find Your Name');
+    await expect(page.locator('header .font-brand')).toContainText('Liki');
+    await expect(page.locator('.cta-section h2')).toContainText('Find Your Name');
     await expect(page.locator('#purchase-form')).toBeVisible();
     await expect(page.locator('#purchase-email')).toBeVisible();
     await expect(page.locator('#purchase-form button[type="submit"]')).toContainText('Purchase');
@@ -72,11 +73,11 @@ test.describe('Landing page', () => {
   });
 
   test('ZH-Hans page renders Chinese content', async () => {
-    await page.goto('/zh-Hans/');
-    await page.waitForSelector('[data-i18n]', { timeout: 10000 });
+    await page.goto('/zh-Hans/naming');
+    await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
 
-    await expect(page.locator('.header-dark span.font-brand')).toContainText('Liki');
-    await expect(page.locator('main h2:first-of-type')).toContainText('找到你的名字');
+    await expect(page.locator('header .font-brand')).toContainText('Liki 灵机');
+    await expect(page.locator('.cta-section h2')).toContainText('找到你的名字');
     await expect(page.locator('#purchase-form')).toBeVisible();
     await expect(page.locator('.name-scroll')).toBeVisible();
   });
@@ -97,11 +98,11 @@ test.describe('Landing page', () => {
       await route.fulfill({ status: 200, body: '<html><body>Mock Checkout</body></html>' });
     });
 
-    await page.goto('/en/');
+    await page.goto('/en/naming');
 
     let ordersBody = null;
-    await page.unroute('**/api/orders');
-    await page.route('**/api/orders', async (route) => {
+    await page.unroute('**/api/naming/orders');
+    await page.route('**/api/naming/orders', async (route) => {
       ordersBody = JSON.parse(route.request().postData() || '{}');
       await route.fulfill({
         status: 200,
@@ -114,11 +115,11 @@ test.describe('Landing page', () => {
     await page.locator('#purchase-form button[type="submit"]').click();
 
     await page.waitForURL('**/checkout/pf-test', { timeout: 10000 });
-    expect(ordersBody).toMatchObject({ email: 'buyer@example.com', product: 'naming', currency: 'USD' });
+    expect(ordersBody).toMatchObject({ email: 'buyer@example.com', currency: 'USD' });
   });
 
   test('order creation server error shows inline error', async () => {
-    await page.route('**/api/orders', async (route) => {
+    await page.route('**/api/naming/orders', async (route) => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -126,7 +127,7 @@ test.describe('Landing page', () => {
       });
     });
 
-    await page.goto('/en/');
+    await page.goto('/en/naming');
     await page.locator('#purchase-email').fill('buyer@example.com');
     await page.locator('#purchase-form button[type="submit"]').click();
 
@@ -135,9 +136,9 @@ test.describe('Landing page', () => {
   });
 
   test('order creation network error shows inline error', async () => {
-    await page.goto('/en/');
+    await page.goto('/en/naming');
 
-    await page.route('**/api/orders', async (route) => {
+    await page.route('**/api/naming/orders', async (route) => {
       await route.abort('failed');
     });
 
@@ -152,7 +153,7 @@ test.describe('Landing page', () => {
     await mockCreateOrder(page);
     await mockCheckoutError(page);
 
-    await page.goto('/en/');
+    await page.goto('/en/naming');
     await page.locator('#purchase-email').fill('buyer@example.com');
     await page.locator('#purchase-form button[type="submit"]').click();
 
@@ -164,23 +165,23 @@ test.describe('Landing page', () => {
   // ── language switch ──
 
   test('language switch redirects to correct locale URL', async () => {
-    await page.goto('/en/');
+    await page.goto('/en/naming');
 
     await page.locator('[data-lang-toggle]').click();
     await page.locator('[data-lang-option="zh-Hans"]').click();
 
-    await page.waitForURL(/\/zh-Hans\//);
-    expect(page.url()).toContain('/zh-Hans/');
+    await page.waitForURL(/\/zh-Hans\/naming/);
+    expect(page.url()).toContain('/zh-Hans/naming');
   });
 
   // ── payment return → chat ──
 
-  test('payment return: chat.html?order_id=xxx → login → enter chat', async () => {
+  test('payment return: chat?order_id=xxx → login → enter chat', async () => {
     await mockOrderStatus(page, ORDER_ID);
     await mockLogin(page, ORDER_ID);
 
     let statusCallCount = 0;
-    await page.route(`**/api/orders/${ORDER_ID}/status`, async (route) => {
+    await page.route(`**/api/naming/orders/${ORDER_ID}/status`, async (route) => {
       statusCallCount++;
       if (statusCallCount === 1) {
         await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' });
@@ -195,7 +196,7 @@ test.describe('Landing page', () => {
       }
     });
 
-    await page.goto(`/zh-Hans/chat.html?order_id=${ORDER_ID}`);
+    await page.goto(`/zh-Hans/naming/chat?order_id=${ORDER_ID}`);
 
     await expect(page.locator('.login-overlay')).toBeVisible({ timeout: 10000 });
 
@@ -214,18 +215,17 @@ test.describe('Landing page', () => {
       await route.fulfill({ status: 200, body: '<html><body>Checkout</body></html>' });
     });
 
-    await page.goto('/zh-Hans/');
+    await page.goto('/zh-Hans/naming');
 
     await page.locator('#purchase-email').fill('buyer@example.com');
     await page.locator('#purchase-form button[type="submit"]').click();
     await page.waitForURL('**/checkout/pf-test', { timeout: 10000 });
 
     // Simulate payment return.
-    await mockOrderStatus(page, ORDER_ID);
-    await mockLogin(page, ORDER_ID);
+    await setupAuthenticatedMocks(page, ORDER_ID);
 
     let callCount = 0;
-    await page.route(`**/api/orders/${ORDER_ID}/status`, async (route) => {
+    await page.route(`**/api/naming/orders/${ORDER_ID}/status`, async (route) => {
       callCount++;
       if (callCount === 1) {
         await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' });
@@ -240,7 +240,7 @@ test.describe('Landing page', () => {
       }
     });
 
-    await page.goto(`/zh-Hans/chat.html?order_id=${ORDER_ID}`);
+    await page.goto(`/zh-Hans/naming/chat?order_id=${ORDER_ID}`);
     await expect(page.locator('.login-overlay')).toBeVisible({ timeout: 10000 });
 
     await page.locator('.login-card input[type="email"]').fill('buyer@example.com');
@@ -253,8 +253,10 @@ test.describe('Landing page', () => {
     await page.locator('#chat-input').fill('帮我起名');
     await page.locator('.btn-send').click();
 
+    // Wait for streaming to finish before checking innerHTML
+    await expect(page.locator('.btn-send')).toBeVisible({ timeout: 10000 });
+
     const lastAsst = page.locator('.msg-asst').last();
-    await expect(lastAsst).toBeVisible({ timeout: 10000 });
     const html = await lastAsst.innerHTML();
     expect(html).toContain('起名分析');
     expect(html).toContain('陈明远');

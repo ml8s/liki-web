@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Liki 管理后台</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+body { background: var(--color-surface); min-height: 100vh; padding: 40px 16px; }
+.admin-wrap { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 22px; color: var(--color-text); margin-bottom: 24px; font-weight: 700; }
+.card { background: var(--color-paper); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--color-border); }
+.card h2 { font-size: 15px; color: var(--color-text); margin-bottom: 16px; font-weight: 600; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+input, select { font:inherit; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 8px; outline: none; background: var(--color-paper); color: var(--color-text); }
+input:focus, select:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-focus); }
+.btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 20px; border-radius:8px; font-weight:500; cursor:pointer; border:none; font-size:14px; transition:all 0.15s; }
+.btn-primary { background:var(--color-accent); color:#fff; }
+.btn-primary:hover { background:var(--color-accent-hover); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--color-border); }
+th { background:var(--color-surface); font-weight:600; color:var(--color-text-muted); }
+.tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
+.tag-paid { background:var(--color-accent-soft); color:var(--color-accent-hover); }
+.tag-pending { background:var(--color-accent-soft); color:var(--color-accent-hover); }
+.status-msg { color:var(--color-text-muted); font-size:13px; margin-top:4px; }
+.hidden { display:none }
+#login-error { color:var(--color-error); font-size:13px; margin-top:4px; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="admin-wrap">
+
+<h1>liki.hk 管理后台</h1>
+
+<!-- Login -->
+<div id="login-section" class="card">
+  <h2>管理员登录</h2>
+  <div id="login-step1">
+    <div class="row">
+      <label for="login-email" class="sr-only">管理邮箱</label>
+      <input id="login-email" placeholder="管理邮箱" style="width:260px">
+      <button class="btn btn-primary" id="send-code-btn">发送验证码</button>
+    </div>
+    <div id="login-status" class="status-msg" role="alert"></div>
+  </div>
+  <div id="login-step2" class="hidden">
+    <div class="row">
+      <label for="login-code" class="sr-only">验证码</label>
+      <input id="login-code" placeholder="输入 6 位验证码" style="width:180px" maxlength="6">
+      <button class="btn btn-primary" id="verify-code-btn">验证登录</button>
+    </div>
+  </div>
+  <div id="login-error" role="alert"></div>
+</div>
+
+<!-- Main -->
+<div id="main-section" class="hidden">
+
+  <!-- Create Order -->
+  <div class="card">
+    <h2>创建订单</h2>
+    <div class="row">
+      <label for="co-email" class="sr-only">用户邮箱</label>
+      <input id="co-email" placeholder="用户邮箱" style="width:260px">
+      <select id="co-expire">
+        <option value="7d">7天</option>
+        <option value="30d">30天</option>
+        <option value="permanent">永久</option>
+      </select>
+      <button class="btn btn-primary" id="co-btn">创建已付款订单</button>
+    </div>
+    <div id="co-status" class="status-msg" role="alert"></div>
+  </div>
+
+  <!-- Search -->
+  <div class="card">
+    <h2>订单查询</h2>
+    <div class="row">
+      <label for="search-email" class="sr-only">搜索邮箱</label>
+      <input id="search-email" placeholder="输入邮箱搜索" style="width:260px">
+      <button class="btn btn-primary" id="search-btn">搜索</button>
+    </div>
+  </div>
+
+  <!-- Verification Codes -->
+  <div class="card">
+    <h2>验证码管理</h2>
+    <div class="row">
+      <input id="vc-count" placeholder="数量" style="width:80px" value="1" type="number" min="1" max="100">
+      <button class="btn btn-primary" id="vc-generate-btn">生成激活码</button>
+      <button class="btn" id="vc-list-btn" style="background:var(--color-surface);color:var(--color-text)">刷新列表</button>
+      <button class="btn" id="vc-export-btn" style="background:var(--color-surface);color:var(--color-text)">导出CSV</button>
+    </div>
+    <div id="vc-generated" class="hidden" style="margin-top:8px">
+      <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:4px">新生成的激活码（点击复制）：</p>
+      <div id="vc-new-codes" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    </div>
+    <div id="vc-status" class="status-msg" role="alert"></div>
+    <div id="vc-list" style="margin-top:12px"></div>
+    <div id="vc-pager" class="hidden" style="margin-top:8px;display:flex;gap:8px;align-items:center;font-size:13px;color:var(--color-text-muted)">
+      <button class="btn" id="vc-prev-btn" style="background:var(--color-surface);color:var(--color-text);padding:4px 12px;font-size:12px">上一页</button>
+      <span id="vc-page-info"></span>
+      <button class="btn" id="vc-next-btn" style="background:var(--color-surface);color:var(--color-text);padding:4px 12px;font-size:12px">下一页</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results-section" class="card hidden">
+    <h2>搜索结果</h2>
+    <div id="results-container"></div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+const API = '/api/admin';
+
+document.getElementById('send-code-btn').onclick = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const st = document.getElementById('login-status');
+  st.textContent = '';
+  if (!email) { st.textContent = '请输入邮箱'; return }
+  this.disabled = true;
+  this.textContent = '发送中…';
+  try {
+    const res = await fetch(API+'/send-code', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email}),
+    });
+    if (!res.ok) { st.textContent = '发送失败'; return }
+    st.textContent = '验证码已发送到邮箱，请查收';
+    document.getElementById('login-step2').classList.remove('hidden');
+  } finally {
+    this.disabled = false;
+    this.textContent = '发送验证码';
+  }
+};
+
+document.getElementById('verify-code-btn').onclick = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const code = document.getElementById('login-code').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!code) { errEl.textContent = '请输入验证码'; return }
+  this.disabled = true;
+  this.textContent = '验证中…';
+  try {
+    const res = await fetch(API+'/verify-code', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, code}),
+    });
+    if (!res.ok) { errEl.textContent = '验证码错误或已过期'; return }
+    document.getElementById('login-section').classList.add('hidden');
+    document.getElementById('main-section').classList.remove('hidden');
+  } finally {
+    this.disabled = false;
+    this.textContent = '验证登录';
+  }
+};
+
+document.getElementById('co-btn').onclick = async function() {
+  const email = document.getElementById('co-email').value.trim();
+  const expireSel = document.getElementById('co-expire').value;
+  const st = document.getElementById('co-status');
+  st.textContent = '';
+  if (!email) { st.textContent = '请输入邮箱'; return }
+  this.disabled = true;
+  this.textContent = '创建中…';
+  try {
+    let expiresAt;
+    if (expireSel === 'permanent') expiresAt = '2999-12-31 23:59:59';
+    else if (expireSel === '30d') expiresAt = new Date(Date.now()+30*86400000).toISOString().slice(0,19).replace('T',' ');
+    else expiresAt = new Date(Date.now()+7*86400000).toISOString().slice(0,19).replace('T',' ');
+    const res = await fetch(API+'/orders', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, expires_at: expiresAt}),
+    });
+    if (!res.ok) { st.textContent = '创建失败'; return }
+    const j = await res.json();
+    st.textContent = '已创建 ' + j.data.order_id;
+    document.getElementById('search-email').value = email;
+    doSearch();
+  } finally {
+    this.disabled = false;
+    this.textContent = '创建已付款订单';
+  }
+};
+
+document.getElementById('search-btn').onclick = doSearch;
+async function doSearch() {
+  const email = document.getElementById('search-email').value.trim();
+  if (!email) return;
+  const res = await fetch(API+'/orders?email='+encodeURIComponent(email));
+  if (res.status === 403) { location.reload(); return }
+  if (!res.ok) return;
+  const j = await res.json();
+  const orders = j.data?.orders || [];
+  const sec = document.getElementById('results-section');
+  const container = document.getElementById('results-container');
+  sec.classList.remove('hidden');
+  if (orders.length === 0) {
+    container.innerHTML = '<p style="color:var(--color-text-muted)">未找到订单</p>'; return;
+  }
+  let html = '<table><tr><th>订单ID</th><th>状态</th><th>过期时间</th><th>创建时间</th><th>操作</th></tr>';
+  for (const o of orders) {
+    const tagCls = o.status === 'paid' ? 'tag-paid' : 'tag-pending';
+    html += '<tr><td>'+h(o.order_id)+'</td><td><span class="tag '+tagCls+'">'+h(o.status)+'</span></td><td>'+h(o.expires_at)+'</td><td>'+h(o.created_at)+'</td><td><button class="btn btn-primary" style="font-size:12px;padding:4px 12px" onclick="editExpire(\''+h(o.order_id)+'\',\''+h(o.expires_at)+'\')">改过期</button></td></tr>';
+  }
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+function editExpire(oid, cur) {
+  const val = prompt('修改过期时间（留空=永久）', cur);
+  if (val === null) return;
+  updateExpire(oid, val.trim() || '2999-12-31 23:59:59');
+}
+
+async function updateExpire(oid, expiresAt) {
+  await fetch(API+'/orders/'+oid+'/expire', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({expires_at: expiresAt}) });
+  doSearch();
+}
+
+function h(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
+
+// ── Verification Codes ──
+
+function formatCode(c) { return c.slice(0,4) + '-' + c.slice(4); }
+
+function renderCodeEl(c, st) {
+  const el = document.createElement('code');
+  el.style.cssText = 'cursor:pointer;background:var(--color-accent-soft);padding:4px 10px;border-radius:6px;font-size:15px;font-weight:600;letter-spacing:1px;user-select:all';
+  el.textContent = formatCode(c);
+  el.title = '点击复制';
+  el.onclick = function() { navigator.clipboard.writeText(c).then(function(){ st.textContent = '已复制: '+c; }); };
+  return el;
+}
+
+document.getElementById('vc-generate-btn').onclick = async function() {
+  const count = parseInt(document.getElementById('vc-count').value) || 1;
+  const st = document.getElementById('vc-status');
+  st.textContent = '';
+  this.disabled = true;
+  this.textContent = '生成中…';
+  try {
+    const res = await fetch(API+'/verification-codes', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({count}),
+    });
+    if (!res.ok) { st.textContent = '生成失败'; return }
+    const j = await res.json();
+    const codes = j.data.codes || [];
+    const div = document.getElementById('vc-new-codes');
+    div.innerHTML = '';
+    for (const c of codes) {
+      div.appendChild(renderCodeEl(c, st));
+    }
+    document.getElementById('vc-generated').classList.remove('hidden');
+    st.textContent = '已生成 '+codes.length+' 个激活码';
+  } finally {
+    this.disabled = false;
+    this.textContent = '生成激活码';
+  }
+};
+
+document.getElementById('vc-list-btn').onclick = function() { vcOffset = 0; loadVCList(); };
+document.getElementById('vc-export-btn').onclick = exportCSV;
+document.getElementById('vc-prev-btn').onclick = function() { vcOffset = Math.max(0, vcOffset - vcLimit); loadVCList(); };
+document.getElementById('vc-next-btn').onclick = function() { vcOffset += vcLimit; loadVCList(); };
+
+const vcLimit = 20;
+let vcOffset = 0;
+let vcTotal = 0;
+
+async function loadVCList() {
+  const res = await fetch(API+'/verification-codes?limit='+vcLimit+'&offset='+vcOffset);
+  if (res.status === 403) { location.reload(); return }
+  if (!res.ok) return;
+  const j = await res.json();
+  const codes = j.data.codes || [];
+  vcTotal = j.data.total || codes.length;
+  const container = document.getElementById('vc-list');
+  if (codes.length === 0) {
+    container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">暂无验证码</p>';
+  } else {
+    let html = '<table><tr><th>激活码</th><th>状态</th><th>用户邮箱</th><th>创建时间</th><th>使用时间</th></tr>';
+    for (const c of codes) {
+      const statusCls = c.status === 'active' ? 'tag-paid' : c.status === 'used' ? 'tag-pending' : '';
+      const statusLabel = c.status === 'active' ? '可用' : c.status === 'used' ? '已用' : '过期';
+      html += '<tr><td style="font-family:monospace;letter-spacing:1px">'+h(formatCode(c.code))+'</td><td><span class="tag '+statusCls+'">'+h(statusLabel)+'</span></td><td>'+h(c.email||'—')+'</td><td>'+h(c.created_at||'')+'</td><td>'+h(c.used_at||'—')+'</td></tr>';
+    }
+    html += '</table>';
+    container.innerHTML = html;
+  }
+  updatePager();
+}
+
+function updatePager() {
+  const pager = document.getElementById('vc-pager');
+  const prevBtn = document.getElementById('vc-prev-btn');
+  const nextBtn = document.getElementById('vc-next-btn');
+  const info = document.getElementById('vc-page-info');
+  if (vcTotal <= vcLimit) { pager.classList.add('hidden'); return; }
+  pager.classList.remove('hidden');
+  prevBtn.disabled = vcOffset === 0;
+  nextBtn.disabled = vcOffset + vcLimit >= vcTotal;
+  info.textContent = (vcOffset + 1) + '-' + Math.min(vcOffset + vcLimit, vcTotal) + ' / ' + vcTotal;
+}
+
+async function exportCSV() {
+  const res = await fetch(API+'/verification-codes?limit=0');
+  if (!res.ok) return;
+  const j = await res.json();
+  const codes = j.data.codes || [];
+  if (codes.length === 0) { alert('暂无数据可导出'); return; }
+  const header = 'code,status,email,created_at,used_at';
+  const rows = codes.map(function(c) {
+    return [c.code, c.status, c.email||'', c.created_at||'', c.used_at||''].join(',');
+  });
+  const csv = [header].concat(rows).join('\n');
+  const blob = new Blob(['﻿' + csv], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'verification-codes.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+(async ()=>{
+  const res = await fetch(API+'/orders?email=_check_');
+  if (res.status === 403) return;
+  document.getElementById('login-section').classList.add('hidden');
+  document.getElementById('main-section').classList.remove('hidden');
+  loadVCList();
+})();
+</script>
+</body>
+</html>

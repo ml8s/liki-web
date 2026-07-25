@@ -3,31 +3,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Copy MSG translations (subset) from i18n JSON for test use
 const MSG = {
   'zh-Hans': {
-    'site.name': '灵机 Liki',
-    'site.tagline': 'AI 起名顾问',
+    'site.name': '灵机起名',
     'form.year': '出生年',
     'gender.male': '男',
-    'report.polling': '等待支付确认…',
     'a11y.skipLink': 'English',
     'error.requestFailed': '请求失败',
     'naming.wuge': '五格: 天{0} 人{1} 地{2} 外{3} 总{4}',
   },
   'zh-Hant': {
-    'site.name': '靈機 Liki',
-    'site.tagline': 'AI 起名顧問',
+    'site.name': '靈機起名',
     'form.year': '出生年',
     'gender.male': '男',
-    'report.polling': '等待支付確認…',
     'a11y.skipLink': 'English',
     'error.requestFailed': '請求失敗',
     'naming.wuge': '五格: 天{0} 人{1} 地{2} 外{3} 總{4}',
   },
   en: {
-    'site.name': 'Liki',
-    'site.tagline': 'AI Chinese Naming Advisor',
+    'site.name': 'liki.hk',
     'form.year': 'Year',
     'gender.male': 'Male',
-    'report.polling': 'Waiting for payment…',
     'a11y.skipLink': '中文',
     'error.requestFailed': 'Request failed',
     'naming.wuge': 'Wu Ge: Heaven{0} Person{1} Earth{2} Outer{3} Total{4}',
@@ -103,9 +97,9 @@ describe('detectLang', () => {
 
 describe('t', () => {
   it('returns the translated string for a valid key in current lang', () => {
-    expect(t('en', 'site.name', null)).toBe('Liki');
-    expect(t('zh-Hans', 'site.name', null)).toBe('灵机 Liki');
-    expect(t('zh-Hant', 'site.name', null)).toBe('靈機 Liki');
+    expect(t('en', 'site.name', null)).toBe('liki.hk');
+    expect(t('zh-Hans', 'site.name', null)).toBe('灵机起名');
+    expect(t('zh-Hant', 'site.name', null)).toBe('靈機起名');
   });
 
   it('falls back to MSG.zh when current lang lacks the key', () => {
@@ -129,16 +123,16 @@ describe('t', () => {
 
   it('handles partial params gracefully (missing index in template)', () => {
     const result = t('en', 'site.name', ['extra']);
-    expect(result).toBe('Liki');
+    expect(result).toBe('liki.hk');
   });
 
   it('handles undefined params', () => {
-    expect(t('en', 'site.name', undefined)).toBe('Liki');
-    expect(t('en', 'site.name', null)).toBe('Liki');
+    expect(t('en', 'site.name', undefined)).toBe('liki.hk');
+    expect(t('en', 'site.name', null)).toBe('liki.hk');
   });
 
   it('handles empty array params', () => {
-    expect(t('en', 'site.name', [])).toBe('Liki');
+    expect(t('en', 'site.name', [])).toBe('liki.hk');
   });
 });
 

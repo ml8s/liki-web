@@ -2,7 +2,7 @@ package xunhu
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec // Xunhu API requires MD5 signing
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"liki_web/internal/product"
-	"liki_web/internal/payment"
+	"liki-web/internal/product"
+	"liki-web/internal/payment"
 )
 
 const (
@@ -44,7 +44,7 @@ func New(appID, appSecret string) *Client {
 }
 
 // CreateCheckout creates a XunhuPay checkout session.
-func (c *Client) CreateCheckout(ctx context.Context, product product.Product, amount int, orderID, email, returnURL, returnToken string) (*payment.CheckoutResult, error) {
+func (c *Client) CreateCheckout(ctx context.Context, product product.Product, amount int, orderID, email, returnURL string) (*payment.CheckoutResult, error) {
 	webhookURL := deriveWebhookURL(returnURL)
 
 	nonce := make([]byte, 16)
@@ -187,7 +187,7 @@ func sign(params map[string]string, secret string) string {
 	}
 	raw += secret
 
-	h := md5.Sum([]byte(raw))
+	h := md5.Sum([]byte(raw)) //nolint:gosec
 	return hex.EncodeToString(h[:])
 }
 

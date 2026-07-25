@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"testing"
 )
 
@@ -30,10 +29,7 @@ func TestEnvOr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setEnv {
-				os.Setenv(tt.key, tt.envValue)
-				defer os.Unsetenv(tt.key)
-			} else {
-				os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.envValue)
 			}
 			if got := envOr(tt.key, tt.def); got != tt.want {
 				t.Errorf("envOr(%q, %q) = %q, want %q", tt.key, tt.def, got, tt.want)
@@ -65,10 +61,7 @@ func TestEnvOrBool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setEnv {
-				os.Setenv(tt.key, tt.envValue)
-				defer os.Unsetenv(tt.key)
-			} else {
-				os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.envValue)
 			}
 			got := envOrBool(tt.key, tt.def)
 			if got != tt.want {

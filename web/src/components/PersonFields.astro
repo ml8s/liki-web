@@ -1,0 +1,27 @@
+---
+import { t } from '../i18n.js';
+
+export interface Props {
+  prefix: string;
+  locale: string;
+  ns?: string;
+  birth?: string;
+}
+
+const { prefix, locale, ns = 'hepan.form', birth = '' } = Astro.props;
+---
+
+<input type="text" id={`${prefix}-name`} aria-label={t(locale, `${ns}.name`)} placeholder={t(locale, `${ns}.name`)} class="w-full px-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent mb-3" autocomplete="name" required>
+<div class="mb-3">
+  <label class="flex items-center gap-2">
+    <input type="datetime-local" id={`${prefix}-birth`} value={birth} class="flex-1 px-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent" required>
+    <span class="text-xs text-stone-600 whitespace-nowrap">{t(locale, `${ns}.birthHint`)}</span>
+  </label>
+</div>
+<input type="text" id={`${prefix}-city`} aria-label={t(locale, `${ns}.city`)} placeholder={t(locale, `${ns}.city`)} class="w-full px-4 py-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent mb-3" autocomplete="off">
+<div class="flex gap-2 mb-3">
+  <input type="radio" name={`${prefix}-gender`} value="male" checked id={`${prefix}-male`} class="sr-only">
+  <label for={`${prefix}-male`} class="flex-1 px-4 py-2.5 border border-stone-300 rounded-lg text-sm text-center">{t(locale, `${ns}.male`)}</label>
+  <input type="radio" name={`${prefix}-gender`} value="female" id={`${prefix}-female`} class="sr-only">
+  <label for={`${prefix}-female`} class="flex-1 px-4 py-2.5 border border-stone-300 rounded-lg text-sm text-center">{t(locale, `${ns}.female`)}</label>
+</div>

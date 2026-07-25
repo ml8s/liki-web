@@ -17,6 +17,11 @@ type Client struct {
 	from   string
 }
 
+// Sender is the interface for sending emails.
+type Sender interface {
+	SendReport(ctx context.Context, to, subject, htmlBody string) error
+}
+
 // New creates a Resend email client with the given API key and from address.
 func New(apiKey, from string) *Client {
 	return &Client{

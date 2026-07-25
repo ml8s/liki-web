@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"liki-web/internal/product"
 )
 
 var locationClient = &http.Client{Timeout: 15 * time.Second}
@@ -50,7 +52,7 @@ func handleLocation(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, locationResult{
 		Country:  country,
 		City:     city,
-		Currency: string(detectCurrency(r, geoCountry)),
+		Currency: string(product.DetectCurrency(r.Header.Get("CF-IPCountry"), geoCountry)),
 	})
 }
 

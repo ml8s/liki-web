@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"liki_web/internal/llm"
+	"liki-web/internal/llm"
 )
 
 // MockLLM implements LLMClient with predefined response sequences.
@@ -17,12 +17,14 @@ type MockLLM struct {
 	toolIdx      int
 	StreamTokens []string
 	StreamErr    error
+	Calls        [][]llm.Message // messages received by ChatStreamWithTools, one per call
 }
 
 // ChatStreamWithTools converts the next ChatResult in ToolResps into StreamEvents.
 func (m *MockLLM) ChatStreamWithTools(ctx context.Context, messages []llm.Message, tools []llm.ToolDef) (<-chan llm.StreamEvent, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.Calls = append(m.Calls, messages)
 	if m.toolIdx < len(m.ToolErrs) && m.ToolErrs[m.toolIdx] != nil {
 		err := m.ToolErrs[m.toolIdx]
 		m.toolIdx++
