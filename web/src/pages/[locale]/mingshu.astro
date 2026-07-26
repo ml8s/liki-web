@@ -39,7 +39,7 @@ const mingshuDemo = JSON.parse(readFileSync(join(process.cwd(), 'js/mingshu-repo
   var desc = descs[lang] || descs.zhHans;
   var sd = document.createElement('script');
   sd.type = 'application/ld+json';
-  sd.textContent = JSON.stringify({"@context":"https://schema.org","@type":"Product","name":name,"description":desc,"offers":{"@type":"Offer","price":"129","priceCurrency":"USD"}});
+  sd.textContent = JSON.stringify({"@context":"https://schema.org","@type":"Product","name":name,"description":desc,"image":"https://liki.hk/img/og-image.png","offers":{"@type":"Offer","price":"129","priceCurrency":"USD","availability":"https://schema.org/InStock"}});
   document.head.appendChild(sd);
 })();
 </script>
