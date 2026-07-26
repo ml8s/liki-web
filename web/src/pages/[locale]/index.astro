@@ -68,10 +68,7 @@ const { locale } = Astro.params;
     <p class="text-center text-sm text-stone-400 mt-6 max-w-xl mx-auto leading-loose">{t(locale, 'index.hero.desc')}</p>
   </section>
 
-  <section class="max-w-2xl mx-auto py-8 px-4">
-  </section>
-
-  <div class="max-w-2xl mx-auto px-4 pb-8 text-center">
+  <div class="max-w-2xl mx-auto px-4 pb-4 text-center">
     <p class="text-xs text-stone-400 mb-2">{t(locale, 'index.install.method1')}</p>
     <pre class="install-cmd mb-4">npx skills add ml8s/liki</pre>
     <p class="text-xs text-stone-400 mb-2">{t(locale, 'index.install.method2')}</p>
@@ -87,7 +84,7 @@ const { locale } = Astro.params;
     for (var i = 0; i < w.length; i++) {
       var el = document.createElement('span');
       el.textContent = w[i];
-      el.style.cssText = 'position:absolute;left:'+(Math.random()*90+5)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:#16775d;opacity:0.10;white-space:nowrap;pointer-events:none;user-select:none;transform:rotate('+(Math.random()*60-30)+'deg)';
+      el.style.cssText = 'position:absolute;left:'+(Math.random()*90+5)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:#16775d;opacity:0.06;white-space:nowrap;pointer-events:none;user-select:none;transform:rotate('+(Math.random()*60-30)+'deg)';
       bg.appendChild(el);
     }
   })();
