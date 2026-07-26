@@ -1150,3 +1150,27 @@ th {
   .md\:text-left { text-align: left; }
   .md\:text-right { text-align: right; }
 }
+
+/* ── Keyword cloud ── */
+.keyword-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+.keyword-cloud span {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: #78716c;
+  background: #f5f5f4;
+  transition: all 0.2s ease;
+  cursor: default;
+  user-select: none;
+}
+.keyword-cloud span:nth-child(3n+1) { font-size: 1rem; color: #44403c; background: #e7e5e4; }
+.keyword-cloud span:nth-child(5n+2) { font-size: 0.8rem; }
+.keyword-cloud span:nth-child(4n+3) { font-size: 0.93rem; color: #57534e; background: #efefed; }
+.keyword-cloud span:hover { background: #d6d3d1; color: #292524; transform: translateY(-1px); }

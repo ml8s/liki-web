@@ -69,35 +69,14 @@ const { locale } = Astro.params;
 
   <section class="max-w-2xl mx-auto py-8 px-4">
     <h2 class="text-center text-base font-semibold text-stone-800 mb-6">{t(locale, 'index.features')}</h2>
-    <div class="skill-grid">
-      <div class="card card-surface">
-        <div class="card-icon">☯️</div>
-        <div>
-          <h3>{t(locale, 'index.skills.mingli.title')} <span>mingli</span></h3>
-          <p>{t(locale, 'index.skills.mingli.desc')}</p>
-        </div>
-      </div>
-      <div class="card card-surface">
-        <div class="card-icon">✏️</div>
-        <div>
-          <h3>{t(locale, 'index.skills.qiming.title')} <span>qiming</span></h3>
-          <p>{t(locale, 'index.skills.qiming.desc')}</p>
-        </div>
-      </div>
-      <div class="card card-surface">
-        <div class="card-icon">🔮</div>
-        <div>
-          <h3>{t(locale, 'index.skills.wengua.title')} <span>wengua</span></h3>
-          <p>{t(locale, 'index.skills.wengua.desc')}</p>
-        </div>
-      </div>
-      <div class="card card-surface">
-        <div class="card-icon">🌊</div>
-        <div>
-          <h3>{t(locale, 'index.skills.fengshui.title')} <span>fengshui</span></h3>
-          <p>{t(locale, 'index.skills.fengshui.desc')}</p>
-        </div>
-      </div>
+    <div class="keyword-cloud" id="keyword-cloud">
+      <span>精确</span><span>严谨</span><span>可复现</span>
+      <span>引擎计算</span><span>排盘</span><span>用神</span>
+      <span>大运</span><span>考时</span><span>真太阳时</span>
+      <span>双系交叉</span><span>三派聚合</span><span>方法论库</span>
+      <span>八字</span><span>紫微</span><span>奇门</span>
+      <span>六爻</span><span>玄空</span><span>八宅</span>
+      <span>起名</span><span>黄历</span>
     </div>
   </section>
 
