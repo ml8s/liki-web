@@ -1,5 +1,5 @@
 # Changelog
-- 0.16.2: 结构化数据修复 — availability + image + 空标签删除
+- 0.16.2: 结构化数据修复 — availability + image + 空标签删除 + brand
 - 0.16.1: 英文品牌统一 Liki — Chinese Astrology Skill
 - 0.16.0: 英文品牌 Chinese Astrology（去掉 & Metaphysics Skill）
 - 0.14.0: 英文 lifebook title 去重 + CTA 统一 Life Reading + zh-Hans 空格统一
