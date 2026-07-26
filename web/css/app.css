@@ -1174,3 +1174,12 @@ th {
 .keyword-cloud span:nth-child(5n+2) { font-size: 0.8rem; }
 .keyword-cloud span:nth-child(4n+3) { font-size: 0.93rem; color: #57534e; background: #efefed; }
 .keyword-cloud span:hover { background: #d6d3d1; color: #292524; transform: translateY(-1px); }
+
+/* ── Homepage keyword background ── */
+#kw-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
