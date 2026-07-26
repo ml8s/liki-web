@@ -72,7 +72,7 @@ const { locale } = Astro.params;
   </section>
 
   <!-- homepage keywords background -->
-  <div id="kw-bg" data-keywords={JSON.stringify(keywords[locale] || keywords['zh-Hans'])} aria-hidden="true">
+  <div id="kw-bg" data-keywords={JSON.stringify([...keywords.en, ...keywords['zh-Hans'], ...keywords['zh-Hant']])} aria-hidden="true">
   </div>
   <script is:inline>
   (function(){
@@ -89,13 +89,4 @@ const { locale } = Astro.params;
   })();
   </script>
 
-  <section class="max-w-2xl mx-auto py-8 px-4 text-center">
-    <h2 class="text-base font-semibold text-stone-800 mb-4">{t(locale, 'index.install.title')}</h2>
-    <div class="inline-block text-left">
-      <p class="text-xs text-stone-400 mb-2">{t(locale, 'index.install.method1')}</p>
-      <pre class="install-cmd mb-4">npx skills add ml8s/liki</pre>
-      <p class="text-xs text-stone-400 mb-2">{t(locale, 'index.install.method2')}</p>
-      <pre class="install-cmd">npx skills add https://liki.hk/</pre>
-    </div>
-  </section>
 </BaseLayout>
