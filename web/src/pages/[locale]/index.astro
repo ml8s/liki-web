@@ -71,22 +71,25 @@ const { locale } = Astro.params;
   <section class="max-w-2xl mx-auto py-8 px-4">
   </section>
 
-  <!-- homepage keywords background -->
-  <div id="kw-bg" data-keywords={JSON.stringify([...keywords.en, ...keywords['zh-Hans'], ...keywords['zh-Hant']])} aria-hidden="true">
+  <div class="max-w-2xl mx-auto px-4 pb-8 text-center">
+    <p class="text-xs text-stone-400 mb-2">{t(locale, 'index.install.method1')}</p>
+    <pre class="install-cmd mb-4">npx skills add ml8s/liki</pre>
+    <p class="text-xs text-stone-400 mb-2">{t(locale, 'index.install.method2')}</p>
+    <pre class="install-cmd">npx skills add https://liki.hk/</pre>
   </div>
+
+  <div id="kw-bg" data-keywords={JSON.stringify([...keywords.en, ...keywords['zh-Hans'], ...keywords['zh-Hant']])} aria-hidden="true"></div>
   <script is:inline>
   (function(){
     var w = JSON.parse(document.getElementById('kw-bg').getAttribute('data-keywords')) || [];
     var bg = document.getElementById('kw-bg');
     if (!bg || !w.length) return;
-    var cols = ['#44403c','#57534e','#78716c','#a8a29e'];
     for (var i = 0; i < w.length; i++) {
       var el = document.createElement('span');
       el.textContent = w[i];
-      el.style.cssText = 'position:absolute;left:'+(Math.random()*90+5)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:'+cols[i%4]+';opacity:0.06;white-space:nowrap;pointer-events:none;user-select:none;transform:rotate('+(Math.random()*60-30)+'deg)';
+      el.style.cssText = 'position:absolute;left:'+(Math.random()*90+5)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:#16775d;opacity:0.10;white-space:nowrap;pointer-events:none;user-select:none;transform:rotate('+(Math.random()*60-30)+'deg)';
       bg.appendChild(el);
     }
   })();
   </script>
-
 </BaseLayout>
