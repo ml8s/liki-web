@@ -1189,3 +1189,5 @@ th {
 @media (min-width: 768px) { .md\:pr-12 { padding-right: 3rem; } }
 .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
 .md\:pr-12 { padding-right: 3rem; }
+.text-right { text-align: right; }
+.mt-12 { margin-top: 3rem; }
