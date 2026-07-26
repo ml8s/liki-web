@@ -1,4 +1,5 @@
 # Changelog
+- 0.17.0: 品牌定位对齐 — 命理师的 Skill / Professional Skill for Chinese Metaphysics
 - 0.16.2: 结构化数据修复 — availability + image + 空标签删除 + brand
 - 0.16.1: 英文品牌统一 Liki — Chinese Astrology Skill
 - 0.16.0: 英文品牌 Chinese Astrology（去掉 & Metaphysics Skill）
