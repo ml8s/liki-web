@@ -1,4 +1,5 @@
 # Changelog
+- 0.17.1: 首页关键词云+SEO词库+CSS清理+hero布局调整
 - 0.17.0: 品牌定位对齐 — 命理师的 Skill / Professional Skill for Chinese Metaphysics
 - 0.16.2: 结构化数据修复 — availability + image + 空标签删除 + brand
 - 0.16.1: 英文品牌统一 Liki — Chinese Astrology Skill

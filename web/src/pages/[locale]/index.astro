@@ -64,7 +64,7 @@ const { locale } = Astro.params;
 
   <section class="hero-brand">
     <h1 class="text-center text-4xl md:text-5xl font-serif font-bold text-stone-800 mb-2 tracking-tight">{t(locale, 'index.hero.title')}</h1>
-    <p class="text-right text-base md:text-xl text-stone-400 mt-4 pr-4 md:pr-12">{t(locale, 'index.hero.subtitle')}</p>
+    <p class="text-right text-xl md:text-2xl text-stone-400 mt-4 pr-4 md:pr-12">{t(locale, 'index.hero.subtitle')}</p>
   </section>
 
   <div class="max-w-2xl mx-auto px-4 pb-4 text-center">
@@ -74,17 +74,16 @@ const { locale } = Astro.params;
     <pre class="install-cmd">npx skills add https://liki.hk/</pre>
   </div>
 
-  <div id="kw-bg" data-keywords={JSON.stringify([...keywords.en, ...keywords['zh-Hans'], ...keywords['zh-Hant']])} aria-hidden="true"></div>
+  <div id="kw-bg">
+    {keywords.en.map(k => <span>{k}</span>)}
+    {keywords['zh-Hans'].map(k => <span>{k}</span>)}
+    {keywords['zh-Hant'].map(k => <span>{k}</span>)}
+  </div>
   <script is:inline>
   (function(){
-    var w = JSON.parse(document.getElementById('kw-bg').getAttribute('data-keywords')) || [];
-    var bg = document.getElementById('kw-bg');
-    if (!bg || !w.length) return;
-    for (var i = 0; i < w.length; i++) {
-      var el = document.createElement('span');
-      el.textContent = w[i];
-      el.style.cssText = 'position:absolute;left:'+(Math.random()*90+5)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:#16775d;opacity:0.06;white-space:nowrap;pointer-events:none;user-select:none;transform:rotate('+(Math.random()*60-30)+'deg)';
-      bg.appendChild(el);
+    var items = document.querySelectorAll('#kw-bg span');
+    for (var i = 0; i < items.length; i++) {
+      items[i].style.cssText = 'position:absolute;left:'+(Math.random()*90+5)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:#16775d;opacity:0.06;white-space:nowrap;pointer-events:none;user-select:none;transform:rotate('+(Math.random()*60-30)+'deg)';
     }
   })();
   </script>
