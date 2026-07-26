@@ -1185,3 +1185,5 @@ th {
 }
 .pb-8 { padding-bottom: 2rem; }
 .pb-4 { padding-bottom: 1rem; }
+.pr-4 { padding-right: 1rem; }
+@media (min-width: 768px) { .md\:pr-12 { padding-right: 3rem; } }
