@@ -1,4 +1,4 @@
-package feedback //nolint:errcheck
+package feedback
 
 import (
 	"bytes"

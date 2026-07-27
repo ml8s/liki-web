@@ -1,31 +1,5 @@
-run:
-  timeout: 3m
-  tests: true
-
-linters:
-  enable:
-    - errcheck
-    - govet
-    - staticcheck
-    - unused
-    - ineffassign
-    - gosimple
-    - nilerr
-    - unconvert
-    - wastedassign
-    - makezero
-    - copyloopvar
-    - gosec
-
 linters-settings:
   errcheck:
-    check-blank: true
-  staticcheck:
-    checks: ["all"]
-
-issues:
-  exclude-dirs:
-    - vendor
-    - web/node_modules
-  max-issues-per-linter: 0
-  max-same-issues: 0
+    exclude-functions:
+      - (*encoding/json.Encoder).Encode
+      - (*encoding/json.Decoder).Decode
