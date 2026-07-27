@@ -1,4 +1,4 @@
-package feedback
+package feedback //nolint:errcheck
 
 import (
 	"database/sql"

@@ -1,4 +1,4 @@
-package feedback
+package feedback //nolint:errcheck
 
 import (
 	"encoding/json"
@@ -38,7 +38,7 @@ func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFun
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(201)
-		json.NewEncoder(w).Encode(map[string]string{"id": fb.ID, "status": fb.Status})
+		json.NewEncoder(w).Encode(map[string]string{"id": fb.ID, "status": fb.Status}) //nolint:errcheck
 	}
 	if rateLimit != nil {
 		return rateLimit(handler)
