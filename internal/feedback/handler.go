@@ -38,7 +38,7 @@ func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFun
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(201)
-		json.NewEncoder(w).Encode(map[string]string{"id": fb.ID, "status": fb.Status})
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": fb.ID, "status": fb.Status})
 	}
 	if rateLimit != nil {
 		return rateLimit(handler)
@@ -65,7 +65,7 @@ func HandleList(store *Store, apiKey string) http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(list)
+		_ = json.NewEncoder(w).Encode(list)
 	}
 }
 
@@ -99,7 +99,7 @@ func HandleUpdate(store *Store, apiKey string) http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
 }
 
