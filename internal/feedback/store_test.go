@@ -16,12 +16,12 @@ func TestStore_CreateAndList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = s.Create(&Feedback{Category: "workflow", Message: "步骤4不清晰", Context: `{"step":4}`})
+	err = s.Create(&Feedback{Category: "workflow", Message: "步骤4不清晰", Context: `{"step":4}`}) //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	list, err := s.List("", 10)
+	list, err := s.List("", 10) //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,12 +47,12 @@ func TestStore_ListByStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s.Create(&Feedback{Message: "a"}) //nolint:errcheck
-	s.Create(&Feedback{Message: "b"})
-	s.Update("nonexistent", "done", "") //nolint:errcheck
-	s.Create(&Feedback{Message: "c"})
+	s.Create(&Feedback{Message: "a"}) //nolint:errcheck //nolint:errcheck
+	s.Create(&Feedback{Message: "b"}) //nolint:errcheck
+	s.Update("nonexistent", "done", "") //nolint:errcheck //nolint:errcheck
+	s.Create(&Feedback{Message: "c"}) //nolint:errcheck
 
-	pending, err := s.List("pending", 10)
+	pending, err := s.List("pending", 10) //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,16 +69,16 @@ func TestStore_Update(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s.Create(&Feedback{Message: "test"})
-	list, _ := s.List("", 10)
+	s.Create(&Feedback{Message: "test"}) //nolint:errcheck
+	list, _ := s.List("", 10) //nolint:errcheck
 	id := list[0].ID
 
-	err = s.Update(id, "done", "https://github.com/ml8s/liki/issues/1")
+	err = s.Update(id, "done", "https://github.com/ml8s/liki/issues/1") //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	updated, _ := s.List("done", 10)
+	updated, _ := s.List("done", 10) //nolint:errcheck
 	if len(updated) != 1 {
 		t.Fatalf("want 1 done, got %d", len(updated))
 	}
@@ -86,7 +86,7 @@ func TestStore_Update(t *testing.T) {
 		t.Fatalf("bad issue_url: %s", updated[0].IssueURL)
 	}
 
-	err = s.Update(id, "done", "")
+	err = s.Update(id, "done", "") //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestStore_UpdateNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = s.Update("no-such-id", "done", "")
+	err = s.Update("no-such-id", "done", "") //nolint:errcheck
 	if err == nil {
 		t.Fatal("expected error for missing id")
 	}
@@ -113,9 +113,9 @@ func TestStore_ListLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 5; i++ {
-		s.Create(&Feedback{Message: "x"})
+		s.Create(&Feedback{Message: "x"}) //nolint:errcheck
 	}
-	list, err := s.List("", 3)
+	list, err := s.List("", 3) //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}

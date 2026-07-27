@@ -76,7 +76,7 @@ func TestHandleCreate_DefaultCategory(t *testing.T) {
 	var res map[string]string
 	json.NewDecoder(w.Body).Decode(&res)
 
-	list, _ := s.List("", 10)
+	list, _ := s.List("", 10) //nolint:errcheck
 	if len(list) != 1 || list[0].Category != "other" {
 		t.Fatalf("default category failed: %+v", list)
 	}
@@ -97,7 +97,7 @@ func TestHandleList_RequiresAuth(t *testing.T) {
 
 func TestHandleList_WithAuth(t *testing.T) {
 	s := setup(t)
-	s.Create(&Feedback{Message: "test"}) //nolint:errcheck
+	s.Create(&Feedback{Message: "test"}) //nolint:errcheck //nolint:errcheck
 
 	req := httptest.NewRequest("GET", "/api/feedback?status=pending", nil)
 	req.Header.Set("Authorization", "Bearer my-key")
@@ -130,8 +130,8 @@ func TestHandleList_EmptyAuthKey(t *testing.T) {
 
 func TestHandleUpdate_Success(t *testing.T) {
 	s := setup(t)
-	s.Create(&Feedback{Message: "fix me"}) //nolint:errcheck
-	list, _ := s.List("", 10)
+	s.Create(&Feedback{Message: "fix me"}) //nolint:errcheck //nolint:errcheck
+	list, _ := s.List("", 10) //nolint:errcheck
 	id := list[0].ID
 
 	body, _ := json.Marshal(UpdateRequest{Status: "done", IssueURL: "https://github.com/ml8s/liki/issues/1"})
