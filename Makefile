@@ -66,10 +66,10 @@ test: ## Run Go unit tests (all packages)
 	go test -race -count=1 ./...
 
 test-js: ## Run vitest JS tests
-	cd web && PATH="$(HOME)/.nvm/versions/node/v24.14.1/bin:$$PATH" npx vitest run js/__tests__/
+	cd web && PATH="$(HOME)/.nvm/versions/node/v24.14.1/bin:$$PATH" npx vitest run test/
 
 test-js-watch: ## Run vitest in watch mode
-	cd web && PATH="$(HOME)/.nvm/versions/node/v24.14.1/bin:$$PATH" npx vitest js/__tests__/
+	cd web && PATH="$(HOME)/.nvm/versions/node/v24.14.1/bin:$$PATH" npx vitest test/
 
 test-setup: ## Install web dependencies (npm install)
 	cd web && npm install

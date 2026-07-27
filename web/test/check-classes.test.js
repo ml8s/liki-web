@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { execSync } from 'child_process';
 import path from 'path';
 
-const ROOT = path.resolve(__dirname, '..', '..', '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(ROOT, 'web/scripts/check-classes.cjs');
 
 describe('check-classes.cjs', () => {

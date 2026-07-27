@@ -481,15 +481,6 @@ label {
   animation: spin 600ms linear infinite;
   vertical-align: middle;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Tables ── */
-table { width: 100%; border-collapse: collapse; }
-th, td {
-  text-align: left;
-  padding: .5rem .75rem;
-  border-bottom: 1px solid var(--color-surface);
-}
 th {
   font-size: .75rem;
   font-weight: 600;
@@ -1109,12 +1100,6 @@ th {
 }
 
 /* ── report fade-in ── */
-@keyframes spin { to { transform: rotate(360deg); } }
-
-@keyframes report-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
 #report-container { animation: report-fade-in 200ms ease-out; }
 
 /* ── Tailwind utilities (from Footer.astro) ── */
@@ -1132,12 +1117,6 @@ th {
 @media (min-width: 768px) { .md\:pr-12 { padding-right: 3rem; } }
 .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
 .md\:pr-12 { padding-right: 3rem; }
-.text-right { text-align: right; }
-.mt-12 { margin-top: 3rem; }
-.md\:text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-.mt-4 { margin-top: 1rem; }
-.md\:text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
 .md\:text-2xl { font-size: 1.5rem; line-height: 2rem; }
 
 .py-12 { padding-top: 3rem; padding-bottom: 3rem; }

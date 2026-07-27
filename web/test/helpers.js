@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const ROOT = path.resolve(__dirname, '..', '..', '..');
+const ROOT = path.resolve(__dirname, '..', '..');
 
 export function readJS(name) {
   return fs.readFileSync(`${ROOT}/web/js/${name}.js`, 'utf-8');

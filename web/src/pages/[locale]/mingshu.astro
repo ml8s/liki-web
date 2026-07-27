@@ -46,7 +46,6 @@ const mingshuDemo = JSON.parse(readFileSync(join(process.cwd(), 'js/mingshu-repo
     <I18nData locale={locale} />
     <script defer src={`/js/api.js?v=${v}`}></script>
     <script defer src={`/js/payment.js?v=${v}`}></script>
-    <script defer src={`/js/marked.min.js?v=${v}`}></script>
     <script defer src={`/js/render-report.js?v=${v}`}></script>
     <script defer src={`/js/mingshu.js?v=${v}`}></script>
     <script type="application/json" id="mingshu-demo-data" set:html={JSON.stringify(mingshuDemo)}></script>
