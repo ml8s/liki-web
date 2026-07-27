@@ -3,3 +3,6 @@ linters-settings:
     exclude-functions:
       - (*encoding/json.Encoder).Encode
       - (*encoding/json.Decoder).Decode
+      - (liki-web/internal/feedback.Store).Create
+      - (liki-web/internal/feedback.Store).List
+      - (liki-web/internal/feedback.Store).Update

@@ -97,7 +97,7 @@ func TestHandleList_RequiresAuth(t *testing.T) {
 
 func TestHandleList_WithAuth(t *testing.T) {
 	s := setup(t)
-	s.Create(&Feedback{Message: "test"})
+	s.Create(&Feedback{Message: "test"}) //nolint:errcheck
 
 	req := httptest.NewRequest("GET", "/api/feedback?status=pending", nil)
 	req.Header.Set("Authorization", "Bearer my-key")
@@ -130,7 +130,7 @@ func TestHandleList_EmptyAuthKey(t *testing.T) {
 
 func TestHandleUpdate_Success(t *testing.T) {
 	s := setup(t)
-	s.Create(&Feedback{Message: "fix me"})
+	s.Create(&Feedback{Message: "fix me"}) //nolint:errcheck
 	list, _ := s.List("", 10)
 	id := list[0].ID
 

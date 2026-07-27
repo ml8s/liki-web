@@ -47,9 +47,9 @@ func TestStore_ListByStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s.Create(&Feedback{Message: "a"})
+	s.Create(&Feedback{Message: "a"}) //nolint:errcheck
 	s.Create(&Feedback{Message: "b"})
-	s.Update("nonexistent", "done", "")
+	s.Update("nonexistent", "done", "") //nolint:errcheck
 	s.Create(&Feedback{Message: "c"})
 
 	pending, err := s.List("pending", 10)
