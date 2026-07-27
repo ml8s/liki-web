@@ -51,7 +51,10 @@
   --color-accent-hover: var(--color-accent-hover-raw);
   --color-accent-soft: var(--color-accent-soft-raw);
   --color-accent-focus: rgba(91,140,90,0.15);
-  /* --color-wood-* are legacy aliases — use --color-accent-* instead */
+  /* wood aliases — same as accent, kept for naming clarity */
+  --color-wood: var(--color-accent-raw);
+  --color-wood-hover: var(--color-accent-hover-raw);
+  --color-wood-soft: var(--color-accent-soft-raw);
   --color-fire: var(--color-fire-raw);
   --color-fire-hover: var(--color-fire-hover-raw);
   --color-gold: var(--color-gold-raw);
@@ -319,10 +322,10 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 .text-stone-500 { color: var(--color-stone-500-raw); }
 .text-stone-600 { color: var(--color-stone-600-raw); }
 .text-stone-800 { color: var(--color-text); }
-.text-wood { color: var(--color-accent-hover); }
+.text-wood { color: var(--color-accent); }
 .text-red-400 { color: var(--color-error); }
 .text-green-600 { color: var(--color-success); }
-.text-fire { color: var(--color-fire-hover); }
+.text-fire { color: var(--color-fire); }
 .text-error { color: var(--color-error); }
 
 .hover\:bg-wood-dark:hover { background: var(--color-accent-hover); }
@@ -360,7 +363,7 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
   display: inline-flex; align-items: center; justify-content: center;
   width: 100%;
   padding: .625rem 1rem;
-  background: var(--color-accent-hover);
+  background: var(--color-accent);
   color: var(--color-white);
   font-size: .875rem;
   font-weight: 500;
@@ -465,9 +468,6 @@ label {
   transition: background .15s, color .15s, transform .15s;
 }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn-primary { background: var(--color-accent-hover); color: var(--color-white); }
-.btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); }
-.btn-primary:active:not(:disabled) { transform: scale(.98); }
 
 .btn-loading { pointer-events: none; }
 .btn-loading::after {
@@ -567,10 +567,9 @@ th {
 
 
 /* ── Lifebook Page ── */
-.ms-hero { animation: gentleRise 300ms var(--ease-out) both; }
 
 
-.ms-form-section { animation: gentleRise 300ms var(--ease-out) both; }
+.lb-form-section { animation: gentleRise 300ms var(--ease-out) both; }
 #form-error { animation: gentleRise 200ms var(--ease-out) both; }
 
 
@@ -609,11 +608,11 @@ th {
 .msg-asst blockquote {
   margin: 0.5rem 0;
   padding: 0.5rem 0.75rem;
-  border-left: 3px solid var(--color-wood);
-  background: var(--color-wood-soft);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-soft);
   border-radius: 0.375rem;
   font-size: 0.9rem;
-  color: var(--color-wood-hover);
+  color: var(--color-accent-hover);
 }
 .name-preview-quote {
   font-family: var(--font-serif); font-style: italic;
@@ -1141,12 +1140,27 @@ th {
 .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
 .md\:text-2xl { font-size: 1.5rem; line-height: 2rem; }
 
-/* ── SEO keyword section ── */
-  max-width: 42rem;
-  margin: 0 auto;
-  padding: 0 1rem 4rem;
-  text-align: center;
-  font-size: 0.75rem;
-  color: #a8a29e;
-  line-height: 2;
+.py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+@media (min-width: 768px) { .md\:py-20 { padding-top: 5rem; padding-bottom: 5rem; } }
+.md\:py-20 { padding-top: 5rem; padding-bottom: 5rem; }
+
+.install-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
 }
+.copy-btn {
+  flex-shrink: 0;
+  padding: .5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: .5rem;
+  font-size: .8125rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.copy-btn:hover { background: var(--color-accent-soft); color: var(--color-text); }
+.copy-btn:active { transform: scale(.96); }
+.space-y-6 > * + * { margin-top: 1.5rem; }

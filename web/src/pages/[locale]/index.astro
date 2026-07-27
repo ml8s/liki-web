@@ -63,15 +63,25 @@ const { locale } = Astro.params;
   </Fragment>
 
   <section class="hero-brand">
-    <h1 class="text-center text-4xl md:text-5xl font-serif font-bold text-stone-800 mb-2 tracking-tight">{t(locale, 'index.hero.title')}</h1>
+    <h1 class="text-center text-4xl md:text-5xl font-serif font-bold text-stone-800 tracking-tight">{t(locale, 'index.hero.title')}</h1>
     <p class="text-right text-xl md:text-2xl text-stone-400 mt-4 pr-4 md:pr-12">{t(locale, 'index.hero.subtitle')}</p>
   </section>
 
-  <div class="max-w-2xl mx-auto px-4 pb-4 text-center">
+  <div class="max-w-2xl mx-auto px-4 pb-8 text-center space-y-6">
     <p class="text-xs text-stone-400 mb-2">{t(locale, 'index.install.method1')}</p>
-    <pre class="install-cmd mb-4">npx skills add ml8s/liki</pre>
+    <div class="install-block">
+      <pre class="install-cmd">npx skills add ml8s/liki</pre>
+      <button class="copy-btn" data-cmd="npx skills add ml8s/liki" aria-label="复制命令">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      </button>
+    </div>
     <p class="text-xs text-stone-400 mb-2">{t(locale, 'index.install.method2')}</p>
-    <pre class="install-cmd">npx skills add https://liki.hk/</pre>
+    <div class="install-block">
+      <pre class="install-cmd">npx skills add https://liki.hk/</pre>
+      <button class="copy-btn" data-cmd="npx skills add https://liki.hk/" aria-label="复制命令">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      </button>
+    </div>
   </div>
 
   <div id="kw-bg">
@@ -83,7 +93,23 @@ const { locale } = Astro.params;
   (function(){
     var items = document.querySelectorAll('#kw-bg span');
     for (var i = 0; i < items.length; i++) {
-      items[i].style.cssText = 'position:absolute;left:'+(Math.random()*90+5)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:#16775d;opacity:0.06;white-space:nowrap;pointer-events:none;user-select:none;transform:rotate('+(Math.random()*60-30)+'deg)';
+      items[i].style.cssText = 'position:absolute;left:'+(Math.random()*85+7)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:#16775d;opacity:0.06;white-space:nowrap;pointer-events:none;user-select:none;transform:translateX(-50%) rotate('+(Math.random()*60-30)+'deg)';
+    }
+    // ── Copy buttons (icon only) ──
+    var btns = document.querySelectorAll('.copy-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function() {
+        var cmd = this.getAttribute('data-cmd');
+        if (!cmd) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(cmd).then(function() {
+            var orig = this.innerHTML;
+            this.innerHTML = '<span class="text-xs">✓</span>';
+            var self = this;
+            setTimeout(function() { self.innerHTML = orig; }, 1500);
+          }.bind(this)).catch(function() {});
+        }
+      });
     }
   })();
   </script>

@@ -1,13 +1,17 @@
 package http
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 
+	"liki-web/internal/feedback"
 	"liki-web/internal/payment"
+
+	_ "modernc.org/sqlite"
 )
 
 func TestRegisterRoutes_DoesNotPanic(t *testing.T) {
@@ -28,6 +32,67 @@ func TestRegisterRoutes_DoesNotPanic(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("health check after RegisterRoutes: status = %d, want 200", w.Code)
 	}
+}
+
+func TestRegisterRoutes_Feedback(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	rl := NewRateLimiter()
+	defer rl.Stop()
+	fdb := openFeedbackDB(t)
+	fstore, err := feedback.NewStore(fdb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deps := ServerDeps{
+		Payment:       &payment.Service{},
+		NamingStore:      nil,
+		Analytics:     &Analytics{},
+		FeedbackStore: fstore,
+		FeedbackAPIKey: "test-key",
+	}
+	RegisterRoutes(mux, deps, "test", "dev", rl)
+
+	// POST without auth — should work (rate-limited but not auth-gated)
+	r := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(`{"category":"bug","message":"test"}`))
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, r)
+	if w.Code != 201 {
+		t.Errorf("POST /api/feedback: status = %d, want 201: %s", w.Code, w.Body.String())
+	}
+
+	// GET without auth — 403
+	r2 := httptest.NewRequest("GET", "/api/feedback", nil)
+	w2 := httptest.NewRecorder()
+	mux.ServeHTTP(w2, r2)
+	if w2.Code != 403 {
+		t.Errorf("GET /api/feedback without auth: status = %d, want 403", w2.Code)
+	}
+
+	// GET with auth — 200
+	r3 := httptest.NewRequest("GET", "/api/feedback", nil)
+	r3.Header.Set("Authorization", "test-key")
+	w3 := httptest.NewRecorder()
+	mux.ServeHTTP(w3, r3)
+	if w3.Code != 200 {
+		t.Errorf("GET /api/feedback with auth: status = %d, want 200", w3.Code)
+	}
+}
+
+func openFeedbackDB(t *testing.T) *sql.DB {
+	t.Helper()
+	f, err := os.CreateTemp("", "feedback-srv-test-*.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	db, err := sql.Open("sqlite", f.Name()+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close(); os.Remove(f.Name()) })
+	return db
 }
 
 func TestRegisterRoutes_JSONRPC(t *testing.T) {

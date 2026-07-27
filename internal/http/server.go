@@ -9,6 +9,7 @@ import (
 
 	"liki-web/internal/admin"
 	"liki-web/internal/agent"
+	"liki-web/internal/feedback"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
 	"liki-web/internal/naming"
@@ -27,6 +28,8 @@ type ServerDeps struct {
 	HepanGenerator    *hepan.Generator
 	Agent  *agent.Agent
 	Analytics  *Analytics
+	FeedbackStore   *feedback.Store
+	FeedbackAPIKey  string
 	DevMode    bool
 }
 
@@ -62,6 +65,16 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	// ── admin auth routes ──
 	mux.HandleFunc("POST /api/admin/send-code", handleAdminSendCode(deps.OnVerification))
 	mux.HandleFunc("POST /api/admin/verify-code", handleAdminVerifyCode())
+
+	// ── feedback ──
+	if deps.FeedbackStore != nil {
+		rlFeedback := func(next http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(5.0/60, 1, next)
+		}
+		mux.HandleFunc("POST /api/feedback", feedback.HandleCreate(deps.FeedbackStore, rlFeedback))
+		mux.HandleFunc("GET /api/feedback", feedback.HandleList(deps.FeedbackStore, deps.FeedbackAPIKey))
+		mux.HandleFunc("PATCH /api/feedback/{id}", feedback.HandleUpdate(deps.FeedbackStore, deps.FeedbackAPIKey))
+	}
 
 	handler := Recover(SecurityHeaders(CORSMiddleware(deps.DevMode, BodyLimit(mux))))
 

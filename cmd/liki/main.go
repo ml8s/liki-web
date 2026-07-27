@@ -25,6 +25,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"liki-web/internal/email"
+	"liki-web/internal/feedback"
 	apphttp "liki-web/internal/http"
 	"liki-web/internal/httputil"
 	"liki-web/internal/llm"
@@ -41,6 +42,8 @@ type Config struct {
 	DBPath          string
 	LifebookDBPath  string
 	HepanDBPath     string
+	FeedbackDBPath  string
+	FeedbackAPIKey  string
 	ResendAPIKey    string
 	ResendFrom      string
 	DodoAPIKey      string
@@ -66,6 +69,8 @@ func LoadConfig() Config {
 		DBPath:            envOr("DB_PATH", "/var/lib/liki/naming.db"),
 		LifebookDBPath:    envOr("MINGSHU_DB_PATH", "/var/lib/liki/mingshu.db"),
 		HepanDBPath:       envOr("HEPAN_DB_PATH", "/var/lib/liki/hepan.db"),
+		FeedbackDBPath:    envOr("FEEDBACK_DB_PATH", "/var/lib/liki/feedback.db"),
+		FeedbackAPIKey:    os.Getenv("FEEDBACK_API_KEY"),
 		ResendAPIKey:      os.Getenv("RESEND_API_KEY"),
 		ResendFrom:        envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
 		DodoAPIKey:        envOr("DODO_API_KEY", ""),
@@ -117,6 +122,14 @@ func main() {
 	defer db.Close()
 
 	namingStore := naming.NewStore(db)
+
+	// ── feedback（共用 naming 数据库）──
+	var feedbackStore *feedback.Store
+	feedbackStore, err = feedback.NewStore(db)
+	if err != nil {
+		slog.Error("init feedback store", "err", err)
+		os.Exit(1)
+	}
 
 	mingshuDB, err := payment.OpenDB(cfg.LifebookDBPath)
 	if err != nil {
@@ -213,6 +226,8 @@ func main() {
 		MingShuGenerator: mingshuGenerator,
 		HepanStore:       hepanStore,
 		HepanGenerator:    hepanGenerator,
+		FeedbackStore:   feedbackStore,
+		FeedbackAPIKey:  cfg.FeedbackAPIKey,
 		Agent: chatAgent,
 		Analytics: apphttp.NewAnalytics(),
 		DevMode:   cfg.DevMode,
