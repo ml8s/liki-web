@@ -1,4 +1,5 @@
 # Changelog
+- 0.19.0: feedback agent SKILL.md + FEEDBACK_API_KEY 配置
 - 0.18.0: feedback API + 隐私政策更新 + 首页间距调整
 - 0.17.1: 首页关键词云+SEO词库+CSS清理+hero布局调整
 - 0.17.0: 品牌定位对齐 — 命理师的 Skill / Professional Skill for Chinese Metaphysics
