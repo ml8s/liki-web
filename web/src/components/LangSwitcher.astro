@@ -18,7 +18,7 @@ const sorted = [
   </button>
   <div id="lang-dropdown" data-lang-dropdown class="hidden absolute right-0 top-full mt-1 bg-paper border border-stone-100 rounded-lg py-1 z-50 min-w-[130px]" role="menu">
     {sorted.map(l => (
-      <button type="button" data-lang={l.code} data-lang-option={l.code} class={l.code === locale ? 'bg-wood-soft text-wood font-medium block px-4 py-2 text-sm transition-colors' : 'text-stone-400 hover:bg-stone-50 block px-4 py-2 text-sm transition-colors'} role="menuitem">
+      <button type="button" data-lang={l.code} data-lang-option={l.code} class={l.code === locale ? 'bg-wood-soft text-wood font-medium block px-4 py-2 text-sm transition-colors' : 'text-stone-600 hover:bg-stone-50 block px-4 py-2 text-sm transition-colors'} role="menuitem">
         {l.name}
       </button>
     ))}

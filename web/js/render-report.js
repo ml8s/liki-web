@@ -40,7 +40,7 @@
     bazi:   { display: 'column', label: '八字' },
     ziwei:  { display: 'column', label: '紫微' },
     // 特殊标签行（颜色移入规则）
-    cross:  { display: 'tag', prefix: '交叉验证：', color: 'text-stone-500' },
+    cross:  { display: 'tag', prefix: '交叉验证：', color: 'text-stone-600' },
     advice: { display: 'tag', prefix: '💡 ', color: 'text-wood' },
     window: { display: 'tag', prefix: '🔑 换运窗口：', color: 'text-fire' },
     // 表格 / 列表
@@ -95,7 +95,7 @@
         if (rule.valueClassMap && rule.valueClassMap[value]) {
           valClass = rule.valueClassMap[value];
         }
-        return '<div class="flex items-baseline gap-2 text-sm leading-loose px-1"><span class="text-xs text-stone-400 w-12 flex-shrink-0">' + esc(label) + '</span><span class="' + valClass + '">' + toHtml(value) + '</span></div>';
+        return '<div class="flex items-baseline gap-2 text-sm leading-loose px-1"><span class="text-xs text-stone-600 w-12 flex-shrink-0">' + esc(label) + '</span><span class="' + valClass + '">' + toHtml(value) + '</span></div>';
       }
       // 无映射的长文本 → 直接渲染
       return '<div class="text-sm text-stone-700 leading-loose">' + toHtml(value) + '</div>';
@@ -118,7 +118,7 @@
 
   // 标签行（交叉验证 / 💡 建议 / 🔑 窗口）
   function renderTag(key, value, rule) {
-    var cls = rule.color || 'text-stone-500';
+    var cls = rule.color || 'text-stone-600';
     return '<p class="' + cls + ' text-sm mt-2">' + esc(rule.prefix) + toHtml(value) + '</p>';
   }
 
@@ -156,7 +156,7 @@
     for (var i = 0; i < items.length; i++) {
       rows += '<tr class="border-b border-stone-50 hover:bg-stone-50">';
       for (j = 0; j < cols.length; j++) {
-        rows += '<td class="py-1.5 pr-2 text-stone-500 text-xs">' + toHtml(String(items[i][cols[j]] || '')) + '</td>';
+        rows += '<td class="py-1.5 pr-2 text-stone-600 text-xs">' + toHtml(String(items[i][cols[j]] || '')) + '</td>';
       }
       rows += '</tr>';
     }
@@ -187,24 +187,24 @@
       if (i === 0) h += '<div class="bg-white rounded-lg border border-stone-200 p-4 mb-4">';
       if (i > 0) h += '</div><div class="bg-white rounded-lg border border-stone-200 p-4 mb-4 mt-6">';
       // 如果多人，每人的卡片独立显示，卡片标题显示 label
-      if (persons.length > 1 && p.label) h += '<div class="text-xs font-medium text-stone-400 mb-2 uppercase">—— ' + esc(p.label) + ' ——</div>';
+      if (persons.length > 1 && p.label) h += '<div class="text-xs font-medium text-stone-600 mb-2 uppercase">—— ' + esc(p.label) + ' ——</div>';
       h += '<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-2">';
-      if (p.label && (persons.length > 1 || p.label !== '本人')) h += '<span class="text-xs font-medium text-stone-400 uppercase">' + esc(p.label) + '</span>';
+      if (p.label && (persons.length > 1 || p.label !== '本人')) h += '<span class="text-xs font-medium text-stone-600 uppercase">' + esc(p.label) + '</span>';
       if (p.name) {
         var nameColor = (FIELD.persons && FIELD.persons.nameColor) || 'text-stone-800';
         h += '<span class="text-base font-bold ' + nameColor + '">' + esc(p.name) + '</span>';
       }
-      if (p.birth) h += '<span class="text-xs text-stone-400">· ' + esc(p.birth) + '</span>';
+      if (p.birth) h += '<span class="text-xs text-stone-600">· ' + esc(p.birth) + '</span>';
       h += '</div>';
       var cells = [];
-      if (p.sizhu) cells.push('<div><span class="text-xs text-stone-400">四柱</span><div class="text-sm text-stone-700 font-mono">' + esc(p.sizhu) + '</div></div>');
-      if (p.rizhu) cells.push('<div><span class="text-xs text-stone-400">日主</span><div class="text-sm text-stone-700">' + esc(p.rizhu) + '</div></div>');
-      if (p.shenqiang) cells.push('<div><span class="text-xs text-stone-400">身强</span><div class="text-sm text-stone-700">' + esc(p.shenqiang) + '</div></div>');
-      if (p.yongshen) cells.push('<div><span class="text-xs text-stone-400">用神</span><div class="text-sm text-stone-700">' + esc(p.yongshen) + '</div></div>');
+      if (p.sizhu) cells.push('<div><span class="text-xs text-stone-600">四柱</span><div class="text-sm text-stone-700 font-mono">' + esc(p.sizhu) + '</div></div>');
+      if (p.rizhu) cells.push('<div><span class="text-xs text-stone-600">日主</span><div class="text-sm text-stone-700">' + esc(p.rizhu) + '</div></div>');
+      if (p.shenqiang) cells.push('<div><span class="text-xs text-stone-600">身强</span><div class="text-sm text-stone-700">' + esc(p.shenqiang) + '</div></div>');
+      if (p.yongshen) cells.push('<div><span class="text-xs text-stone-600">用神</span><div class="text-sm text-stone-700">' + esc(p.yongshen) + '</div></div>');
       h += '<div class="flex flex-wrap gap-x-6 gap-y-1">' + cells.join('') + '</div>';
       var cells2 = [];
-      if (p.mingong) cells2.push('<div><span class="text-xs text-stone-400">命宫</span><div class="text-sm text-stone-700">' + esc(p.mingong) + '</div></div>');
-      if (p.shengong) cells2.push('<div><span class="text-xs text-stone-400">身宫</span><div class="text-sm text-stone-700">' + esc(p.shengong) + '</div></div>');
+      if (p.mingong) cells2.push('<div><span class="text-xs text-stone-600">命宫</span><div class="text-sm text-stone-700">' + esc(p.mingong) + '</div></div>');
+      if (p.shengong) cells2.push('<div><span class="text-xs text-stone-600">身宫</span><div class="text-sm text-stone-700">' + esc(p.shengong) + '</div></div>');
       if (cells2.length) h += '<div class="flex flex-wrap gap-x-6 gap-y-1 mt-1">' + cells2.join('') + '</div>';
     }
     return h + '</div>';
@@ -331,11 +331,11 @@
 
   // ── 主入口 ──
   window.renderReport = function (data) {
-    if (!data) return '<p class="py-12 text-center text-stone-400 text-sm">报告为空</p>';
+    if (!data) return '<p class="py-12 text-center text-stone-600 text-sm">报告为空</p>';
     var r = data.data || data;
-    if (!r) return '<p class="py-12 text-center text-stone-400 text-sm">报告为空</p>';
+    if (!r) return '<p class="py-12 text-center text-stone-600 text-sm">报告为空</p>';
 
-    if (!r.title && !r.persons && !r.summary) return '<p class="py-12 text-center text-stone-400 text-sm">报告内容为空</p>';
+    if (!r.title && !r.persons && !r.summary) return '<p class="py-12 text-center text-stone-600 text-sm">报告内容为空</p>';
 
     var h = '<div class="report max-w-2xl mx-auto py-8 px-4">';
     if (r.title) h += '<h1 class="text-2xl font-bold text-stone-800 mb-6">' + esc(r.title) + '</h1>';
