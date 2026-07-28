@@ -129,13 +129,13 @@ check-html:
 	node web/scripts/check-i18n.cjs
 	node web/scripts/check-classes.cjs
 
-SKILLS := naming bazi ziwei liuyao qimen huangli bazhai xuankong
+SKILLS := bazi ziwei liuyao qimen huangli bazhai xuankong
 
 check-skills: sync-skills build-archive
 	@for skill in $(SKILLS); do \
 	  test -f "web/skills/$$skill/SKILL.md" || { echo "❌ Missing web/skills/$$skill/SKILL.md"; exit 1; }; \
 	done
-	@echo "✓ All 4 skills present"
+	@echo "✓ All $(words $(SKILLS)) skills present"
 	@test -f "web/.well-known/agent-skills/index.json" || { echo "❌ Missing .well-known/agent-skills/index.json"; exit 1; }
 	@echo "✓ V2 index.json exists"
 	@python3 scripts/check-index-json.py

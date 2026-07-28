@@ -46,12 +46,12 @@ else
 fi
 
 # ── 2. Copy pre-built archive from source ──
-if [ -f "$SRC_DIR/dist/liki.tar.gz" ] && [ -f "$SRC_DIR/dist/index.json" ]; then
-  cp "$SRC_DIR/dist/liki.tar.gz" "$DEST_DIR/liki.tar.gz"
+if [ -f "$SRC_DIR/liki.tar.gz" ] && [ -f "$SRC_DIR/index.json" ]; then
+  cp "$SRC_DIR/liki.tar.gz" "$DEST_DIR/liki.tar.gz"
   mkdir -p "$WELL_KNOWN_DIR"
-  cp "$SRC_DIR/dist/index.json" "$WELL_KNOWN_DIR/index.json"
-  echo "  ✓ skills archive synced from $SRC/dist/"
+  cp "$SRC_DIR/index.json" "$WELL_KNOWN_DIR/index.json"
+  echo "  ✓ skills archive synced from $SRC/"
 else
-  echo "WARNING: pre-built archive not found in $SRC/dist/" >&2
+  echo "WARNING: pre-built archive not found in $SRC/" >&2
   echo "  Run: cd $SRC && make build-archive" >&2
 fi
