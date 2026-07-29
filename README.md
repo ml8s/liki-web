@@ -69,7 +69,7 @@ LLM 输出的 JSON 通过 `render-report.js` 统一渲染：
 
 每个产品一个报告目录：
 ```
-reports/hepan/
+webapp/hepan/
 ├── SKILL.md          # AI agent 入口
 ├── generate.md       # 生成 prompt
 ├── review.md         # 审查 prompt

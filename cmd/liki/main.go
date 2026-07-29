@@ -163,7 +163,7 @@ func main() {
 
 	chatAgent := agent.NewAgent(llmClient, tools, string(prompt))
 	mingshuGenerator := mingshu.NewGenerator(chatAgent, mingshuStore)
-	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "reports/mingshu")); err != nil {
+	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "webapp/mingshu")); err != nil {
 		slog.Error("mingshu: load prompts", "err", err)
 		os.Exit(1)
 	}
@@ -181,7 +181,7 @@ func main() {
 	}
 	hepanStore := hepan.NewStore(hepanDB)
 	hepanGenerator := hepan.NewGenerator(chatAgent, hepanStore)
-	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "reports/hepan")); err != nil {
+	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "webapp/hepan")); err != nil {
 		slog.Error("load hepan prompts", "err", err)
 		os.Exit(1)
 	}
