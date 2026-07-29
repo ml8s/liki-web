@@ -40,7 +40,6 @@ if [ -d "$SRC_DIR" ]; then
     --exclude VERSION \
     --exclude AGENTS.md \
     --exclude LICENSE \
-    --exclude webapp \
     "$SRC_DIR/" "$DEST_DIR/"
 else
   echo "WARNING: source directory not found: $SRC_DIR" >&2
