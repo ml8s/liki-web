@@ -6,6 +6,9 @@
 .PHONY: sync-skills build-archive build-web build-go build-docker build-sitemap
 .PHONY: version-patch version-minor version-major
 
+# Node.js binary path — driven by .nvmrc (single source of truth)
+NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -66,10 +69,10 @@ test: ## Run Go unit tests (all packages)
 	go test -race -count=1 ./...
 
 test-js: ## Run vitest JS tests
-	cd web && PATH="$(HOME)/.nvm/versions/node/v24.14.1/bin:$$PATH" npx vitest run test/
+	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest run test/
 
 test-js-watch: ## Run vitest in watch mode
-	cd web && PATH="$(HOME)/.nvm/versions/node/v24.14.1/bin:$$PATH" npx vitest test/
+	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest test/
 
 test-setup: ## Install web dependencies (npm install)
 	cd web && npm install

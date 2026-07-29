@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+# Use project Node version (defined in .nvmrc)
+source "$(dirname "$0")/../scripts/node-path.sh"
+
 echo "=== go vet ==="
 go vet ./...
 
@@ -22,7 +25,7 @@ node web/scripts/check-i18n.cjs
 
 echo "=== vitest ==="
 if [ -d web/node_modules ]; then
-  (cd web && npx vitest run js/__tests__/)
+  (cd web && npx vitest run test/)
 else
   echo "vitest: skipped (npm install required)"
 fi

@@ -3,7 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-export PATH="$HOME/.nvm/versions/node/v24.14.1/bin:$PATH"
+# Use project Node version (defined in .nvmrc)
+source "$SCRIPT_DIR/node-path.sh"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_TS="${BUILD_TS:-$(date '+%s')}"
 
