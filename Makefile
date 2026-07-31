@@ -19,7 +19,7 @@ sync-skills: ## Sync prompts from ../liki/reports/ to web/skills/
 	scripts/sync-skills.sh
 
 build-archive: ## Build skill archive (source) + sync to web/skills/
-	cd ../liki && make build-archive
+	cd ../skills/liki && make build-archive
 	make sync-skills
 
 build-sitemap: ## Generate sitemap.xml from Astro pages

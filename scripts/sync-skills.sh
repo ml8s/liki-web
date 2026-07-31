@@ -4,7 +4,7 @@
 # Usage: scripts/sync-skills.sh [--repos "liki liki-ask liki-fengshui liki-name"] [--dest web/skills]
 set -euo pipefail
 
-REPOS="${REPOS:-liki liki-ask liki-fengshui liki-name}"
+REPOS="${REPOS:-liki}"  # 现阶段只发布 liki；四库拆分确定后可改为 "liki liki-ask liki-fengshui liki-name"
 DEST="${DEST:-web/skills}"
 
 while [ $# -gt 0 ]; do
