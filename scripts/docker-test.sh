@@ -24,7 +24,7 @@ do_up() {
   (
     echo "  → skills"
     for repo in liki liki-ask liki-fengshui liki-name; do
-      (cd "$PROJECT_DIR/../$repo" && make build-archive >/dev/null 2>&1)
+      (cd "$PROJECT_DIR/../skills/$repo" && make build-archive >/dev/null 2>&1)
     done
     "$SCRIPT_DIR/sync-skills.sh" >/dev/null
   ) &

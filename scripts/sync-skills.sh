@@ -26,7 +26,7 @@ mkdir -p "$DEST_DIR" "$WELL_KNOWN_DIR"
 : > "$WELL_KNOWN_DIR/index.json"
 
 for repo in $REPOS; do
-  SRC_DIR="$PROJECT_DIR/../$repo"
+  SRC_DIR="$PROJECT_DIR/../skills/$repo"
   echo "==> $repo"
 
   # ── 1. Sync source files for web access ──
