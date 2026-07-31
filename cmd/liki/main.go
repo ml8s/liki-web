@@ -83,7 +83,7 @@ func LoadConfig() Config {
 		LLMModel:          envOr("LLM_MODEL", ""),
 		LLMThinking:       envOrBool("LLM_THINKING", false),
 		SkillsDir:         envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:        envOr("LIKI_PROMPT_FILE", "app/fatechart.md"),
+		PromptFile:        envOr("LIKI_PROMPT_FILE", "liki/app/fatechart.md"),
 		EngineURL:         envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
 		ReturnURL:         envOr("RETURN_URL", ""),
 		JWTSecret:         os.Getenv("JWT_SECRET"),
