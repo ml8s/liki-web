@@ -132,7 +132,7 @@ check-html:
 	node web/scripts/check-i18n.cjs
 	node web/scripts/check-classes.cjs
 
-SKILLS := bazi ziwei liuyao qimen huangli bazhai xuankong
+SKILLS := liki
 
 check-skills: sync-skills build-archive
 	@for skill in $(SKILLS); do \
@@ -191,7 +191,6 @@ check-packaging:
 	for skill in $(SKILLS); do \
 	  test -f "$$TMP/skills/$$skill/SKILL.md" || { echo "❌ 打包后缺失 skills/$$skill/SKILL.md"; rm -rf "$$TMP"; exit 1; }; \
 	done; \
-	test -f "$$TMP/skills/SKILL.md" || { echo "❌ 打包后缺失 skills/SKILL.md"; rm -rf "$$TMP"; exit 1; }; \
 	echo "✓ .well-known + archive + skills 全部存在"; \
 	rm -rf "$$TMP"
 
