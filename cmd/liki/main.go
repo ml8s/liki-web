@@ -83,7 +83,7 @@ func LoadConfig() Config {
 		LLMModel:          envOr("LLM_MODEL", ""),
 		LLMThinking:       envOrBool("LLM_THINKING", false),
 		SkillsDir:         envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:        envOr("LIKI_PROMPT_FILE", "app/naming.md"),
+		PromptFile:        envOr("LIKI_PROMPT_FILE", "app/fatechart.md"),
 		EngineURL:         envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
 		ReturnURL:         envOr("RETURN_URL", ""),
 		JWTSecret:         os.Getenv("JWT_SECRET"),
@@ -163,7 +163,7 @@ func main() {
 
 	chatAgent := agent.NewAgent(llmClient, tools, string(prompt))
 	mingshuGenerator := mingshu.NewGenerator(chatAgent, mingshuStore)
-	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "webapp/mingshu")); err != nil {
+	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/mingshu")); err != nil {
 		slog.Error("mingshu: load prompts", "err", err)
 		os.Exit(1)
 	}
@@ -181,7 +181,7 @@ func main() {
 	}
 	hepanStore := hepan.NewStore(hepanDB)
 	hepanGenerator := hepan.NewGenerator(chatAgent, hepanStore)
-	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "webapp/hepan")); err != nil {
+	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/hepan")); err != nil {
 		slog.Error("load hepan prompts", "err", err)
 		os.Exit(1)
 	}

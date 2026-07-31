@@ -23,8 +23,10 @@ do_up() {
   # Run independent builds in parallel
   (
     echo "  → skills"
+    for repo in liki liki-ask liki-fengshui liki-name; do
+      (cd "$PROJECT_DIR/../$repo" && make build-archive >/dev/null 2>&1)
+    done
     "$SCRIPT_DIR/sync-skills.sh" >/dev/null
-    "$SCRIPT_DIR/build-archive.sh" >/dev/null
   ) &
   PID_SKILLS=$!
 
