@@ -45,7 +45,6 @@ for repo in $REPOS; do
       --exclude '*.tar.gz' \
       --exclude dist \
       --exclude Makefile \
-      --exclude VERSION \
       --exclude AGENTS.md \
       --exclude LICENSE \
       "$SRC_DIR/" "$DEST_DIR/$repo/"
