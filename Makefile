@@ -132,7 +132,7 @@ check-html:
 	node web/scripts/check-i18n.cjs
 	node web/scripts/check-classes.cjs
 
-SKILLS := liki
+SKILLS := liki-master
 
 check-skills: sync-skills build-archive
 	@for skill in $(SKILLS); do \
