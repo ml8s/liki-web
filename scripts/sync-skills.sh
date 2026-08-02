@@ -1,10 +1,10 @@
 #!/bin/bash
 # Sync skill repos to web serving directory.
-# Supports multiple skill repos (liki-master / liki-ask / liki-fengshui / liki-naming).
-# Usage: scripts/sync-skills.sh [--repos "liki-master liki-ask liki-fengshui liki-naming"] [--dest web/skills]
+# Sync sub-skills from the aggregate liki repo (liki-master / liki-ask / liki-fengshui / liki-naming).
+# Usage: scripts/sync-skills.sh [--repos "liki-master liki-ask liki-fengshui liki-naming"] [--dest web/skills]  # 源在 ../skills/liki/<sub>
 set -euo pipefail
 
-REPOS="${REPOS:-liki-master}"  # 现阶段只发布 liki-master；四库拆分确定后可改为 "liki-master liki-ask liki-fengshui liki-naming"
+REPOS="${REPOS:-liki-master liki-ask liki-fengshui liki-naming}"  # 聚合库 liki 下的四子 skill
 DEST="${DEST:-web/skills}"
 
 while [ $# -gt 0 ]; do
@@ -26,7 +26,7 @@ mkdir -p "$DEST_DIR" "$WELL_KNOWN_DIR"
 : > "$WELL_KNOWN_DIR/index.json"
 
 for repo in $REPOS; do
-  SRC_DIR="$PROJECT_DIR/../skills/$repo"
+  SRC_DIR="$PROJECT_DIR/../skills/liki/$repo"  # 聚合库 liki 下子目录
   echo "==> $repo"
 
   # ── 1. Sync source files for web access ──
@@ -54,11 +54,12 @@ for repo in $REPOS; do
     continue
   fi
 
-  # ── 2. Copy pre-built archive from dist/ ──
-  if [ -f "$SRC_DIR/dist/$repo.tar.gz" ] && [ -f "$SRC_DIR/dist/index.json" ]; then
-    cp "$SRC_DIR/dist/$repo.tar.gz" "$DEST_DIR/$repo.tar.gz"
+  # ── 2. Copy pre-built archive from aggregate dist/ (../skills/liki/dist/) ──
+  AGG_DIST="$PROJECT_DIR/../skills/liki/dist"
+  if [ -f "$AGG_DIST/$repo.tar.gz" ] && [ -f "$AGG_DIST/index.json" ]; then
+    cp "$AGG_DIST/$repo.tar.gz" "$DEST_DIR/$repo.tar.gz"
     # merge this repo's index entry into the combined index
-    python3 - "$WELL_KNOWN_DIR/index.json" "$SRC_DIR/dist/index.json" << 'PYEOF'
+    python3 - "$WELL_KNOWN_DIR/index.json" "$AGG_DIST/index.json" << 'PYEOF'
 import json, sys
 combined_path, single_path = sys.argv[1], sys.argv[2]
 try:

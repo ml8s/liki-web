@@ -15,11 +15,11 @@ help: ## Show this help
 
 # ── Build (leaf targets) ──
 
-sync-skills: ## Sync prompts from ../liki/reports/ to web/skills/
+sync-skills: ## Sync sub-skills from ../skills/liki/ to web/skills/
 	scripts/sync-skills.sh
 
-build-archive: ## Build skill archive (source) + sync to web/skills/
-	cd ../skills/liki-master && make build-archive
+build-archive: ## Build sub-skill archives (aggregate liki) + sync to web/skills/
+	cd ../skills/liki && scripts/build-archive.sh
 	make sync-skills
 
 build-sitemap: ## Generate sitemap.xml from Astro pages
@@ -132,7 +132,7 @@ check-html:
 	node web/scripts/check-i18n.cjs
 	node web/scripts/check-classes.cjs
 
-SKILLS := liki-master
+SKILLS := liki-master liki-ask liki-fengshui liki-naming
 
 check-skills: sync-skills build-archive
 	@for skill in $(SKILLS); do \
