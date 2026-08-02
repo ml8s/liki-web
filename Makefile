@@ -19,7 +19,7 @@ sync-skills: ## Sync prompts from ../liki/reports/ to web/skills/
 	scripts/sync-skills.sh
 
 build-archive: ## Build skill archive (source) + sync to web/skills/
-	cd ../skills/liki && make build-archive
+	cd ../skills/liki-master && make build-archive
 	make sync-skills
 
 build-sitemap: ## Generate sitemap.xml from Astro pages
@@ -142,7 +142,7 @@ check-skills: sync-skills build-archive
 	@test -f "web/.well-known/agent-skills/index.json" || { echo "❌ Missing .well-known/agent-skills/index.json"; exit 1; }
 	@echo "✓ V2 index.json exists"
 	@python3 scripts/check-index-json.py
-	@test -f "web/skills/liki.tar.gz" || { echo "❌ Missing skills/liki.tar.gz (run: make build-archive)"; exit 1; }
+	@test -f "web/skills/liki-master.tar.gz" || { echo "❌ Missing skills/liki-master.tar.gz (run: make build-archive)"; exit 1; }
 	@echo "✓ V2 archive exists"
 
 check-version:
@@ -187,7 +187,7 @@ check-packaging:
 	cp -rL "web/." "$$TMP/"; \
 	echo -n "  文件数: "; find "$$TMP" -type f | wc -l; \
 	test -f "$$TMP/.well-known/agent-skills/index.json" || { echo "❌ 打包后缺失 .well-known/agent-skills/index.json"; rm -rf "$$TMP"; exit 1; }; \
-	test -f "$$TMP/skills/liki.tar.gz" || { echo "❌ 打包后缺失 skills/liki.tar.gz"; rm -rf "$$TMP"; exit 1; }; \
+	test -f "$$TMP/skills/liki-master.tar.gz" || { echo "❌ 打包后缺失 skills/liki-master.tar.gz"; rm -rf "$$TMP"; exit 1; }; \
 	for skill in $(SKILLS); do \
 	  test -f "$$TMP/skills/$$skill/SKILL.md" || { echo "❌ 打包后缺失 skills/$$skill/SKILL.md"; rm -rf "$$TMP"; exit 1; }; \
 	done; \

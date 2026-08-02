@@ -1,17 +1,17 @@
 #!/bin/bash
 # Sync skill repos to web serving directory.
-# Supports multiple skill repos (liki / liki-ask / liki-fengshui / liki-naming).
-# Usage: scripts/sync-skills.sh [--repos "liki liki-ask liki-fengshui liki-naming"] [--dest web/skills]
+# Supports multiple skill repos (liki-master / liki-ask / liki-fengshui / liki-naming).
+# Usage: scripts/sync-skills.sh [--repos "liki-master liki-ask liki-fengshui liki-naming"] [--dest web/skills]
 set -euo pipefail
 
-REPOS="${REPOS:-liki}"  # 现阶段只发布 liki；四库拆分确定后可改为 "liki liki-ask liki-fengshui liki-naming"
+REPOS="${REPOS:-liki-master}"  # 现阶段只发布 liki-master；四库拆分确定后可改为 "liki-master liki-ask liki-fengshui liki-naming"
 DEST="${DEST:-web/skills}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --repos) REPOS="$2"; shift 2 ;;
     --dest)  DEST="$2"; shift 2 ;;
-    *) echo "Usage: $0 [--repos \"liki liki-ask ...\"] [--dest DIR]" >&2; exit 1 ;;
+    *) echo "Usage: $0 [--repos \"liki-master liki-ask ...\"] [--dest DIR]" >&2; exit 1 ;;
   esac
 done
 
