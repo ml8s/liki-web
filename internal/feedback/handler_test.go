@@ -134,7 +134,7 @@ func TestHandleUpdate_Success(t *testing.T) {
 	list, _ := s.List("", 10) //nolint:errcheck
 	id := list[0].ID
 
-	body, _ := json.Marshal(UpdateRequest{Status: "done", IssueURL: "https://github.com/ml8s/liki-master/issues/1"})
+	body, _ := json.Marshal(UpdateRequest{Status: "done", IssueURL: "https://github.com/ml8s/liki/issues/1"})
 	req := httptest.NewRequest("PATCH", "/api/feedback/"+id, bytes.NewReader(body))
 	req.Header.Set("Authorization", "my-key")
 	req.SetPathValue("id", id)

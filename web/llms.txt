@@ -5,11 +5,11 @@ liki.hk 是 命理师的 Skill——排八字、看紫微、起名字、占卜�
 ## 安装
 
 ```bash
-npx skills add ml8s/liki-master
+npx skills add ml8s/liki
 npx skills add https://liki.hk/
 ```
 
 ## 更多信息
 
 - 官网：[liki.hk](https://liki.hk)
-- GitHub：[ml8s/liki-master](https://github.com/ml8s/liki-master)
+- GitHub：[ml8s/liki](https://github.com/ml8s/liki)

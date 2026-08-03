@@ -73,7 +73,7 @@ func TestStore_Update(t *testing.T) {
 	list, _ := s.List("", 10) //nolint:errcheck
 	id := list[0].ID
 
-	err = s.Update(id, "done", "https://github.com/ml8s/liki-master/issues/1") //nolint:errcheck
+	err = s.Update(id, "done", "https://github.com/ml8s/liki/issues/1") //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestStore_Update(t *testing.T) {
 	if len(updated) != 1 {
 		t.Fatalf("want 1 done, got %d", len(updated))
 	}
-	if updated[0].IssueURL != "https://github.com/ml8s/liki-master/issues/1" {
+	if updated[0].IssueURL != "https://github.com/ml8s/liki/issues/1" {
 		t.Fatalf("bad issue_url: %s", updated[0].IssueURL)
 	}
 
