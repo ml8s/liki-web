@@ -67,7 +67,7 @@ LLM 输出的 JSON 通过 `render-report.js` 统一渲染：
 
 提示词位于 `../skills/liki/` 聚合库（ml8s/liki 仓库）下四子 skill，通过 `sync-skills.sh` 同步到 `web/skills/`。
 
-**聚合库发布四子 skill**（sync-skills.sh 默认 `REPOS="liki-master liki-ask liki-fengshui liki-naming"`），各打包独立 archive。
+**发布单 skill liki**（sync-skills.sh 默认 `SKILL=liki`），含 app/ + domains/ + webapp/。
 
 每个产品一个报告目录：
 ```
