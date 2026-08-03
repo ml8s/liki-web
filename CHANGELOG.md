@@ -1,4 +1,9 @@
 # Changelog
+- 0.21.1: 单 skill 部署链路修复
+  - sync-skills.sh 重写：适配 liki 单库（源 ../skills/liki/，同步 web/skills/liki/）
+  - Makefile: SKILLS=liki + check-skills/check-packaging 引用 liki.tar.gz（清 liki-master 残留）
+  - 清理 liki-master 残留（测试/e2e/i18n/llms.txt/ci.yml/index.astro/README）
+  - 删过时拆分规划文档（prompt-switch-plan）
 - 0.21.0: 同步 2.0.0 skill 架构——naming/SKILL.md→app/naming.md；打包路径 dist/→根目录；check-skills 适配新结构
 - 0.19.0: feedback agent SKILL.md + FEEDBACK_API_KEY 配置
 - 0.18.0: feedback API + 隐私政策更新 + 首页间距调整
