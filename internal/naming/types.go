@@ -7,6 +7,9 @@ import validation "github.com/go-ozzo/ozzo-validation/v4"
 type chatRequest struct {
 	Message string `json:"message"`
 	Lang    string `json:"lang,omitempty"`
+	// Context is the initial advisor greeting (frontend-provided). Injected
+	// as first assistant message only when chat history is empty (first turn).
+	Context string `json:"context,omitempty"`
 }
 
 func (r chatRequest) Validate() error {

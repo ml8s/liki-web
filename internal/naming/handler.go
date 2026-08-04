@@ -64,6 +64,14 @@ func HandleChat(chat *agent.Agent, store *Store) http.HandlerFunc {
 				Content: m.Content,
 			})
 		}
+		// First turn (empty history): persist the initial advisor greeting as an
+		// assistant message BEFORE the user message, so it becomes part of the
+		// conversation history permanently and is present in all later turns.
+		// Subsequent turns: history already contains greeting → ignore req.Context.
+		if req.Context != "" && len(history) == 0 {
+			store.CreateChatMessage(r.Context(), orderID, string(llm.RoleAssistant), req.Context) //nolint:errcheck
+			messages = append(messages, llm.Message{Role: llm.RoleAssistant, Content: req.Context})
+		}
 		messages = append(messages, llm.Message{Role: llm.RoleUser, Content: req.Message})
 
 		store.CreateChatMessage(r.Context(), orderID, string(llm.RoleUser), req.Message) //nolint:errcheck

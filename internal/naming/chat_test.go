@@ -38,11 +38,11 @@ func chatJWT(oid string) *http.Cookie {
 	return w.Result().Cookies()[0]
 }
 
-func chatHandler(store *Store, mockResps []*llm.ChatResult) http.HandlerFunc {
+func chatHandler(store *Store, mockResps []*llm.ChatResult) (http.HandlerFunc, *agent.MockLLM) {
 	mockLLM := &agent.MockLLM{ToolResps: mockResps}
 	mockTools := &agent.MockToolRegistry{}
 	chat := agent.NewAgent(mockLLM, mockTools, "test {locale}\n{phase_instruction}")
-	return HandleChat(chat, store)
+	return HandleChat(chat, store), mockLLM
 }
 
 // TestHandleChat_Success verifies full chat flow: SSE events + DB persistence.
@@ -52,7 +52,7 @@ func TestHandleChat_Success(t *testing.T) {
 	s := newTestStore(t)
 	oid := chatSeedPaid(t, s)
 
-	handler := chatHandler(s, []*llm.ChatResult{
+	handler, _ := chatHandler(s, []*llm.ChatResult{
 		agent.ChatRes(nil, "回复内容"),
 	})
 
@@ -102,7 +102,7 @@ func TestHandleChat_Success(t *testing.T) {
 func TestHandleChat_NoJWT(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	s := newTestStore(t)
-	handler := chatHandler(s, nil)
+	handler, _ := chatHandler(s, nil)
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":"hi"}`))
 	w := httptest.NewRecorder()
 	handler(w, r)
@@ -115,7 +115,7 @@ func TestHandleChat_NoJWT(t *testing.T) {
 func TestHandleChat_InvalidJWT(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	s := newTestStore(t)
-	handler := chatHandler(s, nil)
+	handler, _ := chatHandler(s, nil)
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":"hi"}`))
 	r.AddCookie(&http.Cookie{Name: "liki_token", Value: "tampered"})
 	w := httptest.NewRecorder()
@@ -131,7 +131,7 @@ func TestHandleChat_OrderNotPaid(t *testing.T) {
 	s := newTestStore(t)
 	oid := uuid.New().String()
 	s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
-	handler := chatHandler(s, nil)
+	handler, _ := chatHandler(s, nil)
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":"hi"}`))
 	r.AddCookie(chatJWT(oid))
 	w := httptest.NewRecorder()
@@ -149,7 +149,7 @@ func TestHandleChat_OrderExpired(t *testing.T) {
 	s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
 	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
 	s.OverrideChatExpiresAt(context.Background(), oid, "2020-01-01 00:00:00") //nolint:errcheck
-	handler := chatHandler(s, nil)
+	handler, _ := chatHandler(s, nil)
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":"hi"}`))
 	r.AddCookie(chatJWT(oid))
 	w := httptest.NewRecorder()
@@ -164,7 +164,7 @@ func TestHandleChat_EmptyMessage(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	s := newTestStore(t)
 	oid := chatSeedPaid(t, s)
-	handler := chatHandler(s, nil)
+	handler, _ := chatHandler(s, nil)
 	// Send with empty message
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":""}`))
 	r.AddCookie(chatJWT(oid))
@@ -217,7 +217,7 @@ func TestHandleChat_ExpiresSoon(t *testing.T) {
 	future := time.Now().Add(1 * time.Hour).Format("2006-01-02 15:04:05")
 	s.OverrideChatExpiresAt(context.Background(), oid, future) //nolint:errcheck
 
-	handler := chatHandler(s, []*llm.ChatResult{
+	handler, _ := chatHandler(s, []*llm.ChatResult{
 		agent.ChatRes(nil, "ok"),
 	})
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":"hi"}`))
@@ -235,7 +235,7 @@ func TestHandleChat_EnglishLocale(t *testing.T) {
 	s := newTestStore(t)
 	oid := chatSeedPaid(t, s)
 
-	handler := chatHandler(s, []*llm.ChatResult{
+	handler, _ := chatHandler(s, []*llm.ChatResult{
 		agent.ChatRes(nil, "hello"),
 	})
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":"hello","lang":"en"}`))
@@ -321,5 +321,96 @@ func TestHandleDeleteChatHistory_NoJWT(t *testing.T) {
 	handler(w, r)
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+// TestHandleChat_GreetingPersisted verifies greeting context is persisted as
+// an assistant message AND injected into LLM context on first turn (empty history).
+func TestHandleChat_GreetingPersisted(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-secret")
+	s := newTestStore(t)
+	oid := uuid.New().String()
+	if err := s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans"); err != nil {
+		t.Fatalf("create order: %v", err)
+	}
+	s.MarkPaidIdempotent(context.Background(), oid, "pay-g")          //nolint:errcheck
+	s.OverrideChatExpiresAt(context.Background(), oid, "2099-12-31") //nolint:errcheck
+
+	greeting := "你好，我是 Liki 灵机。请问这次需要哪类服务？① 宝宝起名 ② 改名 ③ 评估"
+	handler, mockLLM := chatHandler(s, []*llm.ChatResult{agent.ChatRes(nil, "回复")})
+	body := `{"message":"1","lang":"zh-Hans","context":"` + greeting + `"}`
+	r := httptest.NewRequest("POST", "/", strings.NewReader(body))
+	r.AddCookie(chatJWT(oid))
+	w := httptest.NewRecorder()
+	handler(w, r)
+
+	// 1. greeting must be persisted as assistant message (before user msg).
+	hist, err := s.LoadChatHistory(context.Background(), oid)
+	if err != nil {
+		t.Fatalf("LoadChatHistory: %v", err)
+	}
+	if len(hist) < 3 {
+		t.Fatalf("expected >=3 messages (greeting + user + assistant reply), got %d", len(hist))
+	}
+	if hist[0].Role != "assistant" || hist[0].Content != greeting {
+		t.Errorf("hist[0] = %s/%q, want assistant greeting", hist[0].Role, hist[0].Content)
+	}
+	if hist[1].Role != "user" || hist[1].Content != "1" {
+		t.Errorf("hist[1] = %s/%q, want user 1", hist[1].Role, hist[1].Content)
+	}
+
+	// 2. LLM context must contain greeting as assistant message.
+	if len(mockLLM.Calls) == 0 {
+		t.Fatal("MockLLM was never called")
+	}
+	msgs := mockLLM.Calls[0]
+	var found bool
+	for _, m := range msgs {
+		if m.Role == llm.RoleAssistant && m.Content == greeting {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("greeting not injected into LLM context; got: %+v", msgs)
+	}
+}
+
+// TestHandleChat_GreetingNotPersisted_WhenHistory verifies greeting is NOT
+// persisted/injected again when history already exists (subsequent turns).
+func TestHandleChat_GreetingNotPersisted_WhenHistory(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-secret")
+	s := newTestStore(t)
+	oid := chatSeedPaid(t, s) // seeds 2 messages → history non-empty
+
+	handler, mockLLM := chatHandler(s, []*llm.ChatResult{agent.ChatRes(nil, "回复")})
+	body := `{"message":"2","lang":"zh-Hans","context":"greeting-text"}`
+	r := httptest.NewRequest("POST", "/", strings.NewReader(body))
+	r.AddCookie(chatJWT(oid))
+	w := httptest.NewRecorder()
+	handler(w, r)
+
+	// history: 2 seeded + 1 new user + 1 assistant reply = 4; greeting NOT added.
+	hist, err := s.LoadChatHistory(context.Background(), oid)
+	if err != nil {
+		t.Fatalf("LoadChatHistory: %v", err)
+	}
+	if len(hist) != 4 {
+		t.Fatalf("expected 4 messages (2 history + user + assistant), got %d", len(hist))
+	}
+	for _, m := range hist {
+		if m.Content == "greeting-text" {
+			t.Errorf("greeting must NOT be persisted when history non-empty")
+		}
+	}
+
+	// LLM context must NOT contain greeting-text.
+	if len(mockLLM.Calls) == 0 {
+		t.Fatal("MockLLM was never called")
+	}
+	for _, m := range mockLLM.Calls[0] {
+		if m.Content == "greeting-text" {
+			t.Errorf("greeting must NOT be injected when history non-empty")
+		}
 	}
 }

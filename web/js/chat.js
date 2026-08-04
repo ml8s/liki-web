@@ -455,7 +455,20 @@ function sendMessage(msg) {
   renderer = createStreamRenderer(asst);
   renderMessages();
 
-  sseSend(API_BASE + '/naming/agent/chat', { message: text, lang: locale }, function(evt) {
+  // First turn only: carry the initial advisor greeting as context so the LLM
+  // knows what the on-screen options (①②③) refer to. Frontend sees all
+  // messages — if any user message exists, the conversation has started and the
+  // greeting is already persisted in history (backend only persists on empty
+  // history). Reliable: refresh/reset both reflect real "has user" state.
+  var ctx = '';
+  var hasUser = false;
+  for (var i = 0; i < messages.length; i++) {
+    if (messages[i].role === 'user') { hasUser = true; break; }
+  }
+  if (!hasUser && messages.length > 0 && messages[0].role === 'advisor' && messages[0].content) {
+    ctx = messages[0].content;
+  }
+  sseSend(API_BASE + '/naming/agent/chat', { message: text, lang: locale, context: ctx }, function(evt) {
     handleSSEEvent(evt, asst, renderer);
   }).then(function() {
     pending = false;
