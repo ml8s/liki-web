@@ -372,7 +372,7 @@ test.describe('Chat page', () => {
     await gotoChat(page);
     await enterChatViaLogin(page);
 
-    await expect(page.locator('.msg-asst').first()).toContainText('起名顾问');
+    await expect(page.locator('.msg-asst').first()).toContainText('请问这次需要哪类服务？① 宝宝/新生儿起名');
   });
 
   // ── mobile ──

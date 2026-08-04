@@ -1,4 +1,9 @@
 # Changelog
+- 0.21.2: chatagent 提示词统一 + greeting 持久化
+  - PromptFile: liki/app/fatechart.md → liki/SKILL.md（与 skill 单一事实源：真太阳时路A/B/Gate强制清单/路由分发生效）
+  - chat.greeting 三语言：先问服务类型（①宝宝起名 ②成人改名 ③评估），不再假定「宝宝起名」、不含公司名（qiming 不支持）
+  - greeting 持久化：前端 messages 无 user 时带 context，后端 history 空持久化为 assistant 首条——LLM 上下文始终含 greeting
+  - E2E 断言同步新 greeting 文案
 - 0.21.1: 单 skill 部署链路修复
   - sync-skills.sh 重写：适配 liki 单库（源 ../skills/liki/，同步 web/skills/liki/）
   - Makefile: SKILLS=liki + check-skills/check-packaging 引用 liki.tar.gz（清 liki-master 残留）

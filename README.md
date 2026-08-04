@@ -65,11 +65,13 @@ LLM 输出的 JSON 通过 `render-report.js` 统一渲染：
 
 ### 提示词管理
 
-提示词位于 `../skills/liki/` 聚合库（ml8s/liki 仓库）下四子 skill，通过 `sync-skills.sh` 同步到 `web/skills/`。
+提示词位于 `../skills/liki/` 单库（ml8s/liki 仓库），通过 `sync-skills.sh` 同步到 `web/skills/`。
 
-**发布单 skill liki**（sync-skills.sh 默认 `SKILL=liki`），含 app/ + domains/ + webapp/。
+**chatagent 主提示词** = `web/skills/liki/SKILL.md`（`LIKI_PROMPT_FILE` 可覆盖）——与 skill 单一事实源一致：真太阳时校正（路A/B）、关卡制 Gate 强制清单、按需 discover、路由分发全生效。`app/fatechart.md` 等作为子卡被 SKILL.md 路由引用。
 
-每个产品一个报告目录：
+**chat 开场白（greeting）**：前端 i18n（`chat.greeting`）显示 + 首条用户消息前经 `context` 参数传给后端，后端在 history 为空时持久化为 assistant 首条消息——LLM 上下文始终含 greeting，用户输「1/2/3」能对应前端选项。
+
+**报告产品**各一个提示词目录：
 ```
 webapp/hepan/
 ├── SKILL.md          # AI agent 入口
