@@ -203,12 +203,15 @@ SERVER_CN ?= 120.79.194.247
 SERVER_USER_US := ubuntu
 SERVER_USER_CN := root
 
-deploy-us: build build-docker
+update-engine: ## 更新引擎源码（liki-engine 拉最新 master——部署/测试前必做）
+	cd ../liki-engine && git pull --ff-only origin master
+
+deploy-us: update-engine build build-docker
 	@test -f .env || { echo "❌ .env 不存在，请先创建 .env 文件"; exit 1; }
 	scripts/deploy-remote.sh --server $(SERVER_US) --user $(SERVER_USER_US) --domain $(DOMAIN_US) --image /tmp/liki_images.tar.gz --env .env
 	rm -f /tmp/liki_images.tar.gz
 
-deploy-cn: build build-docker
+deploy-cn: update-engine build build-docker
 	@test -f .env || { echo "❌ .env 不存在，请先创建 .env 文件"; exit 1; }
 	scripts/deploy-remote.sh --server $(SERVER_CN) --user $(SERVER_USER_CN) --domain $(DOMAIN_CN) --image /tmp/liki_images.tar.gz --env .env
 	rm -f /tmp/liki_images.tar.gz
