@@ -33,13 +33,7 @@ jobs:
           test -f "web/skills/liki/VERSION" || { echo "❌ Missing VERSION"; exit 1; }
           echo "✓ skill 单库结构完整（SKILL.md + 8 域 + 工具链）"
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install pytest
-        run: python3 -m pip install pytest
-      - name: Run skill python tests (rules engine)
-        run: cd web/skills/liki && python3 -m pytest tests/ -q
+      # skill pytest 不在无服务阶段跑——由 ml8s/liki 仓库 CI（单测）与 make test-all Docker E2E 段（全量含 integration）负责
 
       - name: Validate version file
         run: |

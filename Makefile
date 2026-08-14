@@ -74,8 +74,8 @@ test-js: ## Run vitest JS tests
 test-js-watch: ## Run vitest in watch mode
 	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest test/
 
-test-skills: ## Run skill python tests (rules engine: factors/duanyu/agent_cli)
-	@cd web/skills/liki && python3 -m pytest tests/ -q
+test-skills: ## Run skill python tests (rules engine: factors/duanyu/agent_cli)——前置无服务，排除 integration（Docker 段全跑）
+	@cd web/skills/liki && python3 -m pytest tests/ -q -m "not integration"
 
 test-setup: ## Install web dependencies (npm install)
 	cd web && npm install
@@ -102,7 +102,7 @@ test-remote: ## Run test-api against remote $URL (E2E 需在本地/CI 运行)
 
 # ── 全量流水线 ──
 
-test-all: lint vet check-html check-caddy check-skills check-packaging check-version test-skills build test-js test-db ## Full CI pipeline
+test-all: lint vet check-html check-caddy check-skills check-packaging check-version build test-js test-db ## Full CI pipeline
 	@echo "=== coverage ==="
 	@go test -race -count=1 -coverprofile=coverage.out ./... -coverpkg=./internal/...
 	@COV=$$(go tool cover -func=coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
@@ -116,8 +116,9 @@ test-all: lint vet check-html check-caddy check-skills check-packaging check-ver
 	@scripts/docker-test.sh up || { scripts/docker-test.sh down 2>/dev/null; echo "❌ Docker 环境启动失败"; exit 1; }; \
 	$(MAKE) test-api URL=http://localhost:8080 API_URL=http://localhost:8080; RC=$$?; \
 	$(MAKE) test-ui URL=http://localhost:8080; RC2=$$?; \
-	scripts/docker-test.sh down; \
-	[ $$RC -eq 0 ] && [ $$RC2 -eq 0 ] || { echo "❌ E2E 失败（test-api:$$RC test-ui:$$RC2）"; exit 1; }
+	cd web/skills/liki && LIKI_RPC_URL=http://localhost:8080/jsonrpc python3 -m pytest tests/ -q; RC3=$$?; \
+	cd ../../..; scripts/docker-test.sh down; \
+	[ $$RC -eq 0 ] && [ $$RC2 -eq 0 ] && [ $$RC3 -eq 0 ] || { echo "❌ E2E 失败（test-api:$$RC test-ui:$$RC2 skill-pytest:$$RC3）"; exit 1; }
 	@echo "✅ test-all 全部通过"
 
 # ── Lint / Check ──
