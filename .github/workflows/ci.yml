@@ -136,7 +136,7 @@ jobs:
         run: node web/scripts/check-i18n.cjs
 
       - name: Run Vitest
-        run: cd web && npx vitest run js/__tests__/
+        run: cd web && npx vitest run
 
   e2e:
     runs-on: ubuntu-latest
@@ -199,7 +199,8 @@ jobs:
           LIKI_WEB_HOST: localhost
           LIKI_ENGINE_HOST: localhost
         run: |
-          ./bin/liki-web -addr :8081 -db /tmp/liki-ci.db &
+          mkdir -p /tmp/liki-e2e && chmod 777 /tmp/liki-e2e
+          HEPAN_DB_PATH=/tmp/liki-e2e/hepan.db ./bin/liki-web -addr :8081 -db /tmp/liki-e2e/liki.db &
           # Wait for Go server to be ready before starting Caddy (avoids 503 on reverse_proxy)
           for i in $(seq 1 10); do
             if curl -sf http://localhost:8081/api/health 2>/dev/null | grep -q '"ok"'; then
