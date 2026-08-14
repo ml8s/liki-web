@@ -69,6 +69,10 @@ LLM 输出的 JSON 通过 `render-report.js` 统一渲染：
 
 **chatagent 主提示词** = `web/skills/liki/SKILL.md`（`LIKI_PROMPT_FILE` 可覆盖）——与 skill 单一事实源一致：真太阳时校正（路A/B）、关卡制 Gate 强制清单、按需 discover、路由分发全生效。`app/fatechart.md` 等作为子卡被 SKILL.md 路由引用。
 
+**agent 工具链**（`internal/agent/tools.go` + `skill_tools.go`）：
+- 引擎 RPC（`rpc.discover` 自动发现，31 方法）+ `read_file`（读 skills 目录）
+- **skill 规则引擎 5 工具**（`full_paipan`/`liunian`/`make_factors`/`make_liunian_factors`/`query`）——schema 从 `web/skills/liki/tools/skill-tools.json` 加载（OpenAI function calling 单一来源），执行 `exec python3 agent_cli.py`（stdin {fn,args} → stdout {ok,data}；白名单分派、30s 超时、无任意代码执行）；**部署需 python3**（Dockerfile 已含），容器内经 `LIKI_RPC_URL` 内网直连引擎
+
 **chat 开场白（greeting）**：前端 i18n（`chat.greeting`）显示 + 首条用户消息前经 `context` 参数传给后端，后端在 history 为空时持久化为 assistant 首条消息——LLM 上下文始终含 greeting，用户输「1/2/3」能对应前端选项。
 
 **报告产品**各一个提示词目录：
@@ -93,7 +97,7 @@ make test-all     # 全量测试（Go + JS + Docker E2E）
 
 | 层 | 数量 | 命令 |
 |----|------|------|
-| Go 单元 | 84 | `go test ./...` |
+| Go 单元 | 393 | `go test ./...` |
 | JS 单元 | 81 | `npx vitest run js/__tests__/` |
 | API 集成 | 48 | `scripts/test-api.sh` |
 | E2E Playwright | 58 | `scripts/test-ui.sh` |
