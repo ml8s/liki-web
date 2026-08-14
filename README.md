@@ -1,6 +1,32 @@
 # Liki Web
 
+<p align="center">
+  <img alt="Liki Web" src="https://img.shields.io/badge/Liki_Web-命理Skills-6d5acf?style=for-the-badge&logo=openai&logoColor=white&labelColor=30305c">
+</p>
+
+<p align="center">
+  <strong>Liki Web — 起名 / 灵机命书 / 灵机合盘（v0.22.0）</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ml8s/liki-web"><img src="https://img.shields.io/badge/GitHub-ml8s/liki_web-4a9e6b?style=flat&logo=github&logoColor=white&labelColor=30305c"></a>
+  <a href="https://liki.hk"><img src="https://img.shields.io/badge/liki.hk-官方网站-6d5acf?style=flat&logo=safari&logoColor=white&labelColor=30305c"></a>
+  <a href="https://github.com/ml8s/liki-web/actions/workflows/ci.yml"><img src="https://github.com/ml8s/liki-web/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.26-00ADD8?style=flat&logo=go&logoColor=white&labelColor=30305c"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-24.14-339933?style=flat&logo=nodedotjs&logoColor=white&labelColor=30305c"></a>
+</p>
+
 命理Skills（灵机） — 起名、灵机命书、灵机合盘产品的独立域名系统。
+
+## 为什么可信
+
+**① 确定性计算下沉引擎** — 所有排盘/派生由 liki-engine（Go）完成：31 个 RPC 全部有数据驱动锚点锁定（八字 115 golden 命例、紫微 150+100、调候穷通宝鉴 120 条原文对照、纳甲 64、定局 72、世应 64、命卦 12…），LLM 不参与计算。
+
+**② 断语走真值表而非自由发挥** — 八字/紫微断语由规则引擎执行：496 因子 × 20 张真值表（csv）精确匹配，LLM 只做翻译与综合——防 agent 不稳定（精度不靠 LLM 发挥）；四门（六爻/奇门/八宅/玄空）断语用统一断语表（吉凶=符号固有属性）。
+
+**③ 三层测试保障** — Go 393 单测（`-race` + 覆盖率 ≥50% 门槛）+ JS 99 + E2E 55 + skill 规则引擎 pytest（集成测试在服务起后全跑）+ govulncheck/Trivy 安全扫描；三仓库 CI 全绿。
+
+**④ 独立部署** — Docker Compose（engine + web + caddy）；python3 仅服务 skill 规则引擎（纯标准库、白名单 5 工具、无任意代码执行）。
 
 ## 架构
 
