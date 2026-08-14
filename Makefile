@@ -74,6 +74,9 @@ test-js: ## Run vitest JS tests
 test-js-watch: ## Run vitest in watch mode
 	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest test/
 
+test-skills: ## Run skill python tests (rules engine: factors/duanyu/agent_cli)
+	@cd web/skills/liki && python3 -m pytest tests/ -q
+
 test-setup: ## Install web dependencies (npm install)
 	cd web && npm install
 
@@ -99,7 +102,7 @@ test-remote: ## Run test-api against remote $URL (E2E 需在本地/CI 运行)
 
 # ── 全量流水线 ──
 
-test-all: lint vet check-html check-caddy check-skills check-packaging check-version build test-js test-db ## Full CI pipeline
+test-all: lint vet check-html check-caddy check-skills check-packaging check-version test-skills build test-js test-db ## Full CI pipeline
 	@echo "=== coverage ==="
 	@go test -race -count=1 -coverprofile=coverage.out ./... -coverpkg=./internal/...
 	@COV=$$(go tool cover -func=coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
