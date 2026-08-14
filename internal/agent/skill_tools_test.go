@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"liki-web/internal/llm"
 )
 
 // schema 加载：skill-tools.json 存在且 5 工具全部注册（OpenAI function 格式）。
@@ -81,5 +83,76 @@ func TestSkillToolHandler_QueryEmpty(t *testing.T) {
 	}
 	if out["八字"] == nil || out["紫微"] == nil {
 		t.Errorf("query 结果缺八字/紫微键: %s", res)
+	}
+}
+
+// agent 工具循环 + 真实 skill 工具执行（query 不依赖引擎，真跑 python 子进程）。
+func TestExecute_SkillTool_RealPython(t *testing.T) {
+	pythonToolAvailable(t)
+	toolReg := NewToolRegistry("")
+	p := NewPythonToolRegistry("../../web/skills")
+	if err := p.Register(toolReg); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	llmMock := &MockLLM{
+		ToolResps: []*llm.ChatResult{
+			ChatRes([]llm.ToolCall{
+				ToolCall("query", `{"rule":"marriage","snapshots":{"八字":{},"紫微":{}}}`),
+			}, ""),
+			ChatRes(nil, "婚姻断语查询完成"),
+		},
+	}
+	a := NewAgent(llmMock, toolReg, "test prompt")
+	msgs := []llm.Message{{Role: llm.RoleUser, Content: "查询婚姻断语"}}
+	result, err := a.Execute(context.Background(), msgs, nil, nil)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if len(result) != 4 {
+		t.Fatalf("expected 4 messages (user+assistant+tool+assistant), got %d", len(result))
+	}
+	// 工具结果消息：真实 python 输出（含八字/紫微键）
+	if result[2].Role != llm.RoleTool {
+		t.Fatalf("msg[2] should be tool result, got %s", result[2].Role)
+	}
+	var out map[string]any
+	if err := json.Unmarshal([]byte(result[2].Content), &out); err != nil {
+		t.Fatalf("tool result 非 JSON: %v (%s)", err, result[2].Content)
+	}
+	if out["八字"] == nil || out["紫微"] == nil {
+		t.Errorf("query 结果缺八字/紫微键: %s", result[2].Content)
+	}
+	if result[3].Role != llm.RoleAssistant || result[3].Content != "婚姻断语查询完成" {
+		t.Errorf("final = %+v, want assistant final", result[3])
+	}
+}
+
+// agent 工具循环 + skill 工具错误透传（make_factors 缺 fac → 工具错误回传 LLM）。
+func TestExecute_SkillTool_ErrorPropagation(t *testing.T) {
+	pythonToolAvailable(t)
+	toolReg := NewToolRegistry("")
+	p := NewPythonToolRegistry("../../web/skills")
+	if err := p.Register(toolReg); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	llmMock := &MockLLM{
+		ToolResps: []*llm.ChatResult{
+			ChatRes([]llm.ToolCall{
+				ToolCall("make_factors", `{"pan":{}}`),
+			}, ""),
+			ChatRes(nil, "参数有误，请补全"),
+		},
+	}
+	a := NewAgent(llmMock, toolReg, "")
+	msgs := []llm.Message{{Role: llm.RoleUser, Content: "生成因子"}}
+	result, err := a.Execute(context.Background(), msgs, nil, nil)
+	if err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if result[2].Role != llm.RoleTool {
+		t.Fatalf("msg[2] should be tool error result, got %s", result[2].Role)
+	}
+	if !strings.Contains(result[2].Content, "missing arg: 'fac'") {
+		t.Errorf("工具错误未透传: %s", result[2].Content)
 	}
 }
