@@ -1,6 +1,6 @@
 # Changelog
 
-## 未发布 —— skill 规则引擎工具注册（web agent 执行 python 工具链）
+## 0.22.0 —— skill 规则引擎工具注册（web agent 执行 python 工具链）
 
 - agent 新增 5 个 skill 规则引擎工具：full_paipan / liunian / make_factors / make_liunian_factors / query
   - schema 从 web/skills/liki/tools/skill-tools.json 加载（OpenAI function calling，单一来源）
