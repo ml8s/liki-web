@@ -3,20 +3,25 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"os/exec"
 	"strings"
 	"testing"
 )
 
 // schema 加载：skill-tools.json 存在且 5 工具全部注册（OpenAI function 格式）。
+// 直接读 cachedSchemas（同包私有）——不触发 discoverEngineTools（避免连引擎/重试等待）。
 func TestSkillToolsRegister(t *testing.T) {
-	r := NewToolRegistry("") // engine 不参与本测试
+	r := NewToolRegistry("")
 	p := NewPythonToolRegistry("../../web/skills")
 	if err := p.Register(r); err != nil {
 		t.Fatalf("register skill tools: %v", err)
 	}
+	if len(r.cachedSchemas) != 5 {
+		t.Fatalf("注册工具数 = %d, want 5", len(r.cachedSchemas))
+	}
 	want := []string{"full_paipan", "liunian", "make_factors", "make_liunian_factors", "query"}
 	got := map[string]bool{}
-	for _, s := range r.Schemas() {
+	for _, s := range r.cachedSchemas {
 		var fn struct{ Name string `json:"name"` }
 		if err := json.Unmarshal(s.Function, &fn); err == nil {
 			got[fn.Name] = true
@@ -24,13 +29,25 @@ func TestSkillToolsRegister(t *testing.T) {
 	}
 	for _, w := range want {
 		if !got[w] {
-			t.Errorf("工具未注册: %s (schemas=%v)", w, got)
+			t.Errorf("工具未注册: %s (registered=%v)", w, got)
 		}
+	}
+}
+
+// pythonToolAvailable 探测 python3 是否可执行（集成测试前提）。
+func pythonToolAvailable(t *testing.T) {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("short mode: skip python subprocess test")
+	}
+	if _, err := exec.LookPath("python3"); err != nil {
+		t.Skip("python3 不可用，跳过集成测试")
 	}
 }
 
 // handler 真跑 python 子进程：make_factors 假 pan 缺 fac → 错误透传（不 panic）。
 func TestSkillToolHandler_ErrorPropagation(t *testing.T) {
+	pythonToolAvailable(t)
 	r := NewToolRegistry("")
 	p := NewPythonToolRegistry("../../web/skills")
 	if err := p.Register(r); err != nil {
@@ -47,6 +64,7 @@ func TestSkillToolHandler_ErrorPropagation(t *testing.T) {
 
 // handler 成功路径：query 空快照 → 空结果透传。
 func TestSkillToolHandler_QueryEmpty(t *testing.T) {
+	pythonToolAvailable(t)
 	r := NewToolRegistry("")
 	p := NewPythonToolRegistry("../../web/skills")
 	if err := p.Register(r); err != nil {
