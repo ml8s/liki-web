@@ -24,10 +24,14 @@ jobs:
           path: web/skills
       - name: Validate skills
         run: |
-          for skill in qiming mingli wengua fengshui; do
-            test -f "web/skills/$skill/SKILL.md" || { echo "❌ Missing $skill/SKILL.md"; exit 1; }
+          test -f "web/skills/SKILL.md" || { echo "❌ Missing web/skills/SKILL.md"; exit 1; }
+          for dom in bazi ziwei qimen liuyao bazhai xuankong qiming huangli; do
+            test -f "web/skills/domains/$dom/SKILL.md" || { echo "❌ Missing domains/$dom/SKILL.md"; exit 1; }
           done
-          echo "✓ All 4 skills present"
+          test -f "web/skills/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
+          test -f "web/skills/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
+          test -f "web/skills/VERSION" || { echo "❌ Missing VERSION"; exit 1; }
+          echo "✓ skill 单库结构完整（SKILL.md + 8 域 + 工具链）"
 
       - name: Validate version file
         run: |
@@ -148,10 +152,14 @@ jobs:
 
       - name: Validate skills
         run: |
-          for skill in qiming mingli wengua fengshui; do
-            test -f "web/skills/$skill/SKILL.md" || { echo "❌ Missing $skill/SKILL.md"; exit 1; }
+          test -f "web/skills/SKILL.md" || { echo "❌ Missing web/skills/SKILL.md"; exit 1; }
+          for dom in bazi ziwei qimen liuyao bazhai xuankong qiming huangli; do
+            test -f "web/skills/domains/$dom/SKILL.md" || { echo "❌ Missing domains/$dom/SKILL.md"; exit 1; }
           done
-          echo "✓ All 4 skills present"
+          test -f "web/skills/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
+          test -f "web/skills/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
+          test -f "web/skills/VERSION" || { echo "❌ Missing VERSION"; exit 1; }
+          echo "✓ skill 单库结构完整（SKILL.md + 8 域 + 工具链）"
 
       - uses: actions/setup-go@v6
         with:
