@@ -98,10 +98,10 @@ make test-all     # 全量测试（Go + JS + Docker E2E）
 | 层 | 数量 | 命令 |
 |----|------|------|
 | Go 单元 | 393 | `go test ./...` |
-| JS 单元 | 81 | `npx vitest run js/__tests__/` |
-| API 集成 | 48 | `scripts/test-api.sh` |
-| E2E Playwright | 58 | `scripts/test-ui.sh` |
-| 可访问性 | 8 | `npx playwright test e2e/journeys/a11y.spec.js` |
+| JS 单元 | 99 | `npx vitest run` |
+| API 集成 | 冒烟集 | `scripts/test-api.sh $URL`（数量随脚本，需服务在线） |
+| E2E Playwright | 55 | `npx playwright test e2e/journeys/`（chat 21/hepan 6/landing 9/pages 7/uncovered 11/a11y 1） |
+| 可访问性 | 8 页审计 | `npx playwright test e2e/journeys/a11y.spec.js` |
 
 ## 部署
 
