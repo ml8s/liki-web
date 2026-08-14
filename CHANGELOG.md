@@ -1,4 +1,14 @@
 # Changelog
+
+## 未发布 —— skill 规则引擎工具注册（web agent 执行 python 工具链）
+
+- agent 新增 5 个 skill 规则引擎工具：full_paipan / liunian / make_factors / make_liunian_factors / query
+  - schema 从 web/skills/liki/tools/skill-tools.json 加载（OpenAI function calling，单一来源）
+  - 执行：exec python3 web/skills/liki/tools/agent_cli.py（stdin {fn,args} → stdout {ok,data}；白名单分派、30s 超时、参数化无代码注入）
+  - python3 缺失/失败 → 工具报错（不降级，保真值表精度）
+- 部署：Dockerfile 加 python3；compose/env 加 LIKI_RPC_URL=http://engine:8082/jsonrpc（python 子进程内网直连引擎）
+- 测试：skill_tools_test（schema 注册 5 工具 / 错误透传 / query 空结果）
+
 - 0.21.2: chatagent 提示词统一 + greeting 持久化
   - PromptFile: liki/app/fatechart.md → liki/SKILL.md（与 skill 单一事实源：真太阳时路A/B/Gate强制清单/路由分发生效）
   - chat.greeting 三语言：先问服务类型（①宝宝起名 ②成人改名 ③评估），不再假定「宝宝起名」、不含公司名（qiming 不支持）

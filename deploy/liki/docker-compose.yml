@@ -33,6 +33,7 @@ services:
       - DB_PATH=/var/lib/liki/liki.db
       - LIKI_ENGINE_URL=http://engine:8082/jsonrpc
       - LIKI_SKILLS_DIR=/web/skills
+      - LIKI_RPC_URL=http://engine:8082/jsonrpc
       - FEEDBACK_API_KEY=REDACTED-LEAKED-KEY
     volumes:
       - liki_data:/var/lib/liki

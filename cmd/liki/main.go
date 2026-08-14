@@ -161,6 +161,13 @@ func main() {
 		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. qiming/SKILL.md"}},"required":["path"]}`),
 		agent.ReadFileHandler(cfg.SkillsDir))
 
+	// skill 规则引擎工具（full_paipan/liunian/make_factors/make_liunian_factors/query）——
+	// exec python3 tools/agent_cli.py（schema 从 skill-tools.json 加载，单一来源）。
+	skillTools := agent.NewPythonToolRegistry(cfg.SkillsDir)
+	if err := skillTools.Register(tools); err != nil {
+		slog.Error("register skill tools failed (规则引擎不可用)", "err", err)
+	}
+
 	chatAgent := agent.NewAgent(llmClient, tools, string(prompt))
 	mingshuGenerator := mingshu.NewGenerator(chatAgent, mingshuStore)
 	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/mingshu")); err != nil {

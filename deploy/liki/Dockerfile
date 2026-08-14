@@ -1,5 +1,5 @@
 FROM alpine:3.21
-RUN apk add --no-cache ca-certificates && adduser -D -u 1000 liki
+RUN apk add --no-cache ca-certificates python3 && adduser -D -u 1000 liki
 RUN mkdir -p /var/lib/liki && chown liki:liki /var/lib/liki
 COPY bin/liki-web /usr/local/bin/liki-web
 COPY web/ /web/
