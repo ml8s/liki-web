@@ -91,7 +91,7 @@ LLM 输出的 JSON 通过 `render-report.js` 统一渲染：
 
 ### 提示词管理
 
-提示词位于 `../skills/liki/` 单库（ml8s/liki 仓库），通过 `sync-skills.sh` 同步到 `web/skills/`。
+提示词位于 `../liki-skills/skills/liki/` 单库（ml8s/liki 仓库），通过 `sync-skills.sh` 同步到 `web/skills/`（skill 根形态 + webapp 部署提示词）。
 
 **chatagent 主提示词** = `web/skills/liki/SKILL.md`（`LIKI_PROMPT_FILE` 可覆盖）——与 skill 单一事实源一致：真太阳时校正（路A/B）、关卡制 Gate 强制清单、按需 discover、路由分发全生效。`app/fatechart.md` 等作为子卡被 SKILL.md 路由引用。
 

@@ -17,21 +17,27 @@ jobs:
       - uses: actions/checkout@v7
       - name: Ensure skills dir
         run: rm -rf web/skills && mkdir -p web/skills
-      - name: Checkout skills
+      - name: Checkout skills repo
         uses: actions/checkout@v7
         with:
           repository: ml8s/liki
-          path: web/skills/liki
+          path: skills-repo
+      - name: Prepare skill roots (4 skills + webapp)
+        run: |
+          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
+            rsync -a --exclude .git --exclude __pycache__ --exclude dist --exclude webapp "skills-repo/skills/$s/" "web/skills/$s/"
+          done
+          rsync -a skills-repo/webapp/ web/skills/liki-bazi/webapp/
       - name: Validate skills
         run: |
-          test -f "web/skills/liki/SKILL.md" || { echo "❌ Missing web/skills/liki/SKILL.md"; exit 1; }
-          for dom in bazi ziwei qimen liuyao bazhai xuankong qiming huangli; do
-            test -f "web/skills/liki/domains/$dom/SKILL.md" || { echo "❌ Missing domains/$dom/SKILL.md"; exit 1; }
+          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
+            test -f "web/skills/$s/SKILL.md" || { echo "❌ Missing web/skills/$s/SKILL.md"; exit 1; }
+            test -f "web/skills/$s/VERSION" || { echo "❌ Missing web/skills/$s/VERSION"; exit 1; }
           done
-          test -f "web/skills/liki/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
-          test -f "web/skills/liki/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
-          test -f "web/skills/liki/VERSION" || { echo "❌ Missing VERSION"; exit 1; }
-          echo "✓ skill 单库结构完整（SKILL.md + 8 域 + 工具链）"
+          test -f "web/skills/liki-bazi/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
+          test -f "web/skills/liki-bazi/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
+          test -f "web/skills/liki-bazi/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
+          echo "✓ 4 skill 结构完整（SKILL.md + VERSION + liki-bazi 工具链/webapp）"
 
       # skill pytest 不在无服务阶段跑——由 ml8s/liki 仓库 CI（单测）与 make test-all Docker E2E 段（全量含 integration）负责
 
@@ -75,11 +81,17 @@ jobs:
       - uses: actions/checkout@v7
       - name: Ensure skills dir
         run: rm -rf web/skills && mkdir -p web/skills
-      - name: Checkout skills
+      - name: Checkout skills repo
         uses: actions/checkout@v7
         with:
           repository: ml8s/liki
-          path: web/skills/liki
+          path: skills-repo
+      - name: Prepare skill roots (4 skills + webapp)
+        run: |
+          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
+            rsync -a --exclude .git --exclude __pycache__ --exclude dist --exclude webapp "skills-repo/skills/$s/" "web/skills/$s/"
+          done
+          rsync -a skills-repo/webapp/ web/skills/liki-bazi/webapp/
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -146,22 +158,28 @@ jobs:
 
       - name: Ensure skills dir
         run: rm -rf web/skills && mkdir -p web/skills
-      - name: Checkout skills
+      - name: Checkout skills repo
         uses: actions/checkout@v7
         with:
           repository: ml8s/liki
-          path: web/skills/liki
+          path: skills-repo
+      - name: Prepare skill roots (4 skills + webapp)
+        run: |
+          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
+            rsync -a --exclude .git --exclude __pycache__ --exclude dist --exclude webapp "skills-repo/skills/$s/" "web/skills/$s/"
+          done
+          rsync -a skills-repo/webapp/ web/skills/liki-bazi/webapp/
 
       - name: Validate skills
         run: |
-          test -f "web/skills/liki/SKILL.md" || { echo "❌ Missing web/skills/liki/SKILL.md"; exit 1; }
-          for dom in bazi ziwei qimen liuyao bazhai xuankong qiming huangli; do
-            test -f "web/skills/liki/domains/$dom/SKILL.md" || { echo "❌ Missing domains/$dom/SKILL.md"; exit 1; }
+          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
+            test -f "web/skills/$s/SKILL.md" || { echo "❌ Missing web/skills/$s/SKILL.md"; exit 1; }
+            test -f "web/skills/$s/VERSION" || { echo "❌ Missing web/skills/$s/VERSION"; exit 1; }
           done
-          test -f "web/skills/liki/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
-          test -f "web/skills/liki/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
-          test -f "web/skills/liki/VERSION" || { echo "❌ Missing VERSION"; exit 1; }
-          echo "✓ skill 单库结构完整（SKILL.md + 8 域 + 工具链）"
+          test -f "web/skills/liki-bazi/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
+          test -f "web/skills/liki-bazi/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
+          test -f "web/skills/liki-bazi/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
+          echo "✓ 4 skill 结构完整（SKILL.md + VERSION + liki-bazi 工具链/webapp）"
 
       - uses: actions/setup-go@v6
         with:

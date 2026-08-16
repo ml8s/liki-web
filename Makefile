@@ -1,7 +1,7 @@
 .PHONY: help build test lint vet clean check check-html check-caddy check-skills check-version check-packaging
 .PHONY: dev hooks
 .PHONY: test-js test-js-watch test-db test-api test-ui test-remote test-all
-.PHONY: deploy-all deploy-us deploy-cn
+.PHONY: deploy deploy-all deploy-us deploy-cn
 .PHONY: test-setup
 .PHONY: sync-skills build-archive build-web build-go build-docker build-sitemap
 .PHONY: version-patch version-minor version-major
@@ -15,11 +15,11 @@ help: ## Show this help
 
 # ── Build (leaf targets) ──
 
-sync-skills: ## Sync sub-skills from ../skills/liki/ to web/skills/
+sync-skills: ## Sync 4 sub-skills from ../liki-skills/skills/ to web/skills/
 	scripts/sync-skills.sh
 
 build-archive: ## Build liki skill archive + sync to web/skills/
-	cd ../skills/liki && scripts/build-archive.sh
+	cd ../liki-skills && scripts/build-archive.sh
 	make sync-skills
 
 build-sitemap: ## Generate sitemap.xml from Astro pages
@@ -75,7 +75,7 @@ test-js-watch: ## Run vitest in watch mode
 	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest test/
 
 test-skills: ## Run skill python tests (rules engine: factors/duanyu/agent_cli)——前置无服务，排除 integration（Docker 段全跑）
-	@cd web/skills/liki && python3 -m pytest tests/ -q -m "not integration"
+	@cd ../liki-skills && python3 -m pytest tests/ -q --ignore=tests/test_integration.py
 
 test-setup: ## Install web dependencies (npm install)
 	cd web && npm install
@@ -116,8 +116,8 @@ test-all: lint vet check-html check-caddy check-skills check-packaging check-ver
 	@scripts/docker-test.sh up || { scripts/docker-test.sh down 2>/dev/null; echo "❌ Docker 环境启动失败"; exit 1; }; \
 	$(MAKE) test-api URL=http://localhost:8080 API_URL=http://localhost:8080; RC=$$?; \
 	$(MAKE) test-ui URL=http://localhost:8080; RC2=$$?; \
-	cd web/skills/liki && LIKI_RPC_URL=http://localhost:8080/jsonrpc python3 -m pytest tests/ -q; RC3=$$?; \
-	cd ../../..; scripts/docker-test.sh down; \
+	cd ../liki-skills && LIKI_RPC_URL=http://localhost:8080/jsonrpc python3 -m pytest tests/ -q; RC3=$$?; \
+	cd ../liki-web && scripts/docker-test.sh down; \
 	[ $$RC -eq 0 ] && [ $$RC2 -eq 0 ] && [ $$RC3 -eq 0 ] || { echo "❌ E2E 失败（test-api:$$RC test-ui:$$RC2 skill-pytest:$$RC3）"; exit 1; }
 	@echo "✅ test-all 全部通过"
 
@@ -136,7 +136,7 @@ check-html:
 	node web/scripts/check-i18n.cjs
 	node web/scripts/check-classes.cjs
 
-SKILLS := liki
+SKILLS := liki-bazi liki-divination liki-fengshui liki-naming
 
 check-skills: sync-skills build-archive
 	@for skill in $(SKILLS); do \
@@ -146,7 +146,7 @@ check-skills: sync-skills build-archive
 	@test -f "web/.well-known/agent-skills/index.json" || { echo "❌ Missing .well-known/agent-skills/index.json"; exit 1; }
 	@echo "✓ V2 index.json exists"
 	@python3 scripts/check-index-json.py
-	@test -f "web/skills/liki.tar.gz" || { echo "❌ Missing skills/liki.tar.gz (run: make build-archive)"; exit 1; }
+	@test -f "web/skills/liki-bazi.tar.gz" || { echo "❌ Missing skills/liki-bazi.tar.gz (run: make build-archive)"; exit 1; }
 	@echo "✓ V2 archive exists"
 
 check-version:
@@ -191,7 +191,7 @@ check-packaging:
 	cp -rL "web/." "$$TMP/"; \
 	echo -n "  文件数: "; find "$$TMP" -type f | wc -l; \
 	test -f "$$TMP/.well-known/agent-skills/index.json" || { echo "❌ 打包后缺失 .well-known/agent-skills/index.json"; rm -rf "$$TMP"; exit 1; }; \
-	test -f "$$TMP/skills/liki.tar.gz" || { echo "❌ 打包后缺失 skills/liki.tar.gz"; rm -rf "$$TMP"; exit 1; }; \
+	test -f "$$TMP/skills/liki-bazi.tar.gz" || { echo "❌ 打包后缺失 skills/liki-bazi.tar.gz"; rm -rf "$$TMP"; exit 1; }; \
 	for skill in $(SKILLS); do \
 	  test -f "$$TMP/skills/$$skill/SKILL.md" || { echo "❌ 打包后缺失 skills/$$skill/SKILL.md"; rm -rf "$$TMP"; exit 1; }; \
 	done; \
@@ -209,6 +209,8 @@ SERVER_USER_CN := root
 
 update-engine: ## 更新引擎源码（liki-engine 拉最新 master——部署/测试前必做）
 	cd ../liki-engine && git pull --ff-only origin master
+
+deploy: deploy-us ## Alias: 默认部署到 US（同 deploy-us）
 
 deploy-us: update-engine build build-docker
 	@test -f .env || { echo "❌ .env 不存在，请先创建 .env 文件"; exit 1; }

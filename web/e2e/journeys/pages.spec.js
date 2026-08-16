@@ -36,7 +36,7 @@ const PAGES = [
   { path: '/zh-Hans/privacy',  name: 'privacy (vanilla)' },
   { path: '/zh-Hans/terms',    name: 'terms (vanilla)' },
   // Static resources
-  { path: '/skills/liki/SKILL.md', marker: null,        name: 'skills',   resource: true },
+  { path: '/skills/liki-bazi/SKILL.md', marker: null,        name: 'skills',   resource: true },
   { path: '/zh-Hans/mingshu',   name: 'mingshu (vanilla)',
     checks: [
       { selector: 'h1', text: '灵机命书' },

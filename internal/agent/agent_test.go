@@ -162,14 +162,14 @@ func TestNamingChat_LLMError(t *testing.T) {
 
 func TestEnsureNamingPrompt_AddsSystemPrompt(t *testing.T) {
 	t.Parallel()
-	a := NewAgent(&MockLLM{}, &MockToolRegistry{}, "你好 {locale}")
+	a := NewAgent(&MockLLM{}, &MockToolRegistry{}, "你好")
 	msgs := []llm.Message{{Role: llm.RoleUser, Content: "help"}}
 	result := a.ensureNamingPrompt("en", msgs)
 
 	if len(result) != 2 {
 		t.Fatalf("expected 2 messages, got %d", len(result))
 	}
-	if result[0].Role != llm.RoleSystem || result[0].Content != "你好 en" {
+	if result[0].Role != llm.RoleSystem || result[0].Content != "你好\n\nAlways respond in English." {
 		t.Errorf("system prompt: %+v", result[0])
 	}
 	if result[1].Role != llm.RoleUser || result[1].Content != "help" {

@@ -83,7 +83,7 @@ func LoadConfig() Config {
 		LLMModel:          envOr("LLM_MODEL", ""),
 		LLMThinking:       envOrBool("LLM_THINKING", false),
 		SkillsDir:         envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:        envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
+		PromptFile:        envOr("LIKI_PROMPT_FILE", "liki-naming/SKILL.md"),
 		EngineURL:         envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
 		ReturnURL:         envOr("RETURN_URL", ""),
 		JWTSecret:         os.Getenv("JWT_SECRET"),
@@ -155,22 +155,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	tools := agent.NewToolRegistry(cfg.EngineURL)
-	tools.Register("read_file",
+	// 命名 agent 工具：read_file + RPC（懒发现）。命名聊天走字库 RPC，不用命理 Python 工具。
+	namingTools := agent.NewToolRegistry(cfg.EngineURL)
+	namingTools.Register("read_file",
 		"Read a file from the skills directory. Use this to load skill instructions or report templates.",
-		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. qiming/SKILL.md"}},"required":["path"]}`),
+		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. liki-bazi/domains/bazi/caiyun.md"}},"required":["path"]}`),
+		agent.ReadFileHandler(cfg.SkillsDir))
+
+	// 报告 agent 工具：read_file + 5 个命理 Python 工具（full_paipan/make_factors/query 等）+ RPC。
+	reportTools := agent.NewToolRegistry(cfg.EngineURL)
+	reportTools.Register("read_file",
+		"Read a file from the skills directory. Use this to load skill instructions or report templates.",
+		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. liki-bazi/domains/bazi/caiyun.md"}},"required":["path"]}`),
 		agent.ReadFileHandler(cfg.SkillsDir))
 
 	// skill 规则引擎工具（full_paipan/liunian/make_factors/make_liunian_factors/query）——
-	// exec python3 tools/agent_cli.py（schema 从 skill-tools.json 加载，单一来源）。
+	// exec python3 tools/agent_cli.py（schema 从 skill-tools.json 加载，单一来源）。只进报告 agent。
 	skillTools := agent.NewPythonToolRegistry(cfg.SkillsDir)
-	if err := skillTools.Register(tools); err != nil {
+	if err := skillTools.Register(reportTools); err != nil {
 		slog.Error("register skill tools failed (规则引擎不可用)", "err", err)
 	}
 
-	chatAgent := agent.NewAgent(llmClient, tools, string(prompt))
-	mingshuGenerator := mingshu.NewGenerator(chatAgent, mingshuStore)
-	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/mingshu")); err != nil {
+	namingAgent := agent.NewAgent(llmClient, namingTools, string(prompt))
+	reportAgent := agent.NewAgent(llmClient, reportTools, "")
+	mingshuGenerator := mingshu.NewGenerator(reportAgent, mingshuStore)
+	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki-bazi/webapp/mingshu")); err != nil {
 		slog.Error("mingshu: load prompts", "err", err)
 		os.Exit(1)
 	}
@@ -187,8 +196,8 @@ func main() {
 		os.Exit(1)
 	}
 	hepanStore := hepan.NewStore(hepanDB)
-	hepanGenerator := hepan.NewGenerator(chatAgent, hepanStore)
-	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/hepan")); err != nil {
+	hepanGenerator := hepan.NewGenerator(reportAgent, hepanStore)
+	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki-bazi/webapp/hepan")); err != nil {
 		slog.Error("load hepan prompts", "err", err)
 		os.Exit(1)
 	}
@@ -235,7 +244,8 @@ func main() {
 		HepanGenerator:    hepanGenerator,
 		FeedbackStore:   feedbackStore,
 		FeedbackAPIKey:  cfg.FeedbackAPIKey,
-		Agent: chatAgent,
+		NamingAgent: namingAgent,
+		Agent:       reportAgent,
 		Analytics: apphttp.NewAnalytics(),
 		DevMode:   cfg.DevMode,
 	}, BuildTime, Version, rateLimiter)

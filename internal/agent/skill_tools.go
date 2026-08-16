@@ -3,7 +3,7 @@
 // skill 的 5 个规则引擎工具（full_paipan/liunian/make_factors/make_liunian_factors/query）
 // 由 python 工具链实现（tools/*.py，纯标准库）。web agent 无 shell，Go 通过
 // exec python3 tools/agent_cli.py 调用（stdin {fn,args} → stdout {ok,data|error}）。
-// 工具 schema（OpenAI function calling 格式）从 skills/liki/tools/skill-tools.json 加载——
+// 工具 schema（OpenAI function calling 格式）从 skill 根 tools/skill-tools.json 加载——
 // 单一来源，外部 agent 与本地 agent 共用同一份定义。
 package agent
 
@@ -20,10 +20,10 @@ import (
 )
 
 // skillToolsJSON 是 5 个规则引擎工具的 schema 文件（相对 SkillsDir）。
-const skillToolsJSON = "liki/tools/skill-tools.json"
+const skillToolsJSON = "liki-bazi/tools/skill-tools.json"
 
 // agentCliPy 是 python 工具链的 CLI 分派入口（相对 SkillsDir）。
-const agentCliPy = "liki/tools/agent_cli.py"
+const agentCliPy = "liki-bazi/tools/agent_cli.py"
 
 // PythonTimeout 单次 python 子进程调用上限。
 const PythonTimeout = 30 * time.Second

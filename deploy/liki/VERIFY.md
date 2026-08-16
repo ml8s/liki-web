@@ -13,7 +13,7 @@ docker compose -f deploy/liki/docker-compose.yml exec web python3 -c \
 ## 2. skill 工具文件已分发
 
 ```bash
-docker compose -f deploy/liki/docker-compose.yml exec web ls /web/skills/liki/tools/
+docker compose -f deploy/liki/docker-compose.yml exec web ls /web/skills/liki-bazi/tools/
 ```
 期望包含：`agent_cli.py` `skill-tools.json` `paipan.py` `duanyu.py` `atoms.py` `engine.py` `aggregate.py` + `factors/` `bazi/` `ziwei/`。
 
@@ -21,7 +21,7 @@ docker compose -f deploy/liki/docker-compose.yml exec web ls /web/skills/liki/to
 
 ```bash
 docker compose -f deploy/liki/docker-compose.yml exec web \
-  sh -c 'echo "{\"fn\":\"make_factors\",\"args\":{\"pan\":{}}}" | LIKI_RPC_URL=http://engine:8082/jsonrpc python3 /web/skills/liki/tools/agent_cli.py'
+  sh -c 'echo "{\"fn\":\"make_factors\",\"args\":{\"pan\":{}}}" | LIKI_RPC_URL=http://engine:8082/jsonrpc python3 /web/skills/liki-bazi/tools/agent_cli.py'
 ```
 期望：`{"ok": false, "error": "missing arg: 'fac'"}`（错误包装正常，说明 agent_cli 可执行）。
 
@@ -29,7 +29,7 @@ docker compose -f deploy/liki/docker-compose.yml exec web \
 
 ```bash
 docker compose -f deploy/liki/docker-compose.yml exec web \
-  sh -c 'echo "{\"fn\":\"full_paipan\",\"args\":{\"time\":\"1990-06-01T12:00:00+08:00\",\"gender\":\"male\",\"correct\":false}}" | LIKI_RPC_URL=http://engine:8082/jsonrpc python3 /web/skills/liki/tools/agent_cli.py' | head -c 200
+  sh -c 'echo "{\"fn\":\"full_paipan\",\"args\":{\"time\":\"1990-06-01T12:00:00+08:00\",\"gender\":\"male\",\"correct\":false}}" | LIKI_RPC_URL=http://engine:8082/jsonrpc python3 /web/skills/liki-bazi/tools/agent_cli.py' | head -c 200
 ```
 期望：`{"ok": true, "data": {"solar": ..., "chart": ...}}`（full_paipan 经引擎排盘成功）。
 

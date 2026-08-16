@@ -157,7 +157,10 @@ func (a *Agent) ensureNamingPrompt(locale string, messages []llm.Message) []llm.
 	if len(messages) > 0 && messages[0].Role == llm.RoleSystem {
 		return messages
 	}
-	prompt := strings.ReplaceAll(a.prompt, "{locale}", locale)
+	prompt := a.prompt
+	if locale == "en" {
+		prompt += "\n\nAlways respond in English."
+	}
 	return append([]llm.Message{{Role: llm.RoleSystem, Content: prompt}}, messages...)
 }
 

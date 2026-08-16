@@ -26,6 +26,7 @@ type ServerDeps struct {
 	MingShuGenerator *mingshu.Generator
 	HepanStore       *hepan.Store
 	HepanGenerator    *hepan.Generator
+	NamingAgent *agent.Agent
 	Agent  *agent.Agent
 	Analytics  *Analytics
 	FeedbackStore   *feedback.Store
@@ -39,7 +40,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		rateLimit := func(h http.HandlerFunc) http.HandlerFunc {
 			return rl.Wrap(5.0/60, 6, h)
 		}
-		naming.RegisterRoutes(mux, deps.NamingStore, deps.Payment, deps.Agent, deps.OnPaid, rateLimit)
+		naming.RegisterRoutes(mux, deps.NamingStore, deps.Payment, deps.NamingAgent, deps.OnPaid, rateLimit)
 	}
 
 	mux.HandleFunc("GET /api/health", handleHealth())
