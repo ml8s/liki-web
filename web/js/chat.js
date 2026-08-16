@@ -536,14 +536,35 @@ function reset() {
 
 // ── Copy ──
 function copyMsg(m, btn) {
-  if (!navigator.clipboard) return;
-  navigator.clipboard.writeText(m.content).then(function() {
+  var done = function() {
     if (btn) {
       var orig = btn.innerHTML;
       btn.innerHTML = '<span style="font-size:12px">✓</span>';
       setTimeout(function() { btn.innerHTML = orig; }, 1200);
     }
-  }).catch(function(){});
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(m.content).then(done).catch(function() {
+      fallbackCopy(m.content, done);
+    });
+  } else {
+    fallbackCopy(m.content, done);
+  }
+}
+
+// 降级：navigator.clipboard 不可用（非安全上下文/旧 Safari）时走 execCommand
+function fallbackCopy(text, done) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch {}
+  document.body.removeChild(ta);
+  if (ok && done) done();
 }
 
 // ── Login ──

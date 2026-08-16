@@ -838,8 +838,8 @@ th {
   visibility: visible; display: inline-flex; align-items: center; justify-content: center;
 }
 @media (hover: hover) and (pointer: fine) {
-  .msg-copy { opacity: 0; }
-  .chat-msg:hover .msg-copy { opacity: 1; }
+  .msg-copy { opacity: 0.5; }
+  .msg-asst-wrap:hover .msg-copy { opacity: 1; }
   .msg-copy:focus-visible { opacity: 1; outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 4px; }
 }
 @media (hover: none) and (pointer: coarse) {
@@ -1111,6 +1111,12 @@ th {
 }
 
 /* ── Keyword cloud ── */
+#kw-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
 .pb-8 { padding-bottom: 2rem; }
 .pb-4 { padding-bottom: 1rem; }
 .pr-4 { padding-right: 1rem; }
