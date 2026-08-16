@@ -17,7 +17,7 @@
   "chat.copy": "複製",
   "chat.emailPlaceholder": "your@email.com",
   "chat.expired": "已過期",
-  "chat.greeting": "你好，我是 Liki 靈機。請問這次需要哪類服務？① 寶寶/新生兒起名 ② 成人改名 ③ 已有名字讓我評估（告訴我出生資訊或名字，我會結合八字用神分析）",
+  "chat.greeting": "你好，我是靈機起名。請提供出生資訊（日期時間/城市/性別）和姓氏，我來為你分析推薦。",
   "chat.heading": "對話 · 靈機起名",
   "chat.loginButton": "繼續",
   "chat.loginDesc": "輸入你的郵箱，查找已有的訂單記錄。",

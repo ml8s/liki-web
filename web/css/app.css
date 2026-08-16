@@ -679,7 +679,7 @@ th {
   flex-direction: column;
   height: 100dvh;
   height: 100vh;
-  max-width: 56rem;
+  max-width: 48rem;
   margin: 0 auto;
 }
 

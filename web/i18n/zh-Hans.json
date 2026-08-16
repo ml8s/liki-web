@@ -17,7 +17,7 @@
   "chat.copy": "复制",
   "chat.emailPlaceholder": "your@email.com",
   "chat.expired": "已过期",
-  "chat.greeting": "你好，我是 Liki 灵机。请问这次需要哪类服务？① 宝宝/新生儿起名 ② 成人改名 ③ 已有名字让我评估（告诉我出生信息或名字，我会结合八字用神分析）",
+  "chat.greeting": "你好，我是灵机起名。请提供出生信息（日期时间/城市/性别）和姓氏，我来为你分析推荐。",
   "chat.heading": "对话 · 灵机起名",
   "chat.loginButton": "继续",
   "chat.loginDesc": "输入你的邮箱，查找已有的订单记录。",
