@@ -138,7 +138,7 @@ check-html:
 
 SKILLS := liki-bazi liki-divination liki-fengshui liki-naming
 
-check-skills: sync-skills build-archive
+check-skills: build-archive sync-skills
 	@for skill in $(SKILLS); do \
 	  test -f "web/skills/$$skill/SKILL.md" || { echo "❌ Missing web/skills/$$skill/SKILL.md"; exit 1; }; \
 	done
