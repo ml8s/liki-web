@@ -20,7 +20,7 @@ func newTestStore(t *testing.T) *Store {
 
 func seedOrder(t *testing.T, s *Store, orderID, email string) {
 	t.Helper()
-	err := s.CreateOrder(context.Background(), orderID, "naming", 19900, "CNY", email, "zh-Hans")
+	err := s.CreateOrder(context.Background(), orderID, "naming", 990, "CNY", email, "zh-Hans")
 	if err != nil {
 		t.Fatalf("seed: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestStore_CreateAndGetOrder(t *testing.T) {
 	if o.Product != "naming" {
 		t.Errorf("product = %q", o.Product)
 	}
-	if o.Amount != 19900 {
+	if o.Amount != 990 {
 		t.Errorf("amount = %d", o.Amount)
 	}
 	if o.Status != "pending" {
@@ -233,7 +233,7 @@ func TestStore_CreatePaidOrder(t *testing.T) {
 	t.Parallel()
 	s := newTestStore(t)
 
-	if err := s.CreatePaidOrder(context.Background(), "o1", "naming", 19900, "CNY", "a@b.co", "2099-12-31", "zh-Hans"); err != nil {
+	if err := s.CreatePaidOrder(context.Background(), "o1", "naming", 990, "CNY", "a@b.co", "2099-12-31", "zh-Hans"); err != nil {
 		t.Fatalf("CreatePaidOrder: %v", err)
 	}
 
@@ -370,7 +370,7 @@ func TestStore_RedeemCode_Success(t *testing.T) {
 		OrderID:       "order-1",
 		Product:       "naming",
 		Currency:      "CNY",
-		Amount:        19900,
+Amount: 990,
 		ChatExpiresAt: "2099-12-31",
 		Locale:        "zh-Hans",
 	})

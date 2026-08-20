@@ -53,9 +53,9 @@ func HandleCreateOrder(store *Store) http.HandlerFunc {
 		}
 		var amount int
 		if curr == "CNY" {
-			amount = 19900
+			amount = 990
 		} else {
-			amount = 2990
+			amount = 990
 		}
 
 		if err := store.CreateOrder(r.Context(), orderID, string(product.ProductMingShu), amount, curr, req.Email, birthStr, locale); err != nil {

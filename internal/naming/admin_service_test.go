@@ -29,7 +29,7 @@ func TestAdminService_CreatePaidOrder(t *testing.T) {
 	s := newTestStore(t)
 	svc := NewAdminService(s)
 
-	oid, err := svc.CreatePaidOrder(context.Background(), "buyer@t.com", "naming", 19900, "CNY", "2099-12-31", "zh-Hans")
+	oid, err := svc.CreatePaidOrder(context.Background(), "buyer@t.com", "naming", 990, "CNY", "2099-12-31", "zh-Hans")
 	if err != nil {
 		t.Fatalf("CreatePaidOrder: %v", err)
 	}

@@ -74,9 +74,9 @@ func (h *AdminService) HandleCreateOrder() http.HandlerFunc {
 		}
 		amount := req.Amount
 		if amount == 0 {
-			amount = 19900 // default naming price CNY
+			amount = 990 // default naming price CNY
 			if currency == "USD" {
-				amount = 2990
+				amount = 990
 			}
 		}
 

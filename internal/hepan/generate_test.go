@@ -43,7 +43,7 @@ func generateSeed(t *testing.T, store *Store) string {
 	oid := uuid.New().String()
 	pA, _ := json.Marshal(PersonInfo{Name: "张三", Birth: "1990-05-20", City: "上海", Gender: "male"}) //nolint:errcheck
 	pB, _ := json.Marshal(PersonInfo{Name: "李四", Birth: "1992-08-15", City: "北京", Gender: "female"}) //nolint:errcheck
-	store.CreateOrder(context.Background(), oid, "hepan", 19900, "CNY", "t@t.com", string(pA), string(pB), "zh-Hans") //nolint:errcheck
+	store.CreateOrder(context.Background(), oid, "hepan", 990, "CNY", "t@t.com", string(pA), string(pB), "zh-Hans") //nolint:errcheck
 	return oid
 }
 

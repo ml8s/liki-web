@@ -113,9 +113,9 @@ async function createOrderAndCheckout(apiPath, body, product, extra) {
 // ── currency detection ──
 (function() {
   var PRICE = {
-    naming:   { CNY: '¥199', USD: '$29.90' },
-    hepan:    { CNY: '¥199', USD: '$29.90' },
-    mingshu: { CNY: '¥129', USD: '$18' }
+    naming:   { CNY: '¥9.90', USD: '$9.90' },
+    hepan:    { CNY: '¥9.90', USD: '$9.90' },
+    mingshu: { CNY: '¥9.90', USD: '$9.90' }
   };
   window.Liki = window.Liki || {};
   window.Liki.currency = 'CNY';

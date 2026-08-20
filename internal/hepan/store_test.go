@@ -37,7 +37,7 @@ func seedOrder(t *testing.T, store *Store) string {
 	orderID := product.NewOrderID()
 	pA, _ := json.Marshal(PersonInfo{Name: "张三", Birth: "1990-05-20", City: "上海", Gender: "male"}) //nolint:errcheck
 	pB, _ := json.Marshal(PersonInfo{Name: "李四", Birth: "1992-08-15", City: "北京", Gender: "female"}) //nolint:errcheck
-	if err := store.CreateOrder(context.Background(), orderID, "hepan", 19900, "CNY", "test@t.com", string(pA), string(pB), "zh-Hans"); err != nil {
+	if err := store.CreateOrder(context.Background(), orderID, "hepan", 990, "CNY", "test@t.com", string(pA), string(pB), "zh-Hans"); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 	return orderID
@@ -55,7 +55,7 @@ func TestStore_CreateAndGetOrder(t *testing.T) {
 	if order.Product != "hepan" {
 		t.Errorf("product = %q", order.Product)
 	}
-	if order.Amount != 19900 {
+	if order.Amount != 990 {
 		t.Errorf("amount = %d", order.Amount)
 	}
 	if order.Currency != "CNY" {
@@ -212,8 +212,8 @@ func TestStore_CreateOrder_AmountCurrency(t *testing.T) {
 		amount   int
 		currency string
 	}{
-		{19900, "CNY"},
-		{2990, "USD"},
+		{990, "CNY"},
+		{990, "USD"},
 	}
 	for _, tc := range tests {
 		oid := product.NewOrderID()

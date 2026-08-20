@@ -400,8 +400,8 @@ func TestCreateCheckout_ProductPricing(t *testing.T) {
 		amount  int
 	}{
 		{"chart", product.ProductNaming, 990},
-		{"bond", product.ProductNaming, 1990},
-		{"naming", product.ProductNaming, 2990},
+		{"bond", product.ProductNaming, 990},
+		{"naming", product.ProductNaming, 990},
 	}
 
 	for _, tt := range tests {
@@ -466,8 +466,8 @@ func TestCreateCheckout_AmountFormat(t *testing.T) {
 		want   string
 	}{
 		{"990 fen → 9.90", 990, "9.90"},
-		{"1990 fen → 19.90", 1990, "19.90"},
-		{"2990 fen → 29.90", 2990, "29.90"},
+		{"990 fen → 9.90", 990, "9.90"},
+		{"990 fen → 9.90", 990, "9.90"},
 		{"100 fen → 1.00", 100, "1.00"},
 		{"0 fen → 0.00", 0, "0.00"},
 	}

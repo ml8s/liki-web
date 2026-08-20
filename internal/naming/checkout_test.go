@@ -21,7 +21,7 @@ import (
 func nmSeedOrder(t *testing.T, s *Store) string {
 	t.Helper()
 	oid := uuid.New().String()
-	if err := s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans"); err != nil {
+	if err := s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans"); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 	return oid

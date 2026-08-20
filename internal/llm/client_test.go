@@ -11,7 +11,7 @@ func TestNew(t *testing.T) {
 	if c.apiKey != "sk-test" {
 		t.Errorf("apiKey = %q, want sk-test", c.apiKey)
 	}
-	if c.baseURL != defaultBaseURL {
+	if c.baseURL != "https://llmapi.paratera.com" {
 		t.Errorf("baseURL = %q, want %q", c.baseURL, defaultBaseURL)
 	}
 	// model is caller-supplied, no default to compare against

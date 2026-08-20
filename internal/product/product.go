@@ -74,9 +74,9 @@ func DetectCurrency(cfCountry, geoCountry string) Currency {
 func NamingAmountCents(c Currency) int {
 	switch c {
 	case USD:
-		return 2990
+		return 990
 	case CNY:
-		return 19900
+		return 990
 	default:
 		return 0
 	}

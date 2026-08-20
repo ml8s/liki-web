@@ -21,7 +21,7 @@ import (
 func chatSeedPaid(t *testing.T, s *Store) string {
 	t.Helper()
 	oid := uuid.New().String()
-	if err := s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans"); err != nil {
+	if err := s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
 	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
@@ -130,7 +130,7 @@ func TestHandleChat_OrderNotPaid(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	s := newTestStore(t)
 	oid := uuid.New().String()
-	s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
+	s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
 	handler, _ := chatHandler(s, nil)
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":"hi"}`))
 	r.AddCookie(chatJWT(oid))
@@ -146,7 +146,7 @@ func TestHandleChat_OrderExpired(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	s := newTestStore(t)
 	oid := uuid.New().String()
-	s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
+	s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
 	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
 	s.OverrideChatExpiresAt(context.Background(), oid, "2020-01-01 00:00:00") //nolint:errcheck
 	handler, _ := chatHandler(s, nil)
@@ -211,7 +211,7 @@ func TestHandleChat_ExpiresSoon(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	s := newTestStore(t)
 	oid := uuid.New().String()
-	s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
+	s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
 	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
 	// Set expiry to 1 hour from now
 	future := time.Now().Add(1 * time.Hour).Format("2006-01-02 15:04:05")
@@ -330,7 +330,7 @@ func TestHandleChat_GreetingPersisted(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	s := newTestStore(t)
 	oid := uuid.New().String()
-	if err := s.CreateOrder(context.Background(), oid, "naming", 19900, "CNY", "test@t.com", "zh-Hans"); err != nil {
+	if err := s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
 	s.MarkPaidIdempotent(context.Background(), oid, "pay-g")          //nolint:errcheck

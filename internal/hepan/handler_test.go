@@ -198,12 +198,12 @@ func TestHepanAmount(t *testing.T) {
 		wantAmt  int
 		wantCurr string
 	}{
-		{"USD", 2990, "USD"},
-		{"usd", 2990, "USD"},
-		{"CNY", 19900, "CNY"},
-		{"cny", 19900, "CNY"},
-		{"", 19900, "CNY"},
-		{"HKD", 19900, "CNY"},
+		{"USD", 990, "USD"},
+		{"usd", 990, "USD"},
+		{"CNY", 990, "CNY"},
+		{"cny", 990, "CNY"},
+		{"", 990, "CNY"},
+		{"HKD", 990, "CNY"},
 	}
 	for _, tc := range tests {
 		amt, curr := hepanAmount(tc.curr)

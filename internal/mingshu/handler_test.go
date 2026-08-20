@@ -22,7 +22,7 @@ func lbSeedOrder(t *testing.T, s *Store) string {
 	t.Helper()
 	oid := uuid.New().String()
 	birth := "张三 | 1990-05-20 12:00 | 上海 | male"
-	if err := s.CreateOrder(context.Background(), oid, "mingshu", 19900, "CNY", "test@t.com", birth, "zh-Hans"); err != nil {
+	if err := s.CreateOrder(context.Background(), oid, "mingshu", 990, "CNY", "test@t.com", birth, "zh-Hans"); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 	return oid

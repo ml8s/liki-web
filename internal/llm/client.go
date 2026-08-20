@@ -15,7 +15,7 @@ import (
 
 )
 
-const defaultBaseURL = "https://api.deepseek.com"
+const defaultBaseURL = "https://llmapi.paratera.com"
 
 // Client is a DeepSeek LLM client with tool calling support.
 type Client struct {

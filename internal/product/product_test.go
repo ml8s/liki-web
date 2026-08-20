@@ -24,8 +24,8 @@ func TestNamingAmountCents(t *testing.T) {
 		c    Currency
 		want int
 	}{
-		{"CNY", CNY, 19900},
-		{"USD", USD, 2990},
+		{"CNY", CNY, 990},
+		{"USD", USD, 990},
 		{"unknown", Currency("EUR"), 0},
 	}
 	for _, tt := range tests {

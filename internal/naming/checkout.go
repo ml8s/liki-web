@@ -100,7 +100,7 @@ func HandleRedeemCode(store *Store) http.HandlerFunc {
 			OrderID:       orderID,
 			Product:       "naming",
 			Currency:      "CNY",
-			Amount:        19900,
+Amount: 990,
 			ChatExpiresAt: "2099-12-31",
 			Locale:        lang,
 		}
@@ -120,9 +120,9 @@ func HandleRedeemCode(store *Store) http.HandlerFunc {
 
 func namingAmount(currency string) (int, string) {
 	if currency == "USD" {
-		return 2990, "USD"
+		return 990, "USD"
 	}
-	return 19900, "CNY"
+	return 990, "CNY"
 }
 
 func namingProduct(s string) product.Product {
