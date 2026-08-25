@@ -207,8 +207,8 @@ SERVER_CN ?= 120.79.194.247
 SERVER_USER_US := ubuntu
 SERVER_USER_CN := root
 
-update-engine: ## 更新引擎源码（liki-engine 拉最新 master——部署/测试前必做）
-	cd ../liki-engine && git pull --ff-only origin master
+update-engine: ## 更新引擎源码（liki 拉最新 master——engine 现随 ml8s/liki 仓库分发，部署/测试前必做）
+	cd ../liki-skills && git pull --ff-only origin master
 
 deploy: deploy-us ## Alias: 默认部署到 US（同 deploy-us）
 

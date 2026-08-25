@@ -7,7 +7,7 @@ services:
   engine:
     image: liki-engine:latest
     build:
-      context: ../../../liki-engine
+      context: ../../../liki-skills/engine
       dockerfile: deploy/Dockerfile
     expose: ["8082"]
     restart: unless-stopped
