@@ -7,7 +7,7 @@ cd "$(git rev-parse --show-toplevel)"
 make check build test-db
 
 # Docker E2E: 仅当 engine 目录可写时运行
-if [ -d ../liki-engine ] && [ -w ../liki-engine ]; then
+if [ -d ../liki-skills/engine ] && [ -w ../liki-skills/engine ]; then
   echo ""
   echo "=== Docker E2E ==="
   scripts/docker-test.sh up 2>&1 | tail -5 || true
