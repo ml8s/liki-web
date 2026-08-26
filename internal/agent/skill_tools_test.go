@@ -24,7 +24,9 @@ func TestSkillToolsRegister(t *testing.T) {
 	want := []string{"full_paipan", "liunian", "make_factors", "make_liunian_factors", "query"}
 	got := map[string]bool{}
 	for _, s := range r.cachedSchemas {
-		var fn struct{ Name string `json:"name"` }
+		var fn struct {
+			Name string `json:"name"`
+		}
 		if err := json.Unmarshal(s.Function, &fn); err == nil {
 			got[fn.Name] = true
 		}

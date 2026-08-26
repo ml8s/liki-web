@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/httputil"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"liki-web/internal/httputil"
 )
 
 type testReq struct {
@@ -110,7 +110,9 @@ func TestDecodeAndValidate_WritesErrorResponse(t *testing.T) {
 	httputil.DecodeAndValidate[testReq](w, r)
 
 	body, err := io.ReadAll(w.Result().Body)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(string(body), "error") {
 		t.Error("error response should contain 'error' key")
 	}

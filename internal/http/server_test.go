@@ -20,9 +20,9 @@ func TestRegisterRoutes_DoesNotPanic(t *testing.T) {
 	rl := NewRateLimiter()
 	defer rl.Stop()
 	deps := ServerDeps{
-		Payment:   &payment.Service{},
-		NamingStore:    nil,
-		Analytics: &Analytics{},
+		Payment:     &payment.Service{},
+		NamingStore: nil,
+		Analytics:   &Analytics{},
 	}
 	RegisterRoutes(mux, deps, "test", "dev", rl)
 
@@ -45,10 +45,10 @@ func TestRegisterRoutes_Feedback(t *testing.T) {
 		t.Fatal(err)
 	}
 	deps := ServerDeps{
-		Payment:       &payment.Service{},
-		NamingStore:      nil,
-		Analytics:     &Analytics{},
-		FeedbackStore: fstore,
+		Payment:        &payment.Service{},
+		NamingStore:    nil,
+		Analytics:      &Analytics{},
+		FeedbackStore:  fstore,
 		FeedbackAPIKey: "test-key",
 	}
 	RegisterRoutes(mux, deps, "test", "dev", rl)
@@ -86,12 +86,12 @@ func openFeedbackDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	_ = f.Close()
 	db, err := sql.Open("sqlite", f.Name()+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { db.Close(); os.Remove(f.Name()) })
+	t.Cleanup(func() { _ = db.Close(); _ = os.Remove(f.Name()) })
 	return db
 }
 
@@ -101,9 +101,9 @@ func TestRegisterRoutes_JSONRPC(t *testing.T) {
 	rl := NewRateLimiter()
 	defer rl.Stop()
 	deps := ServerDeps{
-		Payment:   &payment.Service{},
-		NamingStore:    nil,
-		Analytics: &Analytics{},
+		Payment:     &payment.Service{},
+		NamingStore: nil,
+		Analytics:   &Analytics{},
 	}
 	RegisterRoutes(mux, deps, "test", "dev", rl)
 
@@ -136,16 +136,15 @@ func TestEd3_Version_AllMethods(t *testing.T) {
 	}
 }
 
-
 // ── fileServer ──
 
 func TestFileServer_ServesDirIndex(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(dir+"/zh-Hans", 0755) //nolint:errcheck
+	os.MkdirAll(dir+"/zh-Hans", 0755)                                         //nolint:errcheck
 	os.WriteFile(dir+"/zh-Hans/index.html", []byte("<h1>zh-Hans</h1>"), 0600) //nolint:errcheck
-	os.MkdirAll(dir+"/en", 0755) //nolint:errcheck
-	os.WriteFile(dir+"/en/index.html", []byte("<h1>en</h1>"), 0600) //nolint:errcheck
-	os.MkdirAll(dir+"/zh-Hant", 0755) //nolint:errcheck
+	os.MkdirAll(dir+"/en", 0755)                                              //nolint:errcheck
+	os.WriteFile(dir+"/en/index.html", []byte("<h1>en</h1>"), 0600)           //nolint:errcheck
+	os.MkdirAll(dir+"/zh-Hant", 0755)                                         //nolint:errcheck
 	os.WriteFile(dir+"/zh-Hant/index.html", []byte("<h1>zh-Hant</h1>"), 0600) //nolint:errcheck
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNotFound) })
@@ -175,7 +174,7 @@ func TestFileServer_ServesDirIndex(t *testing.T) {
 
 func TestFileServer_FallbackToZhHant(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(dir+"/zh-Hant", 0755) //nolint:errcheck
+	os.MkdirAll(dir+"/zh-Hant", 0755)                                         //nolint:errcheck
 	os.WriteFile(dir+"/zh-Hant/index.html", []byte("<h1>default</h1>"), 0600) //nolint:errcheck
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNotFound) })

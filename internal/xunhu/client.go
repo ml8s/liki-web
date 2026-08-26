@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/product"
 	"liki-web/internal/payment"
+	"liki-web/internal/product"
 )
 
 const (
@@ -81,7 +81,7 @@ func (c *Client) CreateCheckout(ctx context.Context, product product.Product, am
 	if err != nil {
 		return nil, fmt.Errorf("xunhu: request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -170,6 +170,7 @@ func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.We
 //   - use subtle.ConstantTimeCompare for signature verification
 //   - validate payment status via webhook (server-to-server, signed)
 //   - the return callback is additionally protected by an HMAC-SHA256 token
+//
 // Should XunhuPay ever support HMAC-SHA256 or SHA-256, upgrade immediately.
 func sign(params map[string]string, secret string) string {
 	keys := make([]string, 0, len(params))

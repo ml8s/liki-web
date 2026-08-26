@@ -1,4 +1,3 @@
-
 // RegisterRoutes mounts naming product routes on the given mux.
 package naming
 

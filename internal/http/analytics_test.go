@@ -40,7 +40,9 @@ func TestHandlePageView(t *testing.T) {
 
 	t.Run("valid path", func(t *testing.T) {
 		body, err := json.Marshal(map[string]string{"path": "/test"})
-		if err != nil { t.Fatal(err) }
+		if err != nil {
+			t.Fatal(err)
+		}
 		req := httptest.NewRequest("POST", "/api/analytics/pageview", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		handler(w, req)

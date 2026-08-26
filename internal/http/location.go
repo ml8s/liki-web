@@ -29,7 +29,7 @@ func handleLocation(w http.ResponseWriter, r *http.Request) {
 	if ip != "" && !isPrivateIP(ip) {
 		resp, err := locationClient.Get("https://ip-api.com/json/" + ip + "?fields=countryCode,city")
 		if err == nil {
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			var raw struct {
 				CountryCode string `json:"countryCode"`
 				City        string `json:"city"`

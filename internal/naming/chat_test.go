@@ -24,10 +24,10 @@ func chatSeedPaid(t *testing.T, s *Store) string {
 	if err := s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
-	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), oid, "pay-1")         //nolint:errcheck
 	s.OverrideChatExpiresAt(context.Background(), oid, "2099-12-31") //nolint:errcheck
 	// Seed 2 chat messages so history is non-empty
-	s.CreateChatMessage(context.Background(), oid, "user", "你好")        //nolint:errcheck
+	s.CreateChatMessage(context.Background(), oid, "user", "你好")                 //nolint:errcheck
 	s.CreateChatMessage(context.Background(), oid, "assistant", "你好！请告诉我你的出生日期") //nolint:errcheck
 	return oid
 }
@@ -47,7 +47,7 @@ func chatHandler(store *Store, mockResps []*llm.ChatResult) (http.HandlerFunc, *
 
 // TestHandleChat_Success verifies full chat flow: SSE events + DB persistence.
 func TestHandleChat_Success(t *testing.T) {
-	
+
 	t.Setenv("JWT_SECRET", "test-secret")
 	s := newTestStore(t)
 	oid := chatSeedPaid(t, s)
@@ -147,8 +147,8 @@ func TestHandleChat_OrderExpired(t *testing.T) {
 	s := newTestStore(t)
 	oid := uuid.New().String()
 	s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
-	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
-	s.OverrideChatExpiresAt(context.Background(), oid, "2020-01-01 00:00:00") //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), oid, "pay-1")                                //nolint:errcheck
+	s.OverrideChatExpiresAt(context.Background(), oid, "2020-01-01 00:00:00")               //nolint:errcheck
 	handler, _ := chatHandler(s, nil)
 	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"message":"hi"}`))
 	r.AddCookie(chatJWT(oid))
@@ -212,7 +212,7 @@ func TestHandleChat_ExpiresSoon(t *testing.T) {
 	s := newTestStore(t)
 	oid := uuid.New().String()
 	s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans") //nolint:errcheck
-	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), oid, "pay-1")                                //nolint:errcheck
 	// Set expiry to 1 hour from now
 	future := time.Now().Add(1 * time.Hour).Format("2006-01-02 15:04:05")
 	s.OverrideChatExpiresAt(context.Background(), oid, future) //nolint:errcheck
@@ -246,7 +246,6 @@ func TestHandleChat_EnglishLocale(t *testing.T) {
 		t.Errorf("status = %d, want 200", w.Code)
 	}
 }
-
 
 // ── HandleChatHistory ──
 
@@ -333,7 +332,7 @@ func TestHandleChat_GreetingPersisted(t *testing.T) {
 	if err := s.CreateOrder(context.Background(), oid, "naming", 990, "CNY", "test@t.com", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
-	s.MarkPaidIdempotent(context.Background(), oid, "pay-g")          //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), oid, "pay-g")         //nolint:errcheck
 	s.OverrideChatExpiresAt(context.Background(), oid, "2099-12-31") //nolint:errcheck
 
 	greeting := "你好，我是 Liki 灵机。请问这次需要哪类服务？① 宝宝起名 ② 改名 ③ 评估"

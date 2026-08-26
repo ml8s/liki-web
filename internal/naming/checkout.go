@@ -75,7 +75,6 @@ func HandleRetryOrder(store *Store, svc *payment.Service) http.HandlerFunc {
 	}
 }
 
-
 // HandleRedeemCode redeems a verification code to create a paid order.
 func HandleRedeemCode(store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +99,7 @@ func HandleRedeemCode(store *Store) http.HandlerFunc {
 			OrderID:       orderID,
 			Product:       "naming",
 			Currency:      "CNY",
-Amount: 990,
+			Amount:        990,
 			ChatExpiresAt: "2099-12-31",
 			Locale:        lang,
 		}

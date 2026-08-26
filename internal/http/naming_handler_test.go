@@ -48,7 +48,7 @@ func TestNamingHandler_OrderNotPaid(t *testing.T) {
 	handler := setupNamingHandler(t, store)
 
 	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"你好"}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 
@@ -63,7 +63,7 @@ func TestNamingHandler_Expired(t *testing.T) {
 	handler := setupNamingHandler(t, store)
 
 	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"你好"}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 
@@ -78,7 +78,7 @@ func TestNamingHandler_EmptyMessage(t *testing.T) {
 	handler := setupNamingHandler(t, store)
 
 	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":""}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 
@@ -99,7 +99,7 @@ func TestNamingHandler_SSEStream(t *testing.T) {
 	handler := naming.HandleChat(chat, store)
 
 	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"你好"}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 
@@ -164,7 +164,7 @@ func TestNamingHandler_ToolCallPhaseEvent(t *testing.T) {
 	handler := naming.HandleChat(chat, store)
 
 	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"帮我起名"}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 
@@ -233,7 +233,7 @@ func TestNamingHandler_LLMError(t *testing.T) {
 	handler := naming.HandleChat(chat, store)
 
 	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"帮我起名"}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 
@@ -285,7 +285,7 @@ func TestNamingHandler_PersistsMessages(t *testing.T) {
 	handler := naming.HandleChat(chat, store)
 
 	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"帮我起名"}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 
@@ -327,7 +327,7 @@ func TestNamingHandler_LoadsHistory(t *testing.T) {
 	handler := naming.HandleChat(chat, store)
 
 	r := httptest.NewRequest("POST", "/api/naming/agent/chat", strings.NewReader(`{"message":"确认"}`))
-	setJWTForTest(t, r,"user@example.com", "order-1")
+	setJWTForTest(t, r, "user@example.com", "order-1")
 	w := httptest.NewRecorder()
 	handler(w, r)
 

@@ -21,5 +21,3 @@ func decodeJSON[T any](w http.ResponseWriter, r *http.Request) (T, bool) {
 	}
 	return req, true
 }
-
-

@@ -55,7 +55,6 @@ var (
 	ErrUnknownProvider = errors.New("payment: unknown provider")
 )
 
-
 // OpenDB opens a SQLite database and creates it if needed.
 func OpenDB(path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)")

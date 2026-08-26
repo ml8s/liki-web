@@ -20,5 +20,4 @@
 //	ChatResult               — LLM response: content + tool calls
 //	StreamEvent              — streaming chunk: text delta + reasoning + finish reason
 //	ToolDef                  — tool definition passed to LLM API
-//
 package llm

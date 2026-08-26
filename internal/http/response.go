@@ -9,7 +9,7 @@ import (
 )
 
 type envelope struct {
-	Data  any              `json:"data,omitempty"`
+	Data  any                `json:"data,omitempty"`
 	Error *httputil.AppError `json:"error,omitempty"`
 }
 

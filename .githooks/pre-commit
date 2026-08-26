@@ -11,7 +11,8 @@ echo "=== golangci-lint ==="
 if command -v golangci-lint >/dev/null 2>&1; then
   golangci-lint run --timeout=3m
 else
-  echo "golangci-lint: not installed, skipping"
+  echo "⚠ golangci-lint 未安装，本地跳过 lint（CI 必查）——安装："
+  echo "  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin"
 fi
 
 echo "=== go test ==="

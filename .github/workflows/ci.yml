@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: ml8s/liki
+          ref: v5.0.1    # 锁定 skills 版本（升级时随 liki 发 tag 后更新此 ref）
           path: skills-repo
       - name: Prepare skill roots (4 skills + webapp)
         run: |
@@ -51,10 +52,12 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Lint
-        run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
-          $(go env GOPATH)/bin/golangci-lint run --timeout=3m
+      - name: golangci-lint
+        # 官方 Action + 锁 v2（v1.64.8 对 go.mod 声明的 Go 1.26.6 官方不支持，go install 方式官方不推荐）
+        uses: golangci/golangci-lint-action@v8.0.0
+        with:
+          version: v2.13.1
+          args: --timeout=3m
 
       - name: Vet
         run: go vet ./...
@@ -85,6 +88,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: ml8s/liki
+          ref: v5.0.1    # 锁定 skills 版本（升级时随 liki 发 tag 后更新此 ref）
           path: skills-repo
       - name: Prepare skill roots (4 skills + webapp)
         run: |
@@ -162,6 +166,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: ml8s/liki
+          ref: v5.0.1    # 锁定 skills 版本（升级时随 liki 发 tag 后更新此 ref）
           path: skills-repo
       - name: Prepare skill roots (4 skills + webapp)
         run: |

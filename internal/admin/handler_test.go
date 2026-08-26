@@ -20,8 +20,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Setenv("JWT_SECRET", "test-secret")
-	os.Setenv("ADMIN_EMAIL", "admin@liki.hk")
+	_ = os.Setenv("JWT_SECRET", "test-secret")
+	_ = os.Setenv("ADMIN_EMAIL", "admin@liki.hk")
 	os.Exit(m.Run())
 }
 
@@ -31,7 +31,7 @@ func newTestAdminService(t *testing.T) *naming.AdminService {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	store := naming.NewStore(db)
 	return naming.NewAdminService(store)
 }

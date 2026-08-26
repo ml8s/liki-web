@@ -29,7 +29,7 @@ func TestChatStream_Tokens(t *testing.T) {
 			`data: [DONE]`,
 		}
 		for _, c := range chunks {
-			fmt.Fprint(w, c+"\n\n")
+			_, _ = fmt.Fprint(w, c+"\n\n")
 			flusher.Flush()
 		}
 	}))
@@ -67,7 +67,7 @@ func TestChatStream_ContextCancel(t *testing.T) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		flusher, _ := w.(http.Flusher)
 		// Send one chunk then wait for context cancel
-		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{\"content\":\"first\"},\"index\":0}]}\n\n")
+		_, _ = fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{\"content\":\"first\"},\"index\":0}]}\n\n")
 		flusher.Flush()
 		// Block until client disconnects
 		<-r.Context().Done()
@@ -143,7 +143,7 @@ func TestChatStreamWithTools_ToolCalls(t *testing.T) {
 			`data: [DONE]`,
 		}
 		for _, c := range chunks {
-			fmt.Fprint(w, c+"\n\n")
+			_, _ = fmt.Fprint(w, c+"\n\n")
 			flusher.Flush()
 		}
 	}))
@@ -198,7 +198,7 @@ func TestChatStreamWithTools_Content(t *testing.T) {
 			`data: [DONE]`,
 		}
 		for _, c := range chunks {
-			fmt.Fprint(w, c+"\n\n")
+			_, _ = fmt.Fprint(w, c+"\n\n")
 			flusher.Flush()
 		}
 	}))

@@ -10,7 +10,7 @@ import (
 
 func TestStore_CreateAndList(t *testing.T) {
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	s, err := NewStore(db)
 	if err != nil {
 		t.Fatal(err)
@@ -41,16 +41,16 @@ func TestStore_CreateAndList(t *testing.T) {
 
 func TestStore_ListByStatus(t *testing.T) {
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	s, err := NewStore(db)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	s.Create(&Feedback{Message: "a"}) //nolint:errcheck //nolint:errcheck
-	s.Create(&Feedback{Message: "b"}) //nolint:errcheck
+	s.Create(&Feedback{Message: "a"})   //nolint:errcheck //nolint:errcheck
+	s.Create(&Feedback{Message: "b"})   //nolint:errcheck
 	s.Update("nonexistent", "done", "") //nolint:errcheck //nolint:errcheck
-	s.Create(&Feedback{Message: "c"}) //nolint:errcheck
+	s.Create(&Feedback{Message: "c"})   //nolint:errcheck
 
 	pending, err := s.List("pending", 10) //nolint:errcheck
 	if err != nil {
@@ -63,14 +63,14 @@ func TestStore_ListByStatus(t *testing.T) {
 
 func TestStore_Update(t *testing.T) {
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	s, err := NewStore(db)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	s.Create(&Feedback{Message: "test"}) //nolint:errcheck
-	list, _ := s.List("", 10) //nolint:errcheck
+	list, _ := s.List("", 10)            //nolint:errcheck
 	id := list[0].ID
 
 	err = s.Update(id, "done", "https://github.com/ml8s/liki/issues/1") //nolint:errcheck
@@ -94,7 +94,7 @@ func TestStore_Update(t *testing.T) {
 
 func TestStore_UpdateNotFound(t *testing.T) {
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	s, err := NewStore(db)
 	if err != nil {
 		t.Fatal(err)
@@ -107,7 +107,7 @@ func TestStore_UpdateNotFound(t *testing.T) {
 
 func TestStore_ListLimit(t *testing.T) {
 	db := openTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	s, err := NewStore(db)
 	if err != nil {
 		t.Fatal(err)
@@ -130,11 +130,11 @@ func openTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	_ = f.Close()
 	db, err := sql.Open("sqlite", f.Name()+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { db.Close(); os.Remove(f.Name()) })
+	t.Cleanup(func() { _ = db.Close(); _ = os.Remove(f.Name()) })
 	return db
 }

@@ -69,7 +69,9 @@ func (r *ChatToolRegistry) addSchema(def json.RawMessage) {
 // directory. It rejects paths that escape the directory (.., absolute paths).
 func ReadFileHandler(root string) func(context.Context, json.RawMessage) (json.RawMessage, error) {
 	return func(ctx context.Context, args json.RawMessage) (json.RawMessage, error) {
-		var p struct{ Path string `json:"path"` }
+		var p struct {
+			Path string `json:"path"`
+		}
 		if err := json.Unmarshal(args, &p); err != nil {
 			return nil, fmt.Errorf("read_file: invalid args: %w", err)
 		}
@@ -189,7 +191,7 @@ func (r *ChatToolRegistry) callEngine(ctx context.Context, method string, params
 	if err != nil {
 		return nil, fmt.Errorf("rpc call: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

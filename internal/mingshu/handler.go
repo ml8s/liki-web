@@ -99,4 +99,3 @@ func HandleGetReport(store *Store) http.HandlerFunc {
 		httputil.RespondJSON(w, http.StatusOK, report)
 	}
 }
-

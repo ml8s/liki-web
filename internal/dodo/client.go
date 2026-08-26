@@ -8,8 +8,8 @@ import (
 	dodopayments "github.com/dodopayments/dodopayments-go"
 	"github.com/dodopayments/dodopayments-go/option"
 
-	"liki-web/internal/product"
 	"liki-web/internal/payment"
+	"liki-web/internal/product"
 )
 
 // Client wraps the Dodo Payments SDK for checkout and webhook operations.

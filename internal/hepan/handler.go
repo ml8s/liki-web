@@ -23,8 +23,8 @@ func HandleCreateOrder(store *Store) http.HandlerFunc {
 
 		locale := httputil.LocaleFromAccept(r)
 		orderID := product.NewOrderID()
-		pA, _ := json.Marshal(req.PersonA)  //nolint:errcheck
-		pB, _ := json.Marshal(req.PersonB)  //nolint:errcheck
+		pA, _ := json.Marshal(req.PersonA) //nolint:errcheck
+		pB, _ := json.Marshal(req.PersonB) //nolint:errcheck
 		amount, currency := hepanAmount(string(product.DetectCurrency(r.Header.Get("CF-IPCountry"), "")))
 
 		if err := store.CreateOrder(r.Context(), orderID, string(ProductHepan), amount, currency, "", string(pA), string(pB), locale); err != nil {

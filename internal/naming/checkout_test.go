@@ -30,7 +30,7 @@ func nmSeedOrder(t *testing.T, s *Store) string {
 func nmSeedPaidOrder(t *testing.T, s *Store) string {
 	t.Helper()
 	oid := nmSeedOrder(t, s)
-	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), oid, "pay-1")         //nolint:errcheck
 	s.OverrideChatExpiresAt(context.Background(), oid, "2099-12-31") //nolint:errcheck
 	return oid
 }
@@ -304,4 +304,3 @@ func TestNamingHandleRedeemCode_NotFound(t *testing.T) {
 		t.Errorf("status = %d, want 400", w.Code)
 	}
 }
-

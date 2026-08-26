@@ -16,7 +16,7 @@ func newLBTestStore(t *testing.T) *Store {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	return NewStore(db)
 }
 
@@ -71,7 +71,7 @@ func TestStore_UpdateEmail(t *testing.T) {
 	oid := seedLbOrder(t, s)
 
 	s.UpdateEmail(context.Background(), oid, "new@t.com") //nolint:errcheck
-	o, _ := s.GetOrder(context.Background(), oid) //nolint:errcheck
+	o, _ := s.GetOrder(context.Background(), oid)         //nolint:errcheck
 	if o.Email != "new@t.com" {
 		t.Errorf("email = %q", o.Email)
 	}
@@ -83,7 +83,7 @@ func TestStore_UpdateProvider(t *testing.T) {
 	oid := seedLbOrder(t, s)
 
 	s.UpdateProvider(context.Background(), oid, "xunhu") //nolint:errcheck
-	o, _ := s.GetOrder(context.Background(), oid) //nolint:errcheck
+	o, _ := s.GetOrder(context.Background(), oid)        //nolint:errcheck
 	if o.Provider != "xunhu" {
 		t.Errorf("provider = %q", o.Provider)
 	}
@@ -112,7 +112,7 @@ func TestStore_MarkPaid_Idempotent(t *testing.T) {
 	s := newLBTestStore(t)
 	oid := seedLbOrder(t, s)
 
-	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), oid, "pay-1")            //nolint:errcheck
 	paid, _ := s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
 	if paid {
 		t.Error("expected paid=false for duplicate")

@@ -36,15 +36,21 @@ type mockOrderStore struct {
 
 func (m *mockOrderStore) GetCheckoutOrder(_ context.Context, id string) (*product.CheckoutOrder, error) {
 	o, ok := m.orders[id]
-	if !ok { return nil, httputil.ErrOrderNotFound }
+	if !ok {
+		return nil, httputil.ErrOrderNotFound
+	}
 	return o, nil
 }
-func (m *mockOrderStore) UpdateEmail(_ context.Context, _, _ string) error { return nil }
+func (m *mockOrderStore) UpdateEmail(_ context.Context, _, _ string) error    { return nil }
 func (m *mockOrderStore) UpdateProvider(_ context.Context, _, _ string) error { return nil }
-func (m *mockOrderStore) MarkPaidViaCallback(_ context.Context, _ string) (bool, string, error) { return true, "pay-mock", nil }
+func (m *mockOrderStore) MarkPaidViaCallback(_ context.Context, _ string) (bool, string, error) {
+	return true, "pay-mock", nil
+}
 
 func seedOrder(store *mockOrderStore, id, productType, status string) {
-	if store.orders == nil { store.orders = map[string]*product.CheckoutOrder{} }
+	if store.orders == nil {
+		store.orders = map[string]*product.CheckoutOrder{}
+	}
 	store.orders[id] = &product.CheckoutOrder{
 		Status:  status,
 		Amount:  4999,
@@ -55,13 +61,17 @@ func seedOrder(store *mockOrderStore, id, productType, status string) {
 func TestConfig_ResolveProduct_Exact(t *testing.T) {
 	cfg := Config{Product: product.Product("naming")}
 	got := cfg.resolveProduct(&product.CheckoutOrder{Product: "naming"})
-	if got != product.Product("naming") { t.Errorf("got %q, want naming", got) }
+	if got != product.Product("naming") {
+		t.Errorf("got %q, want naming", got)
+	}
 }
 
 func TestConfig_ResolveProduct_Empty(t *testing.T) {
 	cfg := Config{Product: product.Product("hepan")}
 	got := cfg.resolveProduct(&product.CheckoutOrder{Product: ""})
-	if got != product.Product("hepan") { t.Errorf("got %q, want hepan", got) }
+	if got != product.Product("hepan") {
+		t.Errorf("got %q, want hepan", got)
+	}
 }
 
 func TestMakeCheckout_OrderNotFound(t *testing.T) {
@@ -75,7 +85,9 @@ func TestMakeCheckout_OrderNotFound(t *testing.T) {
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	h(w, r)
-	if w.Code != http.StatusNotFound { t.Errorf("status = %d, want 404, body: %s", w.Code, w.Body.String()) }
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404, body: %s", w.Code, w.Body.String())
+	}
 }
 
 func TestMakeCheckout_Success(t *testing.T) {
@@ -90,7 +102,9 @@ func TestMakeCheckout_Success(t *testing.T) {
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	h(w, r)
-	if w.Code != http.StatusOK { t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String()) }
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+	}
 }
 
 func TestMakePaymentReturn_Redirects(t *testing.T) {
@@ -102,7 +116,9 @@ func TestMakePaymentReturn_Redirects(t *testing.T) {
 	r.SetPathValue("id", "oid-2")
 	w := httptest.NewRecorder()
 	h(w, r)
-	if w.Code != http.StatusFound { t.Errorf("status = %d, want 302", w.Code) }
+	if w.Code != http.StatusFound {
+		t.Errorf("status = %d, want 302", w.Code)
+	}
 }
 
 func TestMakePaymentReturn_BadToken(t *testing.T) {
@@ -114,7 +130,9 @@ func TestMakePaymentReturn_BadToken(t *testing.T) {
 	w := httptest.NewRecorder()
 	h(w, r)
 	// Bad token redirects to root, not 404
-	if w.Code != http.StatusFound { t.Errorf("status = %d, want 302", w.Code) }
+	if w.Code != http.StatusFound {
+		t.Errorf("status = %d, want 302", w.Code)
+	}
 }
 
 func TestMakeOrderStatus_Found(t *testing.T) {
@@ -125,7 +143,9 @@ func TestMakeOrderStatus_Found(t *testing.T) {
 	r.SetPathValue("id", "oid-4")
 	w := httptest.NewRecorder()
 	h(w, r)
-	if w.Code != http.StatusOK { t.Errorf("status = %d, want 200", w.Code) }
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
 }
 
 func TestMakeOrderStatus_NotFound(t *testing.T) {
@@ -135,7 +155,9 @@ func TestMakeOrderStatus_NotFound(t *testing.T) {
 	r.SetPathValue("id", "no-such")
 	w := httptest.NewRecorder()
 	h(w, r)
-	if w.Code != http.StatusNotFound { t.Errorf("status = %d, want 404", w.Code) }
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", w.Code)
+	}
 }
 
 func bodyReader(s string) *strings.Reader { return strings.NewReader(s) }

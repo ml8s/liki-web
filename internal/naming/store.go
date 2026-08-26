@@ -97,7 +97,7 @@ func (s *Store) FindActiveOrdersByEmail(ctx context.Context, email string) ([]Or
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var orders []OrderData
 	for rows.Next() {
 		var o OrderData
@@ -115,7 +115,7 @@ func (s *Store) ListOrdersByEmail(ctx context.Context, email string) ([]OrderDat
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var orders []OrderData
 	for rows.Next() {
 		var o OrderData
@@ -153,7 +153,7 @@ func (s *Store) LoadChatHistory(ctx context.Context, orderID string) ([]ChatMess
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var msgs []ChatMessage
 	for rows.Next() {
 		var m ChatMessage
@@ -194,7 +194,7 @@ func (s *Store) ListVerificationCodes(ctx context.Context) ([]VerificationCode, 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var codes []VerificationCode
 	for rows.Next() {
 		var c VerificationCode

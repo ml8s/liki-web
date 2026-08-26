@@ -187,4 +187,3 @@ func (h *AdminService) HandleListCodes() http.HandlerFunc {
 		httputil.RespondJSON(w, http.StatusOK, map[string]any{"codes": codes})
 	}
 }
-

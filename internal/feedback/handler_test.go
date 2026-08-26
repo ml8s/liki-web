@@ -131,7 +131,7 @@ func TestHandleList_EmptyAuthKey(t *testing.T) {
 func TestHandleUpdate_Success(t *testing.T) {
 	s := setup(t)
 	s.Create(&Feedback{Message: "fix me"}) //nolint:errcheck //nolint:errcheck
-	list, _ := s.List("", 10) //nolint:errcheck
+	list, _ := s.List("", 10)              //nolint:errcheck
 	id := list[0].ID
 
 	body, _ := json.Marshal(UpdateRequest{Status: "done", IssueURL: "https://github.com/ml8s/liki/issues/1"})

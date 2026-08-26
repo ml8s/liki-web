@@ -17,21 +17,21 @@ import (
 )
 
 type ServerDeps struct {
-	OnPaid         func(ctx context.Context, orderID string)
-	OnReportReady  func(ctx context.Context, orderID string)
-	OnVerification func(ctx context.Context, email, code string)
-	Payment    *payment.Service
-	NamingStore    *naming.Store
-	MingShuStore    *mingshu.Store
+	OnPaid           func(ctx context.Context, orderID string)
+	OnReportReady    func(ctx context.Context, orderID string)
+	OnVerification   func(ctx context.Context, email, code string)
+	Payment          *payment.Service
+	NamingStore      *naming.Store
+	MingShuStore     *mingshu.Store
 	MingShuGenerator *mingshu.Generator
 	HepanStore       *hepan.Store
-	HepanGenerator    *hepan.Generator
-	NamingAgent *agent.Agent
-	Agent  *agent.Agent
-	Analytics  *Analytics
-	FeedbackStore   *feedback.Store
-	FeedbackAPIKey  string
-	DevMode    bool
+	HepanGenerator   *hepan.Generator
+	NamingAgent      *agent.Agent
+	Agent            *agent.Agent
+	Analytics        *Analytics
+	FeedbackStore    *feedback.Store
+	FeedbackAPIKey   string
+	DevMode          bool
 }
 
 func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl *RateLimiter) http.Handler {
@@ -164,7 +164,7 @@ func serveFileNoRedirect(w http.ResponseWriter, r *http.Request, path string) {
 		http.NotFound(w, r)
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	fi, err := f.Stat()
 	if err != nil {
 		http.NotFound(w, r)

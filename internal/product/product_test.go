@@ -56,4 +56,3 @@ func TestNewOrderID_Unique(t *testing.T) {
 		ids[id] = true
 	}
 }
-

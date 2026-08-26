@@ -19,7 +19,7 @@ func newTestStore(t *testing.T) *Store {
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	for _, stmt := range strings.Split(Schema, ";") {
 		stmt = strings.TrimSpace(stmt)
 		if stmt == "" {
@@ -35,7 +35,7 @@ func newTestStore(t *testing.T) *Store {
 func seedOrder(t *testing.T, store *Store) string {
 	t.Helper()
 	orderID := product.NewOrderID()
-	pA, _ := json.Marshal(PersonInfo{Name: "张三", Birth: "1990-05-20", City: "上海", Gender: "male"}) //nolint:errcheck
+	pA, _ := json.Marshal(PersonInfo{Name: "张三", Birth: "1990-05-20", City: "上海", Gender: "male"})   //nolint:errcheck
 	pB, _ := json.Marshal(PersonInfo{Name: "李四", Birth: "1992-08-15", City: "北京", Gender: "female"}) //nolint:errcheck
 	if err := store.CreateOrder(context.Background(), orderID, "hepan", 990, "CNY", "test@t.com", string(pA), string(pB), "zh-Hans"); err != nil {
 		t.Fatalf("seed: %v", err)

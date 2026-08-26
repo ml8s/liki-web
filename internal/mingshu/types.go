@@ -38,12 +38,12 @@ type FortunePhase struct {
 }
 
 type ReportSections struct {
-	Personality SectionField    `json:"personality"`
-	Career      SectionField    `json:"career"`
-	Love        SectionField    `json:"love"`
-	Health      SectionField    `json:"health"`
-	Fortune     FortuneSection  `json:"fortune"`
-	Milestones  SectionField    `json:"milestones"`
+	Personality SectionField   `json:"personality"`
+	Career      SectionField   `json:"career"`
+	Love        SectionField   `json:"love"`
+	Health      SectionField   `json:"health"`
+	Fortune     FortuneSection `json:"fortune"`
+	Milestones  SectionField   `json:"milestones"`
 }
 
 type ReportData struct {

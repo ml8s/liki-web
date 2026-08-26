@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 )
 
 const defaultBaseURL = "https://llmapi.paratera.com"
@@ -38,17 +37,17 @@ type ToolDef struct {
 // ChatResult holds the LLM response, which may contain content, tool calls, or both.
 type ChatResult struct {
 	Role             Role       `json:"role"`
-	Content          string            `json:"content"`
-	ReasoningContent string            `json:"reasoning_content"`
+	Content          string     `json:"content"`
+	ReasoningContent string     `json:"reasoning_content"`
 	ToolCalls        []ToolCall `json:"tool_calls"`
 }
 
 // StreamEvent is a streaming chunk that may contain text delta, reasoning, tool calls, or finish.
 type StreamEvent struct {
-	Content          string            // text delta
-	ReasoningContent string            // reasoning delta
+	Content          string     // text delta
+	ReasoningContent string     // reasoning delta
 	ToolCalls        []ToolCall // accumulated tool calls when FinishReason is set
-	FinishReason     string            // "stop" | "tool_calls" | "length" | ""
+	FinishReason     string     // "stop" | "tool_calls" | "length" | ""
 }
 
 // New creates a new LLM client.
@@ -58,16 +57,16 @@ func New(apiKey, model string, enableThinking bool) *Client {
 		tp = &thinkingParam{Type: "enabled"}
 	}
 	return &Client{
-		apiKey:       apiKey,
-		baseURL:      defaultBaseURL,
-		model:        model,
-		thinking:     tp,
+		apiKey:   apiKey,
+		baseURL:  defaultBaseURL,
+		model:    model,
+		thinking: tp,
 		streamClient: &http.Client{
-		Timeout: 180 * time.Second, // safety net above chatRoundTimeout (120s)
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
+			Timeout: 180 * time.Second, // safety net above chatRoundTimeout (120s)
+			Transport: &http.Transport{
+				DialContext: (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
+			},
 		},
-	},
 	}
 }
 
@@ -125,7 +124,7 @@ func (c *Client) doStreamReq(ctx context.Context, payload any) (*http.Response, 
 	}
 	if resp.StatusCode >= 300 {
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if readErr != nil {
 			return nil, fmt.Errorf("llm: %d (failed to read body: %v)", resp.StatusCode, readErr)
 		}
@@ -138,7 +137,7 @@ func (c *Client) doStreamReq(ctx context.Context, payload any) (*http.Response, 
 // fn is called with the decoded JSON data. If fn returns false, scanning stops.
 // Returns any scanner error encountered after the loop.
 func sseScanner(ctx context.Context, body io.ReadCloser, fn func([]byte) bool) error {
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 	scanner := bufio.NewScanner(body)
 	scanner.Buffer(make([]byte, 0, 256*1024), 1<<20)
 	for scanner.Scan() {
@@ -250,11 +249,11 @@ type thinkingParam struct {
 }
 
 type streamRequest struct {
-	Model    string          `json:"model"`
-	Messages []Message `json:"messages"`
-	Stream   bool            `json:"stream"`
-	Tools    []ToolDef       `json:"tools,omitempty"`
-	Thinking *thinkingParam  `json:"thinking,omitempty"`
+	Model    string         `json:"model"`
+	Messages []Message      `json:"messages"`
+	Stream   bool           `json:"stream"`
+	Tools    []ToolDef      `json:"tools,omitempty"`
+	Thinking *thinkingParam `json:"thinking,omitempty"`
 }
 
 type streamChunk struct {

@@ -49,7 +49,7 @@ func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFun
 func HandleList(store *Store, apiKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !authAPIKey(r, apiKey) {
-			http.Error(w, "unauthorized", 403)
+			http.Error(w, "unauthorized", http.StatusForbidden)
 			return
 		}
 		status := r.URL.Query().Get("status")
@@ -77,7 +77,7 @@ type UpdateRequest struct {
 func HandleUpdate(store *Store, apiKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !authAPIKey(r, apiKey) {
-			http.Error(w, "unauthorized", 403)
+			http.Error(w, "unauthorized", http.StatusForbidden)
 			return
 		}
 		id := r.PathValue("id")

@@ -96,4 +96,3 @@ type RedeemCodeParams struct {
 	ChatExpiresAt string
 	Locale        string
 }
-

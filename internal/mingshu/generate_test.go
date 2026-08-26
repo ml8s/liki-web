@@ -182,7 +182,6 @@ func TestGenerator_ExtractJSON(t *testing.T) {
 	}
 }
 
-
 func TestGenerator_Loop_ReviewFailThenPass(t *testing.T) {
 	t.Parallel()
 	store := newTestStore(t)
@@ -195,10 +194,10 @@ func TestGenerator_Loop_ReviewFailThenPass(t *testing.T) {
 
 	mockLLM := &agent.MockLLM{
 		ToolResps: []*llm.ChatResult{
-			agent.ChatRes(nil, reportJSON),   // generate
-			agent.ChatRes(nil, reviewFail),   // review → fail
-			agent.ChatRes(nil, fixedJSON),    // revise
-			agent.ChatRes(nil, reviewPass),   // review → pass
+			agent.ChatRes(nil, reportJSON), // generate
+			agent.ChatRes(nil, reviewFail), // review → fail
+			agent.ChatRes(nil, fixedJSON),  // revise
+			agent.ChatRes(nil, reviewPass), // review → pass
 		},
 	}
 	a := agent.NewAgent(mockLLM, &agent.MockToolRegistry{}, "")
@@ -251,59 +250,58 @@ func TestGenerator_Process_Helper(t *testing.T) {
 	}
 }
 
-
-
-
 func TestGenerator_JSONMapString(t *testing.T) {
-  tests := []struct{
-    name string
-    input map[string]string
-    expect string
-  }{
-    {"non-empty", map[string]string{"title":"too short","analysis":"add more"}, `"add more"`},
-    {"nil", nil, ""},
-    {"empty", map[string]string{}, ""},
-  }
-  for _, tc := range tests {
-    t.Run(tc.name, func(t *testing.T) {
-      got := jsonMapString(tc.input)
-      if !strings.Contains(got, tc.expect) && !(tc.expect == "" && got == "") {
-        t.Errorf("jsonMapString(%v) = %q, want %q", tc.input, got, tc.expect)
-      }
-    })
-  }
+	tests := []struct {
+		name   string
+		input  map[string]string
+		expect string
+	}{
+		{"non-empty", map[string]string{"title": "too short", "analysis": "add more"}, `"add more"`},
+		{"nil", nil, ""},
+		{"empty", map[string]string{}, ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := jsonMapString(tc.input)
+			if !strings.Contains(got, tc.expect) && (tc.expect != "" || got != "") {
+				t.Errorf("jsonMapString(%v) = %q, want %q", tc.input, got, tc.expect)
+			}
+		})
+	}
 }
 
 func TestGenerator_Run_MaxLoop(t *testing.T) {
-  s := newTestStore(t)
-  oid := uuid.New().String()
-  seedLifeBookOrder(t, s, oid, "1990-01-01")
+	s := newTestStore(t)
+	oid := uuid.New().String()
+	seedLifeBookOrder(t, s, oid, "1990-01-01")
 
-  mockLLM := &agent.MockLLM{
-    ToolResps: []*llm.ChatResult{
-      agent.ChatRes(nil, `{"title":"r0","sections":{"a":{"title":"a","analysis":"b"}}}`), // 0 generate
-      agent.ChatRes(nil, `{"pass":false,"feedback":{"a":"fix"}}`),  // 1 initial review
-      agent.ChatRes(nil, `{"title":"r1","sections":{"a":{"title":"a","analysis":"b"}}}`), // 2 revise 0
-      agent.ChatRes(nil, `{"pass":false,"feedback":{"b":"fix2"}}`), // 3 review 0
-      agent.ChatRes(nil, `{"title":"r2","sections":{"a":{"title":"a","analysis":"b"}}}`), // 4 revise 1
-      agent.ChatRes(nil, `{"pass":false,"feedback":{"c":"fix3"}}`), // 5 review 1
-      agent.ChatRes(nil, `{"title":"r3","sections":{"a":{"title":"a","analysis":"b"}}}`), // 6 revise 2
-      agent.ChatRes(nil, `{"pass":true}`), // 7 review 2 (still runs; loop exits after this round)
-    },
-  }
-  mockTools := &agent.MockToolRegistry{}
-  chat := agent.NewAgent(mockLLM, mockTools, "prompt")
+	mockLLM := &agent.MockLLM{
+		ToolResps: []*llm.ChatResult{
+			agent.ChatRes(nil, `{"title":"r0","sections":{"a":{"title":"a","analysis":"b"}}}`), // 0 generate
+			agent.ChatRes(nil, `{"pass":false,"feedback":{"a":"fix"}}`),                        // 1 initial review
+			agent.ChatRes(nil, `{"title":"r1","sections":{"a":{"title":"a","analysis":"b"}}}`), // 2 revise 0
+			agent.ChatRes(nil, `{"pass":false,"feedback":{"b":"fix2"}}`),                       // 3 review 0
+			agent.ChatRes(nil, `{"title":"r2","sections":{"a":{"title":"a","analysis":"b"}}}`), // 4 revise 1
+			agent.ChatRes(nil, `{"pass":false,"feedback":{"c":"fix3"}}`),                       // 5 review 1
+			agent.ChatRes(nil, `{"title":"r3","sections":{"a":{"title":"a","analysis":"b"}}}`), // 6 revise 2
+			agent.ChatRes(nil, `{"pass":true}`),                                                // 7 review 2 (still runs; loop exits after this round)
+		},
+	}
+	mockTools := &agent.MockToolRegistry{}
+	chat := agent.NewAgent(mockLLM, mockTools, "prompt")
 
-  g := &Generator{agent: chat, store: s}
-  g.generatePrompt = "gen"
-  g.reviewPrompt = "review"
-  g.revisePrompt = "revise"
+	g := &Generator{agent: chat, store: s}
+	g.generatePrompt = "gen"
+	g.reviewPrompt = "review"
+	g.revisePrompt = "revise"
 
-  err := g.Run(context.Background(), oid)
-  if err != nil { t.Fatalf("Run: %v", err) }
+	err := g.Run(context.Background(), oid)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
 
-  content, _ := s.GetReport(context.Background(), oid) //nolint:errcheck
-  if !strings.Contains(content, "r3") {
-    t.Errorf("expected last revise content, got %q", content)
-  }
+	content, _ := s.GetReport(context.Background(), oid) //nolint:errcheck
+	if !strings.Contains(content, "r3") {
+		t.Errorf("expected last revise content, got %q", content)
+	}
 }

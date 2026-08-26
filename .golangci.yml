@@ -1,5 +1,14 @@
-linters-settings:
-  errcheck:
-    exclude-functions:
-      - (*encoding/json.Encoder).Encode
-      - (*encoding/json.Decoder).Decode
+# golangci-lint v2 配置（v1 格式自 v2 起不再被读取）
+version: "2"
+linters:
+  exclusions:
+    paths:
+      - web/node_modules   # npm 包内嵌的 Go 样例代码不属本仓
+  settings:
+    errcheck:
+      exclude-functions:
+        - (*encoding/json.Encoder).Encode
+        - (*encoding/json.Decoder).Decode
+formatters:
+  enable:
+    - gofmt

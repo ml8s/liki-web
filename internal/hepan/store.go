@@ -121,4 +121,3 @@ func (s *Store) GetCheckoutOrder(ctx context.Context, orderID string) (*product.
 	}
 	return &product.CheckoutOrder{Status: o.Status, Amount: o.Amount}, nil
 }
-

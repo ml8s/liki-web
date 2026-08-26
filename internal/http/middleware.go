@@ -146,4 +146,3 @@ func (rl *RateLimiter) getLimiter(ip string, r rate.Limit, burst int) *rate.Limi
 	e.lastUsed = time.Now()
 	return e.limiter
 }
-

@@ -373,4 +373,3 @@ func TestHandleLogin_ExpiredOrderNotReturned(t *testing.T) {
 		t.Errorf("status = %d, want 401 (expired orders should not be returned)", w.Code)
 	}
 }
-

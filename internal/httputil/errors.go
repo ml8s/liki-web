@@ -11,11 +11,11 @@ type AppError struct {
 func (e *AppError) Error() string { return e.Message }
 
 const (
-	ErrCodeInvalidRequest  = "invalid_request"
-	ErrCodeUnauthorized    = "unauthorized"
-	ErrCodeForbidden       = "forbidden"
-	ErrCodeNotFound        = "not_found"
-	ErrCodeInternal        = "internal_error"
+	ErrCodeInvalidRequest = "invalid_request"
+	ErrCodeUnauthorized   = "unauthorized"
+	ErrCodeForbidden      = "forbidden"
+	ErrCodeNotFound       = "not_found"
+	ErrCodeInternal       = "internal_error"
 )
 
 var (

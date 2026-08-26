@@ -10,7 +10,7 @@ import (
 
 type Feedback struct {
 	ID        string `json:"id"`
-	Category  string `json:"category"`          // workflow | api | doc | bug | feature | llm_self | other
+	Category  string `json:"category"` // workflow | api | doc | bug | feature | llm_self | other
 	Message   string `json:"message"`
 	Context   string `json:"context,omitempty"` // JSON — 当前上下文
 	Status    string `json:"status"`            // pending | processing | done | rejected
@@ -76,7 +76,7 @@ func (s *Store) List(status string, limit int) ([]Feedback, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []Feedback
 	for rows.Next() {

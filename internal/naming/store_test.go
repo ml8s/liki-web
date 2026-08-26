@@ -3,7 +3,7 @@ package naming
 import (
 	"context"
 	"database/sql"
-"testing"
+	"testing"
 
 	_ "modernc.org/sqlite"
 )
@@ -14,7 +14,7 @@ func newTestStore(t *testing.T) *Store {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	return NewStore(db)
 }
 
@@ -68,7 +68,7 @@ func TestStore_UpdateEmail(t *testing.T) {
 	seedOrder(t, s, "order-1", "old@b.co")
 
 	s.UpdateEmail(context.Background(), "order-1", "new@b.co") //nolint:errcheck
-	o, _ := s.GetOrder(context.Background(), "order-1") //nolint:errcheck
+	o, _ := s.GetOrder(context.Background(), "order-1")        //nolint:errcheck
 	if o.Email != "new@b.co" {
 		t.Errorf("email = %q", o.Email)
 	}
@@ -80,7 +80,7 @@ func TestStore_UpdateProvider(t *testing.T) {
 	seedOrder(t, s, "order-1", "a@b.co")
 
 	s.UpdateProvider(context.Background(), "order-1", "xunhu") //nolint:errcheck
-	o, _ := s.GetOrder(context.Background(), "order-1") //nolint:errcheck
+	o, _ := s.GetOrder(context.Background(), "order-1")        //nolint:errcheck
 	if o.Provider != "xunhu" {
 		t.Errorf("provider = %q", o.Provider)
 	}
@@ -111,7 +111,7 @@ func TestStore_MarkPaid_Idempotent(t *testing.T) {
 	s := newTestStore(t)
 	seedOrder(t, s, "order-1", "a@b.co")
 
-	s.MarkPaidIdempotent(context.Background(), "order-1", "pay-1") //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), "order-1", "pay-1")            //nolint:errcheck
 	paid, _ := s.MarkPaidIdempotent(context.Background(), "order-1", "pay-1") //nolint:errcheck
 	if paid {
 		t.Error("expected paid=false for duplicate")
@@ -143,9 +143,9 @@ func TestStore_FindActiveOrders(t *testing.T) {
 	t.Parallel()
 	s := newTestStore(t)
 	seedOrder(t, s, "o1", "a@b.co")
-	s.MarkPaidIdempotent(context.Background(), "o1", "pay-1") //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), "o1", "pay-1")         //nolint:errcheck
 	s.OverrideChatExpiresAt(context.Background(), "o1", "2099-12-31") //nolint:errcheck
-	seedOrder(t, s, "o2", "a@b.co") // pending
+	seedOrder(t, s, "o2", "a@b.co")                                   // pending
 
 	orders, err := s.FindActiveOrdersByEmail(context.Background(), "a@b.co")
 	if err != nil {
@@ -311,7 +311,6 @@ func TestStore_NewStore_NilDB(t *testing.T) {
 	NewStore(nil)
 }
 
-
 // ── GenerateVerificationCode ──
 
 func TestStore_GenerateVerificationCode(t *testing.T) {
@@ -370,7 +369,7 @@ func TestStore_RedeemCode_Success(t *testing.T) {
 		OrderID:       "order-1",
 		Product:       "naming",
 		Currency:      "CNY",
-Amount: 990,
+		Amount:        990,
 		ChatExpiresAt: "2099-12-31",
 		Locale:        "zh-Hans",
 	})
@@ -406,7 +405,7 @@ func TestStore_RedeemCode_CodeAlreadyUsed(t *testing.T) {
 	t.Parallel()
 	s := newTestStore(t)
 	s.CreateVerificationCode(context.Background(), "USED-CODE", "a@b.co", "admin") //nolint:errcheck
-	s.MarkCodeUsed(context.Background(), "USED-CODE") //nolint:errcheck
+	s.MarkCodeUsed(context.Background(), "USED-CODE")                              //nolint:errcheck
 
 	err := s.RedeemCode(context.Background(), RedeemCodeParams{
 		Code:    "USED-CODE",

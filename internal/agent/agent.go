@@ -172,4 +172,3 @@ func phaseMsg(locale string) string {
 		return "Computing natal chart data…"
 	}
 }
-

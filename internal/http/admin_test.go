@@ -27,7 +27,6 @@ func TestAdminSendCode_InvalidBody(t *testing.T) {
 	}
 }
 
-
 // ── Admin verification code flow ──
 // These tests share adminCodes state and must NOT use t.Parallel().
 

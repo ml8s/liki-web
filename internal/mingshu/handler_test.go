@@ -31,7 +31,7 @@ func lbSeedOrder(t *testing.T, s *Store) string {
 func lbSeedPaidOrder(t *testing.T, s *Store) string {
 	t.Helper()
 	oid := lbSeedOrder(t, s)
-	s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
+	s.MarkPaidIdempotent(context.Background(), oid, "pay-1")             //nolint:errcheck
 	s.SaveReport(context.Background(), oid, `{"content":"test report"}`) //nolint:errcheck
 	return oid
 }
@@ -294,4 +294,3 @@ func TestLifebookHandleWebhook_BadSignature(t *testing.T) {
 		t.Errorf("status = %d, want 400", w.Code)
 	}
 }
-

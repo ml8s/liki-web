@@ -2,8 +2,8 @@ package naming
 
 import (
 	"log/slog"
-	"strings"
 	"net/http"
+	"strings"
 
 	"liki-web/internal/httputil"
 )
@@ -39,18 +39,18 @@ func HandleLogin(store *Store) http.HandlerFunc {
 			return
 		}
 		summaries := make([]LoginOrderSummary, len(orders))
-	for i, o := range orders {
-		datePart := o.CreatedAt
-		if len(datePart) >= 10 {
-			datePart = datePart[5:10] // "MM-DD"
-			datePart = strings.Replace(datePart, "-", "月", 1) + "日"
+		for i, o := range orders {
+			datePart := o.CreatedAt
+			if len(datePart) >= 10 {
+				datePart = datePart[5:10] // "MM-DD"
+				datePart = strings.Replace(datePart, "-", "月", 1) + "日"
+			}
+			summaries[i] = LoginOrderSummary{
+				OrderID:   o.OrderID,
+				Summary:   "起名 · " + datePart + "购买",
+				ExpiresAt: o.ChatExpiresAt,
+			}
 		}
-		summaries[i] = LoginOrderSummary{
-			OrderID:   o.OrderID,
-			Summary:   "起名 · " + datePart + "购买",
-			ExpiresAt: o.ChatExpiresAt,
-		}
-	}
 		httputil.RespondJSON(w, http.StatusOK, LoginResponse{Orders: summaries})
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"time"
 	"liki-web/internal/product"
 	"log/slog"
 	"net"
@@ -14,12 +13,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+	"time"
 
 	"liki-web/internal/agent"
+	"liki-web/internal/dodo"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
 	"liki-web/internal/naming"
-	"liki-web/internal/dodo"
 	"liki-web/internal/xunhu"
 
 	_ "modernc.org/sqlite"
@@ -39,29 +39,29 @@ var (
 )
 
 type Config struct {
-	DBPath          string
-	LifebookDBPath  string
-	HepanDBPath     string
-	FeedbackDBPath  string
-	FeedbackAPIKey  string
-	ResendAPIKey    string
-	ResendFrom      string
-	DodoAPIKey      string
-	DodoWebhookKey  string
-	DodoTestMode    bool
+	DBPath            string
+	LifebookDBPath    string
+	HepanDBPath       string
+	FeedbackDBPath    string
+	FeedbackAPIKey    string
+	ResendAPIKey      string
+	ResendFrom        string
+	DodoAPIKey        string
+	DodoWebhookKey    string
+	DodoTestMode      bool
 	DodoProductNaming string
-	XunhuAppID      string
-	XunhuAppSecret  string
-	DeepseekAPIKey  string
-	LLMModel        string
-	LLMThinking     bool
-	SkillsDir       string
-	PromptFile      string
-	EngineURL       string
-	ReturnURL       string
-	JWTSecret       string
-	ListenAddr      string
-	DevMode         bool
+	XunhuAppID        string
+	XunhuAppSecret    string
+	DeepseekAPIKey    string
+	LLMModel          string
+	LLMThinking       bool
+	SkillsDir         string
+	PromptFile        string
+	EngineURL         string
+	ReturnURL         string
+	JWTSecret         string
+	ListenAddr        string
+	DevMode           bool
 }
 
 func LoadConfig() Config {
@@ -119,7 +119,7 @@ func main() {
 		slog.Error("open db", "err", err)
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	namingStore := naming.NewStore(db)
 
@@ -190,7 +190,7 @@ func main() {
 		slog.Error("open hepan db", "err", err)
 		os.Exit(1)
 	}
-	defer hepanDB.Close()
+	defer func() { _ = hepanDB.Close() }()
 	if _, err := hepanDB.Exec(hepan.Schema); err != nil {
 		slog.Error("init hepan schema", "err", err)
 		os.Exit(1)
@@ -230,24 +230,24 @@ func main() {
 
 	mux := http.NewServeMux()
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
-		OnPaid:         onPaid,
-		OnReportReady:  func(ctx context.Context, orderID string) {
+		OnPaid: onPaid,
+		OnReportReady: func(ctx context.Context, orderID string) {
 			onMingReady(ctx, orderID)
 			onHepanReady(ctx, orderID)
 		},
-		OnVerification: onVerification,
-		Payment:   paymentSvc,
-		NamingStore:    namingStore,
-		MingShuStore:    mingshuStore,
+		OnVerification:   onVerification,
+		Payment:          paymentSvc,
+		NamingStore:      namingStore,
+		MingShuStore:     mingshuStore,
 		MingShuGenerator: mingshuGenerator,
 		HepanStore:       hepanStore,
-		HepanGenerator:    hepanGenerator,
-		FeedbackStore:   feedbackStore,
-		FeedbackAPIKey:  cfg.FeedbackAPIKey,
-		NamingAgent: namingAgent,
-		Agent:       reportAgent,
-		Analytics: apphttp.NewAnalytics(),
-		DevMode:   cfg.DevMode,
+		HepanGenerator:   hepanGenerator,
+		FeedbackStore:    feedbackStore,
+		FeedbackAPIKey:   cfg.FeedbackAPIKey,
+		NamingAgent:      namingAgent,
+		Agent:            reportAgent,
+		Analytics:        apphttp.NewAnalytics(),
+		DevMode:          cfg.DevMode,
 	}, BuildTime, Version, rateLimiter)
 
 	// Write timeout must accommodate LLM calls (~120s)
@@ -293,7 +293,7 @@ func main() {
 	}
 	slog.Info("server stopped")
 
-	}
+}
 
 func requireEnv(pairs ...string) {
 	for i := 0; i < len(pairs); i += 2 {
@@ -322,8 +322,6 @@ func envOrBool(key string, def bool) bool {
 	}
 	return def
 }
-
-
 
 func handleSignals(srv *http.Server) {
 	defer func() {
