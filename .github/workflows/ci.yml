@@ -144,6 +144,8 @@ jobs:
 
       - name: HTML check
         run: node web/scripts/check-html.cjs
+      - name: Check static sync
+        run: node web/scripts/check-static-sync.cjs
 
       - name: Build web assets
         run: make build-web

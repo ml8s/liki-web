@@ -135,6 +135,7 @@ check-html:
 	node web/scripts/check-html.cjs
 	node web/scripts/check-i18n.cjs
 	node web/scripts/check-classes.cjs
+	node web/scripts/check-static-sync.cjs
 
 SKILLS := liki-bazi liki-divination liki-fengshui liki-naming
 
