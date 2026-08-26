@@ -15,20 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Ensure skills dir
-        run: rm -rf web/skills && mkdir -p web/skills
-      - name: Checkout skills repo
-        uses: actions/checkout@v7
-        with:
-          repository: ml8s/liki
-          ref: v5.0.1    # 锁定 skills 版本（升级时随 liki 发 tag 后更新此 ref）
-          path: skills-repo
-      - name: Prepare skill roots (4 skills + webapp)
-        run: |
-          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
-            rsync -a --exclude .git --exclude __pycache__ --exclude dist --exclude webapp "skills-repo/skills/$s/" "web/skills/$s/"
-          done
-          rsync -a skills-repo/webapp/ web/skills/liki-bazi/webapp/
+      # skills 准备（结构校验 + 指纹防假同步）统一在 composite action
+      - uses: ./.github/actions/prepare-skills
       - name: Validate skills
         run: |
           for s in liki-bazi liki-divination liki-fengshui liki-naming; do
@@ -82,20 +70,8 @@ jobs:
     needs: go-check
     steps:
       - uses: actions/checkout@v7
-      - name: Ensure skills dir
-        run: rm -rf web/skills && mkdir -p web/skills
-      - name: Checkout skills repo
-        uses: actions/checkout@v7
-        with:
-          repository: ml8s/liki
-          ref: v5.0.1    # 锁定 skills 版本（升级时随 liki 发 tag 后更新此 ref）
-          path: skills-repo
-      - name: Prepare skill roots (4 skills + webapp)
-        run: |
-          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
-            rsync -a --exclude .git --exclude __pycache__ --exclude dist --exclude webapp "skills-repo/skills/$s/" "web/skills/$s/"
-          done
-          rsync -a skills-repo/webapp/ web/skills/liki-bazi/webapp/
+      # skills 准备（结构校验 + 指纹防假同步）统一在 composite action
+      - uses: ./.github/actions/prepare-skills
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -162,31 +138,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Ensure skills dir
-        run: rm -rf web/skills && mkdir -p web/skills
-      - name: Checkout skills repo
-        uses: actions/checkout@v7
-        with:
-          repository: ml8s/liki
-          ref: v5.0.1    # 锁定 skills 版本（升级时随 liki 发 tag 后更新此 ref）
-          path: skills-repo
-      - name: Prepare skill roots (4 skills + webapp)
-        run: |
-          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
-            rsync -a --exclude .git --exclude __pycache__ --exclude dist --exclude webapp "skills-repo/skills/$s/" "web/skills/$s/"
-          done
-          rsync -a skills-repo/webapp/ web/skills/liki-bazi/webapp/
-
-      - name: Validate skills
-        run: |
-          for s in liki-bazi liki-divination liki-fengshui liki-naming; do
-            test -f "web/skills/$s/SKILL.md" || { echo "❌ Missing web/skills/$s/SKILL.md"; exit 1; }
-            test -f "web/skills/$s/VERSION" || { echo "❌ Missing web/skills/$s/VERSION"; exit 1; }
-          done
-          test -f "web/skills/liki-bazi/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
-          test -f "web/skills/liki-bazi/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
-          test -f "web/skills/liki-bazi/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
-          echo "✓ 4 skill 结构完整（SKILL.md + VERSION + liki-bazi 工具链/webapp）"
+      # skills 准备（结构校验 + 指纹防假同步）统一在 composite action
+      - uses: ./.github/actions/prepare-skills
 
       - uses: actions/setup-go@v6
         with:

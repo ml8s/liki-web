@@ -1,171 +1,32 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
+// 直接 import 生产实现——此前本文件复制了一份"加强版"（params 插值 + detectLang/setLang），
+// 而生产 i18n.js 并无这些函数（语言检测实际在 I18nData 组件 inline script），
+// 幽灵测试给了虚假覆盖。现在只测真实契约。
+import { t, locales } from '../src/i18n.js';
+import zh from '../i18n/zh-Hans.json';
+import en from '../i18n/en.json';
+import hant from '../i18n/zh-Hant.json';
 
-// Copy MSG translations (subset) from i18n JSON for test use
-const MSG = {
-  'zh-Hans': {
-    'site.name': '灵机起名',
-    'form.year': '出生年',
-    'gender.male': '男',
-    'a11y.skipLink': 'English',
-    'error.requestFailed': '请求失败',
-    'naming.wuge': '五格: 天{0} 人{1} 地{2} 外{3} 总{4}',
-  },
-  'zh-Hant': {
-    'site.name': '靈機起名',
-    'form.year': '出生年',
-    'gender.male': '男',
-    'a11y.skipLink': 'English',
-    'error.requestFailed': '請求失敗',
-    'naming.wuge': '五格: 天{0} 人{1} 地{2} 外{3} 總{4}',
-  },
-  en: {
-    'site.name': 'liki.hk',
-    'form.year': 'Year',
-    'gender.male': 'Male',
-    'a11y.skipLink': '中文',
-    'error.requestFailed': 'Request failed',
-    'naming.wuge': 'Wu Ge: Heaven{0} Person{1} Earth{2} Outer{3} Total{4}',
-  },
-};
+const dict = { 'zh-Hans': zh, en, 'zh-Hant': hant };
 
-// ---- Function copies from i18n.js ----
-
-function detectLang(pathname, navigatorLanguage) {
-  const m = pathname.match(/^\/(zh-Hans|zh-Hant|en)\b/);
-  if (m) return m[1];
-  const nav = (navigatorLanguage || 'en');
-  if (nav === 'zh-HK' || nav === 'zh-TW' || nav === 'zh-MO') return 'zh-Hant';
-  if (nav.startsWith('zh')) return 'zh-Hans';
-  return 'en';
-}
-
-function t(lang, key, params) {
-  let s = (MSG[lang] && MSG[lang][key]) || MSG['zh-Hans'][key] || key;
-  if (params) {
-    for (let i = 0; i < params.length; i++) {
-      s = s.replace('{' + i + '}', params[i]);
+describe('t()', () => {
+  it('returns translation for each locale', () => {
+    for (const locale of locales) {
+      expect(t(locale, 'site.name')).toBe(dict[locale]['site.name']);
     }
-  }
-  return s;
-}
-
-function setLang(l, pathname, localStorage) {
-  localStorage.setItem('liki-lang', l);
-  const path = pathname.replace(/^\/(zh-Hans|zh-Hant|en)\/?/, '/');
-  return '/' + l + (path === '/' ? '/' : path);
-}
-
-// ---- Tests ----
-
-describe('detectLang', () => {
-  it('returns "zh-Hans" for /zh-Hans/ paths', () => {
-    expect(detectLang('/zh-Hans/')).toBe('zh-Hans');
-    expect(detectLang('/zh-Hans/chat.html')).toBe('zh-Hans');
   });
 
-  it('returns "zh-Hant" for /zh-Hant/ paths', () => {
-    expect(detectLang('/zh-Hant/')).toBe('zh-Hant');
-    expect(detectLang('/zh-Hant/chat.html')).toBe('zh-Hant');
+  it('falls back to the key itself when missing', () => {
+    expect(t('zh-Hans', 'no.such.key')).toBe('no.such.key');
+    expect(t('en', 'no.such.key')).toBe('no.such.key');
   });
 
-  it('returns "en" for /en/ paths', () => {
-    expect(detectLang('/en/')).toBe('en');
-    expect(detectLang('/en/chat.html')).toBe('en');
+  it('falls back to the key for unknown locale', () => {
+    // 生产契约：未知 locale → undefined?.[key] ?? key（无 zh-Hans 兜底链）
+    expect(t('fr', 'site.name')).toBe('site.name');
   });
 
-  it('falls back to navigator.language when path has no locale prefix', () => {
-    expect(detectLang('/chat.html', 'zh-CN')).toBe('zh-Hans');
-    expect(detectLang('/chat.html', 'zh-TW')).toBe('zh-Hant');
-    expect(detectLang('/chat.html', 'zh-HK')).toBe('zh-Hant');
-    expect(detectLang('/chat.html', 'zh-MO')).toBe('zh-Hant');
-    expect(detectLang('/chat.html', 'zh-SG')).toBe('zh-Hans');
-    expect(detectLang('/chat.html', 'en-US')).toBe('en');
-    expect(detectLang('/chat.html', 'fr')).toBe('en');
-  });
-
-  it('defaults to "en" when no navigator.language', () => {
-    expect(detectLang('/chat.html', undefined)).toBe('en');
-    expect(detectLang('/chat.html', '')).toBe('en');
-  });
-
-  it('handles root path', () => {
-    expect(detectLang('/', 'en')).toBe('en');
-    expect(detectLang('/', 'zh-CN')).toBe('zh-Hans');
-    expect(detectLang('/', 'zh-HK')).toBe('zh-Hant');
-  });
-});
-
-describe('t', () => {
-  it('returns the translated string for a valid key in current lang', () => {
-    expect(t('en', 'site.name', null)).toBe('liki.hk');
-    expect(t('zh-Hans', 'site.name', null)).toBe('灵机起名');
-    expect(t('zh-Hant', 'site.name', null)).toBe('靈機起名');
-  });
-
-  it('falls back to MSG.zh when current lang lacks the key', () => {
-    MSG['zh-Hans']['test.zhOnly'] = '仅中文测试';
-    expect(t('en', 'test.zhOnly', null)).toBe('仅中文测试');
-    expect(t('zh-Hant', 'test.zhOnly', null)).toBe('仅中文测试');
-    delete MSG['zh-Hans']['test.zhOnly'];
-  });
-
-  it('falls back to the key itself when no translation exists', () => {
-    expect(t('en', 'nonexistent.key', null)).toBe('nonexistent.key');
-    expect(t('zh-Hans', 'nonexistent.key', null)).toBe('nonexistent.key');
-    expect(t('zh-Hant', 'nonexistent.key', null)).toBe('nonexistent.key');
-  });
-
-  it('replaces {0}, {1}, {2} etc. with provided params', () => {
-    expect(t('zh-Hans', 'naming.wuge', ['5', '10', '15', '8', '12'])).toBe('五格: 天5 人10 地15 外8 总12');
-    expect(t('zh-Hant', 'naming.wuge', ['5', '10', '15', '8', '12'])).toBe('五格: 天5 人10 地15 外8 總12');
-    expect(t('en', 'naming.wuge', ['5', '10', '15', '8', '12'])).toBe('Wu Ge: Heaven5 Person10 Earth15 Outer8 Total12');
-  });
-
-  it('handles partial params gracefully (missing index in template)', () => {
-    const result = t('en', 'site.name', ['extra']);
-    expect(result).toBe('liki.hk');
-  });
-
-  it('handles undefined params', () => {
-    expect(t('en', 'site.name', undefined)).toBe('liki.hk');
-    expect(t('en', 'site.name', null)).toBe('liki.hk');
-  });
-
-  it('handles empty array params', () => {
-    expect(t('en', 'site.name', [])).toBe('liki.hk');
-  });
-});
-
-describe('setLang', () => {
-  let storage;
-
-  beforeEach(() => {
-    storage = { _data: {}, getItem(k) { return this._data[k] || null; }, setItem(k, v) { this._data[k] = v; } };
-  });
-
-  it('stores the language preference in localStorage', () => {
-    setLang('en', '/zh-Hans/chat.html', storage);
-    expect(storage._data['liki-lang']).toBe('en');
-  });
-
-  it('returns redirect URL for switching to en from zh', () => {
-    expect(setLang('en', '/zh-Hans/chat.html', storage)).toBe('/en/chat.html');
-  });
-
-  it('returns redirect URL for switching to zh from en', () => {
-    expect(setLang('zh-Hans', '/en/chat.html', storage)).toBe('/zh-Hans/chat.html');
-  });
-
-  it('returns redirect URL for switching to hk from zh', () => {
-    expect(setLang('zh-Hant', '/zh-Hans/chat.html', storage)).toBe('/zh-Hant/chat.html');
-  });
-
-  it('returns redirect URL for switching to zh from hk', () => {
-    expect(setLang('zh-Hans', '/zh-Hant/chat.html', storage)).toBe('/zh-Hans/chat.html');
-  });
-
-  it('handles root path', () => {
-    expect(setLang('zh-Hans', '/en/', storage)).toBe('/zh-Hans/');
-    expect(setLang('zh-Hant', '/', storage)).toBe('/zh-Hant/');
+  it('locales covers all three site languages', () => {
+    expect(locales).toEqual(['zh-Hant', 'zh-Hans', 'en']);
   });
 });

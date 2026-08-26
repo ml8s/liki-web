@@ -1,0 +1,40 @@
+name: 'Prepare skills'
+description: 'Checkout ml8s/liki（锁定版本）并同步 4 skill + webapp 到 web/skills，含结构校验与指纹防假同步'
+runs:
+  using: 'composite'
+  steps:
+    - name: Ensure skills dir
+      shell: bash
+      run: rm -rf web/skills && mkdir -p web/skills
+    - name: Checkout skills repo
+      uses: actions/checkout@v7
+      with:
+        repository: ml8s/liki
+        ref: v5.0.1    # 锁定 skills 版本（升级时随 liki 发 tag 后更新此 ref）
+        path: skills-repo
+    - name: Prepare skill roots (4 skills + webapp)
+      shell: bash
+      run: |
+        for s in liki-bazi liki-divination liki-fengshui liki-naming; do
+          rsync -a --exclude .git --exclude __pycache__ --exclude dist --exclude webapp "skills-repo/skills/$s/" "web/skills/$s/"
+        done
+        rsync -a skills-repo/webapp/ web/skills/liki-bazi/webapp/
+    - name: Validate skills structure
+      shell: bash
+      run: |
+        for s in liki-bazi liki-divination liki-fengshui liki-naming; do
+          test -f "web/skills/$s/SKILL.md" || { echo "❌ Missing web/skills/$s/SKILL.md"; exit 1; }
+          test -f "web/skills/$s/VERSION" || { echo "❌ Missing web/skills/$s/VERSION"; exit 1; }
+        done
+        test -f "web/skills/liki-bazi/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
+        test -f "web/skills/liki-bazi/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
+        test -f "web/skills/liki-bazi/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
+        echo "✓ 4 skill 结构完整（SKILL.md + VERSION + liki-bazi 工具链/webapp）"
+    - name: Verify fingerprints (防假同步——与 scripts/sync-skills.sh 同口径)
+      shell: bash
+      run: |
+        for s in liki-bazi liki-divination liki-fengshui liki-naming; do
+          FP="$(python3 "web/skills/$s/tools/hash.py" "web/skills/$s")"
+          [ "$FP" = "$(cat "web/skills/$s/content.sha256")" ] || { echo "❌ $s 假同步：$FP ≠ $(cat web/skills/$s/content.sha256)"; exit 1; }
+        done
+        echo "✓ 4 skill 指纹一致"
