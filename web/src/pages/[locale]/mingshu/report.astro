@@ -17,6 +17,8 @@ const { locale } = Astro.params;
     <I18nData locale={locale} />
     <link rel="stylesheet" href={`/css/app.css?v=${v}`}>
     <script defer src={`/js/api.js?v=${v}`}></script>
+    <script defer src={`/js/marked.min.js?v=${v}`}></script>
+    <script defer src={`/js/purify.min.js?v=${v}`}></script>
     <script defer src={`/js/render-report.js?v=${v}`}></script>
     <script defer src={`/js/mingshu-report.js?v=${v}`}></script>
   </Fragment>

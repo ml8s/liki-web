@@ -311,3 +311,29 @@ describe('renderReport — integration', () => {
     expect(r).toContain('灵机命书');
   });
 });
+
+describe('toHtml security（LLM 输出不可信——esc→marked→DOMPurify 链）', () => {
+  it('raw HTML in long-text fields cannot survive as native tags', () => {
+    const evil = '<img src=x onerror=alert(1)>**加粗**';
+    const r = globalThis.window.renderReport({
+      summary: { personality: { title: '性格', bazi: evil, cross: '', advice: '' } }
+    });
+    expect(r).not.toMatch(/<img/);
+    expect(r).toContain('&lt;img');
+    expect(r).toContain('<strong>加粗</strong>');
+  });
+
+  it('fails safe when marked is missing (catch → esc)', () => {
+    const saved = globalThis.window.marked;
+    globalThis.window.marked = undefined;
+    try {
+      const r = globalThis.window.renderReport({
+        summary: { personality: { title: 'x', bazi: '<b>hi</b>', cross: '', advice: '' } }
+      });
+      expect(r).toContain('&lt;b&gt;');
+      expect(r).not.toContain('<b>hi</b>');
+    } finally {
+      globalThis.window.marked = saved;
+    }
+  });
+});

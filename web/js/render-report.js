@@ -5,15 +5,25 @@
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  // marked 文本渲染
+  // marked 文本渲染。安全约束：LLM 输出视为不可信——
+  // ① 先 esc()：实体化任何原始 HTML（<script>/<img onerror> → 纯文本），
+  //    markdown 结构（**、换行）不受影响仍可解析；
+  // ② 再过 DOMPurify（若已加载）：双保险，防未来误改 ①；
+  // ③ marked/purify 缺失时 catch 兜底 esc 纯文本（fail-safe：无净化不渲染 HTML）。
   function toHtml(s) {
     if (!s) return '';
     try {
-      var html = window.marked.parse(s, { breaks: true });
+      var html = window.marked.parse(esc(s), { breaks: true });
       html = html.replace(/<p>([^]*?)<\/p>/g, function(m, c) {
         if (c.indexOf('<br>') === -1) return m;
         return c.split('<br>').map(function(l) { return '<p>' + l.trim() + '</p>'; }).join('\n') + '\n';
       });
+      if (window.DOMPurify && window.DOMPurify.sanitize) {
+        html = window.DOMPurify.sanitize(html, {
+          ALLOWED_TAGS: ['h2','h3','h4','p','br','strong','em','ul','ol','li','code','pre','blockquote','table','thead','tbody','tr','th','td','hr'],
+          ALLOWED_ATTR: []
+        });
+      }
       return html;
     } catch {
       var t = esc(s);
