@@ -115,6 +115,24 @@ func TestHandleList_WithAuth(t *testing.T) {
 	}
 }
 
+// 空结果应序列化为 [] 而非 null（客户端不需判空）
+func TestHandleList_EmptyReturnsEmptyArray(t *testing.T) {
+	s := setup(t)
+
+	req := httptest.NewRequest("GET", "/api/feedback", nil)
+	req.Header.Set("Authorization", "Bearer my-key")
+	w := httptest.NewRecorder()
+
+	HandleList(s, "my-key")(w, req)
+
+	if w.Code != 200 {
+		t.Fatalf("want 200, got %d", w.Code)
+	}
+	if body := strings.TrimSpace(w.Body.String()); body != "[]" {
+		t.Fatalf("want [], got %s", body)
+	}
+}
+
 func TestHandleList_EmptyAuthKey(t *testing.T) {
 	s := setup(t)
 

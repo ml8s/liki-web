@@ -78,7 +78,7 @@ func (s *Store) List(status string, limit int) ([]Feedback, error) {
 	}
 	defer func() { _ = rows.Close() }()
 
-	var out []Feedback
+	out := []Feedback{} // 空结果序列化为 [] 而非 null（客户端不需判空）
 	for rows.Next() {
 		var fb Feedback
 		if err := rows.Scan(&fb.ID, &fb.Category, &fb.Message, &fb.Context, &fb.Status, &fb.IssueURL, &fb.CreatedAt, &fb.UpdatedAt); err != nil {
