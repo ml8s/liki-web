@@ -1,0 +1,62 @@
+import { describe, it, expect } from 'vitest';
+// 品牌门面契约（真相源：liki-skills/docs/brand.md v3.3）
+// 本测试把品牌规范变成可执行门禁——改这些值 = 品牌变更，须同步更新 brand.md。
+// 背景：品牌词在无门禁状态下三次漂移（灵机起名自称 / 北极星句混入标题位 / 收束行啰嗦）。
+import zh from '../i18n/zh-Hans.json';
+import hant from '../i18n/zh-Hant.json';
+import en from '../i18n/en.json';
+
+const NS = '命理师的 Skill';          // 北极星句：限内部 + about 叙事段
+const CATEGORY = '命理 Skill';        // 标题位品类词
+const STANDARDS = '按命理师的专业标准构建'; // 标准句（北极星的无歧义展开式）
+
+describe('brand facade contract (brand.md v3.3)', () => {
+  it('hero title = 品类词（简繁），subtitle = 标准句', () => {
+    expect(zh['index.hero.title']).toBe(`Liki 灵机 — ${CATEGORY}`);
+    expect(hant['index.hero.title']).toBe(`Liki 靈機 — ${CATEGORY}`);
+    expect(zh['index.hero.subtitle']).toBe(STANDARDS);
+    expect(hant['index.hero.subtitle']).toBe('按命理師的專業標準構建');
+    expect(en['index.hero.subtitle']).toBe('Built to professional standards');
+  });
+
+  it('英文标题保留 Professional（无属格歧义，修饰标准）', () => {
+    expect(en['index.hero.title']).toBe('Liki — Professional Skill for Chinese Metaphysics');
+  });
+
+  it('所有标题位禁用北极星句（简繁）', () => {
+    const titleKeys = ['index.hero.title', 'index.title', 'index.meta.ogTitle',
+      'index.meta.twitterTitle', 'naming.footer', 'naming.metaDesc',
+      'disclaimer.metaDesc', 'about.metaDesc'];
+    for (const dict of [zh, hant]) {
+      for (const k of titleKeys) expect(dict[k], k).not.toContain(NS);
+    }
+  });
+
+  it('北极星句仅存于 about 品牌叙事段，且必须紧随标准解释（消歧）', () => {
+    // 简繁各自的北极星句与标准解释变体
+    const variants = [
+      [zh, '命理师的 Skill', '按照命理师真实工作标准构建'],
+      [hant, '命理師的 Skill', '按照命理師真實工作標準構建'],
+    ];
+    for (const [dict, ns, explain] of variants) {
+      expect(dict['about.s1.body']).toContain(ns);
+      expect(dict['about.s1.body']).toContain(explain);
+    }
+  });
+
+  it('收束行（歧义补丁）全面退役', () => {
+    const retired = ['人人可用', '专业者可信赖', 'Trusted by professionals'];
+    for (const dict of [zh, hant, en]) {
+      for (const [k, v] of Object.entries(dict)) {
+        if (typeof v === 'string') {
+          for (const r of retired) expect(v, `${k} 含退役词「${r}」`).not.toContain(r);
+        }
+      }
+    }
+  });
+
+  it('chat 自称 = 品牌 + 起名顾问角色（产品名不作自称）', () => {
+    expect(zh['chat.greeting']).toContain('我是 Liki，起名顾问');
+    expect(zh['chat.greeting']).not.toContain('灵机起名。');
+  });
+});

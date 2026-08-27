@@ -17,7 +17,7 @@
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-24.14-339933?style=flat&logo=nodedotjs&logoColor=white&labelColor=30305c"></a>
 </p>
 
-命理Skills（灵机） — 起名、灵机命书、灵机合盘产品的独立域名系统。
+按命理师的专业标准构建的命理 Skill 官网——起名、灵机命书、灵机合盘三个产品。
 
 ## 为什么可信
 

@@ -30,6 +30,12 @@ const PAGES = [
       { selector: '.cta-section h2', text: '找到你的名字' },
     ] },
   { path: '/zh-Hant/naming/chat',     marker: '.chat-shell',     name: 'chat ZH-Hant' },
+  // 首页品牌门面（brand.md v3.3：标题品类=命理 Skill，非北极星句）
+  { path: '/zh-Hans/',        name: 'index (brand facade)',
+    checks: [
+      { selector: '.hero-brand h1', text: 'Liki 灵机 — 命理 Skill' },
+      { selector: '.hero-brand p',  text: '按命理师的专业标准构建' },
+    ] },
   // Legal pages — marker renders, i18n resolves, keys don't leak
   { path: '/zh-Hans/about',    name: 'about (vanilla)' },
   { path: '/zh-Hans/contact',  name: 'contact (vanilla)' },
