@@ -10,8 +10,12 @@ runs:
       uses: actions/checkout@v7
       with:
         repository: ml8s/liki
-        ref: 2026.08.27  # 锁定 skills 版本（CalVer——升级时随 liki 仓发新 tag 后更新此 ref）
         path: skills-repo
+    - name: Record liki version
+      shell: bash
+      run: |
+        echo "liki commit: $(git -C skills-repo rev-parse --short HEAD)"
+        echo "liki VERSION: $(cat skills-repo/skills/liki-bazi/VERSION)"
     - name: Prepare skill roots (4 skills + webapp)
       shell: bash
       run: |
