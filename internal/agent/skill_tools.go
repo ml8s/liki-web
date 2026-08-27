@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -92,19 +93,35 @@ func (p *PythonToolRegistry) handler(fn string) func(context.Context, json.RawMe
 		defer cancel()
 		cmd := exec.CommandContext(callCtx, p.PythonBin, cliPath)
 		cmd.Stdin = bytes.NewReader(reqJSON)
-		var stdout, stderr bytes.Buffer
-		cmd.Stdout = &stdout
+		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
-		if err := cmd.Run(); err != nil {
-			return nil, fmt.Errorf("%s: python exec: %w (stderr: %s)", fn, err, stderr.String())
+		// stdout 上限（防异常大输出耗尽内存——正常断语 JSON 远小于此）
+		stdoutPipe, err := cmd.StdoutPipe()
+		if err != nil {
+			return nil, fmt.Errorf("%s: stdout pipe: %w", fn, err)
 		}
+		if err := cmd.Start(); err != nil {
+			return nil, fmt.Errorf("%s: python start: %w (stderr: %s)", fn, err, stderr.String())
+		}
+		const maxStdout = 10 << 20 // 10MB
+		raw, readErr := io.ReadAll(io.LimitReader(stdoutPipe, maxStdout+1))
+		if waitErr := cmd.Wait(); waitErr != nil && readErr == nil {
+			readErr = waitErr
+		}
+		if readErr != nil {
+			return nil, fmt.Errorf("%s: python exec: %w (stderr: %s)", fn, readErr, stderr.String())
+		}
+		if len(raw) > maxStdout {
+			return nil, fmt.Errorf("%s: python 输出超上限 %dMB（疑似异常，拒绝处理）", fn, maxStdout>>20)
+		}
+		stdout := bytes.NewReader(raw)
 
 		var resp struct {
 			OK    bool            `json:"ok"`
 			Data  json.RawMessage `json:"data"`
 			Error string          `json:"error"`
 		}
-		if err := json.Unmarshal(stdout.Bytes(), &resp); err != nil {
+		if err := json.NewDecoder(stdout).Decode(&resp); err != nil {
 			return nil, fmt.Errorf("%s: parse agent_cli output: %w", fn, err)
 		}
 		if !resp.OK {

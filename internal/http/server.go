@@ -35,11 +35,13 @@ type ServerDeps struct {
 }
 
 func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl *RateLimiter) http.Handler {
+	// 产品域共用限流档（5/min burst 6）：支付创建类端点
+	rateLimit := func(h http.HandlerFunc) http.HandlerFunc {
+		return rl.Wrap(5.0/60, 6, h)
+	}
+
 	// ── naming product routes ──
 	if deps.NamingStore != nil {
-		rateLimit := func(h http.HandlerFunc) http.HandlerFunc {
-			return rl.Wrap(5.0/60, 6, h)
-		}
 		naming.RegisterRoutes(mux, deps.NamingStore, deps.Payment, deps.NamingAgent, deps.OnPaid, rateLimit)
 	}
 
@@ -51,21 +53,22 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 
 	// ── mingshu product routes ──
 	if deps.MingShuStore != nil {
-		mingshu.RegisterRoutes(mux, deps.MingShuStore, deps.Payment, deps.MingShuGenerator, deps.OnPaid, deps.OnReportReady)
+		mingshu.RegisterRoutes(mux, deps.MingShuStore, deps.Payment, deps.MingShuGenerator, deps.OnPaid, deps.OnReportReady, rateLimit)
 	}
 
 	// ── hepan product routes ──
 	if deps.HepanStore != nil {
-		hepan.RegisterRoutes(mux, deps.HepanStore, deps.Payment, deps.HepanGenerator, deps.OnPaid, deps.OnReportReady)
+		hepan.RegisterRoutes(mux, deps.HepanStore, deps.Payment, deps.HepanGenerator, deps.OnPaid, deps.OnReportReady, rateLimit)
 	}
 
 	// ── admin routes (naming-specific — registered here to avoid import cycle) ──
 	if deps.NamingStore != nil {
 		admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid)
 	}
-	// ── admin auth routes ──
-	mux.HandleFunc("POST /api/admin/send-code", handleAdminSendCode(deps.OnVerification))
-	mux.HandleFunc("POST /api/admin/verify-code", handleAdminVerifyCode())
+	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3
+	// 防暴破 + 防邮件轰炸；per-IP 复用全局 RateLimiter）──
+	mux.HandleFunc("POST /api/admin/send-code", rl.Wrap(1.0/60, 3, handleAdminSendCode(deps.OnVerification)))
+	mux.HandleFunc("POST /api/admin/verify-code", rl.Wrap(1.0/60, 3, handleAdminVerifyCode()))
 
 	// ── feedback ──
 	if deps.FeedbackStore != nil {

@@ -17,7 +17,7 @@ func webhookHandler(store *Store, svc *payment.Service, logPrefix string, gen *G
 	return payment.HandleWebhook(store, svc, logPrefix, onPaid, p, onReady)
 }
 
-func RegisterRoutes(mux *http.ServeMux, store *Store, svc *payment.Service, pipeline *Generator, onPaid product.OnPaid, onReady product.OnReportReady) {
+func RegisterRoutes(mux *http.ServeMux, store *Store, svc *payment.Service, pipeline *Generator, onPaid product.OnPaid, onReady product.OnReportReady, rateLimitFn func(http.HandlerFunc) http.HandlerFunc) {
 	cfg := checkout.Config{
 		Product:      ProductHepan,
 		ReturnPath:   "/api/hepan/payments/return/",
@@ -27,7 +27,7 @@ func RegisterRoutes(mux *http.ServeMux, store *Store, svc *payment.Service, pipe
 
 	mux.HandleFunc("POST /api/hepan/orders", HandleCreateOrder(store))
 	mux.HandleFunc("GET /api/hepan/orders/{id}/status", checkout.MakeOrderStatus(store))
-	mux.HandleFunc("POST /api/hepan/checkout", checkout.MakeCheckout(store, svc, cfg))
+	mux.HandleFunc("POST /api/hepan/checkout", rateLimitFn(checkout.MakeCheckout(store, svc, cfg))) // 与 naming 同口径：支付创建限流；webhook 不限（网关回调限流=丢单）
 	mux.HandleFunc("GET /api/hepan/payments/return/{id}", checkout.MakePaymentReturn(store, cfg))
 	mux.HandleFunc("POST /api/hepan/webhook", webhookHandler(store, svc, "hepan", pipeline, onPaid, onReady))
 	mux.HandleFunc("GET /api/hepan/orders/{id}/report", HandleGetReport(store))

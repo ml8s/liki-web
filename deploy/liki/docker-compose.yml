@@ -37,9 +37,17 @@ services:
       - FEEDBACK_API_KEY=${FEEDBACK_API_KEY}
     volumes:
       - liki_data:/var/lib/liki
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     depends_on:
       engine:
         condition: service_started
+        # engine 为 scratch 镜像（无 shell/wget，无法运行探活命令）——保持 started；
+        # web 自身 /api/health 会暴露依赖问题
     deploy:
       resources:
         limits:
@@ -58,7 +66,7 @@ services:
       - caddy_data:/data
     depends_on:
       web:
-        condition: service_started
+        condition: service_healthy   # 反代在 web 就绪后才接入（started ≠ 可服务）
     restart: unless-stopped
     deploy:
       resources:
