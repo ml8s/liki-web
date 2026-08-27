@@ -176,6 +176,35 @@ func TestHandleUpdate_NoAuth(t *testing.T) {
 	}
 }
 
+// 回归保护：GBK 等非 UTF-8 body 曾被 encoding/json 静默替换为 U+FFFD 入库，
+// 两条用户反馈（3376740b/8d453a6a）因此不可逆损坏。现在必须 400 拒绝且不落库。
+func TestHandleCreate_RejectsNonUTF8(t *testing.T) {
+	s := setup(t)
+
+	// 「用户反馈」四字的 GBK 编码（非法 UTF-8）
+	gbkBody := append([]byte(`{"category":"bug","message":"`), 0xD3, 0xC3, 0xBB, 0xA7, 0xB7, 0xB4, 0xC0, 0xA1)
+	gbkBody = append(gbkBody, []byte(`"}`)...)
+	req := httptest.NewRequest("POST", "/api/feedback", bytes.NewReader(gbkBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	HandleCreate(s, rateLimit)(w, req)
+
+	if w.Code != 400 {
+		t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "UTF-8") {
+		t.Fatalf("错误信息应指明 UTF-8，got %q", w.Body.String())
+	}
+	list, err := s.List("", 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 0 {
+		t.Fatalf("非 UTF-8 反馈不应入库，got %d 条", len(list))
+	}
+}
+
 func setup(t *testing.T) *Store {
 	t.Helper()
 	db := openTestDB(t)

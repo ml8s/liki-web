@@ -3,8 +3,10 @@ package feedback
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 )
 
 type CreateRequest struct {
@@ -15,8 +17,20 @@ type CreateRequest struct {
 
 func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "invalid JSON", 400)
+			return
+		}
+		// 强制 UTF-8（RFC 8259 §8.1）：encoding/json 会把非法字节静默替换为 U+FFFD 入库，
+		// Windows GBK 客户端的两条反馈因此不可逆损坏（feedback 3376740b/8d453a6a）。
+		// fail loud：调用方收到 400 后自查编码重发，而不是存下乱码。
+		if !utf8.Valid(body) {
+			http.Error(w, "body must be UTF-8", 400)
+			return
+		}
 		var req CreateRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := json.Unmarshal(body, &req); err != nil {
 			http.Error(w, "invalid JSON", 400)
 			return
 		}

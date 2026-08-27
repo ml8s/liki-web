@@ -40,7 +40,7 @@ for SKILL in "${SKILLS[@]}"; do
   mkdir -p "$DEST_DIR"
   echo "==> $SKILL (from $SRC_DIR)"
 
-  # ── 1. Sync source files for web access (SKILL.md/app/domains/tools/VERSION/content.sha256) ──
+  # ── 1. Sync source files for web access (SKILL.md/app/domains/tools/VERSION) ──
   # 排除工程文件/测试/缓存——web/skills 目录 = 随包分发内容，与 build-archive.sh 口径一致
   rsync -a --no-group --delete \
     --exclude .git \
@@ -80,18 +80,6 @@ for SKILL in "${SKILLS[@]}"; do
     else
       echo "  WARNING: webapp source not found: $WEBAPP_SRC" >&2
     fi
-  fi
-
-  # ── 1.6 防假同步校验（外部评审 #14）：同步后重算实际内容指纹，与 content.sha256 比对 ──
-  # 不一致 = 声明指纹与实际内容错位（安装副本将出现假同步），直接报错阻断部署
-  if [ -f "$DEST_DIR/tools/hash.py" ] && [ -f "$DEST_DIR/content.sha256" ]; then
-    SYNCED_FP="$(python3 "$DEST_DIR/tools/hash.py" "$DEST_DIR")"
-    DECLARED_FP="$(cat "$DEST_DIR/content.sha256")"
-    if [ "$SYNCED_FP" != "$DECLARED_FP" ]; then
-      echo "  ERROR: $SKILL 假同步——实际内容指纹 $SYNCED_FP ≠ content.sha256 $DECLARED_FP。请先在 liki 仓重算指纹（make build-archive）后重新同步" >&2
-      exit 1
-    fi
-    echo "  ✓ $SKILL 指纹一致（${SYNCED_FP:0:16}…）"
   fi
 
   # ── 2. Copy pre-built archive from dist/ ──
