@@ -226,6 +226,7 @@ func main() {
 
 	// Setup HTTP
 	rateLimiter := apphttp.NewRateLimiter()
+	verifyLimiter := apphttp.NewRateLimiter()
 	defer rateLimiter.Stop()
 
 	mux := http.NewServeMux()
@@ -248,7 +249,7 @@ func main() {
 		Agent:            reportAgent,
 		Analytics:        apphttp.NewAnalytics(),
 		DevMode:          cfg.DevMode,
-	}, BuildTime, Version, rateLimiter)
+	}, BuildTime, Version, rateLimiter, verifyLimiter)
 
 	// Write timeout must accommodate LLM calls (~120s)
 	srv := &http.Server{

@@ -34,7 +34,7 @@ type ServerDeps struct {
 	DevMode          bool
 }
 
-func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl *RateLimiter) http.Handler {
+func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl, verifyRL *RateLimiter) http.Handler {
 	// 产品域共用限流档（5/min burst 6）：支付创建类端点
 	rateLimit := func(h http.HandlerFunc) http.HandlerFunc {
 		return rl.Wrap(5.0/60, 6, h)
@@ -65,10 +65,11 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	if deps.NamingStore != nil {
 		admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid)
 	}
-	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3
-	// 防暴破 + 防邮件轰炸；per-IP 复用全局 RateLimiter）──
+	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3）──
+	// send-code（防邮件轰炸）与 verify-code（防暴破）是独立风险面：独立限流桶，
+	// 避免共享桶互相干扰（打 send 耗尽配额锁死 verify 的 DoS 放大 + 冒烟连发误伤）
 	mux.HandleFunc("POST /api/admin/send-code", rl.Wrap(1.0/60, 3, handleAdminSendCode(deps.OnVerification)))
-	mux.HandleFunc("POST /api/admin/verify-code", rl.Wrap(1.0/60, 3, handleAdminVerifyCode()))
+	mux.HandleFunc("POST /api/admin/verify-code", verifyRL.Wrap(1.0/60, 3, handleAdminVerifyCode()))
 
 	// ── feedback ──
 	if deps.FeedbackStore != nil {

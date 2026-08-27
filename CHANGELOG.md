@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.08.27 —— 版本制切换 semver → CalVer（日期版本）
+
+- VERSION 写入日期戳（2026.08.27），make version-* 三命令合并为 make version；里程碑按需 `git tag -a <日期>`
+- 动因：无依赖解析场景（网站持续部署），semver 判断是仪式负担；历史版本条目（0.x）保留
+- 同步：CI skills 锁 ref v5.0.1 → 2026.08.27（liki-skills 同日切换）；删除全部历史 tag（v0.2.0…v0.8.0）
+
 ## 0.22.0 —— skill 规则引擎工具注册（web agent 执行 python 工具链）
 
 - agent 新增 5 个 skill 规则引擎工具：full_paipan / liunian / make_factors / make_liunian_factors / query

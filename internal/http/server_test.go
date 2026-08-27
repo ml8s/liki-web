@@ -24,7 +24,7 @@ func TestRegisterRoutes_DoesNotPanic(t *testing.T) {
 		NamingStore: nil,
 		Analytics:   &Analytics{},
 	}
-	RegisterRoutes(mux, deps, "test", "dev", rl)
+	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
 
 	r := httptest.NewRequest("GET", "/api/health", nil)
 	w := httptest.NewRecorder()
@@ -51,7 +51,7 @@ func TestRegisterRoutes_Feedback(t *testing.T) {
 		FeedbackStore:  fstore,
 		FeedbackAPIKey: "test-key",
 	}
-	RegisterRoutes(mux, deps, "test", "dev", rl)
+	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
 
 	// POST without auth — should work (rate-limited but not auth-gated)
 	r := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(`{"category":"bug","message":"test"}`))
@@ -105,7 +105,7 @@ func TestRegisterRoutes_JSONRPC(t *testing.T) {
 		NamingStore: nil,
 		Analytics:   &Analytics{},
 	}
-	RegisterRoutes(mux, deps, "test", "dev", rl)
+	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
 
 	r := httptest.NewRequest("POST", "/jsonrpc", nil)
 	w := httptest.NewRecorder()

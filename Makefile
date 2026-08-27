@@ -4,7 +4,7 @@
 .PHONY: deploy deploy-all deploy-us deploy-cn
 .PHONY: test-setup
 .PHONY: sync-skills build-archive build-web build-go build-docker build-sitemap
-.PHONY: version-patch version-minor version-major
+.PHONY: version
 
 # Node.js binary path — driven by .nvmrc (single source of truth)
 NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
@@ -156,14 +156,8 @@ check-version:
 
 VERSION_FILE := cmd/liki/VERSION
 
-version-patch: ## Bump PATCH (0.14.0 → 0.14.1)
-	@V=$$(cat $(VERSION_FILE)); \
-	MAJOR=$${V%%.*}; \
-	REST=$${V#*.}; \
-	MINOR=$${REST%.*}; \
-	PATCH=$${REST#*.}; \
-	echo "$$MAJOR.$$MINOR.$$((PATCH + 1))" > $(VERSION_FILE); \
-	echo "✅ $$V → $$(cat $(VERSION_FILE))"
+version: ## 写入今日日期（CalVer；里程碑时 git tag -a <日期>）
+	@V=$$(date +%Y.%m.%d); echo "$$V" > $(VERSION_FILE); echo "✅ → $$V"
 
 version-minor: ## Bump MINOR (0.14.0 → 0.15.0)
 	@V=$$(cat $(VERSION_FILE)); \
