@@ -9,17 +9,20 @@
 # Node.js binary path — driven by .nvmrc (single source of truth)
 NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
 
+# skills 仓根（ml8s/liki 的 clone 目录，与仓库名一致）
+SKILLS_DIR := ../liki
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # ── Build (leaf targets) ──
 
-sync-skills: ## Sync 4 sub-skills from ../liki-skills/skills/ to web/skills/
+sync-skills: ## Sync 4 sub-skills from ../liki/skills/ to web/skills/
 	scripts/sync-skills.sh
 
 build-archive: ## Build liki skill archive + sync to web/skills/
-	cd ../liki-skills && scripts/build-archive.sh
+	cd $(SKILLS_DIR) && scripts/build-archive.sh
 	make sync-skills
 
 build-sitemap: ## Generate sitemap.xml from Astro pages
@@ -75,7 +78,7 @@ test-js-watch: ## Run vitest in watch mode
 	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest test/
 
 test-skills: ## Run skill python tests (rules engine: factors/duanyu/agent_cli)——前置无服务，排除 integration（Docker 段全跑）
-	@cd ../liki-skills && python3 -m pytest tests/ -q --ignore=tests/test_integration.py
+	@cd $(SKILLS_DIR) && python3 -m pytest tests/ -q --ignore=tests/test_integration.py
 
 test-setup: ## Install web dependencies (npm install)
 	cd web && npm install
@@ -116,7 +119,7 @@ test-all: lint vet check-html check-caddy check-skills check-packaging check-ver
 	@scripts/docker-test.sh up || { scripts/docker-test.sh down 2>/dev/null; echo "❌ Docker 环境启动失败"; exit 1; }; \
 	$(MAKE) test-api URL=http://localhost:8080 API_URL=http://localhost:8080; RC=$$?; \
 	$(MAKE) test-ui URL=http://localhost:8080; RC2=$$?; \
-	cd ../liki-skills && LIKI_RPC_URL=http://localhost:8080/jsonrpc python3 -m pytest tests/ -q; RC3=$$?; \
+	cd $(SKILLS_DIR) && LIKI_RPC_URL=http://localhost:8080/jsonrpc python3 -m pytest tests/ -q; RC3=$$?; \
 	cd ../liki-web && scripts/docker-test.sh down; \
 	[ $$RC -eq 0 ] && [ $$RC2 -eq 0 ] && [ $$RC3 -eq 0 ] || { echo "❌ E2E 失败（test-api:$$RC test-ui:$$RC2 skill-pytest:$$RC3）"; exit 1; }
 	@echo "✅ test-all 全部通过"
@@ -203,7 +206,7 @@ SERVER_USER_US := ubuntu
 SERVER_USER_CN := root
 
 update-engine: ## 更新引擎源码（liki 拉最新 master——engine 现随 ml8s/liki 仓库分发，部署/测试前必做）
-	cd ../liki-skills && git pull --ff-only origin master
+	cd $(SKILLS_DIR) && git pull --ff-only origin master
 
 deploy: deploy-us ## Alias: 默认部署到 US（同 deploy-us）
 

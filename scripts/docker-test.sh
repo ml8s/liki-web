@@ -6,7 +6,7 @@ set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-ENGINE_DIR="${ENGINE_DIR:-$PROJECT_DIR/../liki-skills/engine}"
+ENGINE_DIR="${ENGINE_DIR:-$PROJECT_DIR/../liki/engine}"
 COMPOSE_FILE="$PROJECT_DIR/deploy/liki/docker-compose.test.yml"
 DEPLOY_DIR="$PROJECT_DIR/deploy/liki"
 
@@ -24,7 +24,7 @@ do_up() {
   (
     echo "  → skills"
     for repo in liki; do  # 现阶段只发布 liki
-      (cd "$PROJECT_DIR/../liki-skills" && make build-archive >/dev/null 2>&1)
+      (cd "$PROJECT_DIR/../liki" && make build-archive >/dev/null 2>&1)
     done
     "$SCRIPT_DIR/sync-skills.sh" >/dev/null
   ) &

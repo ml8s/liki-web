@@ -10,7 +10,7 @@ runs:
       uses: actions/checkout@v7
       with:
         repository: ml8s/liki
-        ref: 2026.08.27  # 锁定 skills 版本（CalVer——升级时随 liki-skills 发新 tag 后更新此 ref）
+        ref: 2026.08.27  # 锁定 skills 版本（CalVer——升级时随 liki 仓发新 tag 后更新此 ref）
         path: skills-repo
     - name: Prepare skill roots (4 skills + webapp)
       shell: bash

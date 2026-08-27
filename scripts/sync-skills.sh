@@ -17,8 +17,9 @@ done
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-SRC_ROOT="$PROJECT_DIR/../liki-skills/skills"
-DIST_DIR="$PROJECT_DIR/../liki-skills/dist"   # 构建产物在 liki-skills 仓库根
+# skills 仓根（ml8s/liki 的 clone 目录，与仓库名一致）
+SRC_ROOT="$PROJECT_DIR/../liki/skills"
+DIST_DIR="$PROJECT_DIR/../liki/dist"   # 构建产物在 liki 仓库根
 WELL_KNOWN_DIR="$PROJECT_DIR/web/.well-known/agent-skills"
 
 SKILLS=(liki-bazi liki-divination liki-fengshui liki-naming)
@@ -72,7 +73,7 @@ for SKILL in "${SKILLS[@]}"; do
   # webapp 不进 GitHub 安装包，但 liki-web 后端从 web/skills/liki-bazi/webapp/{mingshu,hepan}
   # 加载生成提示词——部署形态必须补上。
   if [ "$SKILL" = "liki-bazi" ]; then
-    WEBAPP_SRC="$PROJECT_DIR/../liki-skills/webapp"
+    WEBAPP_SRC="$PROJECT_DIR/../liki/webapp"
     if [ -d "$WEBAPP_SRC" ]; then
       rsync -a --delete "$WEBAPP_SRC/" "$DEST_DIR/webapp/"
       echo "  ✓ webapp synced (mingshu/hepan prompts)"
@@ -87,7 +88,7 @@ for SKILL in "${SKILLS[@]}"; do
     SYNCED_FP="$(python3 "$DEST_DIR/tools/hash.py" "$DEST_DIR")"
     DECLARED_FP="$(cat "$DEST_DIR/content.sha256")"
     if [ "$SYNCED_FP" != "$DECLARED_FP" ]; then
-      echo "  ERROR: $SKILL 假同步——实际内容指纹 $SYNCED_FP ≠ content.sha256 $DECLARED_FP。请先在 liki-skills 重算指纹（make build-archive）后重新同步" >&2
+      echo "  ERROR: $SKILL 假同步——实际内容指纹 $SYNCED_FP ≠ content.sha256 $DECLARED_FP。请先在 liki 仓重算指纹（make build-archive）后重新同步" >&2
       exit 1
     fi
     echo "  ✓ $SKILL 指纹一致（${SYNCED_FP:0:16}…）"
@@ -98,7 +99,7 @@ for SKILL in "${SKILLS[@]}"; do
     cp "$DIST_DIR/$SKILL.tar.gz" "$PROJECT_DIR/$DEST/$SKILL.tar.gz"
     echo "  ✓ archive synced: $SKILL.tar.gz"
   else
-    echo "  WARNING: dist/$SKILL.tar.gz not found. Run: cd ../liki-skills && make build-archive" >&2
+    echo "  WARNING: dist/$SKILL.tar.gz not found. Run: cd "$PROJECT_DIR/../liki" && make build-archive" >&2
   fi
 done
 

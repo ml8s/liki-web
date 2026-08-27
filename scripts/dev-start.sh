@@ -11,7 +11,7 @@ if [ -f .env ]; then
   set -a; source .env; set +a
 fi
 
-ENGINE_DIR="${ENGINE_DIR:-../liki-skills/engine}"
+ENGINE_DIR="${ENGINE_DIR:-$(dirname "$0")/../liki/engine}"
 LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
 export LIKI_WEB_HOST="${LIKI_WEB_HOST:-localhost}"
 export LIKI_ENGINE_HOST="${LIKI_ENGINE_HOST:-localhost}"
