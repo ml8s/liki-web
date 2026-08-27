@@ -25,6 +25,15 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_TIME="${BUILD_TIME:-$(date -u '+%Y-%m-%dT%H:%M:%SZ')}"
 
+# 自动加载 .env（compose 插值需要 FEEDBACK_API_KEY 等变量；不加载 → 空串插值告警，
+# 若带空变量 up 起容器，feedback list/update 认证将全 403）
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . "$PROJECT_DIR/.env"
+    set +a
+fi
+
 echo "[build-docker] build..."
 cd "$PROJECT_DIR"
 docker compose -f "$COMPOSE_FILE" build $SERVICES
