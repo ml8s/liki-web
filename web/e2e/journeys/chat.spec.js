@@ -372,7 +372,7 @@ test.describe('Chat page', () => {
     await gotoChat(page);
     await enterChatViaLogin(page);
 
-    await expect(page.locator('.msg-asst').first()).toContainText('你好，我是灵机起名');
+    await expect(page.locator('.msg-asst').first()).toContainText('你好，我是 Liki，起名顾问');
   });
 
   // ── mobile ──

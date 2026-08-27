@@ -1,11 +1,12 @@
 # Liki Web
 
 <p align="center">
-  <img alt="Liki Web" src="https://img.shields.io/badge/Liki_Web-命理Skills-6d5acf?style=for-the-badge&logo=openai&logoColor=white&labelColor=30305c">
+  <img alt="Liki Web" src="https://img.shields.io/badge/Liki_Web-命理師的_Skill-6d5acf?style=for-the-badge&logo=openai&logoColor=white&labelColor=30305c">
 </p>
 
 <p align="center">
-  <strong>Liki Web — 起名 / 灵机命书 / 灵机合盘（v0.22.2）</strong>
+  <strong>Liki Web — liki.hk 官方网站</strong><br>
+  按命理师的专业标准构建：起名 · 灵机命书 · 灵机合盘
 </p>
 
 <p align="center">
