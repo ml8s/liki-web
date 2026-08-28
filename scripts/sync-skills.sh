@@ -1,7 +1,7 @@
 #!/bin/bash
 # Sync the liki skill repo to the web serving directory.
 # 4 independent skills: liki-bazi / liki-divination / liki-fengshui / liki-naming
-#   (each = SKILL.md + app/ + domains/ + tools/ + VERSION + content.sha256)
+#   (each = SKILL.md + app/ + domains/ + tools/ + VERSION)
 # Usage: scripts/sync-skills.sh [--dest web/skills]
 set -euo pipefail
 

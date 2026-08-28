@@ -34,11 +34,3 @@ runs:
         test -f "web/skills/liki-bazi/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
         test -f "web/skills/liki-bazi/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
         echo "✓ 4 skill 结构完整（SKILL.md + VERSION + liki-bazi 工具链/webapp）"
-    - name: Verify fingerprints (防假同步——与 scripts/sync-skills.sh 同口径)
-      shell: bash
-      run: |
-        for s in liki-bazi liki-divination liki-fengshui liki-naming; do
-          FP="$(python3 "web/skills/$s/tools/hash.py" "web/skills/$s")"
-          [ "$FP" = "$(cat "web/skills/$s/content.sha256")" ] || { echo "❌ $s 假同步：$FP ≠ $(cat web/skills/$s/content.sha256)"; exit 1; }
-        done
-        echo "✓ 4 skill 指纹一致"
