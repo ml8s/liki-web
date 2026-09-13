@@ -177,7 +177,17 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if clean := filepath.Clean(r.URL.Path); clean == "/app" || strings.HasPrefix(clean, "/app/") {
+		clean := filepath.Clean(r.URL.Path)
+		if strings.HasPrefix(clean, "/app/assets/") {
+			assetPath := filepath.Join(distDir, "app", strings.TrimPrefix(clean, "/app/"))
+			if info, err := os.Stat(assetPath); err == nil && !info.IsDir() {
+				http.ServeFile(w, r, assetPath)
+				return
+			}
+			http.NotFound(w, r)
+			return
+		}
+		if clean == "/app" || strings.HasPrefix(clean, "/app/") {
 			appIndex := filepath.Join(distDir, "app", "index.html")
 			if _, err := os.Stat(appIndex); err == nil {
 				serveFileNoRedirect(w, r, appIndex)
