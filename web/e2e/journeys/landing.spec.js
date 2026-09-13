@@ -126,7 +126,8 @@ test.describe('Landing page', () => {
     await page.locator('#purchase-form button[type="submit"]').click();
 
     await page.waitForURL('**/checkout/pf-test', { timeout: 10000 });
-    expect(ordersBody).toMatchObject({ email: 'buyer@example.com', currency: 'USD' });
+    expect(ordersBody).toMatchObject({ email: 'buyer@example.com' });
+    expect(ordersBody.currency).toBeUndefined();
   });
 
   test('order creation server error shows inline error', async () => {
