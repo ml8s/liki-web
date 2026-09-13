@@ -32,7 +32,7 @@ func newAuthTestStore(t *testing.T) *naming.Store {
 
 func seedActiveOrder(t *testing.T, store *naming.Store, orderID, email string, prod product.Product, expiresAt string) {
 	t.Helper()
-	if err := store.CreateOrder(context.Background(), orderID, string(prod), product.NamingAmountCents(product.CNY), "CNY", "", "zh-Hans"); err != nil {
+	if err := store.CreateOrder(context.Background(), orderID, string(prod), 990, "CNY", "", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
 	if err := store.UpdateEmail(context.Background(), orderID, email); err != nil {
@@ -350,7 +350,7 @@ func TestHandleLogin_ExpiredOrderNotReturned(t *testing.T) {
 	t.Parallel()
 	store := newAuthTestStore(t)
 	// Seed an expired paid order — should NOT be returned.
-	if err := store.CreateOrder(context.Background(), "order-expired", "naming", product.NamingAmountCents(product.CNY), "CNY", "", "zh-Hans"); err != nil {
+	if err := store.CreateOrder(context.Background(), "order-expired", "naming", 990, "CNY", "", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
 	if err := store.UpdateEmail(context.Background(), "order-expired", "user@example.com"); err != nil {

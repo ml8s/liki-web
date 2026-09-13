@@ -27,8 +27,18 @@ async function mockCreateOrder(page, orderID = ORDER_ID) {
   });
 }
 
+async function mockIntent(page, orderID = ORDER_ID) {
+  await page.route('**/api/payments/intents', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { id: 'pi-' + orderID, business_order_id: orderID, product: 'naming', provider: 'dodo', status: 'created' } }),
+    });
+  });
+}
+
 async function mockCheckout(page) {
-  await page.route('**/api/naming/checkout', async (route) => {
+  await page.route('**/api/payments/intents/*/checkout', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -37,7 +47,7 @@ async function mockCheckout(page) {
   });
 }
 async function mockCheckoutError(page) {
-  await page.route('**/api/naming/checkout', async (route) => {
+  await page.route('**/api/payments/intents/*/checkout', async (route) => {
     await route.fulfill({
       status: 500,
       contentType: 'application/json',
@@ -86,6 +96,7 @@ test.describe('Landing page', () => {
 
   test('order creation and checkout redirect', async () => {
     await mockCreateOrder(page);
+    await mockIntent(page);
     await mockCheckout(page);
     await page.route('**/api/location', async (route) => {
       await route.fulfill({
@@ -210,6 +221,7 @@ test.describe('Landing page', () => {
 
   test('full flow: landing order → checkout → login → naming SSE', async () => {
     await mockCreateOrder(page);
+    await mockIntent(page);
     await mockCheckout(page);
     await page.route('https://pay.example.com/checkout/pf-test', async (route) => {
       await route.fulfill({ status: 200, body: '<html><body>Checkout</body></html>' });

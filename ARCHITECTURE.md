@@ -40,7 +40,7 @@
    │             │       │             │       │             │
    │ · store.go  │       │ · store.go  │       │ · store.go  │
    │ · handler   │       │ · handler   │       │ · handler   │
-   │ · checkout  │       │ · checkout  │       │ · checkout  │
+   │ · orders    │       │ · orders    │       │ · orders    │
    │ · chat (SSE)│       │ · generate  │       │ · generate  │
    │ · auth/JWT  │       │ · render    │       │ · render    │
    └──────┬──────┘       └──────┬──────┘       └──────┬──────┘
@@ -50,13 +50,13 @@
                     ┌────────────┴────────────┐
                     │   共享基础设施            │
                     ├─────────────────────────┤
-                    │ · payment/ 支付网关      │
+                    │ · payment.Runtime 支付   │
                     │   (dodo 海外 + xunhu国内)│
                     │ · agent/ LLM Agent      │
                     │ · llm/ LLM 客户端       │
                     │ · email/ 邮件发送       │
                     │ · httputil/ 工具函数     │
-                    │ · checkout/ 支付基类     │
+                    │ · payment/runtime.go    │
                     └─────────────────────────┘
 
 ═══════════════════════════════════════════════════════════════════════
@@ -101,7 +101,7 @@
 │  │   ├─ mingshu.db     (命书域 orders + reports)                    │
 │  │   └─ hepan.db       (合盘域 orders + reports)                    │
 │  ├─ 初始化基础设施                                                   │
-│  │   ├─ payment.Service (dodo + xunhu 支付网关)                     │
+│  │   ├─ payment.Runtime (canonical intents + dodo/xunhu adapters + notifications)                     │
 │  │   ├─ email.Sender (Resend API)                                   │
 │  │   ├─ llm.Client (DeepSeek API)                                   │
 │  │   └─ agent.Agent (LLM Prompt + Tools)                             │
@@ -115,13 +115,14 @@
 │  │   │   ├─ POST /api/naming/orders                                 │
 │  │   │   ├─ POST /api/naming/orders/select                          │
 │  │   │   ├─ GET  /api/naming/orders/{id}/status                     │
-│  │   │   ├─ POST /api/naming/orders/{id}/retry                      │
 │  │   │   ├─ GET  /api/naming/orders/{id}/messages                   │
 │  │   │   ├─ DELETE /api/naming/orders/{id}/messages                 │
 │  │   │   ├─ POST /api/naming/agent/chat  (SSE stream)               │
-│  │   │   ├─ POST /api/naming/checkout    (rate limited)             │
-│  │   │   ├─ POST /api/naming/webhook                                │
-│  │   │   ├─ GET  /api/naming/payments/return/{id}                   │
+│  │   │   ├─ POST /api/payments/intents (rate limited)                │
+│  │   │   ├─ POST /api/payments/intents/{id}/checkout (rate limited)  │
+│  │   │   ├─ GET  /api/payments/intents/{id}/status                  │
+│  │   │   ├─ GET  /api/payments/return/{id}                          │
+│  │   │   ├─ POST /api/payments/webhook                              │
 │  │   │   └─ POST /api/naming/verification-codes/redeem              │
 │  │   ├─ hepan.RegisterRoutes(...)                                   │
 │  │   │   └─ 同命名模式（hepan 替换 naming）                          │
@@ -169,12 +170,47 @@
 │    └─ LLM 输出回复文本                                               │
 │ ⑥ SSE 流式返回给浏览器                                               │
 │                                                                     │
-│ 支付完成回调 → https://liki.hk/api/naming/webhook                   │
+│ 支付完成回调 → https://liki.hk/api/payments/webhook                   │
 │                                                                     │
 │ ① Caddy 443 → Go :8081                                              │
-│ ② payment.HandleWebhook → VerifyWebhook                             │
-│ ③ onPaid 回调 → 发送邮件                                            │
-│ ④ 用户浏览器 → GET /naming/chat?order_id=xxx                        │
+│ ② paymentRuntime.HandleWebhook → provider VerifyWebhook             │
+│    ├─ xunhu: MD5 验签、OD 成功态、精确 success ACK                  │
+│    └─ dodo: Standard Webhooks HMAC 验签                             │
+│ ③ MarkPaid → 幂等 enqueue notifications + fulfillment task           │
+│    ├─ notification worker: 客户回执 / 管理员通知                    │
+│    └─ fulfillment worker: 重试型 OnPaid（开通 / 报告生成）           │
+│ ④ ReconcilePendingIntents 使用官方状态查询兜底                      │
+│    ├─ xunhu: POST /payment/query.html + 金额校验                    │
+│    └─ dodo: GET /checkouts/{id} → GET /payments/{payment_id}        │
+│ ⑤ 用户浏览器 → GET /zh-Hans/naming/chat?order_id=xxx                │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─ 支付与履约领域契约 ─────────────────────────────────────────────────┐
+│                                                                     │
+│ · product catalog 是产品 ID 和定价唯一来源：naming / mingshu / hepan。│
+│   历史 lifebook ID 会在迁移时归一为 mingshu。                         │
+│ · billing currency 由服务端从 edge/geo header 推导，不由请求体决定。 │
+│ · ProviderRoutePolicy 是服务端权威路由：CNY → xunhu，非 CNY → dodo。 │
+│   请求里的 provider 只是 hint，不参与最终路由。                      │
+│ · webhook / reconciliation 成功后写入幂等 fulfillment_tasks。        │
+│   worker 负责产品履约，支持重试、backoff、running 恢复和终态失败。   │
+│ · notifications 与 fulfillment 是独立 durable work stream。          │
+│   重复回调只补齐缺失记录，不会重复执行已完成工作。                   │
+│ · mingshu / hepan 报告读取要求订单 paid，并通过 JWT 归属或           │
+│   有过期时间的 order access token 授权。                             │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─ 支付运营与状态授权 ────────────────────────────────────────────────┐
+│                                                                     │
+│ · payment_events 记录 webhook / reconciliation 的稳定事件指纹，       │
+│   不保存原始回调和客户 PII。                                         │
+│ · checkout 返回短时 status_token；状态与履约状态接口不再只依赖 UUID。 │
+│ · fulfillment status 暴露 queued / running / succeeded / failed。     │
+│ · provider 配置不完整时启动即禁用；两个渠道都缺失则启动失败。         │
+│ · metrics token 为空时 /api/internal/metrics 返回 404。               │
+│ · retention worker 关闭 7 天废弃 intent，并清理 90 天已发送通知。     │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 

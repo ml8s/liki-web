@@ -54,7 +54,7 @@ describe('purchase.js', () => {
     expect(els['purchase-error'].classList._cs).not.toContain('hidden');
   });
 
-  it('passes currency from window.Liki.currency', async () => {
+  it('does not send client-controlled currency', async () => {
     globalThis.window.Liki.currency = 'USD';
     globalThis.Liki.currency = 'USD';
     els['purchase-email'].value = 'test@example.com';
@@ -62,6 +62,6 @@ describe('purchase.js', () => {
     await els['purchase-form']._lssubmit({ preventDefault() {} });
 
     const body = globalThis.createOrderAndCheckout.mock.calls[0][1];
-    expect(body.currency).toBe('USD');
+    expect(body.currency).toBeUndefined();
   });
 });

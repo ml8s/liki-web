@@ -4,6 +4,9 @@
 
   var params = new URLSearchParams(window.location.search);
   var oid = params.get('order_id');
+  var accessToken = params.get('access_token');
+  var paymentIntentID = params.get('payment_intent_id');
+  var statusToken = params.get('status_token');
 
   var container = document.getElementById('report-container');
   if (!container) return;
@@ -18,8 +21,24 @@
 
   container.innerHTML = '<div class="py-12 text-center"><span class="inline-block w-4 h-4 rounded-full bg-stone-300 mr-2 align-middle" style="animation:spin 1s linear infinite"></span><span class="text-stone-400 text-sm">加载中…</span></div>';
 
-  fetch('/api/mingshu/orders/' + encodeURIComponent(oid) + '/report', { signal: controller.signal })
-    .then(function (r) {
+  function loadReport() {
+    return fetch('/api/mingshu/orders/' + encodeURIComponent(oid) + '/report?access_token=' + encodeURIComponent(accessToken || ''), { signal: controller.signal });
+  }
+
+  function waitFulfillment() {
+    if (!paymentIntentID || !statusToken || !window.LikiPayment) return Promise.resolve();
+    clearTimeout(timeout);
+    container.innerHTML = '<div class="py-12 text-center text-stone-500 text-sm">报告生成中…</div>';
+    return window.LikiPayment.createFulfillmentStatusPoller(paymentIntentID, { token: statusToken }).start().then(function (status) {
+      timeout = setTimeout(function () { controller.abort(); }, 30000);
+      if (status.fulfillment_status === 'failed') throw new Error('报告生成失败');
+    }, function (err) {
+      timeout = setTimeout(function () { controller.abort(); }, 30000);
+      throw err;
+    });
+  }
+
+  waitFulfillment().then(loadReport).then(function (r) {
       clearTimeout(timeout);
       if (!r.ok) { throw new Error(r.status === 404 ? '报告未找到' : (r.status >= 500 ? '服务器错误' : '请求失败')); }
       return r.json();

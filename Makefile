@@ -12,6 +12,11 @@ NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
 # skills 仓根（ml8s/liki 的 clone 目录，与仓库名一致）
 SKILLS_DIR := ../liki
 
+# Go / lint tools may live outside the default login PATH.
+export PATH := $(HOME)/app/go/bin:$(HOME)/app/go-tools/bin:$(HOME)/go/bin:$(PATH)
+export GOCACHE ?= /tmp/gocache
+export GOLANGCI_LINT_CACHE ?= /tmp/golangci-lint-cache
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -87,7 +92,7 @@ test-setup: ## Install web dependencies (npm install)
 
 test-db: ## Run DB integration tests
 	go test -tags integration -count=1 -timeout 30s ./internal/http/
-	go test -tags integration -count=1 -timeout 30s -run "^Test(Webhook|CreateCheckout)" ./internal/payment/
+	go test -tags integration -count=1 -timeout 30s -run "^(TestSharedPayment|TestRuntime)" ./internal/payment/
 
 # ── Layer 3+4: 服务测试（需 $URL）──
 

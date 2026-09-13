@@ -58,7 +58,7 @@ type LoginOrderSummary struct {
 type OrderData struct {
 	OrderID       string
 	Product       string
-	Amount        int
+	Amount        int64
 	Currency      string
 	Email         string
 	Provider      string
@@ -92,7 +92,7 @@ type RedeemCodeParams struct {
 	OrderID       string
 	Product       string
 	Currency      string
-	Amount        int
+	Amount        int64
 	ChatExpiresAt string
 	Locale        string
 }

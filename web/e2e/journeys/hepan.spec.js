@@ -50,18 +50,29 @@ test.describe('Hepan — order creation and checkout', () => {
     });
   }
 
-  async function mockCheckout(page) {
-    await page.route('**/api/hepan/checkout', async (route) => {
+  async function mockIntent(page) {
+    await page.route('**/api/payments/intents', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: { checkout_url: '/checkout/hp-test', qrcode_url: '' } }),
+        body: JSON.stringify({ data: { id: 'pi-' + ORDER_ID, business_order_id: ORDER_ID, product: 'hepan', provider: 'xunhu', status: 'created' } }),
+      });
+    });
+  }
+
+  async function mockCheckout(page) {
+    await page.route('**/api/payments/intents/*/checkout', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { checkout_url: '/checkout/hp-test', qr_url: '' } }),
       });
     });
   }
 
   test('create order and redirect to checkout', async ({ page }) => {
     await mockCreateOrder(page);
+    await mockIntent(page);
     await mockCheckout(page);
 
     await page.goto('/zh-Hans/hepan');
@@ -108,7 +119,7 @@ test.describe('Hepan — order creation and checkout', () => {
     await page.route('**/api/hepan/orders', async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { order_id: ORDER_ID } }) });
     });
-    await page.route('**/api/hepan/checkout', async (route) => {
+    await page.route('**/api/payments/intents/*/checkout', async (route) => {
       await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { message: 'payment error' } }) });
     });
 

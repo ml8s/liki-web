@@ -258,15 +258,23 @@ check_422 "POST /api/naming/auth/login (missing email)" "$s"
 # ============================================================================
 echo ""
 echo "${BOLD}── Payment ──${NC}"
-s=$(api POST /api/naming/checkout "{\"order_id\":\"nonexistent\",\"email\":\"$TEST_EMAIL\"}")
-check_404 "POST /api/naming/checkout (no order)" "$s"
+if [ -n "$ORDER_ID" ]; then
+  s=$(api POST /api/payments/intents "{\"product\":\"naming\",\"business_order_id\":\"$ORDER_ID\",\"provider\":\"dodo\"}")
+  check_200 "POST /api/payments/intents (create)" "$s"
+  PAYMENT_INTENT_ID=$(json_val "$b" '.data.id // empty')
+fi
 
-s=$(api POST /api/naming/webhook '{"type":"order.paid","data":{"order_id":"test"}}')
-check_400 "POST /api/naming/webhook (no sig)" "$s"
+if [ -n "${PAYMENT_INTENT_ID:-}" ]; then
+  s=$(api GET "/api/payments/intents/$PAYMENT_INTENT_ID/status")
+  check_200 "GET /api/payments/intents/{id}/status" "$s"
+fi
 
-# Payment return — invalid token → 302 redirect to /
-s=$(api GET "/api/naming/payments/return/nonexistent?status=succeeded&t=bad")
-check_302 "GET /api/naming/payments/return/{id} (bad token)" "$s"
+s=$(api POST /api/payments/webhook '{"type":"order.paid","data":{"order_id":"test"}}')
+check_400 "POST /api/payments/webhook (no sig)" "$s"
+
+# Payment return is an opaque technical redirect; unknown ids redirect to /.
+s=$(api GET "/api/payments/return/nonexistent")
+check_302 "GET /api/payments/return/{id} (unknown)" "$s"
 
 # ============================================================================
 # Agent
@@ -417,7 +425,7 @@ if [ -z "${SKIP_EXTERNAL:-}" ]; then
   echo "${BOLD}── Rate Limiting ──${NC}"
   # Fire burst + 1 requests quickly to trigger rate limit on checkout
   for i in $(seq 1 5); do
-    s=$(api POST /api/naming/checkout "{\"order_id\":\"rate-test-$i\",\"email\":\"$TEST_EMAIL\"}")
+    s=$(api POST /api/payments/intents "{\"product\":\"naming\",\"business_order_id\":\"rate-test-$i\",\"provider\":\"dodo\"}")
     if [ "$s" = "429" ]; then
       echo -e "  ${GREEN}\xe2\x9c\x93${NC} Rate limit triggered at request #$i"
       PASS=$((PASS + 1))

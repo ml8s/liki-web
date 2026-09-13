@@ -1,10 +1,7 @@
-/* global goCheckout */
 const API_BASE = '/api';
 const DEFAULT_TIMEOUT = 30000;
 const TOAST_DURATION = 4000;
 const RETRY_DELAY = 1000;
-
-// ── connectivity ──
 
 let offlineToast = null;
 
@@ -16,8 +13,6 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => {
   offlineToast = showToast(i18next.t('error.offline'), 'error');
 });
-
-// ── response helpers ──
 
 async function handleResponse(resp) {
   if (!resp.ok) {
@@ -34,11 +29,9 @@ function isRetryable(err) {
   return (err.name === 'TypeError' || err.name === 'AbortError') && err.message !== 'TimeoutError';
 }
 
-// ── public API ──
-
 async function apiPost(path, body, opts = {}) {
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT;
-  const retries = opts.retries ?? 0; // POST not idempotent by default
+  const retries = opts.retries ?? 0;
   let lastErr;
   for (let i = 0; i <= retries; i++) {
     try {
@@ -57,7 +50,6 @@ async function apiPost(path, body, opts = {}) {
   }
   throw lastErr;
 }
-
 
 function escapeHTML(text) {
   const d = document.createElement('div');
@@ -95,9 +87,7 @@ function showToast(msg, type = 'error') {
   return el;
 }
 
-// ── shared order+checkout flow ──
-
-async function createOrderAndCheckout(apiPath, body, product, extra) {
+async function createOrderAndCheckout(apiPath, body, product, _extra) {
   const resp = await fetch(apiPath, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -105,12 +95,25 @@ async function createOrderAndCheckout(apiPath, body, product, extra) {
   });
   const data = await resp.json();
   if (!resp.ok) throw new Error(data.error?.message || 'Request failed');
-  const oid = data.data?.order_id;
-  if (!oid) throw new Error('Order creation failed');
-  await goCheckout(product, oid, extra || {});
+  const businessOrderID = data.data?.order_id;
+  if (!businessOrderID) throw new Error('Order creation failed');
+
+  // The server owns provider routing; client geo/currency is display-only.
+  const intent = await apiPost('/payments/intents', {
+    product,
+    business_order_id: businessOrderID,
+    locale: body.lang || (i18next.language || 'zh-Hant'),
+  });
+  const checkout = await apiPost('/payments/intents/' + encodeURIComponent(intent.id) + '/checkout', {});
+  if (checkout.qr_url) {
+    window.Liki.startIntentCheckout(intent.id, checkout, checkout.success_url);
+    return checkout;
+  }
+  if (!checkout.checkout_url) throw new Error(i18next.t('error.noCheckoutUrl'));
+  location.href = checkout.checkout_url;
+  return checkout;
 }
 
-// ── currency detection ──
 (function() {
   var PRICE = {
     naming:   { CNY: '¥9.90', USD: '$9.90' },
@@ -129,7 +132,6 @@ async function createOrderAndCheckout(apiPath, body, product, extra) {
   }
 
   update();
-
   fetch('/api/location').then(function(r) { return r.json(); }).then(function(d) {
     if (d.data && d.data.currency === 'USD') {
       window.Liki.currency = 'USD';
@@ -138,7 +140,6 @@ async function createOrderAndCheckout(apiPath, body, product, extra) {
   }).catch(function() {});
 })();
 
-// ── namespace ──
 const t = (key) => i18next.t(key);
 window.Liki = window.Liki || {};
 Object.assign(window.Liki, { apiPost, createOrderAndCheckout, escapeHTML, renderMD, t,

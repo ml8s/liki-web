@@ -42,7 +42,7 @@ func TestNamingHandler_NoJWT(t *testing.T) {
 
 func TestNamingHandler_OrderNotPaid(t *testing.T) {
 	store := newAuthTestStore(t)
-	if err := store.CreateOrder(context.Background(), "order-1", "naming", product.NamingAmountCents(product.CNY), "CNY", "", "zh-Hans"); err != nil {
+	if err := store.CreateOrder(context.Background(), "order-1", "naming", 990, "CNY", "", "zh-Hans"); err != nil {
 		t.Fatalf("create order: %v", err)
 	}
 	handler := setupNamingHandler(t, store)

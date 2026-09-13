@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"liki-web/internal/httputil"
 	"liki-web/internal/product"
@@ -15,6 +16,7 @@ func HandleCreateOrder(store *Store) http.HandlerFunc {
 		var req struct {
 			PersonA PersonInfo `json:"person_a"`
 			PersonB PersonInfo `json:"person_b"`
+			Email   string     `json:"email"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
@@ -25,9 +27,15 @@ func HandleCreateOrder(store *Store) http.HandlerFunc {
 		orderID := product.NewOrderID()
 		pA, _ := json.Marshal(req.PersonA) //nolint:errcheck
 		pB, _ := json.Marshal(req.PersonB) //nolint:errcheck
-		amount, currency := hepanAmount(string(product.DetectCurrency(r.Header.Get("CF-IPCountry"), "")))
+		currency := product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
+		amount, priceErr := product.AmountMinor(product.ProductHePan, currency)
+		if priceErr != nil {
+			slog.Error("hepan: resolve price", "err", priceErr)
+			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
+			return
+		}
 
-		if err := store.CreateOrder(r.Context(), orderID, string(ProductHepan), amount, currency, "", string(pA), string(pB), locale); err != nil {
+		if err := store.CreateOrder(r.Context(), orderID, string(ProductHepan), amount, string(currency), req.Email, string(pA), string(pB), locale); err != nil {
 			slog.Error("hepan: create order", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
 			return
@@ -43,6 +51,15 @@ func HandleGetReport(store *Store) http.HandlerFunc {
 		orderID := r.PathValue("id")
 		if orderID == "" {
 			httputil.RespondError(w, http.StatusNotFound, "not_found", "订单不存在")
+			return
+		}
+		order, err := store.GetOrder(r.Context(), orderID)
+		if err != nil || order.Status != "paid" || order.Product != string(ProductHepan) {
+			httputil.RespondError(w, http.StatusNotFound, "not_found", "报告不存在")
+			return
+		}
+		if !httputil.AuthorizeOrderAccess(r, string(ProductHepan), orderID, order.Email, time.Now()) {
+			httputil.RespondError(w, http.StatusNotFound, "not_found", "报告不存在")
 			return
 		}
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
+	"time"
 
 	"liki-web/internal/httputil"
 	"liki-web/internal/product"
@@ -28,8 +28,7 @@ func HandleCreateOrder(store *Store) http.HandlerFunc {
 				City   string `json:"city"`
 				Gender string `json:"gender"`
 			} `json:"birth"`
-			Email    string `json:"email"`
-			Currency string `json:"currency"`
+			Email string `json:"email"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
@@ -47,18 +46,15 @@ func HandleCreateOrder(store *Store) http.HandlerFunc {
 		birthStr := fmt.Sprintf("%s | %d-%02d-%02d %02d:%02d | %s | %s",
 			b.Name, b.Year, b.Month, b.Day, b.Hour, b.Minute, b.City, b.Gender)
 
-		curr := strings.ToUpper(req.Currency)
-		if curr == "" {
-			curr = "CNY"
-		}
-		var amount int
-		if curr == "CNY" {
-			amount = 990
-		} else {
-			amount = 990
+		currency := product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
+		amount, priceErr := product.AmountMinor(product.ProductMingShu, currency)
+		if priceErr != nil {
+			slog.Error("mingshu: resolve price", "err", priceErr)
+			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
+			return
 		}
 
-		if err := store.CreateOrder(r.Context(), orderID, string(product.ProductMingShu), amount, curr, req.Email, birthStr, locale); err != nil {
+		if err := store.CreateOrder(r.Context(), orderID, string(product.ProductMingShu), amount, string(currency), req.Email, birthStr, locale); err != nil {
 			slog.Error("mingshu: create order", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
 			return
@@ -75,6 +71,15 @@ func HandleGetReport(store *Store) http.HandlerFunc {
 		orderID := r.PathValue("id")
 		if orderID == "" {
 			httputil.RespondError(w, http.StatusNotFound, "not_found", "订单不存在")
+			return
+		}
+		order, err := store.GetOrder(r.Context(), orderID)
+		if err != nil || order.Status != "paid" || order.Product != string(product.ProductMingShu) {
+			httputil.RespondError(w, http.StatusNotFound, "not_found", "报告不存在")
+			return
+		}
+		if !httputil.AuthorizeOrderAccess(r, string(product.ProductMingShu), orderID, order.Email, time.Now()) {
+			httputil.RespondError(w, http.StatusNotFound, "not_found", "报告不存在")
 			return
 		}
 

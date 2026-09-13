@@ -110,56 +110,6 @@ func TestStore_UpdateEmail(t *testing.T) {
 	}
 }
 
-func TestStore_UpdateProvider(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	orderID := seedOrder(t, store)
-
-	if err := store.UpdateProvider(context.Background(), orderID, "xunhu"); err != nil {
-		t.Fatalf("UpdateProvider: %v", err)
-	}
-
-	order, _ := store.GetOrder(context.Background(), orderID) //nolint:errcheck
-	if order.Provider != "xunhu" {
-		t.Errorf("provider = %q", order.Provider)
-	}
-}
-
-func TestStore_MarkPaid(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	orderID := seedOrder(t, store)
-
-	// First call → marks paid
-	newPayment, email, err := store.MarkPaidViaCallback(context.Background(), orderID)
-	if err != nil {
-		t.Fatalf("MarkPaid first: %v", err)
-	}
-	if !newPayment {
-		t.Error("expected newPayment=true")
-	}
-	_ = email
-
-	order, _ := store.GetOrder(context.Background(), orderID) //nolint:errcheck
-	if order.Status != "paid" {
-		t.Errorf("status = %q, want paid", order.Status)
-	}
-}
-
-func TestStore_MarkPaid_Idempotent(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	orderID := seedOrder(t, store)
-
-	store.MarkPaidViaCallback(context.Background(), orderID) //nolint:errcheck
-
-	// Second call → no-op
-	newPayment, _, _ := store.MarkPaidViaCallback(context.Background(), orderID) //nolint:errcheck
-	if newPayment {
-		t.Error("expected newPayment=false on duplicate")
-	}
-}
-
 func TestStore_SaveAndGetReport(t *testing.T) {
 	t.Parallel()
 	store := newTestStore(t)
@@ -209,7 +159,7 @@ func TestStore_CreateOrder_AmountCurrency(t *testing.T) {
 	pB, _ := json.Marshal(PersonInfo{Name: "B"}) //nolint:errcheck
 
 	tests := []struct {
-		amount   int
+		amount   int64
 		currency string
 	}{
 		{990, "CNY"},

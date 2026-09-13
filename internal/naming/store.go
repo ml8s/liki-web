@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"liki-web/internal/httputil"
-	"liki-web/internal/product"
 )
 
 type Store struct {
@@ -33,7 +32,7 @@ func NewStore(db *sql.DB) *Store {
 
 // ── orders ──
 
-func (s *Store) CreateOrder(ctx context.Context, orderID, product string, amount int, currency, email, locale string) error {
+func (s *Store) CreateOrder(ctx context.Context, orderID, product string, amount int64, currency, email, locale string) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO orders (order_id, product, amount, currency, email, locale) VALUES (?,?,?,?,?,?)`,
 		orderID, product, amount, currency, email, locale)
@@ -127,7 +126,7 @@ func (s *Store) ListOrdersByEmail(ctx context.Context, email string) ([]OrderDat
 	return orders, rows.Err()
 }
 
-func (s *Store) CreatePaidOrder(ctx context.Context, orderID, product string, amount int, currency, email, expiresAt, locale string) error {
+func (s *Store) CreatePaidOrder(ctx context.Context, orderID, product string, amount int64, currency, email, expiresAt, locale string) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO orders (order_id, product, amount, currency, email, locale, chat_expires_at, status) VALUES (?,?,?,?,?,?,?,'paid')`,
 		orderID, product, amount, currency, email, locale, expiresAt)
@@ -253,12 +252,4 @@ func (s *Store) CleanStale(ctx context.Context) (int, error) {
 	}
 	n, _ := res.RowsAffected() //nolint:errcheck
 	return int(n), nil
-}
-
-func (s *Store) GetCheckoutOrder(ctx context.Context, orderID string) (*product.CheckoutOrder, error) {
-	o, err := s.GetOrder(ctx, orderID)
-	if err != nil {
-		return nil, err
-	}
-	return &product.CheckoutOrder{Status: o.Status, Amount: o.Amount, Product: o.Product}, nil
 }

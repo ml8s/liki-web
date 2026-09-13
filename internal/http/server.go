@@ -18,9 +18,8 @@ import (
 
 type ServerDeps struct {
 	OnPaid           func(ctx context.Context, orderID string)
-	OnReportReady    func(ctx context.Context, orderID string)
 	OnVerification   func(ctx context.Context, email, code string)
-	Payment          *payment.Service
+	PaymentRuntime   *payment.Runtime
 	NamingStore      *naming.Store
 	MingShuStore     *mingshu.Store
 	MingShuGenerator *mingshu.Generator
@@ -29,6 +28,7 @@ type ServerDeps struct {
 	NamingAgent      *agent.Agent
 	Agent            *agent.Agent
 	Analytics        *Analytics
+	MetricsHandler   http.HandlerFunc
 	FeedbackStore    *feedback.Store
 	FeedbackAPIKey   string
 	DevMode          bool
@@ -40,9 +40,19 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		return rl.Wrap(5.0/60, 6, h)
 	}
 
+	// ── unified payment runtime ──
+	if deps.PaymentRuntime != nil {
+		mux.HandleFunc("POST /api/payments/intents", rateLimit(deps.PaymentRuntime.HandleCreateIntent))
+		mux.HandleFunc("POST /api/payments/intents/{id}/checkout", rateLimit(deps.PaymentRuntime.HandleStartCheckout))
+		mux.HandleFunc("GET /api/payments/intents/{id}/status", deps.PaymentRuntime.HandleIntentStatus)
+		mux.HandleFunc("GET /api/payments/intents/{id}/fulfillment-status", deps.PaymentRuntime.HandleFulfillmentStatus)
+		mux.HandleFunc("GET /api/payments/return/{id}", deps.PaymentRuntime.HandlePaymentReturn)
+		mux.HandleFunc("POST /api/payments/webhook", deps.PaymentRuntime.HandleWebhook)
+	}
+
 	// ── naming product routes ──
 	if deps.NamingStore != nil {
-		naming.RegisterRoutes(mux, deps.NamingStore, deps.Payment, deps.NamingAgent, deps.OnPaid, rateLimit)
+		naming.RegisterRoutes(mux, deps.NamingStore, deps.NamingAgent, rateLimit)
 	}
 
 	mux.HandleFunc("GET /api/health", handleHealth())
@@ -50,15 +60,18 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	mux.HandleFunc("GET /api/stats", handleStats(deps.Analytics))
 	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
 	mux.HandleFunc("GET /api/location", handleLocation)
+	if deps.MetricsHandler != nil {
+		mux.HandleFunc("GET /api/internal/metrics", deps.MetricsHandler)
+	}
 
 	// ── mingshu product routes ──
 	if deps.MingShuStore != nil {
-		mingshu.RegisterRoutes(mux, deps.MingShuStore, deps.Payment, deps.MingShuGenerator, deps.OnPaid, deps.OnReportReady, rateLimit)
+		mingshu.RegisterRoutes(mux, deps.MingShuStore, rateLimit)
 	}
 
 	// ── hepan product routes ──
 	if deps.HepanStore != nil {
-		hepan.RegisterRoutes(mux, deps.HepanStore, deps.Payment, deps.HepanGenerator, deps.OnPaid, deps.OnReportReady, rateLimit)
+		hepan.RegisterRoutes(mux, deps.HepanStore, rateLimit)
 	}
 
 	// ── admin routes (naming-specific — registered here to avoid import cycle) ──

@@ -58,7 +58,6 @@
           person_a: personA,
           person_b: personB,
           email: email,
-          currency: window.Liki.currency,
           lang: i18next ? i18next.language : 'zh-Hans'
         },
         'hepan',
@@ -72,11 +71,5 @@
     }
   });
 
-  // ── payment:paid listener → checkout（支付后跳转到 /hepan/report）──
-  document.addEventListener('payment:paid', function (e) {
-    var oid = e.detail && (e.detail.orderID || e.detail);
-    if (!oid) return;
-    goCheckout('hepan', oid); // eslint-disable-line no-undef
-  });
 })();
 

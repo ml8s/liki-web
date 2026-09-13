@@ -11,11 +11,6 @@
   if (!form || !emailEl || !btn) return;
 
   // QR payment success: redirect to chat
-  document.addEventListener('payment:paid', function(e) {
-    var lang = (i18next.language || 'zh-Hant');
-    location.href = '/' + lang + '/chat?order_id=' + encodeURIComponent(e.detail.orderID);
-  });
-
   form.addEventListener('submit', async function(){
     if (loading) return;
     var email = emailEl.value.trim();
@@ -27,7 +22,7 @@
 
     try {
       await createOrderAndCheckout('/api/naming/orders',
-        { email: email, currency: window.Liki.currency, lang: i18next.isInitialized ? i18next.language : 'zh-Hant' },
+        { email: email, lang: i18next.isInitialized ? i18next.language : 'zh-Hant' },
         'naming',
         { email: email });
       return;

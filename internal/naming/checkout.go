@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"liki-web/internal/httputil"
-	"liki-web/internal/payment"
 	"liki-web/internal/product"
 
 	"github.com/google/uuid"
@@ -16,8 +15,7 @@ import (
 func HandleCreateOrder(store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Product  string `json:"product"`
-			Currency string `json:"currency"`
+			Email string `json:"email"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
@@ -26,52 +24,21 @@ func HandleCreateOrder(store *Store) http.HandlerFunc {
 
 		locale := httputil.LocaleFromAccept(r)
 		orderID := uuid.New().String()
-		amount, currency := namingAmount(req.Currency)
+		currency := product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
+		amount, err := product.AmountMinor(product.ProductNaming, currency)
+		if err != nil {
+			slog.Error("naming: resolve price", "err", err)
+			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
+			return
+		}
 
-		if err := store.CreateOrder(r.Context(), orderID, req.Product, amount, currency, "", locale); err != nil {
+		if err := store.CreateOrder(r.Context(), orderID, string(product.ProductNaming), amount, string(currency), req.Email, locale); err != nil {
 			slog.Error("naming: create order", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
 			return
 		}
 
 		httputil.RespondJSON(w, http.StatusOK, map[string]string{"order_id": orderID})
-	}
-}
-
-// HandleRetryOrder creates a new checkout for an existing (paid) order.
-func HandleRetryOrder(store *Store, svc *payment.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		orderID := r.PathValue("id")
-		if orderID == "" {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "missing order id")
-			return
-		}
-
-		o, err := store.GetOrder(r.Context(), orderID)
-		if err != nil {
-			httputil.RespondAppError(w, httputil.ErrOrderNotFound)
-			return
-		}
-
-		provider := o.Provider
-		if provider == "" {
-			provider = "dodo"
-		}
-		p, err := svc.Provider(provider)
-		if err != nil {
-			httputil.RespondAppError(w, httputil.ErrInternal)
-			return
-		}
-
-		returnURL := svc.ReturnURL() + "/api/naming/payments/return/" + orderID
-		result, err := p.CreateCheckout(r.Context(), namingProduct(o.Product), o.Amount, orderID, o.Email, returnURL)
-		if err != nil {
-			slog.Error("naming: retry checkout", "err", err)
-			httputil.RespondError(w, http.StatusInternalServerError, "checkout_error", "创建订单失败")
-			return
-		}
-
-		httputil.RespondJSON(w, http.StatusOK, result)
 	}
 }
 
@@ -99,7 +66,7 @@ func HandleRedeemCode(store *Store) http.HandlerFunc {
 			OrderID:       orderID,
 			Product:       "naming",
 			Currency:      "CNY",
-			Amount:        990,
+			Amount:        int64(990),
 			ChatExpiresAt: "2099-12-31",
 			Locale:        lang,
 		}
@@ -117,18 +84,18 @@ func HandleRedeemCode(store *Store) http.HandlerFunc {
 	}
 }
 
-func namingAmount(currency string) (int, string) {
-	if currency == "USD" {
-		return 990, "USD"
-	}
-	return 990, "CNY"
-}
-
-func namingProduct(s string) product.Product {
-	switch s {
-	case "lifebook":
-		return product.ProductMingShu
-	default:
-		return product.ProductNaming
+func HandleOrderStatus(store *Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orderID := r.PathValue("id")
+		if orderID == "" {
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "missing order id")
+			return
+		}
+		order, err := store.GetOrder(r.Context(), orderID)
+		if err != nil {
+			httputil.RespondAppError(w, httputil.ErrOrderNotFound)
+			return
+		}
+		httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": order.Status})
 	}
 }

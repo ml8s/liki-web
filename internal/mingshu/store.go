@@ -9,14 +9,13 @@ import (
 	"time"
 
 	"liki-web/internal/httputil"
-	"liki-web/internal/product"
 )
 
 // OrderData is the order row returned by GetOrder.
 type OrderData struct {
 	ID       string
 	Product  string
-	Amount   int
+	Amount   int64
 	Currency string
 	Email    string
 	Provider string
@@ -40,12 +39,15 @@ func NewStore(db *sql.DB) *Store {
 			slog.Warn("mingshu: schema init", "err", err)
 		}
 	}
+	if _, err := db.Exec(`UPDATE orders SET product='mingshu' WHERE product='lifebook'`); err != nil {
+		slog.Warn("mingshu: normalize product IDs", "err", err)
+	}
 	return &Store{db: db}
 }
 
 // ── orders ──
 
-func (s *Store) CreateOrder(ctx context.Context, orderID, product string, amount int, currency, email, birth, locale string) error {
+func (s *Store) CreateOrder(ctx context.Context, orderID, product string, amount int64, currency, email, birth, locale string) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO orders (id, product, amount, currency, email, birth, locale) VALUES (?,?,?,?,?,?,?)`,
 		orderID, product, amount, currency, email, birth, locale)
@@ -69,26 +71,6 @@ func (s *Store) GetOrder(ctx context.Context, orderID string) (*OrderData, error
 func (s *Store) UpdateEmail(ctx context.Context, orderID, email string) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE orders SET email=?, updated_at=datetime('now') WHERE id=?`, email, orderID)
 	return err
-}
-
-func (s *Store) UpdateProvider(ctx context.Context, orderID, provider string) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE orders SET provider=?, updated_at=datetime('now') WHERE id=?`, provider, orderID)
-	return err
-}
-
-func (s *Store) MarkPaidViaCallback(ctx context.Context, orderID string) (bool, string, error) {
-	res, err := s.db.ExecContext(ctx,
-		`UPDATE orders SET status='paid', updated_at=datetime('now') WHERE id=? AND status='pending'`, orderID)
-	if err != nil {
-		return false, "", err
-	}
-	n, _ := res.RowsAffected() //nolint:errcheck
-	if n == 0 {
-		return false, "", nil
-	}
-	var email string
-	err = s.db.QueryRowContext(ctx, `SELECT email FROM orders WHERE id=?`, orderID).Scan(&email)
-	return true, email, err
 }
 
 func (s *Store) MarkPaidIdempotent(ctx context.Context, orderID, paymentID string) (bool, error) {
@@ -132,12 +114,4 @@ func (s *Store) GetReport(ctx context.Context, orderID string) (string, error) {
 		return "", fmt.Errorf("report not found: %s", orderID)
 	}
 	return content, err
-}
-
-func (s *Store) GetCheckoutOrder(ctx context.Context, orderID string) (*product.CheckoutOrder, error) {
-	o, err := s.GetOrder(ctx, orderID)
-	if err != nil {
-		return nil, err
-	}
-	return &product.CheckoutOrder{Status: o.Status, Amount: o.Amount}, nil
 }

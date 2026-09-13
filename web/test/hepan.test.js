@@ -81,7 +81,7 @@ describe('hepan.js', () => {
     expect(els['form-error'].classList._cs).not.toContain('hidden');
   });
 
-  it('passes currency from window.Liki.currency', async () => {
+  it('does not send client-controlled currency', async () => {
     globalThis.window.Liki.currency = 'USD';
     globalThis.Liki.currency = 'USD';
     fill();
@@ -89,6 +89,6 @@ describe('hepan.js', () => {
     await els['hp-buy']._lsclick({ preventDefault() {} });
 
     const body = globalThis.createOrderAndCheckout.mock.calls[0][1];
-    expect(body.currency).toBe('USD');
+    expect(body.currency).toBeUndefined();
   });
 });

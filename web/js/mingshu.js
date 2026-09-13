@@ -47,7 +47,6 @@
             gender: genderEl ? genderEl.value : 'male'
           },
           email: email,
-          currency: window.Liki.currency,
           lang: i18next.isInitialized ? i18next.language : 'zh-Hans'
         },
         'mingshu',

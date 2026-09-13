@@ -3,17 +3,14 @@ package hepan
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
-	"liki-web/internal/checkout"
 	"liki-web/internal/httputil"
-	"liki-web/internal/payment"
 	"liki-web/internal/product"
-	"liki-web/internal/testutil"
 )
 
 func newTestHandlerStore(t *testing.T) *Store {
@@ -66,76 +63,24 @@ func TestHandleCreateOrder_InvalidJSON(t *testing.T) {
 	}
 }
 
-// ── HandleOrderStatus ──
-
-func TestHandleOrderStatus_Valid(t *testing.T) {
-	t.Parallel()
-	store := newTestHandlerStore(t)
-	orderID := seedOrder(t, store)
-
-	h := checkout.MakeOrderStatus(store)
-	r := httptest.NewRequest("GET", "/api/hepan/orders/"+orderID+"/status", nil)
-	r.SetPathValue("id", orderID)
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", w.Code)
-	}
-
-	var resp struct {
-		Data struct {
-			Status string `json:"status"`
-		} `json:"data"`
-	}
-	json.NewDecoder(w.Body).Decode(&resp) //nolint:errcheck
-	if resp.Data.Status != "pending" {
-		t.Errorf("status = %q, want pending", resp.Data.Status)
-	}
-}
-
-func TestHandleOrderStatus_NotFound(t *testing.T) {
-	t.Parallel()
-	store := newTestHandlerStore(t)
-	h := checkout.MakeOrderStatus(store)
-
-	r := httptest.NewRequest("GET", "/api/hepan/orders/nonexistent/status", nil)
-	r.SetPathValue("id", "nonexistent")
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want 404", w.Code)
-	}
-}
-
-func TestHandleOrderStatus_MissingID(t *testing.T) {
-	t.Parallel()
-	store := newTestHandlerStore(t)
-	h := checkout.MakeOrderStatus(store)
-
-	r := httptest.NewRequest("GET", "/api/hepan/orders//status", nil)
-	r.SetPathValue("id", "")
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
-	}
-}
-
 // ── HandleGetReport ──
 
 func TestHandleGetReport_Success(t *testing.T) {
 	t.Parallel()
 	store := newTestHandlerStore(t)
 	orderID := seedOrder(t, store)
-
+	if _, err := store.MarkPaidIdempotent(context.Background(), orderID, "pay-1"); err != nil {
+		t.Fatal(err)
+	}
+	token, err := httputil.NewOrderAccessToken("hepan", orderID, time.Now(), time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
 	report := `{"content":"合盘报告内容"}`
 	store.SaveReport(context.Background(), orderID, report) //nolint:errcheck
 
 	h := HandleGetReport(store)
-	r := httptest.NewRequest("GET", "/api/hepan/"+orderID, nil)
+	r := httptest.NewRequest("GET", "/api/hepan/orders/"+orderID+"/report?access_token="+token, nil)
 	r.SetPathValue("id", orderID)
 	w := httptest.NewRecorder()
 	h(w, r)
@@ -160,7 +105,7 @@ func TestHandleGetReport_NotFound(t *testing.T) {
 	store := newTestHandlerStore(t)
 	h := HandleGetReport(store)
 
-	r := httptest.NewRequest("GET", "/api/hepan/nonexistent", nil)
+	r := httptest.NewRequest("GET", "/api/hepan/orders/nonexistent/report", nil)
 	r.SetPathValue("id", "nonexistent")
 	w := httptest.NewRecorder()
 	h(w, r)
@@ -175,7 +120,7 @@ func TestHandleGetReport_EmptyID(t *testing.T) {
 	store := newTestHandlerStore(t)
 	h := HandleGetReport(store)
 
-	r := httptest.NewRequest("GET", "/api/hepan/", nil)
+	r := httptest.NewRequest("GET", "/api/hepan/orders//report", nil)
 	r.SetPathValue("id", "")
 	w := httptest.NewRecorder()
 	h(w, r)
@@ -185,33 +130,8 @@ func TestHandleGetReport_EmptyID(t *testing.T) {
 	}
 }
 
-// ── HandleCheckout (limited — needs payment.Service) ──
-// Full checkout tests require a payment.Service with mock providers.
+// HandleCheckout is covered through the shared payment runtime HTTP flow.
 // These are covered by internal/http/payment_test.go for the generic flow.
-
-// ── helpers ──
-
-func TestHepanAmount(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		curr     string
-		wantAmt  int
-		wantCurr string
-	}{
-		{"USD", 990, "USD"},
-		{"usd", 990, "USD"},
-		{"CNY", 990, "CNY"},
-		{"cny", 990, "CNY"},
-		{"", 990, "CNY"},
-		{"HKD", 990, "CNY"},
-	}
-	for _, tc := range tests {
-		amt, curr := hepanAmount(tc.curr)
-		if amt != tc.wantAmt || curr != tc.wantCurr {
-			t.Errorf("hepanAmount(%q) = (%d, %q), want (%d, %q)", tc.curr, amt, curr, tc.wantAmt, tc.wantCurr)
-		}
-	}
-}
 
 func TestDetectCurrency(t *testing.T) {
 	t.Parallel()
@@ -244,24 +164,6 @@ func TestNewOrderID_IsUnique(t *testing.T) {
 	}
 }
 
-func TestReturnToken_Validates(t *testing.T) {
-	t.Parallel()
-	oid := product.NewOrderID()
-	tok := httputil.ReturnToken("hepan", oid)
-	if tok == "" {
-		t.Fatal("empty token")
-	}
-	if !httputil.VerifyReturnToken("hepan", oid, tok) {
-		t.Error("verify failed for valid token")
-	}
-	if httputil.VerifyReturnToken("hepan", oid, "wrong") {
-		t.Error("verify passed for wrong token")
-	}
-	if httputil.VerifyReturnToken("hepan", oid, "") {
-		t.Error("verify passed for empty token")
-	}
-}
-
 func TestLocaleFromAccept(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -287,214 +189,32 @@ func TestLocaleFromAccept(t *testing.T) {
 	}
 }
 
-// ── HandleCheckout ──
-
-func TestHandleCheckout_Success(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	oid := seedOrder(t, store)
-	mockProv := &testutil.MockPaymentProvider{
-		CreateResult: &payment.CheckoutResult{SessionID: "sess-1", CheckoutURL: "https://pay.example.com/checkout"},
-	}
-	svc := payment.NewService(mockProv, mockProv, "https://liki.hk")
-
-	cfg := checkout.Config{Product: ProductHepan, ReturnPath: "/api/hepan/payments/return/", RedirectPath: "/hepan/report", LogPrefix: "hepan:"}
-	h := checkout.MakeCheckout(store, svc, cfg)
-	body := `{"order_id":"` + oid + `","email":"a@b.co","provider":"dodo"}`
-	r := httptest.NewRequest("POST", "/api/hepan/checkout", strings.NewReader(body))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
-	}
-	var env struct {
-		Data payment.CheckoutResult `json:"data"`
-	}
-	if err := json.NewDecoder(w.Body).Decode(&env); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if env.Data.SessionID != "sess-1" {
-		t.Errorf("session_id = %q", env.Data.SessionID)
-	}
-}
-
-func TestHandleCheckout_MissingFields(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	svc := payment.NewService(nil, nil, "https://liki.hk")
-	cfg := checkout.Config{Product: ProductHepan, ReturnPath: "/api/hepan/payments/return/", RedirectPath: "/hepan/report", LogPrefix: "hepan:"}
-	h := checkout.MakeCheckout(store, svc, cfg)
-
-	for _, body := range []string{`{}`, `{"order_id":"x"}`, `{"email":"a@b.co"}`} {
-		r := httptest.NewRequest("POST", "/api/hepan/checkout", strings.NewReader(body))
-		r.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		h(w, r)
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("body=%q status=%d want 400", body, w.Code)
-		}
-	}
-}
-
-func TestHandleCheckout_OrderNotFound(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	svc := payment.NewService(nil, nil, "https://liki.hk")
-	cfg := checkout.Config{Product: ProductHepan, ReturnPath: "/api/hepan/payments/return/", RedirectPath: "/hepan/report", LogPrefix: "hepan:"}
-	h := checkout.MakeCheckout(store, svc, cfg)
-
-	body := `{"order_id":"nonexistent","email":"a@b.co","provider":"dodo"}`
-	r := httptest.NewRequest("POST", "/api/hepan/checkout", strings.NewReader(body))
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want 404", w.Code)
-	}
-}
-
 // ── HandleWebhook ──
 
-func TestHandleWebhook_Success(t *testing.T) {
+func TestHandleGetReport_RequiresPaidAndAuthorization(t *testing.T) {
 	t.Parallel()
-	store := newTestStore(t)
-	oid := seedOrder(t, store)
-	mockProv := &testutil.MockPaymentProvider{
-		VerifyEvent: &payment.WebhookEvent{
-			Type: payment.EventPaymentSucceeded,
-			Data: payment.WebhookEventData{OrderID: oid, PaymentID: "pay-1"},
-		},
-	}
-	svc := payment.NewService(mockProv, mockProv, "https://liki.hk")
-	h := webhookHandler(store, svc, "hepan", nil, nil, nil)
+	store := newTestHandlerStore(t)
+	orderID := seedOrder(t, store)
+	store.SaveReport(context.Background(), orderID, `{"content":"report"}`) //nolint:errcheck
+	h := HandleGetReport(store)
 
-	body := `{"type":"payment.succeeded","data":{"order_id":"` + oid + `","payment_id":"pay-1"}}`
-	r := httptest.NewRequest("POST", "/api/hepan/webhook", strings.NewReader(body))
+	r := httptest.NewRequest("GET", "/api/hepan/orders/"+orderID+"/report", nil)
+	r.SetPathValue("id", orderID)
 	w := httptest.NewRecorder()
 	h(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200: %s", w.Code, w.Body.String())
-	}
-	var env struct {
-		Data struct {
-			Status string `json:"status"`
-		} `json:"data"`
-	}
-	json.NewDecoder(w.Body).Decode(&env) //nolint:errcheck
-	if env.Data.Status != "ok" {
-		t.Errorf("status = %q", env.Data.Status)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("unauthorized = %d, want 404", w.Code)
 	}
 
-	// Order should be paid now
-	o, _ := store.GetOrder(context.Background(), oid) //nolint:errcheck
-	if o.Status != "paid" {
-		t.Errorf("order status = %q, want paid", o.Status)
+	token, err := httputil.NewOrderAccessToken("hepan", orderID, time.Now(), time.Hour)
+	if err != nil {
+		t.Fatal(err)
 	}
-}
-
-func TestHandleWebhook_BadSignature(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	mockProv := &testutil.MockPaymentProvider{VerifyErr: errors.New("bad signature")}
-	svc := payment.NewService(mockProv, mockProv, "https://liki.hk")
-	h := webhookHandler(store, svc, "hepan", nil, nil, nil)
-
-	r := httptest.NewRequest("POST", "/api/hepan/webhook", strings.NewReader(`{}`))
-	w := httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "/api/hepan/orders/"+orderID+"/report?access_token="+token, nil)
+	r.SetPathValue("id", orderID)
+	w = httptest.NewRecorder()
 	h(w, r)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
-	}
-}
-
-func TestHandleWebhook_NonPaymentEvent(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	oid := seedOrder(t, store)
-	mockProv := &testutil.MockPaymentProvider{
-		VerifyEvent: &payment.WebhookEvent{Type: "checkout.created", Data: payment.WebhookEventData{OrderID: oid}},
-	}
-	svc := payment.NewService(mockProv, mockProv, "https://liki.hk")
-	h := webhookHandler(store, svc, "hepan", nil, nil, nil)
-
-	r := httptest.NewRequest("POST", "/api/hepan/webhook", strings.NewReader(`{}`))
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	// Non-payment events are accepted (ignored)
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want 200", w.Code)
-	}
-}
-
-// ── HandlePaymentReturn ──
-
-func TestHandlePaymentReturn_Success(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	oid := seedOrder(t, store)
-	token := httputil.ReturnToken("hepan", oid)
-
-	cfg := checkout.Config{Product: ProductHepan, ReturnPath: "/api/hepan/payments/return/", RedirectPath: "/hepan/report", LogPrefix: "hepan:"}
-	h := checkout.MakePaymentReturn(store, cfg)
-	r := httptest.NewRequest("GET", "/api/hepan/payments/return/"+oid+"?status=succeeded&t="+token, nil)
-	r.SetPathValue("id", oid)
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusFound {
-		t.Errorf("status = %d, want 302", w.Code)
-	}
-	loc := w.Header().Get("Location")
-	if !strings.Contains(loc, "/hepan") {
-		t.Errorf("redirect = %q, want /hepan/report", loc)
-	}
-
-	// Order should be paid
-	o, _ := store.GetOrder(context.Background(), oid) //nolint:errcheck
-	if o.Status != "paid" {
-		t.Errorf("status = %q, want paid", o.Status)
-	}
-}
-
-func TestHandlePaymentReturn_BadToken(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	oid := seedOrder(t, store)
-	cfg := checkout.Config{Product: ProductHepan, ReturnPath: "/api/hepan/payments/return/", RedirectPath: "/hepan/report", LogPrefix: "hepan:"}
-	h := checkout.MakePaymentReturn(store, cfg)
-
-	r := httptest.NewRequest("GET", "/api/hepan/payments/return/"+oid+"?status=succeeded&t=wrongtoken", nil)
-	r.SetPathValue("id", oid)
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusFound {
-		t.Errorf("status = %d, want 302", w.Code)
-	}
-	// Order should still be pending
-	o, _ := store.GetOrder(context.Background(), oid) //nolint:errcheck
-	if o.Status != "pending" {
-		t.Errorf("status = %q, want pending", o.Status)
-	}
-}
-
-func TestHandlePaymentReturn_EmptyOrderID(t *testing.T) {
-	t.Parallel()
-	store := newTestStore(t)
-	cfg := checkout.Config{Product: ProductHepan, ReturnPath: "/api/hepan/payments/return/", RedirectPath: "/hepan/report", LogPrefix: "hepan:"}
-	h := checkout.MakePaymentReturn(store, cfg)
-
-	r := httptest.NewRequest("GET", "/api/hepan/payments/return/?status=succeeded&t=token", nil)
-	r.SetPathValue("id", "")
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusFound {
-		t.Errorf("status = %d, want 302", w.Code)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("pending = %d, want 404", w.Code)
 	}
 }

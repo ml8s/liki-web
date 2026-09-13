@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
+	"liki-web/internal/payment"
 	"liki-web/internal/product"
 )
 
@@ -78,12 +80,34 @@ func TestSign_OrderIndependent(t *testing.T) {
 	}
 }
 
+func decodeCheckoutJSON(t *testing.T, r *http.Request) map[string]any {
+	t.Helper()
+	if got := r.Header.Get("Content-Type"); got != "application/json" {
+		t.Fatalf("Content-Type = %q, want application/json", got)
+	}
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		t.Fatalf("decode checkout body: %v", err)
+	}
+	return body
+}
+
+func encodeSignedResponse(t *testing.T, w http.ResponseWriter, secret string, value map[string]any) {
+	t.Helper()
+	params, err := flatResponseParams(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value["hash"] = sign(params, secret)
+	_ = json.NewEncoder(w).Encode(value)
+}
+
 func newTestClient(srv *httptest.Server) *Client {
 	return &Client{
-		appID:      "test_appid",
-		appSecret:  "test_secret",
+		appID: "test_appid", appSecret: "test_secret", webhookURL: "https://liki.hk/api/payments/webhook",
 		httpClient: srv.Client(),
-		baseURL:    srv.URL,
+		payURL:     srv.URL,
+		queryURL:   srv.URL,
 	}
 }
 
@@ -94,26 +118,19 @@ func TestCreateCheckout_Success(t *testing.T) {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "bad form", http.StatusBadRequest)
-			return
+		body := decodeCheckoutJSON(t, r)
+		if body["appid"] != "test_appid" {
+			t.Errorf("appid = %v", body["appid"])
 		}
-
-		// Verify required params are present.
-		if r.Form.Get("appid") != "test_appid" {
-			t.Errorf("appid = %q", r.Form.Get("appid"))
+		if body["trade_order_id"] != "order-1" {
+			t.Errorf("trade_order_id = %v", body["trade_order_id"])
 		}
-		if r.Form.Get("trade_order_id") != "order-1" {
-			t.Errorf("trade_order_id = %q", r.Form.Get("trade_order_id"))
-		}
-
-		// Verify hash parameter is present.
-		if r.Form.Get("hash") == "" {
+		if body["hash"] == "" {
 			t.Error("hash is missing")
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		encodeSignedResponse(t, w, "test_secret", map[string]any{
 			"errcode":    0,
 			"errmsg":     "success",
 			"url":        "https://pay.xunhupay.com/checkout/test",
@@ -123,7 +140,7 @@ func TestCreateCheckout_Success(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	result, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "user@test.com", "https://liki.hk/return")
+	result, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: product.ProductNaming, AmountMinor: 990, Email: "user@test.com", Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
@@ -138,11 +155,28 @@ func TestCreateCheckout_Success(t *testing.T) {
 	}
 }
 
+func TestCreateCheckout_RejectsInvalidResponseHash(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"errcode": 0, "errmsg": "success", "url": "https://pay.example.com/checkout", "hash": "invalid",
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv)
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", AmountMinor: 990, Title: "test"})
+	if err == nil || !strings.Contains(err.Error(), "response signature mismatch") {
+		t.Fatalf("expected response signature mismatch, got %v", err)
+	}
+}
+
 func TestCreateCheckout_APIError(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		encodeSignedResponse(t, w, "test_secret", map[string]any{
 			"errcode": 400,
 			"errmsg":  "appid not found",
 		})
@@ -150,7 +184,7 @@ func TestCreateCheckout_APIError(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: product.ProductNaming, AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err == nil {
 		t.Fatal("expected error for API error response")
 	}
@@ -164,7 +198,7 @@ func TestCreateCheckout_HTTPError(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: product.ProductNaming, AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err == nil {
 		t.Fatal("expected error for 500 response")
 	}
@@ -181,7 +215,7 @@ func TestCreateCheckout_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
-	_, err := c.CreateCheckout(ctx, product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
+	_, err := c.CreateCheckout(ctx, payment.CheckoutRequest{IntentID: "order-1", Product: product.ProductNaming, AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
@@ -190,15 +224,14 @@ func TestCreateCheckout_Timeout(t *testing.T) {
 func TestVerifyWebhook_PaymentSuccess(t *testing.T) {
 	t.Parallel()
 	c := &Client{
-		appID:     "test_appid",
-		appSecret: "test_secret",
+		appID: "test_appid", appSecret: "test_secret", webhookURL: "https://liki.hk/api/payments/webhook",
 	}
 
 	// Build form with valid hash.
 	form := url.Values{
 		"appid":          {"test_appid"},
 		"trade_order_id": {"order-1"},
-		"total_fee":      {"990"},
+		"total_fee":      {"9.90"},
 		"transaction_id": {"txn_123"},
 		"status":         {"OD"},
 		"openid":         {"user_openid"},
@@ -206,7 +239,7 @@ func TestVerifyWebhook_PaymentSuccess(t *testing.T) {
 	formParams := map[string]string{
 		"appid":          "test_appid",
 		"trade_order_id": "order-1",
-		"total_fee":      "990",
+		"total_fee":      "9.90",
 		"transaction_id": "txn_123",
 		"status":         "OD",
 		"openid":         "user_openid",
@@ -237,14 +270,13 @@ func TestVerifyWebhook_PaymentSuccess(t *testing.T) {
 func TestVerifyWebhook_BadSignature(t *testing.T) {
 	t.Parallel()
 	c := &Client{
-		appID:     "test_appid",
-		appSecret: "test_secret",
+		appID: "test_appid", appSecret: "test_secret", webhookURL: "https://liki.hk/api/payments/webhook",
 	}
 
 	form := url.Values{
 		"appid":          {"test_appid"},
 		"trade_order_id": {"order-1"},
-		"total_fee":      {"990"},
+		"total_fee":      {"9.90"},
 		"status":         {"OD"},
 		"hash":           {"bad_signature_here"},
 	}
@@ -260,8 +292,7 @@ func TestVerifyWebhook_BadSignature(t *testing.T) {
 func TestVerifyWebhook_MissingHash(t *testing.T) {
 	t.Parallel()
 	c := &Client{
-		appID:     "test_appid",
-		appSecret: "test_secret",
+		appID: "test_appid", appSecret: "test_secret", webhookURL: "https://liki.hk/api/payments/webhook",
 	}
 
 	form := url.Values{
@@ -281,8 +312,7 @@ func TestVerifyWebhook_MissingHash(t *testing.T) {
 func TestVerifyWebhook_NonPaymentStatus(t *testing.T) {
 	t.Parallel()
 	c := &Client{
-		appID:     "test_appid",
-		appSecret: "test_secret",
+		appID: "test_appid", appSecret: "test_secret", webhookURL: "https://liki.hk/api/payments/webhook",
 	}
 
 	formParams := map[string]string{
@@ -312,8 +342,7 @@ func TestVerifyWebhook_NonPaymentStatus(t *testing.T) {
 func TestVerifyWebhook_InvalidBody(t *testing.T) {
 	t.Parallel()
 	c := &Client{
-		appID:     "test_appid",
-		appSecret: "test_secret",
+		appID: "test_appid", appSecret: "test_secret", webhookURL: "https://liki.hk/api/payments/webhook",
 	}
 
 	_, err := c.VerifyWebhook([]byte("%%%"), http.Header{"Content-Type": {"application/x-www-form-urlencoded"}})
@@ -325,8 +354,7 @@ func TestVerifyWebhook_InvalidBody(t *testing.T) {
 func TestVerifyWebhook_EmptyBody(t *testing.T) {
 	t.Parallel()
 	c := &Client{
-		appID:     "test_appid",
-		appSecret: "test_secret",
+		appID: "test_appid", appSecret: "test_secret", webhookURL: "https://liki.hk/api/payments/webhook",
 	}
 
 	_, err := c.VerifyWebhook([]byte{}, http.Header{"Content-Type": {"application/x-www-form-urlencoded"}})
@@ -337,7 +365,7 @@ func TestVerifyWebhook_EmptyBody(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	t.Parallel()
-	c := New("app_123", "secret_456")
+	c := New("app_123", "secret_456", "https://liki.hk/api/payments/webhook")
 	if c == nil {
 		t.Fatal("New returned nil")
 	}
@@ -350,32 +378,8 @@ func TestNew(t *testing.T) {
 	if c.httpClient == nil {
 		t.Error("httpClient should not be nil")
 	}
-	if c.baseURL == "" {
-		t.Error("baseURL should not be empty")
-	}
-}
-
-func TestDeriveWebhookURL(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name      string
-		returnURL string
-		want      string
-	}{
-		{"standard return URL", "https://liki.hk/api/payments/return/order-1", "https://liki.hk/api/payments/webhook"},
-		{"https with path", "https://liki.hk/return/order-1", "https://liki.hk/api/payments/webhook"},
-		{"url with port", "https://liki.hk:8443/api/payments/return/order-1", "https://liki.hk:8443/api/payments/webhook"},
-		{"no path in return URL", "https://liki.hk", "https://liki.hk/api/payments/webhook"},
-		{"invalid URL returns input", "not-a-url", "not-a-url"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := deriveWebhookURL(tt.returnURL)
-			if got != tt.want {
-				t.Errorf("deriveWebhookURL(%q) = %q, want %q", tt.returnURL, got, tt.want)
-			}
-		})
+	if c.payURL == "" {
+		t.Error("payURL should not be empty")
 	}
 }
 
@@ -384,7 +388,7 @@ func TestCreateCheckout_ProductPricing(t *testing.T) {
 	// Verify all known products produce a valid checkout call.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		encodeSignedResponse(t, w, "test_secret", map[string]any{
 			"errcode": 0,
 			"errmsg":  "ok",
 			"url":     "https://pay.example.com/checkout",
@@ -406,7 +410,7 @@ func TestCreateCheckout_ProductPricing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := c.CreateCheckout(context.Background(), tt.prod, tt.amount, "order-1", "", "https://liki.hk/return")
+			result, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{Product: tt.prod, BusinessOrderID: "order-1", AmountMinor: int64(tt.amount), ReturnURL: "https://liki.hk/return"})
 			if err != nil {
 				t.Fatalf("CreateCheckout(%s): %v", tt.name, err)
 			}
@@ -420,30 +424,22 @@ func TestCreateCheckout_ProductPricing(t *testing.T) {
 func TestCreateCheckout_ParamFormat(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "bad form", http.StatusBadRequest)
-			return
+		body := decodeCheckoutJSON(t, r)
+		if body["version"] != "1.1" {
+			t.Errorf("version = %v, want 1.1", body["version"])
 		}
-
-		// version must be 1.1.
-		if v := r.Form.Get("version"); v != "1.1" {
-			t.Errorf("version = %q, want 1.1", v)
+		if nonce, _ := body["nonce_str"].(string); len(nonce) != 32 {
+			t.Errorf("nonce_str = %v, want 32 hex chars", body["nonce_str"])
 		}
-		// nonce_str must be 32 hex chars.
-		if n := r.Form.Get("nonce_str"); len(n) != 32 {
-			t.Errorf("nonce_str len = %d, want 32", len(n))
+		if body["total_fee"] != "9.90" {
+			t.Errorf("total_fee = %v, want 9.90 (yuan decimal)", body["total_fee"])
 		}
-		// total_fee must be decimal yuan, not integer fen.
-		if f := r.Form.Get("total_fee"); f != "9.90" {
-			t.Errorf("total_fee = %q, want 9.90 (yuan decimal)", f)
-		}
-		// title must be present (product subject).
-		if title := r.Form.Get("title"); title == "" {
+		if title, _ := body["title"].(string); title == "" {
 			t.Error("title should not be empty")
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		encodeSignedResponse(t, w, "test_secret", map[string]any{
 			"errcode": 0,
 			"errmsg":  "ok",
 			"url":     "https://pay.example.com/checkout",
@@ -452,7 +448,7 @@ func TestCreateCheckout_ParamFormat(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: product.ProductNaming, AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
@@ -475,19 +471,19 @@ func TestCreateCheckout_AmountFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				r.ParseForm() //nolint:errcheck
-				if f := r.Form.Get("total_fee"); f != tt.want {
-					t.Errorf("total_fee = %q, want %q", f, tt.want)
+				body := decodeCheckoutJSON(t, r)
+				if body["total_fee"] != tt.want {
+					t.Errorf("total_fee = %v, want %v", body["total_fee"], tt.want)
 				}
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				encodeSignedResponse(t, w, "test_secret", map[string]any{
 					"errcode": 0, "errmsg": "ok", "url": "https://pay.example.com/checkout",
 				})
 			}))
 			defer srv.Close()
 
 			c := newTestClient(srv)
-			_, err := c.CreateCheckout(context.Background(), product.ProductNaming, tt.amount, "order-1", "", "https://liki.hk/return")
+			_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{Product: product.ProductNaming, BusinessOrderID: "order-1", AmountMinor: int64(tt.amount), ReturnURL: "https://liki.hk/return"})
 			if err != nil {
 				t.Fatalf("CreateCheckout: %v", err)
 			}
@@ -498,14 +494,13 @@ func TestCreateCheckout_AmountFormat(t *testing.T) {
 func TestVerifyWebhook_LegacyOrderID(t *testing.T) {
 	t.Parallel()
 	c := &Client{
-		appID:     "test_appid",
-		appSecret: "test_secret",
+		appID: "test_appid", appSecret: "test_secret", webhookURL: "https://liki.hk/api/payments/webhook",
 	}
 
 	formParams := map[string]string{
 		"appid":          "test_appid",
 		"out_trade_no":   "legacy-order-1",
-		"total_fee":      "990",
+		"total_fee":      "9.90",
 		"transaction_id": "txn_123",
 		"status":         "OD",
 	}
@@ -530,8 +525,8 @@ func TestVerifyWebhook_LegacyOrderID(t *testing.T) {
 func TestCreateCheckout_HashPresent(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm() //nolint:errcheck
-		h := r.Form.Get("hash")
+		body := decodeCheckoutJSON(t, r)
+		h, _ := body["hash"].(string)
 		if h == "" {
 			t.Error("hash is missing")
 		}
@@ -539,14 +534,14 @@ func TestCreateCheckout_HashPresent(t *testing.T) {
 			t.Errorf("hash len = %d, want 32", len(h))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+		encodeSignedResponse(t, w, "test_secret", map[string]any{
 			"errcode": 0, "errmsg": "ok", "url": "https://pay.example.com/checkout",
 		})
 	}))
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), product.ProductNaming, 990, "order-1", "", "https://liki.hk/return")
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: product.ProductNaming, AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}

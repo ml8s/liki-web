@@ -1,52 +1,27 @@
-// Package product defines the product types and pricing shared between agent and payment layers.
+// Package product defines the canonical catalog shared by product handlers and
+// payment. Product IDs, currencies, and prices must not be invented by callers.
 package product
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 )
 
-// CheckoutOrder holds the minimal order fields needed by shared payment handlers.
-type CheckoutOrder struct {
-	Status  string
-	Amount  int
-	Product string // order product type (used by naming for dynamic routing)
-}
-
-// OrderStore is the store interface for shared payment lifecycle handlers.
-// Each product domain (hepan, lifebook, naming) implements this on its Store.
-type OrderStore interface {
-	GetCheckoutOrder(ctx context.Context, orderID string) (*CheckoutOrder, error)
-	UpdateEmail(ctx context.Context, orderID, email string) error
-	UpdateProvider(ctx context.Context, orderID, provider string) error
-	MarkPaidViaCallback(ctx context.Context, orderID string) (bool, string, error)
-}
-
-// OnPaid is called when an order is paid.
+// OnPaid is a small callback for legacy admin-created orders.
 type OnPaid func(ctx context.Context, orderID string)
 
-// OnReportReady is called when a report has been generated.
-type OnReportReady func(ctx context.Context, orderID string)
-
-// Product identifies a paid report product.
+// Product identifies a paid product.
 type Product string
 
-const ProductNaming Product = "naming"
-const ProductMingShu Product = "lifebook"
+const (
+	ProductNaming  Product = "naming"
+	ProductMingShu Product = "mingshu"
+	ProductHePan   Product = "hepan"
+)
 
-func (p Product) EmailSubject() string {
-	switch p {
-	case ProductNaming:
-		return "服务已开通"
-	case ProductMingShu:
-		return "灵机命书报告已生成"
-	default:
-		return "服务已开通"
-	}
-}
-
-// Currency identifies a payment currency.
+// Currency identifies a supported payment currency.
 type Currency string
 
 const (
@@ -54,12 +29,70 @@ const (
 	USD Currency = "USD"
 )
 
-// NewOrderID generates a new UUID-based order ID.
-func NewOrderID() string {
-	return uuid.New().String()
+type Definition struct {
+	ID          Product
+	AmountMinor map[Currency]int64
 }
 
-// DetectCurrency returns the currency for the given country codes.
+var catalog = map[Product]Definition{
+	ProductNaming: {
+		ID: ProductNaming,
+		AmountMinor: map[Currency]int64{
+			CNY: 990,
+			USD: 990,
+		},
+	},
+	ProductMingShu: {
+		ID: ProductMingShu,
+		AmountMinor: map[Currency]int64{
+			CNY: 990,
+			USD: 990,
+		},
+	},
+	ProductHePan: {
+		ID: ProductHePan,
+		AmountMinor: map[Currency]int64{
+			CNY: 990,
+			USD: 990,
+		},
+	},
+}
+
+// NormalizeProduct maps the historical lifebook ID to its canonical domain ID.
+func NormalizeProduct(id Product) Product {
+	if id == "lifebook" {
+		return ProductMingShu
+	}
+	return id
+}
+
+// IsValidProduct reports whether a canonical product exists in the catalog.
+func IsValidProduct(id Product) bool {
+	_, ok := catalog[NormalizeProduct(id)]
+	return ok
+}
+
+// AmountMinor returns the catalog price for a product and currency. Unknown
+// combinations fail closed; handlers must never invent a price.
+func AmountMinor(id Product, currency Currency) (int64, error) {
+	definition, ok := catalog[NormalizeProduct(id)]
+	if !ok {
+		return 0, fmt.Errorf("product: unknown product %q", id)
+	}
+	amount, ok := definition.AmountMinor[currency]
+	if !ok || amount <= 0 {
+		return 0, fmt.Errorf("product: %s does not support currency %s", id, currency)
+	}
+	return amount, nil
+}
+
+// NewOrderID generates a new UUID-based order ID.
+func NewOrderID() string {
+	return uuid.NewString()
+}
+
+// DetectCurrency derives billing currency from trusted edge/geo headers.
+// Absence of geo information defaults to CNY, matching the primary market.
 func DetectCurrency(cfCountry, geoCountry string) Currency {
 	if cfCountry == "CN" || geoCountry == "CN" {
 		return CNY
@@ -68,16 +101,4 @@ func DetectCurrency(cfCountry, geoCountry string) Currency {
 		return USD
 	}
 	return CNY
-}
-
-// NamingAmountCents returns the price in cents for the naming product.
-func NamingAmountCents(c Currency) int {
-	switch c {
-	case USD:
-		return 990
-	case CNY:
-		return 990
-	default:
-		return 0
-	}
 }

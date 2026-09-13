@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 type testValid struct{ Name string }
@@ -147,29 +148,25 @@ func TestLocaleFromAccept_Empty(t *testing.T) {
 	}
 }
 
-func TestReturnToken_Verifies(t *testing.T) {
-	token := ReturnToken("hepan", "oid-test")
-	if !VerifyReturnToken("hepan", "oid-test", token) {
+func TestOrderAccessToken_Verifies(t *testing.T) {
+	now := time.Now()
+	token, err := NewOrderAccessToken("hepan", "oid-test", now, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !VerifyOrderAccessToken("hepan", "oid-test", token, now.Add(time.Minute)) {
 		t.Error("expected valid")
 	}
-}
-
-func TestReturnToken_WrongProduct(t *testing.T) {
-	token := ReturnToken("hepan", "oid-test")
-	if VerifyReturnToken("mingshu", "oid-test", token) {
-		t.Error("expected invalid")
+	if VerifyOrderAccessToken("mingshu", "oid-test", token, now.Add(time.Minute)) {
+		t.Error("expected invalid product")
 	}
-}
-
-func TestReturnToken_WrongOrderID(t *testing.T) {
-	token := ReturnToken("hepan", "oid-test")
-	if VerifyReturnToken("hepan", "wrong", token) {
-		t.Error("expected invalid")
+	if VerifyOrderAccessToken("hepan", "wrong", token, now.Add(time.Minute)) {
+		t.Error("expected invalid order")
 	}
-}
-
-func TestReturnToken_Empty(t *testing.T) {
-	if VerifyReturnToken("hepan", "oid", "") {
-		t.Error("expected invalid for empty token")
+	if VerifyOrderAccessToken("hepan", "oid-test", token, now.Add(time.Hour)) {
+		t.Error("expected expired token")
+	}
+	if VerifyOrderAccessToken("hepan", "oid-test", "", now) {
+		t.Error("expected invalid empty token")
 	}
 }

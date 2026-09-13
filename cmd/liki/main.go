@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
 	"liki-web/internal/naming"
+	"liki-web/internal/paymentflow"
 	"liki-web/internal/xunhu"
 
 	_ "modernc.org/sqlite"
@@ -29,6 +31,7 @@ import (
 	apphttp "liki-web/internal/http"
 	"liki-web/internal/httputil"
 	"liki-web/internal/llm"
+	"liki-web/internal/metrics"
 	"liki-web/internal/payment"
 )
 
@@ -39,56 +42,62 @@ var (
 )
 
 type Config struct {
-	DBPath            string
-	LifebookDBPath    string
-	HepanDBPath       string
-	FeedbackDBPath    string
-	FeedbackAPIKey    string
-	ResendAPIKey      string
-	ResendFrom        string
-	DodoAPIKey        string
-	DodoWebhookKey    string
-	DodoTestMode      bool
-	DodoProductNaming string
-	XunhuAppID        string
-	XunhuAppSecret    string
-	DeepseekAPIKey    string
-	LLMModel          string
-	LLMThinking       bool
-	SkillsDir         string
-	PromptFile        string
-	EngineURL         string
-	ReturnURL         string
-	JWTSecret         string
-	ListenAddr        string
-	DevMode           bool
+	DBPath             string
+	LifebookDBPath     string
+	HepanDBPath        string
+	FeedbackDBPath     string
+	FeedbackAPIKey     string
+	ResendAPIKey       string
+	ResendFrom         string
+	DodoAPIKey         string
+	DodoWebhookKey     string
+	DodoTestMode       bool
+	DodoProductNaming  string
+	DodoProductMingShu string
+	DodoProductHepan   string
+	XunhuAppID         string
+	XunhuAppSecret     string
+	PaymentWebhookURL  string
+	DeepseekAPIKey     string
+	LLMModel           string
+	LLMThinking        bool
+	SkillsDir          string
+	PromptFile         string
+	EngineURL          string
+	ReturnURL          string
+	JWTSecret          string
+	ListenAddr         string
+	DevMode            bool
 }
 
 func LoadConfig() Config {
 	return Config{
-		DBPath:            envOr("DB_PATH", "/var/lib/liki/naming.db"),
-		LifebookDBPath:    envOr("MINGSHU_DB_PATH", "/var/lib/liki/mingshu.db"),
-		HepanDBPath:       envOr("HEPAN_DB_PATH", "/var/lib/liki/hepan.db"),
-		FeedbackDBPath:    envOr("FEEDBACK_DB_PATH", "/var/lib/liki/feedback.db"),
-		FeedbackAPIKey:    os.Getenv("FEEDBACK_API_KEY"),
-		ResendAPIKey:      os.Getenv("RESEND_API_KEY"),
-		ResendFrom:        envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
-		DodoAPIKey:        envOr("DODO_API_KEY", ""),
-		DodoWebhookKey:    envOr("DODO_WEBHOOK_KEY", ""),
-		DodoTestMode:      envOrBool("DODO_TEST_MODE", false),
-		DodoProductNaming: os.Getenv("DODO_PRODUCT_NAMING"),
-		XunhuAppID:        envOr("XUNHU_APPID", ""),
-		XunhuAppSecret:    envOr("XUNHU_APPSECRET", ""),
-		DeepseekAPIKey:    envOr("DEEPSEEK_API_KEY", ""),
-		LLMModel:          envOr("LLM_MODEL", ""),
-		LLMThinking:       envOrBool("LLM_THINKING", false),
-		SkillsDir:         envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:        envOr("LIKI_PROMPT_FILE", "liki-naming/SKILL.md"),
-		EngineURL:         envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
-		ReturnURL:         envOr("RETURN_URL", ""),
-		JWTSecret:         os.Getenv("JWT_SECRET"),
-		ListenAddr:        envOr("LISTEN_ADDR", ":8080"),
-		DevMode:           envOrBool("DEV_MODE", false),
+		DBPath:             envOr("DB_PATH", "/var/lib/liki/naming.db"),
+		LifebookDBPath:     envOr("MINGSHU_DB_PATH", "/var/lib/liki/mingshu.db"),
+		HepanDBPath:        envOr("HEPAN_DB_PATH", "/var/lib/liki/hepan.db"),
+		FeedbackDBPath:     envOr("FEEDBACK_DB_PATH", "/var/lib/liki/feedback.db"),
+		FeedbackAPIKey:     os.Getenv("FEEDBACK_API_KEY"),
+		ResendAPIKey:       os.Getenv("RESEND_API_KEY"),
+		ResendFrom:         envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
+		DodoAPIKey:         envOr("DODO_API_KEY", ""),
+		DodoWebhookKey:     envOr("DODO_WEBHOOK_KEY", ""),
+		DodoTestMode:       envOrBool("DODO_TEST_MODE", false),
+		DodoProductNaming:  os.Getenv("DODO_PRODUCT_NAMING"),
+		DodoProductMingShu: os.Getenv("DODO_PRODUCT_MINGSHU"),
+		DodoProductHepan:   os.Getenv("DODO_PRODUCT_HEPAN"),
+		XunhuAppID:         envOr("XUNHU_APPID", ""),
+		XunhuAppSecret:     envOr("XUNHU_APPSECRET", ""),
+		PaymentWebhookURL:  envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
+		DeepseekAPIKey:     envOr("DEEPSEEK_API_KEY", ""),
+		LLMModel:           envOr("LLM_MODEL", ""),
+		LLMThinking:        envOrBool("LLM_THINKING", false),
+		SkillsDir:          envOr("LIKI_SKILLS_DIR", "web/skills"),
+		PromptFile:         envOr("LIKI_PROMPT_FILE", "liki-naming/SKILL.md"),
+		EngineURL:          envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
+		ReturnURL:          envOr("RETURN_URL", ""),
+		JWTSecret:          os.Getenv("JWT_SECRET"),
+		ListenAddr:         envOr("LISTEN_ADDR", ":8080"),
+		DevMode:            envOrBool("DEV_MODE", false),
 	}
 }
 
@@ -142,11 +151,13 @@ func main() {
 	emailClient := email.New(cfg.ResendAPIKey, cfg.ResendFrom)
 
 	dodoProducts := map[product.Product]string{
-		product.ProductNaming: cfg.DodoProductNaming,
+		product.ProductNaming:    cfg.DodoProductNaming,
+		product.ProductMingShu:   cfg.DodoProductMingShu,
+		product.Product("hepan"): cfg.DodoProductHepan,
 	}
 	dodoClient := dodo.New(cfg.DodoAPIKey, cfg.DodoWebhookKey, cfg.DodoTestMode, dodoProducts)
 
-	xunhuClient := xunhu.New(cfg.XunhuAppID, cfg.XunhuAppSecret)
+	xunhuClient := xunhu.New(cfg.XunhuAppID, cfg.XunhuAppSecret, cfg.PaymentWebhookURL)
 
 	llmClient := llm.New(cfg.DeepseekAPIKey, cfg.LLMModel, cfg.LLMThinking)
 	prompt, err := os.ReadFile(filepath.Join(cfg.SkillsDir, cfg.PromptFile))
@@ -212,11 +223,59 @@ func main() {
 
 	// ── Callbacks ──
 	onPaid := namingOnPaid(namingStore, emailClient, cfg.ReturnURL)
-	onMingReady := mingshuOnReportReady(mingshuStore, emailClient, cfg.ReturnURL)
-	onHepanReady := hepanOnReportReady(hepanStore, emailClient, cfg.ReturnURL)
 	onVerification := adminVerification(emailClient)
 
-	paymentSvc := payment.NewService(dodoClient, xunhuClient, cfg.ReturnURL)
+	intents := payment.NewIntentStore(db)
+	notifications := payment.NewNotificationStore(db)
+	fulfillments := payment.NewFulfillmentTaskStore(db)
+	events := payment.NewPaymentEventStore(db)
+	if err := intents.Migrate(ctx); err != nil {
+		slog.Error("init payment intents", "err", err)
+		os.Exit(1)
+	}
+	if err := notifications.Migrate(ctx); err != nil {
+		slog.Error("init payment notifications", "err", err)
+		os.Exit(1)
+	}
+	if err := fulfillments.Migrate(ctx); err != nil {
+		slog.Error("init payment fulfillment tasks", "err", err)
+		os.Exit(1)
+	}
+	if err := events.Migrate(ctx); err != nil {
+		slog.Error("init payment events", "err", err)
+		os.Exit(1)
+	}
+	namingFlow := paymentflow.NewNamingFlow(namingStore, 15)
+	mingshuFlow := paymentflow.NewMingShuFlow(mingshuStore, mingshuGenerator, notifications, cfg.ReturnURL)
+	hepanFlow := paymentflow.NewHepanFlow(hepanStore, hepanGenerator, notifications, cfg.ReturnURL)
+	dodoConfigured := cfg.DodoAPIKey != "" && cfg.DodoWebhookKey != "" &&
+		cfg.DodoProductNaming != "" && cfg.DodoProductMingShu != "" && cfg.DodoProductHepan != ""
+	xunhuConfigured := cfg.XunhuAppID != "" && cfg.XunhuAppSecret != "" && cfg.PaymentWebhookURL != ""
+	if !dodoConfigured && !xunhuConfigured {
+		slog.Error("no payment provider is fully configured")
+		os.Exit(1)
+	}
+	gateways := map[payment.Provider]payment.Gateway{}
+	if dodoConfigured {
+		gateways[payment.ProviderDodo] = dodoClient
+	} else {
+		slog.Warn("dodo payment provider is not fully configured; it is disabled")
+	}
+	if xunhuConfigured {
+		gateways[payment.ProviderXunhu] = xunhuClient
+	} else {
+		slog.Warn("xunhu payment provider is not fully configured; it is disabled")
+	}
+	flows := map[product.Product]payment.ProductFlow{
+		product.ProductNaming:  namingFlow,
+		product.ProductMingShu: mingshuFlow,
+		product.ProductHePan:   hepanFlow,
+	}
+	paymentSender := paymentEmailSender{client: emailClient}
+	paymentRuntime := payment.NewRuntime(gateways, flows, intents, notifications, fulfillments, events, paymentSender, payment.RuntimeOptions{
+		BaseURL:    cfg.ReturnURL,
+		AdminEmail: os.Getenv("ADMIN_EMAIL"),
+	})
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
 	if err := httputil.ValidateJWTSecret(cfg.JWTSecret); err != nil {
@@ -231,13 +290,9 @@ func main() {
 
 	mux := http.NewServeMux()
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
-		OnPaid: onPaid,
-		OnReportReady: func(ctx context.Context, orderID string) {
-			onMingReady(ctx, orderID)
-			onHepanReady(ctx, orderID)
-		},
+		OnPaid:           onPaid, // admin-created orders only
 		OnVerification:   onVerification,
-		Payment:          paymentSvc,
+		PaymentRuntime:   paymentRuntime,
 		NamingStore:      namingStore,
 		MingShuStore:     mingshuStore,
 		MingShuGenerator: mingshuGenerator,
@@ -248,6 +303,7 @@ func main() {
 		NamingAgent:      namingAgent,
 		Agent:            reportAgent,
 		Analytics:        apphttp.NewAnalytics(),
+		MetricsHandler:   metrics.Handler(os.Getenv("METRICS_TOKEN")),
 		DevMode:          cfg.DevMode,
 	}, BuildTime, Version, rateLimiter, verifyLimiter)
 
@@ -260,6 +316,31 @@ func main() {
 		WriteTimeout: 150 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
+
+	go paymentRuntime.StartNotificationWorker(ctx, 30*time.Second)
+	go paymentRuntime.StartFulfillmentWorker(ctx, 5*time.Second)
+	go paymentRuntime.StartReconciliationWorker(ctx, time.Minute)
+
+	// Payment retention: expire abandoned checkouts and prune sent receipts.
+	go func() {
+		ticker := time.NewTicker(6 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				intents, notifications, err := paymentRuntime.RunRetention(ctx, 7*24*time.Hour, 90*24*time.Hour)
+				if err != nil {
+					slog.Error("payment retention", "err", err)
+					continue
+				}
+				if intents > 0 || notifications > 0 {
+					slog.Info("payment retention complete", "expired_intents", intents, "deleted_notifications", notifications)
+				}
+			}
+		}
+	}()
 
 	// Background stale order cleanup
 	go func() {

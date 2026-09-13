@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"liki-web/internal/feedback"
-	"liki-web/internal/payment"
 
 	_ "modernc.org/sqlite"
 )
@@ -20,7 +19,6 @@ func TestRegisterRoutes_DoesNotPanic(t *testing.T) {
 	rl := NewRateLimiter()
 	defer rl.Stop()
 	deps := ServerDeps{
-		Payment:     &payment.Service{},
 		NamingStore: nil,
 		Analytics:   &Analytics{},
 	}
@@ -45,7 +43,6 @@ func TestRegisterRoutes_Feedback(t *testing.T) {
 		t.Fatal(err)
 	}
 	deps := ServerDeps{
-		Payment:        &payment.Service{},
 		NamingStore:    nil,
 		Analytics:      &Analytics{},
 		FeedbackStore:  fstore,
@@ -101,7 +98,6 @@ func TestRegisterRoutes_JSONRPC(t *testing.T) {
 	rl := NewRateLimiter()
 	defer rl.Stop()
 	deps := ServerDeps{
-		Payment:     &payment.Service{},
 		NamingStore: nil,
 		Analytics:   &Analytics{},
 	}

@@ -9,6 +9,7 @@ import (
 
 	"liki-web/internal/httputil"
 	"liki-web/internal/naming"
+	"liki-web/internal/product"
 )
 
 type AdminService struct {
@@ -46,7 +47,6 @@ func (h *AdminService) HandleListOrders() http.HandlerFunc {
 type createOrderRequest struct {
 	Email     string `json:"email"`
 	Product   string `json:"product"`
-	Amount    int    `json:"amount"`
 	Currency  string `json:"currency"`
 	ExpiresAt string `json:"expires_at"`
 	Lang      string `json:"lang,omitempty"`
@@ -64,20 +64,22 @@ func (h *AdminService) HandleCreateOrder() http.HandlerFunc {
 			return
 		}
 
-		prod := req.Product
-		if prod == "" {
-			prod = "naming"
+		productID := product.NormalizeProduct(product.Product(req.Product))
+		if productID == "" {
+			productID = product.ProductNaming
 		}
-		currency := strings.ToUpper(req.Currency)
+		if !product.IsValidProduct(productID) {
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "invalid product")
+			return
+		}
+		currency := product.Currency(strings.ToUpper(req.Currency))
 		if currency == "" {
-			currency = "CNY"
+			currency = product.CNY
 		}
-		amount := req.Amount
-		if amount == 0 {
-			amount = 990 // default naming price CNY
-			if currency == "USD" {
-				amount = 990
-			}
+		amount, err := product.AmountMinor(productID, currency)
+		if err != nil {
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "unsupported currency")
+			return
 		}
 
 		locale := req.Lang
@@ -85,9 +87,9 @@ func (h *AdminService) HandleCreateOrder() http.HandlerFunc {
 			locale = "zh-Hans"
 		}
 
-		orderID, err := h.svc.CreatePaidOrder(r.Context(), req.Email, prod, amount, currency, req.ExpiresAt, locale)
-		if err != nil {
-			slog.Error("admin: create order", "err", err)
+		orderID, orderErr := h.svc.CreatePaidOrder(r.Context(), req.Email, string(productID), amount, string(currency), req.ExpiresAt, locale)
+		if orderErr != nil {
+			slog.Error("admin: create order", "err", orderErr)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
 			return
 		}

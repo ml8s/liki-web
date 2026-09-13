@@ -19,7 +19,7 @@ func NewAdminService(store *Store) *AdminService {
 type OrderSummary struct {
 	OrderID       string `json:"order_id"`
 	Product       string `json:"product"`
-	Amount        int    `json:"amount"`
+	Amount        int64  `json:"amount"`
 	Currency      string `json:"currency"`
 	Email         string `json:"email"`
 	Status        string `json:"status"`
@@ -48,7 +48,7 @@ func (s *AdminService) ListOrders(ctx context.Context, email string) ([]OrderSum
 	return summaries, nil
 }
 
-func (s *AdminService) CreatePaidOrder(ctx context.Context, email, prod string, amount int, currency, expiresAt, locale string) (string, error) {
+func (s *AdminService) CreatePaidOrder(ctx context.Context, email, prod string, amount int64, currency, expiresAt, locale string) (string, error) {
 	orderID := product.NewOrderID()
 	if err := s.store.CreatePaidOrder(ctx, orderID, prod, amount, currency, email, expiresAt, locale); err != nil {
 		return "", err

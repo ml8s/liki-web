@@ -77,18 +77,6 @@ func TestStore_UpdateEmail(t *testing.T) {
 	}
 }
 
-func TestStore_UpdateProvider(t *testing.T) {
-	t.Parallel()
-	s := newLBTestStore(t)
-	oid := seedLbOrder(t, s)
-
-	s.UpdateProvider(context.Background(), oid, "xunhu") //nolint:errcheck
-	o, _ := s.GetOrder(context.Background(), oid)        //nolint:errcheck
-	if o.Provider != "xunhu" {
-		t.Errorf("provider = %q", o.Provider)
-	}
-}
-
 func TestStore_MarkPaid(t *testing.T) {
 	t.Parallel()
 	s := newLBTestStore(t)
@@ -116,23 +104,6 @@ func TestStore_MarkPaid_Idempotent(t *testing.T) {
 	paid, _ := s.MarkPaidIdempotent(context.Background(), oid, "pay-1") //nolint:errcheck
 	if paid {
 		t.Error("expected paid=false for duplicate")
-	}
-}
-
-func TestStore_MarkPaidViaCallback(t *testing.T) {
-	t.Parallel()
-	s := newLBTestStore(t)
-	oid := seedLbOrder(t, s)
-
-	newPayment, email, err := s.MarkPaidViaCallback(context.Background(), oid)
-	if err != nil {
-		t.Fatalf("MarkPaidViaCallback: %v", err)
-	}
-	if !newPayment {
-		t.Error("expected newPayment=true")
-	}
-	if email != "test@t.com" {
-		t.Errorf("email = %q", email)
 	}
 }
 
