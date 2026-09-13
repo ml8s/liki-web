@@ -135,10 +135,6 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 
 	serve := func(w http.ResponseWriter, r *http.Request, root string) bool {
 		clean := filepath.Clean(r.URL.Path)
-		if clean == "/app" || strings.HasPrefix(clean, "/app/") {
-			serveFileNoRedirect(w, r, filepath.Join(root, "dist", "app", "index.html"))
-			return true
-		}
 		p := filepath.Join(root, clean[1:])
 
 		if info, err := os.Stat(p); err == nil {
@@ -180,6 +176,13 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/jsonrpc") {
 			next.ServeHTTP(w, r)
 			return
+		}
+		if clean := filepath.Clean(r.URL.Path); clean == "/app" || strings.HasPrefix(clean, "/app/") {
+			appIndex := filepath.Join(distDir, "app", "index.html")
+			if _, err := os.Stat(appIndex); err == nil {
+				serveFileNoRedirect(w, r, appIndex)
+				return
+			}
 		}
 		if distExists && serve(w, r, distDir) {
 			return
