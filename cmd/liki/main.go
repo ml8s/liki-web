@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"liki-web/internal/agent"
+	"liki-web/internal/auth"
 	"liki-web/internal/dodo"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
@@ -130,6 +131,7 @@ func main() {
 	}
 	defer func() { _ = db.Close() }()
 
+	authStore := auth.NewStore(db, []byte(cfg.JWTSecret))
 	namingStore := naming.NewStore(db)
 
 	// ── feedback（共用 naming 数据库）──
@@ -221,7 +223,30 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if err := authStore.Migrate(ctx); err != nil {
+		slog.Error("init auth schema", "err", err)
+		os.Exit(1)
+	}
+
 	// ── Callbacks ──
+	authMailer := auth.MailerFunc(func(ctx context.Context, email, code string) error {
+		subject := "Liki 登录验证码"
+		body := `<p>你的 Liki 登录验证码：</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">` + code + `</p><p>验证码 10 分钟内有效。</p>`
+		return emailClient.SendReport(ctx, email, subject, body)
+	})
+	authConfig := auth.DefaultConfig()
+	authConfig.SecureCookie = !cfg.DevMode
+	authService, err := auth.NewService(authStore, authMailer, authConfig)
+	if err != nil {
+		slog.Error("init auth service", "err", err)
+		os.Exit(1)
+	}
+	authHandler, err := auth.NewHandler(authStore, authService, authConfig)
+	if err != nil {
+		slog.Error("init auth handler", "err", err)
+		os.Exit(1)
+	}
+
 	onPaid := namingOnPaid(namingStore, emailClient, cfg.ReturnURL)
 	onVerification := adminVerification(emailClient)
 
@@ -293,6 +318,7 @@ func main() {
 		OnPaid:           onPaid, // admin-created orders only
 		OnVerification:   onVerification,
 		PaymentRuntime:   paymentRuntime,
+		AuthHandler:      authHandler,
 		NamingStore:      namingStore,
 		MingShuStore:     mingshuStore,
 		MingShuGenerator: mingshuGenerator,
@@ -316,6 +342,21 @@ func main() {
 		WriteTimeout: 150 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
+
+	go func() {
+		ticker := time.NewTicker(time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if _, err := authStore.Cleanup(ctx); err != nil {
+					slog.Error("auth cleanup", "err", err)
+				}
+			}
+		}
+	}()
 
 	go paymentRuntime.StartNotificationWorker(ctx, 30*time.Second)
 	go paymentRuntime.StartFulfillmentWorker(ctx, 5*time.Second)

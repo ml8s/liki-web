@@ -19,7 +19,14 @@ echo "[build-web] public/ contents: $(ls public/ | tr '\n' ' ')"
 echo "[build-web] Astro..."
 npx astro build
 
+echo "[build-web] Liki App (Vue 3 SPA)..."
+cd app
+if [ ! -d node_modules ]; then
+  npm ci --ignore-scripts
+fi
+npm run build
 cd "$PROJECT_DIR"
+
 echo "[build-web] sitemap..."
 node web/scripts/build-sitemap.cjs
 

@@ -9,6 +9,7 @@ import (
 
 	"liki-web/internal/admin"
 	"liki-web/internal/agent"
+	"liki-web/internal/auth"
 	"liki-web/internal/feedback"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
@@ -20,6 +21,7 @@ type ServerDeps struct {
 	OnPaid           func(ctx context.Context, orderID string)
 	OnVerification   func(ctx context.Context, email, code string)
 	PaymentRuntime   *payment.Runtime
+	AuthHandler      *auth.Handler
 	NamingStore      *naming.Store
 	MingShuStore     *mingshu.Store
 	MingShuGenerator *mingshu.Generator
@@ -48,6 +50,17 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		mux.HandleFunc("GET /api/payments/intents/{id}/fulfillment-status", deps.PaymentRuntime.HandleFulfillmentStatus)
 		mux.HandleFunc("GET /api/payments/return/{id}", deps.PaymentRuntime.HandlePaymentReturn)
 		mux.HandleFunc("POST /api/payments/webhook", deps.PaymentRuntime.HandleWebhook)
+	}
+
+	// ── platform user auth ──
+	if deps.AuthHandler != nil {
+		authCodeLimit := func(next http.HandlerFunc) http.HandlerFunc {
+			return verifyRL.Wrap(1.0/60, 3, next)
+		}
+		authVerifyLimit := func(next http.HandlerFunc) http.HandlerFunc {
+			return verifyRL.Wrap(5.0/60, 6, next)
+		}
+		deps.AuthHandler.RegisterRoutes(mux, authCodeLimit, authVerifyLimit)
 	}
 
 	// ── naming product routes ──
@@ -122,6 +135,10 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 
 	serve := func(w http.ResponseWriter, r *http.Request, root string) bool {
 		clean := filepath.Clean(r.URL.Path)
+		if clean == "/app" || strings.HasPrefix(clean, "/app/") {
+			serveFileNoRedirect(w, r, filepath.Join(root, "dist", "app", "index.html"))
+			return true
+		}
 		p := filepath.Join(root, clean[1:])
 
 		if info, err := os.Stat(p); err == nil {

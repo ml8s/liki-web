@@ -78,6 +78,7 @@ test: ## Run Go unit tests (all packages)
 
 test-js: ## Run vitest JS tests
 	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest run test/
+	cd web/app && PATH="$(NODE_BIN):$$PATH" npm run test
 
 test-js-watch: ## Run vitest in watch mode
 	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest test/

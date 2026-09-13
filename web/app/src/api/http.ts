@@ -1,0 +1,50 @@
+export class ApiError extends Error {
+  readonly status: number
+  readonly code: string
+
+  constructor(status: number, code: string, message: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+  }
+}
+
+interface Envelope<T> {
+  data?: T
+  error?: { code?: string; message?: string }
+}
+
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetch(path, {
+    credentials: 'same-origin',
+    headers: init.body ? { 'Content-Type': 'application/json' } : undefined,
+    ...init,
+  })
+
+  let envelope: Envelope<T> | null = null
+  try {
+    envelope = await response.json()
+  } catch {
+    envelope = null
+  }
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      envelope?.error?.code ?? 'request_failed',
+      envelope?.error?.message ?? `HTTP ${response.status}`,
+    )
+  }
+  if (!envelope || !('data' in envelope)) {
+    throw new ApiError(response.status, 'invalid_response', 'Invalid API response')
+  }
+  return envelope.data as T
+}
+
+export function post<T>(path: string, body?: unknown): Promise<T> {
+  return request<T>(path, {
+    method: 'POST',
+    body: JSON.stringify(body ?? {}),
+  })
+}
