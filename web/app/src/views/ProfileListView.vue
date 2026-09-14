@@ -24,7 +24,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
 import { useProfilesStore } from '@/stores/profiles'
 import type { Profile } from '@/api/profiles'
 import AppEmpty from '@/components/app/AppEmpty.vue'

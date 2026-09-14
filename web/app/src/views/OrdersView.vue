@@ -60,7 +60,8 @@ async function load() {
   }
 }
 
-function formatAmount(order: ChatOrder) {
+function formatAmount(row: unknown) {
+  const order = row as ChatOrder
   const amount = (order.amount_minor / 100).toFixed(2)
   return `${order.currency} ${amount}`
 }
