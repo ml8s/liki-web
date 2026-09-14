@@ -25,6 +25,16 @@
       </el-form>
 
       <el-alert
+        v-if="devCode"
+        title="开发模式验证码"
+        :description="devCode"
+        type="info"
+        show-icon
+        :closable="false"
+        class="dev-code"
+      />
+
+      <el-alert
         v-if="error"
         :title="error"
         type="error"
@@ -48,6 +58,7 @@ const router = useRouter()
 const email = ref('')
 const code = ref('')
 const codeSent = ref(false)
+const devCode = ref('')
 const sending = ref(false)
 const verifying = ref(false)
 const error = ref('')
@@ -56,7 +67,8 @@ async function sendCode() {
   error.value = ''
   sending.value = true
   try {
-    await auth.requestEmailCode(email.value)
+    const issued = await auth.requestEmailCode(email.value)
+    devCode.value = issued.dev_code ?? ''
     codeSent.value = true
   } catch (err) {
     error.value = err instanceof Error ? err.message : '验证码发送失败'
@@ -87,4 +99,5 @@ h1 { margin: 0 0 8px; font-size: 24px; }
 .hint { color: #666; margin: 0 0 20px; }
 .wide { width: 100%; }
 .error { margin-top: 16px; }
+.dev-code { margin-top: 16px; }
 </style>

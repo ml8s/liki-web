@@ -11,4 +11,5 @@ export interface Me {
 export interface EmailCodeResponse {
   email: string
   expires_at: string
+  dev_code?: string
 }

@@ -1,0 +1,27 @@
+<template>
+  <div class="thread">
+    <AppEmpty v-if="!loading && !messages.length" description="描述你的问题，开始咨询" />
+    <ChatMessageItem v-for="message in messages" :key="message.id" :message="message" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import AppEmpty from '@/components/app/AppEmpty.vue'
+import ChatMessageItem from './ChatMessageItem.vue'
+import type { ChatMessage } from '@/api/chat'
+
+defineProps<{
+  messages: ChatMessage[]
+  loading?: boolean
+}>()
+
+defineExpose({
+  scrollToBottom() {
+    // The scroll container belongs to the parent layout; parent controls it.
+  },
+})
+</script>
+
+<style scoped>
+.thread { padding-right: 8px; }
+</style>

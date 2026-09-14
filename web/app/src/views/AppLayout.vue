@@ -1,10 +1,11 @@
 <template>
   <el-container class="app-shell">
     <el-header height="64px" class="app-header">
-      <div class="brand">Liki App</div>
+      <div class="brand font-serif">Liki<em>·</em>命理</div>
       <nav class="nav">
         <router-link to="/">工作台</router-link>
-        <router-link to="/reports">报告</router-link>
+        <router-link to="/profiles">档案</router-link>
+        <router-link to="/chat">Chat</router-link>
         <router-link to="/orders">订单</router-link>
         <router-link to="/account">账户</router-link>
       </nav>
@@ -23,6 +24,8 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
+import { useEntitlementsStore } from '@/stores/entitlements'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -33,16 +36,19 @@ onMounted(async () => {
 
 async function logout() {
   await auth.logout()
+  useEntitlementsStore().reset()
+  useChatStore().reset()
   await router.push({ name: 'login' })
 }
 </script>
 
 <style scoped>
-.app-shell { min-height: 100vh; background: #f7f7f5; }
-.app-header { display: flex; align-items: center; gap: 24px; background: #191919; color: #fff; }
-.brand { font-weight: 700; font-size: 18px; }
+.app-shell { min-height: 100vh; background: var(--liki-paper); }
+.app-header { display: flex; align-items: center; gap: 24px; background: var(--liki-ink); color: #fff; }
+.brand { font-weight: 700; font-size: 18px; letter-spacing: 2px; }
+.brand em { color: var(--liki-gold); font-style: normal; }
 .nav { display: flex; gap: 18px; flex: 1; }
-.nav a { color: #d9d9d9; text-decoration: none; }
+.nav a { color: #cfd3db; text-decoration: none; }
 .nav a.router-link-active { color: #fff; }
 .actions { display: flex; align-items: center; gap: 12px; }
 .email { font-size: 13px; opacity: .8; }

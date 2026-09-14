@@ -1,1 +1,35 @@
-body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #222; }
+:root {
+  /* ── Liki 设计 token（docs/frontend/ux-design.md §5）── */
+  --liki-primary: #6d5acf;
+  --liki-primary-hover: #5a47c0;
+  --liki-primary-tint: #eeeafc;
+  --liki-primary-border: #d9d2f5;
+  --liki-gold: #c9a45e;
+  --liki-gold-tint: #f6edd9;
+  --liki-ink: #232733;
+  --liki-paper: #faf9f7;
+  --liki-surface: #ffffff;
+  --liki-text-2: #5b6472;
+  --liki-text-3: #9aa3af;
+  --liki-line: #e3e1dc;
+
+  /* ── Element Plus 主色覆盖（其余语义色保持默认）── */
+  --el-color-primary: var(--liki-primary);
+  --el-color-primary-light-3: #8f82de;
+  --el-color-primary-light-5: #b3aae8;
+  --el-color-primary-light-7: #d4cff2;
+  --el-color-primary-light-8: #e4e0f7;
+  --el-color-primary-light-9: var(--liki-primary-tint);
+  --el-color-primary-dark-2: var(--liki-primary-hover);
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--liki-paper);
+  color: var(--liki-ink);
+}
+
+.font-serif {
+  font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+}
