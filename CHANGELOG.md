@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.09.14 —— 统一 Chat 平台：档案域 + Chat 绑定 + 工具切面 + feedback-v1
+
+- **档案域（新平台）**：profiles CRUD + 乐观锁 + 软删 + cursor 分页 + 配额 + owner 校验（纯用户信息，无 pan）；前端建档/编辑/免费排盘预览（TS 直连引擎 RPC，不进库）
+- **Chat 档案绑定**：会话绑定 `profile_id`、首条 `system_profile` 系统消息、档案用户信息注入 agent；定盘写回工具 `update_profile_birth_time`（走网络 PATCH，与前端同一接口，会话绑定 guard）
+- **工具切面一致性**：命理向结果契约（去 `_product`/`content` 传输壳）、统一 30s 工具超时、429 语义化、`requireBoundProfile` guard；引擎/skill 侧审计零改动（提示词无信封引用）
+- **feedback 存原文**：`POST /api/feedback` 改收 `feedback-v1` 原文 JSON，不解析字段（schema 演进零后端改动），内容 hash 去重，UTF-8 强制
+- **前端**：档案列表/新建/详情三页、dashboard"继续上次咨询"、支付返回直达解读、设计系统（墨/纸/紫/金 + 宋体）、账户会话管理
+- **文档**：`platform-fs.md` v1.4、`backend-profiles-plan.md` v2.1、`backend-tool-consistency-plan.md`、UX 交互设计、前端实施计划、双 v0 mock
+
 ## 2026.08.27 —— 版本制切换 semver → CalVer（日期版本）
 
 - VERSION 写入日期戳（2026.08.27），make version-* 三命令合并为 make version；里程碑按需 `git tag -a <日期>`

@@ -23,9 +23,9 @@
 - States: loading, not found, forbidden, deterministic chart, premium report, generation in progress, failed.
 
 ## `/app/orders`
-- Goal: list user-owned orders.
-- States: loading, empty, list, error.
-- P1: retry payment, invoice links.
+- Goal: list unified Chat orders.
+- Data: `GET /api/chat/orders`.
+- States: loading, empty, list, pending, paid, canceled, error.
 
 ## `/app/account`
 - Goal: identity, auth identities, active sessions, logout.
@@ -33,9 +33,13 @@
 - P1: revoke individual sessions, remove identity, account deletion.
 
 ## `/app/chat`
-- Goal: list chat sessions.
-- States: loading, empty, list, no entitlement, error.
+- Goal: purchase Liki Chat, choose an internal skill, and list chat sessions.
+- Data: `GET /api/chat/products`, `GET /api/me/entitlements`, `GET /api/chat/sessions`.
+- Payment return: recognize `order_id`, `status`, `payment_intent_id`, `status_token`; poll entitlement briefly after `status=paid`.
+- States: loading, empty sessions, product purchase, purchased, four internal skills, no entitlement, payment verifying, payment confirmed, payment unpaid, error.
 
 ## `/app/chat/:sessionId`
-- Goal: streaming conversation within one entitlement.
-- States: loading, empty, streaming, completed, failed, unauthorized, no entitlement.
+- Goal: conversation within one internal skill.
+- Data: `GET /api/chat/sessions/{id}`, messages API, SSE generation API.
+- States: loading, empty, thinking, streaming, completed, failed, stopped, unauthorized, expired entitlement, not found.
+- Behavior: restore a direct link after refresh; append both persisted messages after the SSE done event; support stop; scroll to the latest message.

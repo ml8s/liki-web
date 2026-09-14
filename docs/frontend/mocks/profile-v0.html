@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>档案详情 · v0 草稿</title>
+<style>
+  /* ── 设计 token（v1 东方工作台）── */
+  :root {
+    --primary: #6d5acf;
+    --primary-hover: #5a47c0;
+    --primary-tint: #eeeafc;
+    --primary-border: #d9d2f5;
+    --gold: #c9a45e;
+    --ink: #232733;
+    --paper: #faf9f7;
+    --surface: #ffffff;
+    --text-2: #5b6472;
+    --text-3: #9aa3af;
+    --line: #e3e1dc;
+    --ok: #67c23a;
+    --warn: #e6a23c;
+    --danger: #f56c6c;
+    --wu: #3b82a0; /* 木 */
+    --huo: #c25a4e; /* 火 */
+    --tu: #b8915a;  /* 土 */
+    --jin: #c9a45e; /* 金 */
+    --shui: #4a5d8a;/* 水 */
+    --r-lg: 12px;
+    --r-sm: 6px;
+    --serif: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+    --sans: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; }
+
+  /* ── 顶栏（墨）── */
+  .header { background: var(--ink); color: #fff; position: sticky; top: 0; z-index: 10; }
+  .header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 28px; padding: 0 24px; height: 64px; }
+  .brand { font-family: var(--serif); font-size: 20px; font-weight: 700; letter-spacing: 2px; }
+  .brand em { color: var(--gold); font-style: normal; }
+  .nav { display: flex; gap: 22px; flex: 1; }
+  .nav a { color: #cfd3db; text-decoration: none; font-size: 14px; }
+  .nav a.on { color: #fff; }
+  .user { font-size: 13px; opacity: .85; }
+
+  /* ── 主区 ── */
+  .main { max-width: 1200px; margin: 0 auto; padding: 40px 24px 64px; }
+
+  /* 页头 */
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+  .page-head h1 { font-family: var(--serif); font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+  .page-head .sub { color: var(--text-2); margin-top: 4px; }
+  .crumbs { font-size: 13px; color: var(--text-3); margin-bottom: 8px; }
+
+  /* 徽标 */
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
+  .pill.ready { background: #eef7ee; color: var(--ok); }
+  .pill.pending { background: #fff7e6; color: var(--warn); }
+  .pill.failed { background: #fdf0f0; color: var(--danger); }
+  .pill.tag { background: var(--primary-tint); color: var(--primary); }
+  .pill.gold { background: #f6edd9; color: #8a6a2f; }
+
+  /* 按钮 */
+  .btn { border: none; border-radius: var(--r-sm); padding: 10px 18px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .18s ease; }
+  .btn.primary { background: var(--primary); color: #fff; }
+  .btn.primary:hover { background: var(--primary-hover); }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text-2); }
+
+  /* 档案信息条 */
+  .profile-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .profile-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .profile-name { font-family: var(--serif); font-size: 22px; font-weight: 700; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--primary-tint); color: var(--primary); display: grid; place-items: center; font-family: var(--serif); font-size: 18px; }
+  .meta-line { color: var(--text-2); font-size: 14px; margin-top: 6px; }
+
+  /* ── 盘面（hero）── */
+  .paipan { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--gold); border-radius: var(--r-lg); padding: 28px 28px 8px; margin-bottom: 32px; }
+  .paipan-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 12px; }
+  .paipan-title { font-family: var(--serif); font-size: 20px; font-weight: 700; }
+  .correction { font-size: 12px; color: var(--text-3); }
+  .tabs { display: flex; gap: 6px; margin: 14px 0 20px; border-bottom: 1px solid var(--line); }
+  .tab { padding: 8px 16px; font-size: 14px; color: var(--text-2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.on { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+  /* 八字：四柱 */
+  .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+  .pillar { background: var(--surface); padding: 14px 8px; text-align: center; }
+  .pillar .label { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+  .pillar .gl { font-family: var(--serif); font-size: 22px; font-weight: 700; }
+  .pillar .shishen { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+  .pillar .nayin { font-size: 12px; color: var(--text-3); }
+
+  .section-block { margin: 22px 0; }
+  .section-label { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--text-2); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .yun-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .yun { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px; font-size: 14px; }
+  .yun .yr { color: var(--text-3); font-size: 12px; display: block; }
+  .yun.active { border-color: var(--primary); background: var(--primary-tint); color: var(--primary); }
+
+  .wuxing { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 12px; border-radius: var(--r-sm); color: #fff; }
+  .w.mu { background: var(--wu); } .w.huo { background: var(--huo); }
+  .w.tu { background: var(--tu); } .w.jin { background: var(--jin); } .w.shui { background: var(--shui); }
+
+  /* 紫微十二宫 */
+  .palaces { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+  .palace { background: var(--surface); padding: 12px 6px; text-align: center; min-height: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .palace .pname { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .palace .pstar { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+  .palace.self { background: var(--primary-tint); }
+  .palace.self .pname { color: var(--primary); }
+
+  /* 八宅 */
+  .mingua { display: inline-grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; border: 2px solid var(--gold); font-family: var(--serif); font-size: 32px; color: #8a6a2f; background: #f6edd9; }
+  .dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+  .dir { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px; text-align: center; }
+  .dir .dname { font-size: 14px; font-weight: 600; }
+  .dir .dg { font-family: var(--serif); font-size: 18px; color: var(--gold); }
+  .dir.good { border-color: #bfe6bf; background: #f4faf4; }
+  .dir.good .dg { color: var(--ok); }
+  .dir.bad { border-color: #f3c9c9; background: #fdf5f5; }
+  .dir.bad .dg { color: var(--danger); }
+
+  /* 状态占位（v0 演示） */
+  .state-box { border: 1px dashed var(--line); border-radius: var(--r-lg); padding: 48px; text-align: center; color: var(--text-2); }
+  .skel { height: 12px; border-radius: 6px; background: linear-gradient(90deg,#f0efeb 25%,#e7e4de 50%,#f0efeb 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; margin: 8px 0; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  .hide { display: none !important; }
+
+  /* 底部工具栏（状态演示） */
+  .toolbar { position: fixed; right: 16px; bottom: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 6px 24px rgba(35,39,51,.10); padding: 12px; font-size: 13px; color: var(--text-2); z-index: 99; }
+  .toolbar label { margin-right: 10px; }
+
+  @media (max-width: 720px) {
+    .pillars { grid-template-columns: repeat(2, 1fr); }
+    .palaces { grid-template-columns: repeat(3, 1fr); }
+    .dirs { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">Liki<em>·</em>命理</div>
+      <nav class="nav">
+        <a href="#">工作台</a>
+        <a href="#">档案</a>
+        <a href="#">Chat</a>
+        <a href="#">订单</a>
+        <a href="#">账户</a>
+      </nav>
+      <span class="user">you@example.com</span>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="crumbs">档案 / 列表 / 详情</div>
+
+    <div class="page-head">
+      <div>
+        <h1>妈妈 <span class="pill ready" data-role="status-pill">已排盘</span></h1>
+        <div class="sub">1958-05-12（农历） · 女 · 上海</div>
+      </div>
+      <div class="btn primary" data-role="cta">开始解读</div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-meta">
+        <div class="avatar">妈</div>
+        <div>
+          <div class="profile-name">妈妈</div>
+          <div class="meta-line">关系：家人 · 生辰：农历 戊戌年 三月 廿四 · 出生地：上海（将做真太阳时修正）</div>
+        </div>
+      </div>
+      <div class="profile-meta">
+        <span class="pill tag">八字</span>
+        <span class="pill tag">紫微</span>
+        <span class="pill gold">八宅·兑</span>
+      </div>
+    </div>
+
+    <!-- 盘面 hero -->
+    <section class="paipan">
+      <div class="paipan-head">
+        <div class="paipan-title">盘面</div>
+        <div class="correction">真太阳时修正 −1h（路 A） · pan v3</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab on" data-tab="bazi">八字</div>
+        <div class="tab" data-tab="ziwei">紫微</div>
+        <div class="tab" data-tab="bazhai">八宅</div>
+      </div>
+
+      <!-- 八字 -->
+      <div data-panel="bazi">
+        <div class="pillars">
+          <div class="pillar"><div class="label">年柱</div><div class="gl">戊戌</div><div class="shishen">比肩</div><div class="nayin">平地木</div></div>
+          <div class="pillar"><div class="label">月柱</div><div class="gl">丙辰</div><div class="shishen">偏印</div><div class="nayin">沙中土</div></div>
+          <div class="pillar"><div class="label">日柱</div><div class="gl">丁酉</div><div class="shishen">日元</div><div class="nayin">山下火</div></div>
+          <div class="pillar"><div class="label">时柱</div><div class="gl">庚戌</div><div class="shishen">正财</div><div class="nayin">钗钏金</div></div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-label">用神</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span class="wuxing w huo">火 · 用神</span>
+            <span class="wuxing w mu">木 · 喜神</span>
+            <span class="wuxing w tu">土 · 忌神</span>
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-label">大运</div>
+          <div class="yun-row">
+            <div class="yun"><span class="yr">5–14</span>辛巳</div>
+            <div class="yun"><span class="yr">15–24</span>壬午</div>
+            <div class="yun active"><span class="yr">25–34</span>癸未</div>
+            <div class="yun"><span class="yr">35–44</span>甲申</div>
+            <div class="yun"><span class="yr">45–54</span>乙酉</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 紫微 -->
+      <div data-panel="ziwei" class="hide">
+        <div class="palaces">
+          <div class="palace"><div class="pname">命宫</div><div class="pstar">武曲</div></div>
+          <div class="palace"><div class="pname">兄弟</div><div class="pstar">天同</div></div>
+          <div class="palace self"><div class="pname">夫妻</div><div class="pstar">紫微·天府</div></div>
+          <div class="palace"><div class="pname">子女</div><div class="pstar">—</div></div>
+          <div class="palace"><div class="pname">财帛</div><div class="pstar">太阴</div></div>
+          <div class="palace"><div class="pname">疾厄</div><div class="pstar">贪狼</div></div>
+          <div class="palace"><div class="pname">迁移</div><div class="pstar">天机</div></div>
+          <div class="palace"><div class="pname">仆役</div><div class="pstar">七杀</div></div>
+          <div class="palace"><div class="pname">官禄</div><div class="pstar">太阳</div></div>
+          <div class="palace"><div class="pname">田宅</div><div class="pstar">破军</div></div>
+          <div class="palace"><div class="pname">福德</div><div class="pstar">天梁</div></div>
+          <div class="palace"><div class="pname">父母</div><div class="pstar">廉贞</div></div>
+        </div>
+        <div class="section-block">
+          <div class="section-label">十年大限</div>
+          <div class="yun-row">
+            <div class="yun"><span class="yr">58–67</span>丁亥</div>
+            <div class="yun active"><span class="yr">68–77</span>丙戌</div>
+            <div class="yun"><span class="yr">78–87</span>乙酉</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 八宅 -->
+      <div data-panel="bazhai" class="hide">
+        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+          <div class="mingua">兑</div>
+          <div>
+            <div style="font-size:15px;font-weight:600">西四命 · 兑宅</div>
+            <div style="color:var(--text-2);font-size:14px;margin-top:4px">出生年：戊戌（1958） · 紫白飞星：二黑</div>
+          </div>
+        </div>
+        <div class="dirs">
+          <div class="dir good"><div class="dg">乾</div><div class="dname">延年 · 西北</div></div>
+          <div class="dir good"><div class="dg">坤</div><div class="dname">天医 · 西南</div></div>
+          <div class="dir good"><div class="dg">艮</div><div class="dname">生气 · 东北</div></div>
+          <div class="dir good"><div class="dg">兑</div><div class="dname">伏位 · 正西</div></div>
+          <div class="dir bad"><div class="dg">震</div><div class="dname">绝命 · 正东</div></div>
+          <div class="dir bad"><div class="dg">巽</div><div class="dname">五鬼 · 东南</div></div>
+          <div class="dir bad"><div class="dg">离</div><div class="dname">六煞 · 正南</div></div>
+          <div class="dir bad"><div class="dg">坎</div><div class="dname">祸害 · 正北</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 状态占位（pending / failed 演示） -->
+    <div id="pending-box" class="state-box hide">
+      <div class="skel" style="width:60%;margin:0 auto 16px"></div>
+      <div class="skel" style="width:80%;margin:0 auto 16px"></div>
+      <div class="skel" style="width:50%;margin:0 auto"></div>
+      <div style="margin-top:20px">排盘计算中…（v0 占位）</div>
+    </div>
+    <div id="failed-box" class="state-box hide">
+      <div style="color:var(--danger);font-weight:600;margin-bottom:8px">排盘暂不可用，请稍后重试</div>
+      <div class="btn ghost" style="margin-top:12px">重新排盘</div>
+    </div>
+  </main>
+
+  <div class="toolbar">
+    <label>状态
+      <select id="state">
+        <option value="ready">ready</option>
+        <option value="pending">pending</option>
+        <option value="failed">failed</option>
+      </select>
+    </label>
+    <label>已购
+      <select id="purchased">
+        <option value="yes">已购</option>
+        <option value="no">未购</option>
+      </select>
+    </label>
+  </div>
+
+<script>
+  // v0 状态演示：切状态 / 切权益，观察盘面与 CTA 反馈
+  const $ = s => document.querySelector(s);
+  const state = $('#state'), purchased = $('#purchased');
+  const paipan = $('.paipan'), pendingBox = $('#pending-box'), failedBox = $('#failed-box');
+  const pill = $('[data-role=status-pill]'), cta = $('[data-role=cta]');
+
+  function render() {
+    const s = state.value;
+    paipan.classList.toggle('hide', s !== 'ready');
+    pendingBox.classList.toggle('hide', s !== 'pending');
+    failedBox.classList.toggle('hide', s !== 'failed');
+    pill.textContent = s === 'ready' ? '已排盘' : s === 'pending' ? '排盘中' : '排盘失败';
+    pill.className = 'pill ' + s;
+    cta.textContent = purchased.value === 'yes' ? '开始解读' : '解锁 Chat';
+  }
+  state.addEventListener('change', render);
+  purchased.addEventListener('change', render);
+
+  // tab 切换
+  document.querySelectorAll('[data-tab]').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('on', x === t));
+      document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hide', p.dataset.panel !== t.dataset.tab));
+    });
+  });
+</script>
+</body>
+</html>

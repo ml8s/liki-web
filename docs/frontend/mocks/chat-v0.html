@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会话 · v0 草稿</title>
+<style>
+  :root {
+    --primary: #6d5acf; --primary-hover: #5a47c0; --primary-tint: #eeeafc; --primary-border: #d9d2f5;
+    --gold: #c9a45e; --ink: #232733; --paper: #faf9f7; --surface: #ffffff;
+    --text-2: #5b6472; --text-3: #9aa3af; --line: #e3e1dc;
+    --ok: #67c23a; --warn: #e6a23c; --danger: #f56c6c;
+    --r-lg: 12px; --r-sm: 6px;
+    --serif: "Songti SC","Noto Serif CJK SC","SimSun",serif;
+    --sans: system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; }
+
+  .header { background: var(--ink); color: #fff; position: sticky; top: 0; z-index: 10; }
+  .header-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; gap: 24px; padding: 0 20px; height: 56px; }
+  .back { color: #cfd3db; text-decoration: none; font-size: 14px; }
+  .brand { font-family: var(--serif); font-size: 18px; font-weight: 700; letter-spacing: 2px; flex: 1; }
+  .brand em { color: var(--gold); font-style: normal; }
+
+  .main { max-width: 1000px; margin: 0 auto; padding: 20px 20px 32px; height: calc(100vh - 56px); display: flex; flex-direction: column; }
+
+  .session-head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .session-head h1 { font-family: var(--serif); font-size: 22px; font-weight: 700; }
+  .session-head .skill { font-size: 14px; color: var(--text-2); }
+  .toggle { margin-left: auto; font-size: 13px; color: var(--text-2); cursor: pointer; }
+
+  .thread { flex: 1; overflow: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* 消息 */
+  .msg { display: flex; gap: 12px; }
+  .msg .who { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--serif); font-size: 15px; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg.user .who { background: var(--primary); color: #fff; }
+  .msg.assistant .who { background: var(--primary-tint); color: var(--primary); }
+  .bubble { max-width: 78%; padding: 12px 16px; border-radius: var(--r-lg); }
+  .msg.user .bubble { background: var(--primary-tint); }
+  .msg.assistant .bubble { background: var(--surface); border: 1px solid var(--line); }
+  .bubble .role { font-size: 12px; color: var(--text-3); margin-bottom: 4px; }
+
+  /* 档案卡（system_profile 首条） */
+  .chart-card { border: 1px solid var(--line); border-top: 2px solid var(--gold); border-radius: var(--r-lg); background: var(--surface); overflow: hidden; }
+  .chart-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .chart-head .t { font-family: var(--serif); font-weight: 700; font-size: 15px; }
+  .chart-head .pill { font-size: 11px; background: #f6edd9; color: #8a6a2f; padding: 1px 8px; border-radius: 999px; }
+  .chart-body { padding: 16px; }
+  .profile-line { color: var(--text-2); font-size: 14px; }
+  .profile-note { color: var(--text-3); font-size: 12px; margin: 6px 0 0; }
+  .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+  .pillar { background: var(--surface); padding: 10px 6px; text-align: center; }
+  .pillar .gl { font-family: var(--serif); font-size: 18px; font-weight: 700; }
+  .pillar .sh { font-size: 11px; color: var(--text-2); }
+  .chart-foot { padding: 10px 16px; font-size: 12px; color: var(--text-3); border-top: 1px solid var(--line); }
+
+  /* 流式状态行 */
+  .status-line { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); padding: 6px 2px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+
+  /* composer */
+  .composer { margin-top: 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 10px 12px; display: flex; gap: 10px; align-items: flex-end; }
+  .composer textarea { flex: 1; border: none; outline: none; resize: none; font: inherit; background: transparent; min-height: 22px; max-height: 120px; font-family: var(--sans); }
+  .send { border: none; border-radius: var(--r-sm); padding: 9px 20px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .send.primary { background: var(--primary); color: #fff; }
+  .send.primary:hover { background: var(--primary-hover); }
+  .send.stop { background: #fdf0f0; color: var(--danger); }
+  .hint { font-size: 12px; color: var(--text-3); margin-top: 6px; text-align: right; }
+
+  .hide { display: none !important; }
+  .toolbar { position: fixed; right: 16px; bottom: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 6px 24px rgba(35,39,51,.10); padding: 12px; font-size: 13px; color: var(--text-2); z-index: 99; }
+  .toolbar label { margin-right: 10px; }
+
+  @media (max-width: 640px) {
+    .pillars { grid-template-columns: repeat(2, 1fr); }
+    .bubble { max-width: 88%; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <a class="back" href="#">← 会话列表</a>
+      <div class="brand">Liki<em>·</em>命理</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="session-head">
+      <h1>妈妈</h1>
+      <span class="skill">八字紫微</span>
+      <span class="toggle" id="chartToggle">档案卡：开</span>
+    </div>
+
+    <div class="thread" id="thread">
+
+      <!-- system_profile 首条 -->
+      <div class="msg assistant chart-msg" id="chartMsg">
+        <div class="who">档</div>
+        <div class="chart-card">
+          <div class="chart-head"><span class="t">已载入档案 · 妈妈</span><span class="pill">系统</span></div>
+          <div class="chart-body">
+            <div class="profile-line">农历 1958-闰5-12 06:00 · 女 · 已知 · 上海</div>
+            <p class="profile-note">将基于以上出生信息排盘后解读。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- user -->
+      <div class="msg user">
+        <div class="who">我</div>
+        <div class="bubble"><div class="role">你</div>妈妈今年健康运怎么样？</div>
+      </div>
+
+      <!-- assistant streaming -->
+      <div class="msg assistant">
+        <div class="who">解</div>
+        <div class="bubble">
+          <div class="role">Liki 解读</div>
+          <div id="streamText">从命盘看，妈妈八字日主丁火坐酉金……</div>
+          <div class="status-line" id="statusLine"><span class="dot"></span><span id="statusText">正在推演大运流年…</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="继续问问这个人的运势…（Enter 发送 / Shift+Enter 换行）"></textarea>
+      <button class="send primary" id="sendBtn">发送</button>
+    </div>
+    <div class="hint">发送中不可重复提交 · 停止后可继续提问</div>
+  </main>
+
+  <div class="toolbar">
+    <label>流式状态
+      <select id="state">
+        <option value="streaming">streaming</option>
+        <option value="done">done</option>
+        <option value="stopped">stopped</option>
+        <option value="error">error</option>
+      </select>
+    </label>
+  </div>
+
+<script>
+  const $ = s => document.querySelector(s);
+  const state = $('#state'), statusLine = $('#statusLine'), statusText = $('#statusText');
+  const sendBtn = $('#sendBtn');
+  const texts = {
+    streaming: '正在推演大运流年…',
+    done: '',
+    stopped: '已停止生成，正在恢复权威消息…',
+    error: '服务暂时不可用，正在恢复消息…',
+  };
+  function render() {
+    const s = state.value;
+    const streaming = s === 'streaming';
+    statusLine.classList.toggle('hide', !streaming && s !== 'stopped' && s !== 'error');
+    statusText.textContent = texts[s];
+    sendBtn.textContent = streaming ? '停止' : '发送';
+    sendBtn.className = 'send ' + (streaming ? 'stop' : 'primary');
+  }
+  state.addEventListener('change', render);
+  render();
+
+  $('#chartToggle').addEventListener('click', e => {
+    const m = $('#chartMsg');
+    const open = !m.classList.contains('hide');
+    m.classList.toggle('hide', open);
+    e.target.textContent = '档案卡：' + (open ? '关' : '开');
+  });
+</script>
+</body>
+</html>
