@@ -83,10 +83,14 @@ func (h *Handler) HandleSendEmailCode(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, err)
 		return
 	}
-	responseOK(w, map[string]any{
+	response := map[string]any{
 		"email":      issued.Email,
 		"expires_at": issued.ExpiresAt,
-	})
+	}
+	if issued.DevCode != "" {
+		response["dev_code"] = issued.DevCode
+	}
+	responseOK(w, response)
 }
 
 func (h *Handler) HandleVerifyEmailCode(w http.ResponseWriter, r *http.Request) {

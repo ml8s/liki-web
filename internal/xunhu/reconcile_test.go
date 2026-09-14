@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"liki-web/internal/product"
 	"net/http"
 	"net/url"
 	"testing"
 
 	"liki-web/internal/payment"
-	"liki-web/internal/product"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -51,7 +51,7 @@ func TestFetchPaymentQueriesOfficialContract(t *testing.T) {
 
 	c := &Client{appID: "app", appSecret: "secret", queryURL: "https://api.example/payment/query.html", httpClient: client}
 	event, err := c.FetchPayment(context.Background(), payment.PaymentIntent{
-		ID: "pi-1", Product: product.ProductNaming, AmountMinor: 990, Currency: "CNY",
+		ID: "pi-1", Product: string(product.ProductNaming), AmountMinor: 990, Currency: "CNY",
 	})
 	if err != nil {
 		t.Fatal(err)

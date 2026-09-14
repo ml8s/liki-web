@@ -27,6 +27,7 @@ type Config struct {
 	CookieName    string
 	SecureCookie  bool
 	MaxSessions   int
+	ExposeDevCode bool
 	EmailResolver func(email string) (string, error)
 }
 
@@ -94,6 +95,7 @@ func NewService(store *Store, mailer Mailer, config Config) (*Service, error) {
 type CodeIssued struct {
 	Email     string
 	ExpiresAt time.Time
+	DevCode   string
 }
 
 func (s *Service) RequestEmailCode(ctx context.Context, rawEmail, ip, userAgent string) (CodeIssued, error) {
@@ -105,10 +107,15 @@ func (s *Service) RequestEmailCode(ctx context.Context, rawEmail, ip, userAgent 
 	if err != nil {
 		return CodeIssued{}, err
 	}
-	if err = s.mailer.SendAuthCode(ctx, email, code); err != nil {
-		return CodeIssued{}, fmt.Errorf("auth: send email code: %w", err)
+	sendErr := s.mailer.SendAuthCode(ctx, email, code)
+	if sendErr != nil && !s.config.ExposeDevCode {
+		return CodeIssued{}, fmt.Errorf("auth: send email code: %w", sendErr)
 	}
-	return CodeIssued{Email: email, ExpiresAt: expires}, nil
+	issued := CodeIssued{Email: email, ExpiresAt: expires}
+	if s.config.ExposeDevCode {
+		issued.DevCode = code
+	}
+	return issued, nil
 }
 
 func (s *Service) VerifyEmailCode(ctx context.Context, rawEmail, rawCode, ip, userAgent string) (LoginResult, error) {

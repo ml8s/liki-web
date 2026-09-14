@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	_ "modernc.org/sqlite"
-
-	"liki-web/internal/product"
 )
 
 func TestIntentStoreMigrateNormalizesHistoricalMingShu(t *testing.T) {
@@ -43,7 +41,7 @@ func TestIntentStoreMigrateNormalizesHistoricalMingShu(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Product != product.ProductMingShu {
-		t.Fatalf("product = %q, want %q", got.Product, product.ProductMingShu)
+	if got.Product != "mingshu" {
+		t.Fatalf("product = %q, want %q", got.Product, "mingshu")
 	}
 }

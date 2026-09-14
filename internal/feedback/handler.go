@@ -1,6 +1,8 @@
 package feedback
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,43 +11,46 @@ import (
 	"unicode/utf8"
 )
 
+// CreateRequest 是 POST /api/feedback 的最小契约：任何合法 JSON 对象都接受，
+// 字段由 payload 内的 schema_version 自描述，后端不解字段——schema 演进不触发后端改动。
 type CreateRequest struct {
-	Category string `json:"category"`
-	Message  string `json:"message"`
-	Context  string `json:"context,omitempty"`
+	SchemaVersion string `json:"schema_version"`
+}
+
+type UpdateRequest struct {
+	Status   string `json:"status"`
+	IssueURL string `json:"issue_url,omitempty"`
 }
 
 func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "invalid JSON", 400)
+			http.Error(w, "invalid body", 400)
 			return
 		}
-		// 强制 UTF-8（RFC 8259 §8.1）：encoding/json 会把非法字节静默替换为 U+FFFD 入库，
-		// Windows GBK 客户端的两条反馈因此不可逆损坏（feedback 3376740b/8d453a6a）。
-		// fail loud：调用方收到 400 后自查编码重发，而不是存下乱码。
+		// 强制 UTF-8（RFC 8259 §8.1）：非 UTF-8 body 一律 400，防止 GBK 乱码入库。
 		if !utf8.Valid(body) {
 			http.Error(w, "body must be UTF-8", 400)
 			return
 		}
-		var req CreateRequest
-		if err := json.Unmarshal(body, &req); err != nil {
-			http.Error(w, "invalid JSON", 400)
+		// 极简校验：必须是合法 JSON 对象（map）。不解析任何业务字段。
+		var probe map[string]any
+		if err := json.Unmarshal(body, &probe); err != nil {
+			http.Error(w, "body must be a JSON object", 400)
 			return
 		}
-		if strings.TrimSpace(req.Message) == "" {
-			http.Error(w, "message required", 400)
+
+		hash := sha256Hex(body)
+		if id, status, ok := store.ExistingByHash(hash); ok {
+			// 字段无关去重：相同内容直接返回既有 id。
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(201)
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": id, "status": status, "duplicate": "true"})
 			return
 		}
-		if req.Category == "" {
-			req.Category = "other"
-		}
-		fb := &Feedback{
-			Category: req.Category,
-			Message:  req.Message,
-			Context:  req.Context,
-		}
+
+		fb := &Feedback{Payload: string(body), Hash: hash}
 		if err := store.Create(fb); err != nil {
 			http.Error(w, "internal error", 500)
 			return
@@ -83,11 +88,6 @@ func HandleList(store *Store, apiKey string) http.HandlerFunc {
 	}
 }
 
-type UpdateRequest struct {
-	Status   string `json:"status"`
-	IssueURL string `json:"issue_url,omitempty"`
-}
-
 func HandleUpdate(store *Store, apiKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !authAPIKey(r, apiKey) {
@@ -115,6 +115,11 @@ func HandleUpdate(store *Store, apiKey string) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
+}
+
+func sha256Hex(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }
 
 func authAPIKey(r *http.Request, key string) bool {

@@ -9,7 +9,6 @@ import (
 	"github.com/dodopayments/dodopayments-go/option"
 
 	"liki-web/internal/payment"
-	"liki-web/internal/product"
 )
 
 // Client wraps the Dodo Payments SDK for checkout and webhook operations.
@@ -17,11 +16,11 @@ type Client struct {
 	checkoutSvc *dodopayments.CheckoutSessionService
 	webhookSvc  *dodopayments.WebhookService
 	paymentsSvc *dodopayments.PaymentService
-	products    map[product.Product]string
+	products    map[string]string
 }
 
 // New creates a Dodo Payments client with the given API key and webhook secret.
-func New(apiKey, webhookKey string, testMode bool, products map[product.Product]string) *Client {
+func New(apiKey, webhookKey string, testMode bool, products map[string]string) *Client {
 	opts := []option.RequestOption{option.WithBearerToken(apiKey)}
 	if testMode {
 		opts = append(opts, option.WithEnvironmentTestMode())
@@ -39,7 +38,7 @@ func New(apiKey, webhookKey string, testMode bool, products map[product.Product]
 // CreateCheckout creates a Dodo checkout session from the normalized request.
 func (c *Client) CreateCheckout(ctx context.Context, req payment.CheckoutRequest) (*payment.CheckoutResult, error) {
 	productID, ok := c.products[req.Product]
-	if !ok {
+	if !ok || productID == "" {
 		return nil, fmt.Errorf("dodo: no product ID configured for %s", req.Product)
 	}
 	metadata := map[string]string{

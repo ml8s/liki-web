@@ -11,8 +11,6 @@ import (
 	"testing"
 
 	_ "modernc.org/sqlite"
-
-	"liki-web/internal/product"
 )
 
 type fakeGateway struct {
@@ -49,12 +47,12 @@ func (g *fakeGateway) FetchPayment(ctx context.Context, intent PaymentIntent) (*
 }
 
 type fakeFlow struct {
-	product product.Product
+	product string
 	order   BusinessOrder
 	onPaid  int
 }
 
-func (f *fakeFlow) Product() product.Product { return f.product }
+func (f *fakeFlow) Product() string { return f.product }
 
 func (f *fakeFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (BusinessOrder, error) {
 	if businessOrderID != f.order.ID {
@@ -120,7 +118,7 @@ func newTestRuntime(t *testing.T) (*Runtime, *fakeGateway, *fakeFlow, *fakeSende
 	db := newRuntimeTestDB(t)
 	gateway := &fakeGateway{}
 	flow := &fakeFlow{
-		product: product.ProductNaming,
+		product: "naming",
 		order: BusinessOrder{
 			ID: "biz-1", AmountMinor: 990, Currency: "CNY",
 			Email: "user@example.com", Locale: "zh-Hant",
@@ -131,7 +129,7 @@ func newTestRuntime(t *testing.T) (*Runtime, *fakeGateway, *fakeFlow, *fakeSende
 	notifications := NewNotificationStore(db)
 	runtime := NewRuntime(
 		map[Provider]Gateway{ProviderXunhu: gateway},
-		map[product.Product]ProductFlow{product.ProductNaming: flow},
+		map[string]ProductFlow{"naming": flow},
 		intents,
 		notifications,
 		NewFulfillmentTaskStore(db),
@@ -160,7 +158,7 @@ func TestRuntimeCreateIntentUsesProductFlow(t *testing.T) {
 	runtime, _, flow, _, store, _ := newTestRuntime(t)
 
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product:         product.ProductNaming,
+		Product:         "naming",
 		BusinessOrderID: "biz-1",
 		Provider:        ProviderXunhu,
 	})
@@ -177,7 +175,7 @@ func TestRuntimeCreateIntentUsesProductFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Status != IntentCreated || got.Product != product.ProductNaming {
+	if got.Status != IntentCreated || got.Product != "naming" {
 		t.Fatalf("stored intent = %+v", got)
 	}
 	if got.SuccessURL != intent.SuccessURL || got.FailureURL != intent.FailureURL {
@@ -193,7 +191,7 @@ func TestRuntimeStartCheckoutSendsReturnURLAndStoresSession(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, _, _, store, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: product.ProductNaming, BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -225,7 +223,7 @@ func TestRuntimeWebhookMarksPaidDispatchesOnceAndQueuesNotifications(t *testing.
 	ctx := context.Background()
 	runtime, gateway, flow, sender, _, notifications := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: product.ProductNaming, BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -283,7 +281,7 @@ func TestRuntimeWebhookRejectsAmountMismatch(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, flow, _, _, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: product.ProductNaming, BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -304,7 +302,7 @@ func TestRuntimeCaptureQueuesNotificationsBeforeProductFulfillment(t *testing.T)
 	runtime, gateway, _, sender, _, notifications := newTestRuntime(t)
 	flow := &failingFlow{
 		fakeFlow: fakeFlow{
-			product: product.ProductNaming,
+			product: "naming",
 			order: BusinessOrder{
 				ID: "biz-1", AmountMinor: 990, Currency: "CNY",
 				Email: "user@example.com", Locale: "zh-Hant",
@@ -312,10 +310,10 @@ func TestRuntimeCaptureQueuesNotificationsBeforeProductFulfillment(t *testing.T)
 		},
 		onPaidErr: errors.New("report generator failed"),
 	}
-	runtime.flows[product.ProductNaming] = flow
+	runtime.flows["naming"] = flow
 
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: product.ProductNaming, BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -347,7 +345,7 @@ func TestRuntimeReconcilePendingIntentMarksPaidOnce(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, flow, _, store, notifications := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: product.ProductNaming, BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -400,7 +398,7 @@ func TestRuntimeReconcileIgnoresUnpaidProviderState(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, flow, _, store, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: product.ProductNaming, BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -428,5 +426,54 @@ func TestRuntimeReconcileIgnoresUnpaidProviderState(t *testing.T) {
 	}
 	if got.Status != IntentCheckoutCreated {
 		t.Fatalf("status = %q", got.Status)
+	}
+}
+
+func TestRuntimeWebhookDoesNotGrantUnifiedChatEntitlement(t *testing.T) {
+	ctx := context.Background()
+	runtime, gateway, _, _, _, _ := newTestRuntime(t)
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
+		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := runtime.StartCheckout(ctx, intent.ID); err != nil {
+		t.Fatal(err)
+	}
+	gateway.event = checkoutEvent(intent)
+	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runtime.HandleWebhookEvent(ctx, []byte("event-duplicate"), nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRuntimeReturnReconcilesCompletedProviderPayment(t *testing.T) {
+	ctx := context.Background()
+	runtime, gateway, flow, _, _, _ := newTestRuntime(t)
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
+		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := runtime.StartCheckout(ctx, intent.ID); err != nil {
+		t.Fatal(err)
+	}
+	gateway.fetchEvent = checkoutEvent(intent)
+
+	returned, location, err := runtime.HandleReturn(ctx, intent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if returned.Status != IntentPaid || !strings.Contains(location, "payment_intent_id=") {
+		t.Fatalf("return = %+v, %q", returned, location)
+	}
+
+	if _, processErr := runtime.ProcessFulfillmentTasks(ctx, 10); processErr != nil || flow.onPaid != 1 {
+		t.Fatalf("ProcessFulfillmentTasks = %d, %v; want 1, nil", flow.onPaid, processErr)
 	}
 }

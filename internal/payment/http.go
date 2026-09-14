@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"liki-web/internal/httputil"
-	"liki-web/internal/product"
 )
 
 type createIntentRequest struct {
@@ -35,7 +34,7 @@ func (runtime *Runtime) HandleCreateIntent(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		intent, err := runtime.CreateIntent(r.Context(), CreateIntentInput{
-			Product:         product.Product(req.Product),
+			Product:         string(req.Product),
 			BusinessOrderID: req.BusinessOrderID,
 			Provider:        Provider(req.Provider),
 			Locale:          req.Locale,

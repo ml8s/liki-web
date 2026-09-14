@@ -86,7 +86,8 @@ func ReadFileHandler(root string) func(context.Context, json.RawMessage) (json.R
 		if err != nil {
 			return nil, fmt.Errorf("read_file: %w", err)
 		}
-		data, err := json.Marshal(struct{ Content string }{string(content)})
+		// 命理向契约：直接返回文件内容本体（JSON 字符串），不带 {content} 壳。
+		data, err := json.Marshal(string(content))
 		if err != nil {
 			return nil, fmt.Errorf("read_file: marshal: %w", err)
 		}
@@ -110,11 +111,30 @@ func (r *ChatToolRegistry) discoverEngineTools() {
 			toolName := strings.ReplaceAll(rpcMethod, ".", "_")
 			method := rpcMethod
 			r.handlers[toolName] = func(ctx context.Context, args json.RawMessage) (json.RawMessage, error) {
-				return r.callEngine(ctx, method, args)
+				result, err := r.callEngine(ctx, method, args)
+				if err != nil {
+					return nil, err
+				}
+				// 命理向契约：引擎返回 {"_product":..., "data":...}，这里只把
+				// 命理本体 data 交给 LLM，去掉传输壳。
+				return unwrapEngineResult(result)
 			}
 			r.addSchema(toolDef(toolName, info.Description, info.Params))
 		}
 	})
+}
+
+// unwrapEngineResult extracts the 命理本体 from the engine's wrapped result
+// {"_product":..., "data":...}. If the shape is unexpected, the raw result is
+// passed through rather than failing a compute call.
+func unwrapEngineResult(raw json.RawMessage) (json.RawMessage, error) {
+	var wrapped struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &wrapped); err == nil && wrapped.Data != nil && len(wrapped.Data) > 0 {
+		return wrapped.Data, nil
+	}
+	return raw, nil
 }
 
 type discoveredMethod struct {

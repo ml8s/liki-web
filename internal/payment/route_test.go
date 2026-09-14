@@ -7,8 +7,6 @@ import (
 	"time"
 
 	_ "modernc.org/sqlite"
-
-	"liki-web/internal/product"
 )
 
 func TestCurrencyRoutePolicy(t *testing.T) {
@@ -34,7 +32,7 @@ func TestRuntimeCreateIntentIgnoresProviderHint(t *testing.T) {
 	runtime, _, flow, _, _, _ := newTestRuntime(t)
 
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product:         product.ProductNaming,
+		Product:         "naming",
 		BusinessOrderID: "biz-1",
 		Provider:        ProviderDodo,
 	})
@@ -58,7 +56,7 @@ func TestFulfillmentTaskRetriesWithBackoff(t *testing.T) {
 		t.Fatal(err)
 	}
 	intent := PaymentIntent{
-		ID: "pi-retry", BusinessOrderID: "biz-retry", Product: product.ProductNaming,
+		ID: "pi-retry", BusinessOrderID: "biz-retry", Product: "naming",
 	}
 	if err := tasks.EnsureQueued(ctx, intent); err != nil {
 		t.Fatal(err)

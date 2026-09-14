@@ -9,6 +9,7 @@ import (
 	"liki-web/internal/agent"
 	"liki-web/internal/httputil"
 	"liki-web/internal/llm"
+	"liki-web/internal/sse"
 )
 
 func HandleChat(chat *agent.Agent, store *Store) http.HandlerFunc {
@@ -42,19 +43,16 @@ func HandleChat(chat *agent.Agent, store *Store) http.HandlerFunc {
 		if req.Lang == "en" {
 			locale = "en"
 		}
-		flusher, ok := w.(http.Flusher)
+		flusher, ok := sse.Begin(w)
 		if !ok {
 			httputil.RespondAppError(w, httputil.ErrInternal)
 			return
 		}
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
 
 		history, err := store.LoadChatHistory(r.Context(), orderID)
 		if err != nil {
 			slog.Error("naming chat: load history", "err", err)
-			writeSSE(w, flusher, agent.ChatEvent{Type: "error", Content: "服务暂时不可用，请稍后重试"}) //nolint:errcheck
+			sse.Write(w, flusher, agent.ChatEvent{Type: "error", Content: "服务暂时不可用，请稍后重试"}) //nolint:errcheck
 			return
 		}
 		var messages []llm.Message
@@ -80,13 +78,13 @@ func HandleChat(chat *agent.Agent, store *Store) http.HandlerFunc {
 		defer cancel()
 
 		result, err := chat.NamingChat(chatCtx, locale, messages, func(ev agent.ChatEvent) {
-			if err := writeSSE(w, flusher, ev); err != nil {
+			if err := sse.Write(w, flusher, ev); err != nil {
 				slog.Warn("sse write", "err", err)
 			}
 		})
 		if err != nil {
 			slog.Error("naming chat", "err", err)
-			writeSSE(w, flusher, agent.ChatEvent{Type: "error", Content: "服务暂时不可用，请稍后重试"}) //nolint:errcheck
+			sse.Write(w, flusher, agent.ChatEvent{Type: "error", Content: "服务暂时不可用，请稍后重试"}) //nolint:errcheck
 			return
 		}
 		// messages passed to NamingChat: history + current user (no system).

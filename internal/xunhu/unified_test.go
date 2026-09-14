@@ -3,12 +3,12 @@ package xunhu
 import (
 	"context"
 	"encoding/json"
+	"liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"liki-web/internal/payment"
-	"liki-web/internal/product"
 )
 
 func encodeUnifiedResponse(w http.ResponseWriter, value map[string]any) {
@@ -39,7 +39,7 @@ func TestCreateCheckoutUsesFixedNotifyURL(t *testing.T) {
 
 	c := &Client{appID: "app", appSecret: "secret", httpClient: srv.Client(), payURL: srv.URL, webhookURL: "https://liki.hk/api/payments/webhook"}
 	req := payment.CheckoutRequest{
-		IntentID: "pi-1", BusinessOrderID: "biz-1", Product: product.ProductNaming,
+		IntentID: "pi-1", BusinessOrderID: "biz-1", Product: string(product.ProductNaming),
 		AmountMinor: 990, Currency: "CNY", Email: "user@example.com", Locale: "zh-Hant",
 		ReturnURL: "https://liki.hk/api/payments/return/pi-1", CancelURL: "https://liki.hk/zh-Hant/naming",
 	}

@@ -14,7 +14,6 @@ import (
 
 	"liki-web/internal/httputil"
 	"liki-web/internal/metrics"
-	"liki-web/internal/product"
 )
 
 type PaymentStatus string
@@ -29,7 +28,8 @@ const (
 
 type BusinessOrder struct {
 	ID          string
-	Product     product.Product
+	UserID      string
+	Product     string
 	AmountMinor int64
 	Currency    string
 	Email       string
@@ -40,7 +40,8 @@ type BusinessOrder struct {
 type PaymentIntent struct {
 	ID                string
 	BusinessOrderID   string
-	Product           product.Product
+	UserID            string
+	Product           string
 	Provider          Provider
 	Status            PaymentStatus
 	AmountMinor       int64
@@ -63,7 +64,7 @@ type PaymentIntent struct {
 type CheckoutRequest struct {
 	IntentID        string
 	BusinessOrderID string
-	Product         product.Product
+	Product         string
 	AmountMinor     int64
 	Currency        string
 	Email           string
@@ -85,7 +86,7 @@ type Gateway interface {
 }
 
 type ProductFlow interface {
-	Product() product.Product
+	Product() string
 	PrepareCheckout(ctx context.Context, businessOrderID string) (BusinessOrder, error)
 	OnPaid(ctx context.Context, intent PaymentIntent) error
 	SuccessRedirect(intent PaymentIntent) string
@@ -93,8 +94,9 @@ type ProductFlow interface {
 }
 
 type CreateIntentInput struct {
-	Product         product.Product
+	Product         string
 	BusinessOrderID string
+	UserID          string
 	// Provider is a client hint only. The server route policy is authoritative.
 	Provider Provider
 	Locale   string
@@ -107,7 +109,7 @@ type RuntimeOptions struct {
 
 type Runtime struct {
 	gateways      map[Provider]Gateway
-	flows         map[product.Product]ProductFlow
+	flows         map[string]ProductFlow
 	intents       *IntentStore
 	notifications *NotificationStore
 	fulfillments  *FulfillmentTaskStore
@@ -120,7 +122,7 @@ type Runtime struct {
 
 func NewRuntime(
 	gateways map[Provider]Gateway,
-	flows map[product.Product]ProductFlow,
+	flows map[string]ProductFlow,
 	intents *IntentStore,
 	notifications *NotificationStore,
 	fulfillments *FulfillmentTaskStore,
@@ -160,6 +162,9 @@ func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (Pa
 	if order.Currency == "" {
 		return PaymentIntent{}, fmt.Errorf("payment: business order %s has no currency", input.BusinessOrderID)
 	}
+	if order.UserID == "" && input.UserID != "" {
+		order.UserID = input.UserID
+	}
 	provider, err := r.routePolicy.Select(order.Currency, r.availableProviders())
 	if err != nil {
 		return PaymentIntent{}, err
@@ -168,6 +173,7 @@ func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (Pa
 	intent := PaymentIntent{
 		ID:              uuid.NewString(),
 		BusinessOrderID: input.BusinessOrderID,
+		UserID:          order.UserID,
 		Product:         input.Product,
 		Provider:        provider,
 		Status:          IntentCreated,
@@ -293,27 +299,37 @@ func (r *Runtime) ReconcilePendingIntents(ctx context.Context, limit int) error 
 		return err
 	}
 	for _, intent := range intents {
-		gateway, err := r.gateway(intent.Provider)
-		if err != nil {
-			return err
-		}
-		event, err := gateway.FetchPayment(ctx, intent)
-		if err != nil {
-			slog.Warn("payment: reconcile fetch", "intent_id", intent.ID, "provider", intent.Provider, "err", err)
-			continue
-		}
-		if event == nil || event.Type != EventPaymentSucceeded {
-			continue
-		}
-		if _, eventErr := r.events.Record(ctx, intent.ID, PaymentEventReconciliation, *event); eventErr != nil {
-			slog.Error("payment: record reconciliation event", "intent_id", intent.ID, "err", eventErr)
-			continue
-		}
-		if err := r.capture(ctx, event, intent); err != nil {
-			slog.Error("payment: reconcile capture", "intent_id", intent.ID, "err", err)
+		if _, changed, err := r.reconcileIntent(ctx, intent); err != nil {
+			slog.Error("payment: reconcile intent", "intent_id", intent.ID, "err", err)
+		} else if changed {
+			metrics.Default.Inc("payment_reconcile_total", map[string]string{"result": "captured"})
 		}
 	}
 	return nil
+}
+
+// reconcileIntent asks the provider for the current state of one pending
+// intent and captures it if the provider reports a successful payment.
+func (r *Runtime) reconcileIntent(ctx context.Context, intent PaymentIntent) (PaymentIntent, bool, error) {
+	gateway, err := r.gateway(intent.Provider)
+	if err != nil {
+		return intent, false, err
+	}
+	event, err := gateway.FetchPayment(ctx, intent)
+	if err != nil {
+		return intent, false, err
+	}
+	if event == nil || event.Type != EventPaymentSucceeded {
+		return intent, false, nil
+	}
+	if _, err := r.events.Record(ctx, intent.ID, PaymentEventReconciliation, *event); err != nil {
+		return intent, false, err
+	}
+	if err := r.capture(ctx, event, intent); err != nil {
+		return intent, false, err
+	}
+	updated, err := r.intents.GetIntent(ctx, intent.ID)
+	return updated, true, err
 }
 
 func (r *Runtime) capture(ctx context.Context, event *WebhookEvent, intent PaymentIntent) error {
@@ -435,6 +451,28 @@ func (r *Runtime) HandleReturn(ctx context.Context, intentID string) (PaymentInt
 		token, err := httputil.NewCapabilityToken("payment-status", intent.ID, time.Now(), time.Hour)
 		if err != nil {
 			return intent, "", err
+		}
+		separator := "?"
+		if strings.Contains(location, "?") {
+			separator = "&"
+		}
+		location += separator + "payment_intent_id=" + url.QueryEscape(intent.ID) +
+			"&status_token=" + url.QueryEscape(token)
+		return intent, location, nil
+	}
+
+	// The browser return can race the provider webhook. Query the provider once
+	// so the redirect reflects an already-completed payment instead of forcing
+	// the user to wait for webhook or background reconciliation.
+	intent, _, reconcileErr := r.reconcileIntent(ctx, intent)
+	if reconcileErr != nil {
+		slog.Warn("payment: reconcile return", "intent_id", intentID, "provider", intent.Provider, "err", reconcileErr)
+	}
+	if intent.Status == IntentPaid {
+		location := flow.SuccessRedirect(intent)
+		token, tokenErr := httputil.NewCapabilityToken("payment-status", intent.ID, time.Now(), time.Hour)
+		if tokenErr != nil {
+			return intent, "", tokenErr
 		}
 		separator := "?"
 		if strings.Contains(location, "?") {

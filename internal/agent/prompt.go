@@ -17,41 +17,36 @@ var UnifiedChatSkills = []string{
 	"liki-fengshui",
 }
 
-// BuildUnifiedSkillPrompt deterministically loads only the four chat skill
-// entry files. It must never scan the skills tree or load webapp report prompts.
-func BuildUnifiedSkillPrompt(skillsDir string) (string, error) {
-	parts := make([]string, 0, len(UnifiedChatSkills)+1)
-	parts = append(parts, `你是 Liki Chat。
-
-你可以服务以下四个 skill：
-- liki-naming：起名、改名、外国人起中文名、名字评估。
-- liki-bazi：八字、紫微、大运、流年、命书相关问题。
-- liki-divination：六爻、奇门、黄历、具体问事。
-- liki-fengshui：阳宅风水、八宅、玄空。
-
-规则：
-- 根据用户当前订单允许的 skill 工作。
-- 只使用当前订单允许领域的方法与术语。
-- 不要读取 webapp 目录；报告生成提示词不属于 Chat。
-- 排盘、因子、断语、卦象、择日和风水盘必须来自工具。
-- 意图不明时先澄清。
-`)
-
-	for _, skillID := range UnifiedChatSkills {
-		if filepath.Base(skillID) != skillID || strings.ContainsAny(skillID, "/\\") {
-			return "", fmt.Errorf("agent: invalid skill id %q", skillID)
-		}
-		path := filepath.Join(skillsDir, skillID, "SKILL.md")
-		raw, err := os.ReadFile(path)
-		if err != nil {
-			return "", fmt.Errorf("agent: read unified skill %s: %w", skillID, err)
-		}
-		parts = append(parts, "---\n\n# "+skillID+"\n\n"+strings.TrimSpace(string(raw)))
+// BuildScopedChatPrompt loads one active skill for a chat session. The
+// backend still scopes tools; this makes the instruction surface match the
+// same entitlement boundary.
+func BuildScopedChatPrompt(skillsDir, skillID string) (string, error) {
+	if !skillEnabled(skillID) {
+		return "", fmt.Errorf("agent: unknown unified chat skill %q", skillID)
 	}
-
-	prompt := strings.Join(parts, "\n\n")
+	path := filepath.Join(skillsDir, skillID, "SKILL.md")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("agent: read scoped chat skill %s: %w", skillID, err)
+	}
+	prompt := strings.Join([]string{
+		"你是 Liki Chat。只服务当前订单已开通且当前会话绑定的 skill。",
+		"不要跨入其它 skill 的工具、流程或术语。当前 skill 是 " + skillID + "。",
+		"不要读取 webapp 目录；报告生成提示词不属于 Chat。",
+		"排盘、因子、断语、卦象、择日和风水盘必须来自工具。意图不明时先澄清。",
+		"\n---\n\n# " + skillID + "\n\n" + strings.TrimSpace(string(raw)),
+	}, "\n\n")
 	if strings.Contains(prompt, "webapp/") {
-		return "", fmt.Errorf("agent: unified chat prompt unexpectedly references webapp")
+		return "", fmt.Errorf("agent: scoped chat prompt unexpectedly references webapp")
 	}
 	return prompt, nil
+}
+
+func skillEnabled(skillID string) bool {
+	for _, item := range UnifiedChatSkills {
+		if item == skillID {
+			return true
+		}
+	}
+	return false
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,7 +17,6 @@ import (
 	standardwebhooks "github.com/standard-webhooks/standard-webhooks/libraries/go"
 
 	"liki-web/internal/payment"
-	"liki-web/internal/product"
 )
 
 // helperKey is a 32-byte raw key whose base64 is in helperSecret.
@@ -250,10 +250,10 @@ func newTestClientWithURL(apiKey, baseURL string) *Client {
 	return &Client{
 		checkoutSvc: dodopayments.NewCheckoutSessionService(opts...),
 		webhookSvc:  dodopayments.NewWebhookService(append(opts, option.WithWebhookKey("whsec_test"))...),
-		products: map[product.Product]string{
-			product.ProductNaming:    "pdt_test_naming",
-			product.ProductMingShu:   "pdt_test_mingshu",
-			product.Product("hepan"): "pdt_test_hepan",
+		products: map[string]string{
+			"naming":  "pdt_test_naming",
+			"mingshu": "pdt_test_mingshu",
+			"hepan":   "pdt_test_hepan",
 		},
 	}
 }
@@ -281,7 +281,7 @@ func TestCreateCheckout_Success(t *testing.T) {
 	c := newTestClientWithURL("sk_test", srv.URL)
 	ctx := context.Background()
 
-	result, err := c.CreateCheckout(ctx, payment.CheckoutRequest{Product: product.ProductNaming, BusinessOrderID: "order-1", AmountMinor: 990, Email: "user@test.com", ReturnURL: "https://liki.hk/return"})
+	result, err := c.CreateCheckout(ctx, payment.CheckoutRequest{Product: string(product.ProductNaming), BusinessOrderID: "order-1", AmountMinor: 990, Email: "user@test.com", ReturnURL: "https://liki.hk/return"})
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
@@ -304,7 +304,7 @@ func TestCreateCheckout_HTTPError(t *testing.T) {
 	c := newTestClientWithURL("sk_test", srv.URL)
 	ctx := context.Background()
 
-	_, err := c.CreateCheckout(ctx, payment.CheckoutRequest{Product: product.ProductNaming, BusinessOrderID: "order-1", AmountMinor: 990, Email: "", ReturnURL: "https://liki.hk/return"})
+	_, err := c.CreateCheckout(ctx, payment.CheckoutRequest{Product: string(product.ProductNaming), BusinessOrderID: "order-1", AmountMinor: 990, Email: "", ReturnURL: "https://liki.hk/return"})
 	if err == nil {
 		t.Fatal("expected error for 500 response")
 	}
@@ -317,7 +317,7 @@ func TestCreateCheckout_InvalidBaseURL(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err := c.CreateCheckout(ctx, payment.CheckoutRequest{Product: product.ProductNaming, BusinessOrderID: "order-1", AmountMinor: 990, Email: "", ReturnURL: "https://liki.hk/return"})
+	_, err := c.CreateCheckout(ctx, payment.CheckoutRequest{Product: string(product.ProductNaming), BusinessOrderID: "order-1", AmountMinor: 990, Email: "", ReturnURL: "https://liki.hk/return"})
 	if err == nil {
 		t.Fatal("expected connection error for invalid URL")
 	}

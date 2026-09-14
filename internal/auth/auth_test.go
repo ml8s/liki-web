@@ -100,6 +100,48 @@ func TestEmailLoginCreatesUserAndSession(t *testing.T) {
 	}
 }
 
+func TestDevCodeAllowsLoginWhenMailerFails(t *testing.T) {
+	store := newTestStore(t)
+	mailer := &fakeMailer{err: errors.New("smtp unavailable")}
+	config := DefaultConfig()
+	config.ExposeDevCode = true
+	service, err := NewService(store, mailer, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	issued, err := service.RequestEmailCode(context.Background(), "user@example.com", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issued.DevCode) != 6 {
+		t.Fatalf("dev code = %q", issued.DevCode)
+	}
+	result, err := service.VerifyEmailCode(context.Background(), "user@example.com", issued.DevCode, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.User.Email != "user@example.com" {
+		t.Fatalf("user = %+v", result.User)
+	}
+}
+
+func TestProductionDoesNotExposeDevCode(t *testing.T) {
+	store := newTestStore(t)
+	service, mailer := newTestService(t, store)
+
+	issued, err := service.RequestEmailCode(context.Background(), "user@example.com", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if issued.DevCode != "" {
+		t.Fatalf("production exposed dev code %q", issued.DevCode)
+	}
+	if len(mailer.codes) != 1 {
+		t.Fatalf("mailer calls = %d", len(mailer.codes))
+	}
+}
+
 func TestEmailCodeCooldownAndReuse(t *testing.T) {
 	store := newTestStore(t)
 	service, mailer := newTestService(t, store)

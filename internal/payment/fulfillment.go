@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"liki-web/internal/product"
 )
 
 type FulfillmentStatus string
@@ -27,7 +25,7 @@ type FulfillmentTask struct {
 	ID              string
 	IntentID        string
 	BusinessOrderID string
-	Product         product.Product
+	Product         string
 	Status          FulfillmentStatus
 	Attempts        int
 	RunAt           time.Time
@@ -135,7 +133,7 @@ WHERE id=? AND status=?`, string(FulfillmentRunning), claimedAt, task.ID, string
 		return FulfillmentTask{}, err
 	}
 
-	task.Product = product.Product(productKey)
+	task.Product = string(productKey)
 	task.Status = FulfillmentRunning
 	task.Attempts++
 	task.LastError = lastError.String
@@ -160,7 +158,7 @@ FROM fulfillment_tasks WHERE payment_intent_id=?`, intentID)
 	if err != nil {
 		return FulfillmentTask{}, false, err
 	}
-	task.Product = product.Product(productKey)
+	task.Product = string(productKey)
 	task.Status = FulfillmentStatus(status)
 	task.LastError = lastError.String
 	task.RunAt = parseTime(runAt)

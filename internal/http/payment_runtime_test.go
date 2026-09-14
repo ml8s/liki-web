@@ -13,6 +13,7 @@ import (
 
 	"liki-web/internal/naming"
 	"liki-web/internal/payment"
+
 	"liki-web/internal/paymentflow"
 	"liki-web/internal/product"
 )
@@ -72,8 +73,8 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway) {
 	gateway := &fakeGateway{}
 	return payment.NewRuntime(
 		map[payment.Provider]payment.Gateway{payment.ProviderXunhu: gateway},
-		map[product.Product]payment.ProductFlow{
-			product.ProductNaming: paymentflow.NewNamingFlow(namingStore, 15),
+		map[string]payment.ProductFlow{
+			string(product.ProductNaming): paymentflow.NewNamingFlow(namingStore, 15),
 		},
 		intents,
 		notifications,

@@ -30,7 +30,7 @@ func defaultLocale(locale string) string {
 	return locale
 }
 
-func (f *NamingFlow) Product() product.Product { return product.ProductNaming }
+func (f *NamingFlow) Product() string { return string(product.ProductNaming) }
 
 func (f *NamingFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
 	order, err := f.store.GetOrder(ctx, businessOrderID)
@@ -38,7 +38,7 @@ func (f *NamingFlow) PrepareCheckout(ctx context.Context, businessOrderID string
 		return payment.BusinessOrder{}, err
 	}
 	return payment.BusinessOrder{
-		ID: order.OrderID, Product: product.ProductNaming,
+		ID: order.OrderID, Product: string(product.ProductNaming),
 		AmountMinor: int64(order.Amount), Currency: order.Currency,
 		Email: order.Email, Locale: defaultLocale(order.Locale), Status: order.Status,
 	}, nil
@@ -78,7 +78,7 @@ func NewMingShuFlow(store *mingshu.Store, generator *mingshu.Generator, notifica
 	return &MingShuFlow{store: store, generator: generator, notifications: notifications, baseURL: baseURL}
 }
 
-func (f *MingShuFlow) Product() product.Product { return product.ProductMingShu }
+func (f *MingShuFlow) Product() string { return string(product.ProductMingShu) }
 
 func (f *MingShuFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
 	order, err := f.store.GetOrder(ctx, businessOrderID)
@@ -86,7 +86,7 @@ func (f *MingShuFlow) PrepareCheckout(ctx context.Context, businessOrderID strin
 		return payment.BusinessOrder{}, err
 	}
 	return payment.BusinessOrder{
-		ID: order.ID, Product: product.ProductMingShu,
+		ID: order.ID, Product: string(product.ProductMingShu),
 		AmountMinor: int64(order.Amount), Currency: order.Currency,
 		Email: order.Email, Locale: defaultLocale(order.Locale), Status: order.Status,
 	}, nil
@@ -136,7 +136,7 @@ func NewHepanFlow(store *hepan.Store, generator *hepan.Generator, notifications 
 	return &HepanFlow{store: store, generator: generator, notifications: notifications, baseURL: baseURL}
 }
 
-func (f *HepanFlow) Product() product.Product { return product.Product("hepan") }
+func (f *HepanFlow) Product() string { return string(product.ProductHePan) }
 
 func (f *HepanFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
 	order, err := f.store.GetOrder(ctx, businessOrderID)

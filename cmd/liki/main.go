@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -18,16 +19,20 @@ import (
 
 	"liki-web/internal/agent"
 	"liki-web/internal/auth"
+	"liki-web/internal/chat"
+	"liki-web/internal/commerce"
 	"liki-web/internal/dodo"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
 	"liki-web/internal/naming"
 	"liki-web/internal/paymentflow"
+	"liki-web/internal/profile"
 	"liki-web/internal/xunhu"
 
 	_ "modernc.org/sqlite"
 
 	"liki-web/internal/email"
+	"liki-web/internal/entitlement"
 	"liki-web/internal/feedback"
 	apphttp "liki-web/internal/http"
 	"liki-web/internal/httputil"
@@ -56,19 +61,22 @@ type Config struct {
 	DodoProductNaming  string
 	DodoProductMingShu string
 	DodoProductHepan   string
-	XunhuAppID         string
-	XunhuAppSecret     string
-	PaymentWebhookURL  string
-	DeepseekAPIKey     string
-	LLMModel           string
-	LLMThinking        bool
-	SkillsDir          string
-	PromptFile         string
-	EngineURL          string
-	ReturnURL          string
-	JWTSecret          string
-	ListenAddr         string
-	DevMode            bool
+
+	DodoProductLikiChat string
+	XunhuAppID          string
+	XunhuAppSecret      string
+	PaymentWebhookURL   string
+	DeepseekAPIKey      string
+	LLMModel            string
+	LLMThinking         bool
+	SkillsDir           string
+	PromptFile          string
+	EngineURL           string
+	SelfURL             string
+	ReturnURL           string
+	JWTSecret           string
+	ListenAddr          string
+	DevMode             bool
 }
 
 func LoadConfig() Config {
@@ -86,19 +94,22 @@ func LoadConfig() Config {
 		DodoProductNaming:  os.Getenv("DODO_PRODUCT_NAMING"),
 		DodoProductMingShu: os.Getenv("DODO_PRODUCT_MINGSHU"),
 		DodoProductHepan:   os.Getenv("DODO_PRODUCT_HEPAN"),
-		XunhuAppID:         envOr("XUNHU_APPID", ""),
-		XunhuAppSecret:     envOr("XUNHU_APPSECRET", ""),
-		PaymentWebhookURL:  envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
-		DeepseekAPIKey:     envOr("DEEPSEEK_API_KEY", ""),
-		LLMModel:           envOr("LLM_MODEL", ""),
-		LLMThinking:        envOrBool("LLM_THINKING", false),
-		SkillsDir:          envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:         envOr("LIKI_PROMPT_FILE", "liki-naming/SKILL.md"),
-		EngineURL:          envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
-		ReturnURL:          envOr("RETURN_URL", ""),
-		JWTSecret:          os.Getenv("JWT_SECRET"),
-		ListenAddr:         envOr("LISTEN_ADDR", ":8080"),
-		DevMode:            envOrBool("DEV_MODE", false),
+
+		DodoProductLikiChat: os.Getenv("DODO_PRODUCT_LIKI_CHAT"),
+		XunhuAppID:          envOr("XUNHU_APPID", ""),
+		XunhuAppSecret:      envOr("XUNHU_APPSECRET", ""),
+		PaymentWebhookURL:   envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
+		DeepseekAPIKey:      envOr("DEEPSEEK_API_KEY", ""),
+		LLMModel:            envOr("LLM_MODEL", ""),
+		LLMThinking:         envOrBool("LLM_THINKING", false),
+		SkillsDir:           envOr("LIKI_SKILLS_DIR", "web/skills"),
+		PromptFile:          envOr("LIKI_PROMPT_FILE", "liki-naming/SKILL.md"),
+		EngineURL:           envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
+		SelfURL:             envOr("LIKI_SELF_URL", "http://127.0.0.1:8080"),
+		ReturnURL:           envOr("RETURN_URL", ""),
+		JWTSecret:           os.Getenv("JWT_SECRET"),
+		ListenAddr:          envOr("LISTEN_ADDR", ":8080"),
+		DevMode:             envOrBool("DEV_MODE", false),
 	}
 }
 
@@ -152,10 +163,11 @@ func main() {
 	// Init services
 	emailClient := email.New(cfg.ResendAPIKey, cfg.ResendFrom)
 
-	dodoProducts := map[product.Product]string{
-		product.ProductNaming:    cfg.DodoProductNaming,
-		product.ProductMingShu:   cfg.DodoProductMingShu,
-		product.Product("hepan"): cfg.DodoProductHepan,
+	dodoProducts := map[string]string{
+		string(product.ProductNaming):   cfg.DodoProductNaming,
+		string(product.ProductMingShu):  cfg.DodoProductMingShu,
+		string(product.ProductHePan):    cfg.DodoProductHepan,
+		string(entitlement.ProductChat): cfg.DodoProductLikiChat,
 	}
 	dodoClient := dodo.New(cfg.DodoAPIKey, cfg.DodoWebhookKey, cfg.DodoTestMode, dodoProducts)
 
@@ -185,7 +197,7 @@ func main() {
 	// skill 规则引擎工具（full_paipan/liunian/make_factors/make_liunian_factors/query）——
 	// exec python3 tools/agent_cli.py（schema 从 skill-tools.json 加载，单一来源）。只进报告 agent。
 	skillTools := agent.NewPythonToolRegistry(cfg.SkillsDir)
-	if err := skillTools.Register(reportTools); err != nil {
+	if err := skillTools.RegisterSkills(reportTools, "liki-bazi"); err != nil {
 		slog.Error("register skill tools failed (规则引擎不可用)", "err", err)
 	}
 
@@ -215,13 +227,55 @@ func main() {
 		os.Exit(1)
 	}
 
-	if cfg.ReturnURL == "" {
-		slog.Warn("RETURN_URL not set — post-payment redirect will fail")
-	}
-
+	// Unified chat owns exactly the four installable skills. Each runner has a
 	// Context for background tasks and server BaseContext.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// deny-by-default tool scope so an active session cannot reach another
+	// skill's Python tools or engine domains.
+	profileStore := profile.NewStore(db)
+	if err := profileStore.Migrate(ctx); err != nil {
+		slog.Error("init profile schema", "err", err)
+		os.Exit(1)
+	}
+	chatRunners := make(map[chat.Skill]chat.Runner, len(agent.UnifiedChatSkills))
+	for _, skillID := range agent.UnifiedChatSkills {
+		tools := agent.NewToolRegistry(cfg.EngineURL)
+		tools.Register("read_file",
+			"Read an instruction or domain reference from the active skill directory.",
+			json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within the active skill directory"}},"required":["path"]}`),
+			agent.ReadFileHandler(filepath.Join(cfg.SkillsDir, skillID)))
+		if skillID == "liki-bazi" {
+			tools.Register("update_profile_birth_time",
+				"将定盘校验得到的出生时间写回当前会话绑定的档案。仅在你通过 calibrate 确定准确的出生时辰后调用，且只能更新 birth_time 与 birth_time_known。",
+				json.RawMessage(`{"type":"object","properties":{"profile_id":{"type":"string","description":"当前会话绑定的档案 id"},"birth_time":{"type":"string","description":"定盘后的出生时间 HH:mm"},"birth_time_known":{"type":"string","enum":["known","approximate"]}},"required":["profile_id","birth_time","birth_time_known"]}`),
+				chat.UpdateProfileBirthTimeHandler(cfg.SelfURL, auth.DefaultConfig().CookieName, nil))
+		}
+		if slices.Contains(agent.PythonSkills, skillID) {
+			pythonTools := agent.NewPythonToolRegistry(cfg.SkillsDir)
+			if err := pythonTools.RegisterSkills(tools, skillID); err != nil {
+				slog.Error("register chat python tools", "skill", skillID, "err", err)
+				os.Exit(1)
+			}
+		}
+		scope, ok := agent.SkillToolScopes[skillID]
+		if !ok {
+			slog.Error("chat skill has no tool scope", "skill", skillID)
+			os.Exit(1)
+		}
+		scopedPrompt, err := agent.BuildScopedChatPrompt(cfg.SkillsDir, skillID)
+		if err != nil {
+			slog.Error("build scoped chat prompt", "skill", skillID, "err", err)
+			os.Exit(1)
+		}
+		scopedTools := agent.NewScopedToolRegistry(tools, scope)
+		chatRunners[chat.Skill(skillID)] = agent.NewAgent(llmClient, scopedTools, scopedPrompt)
+	}
+
+	if cfg.ReturnURL == "" {
+		slog.Warn("RETURN_URL not set — post-payment redirect will fail")
+	}
 
 	if err := authStore.Migrate(ctx); err != nil {
 		slog.Error("init auth schema", "err", err)
@@ -236,6 +290,7 @@ func main() {
 	})
 	authConfig := auth.DefaultConfig()
 	authConfig.SecureCookie = !cfg.DevMode
+	authConfig.ExposeDevCode = cfg.DevMode
 	authService, err := auth.NewService(authStore, authMailer, authConfig)
 	if err != nil {
 		slog.Error("init auth service", "err", err)
@@ -246,6 +301,32 @@ func main() {
 		slog.Error("init auth handler", "err", err)
 		os.Exit(1)
 	}
+
+	entitlements := entitlement.NewStore(db)
+	if err := entitlements.Migrate(ctx); err != nil {
+		slog.Error("init entitlements", "err", err)
+		os.Exit(1)
+	}
+	if _, err := entitlements.ExpireDue(ctx); err != nil {
+		slog.Warn("expire entitlements", "err", err)
+	}
+	chatStore := chat.NewStore(db)
+	if err := chatStore.Migrate(ctx); err != nil {
+		slog.Error("init chat schema", "err", err)
+		os.Exit(1)
+	}
+	chatService := chat.NewService(chatStore, entitlements, profileStore, chatRunners)
+	chatHandler := chat.NewHandler(chatService, authHandler.RequireUser, nil)
+	commerceOrders := commerce.NewStore(db)
+	if err := commerceOrders.Migrate(ctx); err != nil {
+		slog.Error("init commerce schema", "err", err)
+		os.Exit(1)
+	}
+	chatDuration := 30 * 24 * time.Hour
+	commerceFulfiller := func(productID commerce.Product) *commerce.Fulfiller {
+		return commerce.NewFulfiller(commerceOrders, entitlements, productID, chatDuration)
+	}
+	var commerceHandler *commerce.Handler
 
 	onPaid := namingOnPaid(namingStore, emailClient, cfg.ReturnURL)
 	onVerification := adminVerification(emailClient)
@@ -273,8 +354,13 @@ func main() {
 	namingFlow := paymentflow.NewNamingFlow(namingStore, 15)
 	mingshuFlow := paymentflow.NewMingShuFlow(mingshuStore, mingshuGenerator, notifications, cfg.ReturnURL)
 	hepanFlow := paymentflow.NewHepanFlow(hepanStore, hepanGenerator, notifications, cfg.ReturnURL)
-	dodoConfigured := cfg.DodoAPIKey != "" && cfg.DodoWebhookKey != "" &&
-		cfg.DodoProductNaming != "" && cfg.DodoProductMingShu != "" && cfg.DodoProductHepan != ""
+	dodoConfigured := cfg.DodoAPIKey != "" && cfg.DodoWebhookKey != ""
+	if dodoConfigured && (cfg.DodoProductNaming == "" || cfg.DodoProductMingShu == "" || cfg.DodoProductHepan == "") {
+		slog.Warn("legacy dodo products are not fully configured; legacy report checkout will fail")
+	}
+	if dodoConfigured && cfg.DodoProductLikiChat == "" {
+		slog.Warn("dodo product is not configured for liki-chat; USD chat checkout will fail")
+	}
 	xunhuConfigured := cfg.XunhuAppID != "" && cfg.XunhuAppSecret != "" && cfg.PaymentWebhookURL != ""
 	if !dodoConfigured && !xunhuConfigured {
 		slog.Error("no payment provider is fully configured")
@@ -291,16 +377,19 @@ func main() {
 	} else {
 		slog.Warn("xunhu payment provider is not fully configured; it is disabled")
 	}
-	flows := map[product.Product]payment.ProductFlow{
-		product.ProductNaming:  namingFlow,
-		product.ProductMingShu: mingshuFlow,
-		product.ProductHePan:   hepanFlow,
+	flows := map[string]payment.ProductFlow{
+		string(product.ProductNaming):  namingFlow,
+		string(product.ProductMingShu): mingshuFlow,
+		string(product.ProductHePan):   hepanFlow,
+
+		string(entitlement.ProductChat): commerceFulfiller(entitlement.ProductChat),
 	}
 	paymentSender := paymentEmailSender{client: emailClient}
 	paymentRuntime := payment.NewRuntime(gateways, flows, intents, notifications, fulfillments, events, paymentSender, payment.RuntimeOptions{
 		BaseURL:    cfg.ReturnURL,
 		AdminEmail: os.Getenv("ADMIN_EMAIL"),
 	})
+	commerceHandler = commerce.NewHandler(commerceOrders, entitlements, paymentRuntime, authHandler.RequireUser)
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
 	if err := httputil.ValidateJWTSecret(cfg.JWTSecret); err != nil {
@@ -315,22 +404,26 @@ func main() {
 
 	mux := http.NewServeMux()
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
-		OnPaid:           onPaid, // admin-created orders only
-		OnVerification:   onVerification,
-		PaymentRuntime:   paymentRuntime,
-		AuthHandler:      authHandler,
-		NamingStore:      namingStore,
-		MingShuStore:     mingshuStore,
-		MingShuGenerator: mingshuGenerator,
-		HepanStore:       hepanStore,
-		HepanGenerator:   hepanGenerator,
-		FeedbackStore:    feedbackStore,
-		FeedbackAPIKey:   cfg.FeedbackAPIKey,
-		NamingAgent:      namingAgent,
-		Agent:            reportAgent,
-		Analytics:        apphttp.NewAnalytics(),
-		MetricsHandler:   metrics.Handler(os.Getenv("METRICS_TOKEN")),
-		DevMode:          cfg.DevMode,
+		OnPaid:             onPaid, // admin-created orders only
+		OnVerification:     onVerification,
+		PaymentRuntime:     paymentRuntime,
+		AuthHandler:        authHandler,
+		EntitlementHandler: entitlement.NewHandler(entitlements, authHandler.RequireUser),
+		ChatHandler:        chatHandler,
+		CommerceHandler:    commerceHandler,
+		ProfileHandler:     profile.NewHandler(profileStore, authHandler.RequireUser),
+		NamingStore:        namingStore,
+		MingShuStore:       mingshuStore,
+		MingShuGenerator:   mingshuGenerator,
+		HepanStore:         hepanStore,
+		HepanGenerator:     hepanGenerator,
+		FeedbackStore:      feedbackStore,
+		FeedbackAPIKey:     cfg.FeedbackAPIKey,
+		NamingAgent:        namingAgent,
+		Agent:              reportAgent,
+		Analytics:          apphttp.NewAnalytics(),
+		MetricsHandler:     metrics.Handler(os.Getenv("METRICS_TOKEN")),
+		DevMode:            cfg.DevMode,
 	}, BuildTime, Version, rateLimiter, verifyLimiter)
 
 	// Write timeout must accommodate LLM calls (~120s)

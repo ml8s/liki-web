@@ -3,6 +3,7 @@ package dodo
 import (
 	"context"
 	"encoding/json"
+	"liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,7 +12,6 @@ import (
 	"github.com/dodopayments/dodopayments-go/option"
 
 	"liki-web/internal/payment"
-	"liki-web/internal/product"
 )
 
 func TestCreateCheckoutUnifiedRequest(t *testing.T) {
@@ -27,15 +27,15 @@ func TestCreateCheckoutUnifiedRequest(t *testing.T) {
 
 	c := &Client{
 		checkoutSvc: dodopayments.NewCheckoutSessionService(option.WithBearerToken("test"), option.WithBaseURL(srv.URL)),
-		products: map[product.Product]string{
-			product.ProductNaming: "pdt_naming",
+		products: map[string]string{
+			"naming": "pdt_naming",
 		},
 	}
 
 	req := payment.CheckoutRequest{
 		IntentID:        "pi-1",
 		BusinessOrderID: "biz-1",
-		Product:         product.ProductNaming,
+		Product:         string(product.ProductNaming),
 		AmountMinor:     990,
 		Currency:        "USD",
 		Email:           "user@example.com",

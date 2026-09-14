@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"liki-web/internal/product"
 )
 
 var ErrIntentNotFound = errors.New("payment: intent not found")
@@ -24,6 +22,7 @@ func (s *IntentStore) Migrate(ctx context.Context) error {
 CREATE TABLE IF NOT EXISTS payment_intents (
     id TEXT PRIMARY KEY,
     business_order_id TEXT NOT NULL,
+    user_id TEXT NOT NULL DEFAULT '',
     product TEXT NOT NULL,
     provider TEXT NOT NULL,
     status TEXT NOT NULL,
@@ -50,7 +49,35 @@ CREATE INDEX IF NOT EXISTS idx_payment_intents_business_order
     ON payment_intents(business_order_id, product);
 UPDATE payment_intents SET product='mingshu' WHERE product='lifebook';
 `
-	_, err := s.db.ExecContext(ctx, schema)
+	if _, err := s.db.ExecContext(ctx, schema); err != nil {
+		return err
+	}
+	return s.ensureColumn(ctx, "payment_intents", "user_id", "TEXT NOT NULL DEFAULT ''")
+}
+
+func (s *IntentStore) ensureColumn(ctx context.Context, table, column, definition string) error {
+	rows, err := s.db.QueryContext(ctx, `PRAGMA table_info(`+table+`)`)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var cid int
+		var name, columnType string
+		var notNull int
+		var defaultValue any
+		var pk int
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &pk); err != nil {
+			return err
+		}
+		if name == column {
+			return rows.Err()
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = s.db.ExecContext(ctx, `ALTER TABLE `+table+` ADD COLUMN `+column+` `+definition)
 	return err
 }
 
@@ -68,10 +95,10 @@ func (s *IntentStore) CreateIntent(ctx context.Context, intent PaymentIntent) er
 	}
 	_, err = s.db.ExecContext(ctx, `
 INSERT INTO payment_intents (
-    id, business_order_id, product, provider, status, amount_minor, currency, email,
+    id, business_order_id, user_id, product, provider, status, amount_minor, currency, email,
     locale, metadata, return_url, success_url, failure_url, created_at, updated_at
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		intent.ID, intent.BusinessOrderID, string(intent.Product), string(intent.Provider), string(intent.Status),
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		intent.ID, intent.BusinessOrderID, intent.UserID, string(intent.Product), string(intent.Provider), string(intent.Status),
 		intent.AmountMinor, intent.Currency, intent.Email, intent.Locale, string(metadata),
 		intent.ReturnURL, intent.SuccessURL, intent.FailureURL,
 		intent.CreatedAt.Format(time.RFC3339), intent.UpdatedAt.Format(time.RFC3339))
@@ -80,7 +107,7 @@ INSERT INTO payment_intents (
 
 func (s *IntentStore) GetIntent(ctx context.Context, id string) (PaymentIntent, error) {
 	row := s.db.QueryRowContext(ctx, `
-SELECT id, business_order_id, product, provider, status, amount_minor, currency, email,
+SELECT id, business_order_id, user_id, product, provider, status, amount_minor, currency, email,
        locale, metadata, provider_session_id, provider_payment_id, checkout_url, qr_code_url,
        return_url, success_url, failure_url, created_at, updated_at, paid_at
 FROM payment_intents WHERE id=?`, id)
@@ -89,7 +116,7 @@ FROM payment_intents WHERE id=?`, id)
 
 func (s *IntentStore) ListIntentsForReconciliation(ctx context.Context, limit int) ([]PaymentIntent, error) {
 	rows, err := s.db.QueryContext(ctx, `
-SELECT id, business_order_id, product, provider, status, amount_minor, currency, email,
+SELECT id, business_order_id, user_id, product, provider, status, amount_minor, currency, email,
        locale, metadata, provider_session_id, provider_payment_id, checkout_url, qr_code_url,
        return_url, success_url, failure_url, created_at, updated_at, paid_at
 FROM payment_intents
@@ -172,10 +199,11 @@ WHERE id=? AND status IN (?,?)`,
 func scanIntent(scan func(dest ...any) error) (PaymentIntent, error) {
 	var intent PaymentIntent
 	var productKey, provider, status, metadata string
+	var userID string
 	var providerSessionID, providerPaymentID, checkoutURL, qrCodeURL, returnURL, successURL, failureURL, paidAt sql.NullString
 	var createdAt, updatedAt string
 	err := scan(
-		&intent.ID, &intent.BusinessOrderID, &productKey, &provider, &status,
+		&intent.ID, &intent.BusinessOrderID, &userID, &productKey, &provider, &status,
 		&intent.AmountMinor, &intent.Currency, &intent.Email, &intent.Locale, &metadata,
 		&providerSessionID, &providerPaymentID, &checkoutURL, &qrCodeURL,
 		&returnURL, &successURL, &failureURL, &createdAt, &updatedAt, &paidAt,
@@ -186,7 +214,8 @@ func scanIntent(scan func(dest ...any) error) (PaymentIntent, error) {
 	if err != nil {
 		return PaymentIntent{}, err
 	}
-	intent.Product = product.Product(productKey)
+	intent.Product = productKey
+	intent.UserID = userID
 	intent.Provider = Provider(provider)
 	intent.Status = PaymentStatus(status)
 	intent.ProviderSessionID = providerSessionID.String

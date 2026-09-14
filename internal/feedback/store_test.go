@@ -8,6 +8,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const samplePayload = `{"schema_version":"feedback-v1","meta":{"source":"skill-agent","skill":"liki-bazi","skill_version":"2026.09.14.0","engine_version":"2026.09.14.0"},"problem":{"type":"clarity","severity":"medium","summary":"resolved_period 解释入口不直观"}}`
+
 func TestStore_CreateAndList(t *testing.T) {
 	db := openTestDB(t)
 	defer func() { _ = db.Close() }()
@@ -16,7 +18,7 @@ func TestStore_CreateAndList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = s.Create(&Feedback{Category: "workflow", Message: "步骤4不清晰", Context: `{"step":4}`}) //nolint:errcheck
+	err = s.Create(&Feedback{Payload: samplePayload}) //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,14 +30,33 @@ func TestStore_CreateAndList(t *testing.T) {
 	if len(list) != 1 {
 		t.Fatalf("want 1, got %d", len(list))
 	}
-	if list[0].Category != "workflow" || list[0].Message != "步骤4不清晰" {
-		t.Fatalf("bad data: %+v", list[0])
+	if list[0].Payload != samplePayload {
+		t.Fatalf("payload not preserved verbatim: %s", list[0].Payload)
 	}
 	if list[0].ID == "" || list[0].CreatedAt == "" {
 		t.Fatalf("missing id or timestamp")
 	}
 	if list[0].Status != "pending" {
 		t.Fatalf("default status should be pending, got %s", list[0].Status)
+	}
+}
+
+func TestStore_DedupByHash(t *testing.T) {
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+	s, err := NewStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok := s.ExistingByHash("nope"); ok {
+		t.Fatal("missing hash must not dedup")
+	}
+	if err := s.Create(&Feedback{Payload: samplePayload, Hash: sha256Hex([]byte(samplePayload))}); err != nil {
+		t.Fatal(err)
+	}
+	id, status, ok := s.ExistingByHash(sha256Hex([]byte(samplePayload)))
+	if !ok || id == "" || status != "pending" {
+		t.Fatalf("expected dedup hit, got id=%q status=%q ok=%v", id, status, ok)
 	}
 }
 
@@ -47,10 +68,10 @@ func TestStore_ListByStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s.Create(&Feedback{Message: "a"})   //nolint:errcheck //nolint:errcheck
-	s.Create(&Feedback{Message: "b"})   //nolint:errcheck
-	s.Update("nonexistent", "done", "") //nolint:errcheck //nolint:errcheck
-	s.Create(&Feedback{Message: "c"})   //nolint:errcheck
+	s.Create(&Feedback{Payload: `{"problem":{"summary":"a"}}`}) //nolint:errcheck
+	s.Create(&Feedback{Payload: `{"problem":{"summary":"b"}}`}) //nolint:errcheck
+	s.Update("nonexistent", "done", "")                         //nolint:errcheck
+	s.Create(&Feedback{Payload: `{"problem":{"summary":"c"}}`}) //nolint:errcheck
 
 	pending, err := s.List("pending", 10) //nolint:errcheck
 	if err != nil {
@@ -69,8 +90,8 @@ func TestStore_Update(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s.Create(&Feedback{Message: "test"}) //nolint:errcheck
-	list, _ := s.List("", 10)            //nolint:errcheck
+	s.Create(&Feedback{Payload: `{"problem":{"summary":"test"}}`}) //nolint:errcheck
+	list, _ := s.List("", 10)                                      //nolint:errcheck
 	id := list[0].ID
 
 	err = s.Update(id, "done", "https://github.com/ml8s/liki/issues/1") //nolint:errcheck
@@ -113,7 +134,7 @@ func TestStore_ListLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 5; i++ {
-		s.Create(&Feedback{Message: "x"}) //nolint:errcheck
+		s.Create(&Feedback{Payload: `{"problem":{"summary":"x"}}`}) //nolint:errcheck
 	}
 	list, err := s.List("", 3) //nolint:errcheck
 	if err != nil {

@@ -11,11 +11,12 @@ import (
 
 func rateLimit(next http.HandlerFunc) http.HandlerFunc { return next }
 
+const validFeedbackV1 = `{"schema_version":"feedback-v1","meta":{"source":"skill-agent","skill":"liki-bazi","skill_version":"2026.09.14.0","engine_version":"2026.09.14.0"},"problem":{"type":"clarity","severity":"medium","summary":"resolved_period 解释入口不直观"}}`
+
 func TestHandleCreate_Success(t *testing.T) {
 	s := setup(t)
 
-	body := `{"category":"workflow","message":"步骤4不清晰","context":"{\"step\":4}"}`
-	req := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(body))
+	req := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(validFeedbackV1))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -29,67 +30,62 @@ func TestHandleCreate_Success(t *testing.T) {
 	if res["id"] == "" || res["status"] != "pending" {
 		t.Fatalf("bad response: %+v", res)
 	}
-}
-
-func TestHandleCreate_MissingMessage(t *testing.T) {
-	s := setup(t)
-
-	body := `{"category":"workflow"}`
-	req := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	HandleCreate(s, rateLimit)(w, req)
-
-	if w.Code != 400 {
-		t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+	list, _ := s.List("", 10) //nolint:errcheck
+	if len(list) != 1 || list[0].Payload != validFeedbackV1 {
+		t.Fatalf("payload not stored verbatim: %+v", list)
 	}
 }
 
-func TestHandleCreate_InvalidJSON(t *testing.T) {
+func TestHandleCreate_Deduplicates(t *testing.T) {
 	s := setup(t)
+	post := func() string {
+		req := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(validFeedbackV1))
+		w := httptest.NewRecorder()
+		HandleCreate(s, rateLimit)(w, req)
+		if w.Code != 201 {
+			t.Fatalf("want 201, got %d", w.Code)
+		}
+		var res map[string]string
+		json.NewDecoder(w.Body).Decode(&res)
+		return res["id"]
+	}
+	first := post()
+	second := post()
+	if first == "" || first != second {
+		t.Fatalf("identical feedback must dedup to same id: %q vs %q", first, second)
+	}
+	list, _ := s.List("", 10) //nolint:errcheck
+	if len(list) != 1 {
+		t.Fatalf("dedup failed: %d rows", len(list))
+	}
+}
 
+func TestHandleCreate_RejectsInvalidJSON(t *testing.T) {
+	s := setup(t)
 	req := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(`{invalid`))
-	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-
 	HandleCreate(s, rateLimit)(w, req)
-
 	if w.Code != 400 {
 		t.Fatalf("want 400, got %d", w.Code)
 	}
 }
 
-func TestHandleCreate_DefaultCategory(t *testing.T) {
+func TestHandleCreate_RejectsNonObject(t *testing.T) {
 	s := setup(t)
-
-	body := `{"message":"test only"}`
-	req := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
+	// JSON 数组不是对象——极简校验拒绝。
+	req := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(`[1,2,3]`))
 	w := httptest.NewRecorder()
-
 	HandleCreate(s, rateLimit)(w, req)
-
-	if w.Code != 201 {
-		t.Fatalf("want 201, got %d", w.Code)
-	}
-	var res map[string]string
-	json.NewDecoder(w.Body).Decode(&res)
-
-	list, _ := s.List("", 10) //nolint:errcheck
-	if len(list) != 1 || list[0].Category != "other" {
-		t.Fatalf("default category failed: %+v", list)
+	if w.Code != 400 {
+		t.Fatalf("want 400 for non-object, got %d", w.Code)
 	}
 }
 
 func TestHandleList_RequiresAuth(t *testing.T) {
 	s := setup(t)
-
 	req := httptest.NewRequest("GET", "/api/feedback", nil)
 	w := httptest.NewRecorder()
-
 	HandleList(s, "secret-key")(w, req)
-
 	if w.Code != 403 {
 		t.Fatalf("want 403, got %d", w.Code)
 	}
@@ -97,12 +93,11 @@ func TestHandleList_RequiresAuth(t *testing.T) {
 
 func TestHandleList_WithAuth(t *testing.T) {
 	s := setup(t)
-	s.Create(&Feedback{Message: "test"}) //nolint:errcheck //nolint:errcheck
+	s.Create(&Feedback{Payload: validFeedbackV1}) //nolint:errcheck
 
 	req := httptest.NewRequest("GET", "/api/feedback?status=pending", nil)
 	req.Header.Set("Authorization", "Bearer my-key")
 	w := httptest.NewRecorder()
-
 	HandleList(s, "my-key")(w, req)
 
 	if w.Code != 200 {
@@ -110,7 +105,7 @@ func TestHandleList_WithAuth(t *testing.T) {
 	}
 	var list []Feedback
 	json.NewDecoder(w.Body).Decode(&list)
-	if len(list) != 1 || list[0].Message != "test" {
+	if len(list) != 1 || list[0].Payload != validFeedbackV1 {
 		t.Fatalf("bad list: %+v", list)
 	}
 }
@@ -118,13 +113,10 @@ func TestHandleList_WithAuth(t *testing.T) {
 // 空结果应序列化为 [] 而非 null（客户端不需判空）
 func TestHandleList_EmptyReturnsEmptyArray(t *testing.T) {
 	s := setup(t)
-
 	req := httptest.NewRequest("GET", "/api/feedback", nil)
 	req.Header.Set("Authorization", "Bearer my-key")
 	w := httptest.NewRecorder()
-
 	HandleList(s, "my-key")(w, req)
-
 	if w.Code != 200 {
 		t.Fatalf("want 200, got %d", w.Code)
 	}
@@ -135,12 +127,9 @@ func TestHandleList_EmptyReturnsEmptyArray(t *testing.T) {
 
 func TestHandleList_EmptyAuthKey(t *testing.T) {
 	s := setup(t)
-
 	req := httptest.NewRequest("GET", "/api/feedback", nil)
 	w := httptest.NewRecorder()
-
 	HandleList(s, "")(w, req)
-
 	if w.Code != 403 {
 		t.Fatalf("want 403, got %d", w.Code)
 	}
@@ -148,8 +137,8 @@ func TestHandleList_EmptyAuthKey(t *testing.T) {
 
 func TestHandleUpdate_Success(t *testing.T) {
 	s := setup(t)
-	s.Create(&Feedback{Message: "fix me"}) //nolint:errcheck //nolint:errcheck
-	list, _ := s.List("", 10)              //nolint:errcheck
+	s.Create(&Feedback{Payload: validFeedbackV1}) //nolint:errcheck
+	list, _ := s.List("", 10)                     //nolint:errcheck
 	id := list[0].ID
 
 	body, _ := json.Marshal(UpdateRequest{Status: "done", IssueURL: "https://github.com/ml8s/liki/issues/1"})
@@ -159,7 +148,6 @@ func TestHandleUpdate_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	HandleUpdate(s, "my-key")(w, req)
-
 	if w.Code != 200 {
 		t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
 	}
@@ -167,15 +155,12 @@ func TestHandleUpdate_Success(t *testing.T) {
 
 func TestHandleUpdate_NotFound(t *testing.T) {
 	s := setup(t)
-
 	body, _ := json.Marshal(UpdateRequest{Status: "done"})
 	req := httptest.NewRequest("PATCH", "/api/feedback/no-such", bytes.NewReader(body))
 	req.Header.Set("Authorization", "my-key")
 	req.SetPathValue("id", "no-such")
 	w := httptest.NewRecorder()
-
 	HandleUpdate(s, "my-key")(w, req)
-
 	if w.Code != 404 {
 		t.Fatalf("want 404, got %d", w.Code)
 	}
@@ -186,28 +171,21 @@ func TestHandleUpdate_NoAuth(t *testing.T) {
 	body, _ := json.Marshal(UpdateRequest{Status: "done"})
 	req := httptest.NewRequest("PATCH", "/api/feedback/x", bytes.NewReader(body))
 	w := httptest.NewRecorder()
-
 	HandleUpdate(s, "my-key")(w, req)
-
 	if w.Code != 403 {
 		t.Fatalf("want 403, got %d", w.Code)
 	}
 }
 
-// 回归保护：GBK 等非 UTF-8 body 曾被 encoding/json 静默替换为 U+FFFD 入库，
-// 两条用户反馈（3376740b/8d453a6a）因此不可逆损坏。现在必须 400 拒绝且不落库。
+// 回归保护：非 UTF-8 body 必须 400 且不落库。
 func TestHandleCreate_RejectsNonUTF8(t *testing.T) {
 	s := setup(t)
-
-	// 「用户反馈」四字的 GBK 编码（非法 UTF-8）
-	gbkBody := append([]byte(`{"category":"bug","message":"`), 0xD3, 0xC3, 0xBB, 0xA7, 0xB7, 0xB4, 0xC0, 0xA1)
-	gbkBody = append(gbkBody, []byte(`"}`)...)
+	// 「问题」两字的 GBK 编码（非法 UTF-8）放进 problem.summary
+	gbkBody := append([]byte(`{"problem":{"summary":"`), 0xC, 0xCC, 0xCC, 0xE2)
+	gbkBody = append(gbkBody, []byte(`"}}`)...)
 	req := httptest.NewRequest("POST", "/api/feedback", bytes.NewReader(gbkBody))
-	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-
 	HandleCreate(s, rateLimit)(w, req)
-
 	if w.Code != 400 {
 		t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
 	}

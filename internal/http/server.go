@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,30 +11,38 @@ import (
 	"liki-web/internal/admin"
 	"liki-web/internal/agent"
 	"liki-web/internal/auth"
+	"liki-web/internal/chat"
+	"liki-web/internal/commerce"
+	"liki-web/internal/entitlement"
 	"liki-web/internal/feedback"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
 	"liki-web/internal/naming"
 	"liki-web/internal/payment"
+	"liki-web/internal/profile"
 )
 
 type ServerDeps struct {
-	OnPaid           func(ctx context.Context, orderID string)
-	OnVerification   func(ctx context.Context, email, code string)
-	PaymentRuntime   *payment.Runtime
-	AuthHandler      *auth.Handler
-	NamingStore      *naming.Store
-	MingShuStore     *mingshu.Store
-	MingShuGenerator *mingshu.Generator
-	HepanStore       *hepan.Store
-	HepanGenerator   *hepan.Generator
-	NamingAgent      *agent.Agent
-	Agent            *agent.Agent
-	Analytics        *Analytics
-	MetricsHandler   http.HandlerFunc
-	FeedbackStore    *feedback.Store
-	FeedbackAPIKey   string
-	DevMode          bool
+	OnPaid             func(ctx context.Context, orderID string)
+	OnVerification     func(ctx context.Context, email, code string)
+	PaymentRuntime     *payment.Runtime
+	AuthHandler        *auth.Handler
+	EntitlementHandler *entitlement.Handler
+	ChatHandler        *chat.Handler
+	CommerceHandler    *commerce.Handler
+	ProfileHandler     *profile.Handler
+	NamingStore        *naming.Store
+	MingShuStore       *mingshu.Store
+	MingShuGenerator   *mingshu.Generator
+	HepanStore         *hepan.Store
+	HepanGenerator     *hepan.Generator
+	NamingAgent        *agent.Agent
+	Agent              *agent.Agent
+	Analytics          *Analytics
+	MetricsHandler     http.HandlerFunc
+	FeedbackStore      *feedback.Store
+	FeedbackAPIKey     string
+	DevMode            bool
 }
 
 func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl, verifyRL *RateLimiter) http.Handler {
@@ -61,6 +70,31 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 			return verifyRL.Wrap(5.0/60, 6, next)
 		}
 		deps.AuthHandler.RegisterRoutes(mux, authCodeLimit, authVerifyLimit)
+	}
+
+	// ── platform entitlements and unified chat ──
+	if deps.EntitlementHandler != nil {
+		deps.EntitlementHandler.RegisterRoutes(mux)
+	}
+	if deps.ChatHandler != nil {
+		chatLimit := func(next http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(5.0/60, 6, next)
+		}
+		deps.ChatHandler.RegisterRoutes(mux, chatLimit)
+	}
+	if deps.CommerceHandler != nil {
+		commerceLimit := func(next http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(5.0/60, 6, next)
+		}
+		deps.CommerceHandler.RegisterRoutes(mux, commerceLimit)
+	}
+
+	// ── platform profiles ──
+	if deps.ProfileHandler != nil {
+		profileLimit := func(next http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(10.0/60, 12, next)
+		}
+		deps.ProfileHandler.RegisterRoutes(mux, profileLimit)
 	}
 
 	// ── naming product routes ──
@@ -200,8 +234,7 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 		if serve(w, r, webDir) {
 			return
 		}
-		w.WriteHeader(http.StatusNotFound)
-		serveFileNoRedirect(w, r, filepath.Join(webDir, "404.html"))
+		serveFileStatus(w, r, http.StatusNotFound, filepath.Join(webDir, "404.html"))
 	})
 }
 
@@ -218,4 +251,21 @@ func serveFileNoRedirect(w http.ResponseWriter, r *http.Request, path string) {
 		return
 	}
 	http.ServeContent(w, r, filepath.Base(path), fi.ModTime(), f)
+}
+
+func serveFileStatus(w http.ResponseWriter, r *http.Request, status int, path string) {
+	f, err := os.Open(path)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer func() { _ = f.Close() }()
+	fi, err := f.Stat()
+	if err != nil || fi.IsDir() {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = io.Copy(w, f)
 }

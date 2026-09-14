@@ -3,6 +3,7 @@ package dodo
 import (
 	"context"
 	"encoding/json"
+	"liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"github.com/dodopayments/dodopayments-go/option"
 
 	"liki-web/internal/payment"
-	"liki-web/internal/product"
 )
 
 func writeJSON(t *testing.T, w http.ResponseWriter, value any) {
@@ -68,7 +68,7 @@ func testIntent() payment.PaymentIntent {
 	return payment.PaymentIntent{
 		ID:                "pi-1",
 		BusinessOrderID:   "biz-1",
-		Product:           product.ProductNaming,
+		Product:           string(product.ProductNaming),
 		AmountMinor:       990,
 		Currency:          "USD",
 		ProviderSessionID: "sess-1",

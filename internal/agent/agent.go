@@ -30,6 +30,10 @@ type Agent struct {
 	prompt string
 }
 
+// Prompt returns the system instruction injected by callers that use Agent as
+// a generic Runner. It is not applied automatically by Execute.
+func (a *Agent) Prompt() string { return a.prompt }
+
 // NewAgent creates a new Agent with the given prompt and tools.
 func NewAgent(llmClient LLMClient, tools ToolRegistry, prompt string) *Agent {
 	return &Agent{llm: llmClient, tools: tools, prompt: prompt}
@@ -49,6 +53,7 @@ const (
 	EventError         ChatEventType = "error"
 	EventThinking      ChatEventType = "thinking"
 	EventThinkingDelta ChatEventType = "thinking-delta"
+	EventDone          ChatEventType = "done"
 )
 
 // ChatEvent is emitted during streaming chat and sent as SSE.
@@ -67,6 +72,10 @@ func emitIf(fn func(ChatEvent), ev ChatEvent) {
 const (
 	chatRoundTimeout = 120 * time.Second
 	maxChatRounds    = 20
+	// toolCallTimeout bounds every single tool invocation uniformly. Inner
+	// per-tool timeouts (python 30s, profile API 10s) may be smaller; this is
+	// the outer ceiling so no one tool can stall a whole generation round.
+	toolCallTimeout = 30 * time.Second
 )
 
 // NamingChat runs the naming chat pipeline with tool-calling.
@@ -130,7 +139,9 @@ func (a *Agent) Execute(ctx context.Context, msgs []llm.Message, onEvent func(Ch
 		}
 
 		for _, tc := range finalToolCalls {
-			result, err := a.tools.Execute(ctx, tc.Function.Name, json.RawMessage(tc.Function.Arguments))
+			toolCtx, toolCancel := context.WithTimeout(ctx, toolCallTimeout)
+			result, err := a.tools.Execute(toolCtx, tc.Function.Name, json.RawMessage(tc.Function.Arguments))
+			toolCancel()
 			if err != nil {
 				result = json.RawMessage(fmt.Sprintf(`{"error":%q}`, err.Error()))
 			}
