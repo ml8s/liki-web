@@ -5,7 +5,7 @@
 - `entitlements` → `GET /api/me/entitlements`
 - `chat` → Chat APIs below
 - `commerce` product/checkout state is currently page-local; orders use `src/api/orders.ts`.
-- Future report pages may adopt TanStack Query when their backend APIs land.
+- Future report pages may adopt a data-fetching layer (e.g. TanStack Query) when their backend APIs land; not bundled until then.
 
 ## Commerce APIs
 - `GET /api/chat/products`

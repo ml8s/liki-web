@@ -31,7 +31,8 @@ export default defineConfig({
   build: {
     outDir: '../dist/app',
     emptyOutDir: true,
-    sourcemap: true,
+    // 生产不公开 sourcemap（6MB 源文件、暴露源码）；dev 由 vite dev server 自带。
+    sourcemap: false,
     rollupOptions: {
       output: {
         // 举一反三：稳定 vendor 独立 chunk——浏览器长缓存。
