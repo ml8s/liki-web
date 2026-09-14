@@ -34,6 +34,8 @@ mkdir -p "$(pwd)/data"
 export LISTEN_ADDR="${LISTEN_ADDR:-:8081}"
 export LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
 export JWT_SECRET="${JWT_SECRET:-dev-secret-do-not-use-in-production}"
+export DEV_MODE="${DEV_MODE:-true}"
+export FEEDBACK_DB_PATH="${FEEDBACK_DB_PATH:-$(pwd)/data/feedback.db}"
 
 # Caddy binary
 if [ -z "${CADDY_BIN:-}" ]; then

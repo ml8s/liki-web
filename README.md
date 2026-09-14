@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Liki Web — liki.hk 官方网站</strong><br>
-  按命理师的专业标准构建：起名 · 灵机命书 · 灵机合盘
+  按命理师的专业标准构建：Liki Chat · 起名 · 八字 · 问卦 · 风水
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-24.14-339933?style=flat&logo=nodedotjs&logoColor=white&labelColor=30305c"></a>
 </p>
 
-按命理师的专业标准构建的命理 Skill 官网——起名、灵机命书、灵机合盘三个产品。
+按命理师的专业标准构建的命理咨询平台。新体系以 **Liki Chat** 为统一入口，内部包含起名、八字、问卦、风水四个专业 skill；既有 naming、mingshu、hepan 作为 legacy 产品域继续隔离维护。
 
 ## 为什么可信
 
@@ -25,40 +25,74 @@
 
 **② 断语走真值表而非自由发挥** — 八字/紫微断语由规则引擎执行：597 条断语 / 46 张真值表（bazi 26 + ziwei 20，含 7 张 yearly 流年表）精确匹配，LLM 只做翻译与综合——防 agent 不稳定（精度不靠 LLM 发挥）；四门（六爻/奇门/八宅/玄空）断语用统一断语表（吉凶=符号固有属性）。
 
-**③ 三层测试保障** — Go 393 单测（`-race` + 覆盖率 ≥50% 门槛）+ JS 99 + E2E 55 + skill 规则引擎 pytest（集成测试在服务起后全跑）+ govulncheck/Trivy 安全扫描；三仓库 CI 全绿。
+**③ 分层测试保障** — Go 单测/集成（`-race`）、JS 单测、组件测试、API 冒烟、Playwright E2E、skill 规则引擎 pytest，并接入 govulncheck/Trivy 安全扫描。
 
-**④ 独立部署** — Docker Compose（engine + web + caddy）；python3 仅服务 skill 规则引擎（纯标准库、白名单 5 工具、无任意代码执行）。
+**④ 独立部署** — Docker Compose（engine + web + caddy）；python3 仅服务 skill 规则引擎（固定入口、白名单工具、超时控制，无任意代码执行）。
 
 ## 架构
 
-### 产品域（独立闭环）
+### 架构分层
 
 ```
 internal/
-├── naming/       # 起名 — 八字起名 + AI 聊天
-├── mingshu/     # 灵机命书 — 个人命理报告
-├── hepan/        # 灵机合盘 — 双人合盘报告
-└── admin/        # 管理后台 — 订单/验证码管理
+├── auth/          # 平台用户、邮箱验证码登录、登录态
+├── entitlement/   # Liki Chat -> 四个内部 skill 权益
+├── commerce/      # Liki Chat 订单、checkout、支付履约适配
+├── chat/          # 统一 Chat session / message / runtime 编排
+├── agent/         # LLM/tool-call 内核与 skill 工具 scope
+├── sse/           # 公共 Server-Sent Events 传输组件
+├── payment/       # legacy 与 commerce 共用的支付运行时
+├── naming/        # legacy：起名产品
+├── mingshu/       # legacy：灵机命书报告
+├── hepan/         # legacy：灵机合盘报告
+└── admin/         # 管理后台
 ```
 
-每个产品域自包含：
+三层边界：
 
-| 组件 | 说明 |
-|------|------|
-| `store.go` | 独立 SQLite（订单 + 报告各自一张 DB） |
-| `handler.go` | HTTP handler（create/select/login/chat） |
-| `checkout.go` | 支付流程（createCheckout/paymentReturn/orderStatus） |
-| `webhook.go` | 回调处理（VerifyWebhook + onPaid 回调） |
-| `generate.go` | 报告流水线（generate → review → revise） |
-| `route.go` | 路由注册（`RegisterRoutes(mux, store, svc, agent)`） |
+| 层 | 职责 |
+|---|---|
+| Platform | 用户、登录、权益、订单、支付 |
+| Chat Runtime | 会话、消息、SSE、Agent 编排 |
+| Skill / Engine | prompt、领域工具、确定性排盘与规则 |
+| Legacy Product | naming / mingshu / hepan，保持隔离，不隐式进入新权益体系 |
 
 ### 支付架构
 
-`internal/payment/service.go` 提供通用能力：
-- `Provider()` — 支付网关（dodo 海外 / xunhu 国内）
-- `VerifyWebhook()` — 回调验签
-- `Store` 接口已移除（各域用自有 Store）
-- `OnPaid` 回调由各域注入（邮件内容在产品域编排）
+`internal/payment` 提供统一支付运行时：provider gateway、checkout、webhook、通知、durable fulfillment、对账和幂等由组合编排；dodo 海外 / xunhu 国内是可替换 Provider。
+
+legacy 产品流继续注册在 runtime 中。Liki Chat 则通过 `internal/commerce` 创建订单，并在 provider capture 后由 `commerce.Fulfiller` 显式调用 entitlement 授权。payment runtime 不会隐式写入 Chat 权益。
+
+### 平台用户与统一 Chat
+
+`/app` 是登录后的 Vue 3 SPA。邮箱验证码登录建立平台用户和 HttpOnly 会话。
+
+新商业模型只有一个产品/SKU：
+
+```text
+liki-chat
+```
+
+购买后解锁四个内部 skill：
+
+```text
+liki-naming
+liki-bazi
+liki-divination
+liki-fengshui
+```
+
+统一 Chat 只允许会话所属用户读写，并在每次读取、发送、创建会话时重新校验权益。旧 `mingshu`、`hepan`、`naming` 是 legacy 报告/支付链路，不隐式获得新 Chat 权益。
+
+四个 skill（naming / bazi / divination / fengshui）各自持有独立 prompt 和 deny-by-default 工具范围；`webapp/**` 报告提示词不进入 Chat。详细契约见 [`docs/platform-chat.md`](docs/platform-chat.md)。
+
+Chat 商业上是一个产品、一个全功能 SKU；四个 skill 是内部能力，不是四个独立商品。Dodo 需要配置：
+
+```bash
+DODO_PRODUCT_LIKI_CHAT=
+```
+
+CNY checkout 由 Xunhu 承接；USD checkout 由 Dodo 承接。生产环境按目标市场配置对应 provider。
 
 ### 前端
 
@@ -72,6 +106,15 @@ web/src/pages/[locale]/  （Astro SSG，3 locales × 13 页面 = 39 pages）
 ├── hepan/report.astro    # 报告页
 ├── chat.astro            # 聊天（Vue CSR）
 └── about/activate/contact/disclaimer/privacy/terms
+```
+
+```
+web/app/src/            （登录后 Vue 3 + Pinia + Vue Router SPA）
+├── views/              # 页面编排：工作台、统一 Chat、订单、账户
+├── components/         # app 通用组件、chat/commerce 业务组件
+├── stores/             # auth、entitlements、chat
+├── api/                # 平台 API 客户端与 SSE 解析
+└── config/             # 内部 skill 展示配置
 ```
 
 ### 报告渲染
@@ -94,15 +137,17 @@ LLM 输出的 JSON 通过 `render-report.js` 统一渲染：
 
 提示词位于 `../liki/skills/`（ml8s/liki 仓库），通过 `sync-skills.sh` 同步到 `web/skills/`（skill 根形态 + webapp 部署提示词）。
 
-**chatagent 主提示词** = `web/skills/liki/SKILL.md`（`LIKI_PROMPT_FILE` 可覆盖）——与 skill 单一事实源一致：真太阳时校正（路A/B）、关卡制 Gate 强制清单、按需 discover、路由分发全生效。`app/fatechart.md` 等作为子卡被 SKILL.md 路由引用。
+**旧 naming chat 与报告产品**继续使用现有产品提示词；**统一 Chat**按四个 skill 根文件分别构建 prompt（`liki-naming`、`liki-bazi`、`liki-divination`、`liki-fengshui`），并由 `internal/agent/scope.go` 限制工具 schema 与执行。
 
-**agent 工具链**（`internal/agent/tools.go` + `skill_tools.go`）：
-- 引擎 RPC（`rpc.discover` 自动发现，31 方法）+ `read_file`（读 skills 目录）
-- **skill 规则引擎 5 工具**（`full_paipan`/`liunian`/`make_factors`/`make_liunian_factors`/`query`）——schema 从 `web/skills/liki/tools/skill-tools.json` 加载（OpenAI function calling 单一来源），执行 `exec python3 agent_cli.py`（stdin {fn,args} → stdout {ok,data}；白名单分派、30s 超时、无任意代码执行）；**部署需 python3**（Dockerfile 已含），容器内经 `LIKI_RPC_URL` 内网直连引擎
+**Agent 工具链**（`internal/agent/tools.go`、`skill_tools.go`、`scope.go`）：
 
-**chat 开场白（greeting）**：前端 i18n（`chat.greeting`）显示 + 首条用户消息前经 `context` 参数传给后端，后端在 history 为空时持久化为 assistant 首条消息——LLM 上下文始终含 greeting，用户输「1/2/3」能对应前端选项。
+- 引擎 RPC 由 `rpc.discover` 懒发现，`read_file` 限制在当前 skill 目录。
+- 八字 Chat 加载 `liki-bazi/tools/skill-tools.json`，问卦 Chat 加载 `liki-divination/tools/skill-tools.json`。
+- Python 工具通过 `exec python3 agent_cli.py` 执行：stdin `{fn,args}` → stdout `{ok,data|error}`，固定分派、30 秒超时、无任意代码执行。
+- `SkillToolScopes` 先过滤 schema，再在执行时再次校验；跨 skill 工具不可见也不可调用。
 
 **报告产品**各一个提示词目录：
+
 ```
 webapp/hepan/
 ├── SKILL.md          # AI agent 入口
@@ -120,15 +165,19 @@ make check        # lint + vet + HTML + i18n + classes + skills
 make test-all     # 全量测试（Go + JS + Docker E2E）
 ```
 
+`make dev` 默认设置 `DEV_MODE=true` 和本地数据库路径。本地登录页会在邮件服务不可用时显示 6 位开发验证码；生产环境不受影响，也不会返回该字段。
+
+平台契约文档见 [`docs/platform-chat.md`](docs/platform-chat.md)，前端页面与组件规则见 [`docs/frontend/README.md`](docs/frontend/README.md)。
+
 ## 测试
 
 | 层 | 数量 | 命令 |
 |----|------|------|
-| Go 单元 | 393 | `go test ./...` |
-| JS 单元 | 99 | `npx vitest run` |
-| API 集成 | 冒烟集 | `scripts/test-api.sh $URL`（数量随脚本，需服务在线） |
-| E2E Playwright | 55 | `npx playwright test e2e/journeys/`（chat 21/hepan 6/landing 9/pages 7/uncovered 11/a11y 1） |
-| 可访问性 | 8 页审计 | `npx playwright test e2e/journeys/a11y.spec.js` |
+| Go 单测与集成 | 全量 | `go test ./... -count=1`；`make test-db` |
+| JS 单测 | 全量 | `make test-js`（含 Astro 站点与 `/app` SPA） |
+| API 集成 | 冒烟集 | `scripts/test-api.sh $URL`（需服务在线） |
+| E2E Playwright | 全量 | `make test-ui URL=$URL` |
+| 静态检查 | 全量 | `make lint vet` |
 
 ## 部署
 
