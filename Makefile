@@ -146,7 +146,7 @@ check-html:
 	node web/scripts/check-classes.cjs
 	node web/scripts/check-static-sync.cjs
 
-SKILLS := liki-bazi liki-divination liki-fengshui liki-naming
+SKILLS := liki
 
 check-skills: build-archive sync-skills
 	@for skill in $(SKILLS); do \
@@ -156,7 +156,7 @@ check-skills: build-archive sync-skills
 	@test -f "web/.well-known/agent-skills/index.json" || { echo "❌ Missing .well-known/agent-skills/index.json"; exit 1; }
 	@echo "✓ V2 index.json exists"
 	@python3 scripts/check-index-json.py
-	@test -f "web/skills/liki-bazi.tar.gz" || { echo "❌ Missing skills/liki-bazi.tar.gz (run: make build-archive)"; exit 1; }
+	@test -f "web/skills/liki.tar.gz" || { echo "❌ Missing skills/liki.tar.gz (run: make build-archive)"; exit 1; }
 	@echo "✓ V2 archive exists"
 
 check-version:
