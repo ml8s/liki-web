@@ -37,6 +37,23 @@ export interface BaziZhu {
   na_yin?: string
 }
 
+export interface BaziDaYunStep {
+  gan: string
+  zhi: string
+  name: string
+  wuxing?: string
+  shi_shen?: string
+  start_year?: number
+  end_year?: number
+}
+
+export interface BaziDaYun {
+  steps: BaziDaYunStep[]
+  current_step_index: number
+  next_step_in_years?: number
+  direction?: string
+}
+
 export interface BaziChartData {
   nian: BaziZhu
   yue: BaziZhu
@@ -45,6 +62,7 @@ export interface BaziChartData {
   birth_year?: number
   gender?: string
   zi_shi_rule?: string
+  da_yun?: BaziDaYun
 }
 
 export function engineSolarTime(time: string, longitude: number): Promise<{ solar: string; lunar: unknown }> {
@@ -59,13 +77,19 @@ export function engineBaziChart(solarTime: string, gender: string): Promise<Bazi
   return engineRpc<BaziChartData>('bazi.chart', { solar_time: solarTime, gender })
 }
 
+export interface BaziYongShen {
+  fu_yi?: { qiangruo?: string; yong?: string; xi?: string; ji?: string }
+  tiao_hou?: { yong?: string; xi?: string; season?: string }
+  ge_ju?: { ge_ju?: string; yong_fa?: string; yong?: string; xi?: string; ji?: string }
+}
+
 export interface BaziZhuFull extends BaziZhu {
   shi_shen?: string
   cang_gan?: string[]
 }
 
-export function engineBaziFullChart(chart: unknown): Promise<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull }> {
-  return engineRpc<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull }>('bazi.fullchart', { chart })
+export function engineBaziFullChart(chart: unknown): Promise<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; yong_shen?: BaziYongShen }> {
+  return engineRpc<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; yong_shen?: BaziYongShen }>('bazi.fullchart', { chart })
 }
 
 export interface ZiweiGong {

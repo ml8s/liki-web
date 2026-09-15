@@ -32,6 +32,29 @@
                 <div class="sub nayin">{{ item.naYin }}</div>
               </div>
             </div>
+            <template v-if="daYunSteps.length">
+              <div class="sec-title">大运</div>
+              <div class="dayun">
+                <div
+                  v-for="(s, i) in daYunSteps"
+                  :key="`${s.name}-${i}`"
+                  :class="['dy', { cur: i === currentStepIndex }]"
+                >
+                  <div class="dy-name font-serif">{{ s.name }}</div>
+                  <div class="dy-shen">{{ s.shi_shen }}</div>
+                  <div class="dy-year">{{ s.start_year }}–{{ s.end_year }}</div>
+                </div>
+              </div>
+            </template>
+            <template v-if="yongShenSummary.length">
+              <div class="sec-title">用神简览</div>
+              <div class="ys">
+                <div v-for="row in yongShenSummary" :key="row.label" class="ys-row">
+                  <span class="ys-label">{{ row.label }}</span>
+                  <span class="ys-body">{{ row.text }}</span>
+                </div>
+              </div>
+            </template>
           </el-tab-pane>
 
           <el-tab-pane label="紫微" name="ziwei">
@@ -79,6 +102,7 @@ import {
   type BazhaiChart,
   type BaziChartData,
   type BaziZhuFull,
+  type BaziYongShen,
   type ZiweiChart,
 } from '@/api/engine'
 import type { Profile } from '@/api/profiles'
@@ -94,6 +118,7 @@ const baziChart = ref<BaziChartData | null>(null)
 const baziFull = ref<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull } | null>(null)
 const ziwei = ref<ZiweiChart | null>(null)
 const bazhai = ref<BazhaiChart | null>(null)
+const yongShen = ref<BaziYongShen | null>(null)
 
 const anyResult = computed(() => !!(baziChart.value || ziwei.value || bazhai.value))
 
@@ -106,6 +131,31 @@ const baziPillars = computed(() => {
     { label: '日柱', gan: src.ri.gan, zhi: src.ri.zhi, naYin: src.ri.na_yin ?? '', shiShen: src.ri.shi_shen ?? '' },
     { label: '时柱', gan: src.shi.gan, zhi: src.shi.zhi, naYin: src.shi.na_yin ?? '', shiShen: src.shi.shi_shen ?? '' },
   ]
+})
+
+const daYunSteps = computed(() => baziChart.value?.da_yun?.steps ?? [])
+const currentStepIndex = computed(() => baziChart.value?.da_yun?.current_step_index ?? -1)
+
+const yongShenSummary = computed(() => {
+  const ys = yongShen.value
+  if (!ys) return []
+  const rows: Array<{ label: string; text: string }> = []
+  if (ys.fu_yi?.qiangruo) {
+    rows.push({
+      label: '扶抑',
+      text: `${ys.fu_yi.qiangruo} · 喜 ${ys.fu_yi.xi ?? '—'} 忌 ${ys.fu_yi.ji ?? '—'}`,
+    })
+  }
+  if (ys.tiao_hou?.yong) {
+    rows.push({ label: '调候', text: `用 ${ys.tiao_hou.yong} · 喜 ${ys.tiao_hou.xi ?? '—'}` })
+  }
+  if (ys.ge_ju?.ge_ju) {
+    rows.push({
+      label: '格局',
+      text: `${ys.ge_ju.ge_ju}${ys.ge_ju.yong_fa ? ` · ${ys.ge_ju.yong_fa}` : ''} · 喜 ${ys.ge_ju.xi ?? '—'} 忌 ${ys.ge_ju.ji ?? '—'}`,
+    })
+  }
+  return rows
 })
 
 const ziweiGongs = computed(() => ziwei.value?.gong_wei ?? [])
@@ -131,6 +181,7 @@ async function compute() {
   correction.value = ''
   baziChart.value = null
   baziFull.value = null
+  yongShen.value = null
   ziwei.value = null
   bazhai.value = null
   if (p.calendar === 'lunar') return
@@ -158,7 +209,9 @@ async function compute() {
     else correction.value = '按已定时辰排盘，未做校正'
 
     baziChart.value = await engineBaziChart(solar, p.gender)
-    baziFull.value = await engineBaziFullChart(baziChart.value)
+    const full = await engineBaziFullChart(baziChart.value)
+    baziFull.value = full
+    yongShen.value = full.yong_shen ?? null
     const zwChart = await engineZiweiChart(t.lunar, p.gender)
     ziwei.value = await engineZiweiFullChart(zwChart)
     const birthYear = baziChart.value.birth_year ?? parseInt(p.birth_date.slice(0, 4), 10)
@@ -189,6 +242,19 @@ async function compute() {
 .pillar .gl { font-size: 22px; font-weight: 700; }
 .pillar .sub { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
 .pillar .nayin { color: var(--liki-text-3); }
+
+.sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; color: var(--liki-text-1); }
+.dayun { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+.dy { border: 1px solid var(--liki-line); border-radius: 6px; padding: 8px 4px; text-align: center; }
+.dy.cur { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
+.dy-name { font-size: 15px; font-weight: 700; }
+.dy-shen { font-size: 11px; color: var(--liki-text-2); margin-top: 2px; }
+.dy-year { font-size: 11px; color: var(--liki-text-3); margin-top: 2px; }
+.ys { border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; }
+.ys-row { display: flex; gap: 10px; padding: 8px 12px; font-size: 13px; }
+.ys-row + .ys-row { border-top: 1px solid var(--liki-line); }
+.ys-label { color: var(--liki-text-3); flex: 0 0 3em; }
+.ys-body { color: var(--liki-text-1); }
 
 .palaces {
   display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px;
