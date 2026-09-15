@@ -1136,6 +1136,12 @@ th {
   align-items: center;
   justify-content: center;
   gap: .75rem;
+  flex-wrap: wrap;
+}
+.install-cmd {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 .copy-btn {
   flex-shrink: 0;
