@@ -196,7 +196,8 @@ export const useChatStore = defineStore('chat', {
 
 export function skillLabel(skill: string): string {
   const labels: Record<string, string> = {
-    'liki': '命理咨询',
+    // 会话标题为 `${label}咨询`，故用「命理」而非「命理咨询」。
+    'liki': '命理',
   }
   return labels[skill] ?? skill
 }
