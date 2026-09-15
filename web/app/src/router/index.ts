@@ -21,7 +21,6 @@ const router = createRouter({
         { path: 'profiles/:id', name: 'profile-detail', component: () => import('@/views/ProfileDetailView.vue'), meta: { title: '档案详情' } },
         { path: 'chat', name: 'chat', component: () => import('@/views/ChatListView.vue'), meta: { title: '统一 Chat' } },
         { path: 'chat/:sessionId', name: 'chat-session', component: () => import('@/views/ChatSessionView.vue'), meta: { title: '咨询' } },
-        { path: 'reports', name: 'reports', component: () => import('@/views/ReportsView.vue'), meta: { title: '报告' } },
         { path: 'orders', name: 'orders', component: () => import('@/views/OrdersView.vue'), meta: { title: '订单' } },
         { path: 'account', name: 'account', component: () => import('@/views/AccountView.vue'), meta: { title: '账户' } },
       ],
