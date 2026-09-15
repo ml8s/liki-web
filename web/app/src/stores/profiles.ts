@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { toUserMessage } from '@/utils/errors'
 import {
   createProfile,
   deleteProfile,
@@ -83,5 +84,5 @@ export const useProfilesStore = defineStore('profiles', {
 })
 
 export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : '请求失败'
+  return toUserMessage(error, '请求失败')
 }

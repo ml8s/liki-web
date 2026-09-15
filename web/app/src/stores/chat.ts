@@ -9,6 +9,7 @@ import {
   type ChatSession,
 } from '@/api/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
+import { toUserMessage } from '@/utils/errors'
 
 let streamController: AbortController | null = null
 
@@ -204,5 +205,5 @@ export function skillLabel(skill: string): string {
 }
 
 export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : '请求失败'
+  return toUserMessage(error, '请求失败')
 }

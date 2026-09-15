@@ -90,6 +90,7 @@
 </template>
 
 <script setup lang="ts">
+import { toUserMessage } from '@/utils/errors'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -136,7 +137,7 @@ async function load() {
   try {
     sessions.value = await fetchSessions()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '加载会话失败'
+    error.value = toUserMessage(err, '加载会话失败')
   } finally {
     loading.value = false
   }
@@ -148,7 +149,7 @@ async function revoke(id: string) {
     await revokeSession(id)
     await load()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '撤销失败'
+    error.value = toUserMessage(err, '撤销失败')
   } finally {
     revokingId.value = ''
   }
@@ -160,7 +161,7 @@ async function revokeAll() {
     await revokeAllSessions()
     await load()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '撤销失败'
+    error.value = toUserMessage(err, '撤销失败')
   } finally {
     revokingAll.value = false
   }
@@ -192,7 +193,7 @@ async function eraseAccount() {
     await auth.logout()
     await router.push({ name: 'login' })
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '删除失败'
+    error.value = toUserMessage(err, '删除失败')
   } finally {
     erasing.value = false
   }

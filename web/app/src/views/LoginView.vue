@@ -59,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import { toUserMessage } from '@/utils/errors'
 import { onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -98,7 +99,7 @@ async function sendCode() {
     codeSent.value = true
     startCountdown()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '验证码发送失败'
+    error.value = toUserMessage(err, '验证码发送失败')
   } finally {
     sending.value = false
   }
@@ -129,7 +130,7 @@ async function verify() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/app'
     await router.push(redirect)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '登录失败'
+    error.value = toUserMessage(err, '登录失败')
   } finally {
     verifying.value = false
   }

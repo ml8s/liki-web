@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { toUserMessage } from '@/utils/errors'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfilesStore } from '@/stores/profiles'
@@ -54,7 +55,7 @@ async function confirmRemove(profile: Profile) {
   try {
     await profiles.remove(profile.id)
   } catch (err) {
-    profiles.error = err instanceof Error ? err.message : '删除失败'
+    profiles.error = toUserMessage(err, '删除失败')
   }
 }
 

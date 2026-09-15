@@ -4,6 +4,7 @@ import { checkoutChatProduct, fetchChatProducts, type ChatProduct } from '@/api/
 import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useProfilesStore } from '@/stores/profiles'
+import { toUserMessage } from '@/utils/errors'
 
 type PaymentState = 'idle' | 'verifying' | 'confirmed' | 'unpaid'
 
@@ -50,7 +51,7 @@ export const useCommerceStore = defineStore('commerce', {
       try {
         this.products = await fetchChatProducts()
       } catch (error) {
-        this.productsError = error instanceof Error ? error.message : '加载产品失败'
+        this.productsError = toUserMessage(error, '加载产品失败')
       } finally {
         this.loadingProducts = false
       }
@@ -64,7 +65,7 @@ export const useCommerceStore = defineStore('commerce', {
         const checkout = await checkoutChatProduct(product.id)
         window.location.href = checkout.checkout_url
       } catch (error) {
-        this.actionError = error instanceof Error ? error.message : '发起支付失败'
+        this.actionError = toUserMessage(error, '发起支付失败')
         await this.refresh()
       } finally {
         this.buying = false
@@ -132,7 +133,7 @@ export const useCommerceStore = defineStore('commerce', {
         const session = await useChatStore().createSession(profileId, 'liki-bazi')
         await router.replace(`/chat/${session.id}`)
       } catch (error) {
-        this.actionError = error instanceof Error ? error.message : '创建会话失败'
+        this.actionError = toUserMessage(error, '创建会话失败')
       }
     },
   },

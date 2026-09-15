@@ -90,6 +90,7 @@
 </template>
 
 <script setup lang="ts">
+import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
 import {
   engineBazhaiChart,
@@ -217,7 +218,7 @@ async function compute() {
     const birthYear = baziChart.value.birth_year ?? parseInt(p.birth_date.slice(0, 4), 10)
     bazhai.value = await engineBazhaiChart(birthYear, p.gender)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '排盘失败'
+    error.value = toUserMessage(err, '排盘失败')
   } finally {
     loading.value = false
   }

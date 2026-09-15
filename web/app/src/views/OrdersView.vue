@@ -57,6 +57,7 @@
 </template>
 
 <script setup lang="ts">
+import { toUserMessage } from '@/utils/errors'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { fetchChatOrders, type ChatOrder } from '@/api/orders'
 import { formatDateTime, productName } from '@/utils/format'
@@ -82,7 +83,7 @@ async function load() {
   try {
     orders.value = await fetchChatOrders()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '加载订单失败'
+    error.value = toUserMessage(err, '加载订单失败')
   } finally {
     loading.value = false
   }

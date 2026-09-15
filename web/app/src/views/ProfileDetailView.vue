@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProfilesStore } from '@/stores/profiles'
@@ -54,7 +55,7 @@ async function update(input: ProfileInput) {
   try {
     await profiles.update(detail.value.id, detail.value.version, input)
   } catch (err) {
-    profiles.error = err instanceof Error ? err.message : '保存失败'
+    profiles.error = toUserMessage(err, '保存失败')
   } finally {
     updating.value = false
   }

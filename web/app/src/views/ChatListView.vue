@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChatStore, skillLabel } from '@/stores/chat'
@@ -118,7 +119,7 @@ async function create(skill: string) {
     const session = await chat.createSession(activeProfileId.value, skill)
     await router.push(`/chat/${session.id}`)
   } catch (error) {
-    commerce.actionError = error instanceof Error ? error.message : '创建会话失败'
+    commerce.actionError = toUserMessage(error, '创建会话失败')
   } finally {
     creating.value = ''
   }

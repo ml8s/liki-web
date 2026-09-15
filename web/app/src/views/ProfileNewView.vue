@@ -8,6 +8,7 @@
 </template>
 
 <script setup lang="ts">
+import { toUserMessage } from '@/utils/errors'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfilesStore } from '@/stores/profiles'
@@ -54,7 +55,7 @@ async function submit(input: ProfileInput) {
     const profile = await profiles.create(input)
     await router.push(`/profiles/${profile.id}`)
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '保存失败'
+    error.value = toUserMessage(err, '保存失败')
   } finally {
     submitting.value = false
   }
