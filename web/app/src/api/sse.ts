@@ -9,13 +9,21 @@ export async function streamRequest(
   onEvent: (event: { type: string; content?: string; data?: unknown }) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetch(path, {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  })
+  let response: Response
+  try {
+    response = await fetch(path, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal,
+    })
+  } catch (cause) {
+    const error = new Error('网络连接失败，请检查网络后重试') as SSEError
+    error.status = 0
+    error.code = 'network_error'
+    throw error
+  }
 
   if (!response.ok) {
     if (response.status === 401) {

@@ -25,11 +25,17 @@ export function redirectToLogin() {
 }
 
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, {
-    credentials: 'same-origin',
-    headers: init.body ? { 'Content-Type': 'application/json' } : undefined,
-    ...init,
-  })
+  let response: Response
+  try {
+    response = await fetch(path, {
+      credentials: 'same-origin',
+      headers: init.body ? { 'Content-Type': 'application/json' } : undefined,
+      ...init,
+    })
+  } catch {
+    // 断网/网络异常：避免把英文技术错误（Failed to fetch）暴露给用户。
+    throw new ApiError(0, 'network_error', '网络连接失败，请检查网络后重试')
+  }
 
   let envelope: Envelope<T> | null = null
   try {
