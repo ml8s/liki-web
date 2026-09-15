@@ -43,7 +43,10 @@ test.describe('Authenticated app shell', () => {
     });
     await page.route('**/api/chat/sessions', async route => route.fulfill(json([])));
     await page.route('**/api/chat/products', async route => route.fulfill(json({ products: [] })));
+    await page.route('**/api/chat/orders', async route => route.fulfill(json({ orders: [] })));
     await page.route('**/api/profiles**', async route => route.fulfill(json({ profiles: [], next_cursor: '' })));
+    await page.route('**/api/me/sessions', async route => route.fulfill(json([])));
+    await page.route('**/api/me/auth/identities', async route => route.fulfill(json([])));
 
     for (const { path, heading } of protectedPages) {
       await page.goto(path);
