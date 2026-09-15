@@ -1,4 +1,4 @@
-.PHONY: help build test lint vet clean check check-html check-caddy check-skills check-version check-packaging
+.PHONY: help build test lint vet clean check check-html check-caddy check-skills check-no-legacy-skills check-version check-packaging
 .PHONY: dev hooks
 .PHONY: test-js test-js-watch test-db test-api test-ui test-remote test-all
 .PHONY: deploy deploy-all deploy-us deploy-cn
@@ -202,7 +202,10 @@ check-packaging:
 	echo "✓ .well-known + archive + skills 全部存在"; \
 	rm -rf "$$TMP"
 
-check: lint vet check-html check-caddy check-skills check-packaging check-version test
+check: lint vet check-html check-caddy check-skills check-no-legacy-skills check-packaging check-version test
+
+check-no-legacy-skills: ## 防止旧四 skill 定义/引用回潮（统一 liki 后）
+	scripts/check-no-legacy-skills.sh
 
 # ── Deploy ──
 

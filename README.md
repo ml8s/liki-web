@@ -36,7 +36,7 @@
 ```
 internal/
 ├── auth/          # 平台用户、邮箱验证码登录、登录态
-├── entitlement/   # Liki Chat -> 四个内部 skill 权益
+├── entitlement/   # Liki Chat -> 唯一 liki skill 权益
 ├── commerce/      # Liki Chat 订单、checkout、支付履约适配
 ├── chat/          # 统一 Chat session / message / runtime 编排
 ├── agent/         # LLM/tool-call 内核与 skill 工具 scope
@@ -73,20 +73,17 @@ legacy 产品流继续注册在 runtime 中。Liki Chat 则通过 `internal/comm
 liki-chat
 ```
 
-购买后解锁四个内部 skill：
+购买后解锁唯一 skill：
 
 ```text
-liki-naming
-liki-bazi
-liki-divination
-liki-fengshui
+liki
 ```
 
 统一 Chat 只允许会话所属用户读写，并在每次读取、发送、创建会话时重新校验权益。旧 `mingshu`、`hepan`、`naming` 是 legacy 报告/支付链路，不隐式获得新 Chat 权益。
 
-四个 skill（naming / bazi / divination / fengshui）各自持有独立 prompt 和 deny-by-default 工具范围；`webapp/**` 报告提示词不进入 Chat。详细契约见 [`docs/platform-chat.md`](docs/platform-chat.md)。
+统一 skill（`liki`）持有单一入口 prompt 与 deny-by-default 工具范围，内部按意图路由到八字/起名/问卦/风水领域；`webapp/**` 报告提示词不进入 Chat。详细契约见 [`docs/platform-chat.md`](docs/platform-chat.md)。
 
-Chat 商业上是一个产品、一个全功能 SKU；四个 skill 是内部能力，不是四个独立商品。Dodo 需要配置：
+Chat 商业上是一个产品、一个全功能 SKU；`liki` 是唯一 skill，领域能力是内部实现。Dodo 需要配置：
 
 ```bash
 DODO_PRODUCT_LIKI_CHAT=
@@ -137,12 +134,12 @@ LLM 输出的 JSON 通过 `render-report.js` 统一渲染：
 
 提示词位于 `../liki/skills/`（ml8s/liki 仓库），通过 `sync-skills.sh` 同步到 `web/skills/`（skill 根形态 + webapp 部署提示词）。
 
-**旧 naming chat 与报告产品**继续使用现有产品提示词；**统一 Chat**按四个 skill 根文件分别构建 prompt（`liki-naming`、`liki-bazi`、`liki-divination`、`liki-fengshui`），并由 `internal/agent/scope.go` 限制工具 schema 与执行。
+**旧 naming chat 与报告产品**继续使用现有产品提示词；**统一 Chat**加载 `../liki/skills/liki/`（单一 skill：`SKILL.md` 路由 + 四域 `ENTRY.md`），并由 `internal/agent/scope.go` 统一限制工具 schema 与执行。
 
 **Agent 工具链**（`internal/agent/tools.go`、`skill_tools.go`、`scope.go`）：
 
 - 引擎 RPC 由 `rpc.discover` 懒发现，`read_file` 限制在当前 skill 目录。
-- 八字 Chat 加载 `liki-bazi/tools/skill-tools.json`，问卦 Chat 加载 `liki-divination/tools/skill-tools.json`。
+- 八字/问卦域工具分别加载 `liki/bazi/tools/skill-tools.json`、`liki/divination/tools/skill-tools.json`。
 - Python 工具通过 `exec python3 agent_cli.py` 执行：stdin `{fn,args}` → stdout `{ok,data|error}`，固定分派、30 秒超时、无任意代码执行。
 - `SkillToolScopes` 先过滤 schema，再在执行时再次校验；跨 skill 工具不可见也不可调用。
 

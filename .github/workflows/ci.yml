@@ -26,6 +26,9 @@ jobs:
           test -f "web/skills/liki/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
           echo "✓ 统一 liki skill 结构完整（SKILL.md + VERSION + bazi 工具链/webapp）"
 
+      - name: No legacy skill references
+        run: scripts/check-no-legacy-skills.sh
+
       # skill pytest 不在无服务阶段跑——由 ml8s/liki 仓库 CI（单测）与 make test-all Docker E2E 段（全量含 integration）负责
 
       - name: Validate version file

@@ -20,7 +20,7 @@ const message = {
   id: 'msg_1', session_id: 'chat_1', user_id: 'usr_test', role: 'user', kind: 'text', content: '你好', created_at: '2026-01-01T00:01:00Z',
 }
 const product = {
-  id: 'liki-chat', name: 'Liki Chat', description: 'All four skills.',
+  id: 'liki-chat', name: 'Liki Chat', description: 'Unified metaphysics chat.',
   skills: ['liki'], prices: { CNY: 2990, USD: 2990 }, purchased: true,
 }
 const order = {
