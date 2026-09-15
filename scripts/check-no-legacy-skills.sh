@@ -9,7 +9,10 @@ cd "$(git rev-parse --show-toplevel)"
 PATTERNS='liki-bazi|liki-naming|liki-divination|liki-fengshui|SkillNaming|SkillBazi|SkillDivination|SkillFengshui|four skills|四个 skill|四个内部 skill|4 sub-skills'
 
 # CHANGELOG.md 为历史版本记录，旧条目保留原状（改写会歪曲历史），故豁免。
-MATCHES="$(git grep -nE "$PATTERNS" -- ':!node_modules' ':!web/dist' ':!CHANGELOG.md' 2>/dev/null || true)"
+# 本脚本自身需要点名旧标识以描述防的是什么，故豁免自身。
+MATCHES="$(git grep -nE "$PATTERNS" -- \
+  ':!node_modules' ':!web/dist' ':!CHANGELOG.md' \
+  ':!scripts/check-no-legacy-skills.sh' 2>/dev/null || true)"
 if [ -n "$MATCHES" ]; then
   echo "❌ 检测到旧四 skill 引用（统一 liki skill 后不应存在）："
   echo "$MATCHES"
