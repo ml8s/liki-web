@@ -11,7 +11,7 @@
 
     <p>{{ product.description }}</p>
     <ul class="skills">
-      <li v-for="skill in product.skills" :key="skill">{{ skill }}</li>
+      <li v-for="skill in product.skills" :key="skill">{{ skillLabel(skill) }}</li>
     </ul>
 
     <div class="actions">
@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import type { ChatProduct } from '@/api/commerce'
+import { skillLabel } from '@/stores/chat'
 
 defineProps<{
   product: ChatProduct

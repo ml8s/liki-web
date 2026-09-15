@@ -21,7 +21,9 @@
     <!-- 桌面：表格 -->
     <el-table v-else-if="!isMobile" :data="orders" v-loading="loading" class="orders-table">
       <el-table-column prop="id" label="订单号" min-width="180" show-overflow-tooltip />
-      <el-table-column prop="product_id" label="产品" min-width="160" />
+      <el-table-column label="产品" min-width="160">
+        <template #default="{ row }">{{ productName(row.product_id) }}</template>
+      </el-table-column>
       <el-table-column label="金额" width="130">
         <template #default="{ row }">{{ formatAmount(row) }}</template>
       </el-table-column>
@@ -30,8 +32,12 @@
           <el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="创建时间" width="190" />
-      <el-table-column prop="paid_at" label="支付时间" width="190" />
+      <el-table-column label="创建时间" width="190">
+        <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+      </el-table-column>
+      <el-table-column label="支付时间" width="190">
+        <template #default="{ row }">{{ formatDateTime(row.paid_at) }}</template>
+      </el-table-column>
     </el-table>
 
     <!-- 移动端：卡片降级 -->
@@ -41,10 +47,10 @@
           <span class="order-id">{{ order.id }}</span>
           <el-tag :type="statusType(order.status)" size="small">{{ statusLabel(order.status) }}</el-tag>
         </div>
-        <div class="order-row"><span class="k">产品</span><span>{{ order.product_id }}</span></div>
+        <div class="order-row"><span class="k">产品</span><span>{{ productName(order.product_id) }}</span></div>
         <div class="order-row"><span class="k">金额</span><span>{{ formatAmount(order) }}</span></div>
-        <div class="order-row"><span class="k">创建</span><span>{{ order.created_at }}</span></div>
-        <div v-if="order.paid_at" class="order-row"><span class="k">支付</span><span>{{ order.paid_at }}</span></div>
+        <div class="order-row"><span class="k">创建</span><span>{{ formatDateTime(order.created_at) }}</span></div>
+        <div v-if="order.paid_at" class="order-row"><span class="k">支付</span><span>{{ formatDateTime(order.paid_at) }}</span></div>
       </div>
     </div>
   </section>
@@ -53,6 +59,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { fetchChatOrders, type ChatOrder } from '@/api/orders'
+import { formatDateTime, productName } from '@/utils/format'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppEmpty from '@/components/app/AppEmpty.vue'
 import AppErrorState from '@/components/app/AppErrorState.vue'

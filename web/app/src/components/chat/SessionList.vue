@@ -4,7 +4,9 @@
     <el-table-column label="领域" width="140">
       <template #default="{ row }">{{ row.skillLabel }}</template>
     </el-table-column>
-    <el-table-column prop="updated_at" label="更新时间" width="190" />
+    <el-table-column label="更新时间" width="190">
+      <template #default="{ row }">{{ formatDateTime(row.updated_at) }}</template>
+    </el-table-column>
     <el-table-column width="100" align="right">
       <template #default="{ row }">
         <router-link :to="`/chat/${row.id}`" class="open-link">打开</router-link>
@@ -15,6 +17,7 @@
 
 <script setup lang="ts">
 import type { ChatSession } from '@/api/chat'
+import { formatDateTime } from '@/utils/format'
 
 defineProps<{
   sessions: Array<ChatSession & { skillLabel?: string }>
