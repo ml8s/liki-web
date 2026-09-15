@@ -4,6 +4,12 @@
 
     <AppAlert v-if="chat.error" :title="chat.error" type="error" />
     <AppAlert v-else-if="profiles.error" :title="profiles.error" type="error" />
+    <AppAlert
+      v-if="!loading && !profiles.list.length"
+      title="欢迎来到 Liki"
+      description="先创建一个档案，免费查看命盘；解锁 Liki Chat 后可自由对话。"
+      type="info"
+    />
 
     <AppSkeleton v-if="loading" :rows="4" />
 

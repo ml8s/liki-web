@@ -76,11 +76,11 @@ onBeforeUnmount(() => chat.resetActive())
 </script>
 
 <style scoped>
-.chat-page { min-height: calc(100vh - 130px); }
+.chat-page { min-height: calc(100dvh - 130px); }
 .chat-main {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 130px);
+  height: calc(100dvh - 130px);
 }
 .session-header {
   padding-bottom: 14px;

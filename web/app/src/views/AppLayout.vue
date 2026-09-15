@@ -48,7 +48,7 @@ async function logout() {
 .app-header { display: flex; align-items: center; gap: 24px; background: var(--liki-ink); color: #fff; }
 .brand { font-weight: 700; font-size: 18px; letter-spacing: 2px; }
 .brand em { color: var(--liki-gold); font-style: normal; }
-.slogan { font-size: 12px; color: var(--liki-text-3); }
+.slogan { font-size: 12px; color: #c0c5cc; }
 @media (max-width: 1100px) { .slogan { display: none; } }
 .nav { display: flex; gap: 18px; flex: 1; }
 .nav a { color: #cfd3db; text-decoration: none; }

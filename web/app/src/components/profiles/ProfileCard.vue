@@ -1,7 +1,7 @@
 <template>
-  <div class="profile-card" role="button" tabindex="0" @click="$emit('open', profile)" @keydown.enter="$emit('open', profile)">
-    <div class="avatar font-serif">{{ initial }}</div>
-    <div class="info">
+  <div class="profile-card">
+    <div class="avatar font-serif" @click="$emit('open', profile)">{{ initial }}</div>
+    <div class="info" @click="$emit('open', profile)">
       <div class="name-row">
         <span class="name font-serif">{{ profile.nickname }}</span>
         <el-tag v-if="profile.relation" size="small" effect="plain">{{ profile.relation }}</el-tag>
@@ -9,8 +9,9 @@
       <div class="meta">{{ birthSummary(profile) }}</div>
     </div>
     <div class="actions">
-      <el-button size="small" text type="primary" @click.stop="$emit('edit', profile)">编辑</el-button>
-      <el-button size="small" text type="danger" @click.stop="$emit('remove', profile)">删除</el-button>
+      <el-button size="small" text type="primary" @click="$emit('open', profile)">查看</el-button>
+      <el-button size="small" text @click="$emit('edit', profile)">编辑</el-button>
+      <el-button size="small" text type="danger" @click="$emit('remove', profile)">删除</el-button>
     </div>
   </div>
 </template>

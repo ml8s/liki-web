@@ -1,7 +1,7 @@
 :root {
   /* ── Liki 设计 token（docs/frontend/ux-design.md §5）── */
-  --liki-primary: #6d5acf;
-  --liki-primary-hover: #5a47c0;
+  --liki-primary: #5f4bc2;
+  --liki-primary-hover: #4f3db0;
   --liki-primary-tint: #eeeafc;
   --liki-primary-border: #d9d2f5;
   --liki-gold: #c9a45e;
@@ -10,7 +10,7 @@
   --liki-paper: #faf9f7;
   --liki-surface: #ffffff;
   --liki-text-2: #5b6472;
-  --liki-text-3: #9aa3af;
+  --liki-text-3: #6b7280;
   --liki-line: #e3e1dc;
 
   /* ── Element Plus 主色覆盖（其余语义色保持默认）── */
@@ -21,6 +21,16 @@
   --el-color-primary-light-8: #e4e0f7;
   --el-color-primary-light-9: var(--liki-primary-tint);
   --el-color-primary-dark-2: var(--liki-primary-hover);
+
+  /* EP 默认语义色在浅底不达标，统一加深至 WCAG AA（文本 12px 需 ≥4.5:1） */
+  --el-color-danger: #c5302c;
+  --el-color-danger-dark-2: #ab2825;
+  --el-color-success: #36701e;
+  --el-color-success-dark-2: #2d5c18;
+  --el-table-header-text-color: #4a5568;
+  --el-empty-description-color: #5b6472;
+  --el-alert-title-color: #303133;
+  --el-text-color-secondary: #5b6472;
 }
 
 body {

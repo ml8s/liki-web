@@ -6,6 +6,7 @@
       :rows="4"
       resize="none"
       :disabled="sending"
+      aria-label="咨询输入框"
       placeholder="输入问题，Enter 发送，Shift + Enter 换行"
       @update:model-value="$emit('update:modelValue', $event)"
       @keydown.enter.exact.prevent="submit"
@@ -52,7 +53,7 @@ function submit() {
   align-items: center;
   justify-content: space-between;
   margin-top: 10px;
-  color: #777;
+  color: var(--liki-text-2);
   font-size: 12px;
 }
 </style>

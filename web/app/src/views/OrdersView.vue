@@ -16,7 +16,7 @@
 
     <AppSkeleton v-if="loading && !orders.length" :rows="6" />
 
-    <AppEmpty v-else-if="!loading && !orders.length" description="还没有订单" />
+    <AppEmpty v-else-if="!loading && !orders.length" description="还没有订单，解锁 Chat 后即可开始" />
 
     <!-- 桌面：表格 -->
     <el-table v-else-if="!isMobile" :data="orders" v-loading="loading" class="orders-table">
