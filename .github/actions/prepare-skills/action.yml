@@ -1,5 +1,5 @@
 name: 'Prepare skills'
-description: 'Checkout ml8s/liki（锁定版本）并同步 4 skill + webapp 到 web/skills，含结构校验与指纹防假同步'
+description: 'Checkout ml8s/liki（锁定版本）并同步统一 liki skill + webapp 到 web/skills，含结构校验与指纹防假同步'
 runs:
   using: 'composite'
   steps:
@@ -15,22 +15,26 @@ runs:
       shell: bash
       run: |
         echo "liki commit: $(git -C skills-repo rev-parse --short HEAD)"
-        echo "liki VERSION: $(cat skills-repo/skills/liki-bazi/VERSION)"
-    - name: Prepare skill roots (4 skills + webapp)
+        echo "liki VERSION: $(cat skills-repo/skills/liki/VERSION)"
+    - name: Prepare unified skill + webapp
       shell: bash
       run: |
-        for s in liki-bazi liki-divination liki-fengshui liki-naming; do
-          rsync -a --exclude .git --exclude __pycache__ --exclude dist --exclude webapp "skills-repo/skills/$s/" "web/skills/$s/"
-        done
-        rsync -a skills-repo/webapp/ web/skills/liki-bazi/webapp/
+        rsync -a --exclude .git --exclude .github --exclude .githooks --exclude __pycache__ \
+          --exclude .pytest_cache --exclude dist --exclude tests --exclude scripts \
+          --exclude CHANGELOG.md --exclude README.md --exclude Makefile --exclude LICENSE \
+          --exclude CONTRIBUTING.md --exclude '*.tar.gz' \
+          "skills-repo/skills/liki/" "web/skills/liki/"
+        rsync -a "skills-repo/webapp/" "web/skills/liki/webapp/"
+        test -f "skills-repo/dist/liki.tar.gz" && cp "skills-repo/dist/liki.tar.gz" "web/skills/liki.tar.gz"
+        mkdir -p web/.well-known/agent-skills
+        test -f "skills-repo/dist/index.json" && cp "skills-repo/dist/index.json" "web/.well-known/agent-skills/index.json"
     - name: Validate skills structure
       shell: bash
       run: |
-        for s in liki-bazi liki-divination liki-fengshui liki-naming; do
-          test -f "web/skills/$s/SKILL.md" || { echo "❌ Missing web/skills/$s/SKILL.md"; exit 1; }
-          test -f "web/skills/$s/VERSION" || { echo "❌ Missing web/skills/$s/VERSION"; exit 1; }
-        done
-        test -f "web/skills/liki-bazi/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
-        test -f "web/skills/liki-bazi/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
-        test -f "web/skills/liki-bazi/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
-        echo "✓ 4 skill 结构完整（SKILL.md + VERSION + liki-bazi 工具链/webapp）"
+        test -f "web/skills/liki/SKILL.md" || { echo "❌ Missing web/skills/liki/SKILL.md"; exit 1; }
+        test -f "web/skills/liki/VERSION" || { echo "❌ Missing web/skills/liki/VERSION"; exit 1; }
+        test -f "web/skills/liki/bazi/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
+        test -f "web/skills/liki/bazi/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
+        test -f "web/skills/liki/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
+        test -f "web/skills/liki.tar.gz" || { echo "❌ Missing skills/liki.tar.gz"; exit 1; }
+        echo "✓ 统一 liki skill 结构完整（SKILL.md + VERSION + bazi 工具链/webapp + 归档）"
