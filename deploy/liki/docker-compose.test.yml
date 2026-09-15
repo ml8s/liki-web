@@ -31,6 +31,7 @@ services:
       - LISTEN_ADDR=:8081
       - DB_PATH=/var/lib/liki/liki.db
       - LIKI_ENGINE_URL=http://engine:8082/jsonrpc
+      - LIKI_SELF_URL=http://127.0.0.1:8081
       - LIKI_SKILLS_DIR=/web/skills
     volumes:
       - liki_data:/var/lib/liki
