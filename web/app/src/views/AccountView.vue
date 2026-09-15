@@ -2,6 +2,7 @@
   <section>
     <AppPageHeader title="账户" subtitle="账号信息与登录设备管理。">
       <template #actions>
+        <router-link to="/orders"><el-button>订单</el-button></router-link>
         <el-button :loading="revoking" type="danger" plain @click="logout">退出登录</el-button>
       </template>
     </AppPageHeader>

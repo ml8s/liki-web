@@ -1,24 +1,18 @@
 <template>
-  <el-container class="app-shell">
-    <el-header height="64px" class="app-header">
+  <div class="app-shell">
+    <AppSidebar :email="auth.user?.email ?? ''" @logout="logout" />
+
+    <header class="app-topbar">
       <div class="brand font-serif">Liki<em>·</em>命理</div>
-      <span class="slogan font-serif">懂命理，用靈機</span>
-<nav class="nav">
-        <router-link to="/">工作台</router-link>
-        <router-link to="/profiles">档案</router-link>
-        <router-link to="/chat">Chat</router-link>
-        <router-link to="/orders">订单</router-link>
-        <router-link to="/account">账户</router-link>
-      </nav>
-      <div class="actions">
-        <span v-if="auth.user" class="email">{{ auth.user.email }}</span>
-        <el-button size="small" @click="logout">退出</el-button>
-      </div>
-    </el-header>
-    <el-main class="app-main">
+      <el-button size="small" @click="logout">退出</el-button>
+    </header>
+
+    <main class="app-main">
       <router-view />
-    </el-main>
-  </el-container>
+    </main>
+
+    <AppTabbar />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -27,6 +21,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
+import AppSidebar from '@/components/app/AppSidebar.vue'
+import AppTabbar from '@/components/app/AppTabbar.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -45,15 +41,19 @@ async function logout() {
 
 <style scoped>
 .app-shell { min-height: 100vh; background: var(--liki-paper); }
-.app-header { display: flex; align-items: center; gap: 24px; background: var(--liki-ink); color: #fff; }
-.brand { font-weight: 700; font-size: 18px; letter-spacing: 2px; }
-.brand em { color: var(--liki-gold); font-style: normal; }
-.slogan { font-size: 12px; color: #c0c5cc; }
-@media (max-width: 1100px) { .slogan { display: none; } }
-.nav { display: flex; gap: 18px; flex: 1; }
-.nav a { color: #cfd3db; text-decoration: none; }
-.nav a.router-link-active { color: #fff; }
-.actions { display: flex; align-items: center; gap: 12px; }
-.email { font-size: 13px; opacity: .8; }
-.app-main { max-width: 1200px; margin: 0 auto; width: 100%; }
+
+.app-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; background: var(--liki-ink); color: #fff;
+  position: sticky; top: 0; z-index: 40;
+}
+.app-topbar .brand { font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+.app-topbar .brand em { color: var(--liki-gold); font-style: normal; }
+
+.app-main { padding: 24px 16px 88px; }
+
+@media (min-width: 1024px) {
+  .app-topbar { display: none; }
+  .app-main { margin-left: 240px; padding: 32px 40px 48px; max-width: 1200px; }
+}
 </style>
