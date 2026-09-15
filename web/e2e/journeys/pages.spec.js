@@ -30,12 +30,19 @@ const PAGES = [
       { selector: '.cta-section h2', text: '找到你的名字' },
     ] },
   { path: '/zh-Hant/naming/chat',     marker: '.chat-shell',     name: 'chat ZH-Hant' },
-  // 首页品牌门面（brand.md v3.3：标题品类=命理 Skill，非北极星句）
-  { path: '/zh-Hans/',        name: 'index (brand facade)',
+  // 着陆页（C 端）：slogan + 免费排盘 + 服务 + 信任
+  { path: '/zh-Hans/',        name: 'index (C-end landing)',
+    checks: [
+      { selector: '.landing-hero h1', text: '懂命理，用灵机' },
+      { selector: '.landing-paipan', text: '免费排盘' },
+      { selector: '.landing-services', text: '四大命理服务' },
+      { selector: '.landing-trust', text: '为什么可信' },
+    ] },
+  // 开发者 skill 页（原品牌门面迁址）
+  { path: '/zh-Hans/skills/', name: 'skills (developer)',
     checks: [
       { selector: '.hero-brand h1', text: 'Liki 灵机 — 命理 Skill' },
-      { selector: '.hero-brand', text: '懂命理，用灵机' },
-      { selector: '.hero-brand', text: '按命理师的专业标准构建' },
+      { selector: '.install-cmd', text: 'npx skills add ml8s/liki' },
     ] },
   // Legal pages — marker renders, i18n resolves, keys don't leak
   { path: '/zh-Hans/about',    name: 'about (vanilla)' },

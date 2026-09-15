@@ -306,6 +306,8 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 .brand-link { color: var(--color-gold); text-decoration: none; }
 .brand-slogan { display: none; font-size: .875rem; font-weight: 500; color: #c0c5cc; }
 @media (min-width: 768px) { .brand-slogan { display: inline; } }
+.dev-link { font-size: .8125rem; color: var(--color-gold); text-decoration: none; margin-left: 4px; }
+.dev-link:hover { text-decoration: underline; }
 .font-serif { font-family: var(--font-serif); }
 .leading-loose { line-height: 2; }
 .tracking-tight { letter-spacing: -0.025em; }
@@ -1157,3 +1159,36 @@ th {
 .copy-btn:hover { background: var(--color-accent-soft); color: var(--color-text); }
 .copy-btn:active { transform: scale(.96); }
 .space-y-6 > * + * { margin-top: 1.5rem; }
+
+/* ── C 端着陆页（redesign M2）── */
+.btn-purple { display:inline-block; background:#5f4bc2; color:#fff; padding:.75rem 1.75rem; border-radius:.5rem; font-weight:600; transition:background .15s ease; }
+.btn-purple:hover { background:#4f3db0; }
+.btn-ghost { display:inline-block; border:1px solid var(--color-border); color:#5b6472; padding:.75rem 1.75rem; border-radius:.5rem; transition:border-color .15s ease; }
+.btn-ghost:hover { border-color:#5f4bc2; color:#5f4bc2; }
+.landing-hero { text-align:center; padding:72px 24px 48px; }
+.landing-h1 { font-family:var(--font-serif); font-size:clamp(2rem,6vw,3.25rem); font-weight:700; letter-spacing:.02em; }
+.landing-sub { color:#5b6472; margin-top:14px; font-size:1.125rem; }
+.landing-actions { display:flex; gap:14px; justify-content:center; margin-top:32px; flex-wrap:wrap; }
+.landing-paipan { background:#5f4bc2; color:#fff; text-align:center; padding:56px 24px; }
+.landing-paipan h2 { font-family:var(--font-serif); font-size:1.75rem; margin-bottom:10px; }
+.landing-paipan p { opacity:.9; margin-bottom:22px; }
+.landing-paipan .btn-purple { background:#fff; color:#5f4bc2; }
+.landing-paipan .btn-purple:hover { background:#f0edfb; }
+.landing-services,
+.landing-steps,
+.landing-cta { max-width:1200px; margin:0 auto; padding:64px 24px; }
+.landing-services h2, .landing-steps h2 { text-align:center; font-family:var(--font-serif); margin-bottom:32px; }
+.landing-trust { background:#232733; color:#fff; text-align:center; padding:56px 24px; }
+.landing-trust h2 { color:var(--color-gold-light); margin-bottom:28px; }
+.service-grid,
+.trust-grid,
+.steps-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+.card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:12px; padding:24px; }
+.card h3 { font-size:1.25rem; margin-bottom:8px; }
+.card p { color:#5b6472; font-size:.9375rem; }
+.trust-item { padding:20px; }
+.trust-item strong { color:var(--color-gold-light); font-size:1.0625rem; line-height:1.5; }
+.step-n { display:inline-grid; place-items:center; width:32px; height:32px; border-radius:50%; background:#5f4bc2; color:#fff; font-weight:700; margin-bottom:10px; }
+.step p { color:#5b6472; }
+.landing-cta { text-align:center; }
+.landing-cta p { font-size:1.5rem; margin-bottom:22px; }

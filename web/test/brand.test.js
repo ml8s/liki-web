@@ -11,21 +11,30 @@ const CATEGORY = '命理 Skill';        // 标题位品类词
 const STANDARDS = '按命理师的专业标准构建'; // 标准句（北极星的无歧义展开式）
 
 describe('brand facade contract (brand.md v3.3)', () => {
-  it('hero title = 品类词（简繁），subtitle = 标准句', () => {
-    expect(zh['index.hero.title']).toBe(`Liki 灵机 — ${CATEGORY}`);
-    expect(hant['index.hero.title']).toBe(`Liki 靈機 — ${CATEGORY}`);
-    expect(zh['index.hero.subtitle']).toBe(STANDARDS);
-    expect(hant['index.hero.subtitle']).toBe('按命理師的專業標準構建');
-    expect(en['index.hero.subtitle']).toBe('Built to professional standards');
+  it('skills 页 hero = 品类词（简繁），subtitle = 标准句', () => {
+    expect(zh['skills.hero.title']).toBe(`Liki 灵机 — ${CATEGORY}`);
+    expect(hant['skills.hero.title']).toBe(`Liki 靈機 — ${CATEGORY}`);
+    expect(zh['skills.hero.subtitle']).toBe(STANDARDS);
+    expect(hant['skills.hero.subtitle']).toBe('按命理師的專業標準構建');
+    expect(en['skills.hero.subtitle']).toBe('Built to professional standards');
+  });
+
+  it('着陆页 hero = slogan + 价值句（C 端）', () => {
+    expect(zh['index.hero.title']).toBe('懂命理，用灵机');
+    expect(hant['index.hero.title']).toBe('懂命理，用靈機');
+    expect(en['index.hero.title']).toBe('Know fate. Use Liki.');
+    expect(zh['index.hero.subtitle']).toContain('确定性排盘');
+    expect(hant['index.hero.subtitle']).toContain('確定性排盤');
   });
 
   it('英文标题保留 Professional（无属格歧义，修饰标准）', () => {
-    expect(en['index.hero.title']).toBe('Liki — Professional Skill for Chinese Metaphysics');
+    expect(en['skills.hero.title']).toBe('Liki — Professional Skill for Chinese Metaphysics');
   });
 
   it('所有标题位禁用北极星句（简繁）', () => {
-    const titleKeys = ['index.hero.title', 'index.title', 'index.meta.ogTitle',
-      'index.meta.twitterTitle', 'naming.footer', 'naming.metaDesc',
+    const titleKeys = ['skills.hero.title', 'skills.title', 'skills.meta.ogTitle',
+      'skills.meta.twitterTitle', 'index.hero.title', 'index.title',
+      'naming.footer', 'naming.metaDesc',
       'disclaimer.metaDesc', 'about.metaDesc'];
     for (const dict of [zh, hant]) {
       for (const k of titleKeys) expect(dict[k], k).not.toContain(NS);

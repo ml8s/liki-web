@@ -113,7 +113,7 @@ function walkDir(dir, files) {
 }
 
 // Known page names used in BaseLayout: t(locale, `${page}.meta.ogTitle`)
-const KNOWN_PAGES = ['about','contact','disclaimer','privacy','terms','index','hepan','mingshu','naming','chat','activate'];
+const KNOWN_PAGES = ['about','contact','disclaimer','privacy','terms','index','skills','hepan','mingshu','naming','chat','activate'];
 // Meta keys that BaseLayout auto-generates per page
 const META_SUFFIXES = ['metaDesc','meta.ogTitle','meta.ogDesc','meta.twitterTitle','meta.twitterDesc','title','heading'];
 
@@ -196,7 +196,7 @@ function expandTemplateKey(tmpl, fileContent) {
 }
 
 function addKnownCompoundKeys(used) {
-  const PAGES = ['about','contact','disclaimer','privacy','terms','index','hepan','mingshu','naming','chat','activate'];
+  const PAGES = ['about','contact','disclaimer','privacy','terms','index','skills','hepan','mingshu','naming','chat','activate'];
   const META = ['metaDesc','meta.ogTitle','meta.ogDesc','meta.twitterTitle','meta.twitterDesc','title','heading'];
   for (const p of PAGES) for (const s of META) used.add(`${p}.${s}`);
   for (const ns of ['hepan.form','mingshu.form']) {
