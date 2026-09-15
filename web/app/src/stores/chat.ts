@@ -107,6 +107,15 @@ export const useChatStore = defineStore('chat', {
       }
       this.messages.push(assistant)
 
+      // 流式渲染节流：累积 delta，≤120ms 刷新一次 content（借命名 chat 实践），
+      // 避免高频 delta 触发响应式全量重渲染。
+      let pendingText = ''
+      let textTimer: ReturnType<typeof setTimeout> | null = null
+      const flushText = () => {
+        assistant.content = pendingText
+        textTimer = null
+      }
+
       try {
         const result = await streamChatMessage(session.id, message, event => {
           if (event.type === 'thinking') {
@@ -119,10 +128,13 @@ export const useChatStore = defineStore('chat', {
           }
           if (event.type === 'text-delta') {
             this.phase = ''
-            assistant.content += event.content ?? ''
+            pendingText += event.content ?? ''
+            if (!textTimer) textTimer = setTimeout(flushText, 120)
           }
         }, streamController.signal)
 
+        if (textTimer) { clearTimeout(textTimer); textTimer = null }
+        assistant.content = pendingText
         this.messages = this.messages.filter(item => item.id !== userId && item.id !== assistantId)
         this.messages.push(result.user_message, result.assistant_message)
         const index = this.sessions.findIndex(item => item.id === session.id)
@@ -138,6 +150,8 @@ export const useChatStore = defineStore('chat', {
         if (!aborted) this.error = errorMessage(error)
         this.phase = ''
         streamController = null
+        if (textTimer) { clearTimeout(textTimer); textTimer = null }
+        assistant.content = pendingText
         try {
           this.messages = await fetchChatMessages(session.id)
         } catch {

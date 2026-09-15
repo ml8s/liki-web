@@ -18,6 +18,11 @@ export async function streamRequest(
   })
 
   if (!response.ok) {
+    if (response.status === 401) {
+      // 会话过期 → 回登录页（借命名 chat 实践）。
+      const { redirectToLogin } = await import('./http')
+      redirectToLogin()
+    }
     const envelope = await response.json().catch(() => null)
     const error = new Error(envelope?.error?.message ?? `HTTP ${response.status}`) as SSEError
     error.status = response.status

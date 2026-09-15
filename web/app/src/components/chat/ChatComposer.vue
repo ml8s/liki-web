@@ -9,7 +9,7 @@
       aria-label="咨询输入框"
       placeholder="输入问题，Enter 发送，Shift + Enter 换行"
       @update:model-value="$emit('update:modelValue', $event)"
-      @keydown.enter.exact.prevent="submit"
+      @keydown="onKeydown"
     />
     <div class="actions">
       <span>由 AI 生成，命理内容仅供参考。</span>
@@ -43,6 +43,16 @@ const emit = defineEmits<{
 function submit() {
   if (!props.modelValue.trim() || props.sending) return
   emit('submit')
+}
+
+function onKeydown(event: Event) {
+  const e = event as KeyboardEvent
+  if (e.key !== 'Enter') return
+  // 输入法组合态（keyCode 229 / isComposing）时 Enter 是上屏确认，不可误发。
+  if (e.isComposing || e.keyCode === 229) return
+  if (e.shiftKey) return
+  e.preventDefault()
+  submit()
 }
 </script>
 

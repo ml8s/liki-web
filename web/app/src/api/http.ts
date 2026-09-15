@@ -15,6 +15,15 @@ interface Envelope<T> {
   error?: { code?: string; message?: string }
 }
 
+// 会话过期（401）→ 回登录页；/api/me 交给路由守卫软跳转，避免整页刷新。
+export function redirectToLogin() {
+  const base = import.meta.env.BASE_URL || '/app/'
+  const path = location.pathname.startsWith(base)
+    ? `/${location.pathname.slice(base.length)}${location.search}`
+    : location.pathname + location.search
+  window.location.assign(`${base}login?redirect=${encodeURIComponent(path)}`)
+}
+
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     credentials: 'same-origin',
@@ -30,6 +39,9 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   }
 
   if (!response.ok) {
+    if (response.status === 401 && path !== '/api/me') {
+      redirectToLogin()
+    }
     throw new ApiError(
       response.status,
       envelope?.error?.code ?? 'request_failed',

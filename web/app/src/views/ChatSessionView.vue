@@ -51,6 +51,26 @@ const draft = ref('')
 const threadElement = ref<HTMLElement | null>(null)
 const nearBottom = ref(true)
 const sessionId = computed(() => String(route.params.sessionId ?? ''))
+const DRAFT_KEY = 'likiChatDraft'
+
+// 输入框草稿持久化：刷新/离开页面后恢复（借命名 chat 实践）。
+watch(draft, value => {
+  try {
+    if (value) sessionStorage.setItem(DRAFT_KEY, value)
+    else sessionStorage.removeItem(DRAFT_KEY)
+  } catch {
+    // ignore
+  }
+})
+
+function restoreDraft() {
+  try {
+    const saved = sessionStorage.getItem(DRAFT_KEY)
+    if (saved) draft.value = saved
+  } catch {
+    // ignore
+  }
+}
 
 function onThreadScroll() {
   const el = threadElement.value
@@ -92,8 +112,23 @@ watch(sessionId, async id => {
 
 watch(() => chat.messages, () => scrollToEnd(), { deep: true })
 
-onMounted(scrollToEnd)
-onBeforeUnmount(() => chat.resetActive())
+function onGlobalKeydown(event: KeyboardEvent) {
+  // Esc 停止生成（借命名 chat 实践）。
+  if (event.key === 'Escape' && chat.sending) {
+    chat.stopGeneration()
+  }
+}
+
+onMounted(() => {
+  restoreDraft()
+  document.addEventListener('keydown', onGlobalKeydown)
+  void scrollToEnd()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onGlobalKeydown)
+  chat.resetActive()
+})
 </script>
 
 <style scoped>
