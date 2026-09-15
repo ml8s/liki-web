@@ -119,14 +119,27 @@ function onGlobalKeydown(event: KeyboardEvent) {
   }
 }
 
+let visualViewport: VisualViewport | null = null
+
+// 移动端键盘开合（visualViewport 高度变化）时跟随到底，保证输入框可见（借命名 chat 实践）。
+function onVvResize() {
+  nearBottom.value = true
+  void scrollToEnd()
+}
+
 onMounted(() => {
   restoreDraft()
   document.addEventListener('keydown', onGlobalKeydown)
+  if (typeof window !== 'undefined' && window.visualViewport) {
+    visualViewport = window.visualViewport
+    visualViewport.addEventListener('resize', onVvResize)
+  }
   void scrollToEnd()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onGlobalKeydown)
+  visualViewport?.removeEventListener('resize', onVvResize)
   chat.resetActive()
 })
 </script>

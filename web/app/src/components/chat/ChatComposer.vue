@@ -3,7 +3,7 @@
     <el-input
       :model-value="modelValue"
       type="textarea"
-      :rows="4"
+      :autosize="{ minRows: 1, maxRows: 5 }"
       resize="none"
       :disabled="sending"
       aria-label="咨询输入框"

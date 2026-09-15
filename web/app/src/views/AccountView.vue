@@ -25,7 +25,7 @@
     <h2 class="section-title">删除账号</h2>
     <el-card class="block danger-zone" shadow="never">
       <p class="danger-hint">删除后，你的全部档案与对话中的个人信息将被匿名化清除（不可恢复）。</p>
-      <el-button type="danger" :loading="erasing" @click="eraseAccount">删除账号（合规删除）</el-button>
+      <el-button type="danger" :loading="erasing" @click="eraseAccount">删除账号</el-button>
     </el-card>
 
     <h2 class="section-title">登录设备</h2>

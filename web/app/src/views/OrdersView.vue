@@ -1,6 +1,6 @@
 <template>
   <section>
-    <AppPageHeader title="订单" subtitle="统一 Chat 购买记录。">
+    <AppPageHeader title="订单" subtitle="Liki Chat 购买记录。">
       <template #actions>
         <el-button :loading="loading" @click="load">刷新</el-button>
       </template>
