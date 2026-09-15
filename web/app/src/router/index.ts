@@ -42,7 +42,7 @@ router.beforeEach(async to => {
 })
 
 router.afterEach(to => {
-  const base = 'Liki App'
+  const base = 'Liki·命理'
   document.title = to.meta.title ? `${String(to.meta.title)} · ${base}` : base
 })
 
