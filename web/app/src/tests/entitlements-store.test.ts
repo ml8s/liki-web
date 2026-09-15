@@ -6,7 +6,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   vi.restoreAllMocks()
   global.fetch = vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ data: { entitlements: [], allowed_skills: ['liki-naming', 'liki-bazi'] } }),
+    JSON.stringify({ data: { entitlements: [], allowed_skills: ['liki'] } }),
     { status: 200, headers: { 'Content-Type': 'application/json' } },
   ))
 })
@@ -17,8 +17,8 @@ describe('entitlements store', () => {
     await store.load()
     await store.load()
 
-    expect(store.allowedSkills).toEqual(['liki-naming', 'liki-bazi'])
-    expect(store.hasSkill('liki-bazi')).toBe(true)
+    expect(store.allowedSkills).toEqual(['liki'])
+    expect(store.hasSkill('liki')).toBe(true)
     expect(store.hasSkill('liki-fengshui')).toBe(false)
     expect(global.fetch).toHaveBeenCalledTimes(1)
   })

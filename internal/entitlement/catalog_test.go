@@ -2,19 +2,13 @@ package entitlement
 
 import "testing"
 
-func TestChatProductUnlocksAllSkillsAndRejectsLegacyProducts(t *testing.T) {
+func TestChatProductUnlocksUnifiedSkillAndRejectsLegacyProducts(t *testing.T) {
 	item, err := ProductDefinitionFor(ProductChat)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(item.Skills) != 4 {
-		t.Fatalf("chat skills = %+v", item.Skills)
-	}
-	want := []Skill{SkillNaming, SkillBazi, SkillDivination, SkillFengshui}
-	for i, skill := range want {
-		if item.Skills[i] != skill {
-			t.Fatalf("skills = %+v, want %+v", item.Skills, want)
-		}
+	if len(item.Skills) != 1 || item.Skills[0] != SkillLiki {
+		t.Fatalf("chat skills = %+v, want [liki]", item.Skills)
 	}
 
 	if got := len(ProductCatalog()); got != 1 {

@@ -32,7 +32,7 @@ export const useCommerceStore = defineStore('commerce', {
   }),
   getters: {
     chatProduct: state => state.products.find(item => item.id === 'liki-chat') ?? null,
-    chatPurchased: () => useEntitlementsStore().allowedSkills.length === 4,
+    chatPurchased: () => useEntitlementsStore().allowedSkills.length > 0,
     showProductError: state => !!state.productsError && !state.products.length,
     initialLoading: state =>
       !state.products.length && (state.loadingProducts || useEntitlementsStore().loading || useChatStore().loadingSessions),
@@ -130,7 +130,7 @@ export const useCommerceStore = defineStore('commerce', {
       const profileId = profiles.list[0]?.id ?? ''
       if (!profileId) return
       try {
-        const session = await useChatStore().createSession(profileId, 'liki-bazi')
+        const session = await useChatStore().createSession(profileId, 'liki')
         await router.replace(`/chat/${session.id}`)
       } catch (error) {
         this.actionError = toUserMessage(error, '创建会话失败')

@@ -91,7 +91,7 @@ func TestOrderLifecycleAndEntitlementFulfillment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []entitlement.Skill{entitlement.SkillNaming, entitlement.SkillBazi, entitlement.SkillDivination, entitlement.SkillFengshui}
+	want := []entitlement.Skill{entitlement.SkillLiki}
 	if len(allowed) != len(want) {
 		t.Fatalf("allowed = %+v, want %+v", allowed, want)
 	}

@@ -39,7 +39,7 @@ test.describe('Authenticated app shell', () => {
       }));
     });
     await page.route('**/api/me/entitlements', async route => {
-      await route.fulfill(json({ entitlements: [], allowed_skills: ['liki-naming'] }));
+      await route.fulfill(json({ entitlements: [], allowed_skills: ['liki'] }));
     });
     await page.route('**/api/chat/sessions', async route => route.fulfill(json([])));
     await page.route('**/api/chat/products', async route => route.fulfill(json({ products: [] })));
@@ -59,10 +59,10 @@ test.describe('Authenticated app shell', () => {
       id: 'usr_test', email: 'user@example.com', status: 'active', locale: 'zh-Hant',
     })));
     await page.route('**/api/me/entitlements', async route => route.fulfill(json({
-      entitlements: [], allowed_skills: ['liki-naming'],
+      entitlements: [], allowed_skills: ['liki'],
     })));
     await page.route('**/api/chat/sessions/chat_1', async route => route.fulfill(json({
-      id: 'chat_1', user_id: 'usr_test', profile_id: '', skill: 'liki-naming', title: '起名咨询',
+      id: 'chat_1', user_id: 'usr_test', profile_id: '', skill: 'liki', title: '起名咨询',
       status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
       last_message_at: null,
     })));
@@ -94,7 +94,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
   await page.route('**/api/me/entitlements', route => {
     entitlementRequest += 1;
     const allowed = entitlementRequest > 1
-      ? ['liki-naming', 'liki-bazi', 'liki-divination', 'liki-fengshui']
+      ? ['liki']
       : [];
     return route.fulfill(json({ entitlements: [], allowed_skills: allowed }));
   });
@@ -106,7 +106,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
       id: 'liki-chat',
       name: 'Liki Chat',
       description: 'All four skills.',
-      skills: ['liki-naming', 'liki-bazi', 'liki-divination', 'liki-fengshui'],
+      skills: ['liki'],
       prices: { CNY: 2990, USD: 2990 },
       purchased: entitlementRequest > 1,
     }] }));
@@ -116,7 +116,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
   await page.route('**/api/chat/sessions', route => {
     if (route.request().method() === 'POST') {
       return route.fulfill(json({
-        id: 'chat_new', user_id: 'usr_test', profile_id: profile.id, skill: 'liki-bazi', title: '八字紫微咨询',
+        id: 'chat_new', user_id: 'usr_test', profile_id: profile.id, skill: 'liki', title: '八字紫微咨询',
         status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', last_message_at: null,
       }));
     }

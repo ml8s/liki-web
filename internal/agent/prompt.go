@@ -7,17 +7,14 @@ import (
 	"strings"
 )
 
-// UnifiedChatSkills are the four installable chat skills. Report prompts under
-// webapp/ intentionally never enter this list; they belong to the report
-// generator pipeline.
+// UnifiedChatSkills is the single installable chat skill. The engine's unified
+// skill routes 八字/起名/问卦/风水 internally; report prompts under webapp/
+// intentionally never enter this list.
 var UnifiedChatSkills = []string{
-	"liki-naming",
-	"liki-bazi",
-	"liki-divination",
-	"liki-fengshui",
+	"liki",
 }
 
-// BuildScopedChatPrompt loads one active skill for a chat session. The
+// BuildScopedChatPrompt loads the unified chat skill for a chat session. The
 // backend still scopes tools; this makes the instruction surface match the
 // same entitlement boundary.
 func BuildScopedChatPrompt(skillsDir, skillID string) (string, error) {
@@ -30,10 +27,10 @@ func BuildScopedChatPrompt(skillsDir, skillID string) (string, error) {
 		return "", fmt.Errorf("agent: read scoped chat skill %s: %w", skillID, err)
 	}
 	prompt := strings.Join([]string{
-		"你是 Liki Chat。只服务当前订单已开通且当前会话绑定的 skill。",
-		"不要跨入其它 skill 的工具、流程或术语。当前 skill 是 " + skillID + "。",
+		"你是 Liki Chat，服务统一命理 skill。按用户意图路由到八字/紫微、起名、问卦、风水等领域。",
+		"领域不明确时，先用一个问题确认主目标；不要跨入未开通或无关的能力。",
 		"不要读取 webapp 目录；报告生成提示词不属于 Chat。",
-		"排盘、因子、断语、卦象、择日和风水盘必须来自工具。意图不明时先澄清。",
+		"排盘、因子、断语、卦象、择日和风水盘必须来自工具。",
 		"\n---\n\n# " + skillID + "\n\n" + strings.TrimSpace(string(raw)),
 	}, "\n\n")
 	if strings.Contains(prompt, "webapp/") {

@@ -196,6 +196,7 @@ export const useChatStore = defineStore('chat', {
 
 export function skillLabel(skill: string): string {
   const labels: Record<string, string> = {
+    'liki': '命理咨询',
     'liki-naming': '起名',
     'liki-bazi': '八字紫微',
     'liki-divination': '问卦',

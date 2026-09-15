@@ -96,7 +96,7 @@ const commerce = useCommerceStore()
 const activeProfileId = ref('')
 const creating = ref('')
 
-const chatPurchased = computed(() => entitlements.allowedSkills.length === 4)
+const chatPurchased = computed(() => entitlements.allowedSkills.length > 0)
 
 const displaySessions = computed(() => chat.sessions.map(session => ({
   ...session,

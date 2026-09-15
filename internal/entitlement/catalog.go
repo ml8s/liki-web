@@ -18,8 +18,8 @@ var productCatalog = map[Product]ProductDefinition{
 	ProductChat: {
 		ID:   ProductChat,
 		Name: "Liki Chat",
-		// A Chat purchase is a product entitlement, not four commercial SKUs.
-		Skills: []Skill{SkillNaming, SkillBazi, SkillDivination, SkillFengshui},
+		// One unified skill (the engine routes 八字/起名/问卦/风水 internally).
+		Skills: []Skill{SkillLiki},
 	},
 }
 

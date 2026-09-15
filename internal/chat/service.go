@@ -45,11 +45,17 @@ func NewService(store *Store, entitlements *entitlement.Store, profiles *profile
 }
 
 func (s *Service) runnerFor(skill Skill) (Runner, error) {
-	runner, ok := s.runners[skill]
-	if !ok || runner == nil {
-		return nil, ErrRunnerUnavailable
+	if runner, ok := s.runners[skill]; ok && runner != nil {
+		return runner, nil
 	}
-	return runner, nil
+	// Pre-unification sessions carry a legacy skill name; route them to the
+	// unified runner.
+	if entitlement.IsChatSkill(skill) {
+		if runner, ok := s.runners[entitlement.SkillLiki]; ok && runner != nil {
+			return runner, nil
+		}
+	}
+	return nil, ErrRunnerUnavailable
 }
 
 // Session loads a session only while its entitlement remains active. Expired

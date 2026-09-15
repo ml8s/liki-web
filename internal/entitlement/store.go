@@ -207,32 +207,31 @@ func (s *Store) AllowedSkills(ctx context.Context, userID string) ([]Skill, erro
 	if err != nil {
 		return nil, err
 	}
-	allowed := make(map[Skill]bool)
-	out := make([]Skill, 0)
+	granted := false
 	for _, item := range items {
 		for _, skill := range item.Skills {
-			allowed[skill] = true
+			// Pre-unification entitlements stored the legacy four; either form
+			// grants the unified skill.
+			if IsChatSkill(skill) {
+				granted = true
+			}
 		}
 	}
-	for _, skill := range []Skill{SkillNaming, SkillBazi, SkillDivination, SkillFengshui} {
-		if allowed[skill] {
-			out = append(out, skill)
-		}
+	if granted {
+		return []Skill{SkillLiki}, nil
 	}
-	return out, nil
+	return []Skill{}, nil
 }
 
 func (s *Store) HasSkill(ctx context.Context, userID string, skill Skill) (bool, error) {
+	if !IsChatSkill(skill) {
+		return false, nil
+	}
 	skills, err := s.AllowedSkills(ctx, userID)
 	if err != nil {
 		return false, err
 	}
-	for _, item := range skills {
-		if item == skill {
-			return true, nil
-		}
-	}
-	return false, nil
+	return len(skills) > 0, nil
 }
 
 func (s *Store) ExpireDue(ctx context.Context) (int64, error) {

@@ -47,7 +47,7 @@ func TestGrantForProductIsIdempotentAndRejectsLegacyProducts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if first.ProductID != ProductChat || len(first.Skills) != 4 {
+	if first.ProductID != ProductChat || len(first.Skills) != 1 || first.Skills[0] != SkillLiki {
 		t.Fatalf("first grant = %+v", first)
 	}
 
@@ -70,7 +70,7 @@ func TestGrantForProductIsIdempotentAndRejectsLegacyProducts(t *testing.T) {
 	}
 }
 
-func TestChatProductGrantsFourSkillsAndExpiry(t *testing.T) {
+func TestChatProductGrantsUnifiedSkillAndExpiry(t *testing.T) {
 	ctx := context.Background()
 	store, _, userID := openEntitlementStore(t)
 
@@ -78,7 +78,7 @@ func TestChatProductGrantsFourSkillsAndExpiry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if item.ProductID != ProductChat || len(item.Skills) != 4 {
+	if item.ProductID != ProductChat || len(item.Skills) != 1 || item.Skills[0] != SkillLiki {
 		t.Fatalf("chat grant = %+v", item)
 	}
 
@@ -86,8 +86,8 @@ func TestChatProductGrantsFourSkillsAndExpiry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(allowed) != 4 || allowed[0] != SkillNaming || allowed[1] != SkillBazi || allowed[2] != SkillDivination || allowed[3] != SkillFengshui {
-		t.Fatalf("allowed = %+v", allowed)
+	if len(allowed) != 1 || allowed[0] != SkillLiki {
+		t.Fatalf("allowed = %+v, want [liki]", allowed)
 	}
 
 	store.nowFunc = func() time.Time { return time.Now().UTC().Add(25 * time.Hour) }
@@ -100,5 +100,36 @@ func TestChatProductGrantsFourSkillsAndExpiry(t *testing.T) {
 	}
 	if len(items) != 0 {
 		t.Fatalf("active after expiry = %+v", items)
+	}
+}
+
+// 存量（合并前）权益存的是旧四个 skill，仍应授予统一 skill，旧会话也继续可用。
+func TestLegacyEntitlementGrantsUnifiedSkill(t *testing.T) {
+	ctx := context.Background()
+	store, db, userID := openEntitlementStore(t)
+	now := time.Now().UTC()
+	_, err := db.ExecContext(ctx, `
+INSERT INTO entitlements (id,user_id,email,product_id,skills,status,source,source_id,starts_at,expires_at,created_at,updated_at)
+VALUES (?,?,?,?,?, 'active','payment_intent','legacy_pay',?,?,?,?)`,
+		"ent_legacy", userID, "user@example.com", string(ProductChat),
+		`["liki-naming","liki-bazi","liki-divination","liki-fengshui"]`,
+		now.Format(time.RFC3339), now.Add(24*time.Hour).Format(time.RFC3339),
+		now.Format(time.RFC3339), now.Format(time.RFC3339))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	allowed, err := store.AllowedSkills(ctx, userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(allowed) != 1 || allowed[0] != SkillLiki {
+		t.Fatalf("legacy allowed = %+v, want [liki]", allowed)
+	}
+	for _, skill := range []Skill{SkillLiki, SkillBazi, SkillNaming} {
+		ok, err := store.HasSkill(ctx, userID, skill)
+		if err != nil || !ok {
+			t.Fatalf("HasSkill(%s) = %v, %v; want true", skill, ok, err)
+		}
 	}
 }

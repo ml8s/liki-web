@@ -61,24 +61,24 @@ func TestScopedToolRegistryFiltersSchemasAndExecution(t *testing.T) {
 
 func TestBuildScopedChatPromptIsIsolated(t *testing.T) {
 	dir := t.TempDir()
-	if err := mkdirAllAndWrite(dir, "liki-bazi", "skill"); err != nil {
+	if err := mkdirAllAndWrite(dir, "liki", "skill"); err != nil {
 		t.Fatal(err)
 	}
-	if err := mkdirAllAndWrite(dir, "liki-bazi/webapp", "secret"); err != nil {
+	if err := mkdirAllAndWrite(dir, "liki/webapp", "secret"); err != nil {
 		t.Fatal(err)
 	}
 
-	prompt, err := BuildScopedChatPrompt(dir, "liki-bazi")
+	prompt, err := BuildScopedChatPrompt(dir, "liki")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(prompt, "当前 skill 是 liki-bazi") {
-		t.Fatalf("prompt missing scoped skill: %q", prompt)
+	if !strings.Contains(prompt, "统一命理 skill") {
+		t.Fatalf("prompt missing unified wording: %q", prompt)
 	}
 	if _, err := BuildScopedChatPrompt(dir, "liki-naming"); err == nil {
-		t.Fatal("expected missing naming skill file to fail")
+		t.Fatal("expected legacy skill id to fail")
 	}
-	if _, err := BuildScopedChatPrompt(dir, "../liki-bazi"); err == nil {
+	if _, err := BuildScopedChatPrompt(dir, "../liki"); err == nil {
 		t.Fatal("expected invalid skill id to fail")
 	}
 }

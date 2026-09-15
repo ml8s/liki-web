@@ -43,7 +43,7 @@ const updating = ref(false)
 const profileId = computed(() => String(route.params.id ?? ''))
 const detail = computed(() => profiles.detail)
 const error = computed(() => profiles.error)
-const purchased = computed(() => entitlements.allowedSkills.length === 4)
+const purchased = computed(() => entitlements.allowedSkills.length > 0)
 
 async function load() {
   await profiles.loadDetail(profileId.value)

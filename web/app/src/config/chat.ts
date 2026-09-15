@@ -1,28 +1,18 @@
 export interface SkillDefinition {
-  id: 'liki-naming' | 'liki-bazi' | 'liki-divination' | 'liki-fengshui'
+  id: 'liki'
   label: string
   description: string
 }
 
+// 引擎已把四个领域合并为统一 skill「liki」，由引擎按意图自动路由；
+// 前端只保留一个入口。
 export const chatSkills: SkillDefinition[] = [
   {
-    id: 'liki-naming',
-    label: '起名',
-    description: '中文名、改名、名字评估与外国人起名。',
-  },
-  {
-    id: 'liki-bazi',
-    label: '八字紫微',
-    description: '命盘、大运流年、格局与喜忌分析。',
-  },
-  {
-    id: 'liki-divination',
-    label: '问卦',
-    description: '六爻、奇门、黄历与具体事项判断。',
-  },
-  {
-    id: 'liki-fengshui',
-    label: '风水',
-    description: '阳宅坐向、八宅与玄空布局分析。',
+    id: 'liki',
+    label: '命理咨询',
+    description: '八字、紫微、起名、问卦、风水——一个入口，按你的问题自动匹配领域。',
   },
 ]
+
+// 产品包含的领域（用于购买卡展示，非 skill 标识）。
+export const chatDomains = ['八字 · 紫微', '起名 · 改名', '六爻 · 奇门', '八宅 · 玄空']

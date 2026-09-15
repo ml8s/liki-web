@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -104,7 +103,7 @@ func LoadConfig() Config {
 		LLMModel:            envOr("LLM_MODEL", ""),
 		LLMThinking:         envOrBool("LLM_THINKING", false),
 		SkillsDir:           envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:          envOr("LIKI_PROMPT_FILE", "liki-naming/SKILL.md"),
+		PromptFile:          envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
 		EngineURL:           envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
 		SelfURL:             envOr("LIKI_SELF_URL", "http://127.0.0.1:8080"),
 		ReturnURL:           envOr("RETURN_URL", ""),
@@ -185,27 +184,27 @@ func main() {
 	namingTools := agent.NewToolRegistry(cfg.EngineURL)
 	namingTools.Register("read_file",
 		"Read a file from the skills directory. Use this to load skill instructions or report templates.",
-		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. liki-bazi/domains/bazi/caiyun.md"}},"required":["path"]}`),
+		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. liki/bazi/domains/bazi/caiyun.md"}},"required":["path"]}`),
 		agent.ReadFileHandler(cfg.SkillsDir))
 
 	// 报告 agent 工具：read_file + 5 个命理 Python 工具（full_paipan/make_factors/query 等）+ RPC。
 	reportTools := agent.NewToolRegistry(cfg.EngineURL)
 	reportTools.Register("read_file",
 		"Read a file from the skills directory. Use this to load skill instructions or report templates.",
-		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. liki-bazi/domains/bazi/caiyun.md"}},"required":["path"]}`),
+		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. liki/bazi/domains/bazi/caiyun.md"}},"required":["path"]}`),
 		agent.ReadFileHandler(cfg.SkillsDir))
 
 	// skill 规则引擎工具（full_paipan/liunian/make_factors/make_liunian_factors/query）——
 	// exec python3 tools/agent_cli.py（schema 从 skill-tools.json 加载，单一来源）。只进报告 agent。
 	skillTools := agent.NewPythonToolRegistry(cfg.SkillsDir)
-	if err := skillTools.RegisterSkills(reportTools, "liki-bazi"); err != nil {
+	if err := skillTools.RegisterSkills(reportTools, "liki/bazi"); err != nil {
 		slog.Error("register skill tools failed (规则引擎不可用)", "err", err)
 	}
 
 	namingAgent := agent.NewAgent(llmClient, namingTools, string(prompt))
 	reportAgent := agent.NewAgent(llmClient, reportTools, "")
 	mingshuGenerator := mingshu.NewGenerator(reportAgent, mingshuStore)
-	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki-bazi/webapp/mingshu")); err != nil {
+	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/mingshu")); err != nil {
 		slog.Error("mingshu: load prompts", "err", err)
 		os.Exit(1)
 	}
@@ -223,7 +222,7 @@ func main() {
 	}
 	hepanStore := hepan.NewStore(hepanDB)
 	hepanGenerator := hepan.NewGenerator(reportAgent, hepanStore)
-	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki-bazi/webapp/hepan")); err != nil {
+	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/hepan")); err != nil {
 		slog.Error("load hepan prompts", "err", err)
 		os.Exit(1)
 	}
@@ -247,18 +246,16 @@ func main() {
 			"Read an instruction or domain reference from the active skill directory.",
 			json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within the active skill directory"}},"required":["path"]}`),
 			agent.ReadFileHandler(filepath.Join(cfg.SkillsDir, skillID)))
-		if skillID == "liki-bazi" {
-			tools.Register("update_profile_birth_time",
-				"将定盘校验得到的出生时间写回当前会话绑定的档案。仅在你通过 calibrate 确定准确的出生时辰后调用，且只能更新 birth_time 与 birth_time_known。",
-				json.RawMessage(`{"type":"object","properties":{"profile_id":{"type":"string","description":"当前会话绑定的档案 id"},"birth_time":{"type":"string","description":"定盘后的出生时间 HH:mm"},"birth_time_known":{"type":"string","enum":["known","approximate"]}},"required":["profile_id","birth_time","birth_time_known"]}`),
-				chat.UpdateProfileBirthTimeHandler(cfg.SelfURL, auth.DefaultConfig().CookieName, nil))
-		}
-		if slices.Contains(agent.PythonSkills, skillID) {
-			pythonTools := agent.NewPythonToolRegistry(cfg.SkillsDir)
-			if err := pythonTools.RegisterSkills(tools, skillID); err != nil {
-				slog.Error("register chat python tools", "skill", skillID, "err", err)
-				os.Exit(1)
-			}
+		// 统一 skill 含八字领域 → 定盘后可写回档案。
+		tools.Register("update_profile_birth_time",
+			"将定盘校验得到的出生时间写回当前会话绑定的档案。仅在你通过 calibrate 确定准确的出生时辰后调用，且只能更新 birth_time 与 birth_time_known。",
+			json.RawMessage(`{"type":"object","properties":{"profile_id":{"type":"string","description":"当前会话绑定的档案 id"},"birth_time":{"type":"string","description":"定盘后的出生时间 HH:mm"},"birth_time_known":{"type":"string","enum":["known","approximate"]}},"required":["profile_id","birth_time","birth_time_known"]}`),
+			chat.UpdateProfileBirthTimeHandler(cfg.SelfURL, auth.DefaultConfig().CookieName, nil))
+		// Python 工具层（八字/问卦领域），schema 单一来源自各域 skill-tools.json。
+		pythonTools := agent.NewPythonToolRegistry(cfg.SkillsDir)
+		if err := pythonTools.RegisterSkills(tools, agent.PythonSkills...); err != nil {
+			slog.Error("register chat python tools", "skill", skillID, "err", err)
+			os.Exit(1)
 		}
 		scope, ok := agent.SkillToolScopes[skillID]
 		if !ok {

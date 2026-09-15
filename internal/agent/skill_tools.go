@@ -14,7 +14,9 @@ import (
 	"time"
 )
 
-var PythonSkills = []string{"liki-bazi", "liki-divination"}
+// PythonSkills are the domain tool packages inside the unified skill that ship
+// a Python tool layer (bazi, divination). naming/fengshui use direct RPC only.
+var PythonSkills = []string{"liki/bazi", "liki/divination"}
 
 const PythonTimeout = 30 * time.Second
 
@@ -47,7 +49,7 @@ func (p *PythonToolRegistry) RegisterSkills(r *ChatToolRegistry, skillIDs ...str
 	count := 0
 
 	for _, skillID := range skillIDs {
-		if skillID == "" || filepath.Base(skillID) != skillID {
+		if skillID == "" || filepath.IsAbs(skillID) || strings.Contains(skillID, "..") {
 			return fmt.Errorf("agent: invalid python skill id %q", skillID)
 		}
 		manifestPath := filepath.Join(p.SkillsDir, skillID, "tools", "skill-tools.json")

@@ -15,7 +15,7 @@ import (
 func TestLoadPromptsFrom_LoadsAllFiles(t *testing.T) {
 	// Use existing prompts from web/skills/webapp/hepan/
 	g := &Generator{}
-	err := g.LoadPromptsFrom("../../web/skills/liki-bazi/webapp/hepan")
+	err := g.LoadPromptsFrom("../../web/skills/liki/webapp/hepan")
 	if err != nil {
 		t.Fatalf("LoadPromptsFrom: %v", err)
 	}

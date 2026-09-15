@@ -5,7 +5,7 @@ import AxeBuilder from '@axe-core/playwright'
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 
 const user = { id: 'usr_test', email: 'user@example.com', status: 'active', locale: 'zh-Hant' }
-const entitlements = { entitlements: [], allowed_skills: ['liki-naming', 'liki-bazi', 'liki-divination', 'liki-fengshui'] }
+const entitlements = { entitlements: [], allowed_skills: ['liki'] }
 const profile = {
   id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female', relation: '家人',
   calendar: 'lunar', birth_date: '1958-闰5-12', birth_time: '06:00', birth_time_known: 'known',
@@ -13,7 +13,7 @@ const profile = {
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
 const session = {
-  id: 'chat_1', user_id: 'usr_test', profile_id: 'p_1', skill: 'liki-bazi', title: '妈妈 · 八字紫微',
+  id: 'chat_1', user_id: 'usr_test', profile_id: 'p_1', skill: 'liki', title: '妈妈 · 八字紫微',
   status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', last_message_at: null,
 }
 const message = {
@@ -21,7 +21,7 @@ const message = {
 }
 const product = {
   id: 'liki-chat', name: 'Liki Chat', description: 'All four skills.',
-  skills: ['liki-naming', 'liki-bazi', 'liki-divination', 'liki-fengshui'], prices: { CNY: 2990, USD: 2990 }, purchased: true,
+  skills: ['liki'], prices: { CNY: 2990, USD: 2990 }, purchased: true,
 }
 const order = {
   id: 'order_1', user_id: 'usr_test', email: 'user@example.com', product_id: 'liki-chat',
