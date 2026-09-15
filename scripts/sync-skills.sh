@@ -34,11 +34,6 @@ if [ ! -d "$SRC_DIR" ]; then
   exit 1
 fi
 
-# ── 清理旧的四 skill 副本 + 历史归档（合并为单一 skill 前的遗留）──
-for OLD in liki-bazi liki-divination liki-fengshui liki-naming; do
-  rm -rf "$PROJECT_DIR/$DEST/$OLD" "$PROJECT_DIR/$DEST/$OLD.tar.gz"
-done
-
 echo "==> $SKILL (from $SRC_DIR)"
 mkdir -p "$DEST_DIR"
 
@@ -70,15 +65,9 @@ rsync -a --no-group --delete \
 
 # ── 1.5 Web 部署专用：报告生成提示词（mingshu/hepan）──
 # webapp 不进安装包，但 liki-web 后端从 web/skills/liki/webapp/{mingshu,hepan} 加载。
-# 桥接：报告提示词仍引用合并前的路径（liki-bazi/domains、liki-bazi/webapp），
-# 同步时机械改写为新结构（幂等；引擎侧修好后本步自然空转）。
 if [ -d "$WEBAPP_SRC" ]; then
   rsync -a --delete "$WEBAPP_SRC/" "$DEST_DIR/webapp/"
-  find "$DEST_DIR/webapp" -type f -name '*.md' -print0 |
-    xargs -0 -r sed -i \
-      -e 's|liki-bazi/domains/|liki/bazi/domains/|g' \
-      -e 's|liki-bazi/webapp/|liki/webapp/|g'
-  echo "  ✓ webapp synced (mingshu/hepan prompts, paths bridged)"
+  echo "  ✓ webapp synced (mingshu/hepan prompts)"
 else
   echo "  WARNING: webapp source not found: $WEBAPP_SRC" >&2
 fi
