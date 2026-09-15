@@ -3,7 +3,7 @@
     <el-header height="64px" class="app-header">
       <div class="brand font-serif">Liki<em>·</em>命理</div>
       <span class="slogan font-serif">懂命理，用靈機</span>
-      <nav class="nav">
+<nav class="nav">
         <router-link to="/">工作台</router-link>
         <router-link to="/profiles">档案</router-link>
         <router-link to="/chat">Chat</router-link>

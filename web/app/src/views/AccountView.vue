@@ -21,6 +21,12 @@
       </el-descriptions>
     </el-card>
 
+    <h2 class="section-title">删除账号</h2>
+    <el-card class="block danger-zone" shadow="never">
+      <p class="danger-hint">删除后，你的全部档案与对话中的个人信息将被匿名化清除（不可恢复）。</p>
+      <el-button type="danger" :loading="erasing" @click="eraseAccount">删除账号（合规删除）</el-button>
+    </el-card>
+
     <h2 class="section-title">登录设备</h2>
 
     <AppErrorState v-if="error && !sessions.length" title="会话加载失败" :description="error" @retry="load" />
@@ -81,6 +87,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { fetchSessions, revokeSession, revokeAllSessions, type SessionInfo } from '@/api/me'
+import { erasureAccount } from '@/api/account'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppEmpty from '@/components/app/AppEmpty.vue'
 import AppErrorState from '@/components/app/AppErrorState.vue'
@@ -96,6 +103,7 @@ const error = ref('')
 const revoking = ref(false)
 const revokingAll = ref(false)
 const revokingId = ref('')
+const erasing = ref(false)
 
 function statusLabel(status?: string) {
   const labels: Record<string, string> = { active: '正常', disabled: '已停用', deleted: '已删除' }
@@ -161,6 +169,28 @@ async function logout() {
   }
 }
 
+async function eraseAccount() {
+  try {
+    await ElMessageBox.confirm(
+      '确定删除账号？你的全部档案与对话中的个人信息将被匿名化清除，不可恢复。',
+      '删除账号',
+      { type: 'error', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  erasing.value = true
+  try {
+    await erasureAccount()
+    await auth.logout()
+    await router.push({ name: 'login' })
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '删除失败'
+  } finally {
+    erasing.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -177,4 +207,6 @@ onMounted(load)
 .session-item:last-child { border-bottom: none; }
 .session-device { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .session-meta { color: var(--liki-text-2); font-size: 13px; margin-top: 2px; }
+.danger-zone { border-color: #f3c9c9; }
+.danger-hint { color: var(--liki-text-2); font-size: 13px; margin: 0 0 14px; }
 </style>

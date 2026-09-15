@@ -2,6 +2,9 @@
   <section>
     <AppPageHeader title="工作台" subtitle="继续上次咨询，或管理你的档案。" />
 
+    <AppAlert v-if="chat.error" :title="chat.error" type="error" />
+    <AppAlert v-else-if="profiles.error" :title="profiles.error" type="error" />
+
     <AppSkeleton v-if="loading" :rows="4" />
 
     <template v-else>
@@ -37,6 +40,7 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChatStore, skillLabel } from '@/stores/chat'
 import { useProfilesStore } from '@/stores/profiles'
+import AppAlert from '@/components/app/AppAlert.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import AppSkeleton from '@/components/app/AppSkeleton.vue'
 

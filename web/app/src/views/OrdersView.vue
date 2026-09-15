@@ -18,7 +18,8 @@
 
     <AppEmpty v-else-if="!loading && !orders.length" description="还没有订单" />
 
-    <el-table v-else :data="orders" v-loading="loading" class="orders-table">
+    <!-- 桌面：表格 -->
+    <el-table v-else-if="!isMobile" :data="orders" v-loading="loading" class="orders-table">
       <el-table-column prop="id" label="订单号" min-width="180" show-overflow-tooltip />
       <el-table-column prop="product_id" label="产品" min-width="160" />
       <el-table-column label="金额" width="130">
@@ -32,11 +33,25 @@
       <el-table-column prop="created_at" label="创建时间" width="190" />
       <el-table-column prop="paid_at" label="支付时间" width="190" />
     </el-table>
+
+    <!-- 移动端：卡片降级 -->
+    <div v-else class="order-cards" v-loading="loading">
+      <div v-for="order in orders" :key="order.id" class="order-card">
+        <div class="order-top">
+          <span class="order-id">{{ order.id }}</span>
+          <el-tag :type="statusType(order.status)" size="small">{{ statusLabel(order.status) }}</el-tag>
+        </div>
+        <div class="order-row"><span class="k">产品</span><span>{{ order.product_id }}</span></div>
+        <div class="order-row"><span class="k">金额</span><span>{{ formatAmount(order) }}</span></div>
+        <div class="order-row"><span class="k">创建</span><span>{{ order.created_at }}</span></div>
+        <div v-if="order.paid_at" class="order-row"><span class="k">支付</span><span>{{ order.paid_at }}</span></div>
+      </div>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { fetchChatOrders, type ChatOrder } from '@/api/orders'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppEmpty from '@/components/app/AppEmpty.vue'
@@ -47,6 +62,12 @@ import AppSkeleton from '@/components/app/AppSkeleton.vue'
 const orders = ref<ChatOrder[]>([])
 const loading = ref(false)
 const error = ref('')
+const isMobile = ref(false)
+let mq: MediaQueryList | null = null
+
+function onMqChange(e: MediaQueryListEvent | MediaQueryList) {
+  isMobile.value = e.matches
+}
 
 async function load() {
   loading.value = true
@@ -77,9 +98,27 @@ function statusType(status: ChatOrder['status']) {
   return 'warning'
 }
 
-onMounted(load)
+onMounted(() => {
+  mq = window.matchMedia('(max-width: 640px)')
+  onMqChange(mq)
+  mq.addEventListener('change', onMqChange)
+  load()
+})
+
+onBeforeUnmount(() => {
+  mq?.removeEventListener('change', onMqChange)
+})
 </script>
 
 <style scoped>
 .orders-table { background: var(--liki-surface); border-radius: var(--el-border-radius-base); }
+.order-cards { display: grid; gap: 12px; }
+.order-card {
+  background: var(--liki-surface); border: 1px solid var(--liki-line);
+  border-radius: 12px; padding: 14px 16px;
+}
+.order-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.order-id { font-weight: 600; font-size: 13px; word-break: break-all; }
+.order-row { display: flex; gap: 8px; font-size: 14px; color: var(--liki-ink); padding: 3px 0; }
+.order-row .k { color: var(--liki-text-2); width: 40px; flex-shrink: 0; }
 </style>
