@@ -7,7 +7,7 @@
     <el-table-column prop="updated_at" label="更新时间" width="190" />
     <el-table-column width="100" align="right">
       <template #default="{ row }">
-        <router-link :to="`/chat/${row.id}`">打开</router-link>
+        <router-link :to="`/chat/${row.id}`" class="open-link">打开</router-link>
       </template>
     </el-table-column>
   </el-table>
@@ -22,3 +22,7 @@ defineProps<{
 
 defineEmits<{ open: [session: ChatSession] }>()
 </script>
+
+<style scoped>
+.open-link { display: inline-block; padding: 4px 2px; }
+</style>

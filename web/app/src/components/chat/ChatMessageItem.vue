@@ -100,12 +100,13 @@ function fallbackCopy(text: string, done: () => void) {
   white-space: pre-wrap;
 }
 .copy {
-  margin-top: 10px;
+  margin: 6px 0 0 -8px;
+  padding: 4px 8px;
   border: none;
+  border-radius: 6px;
   background: transparent;
   color: var(--liki-text-2);
   font-size: 12px;
-  padding: 0;
   cursor: pointer;
 }
 .copy:hover { color: var(--liki-primary); }

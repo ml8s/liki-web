@@ -143,6 +143,7 @@ onBeforeUnmount(() => {
   margin-bottom: 14px;
   border-bottom: 1px solid #e5e7eb;
 }
+.session-header a { display: inline-block; padding: 4px 0; }
 .session-header h1 { margin: 6px 0; font-size: 22px; }
 .session-header p { margin: 0; color: #666; }
 .thread { flex: 1; overflow: auto; padding-right: 8px; }
