@@ -304,6 +304,8 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 .font-bold { font-weight: 700; }
 .font-brand { font-family: var(--font-sans); font-weight: 900; letter-spacing: -.02em; }
 .brand-link { color: var(--color-gold); text-decoration: none; }
+.brand-slogan { display: none; font-size: .875rem; font-weight: 500; color: var(--color-muted-raw); }
+@media (min-width: 768px) { .brand-slogan { display: inline; } }
 .font-serif { font-family: var(--font-serif); }
 .leading-loose { line-height: 2; }
 .tracking-tight { letter-spacing: -0.025em; }

@@ -71,6 +71,7 @@ const mingshuDemo = JSON.parse(readFileSync(join(process.cwd(), 'js/mingshu-repo
 
   <section class="cta-section py-8 md:py-12 lb-form-section">
     <div class="max-w-sm mx-auto">
+    <p class="text-center font-serif text-lg text-stone-700 mb-2">{t(locale, 'site.slogan')}</p>
     <h2 class="text-center text-xl font-bold text-stone-800 mb-6">{t(locale, 'mingshu.cta.title')}</h2>
     <form id="mingshu-form">
       <PersonFields prefix="lb" locale={locale} ns="mingshu.form" birth="1990-05-20T12:00" />

@@ -2,6 +2,7 @@
   <main class="login-page">
     <el-card class="login-card" shadow="never">
       <h1>登录 Liki</h1>
+      <p class="slogan font-serif">懂命理，用靈機</p>
       <p class="hint">输入邮箱获取登录验证码。</p>
 
       <el-form label-position="top" @submit.prevent="sendCode">
@@ -97,6 +98,7 @@ async function verify() {
 .login-card { width: min(420px, 100%); }
 h1 { margin: 0 0 8px; font-size: 24px; }
 .hint { color: #666; margin: 0 0 20px; }
+.slogan { color: var(--liki-primary); margin: 0 0 4px; font-size: 15px; }
 .wide { width: 100%; }
 .error { margin-top: 16px; }
 .dev-code { margin-top: 16px; }
