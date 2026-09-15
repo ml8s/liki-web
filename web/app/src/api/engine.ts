@@ -58,3 +58,41 @@ export function engineCityCoords(city: string): Promise<{ longitude: number; lat
 export function engineBaziChart(solarTime: string, gender: string): Promise<BaziChartData> {
   return engineRpc<BaziChartData>('bazi.chart', { solar_time: solarTime, gender })
 }
+
+export interface BaziZhuFull extends BaziZhu {
+  shi_shen?: string
+  cang_gan?: string[]
+}
+
+export function engineBaziFullChart(chart: unknown): Promise<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull }> {
+  return engineRpc<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull }>('bazi.fullchart', { chart })
+}
+
+export interface ZiweiGong {
+  name: string
+  xing_yao: Array<{ name: string; is_zhu_xing?: boolean; liang_du?: string }>
+  is_shen_gong?: boolean
+}
+
+export interface ZiweiChart {
+  gong_wei: ZiweiGong[]
+  ming_gong?: number
+  shen_gong?: number
+}
+
+export function engineZiweiChart(lunar: unknown, gender: string): Promise<unknown> {
+  return engineRpc<unknown>('ziwei.chart', { lunar, gender })
+}
+
+export function engineZiweiFullChart(chart: unknown): Promise<ZiweiChart> {
+  return engineRpc<ZiweiChart>('ziwei.fullchart', { chart })
+}
+
+export interface BazhaiChart {
+  ming_gua: { gua: { name: string; wuxing?: string }; group: string }
+  ba_zhai_dirs: Record<string, string[]>
+}
+
+export function engineBazhaiChart(birthYear: number, gender: string): Promise<BazhaiChart> {
+  return engineRpc<BazhaiChart>('bazhai.chart', { birth_year: birthYear, gender })
+}

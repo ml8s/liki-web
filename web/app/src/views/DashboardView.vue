@@ -4,12 +4,28 @@
 
     <AppAlert v-if="chat.error" :title="chat.error" type="error" />
     <AppAlert v-else-if="profiles.error" :title="profiles.error" type="error" />
-    <AppAlert
-      v-if="!loading && !profiles.list.length"
-      title="欢迎来到 Liki"
-      description="先创建一个档案，免费查看命盘；解锁 Liki Chat 后可自由对话。"
-      type="info"
-    />
+
+    <div v-if="!loading && !profiles.list.length" class="onboarding">
+      <h2 class="ob-title font-serif">欢迎来到 Liki，四步开始</h2>
+      <div class="ob-steps">
+        <div class="ob-step" :class="{ done: profiles.list.length > 0 }">
+          <span class="ob-n">1</span>
+          <span class="ob-t">建立档案</span>
+          <span class="ob-state">{{ profiles.list.length ? '已完成' : '进行中' }}</span>
+        </div>
+        <div class="ob-step" :class="{ ready: profiles.list.length > 0 }">
+          <span class="ob-n">2</span>
+          <span class="ob-t">免费看盘</span>
+          <span class="ob-state">建档后可看八字·紫微·八宅</span>
+        </div>
+        <div class="ob-step">
+          <span class="ob-n">3</span>
+          <span class="ob-t">解锁对话</span>
+          <span class="ob-state">付费解锁专业解读</span>
+        </div>
+      </div>
+      <el-button type="primary" size="large" @click="router.push('/profiles/new')">创建第一个档案</el-button>
+    </div>
 
     <AppSkeleton v-if="loading" :rows="4" />
 
@@ -75,4 +91,16 @@ onMounted(async () => {
 .resume-meta { color: var(--liki-text-2); font-size: 13px; margin-top: 4px; }
 .hint { color: var(--liki-text-2); margin: 0 0 16px; }
 .quick { display: flex; gap: 12px; }
+.onboarding {
+  background: var(--liki-surface); border: 1px solid var(--liki-line);
+  border-radius: 12px; padding: 24px; margin-bottom: 20px;
+}
+.ob-title { margin: 0 0 16px; font-size: 18px; }
+.ob-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.ob-step { border: 1px solid var(--liki-line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.ob-step.done { border-color: var(--el-color-success); }
+.ob-step.ready { border-color: var(--liki-primary-border); }
+.ob-n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--liki-primary); color: #fff; font-size: 13px; }
+.ob-t { font-weight: 600; }
+.ob-state { color: var(--liki-text-2); font-size: 12px; }
 </style>

@@ -3,6 +3,11 @@
     <el-card class="login-card" shadow="never">
       <h1>登录 Liki</h1>
       <p class="slogan font-serif">懂命理，用靈機</p>
+      <div class="values">
+        <span class="value">确定性排盘</span>
+        <span class="value">专业解读</span>
+        <span class="value">免费建档</span>
+      </div>
       <p class="hint">输入邮箱获取登录验证码。</p>
 
       <el-form label-position="top" @submit.prevent="sendCode">
@@ -99,6 +104,8 @@ async function verify() {
 h1 { margin: 0 0 8px; font-size: 24px; }
 .hint { color: #666; margin: 0 0 20px; }
 .slogan { color: var(--liki-primary); margin: 0 0 4px; font-size: 15px; }
+.values { display: flex; gap: 8px; justify-content: center; margin: 6px 0 12px; flex-wrap: wrap; }
+.value { font-size: 12px; color: var(--liki-text-2); background: var(--liki-primary-tint); padding: 3px 10px; border-radius: 999px; }
 .wide { width: 100%; }
 .error { margin-top: 16px; }
 .dev-code { margin-top: 16px; }
