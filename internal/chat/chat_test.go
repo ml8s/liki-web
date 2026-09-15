@@ -520,3 +520,29 @@ func TestUpdateProfileBirthTimeToolRateLimit(t *testing.T) {
 		t.Fatalf("expected rate-limit hint, got %v", err)
 	}
 }
+
+func TestStore_AnonymizeUserMessages(t *testing.T) {
+	ctx := context.Background()
+	_, store, _, _, userID := newChatFixture(t)
+	session, err := store.CreateSession(ctx, userID, "liki-bazi", "标题", "p_1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.AppendMessage(ctx, userID, session.ID, "assistant", KindSystemProfile, `{"nickname":"妈妈","birth_date":"1958-闰5-12"}`); err != nil {
+		t.Fatal(err)
+	}
+	n, err := store.AnonymizeUserMessages(ctx, userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("want 1 message cleared, got %d", n)
+	}
+	msgs, err := store.ListMessages(ctx, userID, session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(msgs) != 1 || msgs[0].Content != "" {
+		t.Fatalf("system_profile PII not cleared: %+v", msgs)
+	}
+}

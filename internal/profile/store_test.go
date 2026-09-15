@@ -173,3 +173,74 @@ func TestInputValidation(t *testing.T) {
 func nowForTest() time.Time {
 	return time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 }
+
+func TestStore_AnonymizeUser(t *testing.T) {
+	store, _ := newStoreFixture(t)
+
+	// user_1 两个档案
+	for i := 0; i < 2; i++ {
+		if _, err := store.Create(context.Background(), "user_1", validInput()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// 同一库另一个用户一个档案（不受影响）
+	other, err := store.Create(context.Background(), "user_2", validInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := store.AnonymizeUser(context.Background(), "user_1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 2 {
+		t.Fatalf("anonymize user_1: want 2, got %d", n)
+	}
+	list, _, err := store.List(context.Background(), "user_1", "", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 0 {
+		t.Fatalf("user_1 profiles should be gone (deleted), got %d", len(list))
+	}
+	// 另一个用户的档案原样保留
+	kept, err := store.Get(context.Background(), "user_2", other.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kept.Nickname == "" || kept.BirthDate == "" {
+		t.Fatalf("user_2 profile must be untouched: %+v", kept)
+	}
+}
+
+func TestStore_CleanupExpired(t *testing.T) {
+	store, userID := newStoreFixture(t)
+	p, err := store.Create(context.Background(), userID, validInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 把该档案置为 31 天前软删
+	store.nowFunc = func() time.Time { return time.Now().UTC().Add(-31 * 24 * time.Hour) }
+	if err := store.SoftDelete(context.Background(), userID, p.ID); err != nil {
+		t.Fatal(err)
+	}
+	store.nowFunc = func() time.Time { return time.Now().UTC() }
+	// 另一个 1 天前软删（30 天窗口内，不清）
+	p2, err := store.Create(context.Background(), userID, validInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.nowFunc = func() time.Time { return time.Now().UTC().Add(-24 * time.Hour) }
+	if err := store.SoftDelete(context.Background(), userID, p2.ID); err != nil {
+		t.Fatal(err)
+	}
+	store.nowFunc = func() time.Time { return time.Now().UTC() }
+
+	n, err := store.CleanupExpired(context.Background(), time.Now().UTC().Add(-30*24*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("cleanup: want 1 purged, got %d", n)
+	}
+}

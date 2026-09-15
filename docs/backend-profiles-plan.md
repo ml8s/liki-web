@@ -84,7 +84,7 @@ DELETE /api/profiles/{id}     软删（deleted_at，30 天窗口）
 ## 6. 非功能
 
 - owner 校验 SQL 层强制（`user_id`）；建档/编辑限流 + 单用户档案上限 20。
-- 软删 30 天窗口（本期只置 `deleted_at`，物理清理下期）。
+- 软删 30 天窗口：`deleted_at` 软删 + 后台定时器（6h）物理清理超期档案。
 - 出生信息为敏感 PII：接口仅 owner 可访问；日志不落出生信息/pan。
 - **配置**：`LIKI_SELF_URL`（agent 自调平台 API 的 base URL，须与监听地址一致，默认 `http://127.0.0.1:8080`）。
 
@@ -99,5 +99,7 @@ DELETE /api/profiles/{id}     软删（deleted_at，30 天窗口）
 - Go 端任何排盘编排（engine 客户端 / paipan worker）——**按架构原则永不进 liki-web**
 - agent 与前端交换盘面数据（架构决定：盘面展示走前端 RPC 直连，agent 只输出文字）
 - 定盘写回更宽的权限（工具仅 `birth_time`+`birth_time_known`，仅绑定档案）
-- 合规强删 `/api/account/erasure`（本期只存字段）
-- 软删 30 天物理清理定时器
+
+> **已实现**（原"本期不做"清单已移出）：
+> - 合规强删 `POST /api/account/erasure`（`internal/account`：匿名化档案 + 清会话 PII）
+> - 软删 30 天物理清理定时器（`profile.Store.CleanupExpired` + main.go ticker）

@@ -190,8 +190,6 @@ SSE    仅 thinking/phase/text-delta/done/error；**agent 与前端不交换盘�
 - pan 落库、pan_status、排盘 job（架构上永不做）
 - agent 与前端不交换盘面数据（架构决定：agent 为解读黑盒，盘面展示走前端 RPC 直连）
 - 定盘写回：agent 工具（`update_profile_birth_time`）仅允许更新 `birth_time` + `birth_time_known`，且只能作用于会话绑定档案
-- 合规强删 `/api/account/erasure`（本期只存字段）
-- 软删 30 天后物理清理定时器
 
 ## 11. 验收标准
 

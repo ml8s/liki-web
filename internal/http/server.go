@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"liki-web/internal/account"
 	"liki-web/internal/admin"
 	"liki-web/internal/agent"
 	"liki-web/internal/auth"
@@ -31,6 +32,7 @@ type ServerDeps struct {
 	ChatHandler        *chat.Handler
 	CommerceHandler    *commerce.Handler
 	ProfileHandler     *profile.Handler
+	AccountHandler     *account.Handler
 	NamingStore        *naming.Store
 	MingShuStore       *mingshu.Store
 	MingShuGenerator   *mingshu.Generator
@@ -95,6 +97,11 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 			return rl.Wrap(10.0/60, 12, next)
 		}
 		deps.ProfileHandler.RegisterRoutes(mux, profileLimit)
+	}
+
+	// ── platform account（合规强删）──
+	if deps.AccountHandler != nil {
+		deps.AccountHandler.RegisterRoutes(mux)
 	}
 
 	// ── naming product routes ──

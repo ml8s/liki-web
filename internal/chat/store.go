@@ -195,6 +195,18 @@ func (s *Store) TouchSession(ctx context.Context, sessionID string, now time.Tim
 	return err
 }
 
+// AnonymizeUserMessages clears the PII-bearing system_profile payloads (they
+// embed birth info) for a user's chat history during compliance erasure.
+func (s *Store) AnonymizeUserMessages(ctx context.Context, userID string) (int64, error) {
+	result, err := s.db.ExecContext(ctx, `
+UPDATE unified_chat_messages SET content=''
+WHERE user_id=? AND kind=?`, userID, string(KindSystemProfile))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 func mustTime(value string) time.Time {
 	parsed, _ := time.Parse(time.RFC3339Nano, value)
 	return parsed

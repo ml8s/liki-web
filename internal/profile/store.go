@@ -251,6 +251,35 @@ UPDATE profiles SET last_used_at=?, updated_at=? WHERE id=? AND user_id=? AND de
 	return err
 }
 
+// AnonymizeUser clears all PII from the user's live profiles and soft-deletes
+// them (compliance erasure / account deletion). Referential integrity of
+// sessions is kept via id/user_id; no birth info survives.
+func (s *Store) AnonymizeUser(ctx context.Context, userID string) (int64, error) {
+	now := formatTime(s.nowFunc())
+	result, err := s.db.ExecContext(ctx, `
+UPDATE profiles SET
+  nickname='', name='', gender='', relation='', calendar='', birth_date='',
+  birth_time='', birth_time_known='', birth_place='', note='',
+  third_party_consent=0,
+  version=version+1, deleted_at=?, updated_at=?
+WHERE user_id=? AND deleted_at IS NULL`, now, now, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+// CleanupExpired physically deletes profiles soft-deleted before the cutoff
+// (the 30-day recovery window). Returns the number of rows purged.
+func (s *Store) CleanupExpired(ctx context.Context, before time.Time) (int64, error) {
+	result, err := s.db.ExecContext(ctx, `
+DELETE FROM profiles WHERE deleted_at IS NOT NULL AND deleted_at < ?`, formatTime(before))
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 func mustTime(value string) time.Time {
 	parsed, _ := time.Parse(time.RFC3339Nano, value)
 	return parsed

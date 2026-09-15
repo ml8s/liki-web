@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"liki-web/internal/account"
 	"liki-web/internal/agent"
 	"liki-web/internal/auth"
 	"liki-web/internal/chat"
@@ -412,6 +413,7 @@ func main() {
 		ChatHandler:        chatHandler,
 		CommerceHandler:    commerceHandler,
 		ProfileHandler:     profile.NewHandler(profileStore, authHandler.RequireUser),
+		AccountHandler:     account.NewHandler(profileStore, chatStore, authHandler.RequireUser),
 		NamingStore:        namingStore,
 		MingShuStore:       mingshuStore,
 		MingShuGenerator:   mingshuGenerator,
@@ -446,6 +448,25 @@ func main() {
 			case <-ticker.C:
 				if _, err := authStore.Cleanup(ctx); err != nil {
 					slog.Error("auth cleanup", "err", err)
+				}
+			}
+		}
+	}()
+
+	// 软删档案 30 天恢复窗口到期后物理清理（个保法删除权落地）。
+	go func() {
+		ticker := time.NewTicker(6 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				cutoff := time.Now().UTC().Add(-30 * 24 * time.Hour)
+				if n, err := profileStore.CleanupExpired(ctx, cutoff); err != nil {
+					slog.Error("profile cleanup", "err", err)
+				} else if n > 0 {
+					slog.Info("profile cleanup complete", "purged", n)
 				}
 			}
 		}
