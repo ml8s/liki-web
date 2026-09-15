@@ -227,8 +227,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Unified chat owns exactly the four installable skills. Each runner has a
-	// Context for background tasks and server BaseContext.
+	// Unified chat owns exactly the one installable skill.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

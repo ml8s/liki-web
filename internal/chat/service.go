@@ -48,13 +48,6 @@ func (s *Service) runnerFor(skill Skill) (Runner, error) {
 	if runner, ok := s.runners[skill]; ok && runner != nil {
 		return runner, nil
 	}
-	// Pre-unification sessions carry a legacy skill name; route them to the
-	// unified runner.
-	if entitlement.IsChatSkill(skill) {
-		if runner, ok := s.runners[entitlement.SkillLiki]; ok && runner != nil {
-			return runner, nil
-		}
-	}
 	return nil, ErrRunnerUnavailable
 }
 

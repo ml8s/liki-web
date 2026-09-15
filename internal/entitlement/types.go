@@ -15,24 +15,9 @@ const (
 
 type Skill string
 
-// SkillLiki is the single unified skill. The legacy four are retained only for
-// backward compatibility with pre-unification entitlements and chat sessions.
-const (
-	SkillLiki       Skill = "liki"
-	SkillNaming     Skill = "liki-naming"
-	SkillBazi       Skill = "liki-bazi"
-	SkillDivination Skill = "liki-divination"
-	SkillFengshui   Skill = "liki-fengshui"
-)
-
-// IsChatSkill reports whether a skill grants (or granted) Liki Chat access.
-func IsChatSkill(skill Skill) bool {
-	switch skill {
-	case SkillLiki, SkillNaming, SkillBazi, SkillDivination, SkillFengshui:
-		return true
-	}
-	return false
-}
+// SkillLiki is the single unified skill (the engine routes 八字/起名/问卦/风水
+// internally). 未发布，无历史 skill 兼容负担。
+const SkillLiki Skill = "liki"
 
 type Entitlement struct {
 	ID        string

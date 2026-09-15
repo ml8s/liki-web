@@ -46,7 +46,7 @@ func TestHandleErasure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	session, err := chatStore.CreateSession(ctx, "user_1", "liki-bazi", "标题", p.ID)
+	session, err := chatStore.CreateSession(ctx, "user_1", "liki", "标题", p.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -207,24 +207,18 @@ func (s *Store) AllowedSkills(ctx context.Context, userID string) ([]Skill, erro
 	if err != nil {
 		return nil, err
 	}
-	granted := false
 	for _, item := range items {
 		for _, skill := range item.Skills {
-			// Pre-unification entitlements stored the legacy four; either form
-			// grants the unified skill.
-			if IsChatSkill(skill) {
-				granted = true
+			if skill == SkillLiki {
+				return []Skill{SkillLiki}, nil
 			}
 		}
-	}
-	if granted {
-		return []Skill{SkillLiki}, nil
 	}
 	return []Skill{}, nil
 }
 
 func (s *Store) HasSkill(ctx context.Context, userID string, skill Skill) (bool, error) {
-	if !IsChatSkill(skill) {
+	if skill != SkillLiki {
 		return false, nil
 	}
 	skills, err := s.AllowedSkills(ctx, userID)

@@ -28,7 +28,7 @@ Liki 把 agent 视为平台 API 的又一个客户端。为让 LLM 拿到的是�
 审计会被 LLM 读取的提示词（不只 SKILL.md，还有 `app/*.md` 等）：
 - 目标：删除/改写任何假设工具结果带 `_product` / `data` 字段 / `ok` / `content` 信封的描述；改为「工具直接返回命理结果（盘 / 断语）」。
 - 先 grep 确认：`_product`、`"data"`、`"ok"`、`"content"`。若提示词从未引用信封形状，则无需改。
-- 覆盖：`skills/liki-bazi/`、`skills/liki-divination/`、以及命理/风水/起名的提示词目录。
+- 覆盖：`skills/liki/` 统一 skill 内的 `bazi/`、`divination/` 域工具目录及命名/风水提示词。
 
 ### B. python 工具传输约定（核对，通常无需改）
 - `skills/*/tools/agent_cli.py` 的 `{"ok":true,"data":...}` / `{"ok":false,"error":...}` 是 liki-web executor 与 CLI 的**进程内传输协议**，liki-web 已消费——**不要改**。

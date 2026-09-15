@@ -11,7 +11,7 @@ import (
 
 func rateLimit(next http.HandlerFunc) http.HandlerFunc { return next }
 
-const validFeedbackV1 = `{"schema_version":"feedback-v1","meta":{"source":"skill-agent","skill":"liki-bazi","skill_version":"2026.09.14.0","engine_version":"2026.09.14.0"},"problem":{"type":"clarity","severity":"medium","summary":"resolved_period 解释入口不直观"}}`
+const validFeedbackV1 = `{"schema_version":"feedback-v1","meta":{"source":"skill-agent","skill":"liki","skill_version":"2026.09.14.0","engine_version":"2026.09.14.0"},"problem":{"type":"clarity","severity":"medium","summary":"resolved_period 解释入口不直观"}}`
 
 func TestHandleCreate_Success(t *testing.T) {
 	s := setup(t)

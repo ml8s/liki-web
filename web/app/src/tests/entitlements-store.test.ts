@@ -19,7 +19,7 @@ describe('entitlements store', () => {
 
     expect(store.allowedSkills).toEqual(['liki'])
     expect(store.hasSkill('liki')).toBe(true)
-    expect(store.hasSkill('liki-fengshui')).toBe(false)
+    expect(store.hasSkill('liki-unknown')).toBe(false)
     expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 })

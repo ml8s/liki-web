@@ -8,7 +8,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const samplePayload = `{"schema_version":"feedback-v1","meta":{"source":"skill-agent","skill":"liki-bazi","skill_version":"2026.09.14.0","engine_version":"2026.09.14.0"},"problem":{"type":"clarity","severity":"medium","summary":"resolved_period 解释入口不直观"}}`
+const samplePayload = `{"schema_version":"feedback-v1","meta":{"source":"skill-agent","skill":"liki","skill_version":"2026.09.14.0","engine_version":"2026.09.14.0"},"problem":{"type":"clarity","severity":"medium","summary":"resolved_period 解释入口不直观"}}`
 
 func TestStore_CreateAndList(t *testing.T) {
 	db := openTestDB(t)

@@ -75,7 +75,7 @@ func TestBuildScopedChatPromptIsIsolated(t *testing.T) {
 	if !strings.Contains(prompt, "统一命理 skill") {
 		t.Fatalf("prompt missing unified wording: %q", prompt)
 	}
-	if _, err := BuildScopedChatPrompt(dir, "liki-naming"); err == nil {
+	if _, err := BuildScopedChatPrompt(dir, "unknown-skill"); err == nil {
 		t.Fatal("expected legacy skill id to fail")
 	}
 	if _, err := BuildScopedChatPrompt(dir, "../liki"); err == nil {

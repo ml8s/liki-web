@@ -15,7 +15,7 @@ func TestChatProductUnlocksUnifiedSkillAndRejectsLegacyProducts(t *testing.T) {
 		t.Fatalf("catalog size = %d, want 1", got)
 	}
 
-	for _, legacy := range []Product{"naming", "mingshu", "hepan", "liki-naming", "liki-bazi", "liki-divination", "liki-fengshui", "liki-chat-all"} {
+	for _, legacy := range []Product{"naming", "mingshu", "hepan", "liki-chat-all"} {
 		if _, err := skillsForProduct(legacy); err == nil {
 			t.Fatalf("product %q was accepted", legacy)
 		}

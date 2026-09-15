@@ -81,7 +81,7 @@ func newChatFixture(t *testing.T) (*Service, *Store, *entitlement.Store, *fakeRu
 		t.Fatal(err)
 	}
 	runner := &fakeRunner{}
-	return NewService(store, entitlements, nil, map[Skill]Runner{"liki-naming": runner}), store, entitlements, runner, granted.UserID
+	return NewService(store, entitlements, nil, map[Skill]Runner{"liki": runner}), store, entitlements, runner, granted.UserID
 }
 
 func TestChatServiceCreateAndSendMessage(t *testing.T) {
@@ -89,11 +89,11 @@ func TestChatServiceCreateAndSendMessage(t *testing.T) {
 	service, store, _, runner, userID := newChatFixture(t)
 
 	var events []agent.ChatEvent
-	session, err := service.CreateSession(ctx, userID, "liki-naming", "", "")
+	session, err := service.CreateSession(ctx, userID, "liki", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if session.Skill != "liki-naming" || session.Title == "" {
+	if session.Skill != "liki" || session.Title == "" {
 		t.Fatalf("session = %+v", session)
 	}
 	userMessage, response, gotSession, err := service.SendMessage(ctx, userID, session.ID, " 请帮我起名 ", func(event agent.ChatEvent) { events = append(events, event) })
@@ -121,7 +121,7 @@ func TestChatServiceCreateAndSendMessage(t *testing.T) {
 func TestChatServiceSerializesSameSession(t *testing.T) {
 	ctx := context.Background()
 	service, _, _, runner, userID := newChatFixture(t)
-	session, err := service.CreateSession(ctx, userID, "liki-naming", "", "")
+	session, err := service.CreateSession(ctx, userID, "liki", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,10 +149,10 @@ func TestChatServiceRejectsUnlicensedSkillAndEmptyMessage(t *testing.T) {
 	service, _, _, runner, userID := newChatFixture(t)
 
 	// One Chat SKU unlocks every internal skill.
-	if _, err := service.CreateSession(ctx, userID, "liki-divination", "", ""); err != nil {
+	if _, err := service.CreateSession(ctx, userID, "liki", "", ""); err != nil {
 		t.Fatalf("create divination session: %v", err)
 	}
-	session, err := service.CreateSession(ctx, userID, "liki-naming", "", "")
+	session, err := service.CreateSession(ctx, userID, "liki", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestChatServiceRejectsUnlicensedSkillAndEmptyMessage(t *testing.T) {
 func TestChatHandlerContract(t *testing.T) {
 	ctx := context.Background()
 	service, store, _, runner, userID := newChatFixture(t)
-	session, err := service.CreateSession(ctx, userID, "liki-naming", "起名", "")
+	session, err := service.CreateSession(ctx, userID, "liki", "起名", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestChatHandlerContract(t *testing.T) {
 		t.Fatalf("unauthorized status = %d", unauthRec.Code)
 	}
 
-	created := request(http.MethodPost, "/api/chat/sessions", `{"skill":"liki-naming","title":"新会话"}`)
+	created := request(http.MethodPost, "/api/chat/sessions", `{"skill":"liki","title":"新会话"}`)
 	if created.Code != http.StatusOK || !strings.Contains(created.Body.String(), `"user_id"`) {
 		t.Fatalf("create = %d %s", created.Code, created.Body.String())
 	}
@@ -258,7 +258,7 @@ func TestChatHandlerContract(t *testing.T) {
 func TestChatSessionDetailAccess(t *testing.T) {
 	ctx := context.Background()
 	service, store, _, _, userID := newChatFixture(t)
-	session, err := service.CreateSession(ctx, userID, "liki-naming", "", "")
+	session, err := service.CreateSession(ctx, userID, "liki", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -343,8 +343,8 @@ func TestFailedGenerationPersistsUserButNotPartialAssistant(t *testing.T) {
 	runner := &failingRunner{events: []agent.ChatEvent{
 		{Type: agent.EventTextDelta, Content: "半个"},
 	}}
-	service := NewService(store, entitlements, nil, map[Skill]Runner{"liki-naming": runner})
-	session, err := service.CreateSession(ctx, userID, "liki-naming", "", "")
+	service := NewService(store, entitlements, nil, map[Skill]Runner{"liki": runner})
+	session, err := service.CreateSession(ctx, userID, "liki", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +365,7 @@ func TestFailedGenerationPersistsUserButNotPartialAssistant(t *testing.T) {
 func TestClosedSessionIsUnavailable(t *testing.T) {
 	ctx := context.Background()
 	service, store, _, _, userID := newChatFixture(t)
-	session, err := service.CreateSession(ctx, userID, "liki-naming", "", "")
+	session, err := service.CreateSession(ctx, userID, "liki", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,8 +397,8 @@ func TestChatServiceProfileBinding(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	service := NewService(store, entitlements, profileStore, map[Skill]Runner{"liki-naming": runner})
-	session, err := service.CreateSession(ctx, userID, "liki-naming", "", p.ID)
+	service := NewService(store, entitlements, profileStore, map[Skill]Runner{"liki": runner})
+	session, err := service.CreateSession(ctx, userID, "liki", "", p.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,7 +416,7 @@ func TestChatServiceProfileBinding(t *testing.T) {
 	}
 
 	// Cross-user profile must be rejected.
-	if _, err := service.CreateSession(ctx, "other_user", "liki-naming", "", p.ID); err == nil {
+	if _, err := service.CreateSession(ctx, "other_user", "liki", "", p.ID); err == nil {
 		t.Fatal("cross-user profile binding must fail")
 	}
 
@@ -524,7 +524,7 @@ func TestUpdateProfileBirthTimeToolRateLimit(t *testing.T) {
 func TestStore_AnonymizeUserMessages(t *testing.T) {
 	ctx := context.Background()
 	_, store, _, _, userID := newChatFixture(t)
-	session, err := store.CreateSession(ctx, userID, "liki-bazi", "标题", "p_1")
+	session, err := store.CreateSession(ctx, userID, "liki", "标题", "p_1")
 	if err != nil {
 		t.Fatal(err)
 	}

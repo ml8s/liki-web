@@ -1,13 +1,13 @@
 # Platform Chat 架构与契约
 
-Liki Chat 是统一 Chat 商业产品。它不依赖 legacy naming / mingshu / hepan 订单，也不把四个内部 skill 当作四个商业产品。
+Liki Chat 是统一 Chat 商业产品。引擎侧合并为单一 `liki` skill，内部按意图路由八字/起名/问卦/风水；平台只持有一个 skill。
 
 ## 概念模型
 
 | 层 | 概念 | 说明 |
 |---|---|---|
 | Product / SKU | `liki-chat` | 用户购买对象，购买后解锁全部 Chat 能力 |
-| Skill | `liki-naming`、`liki-bazi`、`liki-divination`、`liki-fengshui` | 内部领域能力，不是商业 SKU |
+| Skill | `liki` | 唯一 skill；引擎内部按意图路由到八字/起名/问卦/风水领域 |
 | Runtime | unified chat | 会话、消息、SSE、Agent 编排 |
 | Platform | auth / entitlement / commerce / payment | 用户、权益、订单和支付 |
 
@@ -80,7 +80,7 @@ data: {"type":"error","content":"服务暂时不可用，请稍后重试"}
 ```json
 {
   "session": {},
-  "active_skill": "liki-naming",
+  "active_skill": "liki",
   "user_message": {},
   "assistant_message": {}
 }
@@ -110,7 +110,7 @@ data: {"type":"error","content":"服务暂时不可用，请稍后重试"}
 
 | Product / SKU | Skills |
 |---|---|
-| `liki-chat` | `liki-naming`, `liki-bazi`, `liki-divination`, `liki-fengshui` |
+| `liki-chat` | `liki` |
 
 授权来源必须显式，例如：
 

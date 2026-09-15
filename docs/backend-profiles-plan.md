@@ -67,7 +67,7 @@ profiles (
 - 创建时**系统写入首条 `system_profile`** 消息（内容=档案用户信息摘要；无 pan）。
 - 档案信息注入：`SendMessage` 拼 system prompt 时附加"档案身份 + 出生信息"，**不含 pan**；agent 用 skill 工具自行排盘。
 - SSE：仅 thinking/phase/text-delta/done/error；**agent 与前端不交换盘面数据**（agent 为解读黑盒）。
-- **agent = 平台 API 客户端（同前端）**：`update_profile_birth_time` 工具（liki-bazi scope 白名单）走网络调用与前端相同的 `GET/PATCH /api/profiles/{id}`，携带用户会话 cookie——API 层全部防线（owner/乐观锁/入参校验/限流）对 agent 同样生效，无 store 后门。约束：只改 `birth_time`+`birth_time_known`、只作用于会话绑定档案。
+- **agent = 平台 API 客户端（同前端）**：`update_profile_birth_time` 工具（liki scope 白名单）走网络调用与前端相同的 `GET/PATCH /api/profiles/{id}`，携带用户会话 cookie——API 层全部防线（owner/乐观锁/入参校验/限流）对 agent 同样生效，无 store 后门。约束：只改 `birth_time`+`birth_time_known`、只作用于会话绑定档案。
 
 ## 5. API 契约（新增）
 

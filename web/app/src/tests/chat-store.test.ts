@@ -8,8 +8,8 @@ const session = {
   id: 'chat_1',
   user_id: 'usr_1',
   profile_id: '',
-  skill: 'liki-naming',
-  title: '起名咨询',
+  skill: 'liki',
+  title: '命理咨询',
   status: 'active',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -38,8 +38,8 @@ describe('chat store', () => {
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
 
-    await expect(chat.createSession('', 'liki-bazi')).rejects.toThrow('当前订单未开通该 skill')
-    expect(entitlements.hasSkill('liki-bazi')).toBe(false)
+    await expect(chat.createSession('', 'liki')).rejects.toThrow('当前订单未开通该 skill')
+    expect(entitlements.hasSkill('liki')).toBe(false)
     expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 
@@ -60,7 +60,7 @@ describe('chat store', () => {
   it('persists both returned messages and activates the session', async () => {
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
-    entitlements.allowedSkills = ['liki-naming']
+    entitlements.allowedSkills = ['liki']
     entitlements.loaded = true
 
     const chatApi = await import('@/api/chat')
@@ -77,11 +77,11 @@ describe('chat store', () => {
       return sendResult
     })
 
-    await chat.createSession('', 'liki-naming')
+    await chat.createSession('', 'liki')
     chat.activeSession = session
     await chat.send(' 你好 ')
 
-    expect(createSpy).toHaveBeenCalledWith('', 'liki-naming', '起名咨询')
+    expect(createSpy).toHaveBeenCalledWith('', 'liki', '命理咨询')
     expect(sendSpy).toHaveBeenCalledWith(session.id, '你好', expect.any(Function), expect.any(AbortSignal))
     expect(chat.messages).toEqual([userMessage, assistantMessage])
     expect(chat.activeSession?.id).toBe(session.id)
@@ -92,7 +92,7 @@ describe('chat streaming failure states', () => {
   it('reloads authoritative messages after an SSE error event', async () => {
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
-    entitlements.allowedSkills = ['liki-naming']
+    entitlements.allowedSkills = ['liki']
     entitlements.loaded = true
 
     const chatApi = await import('@/api/chat')
@@ -115,7 +115,7 @@ describe('chat streaming failure states', () => {
   it('reloads authoritative messages after stopping generation', async () => {
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
-    entitlements.allowedSkills = ['liki-naming']
+    entitlements.allowedSkills = ['liki']
     entitlements.loaded = true
 
     const chatApi = await import('@/api/chat')

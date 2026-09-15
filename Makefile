@@ -23,7 +23,7 @@ help: ## Show this help
 
 # ── Build (leaf targets) ──
 
-sync-skills: ## Sync 4 sub-skills from ../liki/skills/ to web/skills/
+sync-skills: ## Sync unified liki skill from ../liki/skills/ to web/skills/
 	scripts/sync-skills.sh
 
 build-archive: ## Build liki skill archive + sync to web/skills/
@@ -195,7 +195,7 @@ check-packaging:
 	cp -rL "web/." "$$TMP/"; \
 	echo -n "  文件数: "; find "$$TMP" -type f | wc -l; \
 	test -f "$$TMP/.well-known/agent-skills/index.json" || { echo "❌ 打包后缺失 .well-known/agent-skills/index.json"; rm -rf "$$TMP"; exit 1; }; \
-	test -f "$$TMP/skills/liki-bazi.tar.gz" || { echo "❌ 打包后缺失 skills/liki-bazi.tar.gz"; rm -rf "$$TMP"; exit 1; }; \
+	test -f "$$TMP/skills/liki.tar.gz" || { echo "❌ 打包后缺失 skills/liki.tar.gz"; rm -rf "$$TMP"; exit 1; }; \
 	for skill in $(SKILLS); do \
 	  test -f "$$TMP/skills/$$skill/SKILL.md" || { echo "❌ 打包后缺失 skills/$$skill/SKILL.md"; rm -rf "$$TMP"; exit 1; }; \
 	done; \
