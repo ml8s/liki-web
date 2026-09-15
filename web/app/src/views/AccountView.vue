@@ -80,6 +80,12 @@
         </li>
       </ul>
     </el-card>
+
+    <div class="legal-links">
+      <a href="/zh-Hant/privacy/" target="_blank" rel="noopener">隐私政策</a>
+      <a href="/zh-Hant/terms/" target="_blank" rel="noopener">服务条款</a>
+      <a href="/zh-Hant/disclaimer/" target="_blank" rel="noopener">免责声明</a>
+    </div>
   </section>
 </template>
 
@@ -210,4 +216,7 @@ onMounted(load)
 .session-meta { color: var(--liki-text-2); font-size: 13px; margin-top: 2px; }
 .danger-zone { border-color: #f3c9c9; }
 .danger-hint { color: var(--liki-text-2); font-size: 13px; margin: 0 0 14px; }
+.legal-links { display: flex; gap: 18px; justify-content: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--liki-line); }
+.legal-links a { color: var(--liki-text-2); font-size: 13px; text-decoration: none; padding: 6px 2px; }
+.legal-links a:hover { color: var(--liki-primary); }
 </style>
