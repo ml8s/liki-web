@@ -1192,3 +1192,15 @@ th {
 .step p { color:#5b6472; }
 .landing-cta { text-align:center; }
 .landing-cta p { font-size:1.5rem; margin-bottom:22px; }
+
+/* ── 主页免费排盘钩子（redesign 转化桥）── */
+.paipan-hook { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; max-width:640px; margin:0 auto; }
+.paipan-hook input, .paipan-hook select {
+  padding:.65rem .8rem; border-radius:.5rem; border:1px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.92); color:#232733; font-size:.9375rem;
+}
+.paipan-hook .btn-purple { background:#fff; color:#5f4bc2; border:none; cursor:pointer; }
+.paipan-hook .btn-purple:hover { background:#f0edfb; }
+.paipan-hint { opacity:.8; font-size:.8125rem; margin-top:14px; }
+.card-link { display:inline-block; margin-top:10px; color:#5f4bc2; font-size:.875rem; text-decoration:none; }
+.card-link:hover { text-decoration:underline; }

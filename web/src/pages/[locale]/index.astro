@@ -31,8 +31,34 @@ const { locale } = Astro.params;
 
   <section class="landing-paipan">
     <h2>免费排盘</h2>
-    <p>建档后免费查看八字、紫微、八宅三盘；解锁 Chat 获取专业解读。</p>
-    <a href="/app" class="btn-purple">{t(locale, 'index.cta.paipan')}</a>
+    <p>输入出生信息，建档后免费查看八字、紫微、八宅三盘。</p>
+    <form class="paipan-hook" id="paipanHook">
+      <input name="date" type="date" required aria-label="出生日期" />
+      <input name="time" type="time" required aria-label="出生时间" />
+      <select name="gender" aria-label="性别">
+        <option value="female">女</option>
+        <option value="male">男</option>
+      </select>
+      <button type="submit" class="btn-purple">开始免费排盘</button>
+    </form>
+    <p class="paipan-hint">登录后自动带入这些信息，继续免费排盘。</p>
+    <script is:inline>
+    (function(){
+      var f = document.getElementById('paipanHook');
+      if (!f) return;
+      f.addEventListener('submit', function(e){
+        e.preventDefault();
+        var date = f.date.value, time = f.time.value, gender = f.gender.value;
+        if (!date || !time) return;
+        try {
+          sessionStorage.setItem('liki-draft', JSON.stringify({
+            birth_date: date, birth_time: time, gender: gender, calendar: 'solar'
+          }));
+        } catch (_) {}
+        location.href = '/app';
+      });
+    })();
+    </script>
   </section>
 
   <section class="landing-services" id="services">
@@ -41,18 +67,22 @@ const { locale } = Astro.params;
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.naming.title')}</h3>
         <p>{t(locale, 'index.services.naming.desc')}</p>
+        <a href="/app" class="card-link">去体验 →</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.bazi.title')}</h3>
         <p>{t(locale, 'index.services.bazi.desc')}</p>
+        <a href="/app" class="card-link">去体验 →</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.divination.title')}</h3>
         <p>{t(locale, 'index.services.divination.desc')}</p>
+        <a href="/app" class="card-link">去体验 →</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.fengshui.title')}</h3>
         <p>{t(locale, 'index.services.fengshui.desc')}</p>
+        <a href="/app" class="card-link">去体验 →</a>
       </div>
     </div>
   </section>
