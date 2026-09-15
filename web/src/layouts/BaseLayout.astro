@@ -77,7 +77,7 @@ const ogImage = 'https://liki.hk/img/og-image.png';
       <div class="flex items-center gap-3">
         <a href={`/${locale}/`} class="text-xl font-brand tracking-tight brand-link">{heading}</a>
         <span class="brand-slogan">{t(locale, 'site.slogan')}</span>
-        <a href={`/${locale}/skills/`} class="dev-link">开发者</a>
+        <a href={`/${locale}/skills/`} class="dev-link">{t(locale, 'site.dev')}</a>
       </div>
       <div class="flex items-center gap-3">
         <LangSwitcher locale={locale} />

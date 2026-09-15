@@ -616,5 +616,7 @@
   "index.paipan.gender": "性别",
   "index.paipan.female": "女",
   "index.paipan.male": "男",
-  "index.paipan.hint": "登录后自动带入这些信息，继续免费排盘。"
+  "index.paipan.hint": "登录后自动带入这些信息，继续免费排盘。",
+  "site.dev": "开发者",
+  "index.services.cta": "去体验 →"
 }

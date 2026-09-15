@@ -616,5 +616,7 @@
   "index.paipan.gender": "Gender",
   "index.paipan.female": "Female",
   "index.paipan.male": "Male",
-  "index.paipan.hint": "These details carry over after you sign in to continue charting."
+  "index.paipan.hint": "These details carry over after you sign in to continue charting.",
+  "site.dev": "Developers",
+  "index.services.cta": "Try it →"
 }
