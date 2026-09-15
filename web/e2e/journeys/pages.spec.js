@@ -34,7 +34,8 @@ const PAGES = [
   { path: '/zh-Hans/',        name: 'index (brand facade)',
     checks: [
       { selector: '.hero-brand h1', text: 'Liki 灵机 — 命理 Skill' },
-      { selector: '.hero-brand p',  text: '按命理师的专业标准构建' },
+      { selector: '.hero-brand', text: '懂命理，用灵机' },
+      { selector: '.hero-brand', text: '按命理师的专业标准构建' },
     ] },
   // Legal pages — marker renders, i18n resolves, keys don't leak
   { path: '/zh-Hans/about',    name: 'about (vanilla)' },

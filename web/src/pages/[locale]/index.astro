@@ -85,7 +85,7 @@ const { locale } = Astro.params;
     </div>
   </div>
 
-  <div id="kw-bg">
+  <div id="kw-bg" aria-hidden="true">
     {keywords.en.map(k => <span>{k}</span>)}
     {keywords['zh-Hans'].map(k => <span>{k}</span>)}
     {keywords['zh-Hant'].map(k => <span>{k}</span>)}
