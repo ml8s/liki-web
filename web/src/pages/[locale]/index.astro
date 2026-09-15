@@ -30,18 +30,18 @@ const { locale } = Astro.params;
   </section>
 
   <section class="landing-paipan">
-    <h2>免费排盘</h2>
-    <p>输入出生信息，建档后免费查看八字、紫微、八宅三盘。</p>
+    <h2>{t(locale, 'index.paipan.title')}</h2>
+    <p>{t(locale, 'index.paipan.desc')}</p>
     <form class="paipan-hook" id="paipanHook">
-      <input name="date" type="date" required aria-label="出生日期" />
-      <input name="time" type="time" required aria-label="出生时间" />
-      <select name="gender" aria-label="性别">
-        <option value="female">女</option>
-        <option value="male">男</option>
+      <input name="date" type="date" required aria-label={t(locale, 'index.paipan.date')} />
+      <input name="time" type="time" required aria-label={t(locale, 'index.paipan.time')} />
+      <select name="gender" aria-label={t(locale, 'index.paipan.gender')}>
+        <option value="female">{t(locale, 'index.paipan.female')}</option>
+        <option value="male">{t(locale, 'index.paipan.male')}</option>
       </select>
-      <button type="submit" class="btn-purple">开始免费排盘</button>
+      <button type="submit" class="btn-purple">{t(locale, 'index.cta.paipan')}</button>
     </form>
-    <p class="paipan-hint">登录后自动带入这些信息，继续免费排盘。</p>
+    <p class="paipan-hint">{t(locale, 'index.paipan.hint')}</p>
     <script is:inline>
     (function(){
       var f = document.getElementById('paipanHook');

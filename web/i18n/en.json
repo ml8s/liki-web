@@ -608,5 +608,13 @@
   "mingshu.form.male": "Male",
   "mingshu.form.female": "Female",
   "mingshu.title": "Life Reading",
-  "mingshu.cta.title": "Begin Your Life Reading"
+  "mingshu.cta.title": "Begin Your Life Reading",
+  "index.paipan.title": "Free charting",
+  "index.paipan.desc": "Enter birth details; after creating a profile, view BaZi, ZiWei and BaZhai charts for free.",
+  "index.paipan.date": "Birth date",
+  "index.paipan.time": "Birth time",
+  "index.paipan.gender": "Gender",
+  "index.paipan.female": "Female",
+  "index.paipan.male": "Male",
+  "index.paipan.hint": "These details carry over after you sign in to continue charting."
 }

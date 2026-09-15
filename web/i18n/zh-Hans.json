@@ -608,5 +608,13 @@
   "mingshu.form.male": "男",
   "mingshu.form.female": "女",
   "mingshu.title": "灵机命书",
-  "mingshu.cta.title": "开始你的灵机命书"
+  "mingshu.cta.title": "开始你的灵机命书",
+  "index.paipan.title": "免费排盘",
+  "index.paipan.desc": "输入出生信息，建档后免费查看八字、紫微、八宅三盘。",
+  "index.paipan.date": "出生日期",
+  "index.paipan.time": "出生时间",
+  "index.paipan.gender": "性别",
+  "index.paipan.female": "女",
+  "index.paipan.male": "男",
+  "index.paipan.hint": "登录后自动带入这些信息，继续免费排盘。"
 }
