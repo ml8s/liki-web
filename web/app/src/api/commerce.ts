@@ -18,8 +18,9 @@ export interface CheckoutResult {
   status_token: string
 }
 
-export function fetchChatProducts(): Promise<ChatProduct[]> {
-  return get<ChatProduct[]>('/api/chat/products')
+export async function fetchChatProducts(): Promise<ChatProduct[]> {
+  const payload = await get<{ products: ChatProduct[] }>('/api/chat/products')
+  return payload.products ?? []
 }
 
 export function checkoutChatProduct(productId: string): Promise<CheckoutResult> {

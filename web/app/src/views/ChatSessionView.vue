@@ -11,17 +11,20 @@
         ref="threadElement"
         v-loading="chat.loadingMessages"
         class="thread"
+        @scroll="onThreadScroll"
       >
         <ChatThread :messages="chat.messages" :loading="chat.loadingMessages" />
       </div>
 
       <ChatStreamStatus :phase="chat.phase" />
-      <AppAlert
-        v-if="chat.error"
-        :title="chat.error"
-        type="error"
-        class="composer-alert"
-      />
+      <div v-if="chat.error" class="error-row">
+        <AppAlert
+          :title="chat.error"
+          type="error"
+          class="composer-alert"
+        />
+        <el-button size="small" @click="retry">重试</el-button>
+      </div>
 
       <ChatComposer
         v-model="draft"
@@ -46,12 +49,20 @@ const route = useRoute()
 const chat = useChatStore()
 const draft = ref('')
 const threadElement = ref<HTMLElement | null>(null)
+const nearBottom = ref(true)
 const sessionId = computed(() => String(route.params.sessionId ?? ''))
+
+function onThreadScroll() {
+  const el = threadElement.value
+  if (!el) return
+  nearBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+}
 
 async function scrollToEnd() {
   await nextTick()
-  if (threadElement.value) {
-    threadElement.value.scrollTop = threadElement.value.scrollHeight
+  const el = threadElement.value
+  if (el && nearBottom.value) {
+    el.scrollTop = el.scrollHeight
   }
 }
 
@@ -61,7 +72,15 @@ async function submit() {
   draft.value = ''
   await chat.send(message)
   if (chat.error) draft.value = message
+  nearBottom.value = true
   await scrollToEnd()
+}
+
+function retry() {
+  const message = draft.value.trim()
+  if (!message || chat.sending) return
+  draft.value = ''
+  void chat.send(message)
 }
 
 watch(sessionId, async id => {
@@ -70,6 +89,8 @@ watch(sessionId, async id => {
     await scrollToEnd()
   }
 }, { immediate: true })
+
+watch(() => chat.messages, () => scrollToEnd(), { deep: true })
 
 onMounted(scrollToEnd)
 onBeforeUnmount(() => chat.resetActive())
@@ -90,5 +111,7 @@ onBeforeUnmount(() => chat.resetActive())
 .session-header h1 { margin: 6px 0; font-size: 22px; }
 .session-header p { margin: 0; color: #666; }
 .thread { flex: 1; overflow: auto; padding-right: 8px; }
-.composer-alert { margin: 12px 0; }
+.composer-alert { margin: 12px 0 0; }
+.error-row { display: flex; align-items: flex-start; gap: 10px; }
+.error-row .el-button { margin-top: 14px; }
 </style>

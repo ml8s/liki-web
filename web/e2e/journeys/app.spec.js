@@ -43,7 +43,7 @@ test.describe('Authenticated app shell', () => {
       await route.fulfill(json({ entitlements: [], allowed_skills: ['liki-naming'] }));
     });
     await page.route('**/api/chat/sessions', async route => route.fulfill(json([])));
-    await page.route('**/api/chat/products', async route => route.fulfill(json([])));
+    await page.route('**/api/chat/products', async route => route.fulfill(json({ products: [] })));
     await page.route('**/api/profiles**', async route => route.fulfill(json({ profiles: [], next_cursor: '' })));
 
     for (const { path, heading } of protectedPages) {
@@ -68,7 +68,7 @@ test.describe('Authenticated app shell', () => {
       { id: 'msg_1', session_id: 'chat_1', user_id: 'usr_test', role: 'user', kind: 'text', content: '你好', created_at: '2026-01-01T00:01:00Z' },
       { id: 'msg_2', session_id: 'chat_1', user_id: 'usr_test', role: 'assistant', kind: 'text', content: '你好，请提供信息。', created_at: '2026-01-01T00:02:00Z' },
     ])));
-    await page.route('**/api/chat/products', async route => route.fulfill(json([])));
+    await page.route('**/api/chat/products', async route => route.fulfill(json({ products: [] })));
 
     await page.goto('/app/chat/chat_1');
     await expect(page.getByRole('heading', { name: '起名咨询' })).toBeVisible();
@@ -100,14 +100,14 @@ test('paid return confirms entitlement and jumps straight into a session', async
   let productRequest = 0;
   await page.route('**/api/chat/products', route => {
     productRequest += 1;
-    return route.fulfill(json([{
+    return route.fulfill(json({ products: [{
       id: 'liki-chat',
       name: 'Liki Chat',
       description: 'All four skills.',
       skills: ['liki-naming', 'liki-bazi', 'liki-divination', 'liki-fengshui'],
       prices: { CNY: 2990, USD: 2990 },
       purchased: entitlementRequest > 1,
-    }]));
+    }] }));
   });
 
   await page.route('**/api/profiles**', route => route.fulfill(json({ profiles: [profile], next_cursor: '' })));

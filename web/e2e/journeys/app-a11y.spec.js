@@ -52,8 +52,8 @@ test.describe('App accessibility audit', () => {
       await page.route('**/api/chat/sessions', r => r.fulfill(json([session])))
       await page.route('**/api/chat/sessions/chat_1', r => r.fulfill(json(session)))
       await page.route('**/api/chat/sessions/chat_1/messages', r => r.fulfill(json([message])))
-      await page.route('**/api/chat/products', r => r.fulfill(json([product])))
-      await page.route('**/api/chat/orders', r => r.fulfill(json([order])))
+      await page.route('**/api/chat/products', r => r.fulfill(json({ products: [product] })))
+      await page.route('**/api/chat/orders', r => r.fulfill(json({ orders: [order] })))
       await page.route('**/api/me/sessions', r => r.fulfill(json([])))
       await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
 

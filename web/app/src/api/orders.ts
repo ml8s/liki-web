@@ -14,6 +14,7 @@ export interface ChatOrder {
   paid_at: string | null
 }
 
-export function fetchChatOrders(): Promise<ChatOrder[]> {
-  return get<ChatOrder[]>('/api/chat/orders')
+export async function fetchChatOrders(): Promise<ChatOrder[]> {
+  const payload = await get<{ orders: ChatOrder[] }>('/api/chat/orders')
+  return payload.orders ?? []
 }
