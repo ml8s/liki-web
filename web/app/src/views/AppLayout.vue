@@ -1,5 +1,6 @@
 <template>
   <div class="app-shell">
+    <a href="#app-main" class="skip-link">跳到主要内容</a>
     <AppSidebar :email="auth.user?.email ?? ''" @logout="logout" />
 
     <header class="app-topbar">
@@ -7,7 +8,7 @@
       <el-button size="small" @click="logout">退出</el-button>
     </header>
 
-    <main class="app-main">
+    <main id="app-main" ref="mainEl" class="app-main" tabindex="-1">
       <router-view />
     </main>
 
@@ -16,8 +17,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { nextTick, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
@@ -26,9 +27,17 @@ import AppTabbar from '@/components/app/AppTabbar.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+const mainEl = ref<HTMLElement | null>(null)
 
 onMounted(async () => {
   await auth.loadMe()
+})
+
+// 路由切换后把焦点移到主内容，供键盘/读屏用户感知页面已变更。
+watch(() => route.fullPath, async () => {
+  await nextTick()
+  mainEl.value?.focus()
 })
 
 async function logout() {
@@ -42,6 +51,13 @@ async function logout() {
 <style scoped>
 .app-shell { min-height: 100vh; background: var(--liki-paper); }
 
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: var(--liki-primary); color: #fff;
+  padding: 10px 16px; border-radius: 0 0 8px 0; text-decoration: none;
+}
+.skip-link:focus { left: 0; }
+
 .app-topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 16px; background: var(--liki-ink); color: #fff;
@@ -51,6 +67,7 @@ async function logout() {
 .app-topbar .brand em { color: var(--liki-gold); font-style: normal; }
 
 .app-main { padding: 24px 16px 88px; }
+.app-main:focus { outline: none; }
 
 @media (min-width: 1024px) {
   .app-topbar { display: none; }
