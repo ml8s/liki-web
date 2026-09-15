@@ -31,6 +31,8 @@ export interface ChatMessage {
   kind: ChatMessageKind
   content: string
   created_at: string
+  /** 仅本地流式期间附加的推理内容（thinking-delta），服务端不回存 */
+  thinking?: string
 }
 
 export function fetchChatSessions(): Promise<ChatSession[]> {

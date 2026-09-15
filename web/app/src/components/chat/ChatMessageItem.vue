@@ -4,6 +4,14 @@
   </article>
   <article v-else :class="['message', message.role]" :data-role="message.role">
     <div class="role">{{ message.role === 'user' ? '我' : '顾问' }}</div>
+    <details
+      v-if="message.role === 'assistant' && message.thinking"
+      class="thinking"
+      :open="!message.content"
+    >
+      <summary>推理过程</summary>
+      <div class="thinking-body">{{ message.thinking }}</div>
+    </details>
     <div class="content">{{ message.content }}</div>
     <button
       v-if="message.role === 'assistant' && message.content"
@@ -71,6 +79,26 @@ function fallbackCopy(text: string, done: () => void) {
 .message.user { background: var(--liki-primary-tint); border-color: var(--liki-primary-border); }
 .role { margin-bottom: 6px; font-size: 12px; font-weight: 700; color: var(--liki-text-2); }
 .content { line-height: 1.65; white-space: pre-wrap; color: var(--liki-ink); }
+.thinking {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px dashed var(--liki-line);
+  border-radius: 8px;
+  background: var(--liki-bg);
+}
+.thinking summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--liki-text-2);
+  user-select: none;
+}
+.thinking-body {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--liki-text-2);
+  white-space: pre-wrap;
+}
 .copy {
   margin-top: 10px;
   border: none;

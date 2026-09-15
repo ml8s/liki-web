@@ -107,12 +107,14 @@ export const useChatStore = defineStore('chat', {
       }
       this.messages.push(assistant)
 
-      // 流式渲染节流：累积 delta，≤120ms 刷新一次 content（借命名 chat 实践），
-      // 避免高频 delta 触发响应式全量重渲染。
+      // 流式渲染节流：累积 delta，≤120ms 刷新一次（借命名 chat 实践），
+      // 避免高频 delta 触发响应式全量重渲染。thinking-delta 一并节流。
       let pendingText = ''
+      let pendingThinking = ''
       let textTimer: ReturnType<typeof setTimeout> | null = null
       const flushText = () => {
         assistant.content = pendingText
+        assistant.thinking = pendingThinking
         textTimer = null
       }
 
@@ -126,6 +128,11 @@ export const useChatStore = defineStore('chat', {
             this.phase = event.content || this.phase
             return
           }
+          if (event.type === 'thinking-delta') {
+            pendingThinking += event.content ?? ''
+            if (!textTimer) textTimer = setTimeout(flushText, 120)
+            return
+          }
           if (event.type === 'text-delta') {
             this.phase = ''
             pendingText += event.content ?? ''
@@ -135,8 +142,11 @@ export const useChatStore = defineStore('chat', {
 
         if (textTimer) { clearTimeout(textTimer); textTimer = null }
         assistant.content = pendingText
+        assistant.thinking = pendingThinking
         this.messages = this.messages.filter(item => item.id !== userId && item.id !== assistantId)
-        this.messages.push(result.user_message, result.assistant_message)
+        const finalAssistant = result.assistant_message
+        if (pendingThinking) finalAssistant.thinking = pendingThinking
+        this.messages.push(result.user_message, finalAssistant)
         const index = this.sessions.findIndex(item => item.id === session.id)
         if (index >= 0) {
           this.sessions[index] = result.session
@@ -152,6 +162,7 @@ export const useChatStore = defineStore('chat', {
         streamController = null
         if (textTimer) { clearTimeout(textTimer); textTimer = null }
         assistant.content = pendingText
+        assistant.thinking = pendingThinking
         try {
           this.messages = await fetchChatMessages(session.id)
         } catch {
