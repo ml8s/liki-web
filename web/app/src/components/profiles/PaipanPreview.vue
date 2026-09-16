@@ -30,7 +30,17 @@
                 <div class="gl font-serif">{{ item.gan }}{{ item.zhi }}</div>
                 <div class="sub">{{ item.shiShen }}</div>
                 <div class="sub nayin">{{ item.naYin }}</div>
+                <div v-if="item.cangGan" class="sub cang">{{ item.cangGan }}</div>
+                <span v-if="item.isVoid" class="void-tag">旬空</span>
               </div>
+            </div>
+            <div v-if="sanYuanText" class="san-yuan">
+              <span class="sy-label">三元</span>
+              <span class="sy-body">{{ sanYuanText }}</span>
+            </div>
+            <div v-if="shenShaList.length" class="shensha">
+              <span class="sy-label">神煞</span>
+              <span v-for="s in shenShaList" :key="s" class="ss-chip">{{ s }}</span>
             </div>
             <template v-if="daYunSteps.length">
               <div class="sec-title">大运</div>
@@ -81,6 +91,19 @@
                 <div class="dname">{{ d.name }}</div>
               </div>
             </div>
+            <template v-if="liuNianXing">
+              <div class="sec-title">流年飞星（{{ liuNianXing.year }}）</div>
+              <div class="ln-row">入中星：<strong>{{ liuNianXing.ru_zhong }}</strong></div>
+              <div class="fly-grid">
+                <div
+                  v-for="f in flyStars"
+                  :key="f.gong_num"
+                  :class="['fly-cell', { center: f.gong_num === 5 }]"
+                >
+                  <div class="fly-name">{{ f.xing_name }}</div>
+                </div>
+              </div>
+            </template>
           </el-tab-pane>
         </el-tabs>
         <div class="correction">{{ correction }}</div>
@@ -102,6 +125,7 @@ import {
   engineZiweiFullChart,
   type BazhaiChart,
   type BaziChartData,
+  type BaziSanYuan,
   type BaziZhuFull,
   type BaziYongShen,
   type ZiweiChart,
@@ -116,22 +140,56 @@ const error = ref('')
 const correction = ref('')
 const tab = ref('bazi')
 const baziChart = ref<BaziChartData | null>(null)
-const baziFull = ref<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull } | null>(null)
+const baziFull = ref<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; san_yuan?: BaziSanYuan } | null>(null)
 const ziwei = ref<ZiweiChart | null>(null)
 const bazhai = ref<BazhaiChart | null>(null)
 const yongShen = ref<BaziYongShen | null>(null)
 
 const anyResult = computed(() => !!(baziChart.value || ziwei.value || bazhai.value))
 
+function zhuText(p?: { gan: string; zhi: string }): string {
+  return p ? `${p.gan}${p.zhi}` : ''
+}
+
 const baziPillars = computed(() => {
   const src = baziFull.value ?? (baziChart.value as unknown as { nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull } | null)
   if (!src) return []
+  const map = (label: string, p: BaziZhuFull) => {
+    const cang = p.cang_gan ? [p.cang_gan.main, p.cang_gan.mid, p.cang_gan.minor].filter(Boolean).join(' ') : ''
+    return {
+      label,
+      gan: p.gan,
+      zhi: p.zhi,
+      naYin: p.na_yin ?? '',
+      shiShen: p.shi_shens?.[0]?.shi_shen ?? '',
+      cangGan: cang ? `藏干 ${cang}` : '',
+      isVoid: !!p.is_void,
+    }
+  }
   return [
-    { label: '年柱', gan: src.nian.gan, zhi: src.nian.zhi, naYin: src.nian.na_yin ?? '', shiShen: src.nian.shi_shen ?? '' },
-    { label: '月柱', gan: src.yue.gan, zhi: src.yue.zhi, naYin: src.yue.na_yin ?? '', shiShen: src.yue.shi_shen ?? '' },
-    { label: '日柱', gan: src.ri.gan, zhi: src.ri.zhi, naYin: src.ri.na_yin ?? '', shiShen: src.ri.shi_shen ?? '' },
-    { label: '时柱', gan: src.shi.gan, zhi: src.shi.zhi, naYin: src.shi.na_yin ?? '', shiShen: src.shi.shi_shen ?? '' },
+    map('年柱', src.nian),
+    map('月柱', src.yue),
+    map('日柱', src.ri),
+    map('时柱', src.shi),
   ]
+})
+
+const sanYuanText = computed(() => {
+  const sy = baziFull.value?.san_yuan
+  if (!sy) return ''
+  return `胎元 ${zhuText(sy.tai_yuan)} · 命宫 ${zhuText(sy.ming_gong)} · 身宫 ${zhuText(sy.shen_gong)}`
+})
+
+const shenShaList = computed(() => {
+  const src = baziFull.value
+  if (!src) return []
+  const names = new Set<string>()
+  for (const p of [src.nian, src.yue, src.ri, src.shi]) {
+    for (const s of p.shen_sha ?? []) {
+      if (s.name) names.add(s.name)
+    }
+  }
+  return [...names]
 })
 
 const daYunSteps = computed(() => baziChart.value?.da_yun?.steps ?? [])
@@ -160,11 +218,11 @@ const yongShenSummary = computed(() => {
 })
 
 const ziweiGongs = computed(() => ziwei.value?.gong_wei ?? [])
-function mainStars(g: { xing_yao: Array<{ name: string; is_zhu_xing?: boolean }> }) {
-  return g.xing_yao.filter(s => s.is_zhu_xing).map(s => s.name).join(' ')
+function mainStars(g: { xing_yao: Array<{ name: string; is_zhu_xing?: boolean; liang_du?: string }> }) {
+  return g.xing_yao.filter(s => s.is_zhu_xing).map(s => (s.liang_du ? `${s.name}${s.liang_du}` : s.name)).join(' ')
 }
-function minorStars(g: { xing_yao: Array<{ name: string; is_zhu_xing?: boolean }> }) {
-  return g.xing_yao.filter(s => !s.is_zhu_xing).map(s => s.name).join(' ')
+function minorStars(g: { xing_yao: Array<{ name: string; is_zhu_xing?: boolean; liang_du?: string }> }) {
+  return g.xing_yao.filter(s => !s.is_zhu_xing).map(s => (s.liang_du ? `${s.name}${s.liang_du}` : s.name)).join(' ')
 }
 
 const BAZHAI_AUS = ['sheng_qi', 'tian_yi', 'yan_nian', 'fu_wei']
@@ -174,6 +232,15 @@ const bazhaiDirs = computed(() => {
   return Object.entries(dirs).map(([key, values]) => ({
     name: key, gua: (values ?? [''])[0], good: BAZHAI_AUS.includes(key),
   }))
+})
+
+const liuNianXing = computed(() => bazhai.value?.liu_nian_xing ?? null)
+const flyStars = computed(() => {
+  const gong = liuNianXing.value?.gong_wei
+  if (!gong || gong.length !== 9) return []
+  // gong_num 1-9：按洛书九宫排 3x3（1下、2右上…按洛书序）
+  const order = [4, 9, 2, 3, 5, 7, 8, 1, 6]
+  return order.map(n => gong.find(g => g.gong_num === n) ?? { gong_num: n, xing_name: '—' })
 })
 
 async function compute() {
@@ -243,6 +310,20 @@ async function compute() {
 .pillar .gl { font-size: 22px; font-weight: 700; }
 .pillar .sub { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
 .pillar .nayin { color: var(--liki-text-3); }
+.pillar .cang { color: var(--liki-text-3); font-size: 11px; }
+.void-tag { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 999px; background: var(--liki-gold-tint); color: #8a6a2f; font-size: 11px; }
+
+.san-yuan, .shensha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: 13px; }
+.sy-label { color: var(--liki-text-3); flex: 0 0 2em; }
+.sy-body { color: var(--liki-text-1); }
+.shensha { gap: 6px; }
+.ss-chip { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--liki-line); background: var(--liki-surface); color: var(--liki-text-2); font-size: 12px; }
+
+.ln-row { font-size: 13px; color: var(--liki-text-2); margin-bottom: 10px; }
+.fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; width: min(320px, 100%); }
+.fly-cell { background: var(--liki-surface); padding: 10px 4px; text-align: center; }
+.fly-cell.center { background: var(--liki-gold-tint); }
+.fly-name { font-size: 12px; color: var(--liki-text-2); }
 
 .sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; color: var(--liki-text-1); }
 .dayun { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }

@@ -83,13 +83,28 @@ export interface BaziYongShen {
   ge_ju?: { ge_ju?: string; yong_fa?: string; yong?: string; xi?: string; ji?: string }
 }
 
-export interface BaziZhuFull extends BaziZhu {
-  shi_shen?: string
-  cang_gan?: string[]
+export interface BaziShenSha {
+  name: string
+  category?: string
+  description?: string
 }
 
-export function engineBaziFullChart(chart: unknown): Promise<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; yong_shen?: BaziYongShen }> {
-  return engineRpc<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; yong_shen?: BaziYongShen }>('bazi.fullchart', { chart })
+export interface BaziZhuFull extends BaziZhu {
+  /** 十神数组（首项为天干十神） */
+  shi_shens?: Array<{ shi_shen: string; name?: string }>
+  cang_gan?: { main?: string; mid?: string; minor?: string }
+  shen_sha?: BaziShenSha[]
+  is_void?: boolean
+}
+
+export interface BaziSanYuan {
+  tai_yuan?: { gan: string; zhi: string }
+  ming_gong?: { gan: string; zhi: string }
+  shen_gong?: { gan: string; zhi: string }
+}
+
+export function engineBaziFullChart(chart: unknown): Promise<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; yong_shen?: BaziYongShen; san_yuan?: BaziSanYuan }> {
+  return engineRpc<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; yong_shen?: BaziYongShen; san_yuan?: BaziSanYuan }>('bazi.fullchart', { chart })
 }
 
 export interface ZiweiGong {
@@ -112,9 +127,16 @@ export function engineZiweiFullChart(chart: unknown): Promise<ZiweiChart> {
   return engineRpc<ZiweiChart>('ziwei.fullchart', { chart })
 }
 
+export interface BazhaiLiuNianXing {
+  year?: number
+  ru_zhong?: string
+  gong_wei?: Array<{ gong_num: number; xing_name: string; wuxing?: string; ru_zhong?: boolean }>
+}
+
 export interface BazhaiChart {
   ming_gua: { gua: { name: string; wuxing?: string }; group: string }
   ba_zhai_dirs: Record<string, string[]>
+  liu_nian_xing?: BazhaiLiuNianXing
 }
 
 export function engineBazhaiChart(birthYear: number, gender: string): Promise<BazhaiChart> {
