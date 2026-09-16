@@ -66,7 +66,7 @@
             class="recent-session"
             @click="router.push(`/chat/${s.id}`)"
           >
-            <span class="rs-title">{{ s.title }}</span>
+            <span class="rs-title">{{ s.profileName || s.title }}</span>
             <span class="rs-meta">{{ skillLabel(s.skill) }} · {{ formatTime(s.last_message_at ?? s.updated_at) }}</span>
           </div>
         </div>
@@ -95,7 +95,12 @@ const entitlements = useEntitlementsStore()
 const loading = computed(() => chat.loadingSessions || profiles.loading || entitlements.loading)
 const purchased = computed(() => entitlements.allowedSkills.length > 0)
 const recentProfiles = computed(() => profiles.list.slice(0, 3))
-const recentSessions = computed(() => chat.sessions.slice(0, 3))
+const recentSessions = computed(() =>
+  chat.sessions.slice(0, 3).map(s => ({
+    ...s,
+    profileName: profiles.list.find(p => p.id === s.profile_id)?.nickname ?? '',
+  })),
+)
 
 function formatTime(value: string) {
   if (!value) return ''
