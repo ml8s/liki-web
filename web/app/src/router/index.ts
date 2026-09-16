@@ -22,7 +22,7 @@ const router = createRouter({
         { path: 'chat', name: 'chat', component: () => import('@/views/ChatListView.vue'), meta: { title: '统一 Chat' } },
         { path: 'chat/:sessionId', name: 'chat-session', component: () => import('@/views/ChatSessionView.vue'), meta: { title: '咨询' } },
         { path: 'orders', name: 'orders', component: () => import('@/views/OrdersView.vue'), meta: { title: '订单' } },
-        { path: 'account', name: 'account', component: () => import('@/views/AccountView.vue'), meta: { title: '账户' } },
+        { path: 'account', name: 'account', component: () => import('@/views/AccountView.vue'), meta: { title: '账户设置' } },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },

@@ -4,11 +4,16 @@
     <div class="side-slogan font-serif">懂命理，用 Liki</div>
 
     <nav class="side-nav">
-      <router-link to="/" exact-active-class="on">工作台</router-link>
-      <router-link to="/profiles" active-class="on">档案</router-link>
-      <router-link to="/chat" active-class="on">Chat</router-link>
-      <router-link to="/orders" active-class="on">订单</router-link>
-      <router-link to="/account" active-class="on">账户</router-link>
+      <div class="nav-group">
+        <router-link to="/" exact-active-class="on">工作台</router-link>
+        <router-link to="/profiles" active-class="on">档案</router-link>
+        <router-link to="/chat" active-class="on">Chat</router-link>
+      </div>
+      <div class="nav-group nav-group-secondary">
+        <div class="nav-label">账户</div>
+        <router-link to="/orders" active-class="on">订单</router-link>
+        <router-link to="/account" active-class="on">账户设置</router-link>
+      </div>
     </nav>
 
     <div class="side-user">
@@ -38,7 +43,10 @@ defineEmits<{ logout: [] }>()
 .side-brand { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #fff; text-decoration: none; }
 .side-brand em { color: var(--liki-gold); font-style: normal; }
 .side-slogan { font-size: 12px; color: #c0c5cc; margin: 6px 0 24px; }
-.side-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.side-nav { display: flex; flex-direction: column; gap: 20px; flex: 1; }
+.nav-group { display: flex; flex-direction: column; gap: 4px; }
+.nav-group-secondary { border-top: 1px solid rgba(255,255,255,.12); padding-top: 16px; }
+.nav-label { font-size: 12px; color: #8b93a1; letter-spacing: 1px; padding: 0 12px 4px; }
 .side-nav a {
   color: #cfd3db; text-decoration: none; padding: 10px 12px;
   border-radius: 6px; font-size: 15px;
