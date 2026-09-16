@@ -9,6 +9,7 @@ import {
   type ChatSession,
 } from '@/api/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
+import { useProfilesStore } from '@/stores/profiles'
 import { toUserMessage } from '@/utils/errors'
 
 let streamController: AbortController | null = null
@@ -59,7 +60,9 @@ export const useChatStore = defineStore('chat', {
       if (!entitlements.hasSkill(skill)) {
         throw new Error('当前订单未开通该 skill')
       }
-      const session = await createChatSession(profileId, skill, `${skillLabel(skill)}咨询`)
+      const nickname = useProfilesStore().list.find(p => p.id === profileId)?.nickname ?? ''
+      const title = nickname ? `${nickname} · ${skillLabel(skill)}咨询` : `${skillLabel(skill)}咨询`
+      const session = await createChatSession(profileId, skill, title)
       this.sessions.unshift(session)
       return session
     },
