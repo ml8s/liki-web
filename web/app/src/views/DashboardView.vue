@@ -108,6 +108,12 @@ function formatTime(value: string) {
 }
 
 function startService(key: string) {
+  const svc = serviceByKey(key)
+  // 特殊入口（如合盘 → /synastry）不走对话。
+  if (svc?.route) {
+    void router.push(svc.route)
+    return
+  }
   if (!profiles.list.length) {
     // 无档案：先建档，intent 带到档案详情解读卡预选。
     try { sessionStorage.setItem('liki-service', key) } catch { /* ignore */ }

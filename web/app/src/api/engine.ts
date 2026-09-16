@@ -142,3 +142,35 @@ export interface BazhaiChart {
 export function engineBazhaiChart(birthYear: number, gender: string): Promise<BazhaiChart> {
   return engineRpc<BazhaiChart>('bazhai.chart', { birth_year: birthYear, gender })
 }
+
+export interface BaziBondPair {
+  jia_zhu: string
+  yi_zhu: string
+  jia_gan: string
+  yi_gan: string
+  jia_zhi: string
+  yi_zhi: string
+  gan_guan_xi: string
+  zhi_guan_xi: string
+}
+
+export interface BaziBondNayinPair {
+  jia_zhu: string
+  yi_zhu: string
+  jia_na_yin: string
+  yi_na_yin: string
+  relation: string
+}
+
+export interface BaziBondResult {
+  zhu_cross?: { pairs: BaziBondPair[] }
+  shi_shen_cross?: { jia_dui_yi: Record<string, string>; yi_dui_jia: Record<string, string> }
+  nayin_cross?: { pairs: BaziBondNayinPair[] }
+  shensha_cross?: Record<string, { jia_ru_yi: boolean; yi_ru_jia: boolean }>
+  structure?: unknown
+}
+
+/** 八字合盘：输入双方最小命盘（bazi.chart 结果）。 */
+export function engineBaziBond(chartA: unknown, chartB: unknown): Promise<BaziBondResult> {
+  return engineRpc<BaziBondResult>('bazi.bond', { a: { chart: chartA }, b: { chart: chartB } })
+}
