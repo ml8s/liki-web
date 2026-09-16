@@ -27,7 +27,7 @@
 | en | **For Chinese Metaphysics, use Liki.**（推荐；SEO 备选：For Chinese metaphysics, use Liki.） |
 
 - i18n key：`site.slogan`（单一来源，全站复用）
-- 标点：中文用全角「，」；英文两句号。zh-Hant 用「靈機」。
+- 标点：中文用全角「，」；英文两句号。zh-Hant 用「Liki」（brand v4.0：中文亦用拉丁品牌名 Liki，不再用「靈機」）。
 
 ## 2. 触点矩阵（"重复"的落点）
 
