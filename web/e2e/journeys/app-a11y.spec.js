@@ -34,6 +34,7 @@ const pages = [
   { path: '/app/profiles', name: 'profiles', marker: '.profile-card' },
   { path: '/app/profiles/new', name: 'profile-new', marker: '.birth-form' },
   { path: '/app/profiles/p_1', name: 'profile-detail', marker: '.paipan-preview' },
+  { path: '/app/synastry', name: 'synastry', marker: '.b-form' },
   { path: '/app/chat', name: 'chat-list', marker: '.picker-row' },
   { path: '/app/chat/chat_1', name: 'chat-session', marker: '.thread' },
   { path: '/app/orders', name: 'orders', marker: '.orders-table, .order-cards' },

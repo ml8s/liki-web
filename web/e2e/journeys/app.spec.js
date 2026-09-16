@@ -4,6 +4,7 @@ import { test, expect } from '@playwright/test';
 const protectedPages = [
   { path: '/app/', heading: '工作台' },
   { path: '/app/profiles', heading: '档案' },
+  { path: '/app/synastry', heading: '合盘' },
   { path: '/app/chat', heading: 'Liki Chat' },
   { path: '/app/orders', heading: '订单' },
   { path: '/app/account', heading: '账户' },

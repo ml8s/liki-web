@@ -143,15 +143,30 @@ export function engineBazhaiChart(birthYear: number, gender: string): Promise<Ba
   return engineRpc<BazhaiChart>('bazhai.chart', { birth_year: birthYear, gender })
 }
 
+export interface BaziGanRelation {
+  gan_a: string
+  gan_b: string
+  type: string
+  relation: string
+}
+
+export interface BaziZhiRelation {
+  zhi_a: string
+  zhi_b: string
+  type: string
+  detail: string
+}
+
 export interface BaziBondPair {
+  /** 柱位键：nian/yue/ri/shi */
   jia_zhu: string
   yi_zhu: string
   jia_gan: string
   yi_gan: string
   jia_zhi: string
   yi_zhi: string
-  gan_guan_xi: string
-  zhi_guan_xi: string
+  gan_guan_xi: BaziGanRelation
+  zhi_guan_xi: BaziZhiRelation
 }
 
 export interface BaziBondNayinPair {

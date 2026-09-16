@@ -6,7 +6,7 @@
 
     <el-card class="block" shadow="never">
       <template #header><span class="card-title">第一步 · 选择档案（你或对方）</span></template>
-      <el-select v-model="profileAId" placeholder="选择档案" style="width: 100%" @change="profileAId && loadA()">
+      <el-select v-model="profileAId" aria-label="选择档案" placeholder="选择档案" style="width: 100%" @change="profileAId && loadA()">
         <el-option v-for="p in profiles.list" :key="p.id" :value="p.id" :label="p.nickname" />
       </el-select>
       <p v-if="!profiles.list.length" class="hint">还没有档案，先<a href="/app/profiles/new">建立档案</a>再合盘。</p>
@@ -193,19 +193,26 @@ async function compute() {
   }
 }
 
+const ZHU_LABELS: Record<string, string> = { nian: '年柱', yue: '月柱', ri: '日柱', shi: '时柱' }
+
+function relText(rel: { relation?: string; detail?: string; type?: string }): string {
+  return rel.relation || rel.detail || rel.type || ''
+}
+
 const dayMasterRel = computed(() => {
   const pairs = result.value?.zhu_cross?.pairs ?? []
-  const pair = pairs.find(p => p.jia_zhu === '日柱' && p.yi_zhu === '日柱')
+  const pair = pairs.find(p => p.jia_zhu === 'ri' && p.yi_zhu === 'ri')
   if (!pair) return ''
-  return `${aName.value} 日主 ${pair.jia_gan}${pair.jia_zhi} ↔ 对方日主 ${pair.yi_gan}${pair.yi_zhi} · 天干 ${pair.gan_guan_xi} · 地支 ${pair.zhi_guan_xi}`
+  return `${aName.value} 日主 ${pair.jia_gan}${pair.jia_zhi} ↔ 对方日主 ${pair.yi_gan}${pair.yi_zhi} · 天干 ${relText(pair.gan_guan_xi)} · 地支 ${relText(pair.zhi_guan_xi)}`
 })
 
 const keyRels = computed(() => {
   const pairs = result.value?.zhu_cross?.pairs ?? []
   const set = new Set<string>()
   for (const p of pairs) {
-    if (p.zhi_guan_xi && /六合|三合|六冲|六害|相刑/.test(p.zhi_guan_xi)) {
-      set.add(`${p.jia_zhu}·${p.jia_gan}${p.jia_zhi} — ${p.yi_zhu}·${p.yi_gan}${p.yi_zhi}：${p.zhi_guan_xi}`)
+    const t = relText(p.zhi_guan_xi)
+    if (/六合|三合|六冲|六害|相刑/.test(t)) {
+      set.add(`${ZHU_LABELS[p.jia_zhu] ?? p.jia_zhu}·${p.jia_gan}${p.jia_zhi} — ${ZHU_LABELS[p.yi_zhu] ?? p.yi_zhu}·${p.yi_gan}${p.yi_zhi}：${t}`)
     }
   }
   return [...set].slice(0, 8)
@@ -215,12 +222,13 @@ const shiShenRows = computed(() => {
   const cross = result.value?.shi_shen_cross
   if (!cross) return []
   const rows: string[] = []
+  const short: Record<string, string> = { nian: '年', yue: '月', ri: '日', shi: '时' }
   for (const k of ['nian_gan', 'yue_gan', 'ri_gan', 'shi_gan']) {
     const a = cross.jia_dui_yi?.[k]
     const bb = cross.yi_dui_jia?.[k]
-    const label = k.replace('_gan', '')
-    if (a) rows.push(`${aName.value}${label}看对方：${a}`)
-    if (bb) rows.push(`对方${label}看${aName.value}：${bb}`)
+    const label = short[k.replace('_gan', '')] ?? k.replace('_gan', '')
+    if (a) rows.push(`${aName.value}${label}柱看对方：${a}`)
+    if (bb) rows.push(`对方${label}柱看${aName.value}：${bb}`)
   }
   return rows
 })
@@ -229,8 +237,8 @@ async function startInterpretation() {
   const p = profileA.value
   const bProfile = b.value
   if (!p) return
-  const bInfo = `对方：${bProfile.gender === 'male' ? '男' : '女'}，公历 ${bProfile.birth_date} ${bProfile.birth_time}${bProfile.birth_place ? `，出生地 ${bProfile.birth_place}` : ''}`
-  chat.pendingIntent = `请为我（${p.nickname}）与${bInfo}做合盘解读。`
+  const bInfo = `${bProfile.gender === 'male' ? '男' : '女'}，公历 ${bProfile.birth_date} ${bProfile.birth_time}${bProfile.birth_place ? `，出生地 ${bProfile.birth_place}` : ''}`
+  chat.pendingIntent = `请为我（${p.nickname}）与对方做合盘解读。对方信息：${bInfo}。`
   const existing = chat.sessions.find(s => s.profile_id === p.id)
   if (existing) {
     void router.push(`/chat/${existing.id}`)
@@ -245,7 +253,7 @@ async function startInterpretation() {
 }
 
 onMounted(async () => {
-  await Promise.all([profiles.loadList(), entitlements.load()])
+  await Promise.all([profiles.loadList(), entitlements.load(), chat.loadSessions()])
 })
 </script>
 

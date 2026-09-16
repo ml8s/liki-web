@@ -146,7 +146,7 @@ onMounted(async () => {
 .status-text { font-size: 14px; }
 
 .services {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
   margin-bottom: 24px;
 }
 .service-card {
