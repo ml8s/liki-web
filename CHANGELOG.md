@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.09.16 —— brand renormalized to Liki
+
+- 主品牌统一为 `Liki`，不再设置中文核心品牌名；中文展示口径为 `Liki 命理`。
+- 唯一对外 slogan 更新为「懂命理，用 Liki。」，同步 README、i18n、静态页、SPA、E2E 和品牌契约测试。
+- 旧报告提示词口径改为 `Liki 命书` / `Liki 合盘`；内嵌 unified skill 同步到 runtime `2026.09.16.1`。
+- 历史报告与归档营销材料不重写。
+
 ## 2026.09.14 —— 统一 Chat 平台：档案域 + Chat 绑定 + 工具切面 + feedback-v1
 
 - **档案域（新平台）**：profiles CRUD + 乐观锁 + 软删 + cursor 分页 + 配额 + owner 校验（纯用户信息，无 pan）；前端建档/编辑/免费排盘预览（TS 直连引擎 RPC，不进库）

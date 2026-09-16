@@ -1,11 +1,11 @@
-# Slogan 落地计划：懂命理，用灵机
+# Slogan 落地计划：懂命理，用 Liki
 
 - 状态：**已实施**（og-image 按用户指示未动）
-- 目标：让「懂命理，用灵机」成为品牌记忆锚点，在关键触点**一致重复**，占领用户心智
+- 目标：让「懂命理，用 Liki」成为品牌记忆锚点，在关键触点**一致重复**，占领用户心智
 - 范围：营销站（Astro，3 locale）+ 登录后 App（Vue）
 
 ## 已定决策（本轮拍板）
-- en slogan：**Know fate. Use Liki.**
+- en slogan：**For Chinese Metaphysics, use Liki.**
 - 首页 H1 保留关键词，slogan 作独立标语行（不动 H1）
 - header 常驻 tagline：仅桌面端显示
 - `og-image.png`：**未改动**
@@ -22,9 +22,9 @@
 
 | locale | 文案 |
 |---|---|
-| zh-Hant | **懂命理，用靈機** |
-| zh-Hans | **懂命理，用灵机** |
-| en | **Know fate. Use Liki.**（推荐；SEO 备选：For Chinese metaphysics, use Liki.） |
+| zh-Hant | **懂命理，用 Liki** |
+| zh-Hans | **懂命理，用 Liki** |
+| en | **For Chinese Metaphysics, use Liki.**（推荐；SEO 备选：For Chinese metaphysics, use Liki.） |
 
 - i18n key：`site.slogan`（单一来源，全站复用）
 - 标点：中文用全角「，」；英文两句号。zh-Hant 用「靈機」。
@@ -36,13 +36,13 @@
 | 1 | 营销站 · 首页 hero | H1 下方 | **大号宋体标语**（主曝光） | 每访 |
 | 2 | 营销站 · header | 品牌字右侧 | 小号 tagline（常驻） | 每页 |
 | 3 | 营销站 · footer | 版权上方 | 一行 slogan | 每页 |
-| 4 | 营销站 · 产品页 CTA | 页面底部转化区 | slogan + 按钮（"懂命理，用靈機" → 开始） | 每产品页 |
+| 4 | 营销站 · 产品页 CTA | 页面底部转化区 | slogan + 按钮（"懂命理，用 Liki" → 开始） | 每产品页 |
 | 5 | 营销站 · 404 | 中央 | slogan + 返回首页 | 异常时 |
 | 6 | 营销站 · meta/SEO | `<title>` / `og:description` / `twitter` | 每页 meta 尾缀 slogan | 每页 |
 | 7 | 分享卡 | `og-image.png` | 图上叠加 slogan | 每次分享 |
 | 8 | App · 登录页 | 品牌区 | slogan 作副标 | 每次登录 |
 | 9 | App · Shell header | `Liki·命理` 下方 | 小号 tagline（常驻） | 每次使用 |
-| 10 | App · 空态/加载 | 文案 | 语境化变体（如"还没有档案 · 懂命理，用灵机"） | 按需 |
+| 10 | App · 空态/加载 | 文案 | 语境化变体（如"还没有档案 · 懂命理，用 Liki"） | 按需 |
 
 > 首页触点数：1+2+3+6+7 = **5 处**；其余每页至少 3 处（2+3+6）。既密集又不打扰。
 
@@ -74,7 +74,7 @@
 
 ## 6. 开放项（需你定）
 
-1. en slogan 采用 **"Know fate. Use Liki."**（推荐）还是 SEO 向的 "For Chinese metaphysics, use Liki."？
+1. en slogan 采用 **"For Chinese Metaphysics, use Liki."**（推荐）还是 SEO 向的 "For Chinese metaphysics, use Liki."？
 2. 首页 hero 是否把 slogan 提升为主标题（会牺牲部分 SEO 关键词）？——**建议不提升**，保留 H1 关键词。
 3. header 常驻 tagline 是否要（会增加视觉密度）？——**建议要**，但仅桌面端显示。
 4. 是否重做 `og-image.png`（叠 slogan）？——**建议要**。

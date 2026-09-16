@@ -43,8 +43,8 @@ internal/
 ├── sse/           # 公共 Server-Sent Events 传输组件
 ├── payment/       # legacy 与 commerce 共用的支付运行时
 ├── naming/        # legacy：起名产品
-├── mingshu/       # legacy：灵机命书报告
-├── hepan/         # legacy：灵机合盘报告
+├── mingshu/       # legacy：Liki 命书报告
+├── hepan/         # legacy：Liki 合盘报告
 └── admin/         # 管理后台
 ```
 
@@ -97,7 +97,7 @@ CNY checkout 由 Xunhu 承接；USD checkout 由 Dodo 承接。生产环境按�
 web/src/pages/[locale]/  （Astro SSG，3 locales × 13 页面 = 39 pages）
 ├── index.astro           # 首页
 ├── naming.astro          # 起名产品页
-├── mingshu.astro        # 灵机命书产品页
+├── mingshu.astro        # Liki 命书产品页
 ├── mingshu/report.astro # 报告页（独立纯净页）
 ├── hepan.astro           # 合盘产品页
 ├── hepan/report.astro    # 报告页

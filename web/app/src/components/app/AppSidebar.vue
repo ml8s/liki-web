@@ -1,7 +1,7 @@
 <template>
   <aside class="app-sidebar">
     <router-link to="/" class="side-brand font-serif">Liki<em>·</em>命理</router-link>
-    <div class="side-slogan font-serif">懂命理，用靈機</div>
+    <div class="side-slogan font-serif">懂命理，用 Liki</div>
 
     <nav class="side-nav">
       <router-link to="/" exact-active-class="on">工作台</router-link>

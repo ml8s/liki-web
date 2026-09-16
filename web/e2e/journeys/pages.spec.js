@@ -10,7 +10,7 @@ import { I18N_KEY_RE } from '../helpers.js';
 const PAGES = [
   { path: '/zh-Hans/naming', name: 'naming (vanilla)',
     checks: [
-      { selector: '.font-brand', text: 'Liki 灵机' },
+      { selector: '.font-brand', text: 'Liki' },
       { selector: '.cta-section h2', text: '找到你的名字' },
     ] },
   { path: '/zh-Hans/naming/chat', marker: '.chat-shell',     name: 'chat (vanilla)' },
@@ -26,14 +26,14 @@ const PAGES = [
   { path: '/en/naming/chat',     marker: '.chat-shell',     name: 'chat EN (vanilla)' },
   { path: '/zh-Hant/naming', name: 'naming ZH-Hant',
     checks: [
-      { selector: '.font-brand', text: 'Liki 靈機' },
+      { selector: '.font-brand', text: 'Liki' },
       { selector: '.cta-section h2', text: '找到你的名字' },
     ] },
   { path: '/zh-Hant/naming/chat',     marker: '.chat-shell',     name: 'chat ZH-Hant' },
   // 着陆页（C 端）：slogan + 免费排盘 + 服务 + 信任
   { path: '/zh-Hans/',        name: 'index (C-end landing)',
     checks: [
-      { selector: '.landing-hero h1', text: '懂命理，用灵机' },
+      { selector: '.landing-hero h1', text: '懂命理，用 Liki' },
       { selector: '.landing-paipan', text: '免费排盘' },
       { selector: '.landing-services', text: '四大命理服务' },
       { selector: '.landing-trust', text: '为什么可信' },
@@ -41,7 +41,7 @@ const PAGES = [
   // 开发者 skill 页（原品牌门面迁址）
   { path: '/zh-Hans/skills/', name: 'skills (developer)',
     checks: [
-      { selector: '.hero-brand h1', text: 'Liki 灵机 — 命理 Skill' },
+      { selector: '.hero-brand h1', text: 'Liki — 专业命理 Skill' },
       { selector: '.install-cmd', text: 'npx skills add ml8s/liki' },
     ] },
   // Legal pages — marker renders, i18n resolves, keys don't leak
@@ -53,11 +53,11 @@ const PAGES = [
   { path: '/skills/liki/SKILL.md', marker: null,          name: 'skills',   resource: true },
   { path: '/zh-Hans/mingshu',   name: 'mingshu (vanilla)',
     checks: [
-      { selector: 'h1', text: '灵机命书' },
+      { selector: 'h1', text: 'Liki 命书' },
     ] },
   { path: '/zh-Hans/hepan',    name: 'hepan (vanilla)',
     checks: [
-      { selector: 'h1', text: '灵机合盘' },
+      { selector: 'h1', text: 'Liki 合盘' },
     ] },
   { path: '/en/hepan',       name: 'hepan EN',
     checks: [

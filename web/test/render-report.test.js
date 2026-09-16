@@ -164,7 +164,7 @@ describe('itemList', () => {
 describe('personsHtml', () => {
   it('renders person info header', () => {
     const r = globalThis.window.renderReport({
-      title: '灵机命书',
+      title: 'Liki 命书',
       persons: [{ name: '张明', label: '本人', birth: '1984年', sizhu: '甲子 丙寅', rizhu: '己土', shenqiang: '身弱', mingong: '天同太阴', shengong: '天机禄存', yongshen: '火' }],
       summary: {}
     });
@@ -188,7 +188,7 @@ describe('personsHtml', () => {
 
   it('renders multiple persons for hepan', () => {
     const r = globalThis.window.renderReport({
-      title: '灵机合盘',
+      title: 'Liki 合盘',
       persons: [
         { name: '张明', label: '甲方', birth: '1984年', sizhu: '甲子', rizhu: '己土', mingong: '天同', yongshen: '火' },
         { name: '李芳', label: '乙方', birth: '1985年', sizhu: '乙丑', rizhu: '辛金', mingong: '太阳', yongshen: '水' }
@@ -255,7 +255,7 @@ describe('renderReport — integration', () => {
 
   it('renders full mingshu report with all sections', () => {
     const data = {
-      title: '灵机命书',
+      title: 'Liki 命书',
       persons: [{ name: '测试', label: '本人', birth: '测试数据', sizhu: '甲子', rizhu: '己土', mingong: '天同', shengong: '天机', yongshen: '火',
         bazi: {
           chart: { sizhu: '甲子', rizhu: '己土', geju: '正印格' },
@@ -284,7 +284,7 @@ describe('renderReport — integration', () => {
     const html = globalThis.window.renderReport(data);
 
     // 顶层结构
-    expect(html).toContain('灵机命书');
+    expect(html).toContain('Liki 命书');
     expect(html).toContain('测试');
     expect(html).not.toContain('本人');
 
@@ -306,9 +306,9 @@ describe('renderReport — integration', () => {
 
   it('handles data.data envelope', () => {
     const r = globalThis.window.renderReport({
-      data: { title: '灵机命书', summary: {} }
+      data: { title: 'Liki 命书', summary: {} }
     });
-    expect(r).toContain('灵机命书');
+    expect(r).toContain('Liki 命书');
   });
 });
 

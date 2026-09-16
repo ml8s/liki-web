@@ -86,7 +86,7 @@ test.describe('Landing page', () => {
     await page.goto('/zh-Hans/naming');
     await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
 
-    await expect(page.locator('header .font-brand')).toContainText('Liki 灵机');
+    await expect(page.locator('header .font-brand')).toContainText('Liki');
     await expect(page.locator('.cta-section h2')).toContainText('找到你的名字');
     await expect(page.locator('#purchase-form')).toBeVisible();
     await expect(page.locator('.name-scroll')).toBeVisible();

@@ -1,12 +1,12 @@
-// Hepan (灵机合盘) landing page E2E tests.
+// Hepan (Liki 合盘) landing page E2E tests.
 // Covers: content rendering, order creation, checkout.
 // Source: hepan.astro, payment.js
 
 import { test, expect } from '../fixtures.js';
 
 const heroChecks = [
-  { path: '/zh-Hans/hepan', texts: ['灵机合盘', '八字 · 紫微综合合盘报告'] },
-  { path: '/zh-Hant/hepan', texts: ['靈機合盤', '八字 · 紫微綜合合盤報告'] },
+  { path: '/zh-Hans/hepan', texts: ['Liki 合盘', '八字 · 紫微综合合盘报告'] },
+  { path: '/zh-Hant/hepan', texts: ['Liki 合盤', '八字 · 紫微綜合合盤報告'] },
   { path: '/en/hepan',      texts: ['BaZi & ZiWei Compatibility'] },
 ];
 
@@ -23,7 +23,7 @@ test.describe('Hepan landing page — content', () => {
 
   test('report example section is present', async ({ page }) => {
     await page.goto('/zh-Hans/hepan');
-    await expect(page.getByRole('heading', { name: '灵机合盘', exact: true }).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Liki 合盘', exact: true }).first()).toBeVisible({ timeout: 10000 });
     await expect(page.locator('text=张明')).toBeVisible();
     await expect(page.locator('text=李芳')).toBeVisible();
     await expect(page.getByRole('heading', { name: '五行互补', exact: true })).toBeVisible();

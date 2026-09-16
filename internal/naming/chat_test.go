@@ -335,7 +335,7 @@ func TestHandleChat_GreetingPersisted(t *testing.T) {
 	s.MarkPaidIdempotent(context.Background(), oid, "pay-g")         //nolint:errcheck
 	s.OverrideChatExpiresAt(context.Background(), oid, "2099-12-31") //nolint:errcheck
 
-	greeting := "你好，我是 Liki 灵机。请问这次需要哪类服务？① 宝宝起名 ② 改名 ③ 评估"
+	greeting := "你好，我是 Liki。请问这次需要哪类服务？① 宝宝起名 ② 改名 ③ 评估"
 	handler, mockLLM := chatHandler(s, []*llm.ChatResult{agent.ChatRes(nil, "回复")})
 	body := `{"message":"1","lang":"zh-Hans","context":"` + greeting + `"}`
 	r := httptest.NewRequest("POST", "/", strings.NewReader(body))

@@ -2,7 +2,7 @@
   <main class="login-page">
     <el-card class="login-card" shadow="never">
       <h1>登录 Liki</h1>
-      <p class="slogan font-serif">懂命理，用靈機</p>
+      <p class="slogan font-serif">懂命理，用 Liki</p>
       <div class="values">
         <span class="value">确定性排盘</span>
         <span class="value">专业解读</span>

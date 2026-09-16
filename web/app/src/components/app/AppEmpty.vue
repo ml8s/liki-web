@@ -1,7 +1,7 @@
 <template>
   <div class="app-empty">
     <el-empty :description="description" />
-    <p class="app-empty-slogan font-serif">懂命理，用靈機</p>
+    <p class="app-empty-slogan font-serif">懂命理，用 Liki</p>
   </div>
 </template>
 
