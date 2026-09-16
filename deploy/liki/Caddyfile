@@ -164,7 +164,7 @@
 
 
 	# Skills — serve SKILL.md for AI agent discovery
-	redir /skills /skills/SKILL.md 308
+	redir /skills /skills/liki/SKILL.md 308
 	header /skills/* Cache-Control "public, max-age=60"
 
 	# All other routes → Go handles API + static files

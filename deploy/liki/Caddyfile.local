@@ -317,7 +317,7 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	redir /terms /zh-Hant/terms 302
 
 	# Skills — serve SKILL.md for AI agent discovery
-	redir /skills /skills/SKILL.md 308
+	redir /skills /skills/liki/SKILL.md 308
 	header /skills/* Cache-Control "public, max-age=60"
 
 	# All other routes → Go handles API + static files
