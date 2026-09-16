@@ -77,15 +77,16 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useChatStore, skillLabel } from '@/stores/chat'
 import { useProfilesStore } from '@/stores/profiles'
 import { useEntitlementsStore } from '@/stores/entitlements'
-import { chatServices } from '@/config/chat'
+import { chatServices, serviceByKey } from '@/config/chat'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import AppSkeleton from '@/components/app/AppSkeleton.vue'
 
+const route = useRoute()
 const router = useRouter()
 const chat = useChatStore()
 const profiles = useProfilesStore()
@@ -113,6 +114,13 @@ function startService(key: string) {
 
 onMounted(async () => {
   await Promise.all([chat.loadSessions(), profiles.loadList(), entitlements.load()])
+  // 营销站/外链服务意图：/app?service=<key> → 自动启动该服务。
+  const raw = route.query.service
+  const key = Array.isArray(raw) ? String(raw[0] ?? '') : String(raw ?? '')
+  if (key && serviceByKey(key)) {
+    await router.replace({ query: {} })
+    startService(key)
+  }
 })
 </script>
 
