@@ -30,7 +30,7 @@ const order = {
 
 const pages = [
   { path: '/app/login', name: 'login', marker: 'input[type="email"]' },
-  { path: '/app/', name: 'dashboard', marker: '.primary' },
+  { path: '/app/', name: 'dashboard', marker: '.services' },
   { path: '/app/profiles', name: 'profiles', marker: '.profile-card' },
   { path: '/app/profiles/new', name: 'profile-new', marker: '.birth-form' },
   { path: '/app/profiles/p_1', name: 'profile-detail', marker: '.paipan-preview' },

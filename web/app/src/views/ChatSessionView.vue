@@ -2,7 +2,8 @@
   <section class="chat-page">
     <div class="chat-main">
       <header class="session-header">
-        <router-link to="/chat">← 会话列表</router-link>
+        <router-link v-if="chat.activeSession?.profile_id" :to="`/profiles/${chat.activeSession.profile_id}`">← 返回档案</router-link>
+        <router-link v-else to="/chat">← 会话列表</router-link>
         <h1>{{ chat.activeSession?.title || '加载中' }}</h1>
         <p v-if="chat.activeSession">领域：{{ skillLabel(chat.activeSession.skill) }}</p>
       </header>
@@ -106,6 +107,12 @@ function retry() {
 watch(sessionId, async id => {
   if (id) {
     await chat.openSession(id)
+    // 服务入口：会话打开后自动发出首条意图（内存态，刷新即失不重发）。
+    if (chat.pendingIntent) {
+      const intent = chat.pendingIntent
+      chat.pendingIntent = ''
+      await chat.send(intent)
+    }
     await scrollToEnd()
   }
 }, { immediate: true })

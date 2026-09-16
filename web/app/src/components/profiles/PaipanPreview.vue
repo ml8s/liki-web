@@ -114,7 +114,7 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   engineBazhaiChart,
   engineBaziChart,
@@ -133,7 +133,7 @@ import {
 import type { Profile } from '@/api/profiles'
 import AppAlert from '@/components/app/AppAlert.vue'
 
-const props = defineProps<{ profile: Profile }>()
+const props = defineProps<{ profile: Profile; auto?: boolean }>()
 
 const loading = ref(false)
 const error = ref('')
@@ -290,6 +290,13 @@ async function compute() {
     loading.value = false
   }
 }
+
+defineExpose({ compute })
+
+// 自动排盘：进入档案详情（或切换档案）即出盘，免手动点「排盘」。
+watch(() => props.profile?.id, () => {
+  if (props.auto && props.profile) void compute()
+}, { immediate: true })
 </script>
 
 <style scoped>

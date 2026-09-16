@@ -55,6 +55,13 @@
         />
       </div>
 
+      <AppAlert
+        v-if="pendingService"
+        :title="`准备开始：${pendingService.label}`"
+        :description="pendingService.desc"
+        type="info"
+      />
+
       <h2>最近会话</h2>
       <AppEmpty v-if="!chat.sessions.length" description="还没有会话，先在上方选择档案与领域开启咨询" />
       <SessionList
@@ -74,7 +81,7 @@ import { useChatStore, skillLabel } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useProfilesStore } from '@/stores/profiles'
 import { useCommerceStore } from '@/stores/commerce'
-import { chatSkills } from '@/config/chat'
+import { chatSkills, serviceByIntent, serviceByKey } from '@/config/chat'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppEmpty from '@/components/app/AppEmpty.vue'
 import AppErrorState from '@/components/app/AppErrorState.vue'
@@ -97,6 +104,8 @@ const activeProfileId = ref('')
 const creating = ref('')
 
 const chatPurchased = computed(() => entitlements.allowedSkills.length > 0)
+
+const pendingService = computed(() => (chat.pendingIntent ? serviceByIntent(chat.pendingIntent) : undefined))
 
 const displaySessions = computed(() => chat.sessions.map(session => ({
   ...session,
@@ -134,6 +143,10 @@ onMounted(async () => {
   } else if (profiles.list.length) {
     activeProfileId.value = profiles.list[0].id
   }
+  // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
+  const presetService = commerce.firstQuery(route.query.service)
+  const svc = serviceByKey(presetService)
+  if (svc) chat.pendingIntent = svc.intent
   await commerce.handlePaymentReturn()
 })
 </script>
