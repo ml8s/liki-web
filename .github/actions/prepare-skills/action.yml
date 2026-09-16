@@ -16,6 +16,12 @@ runs:
       run: |
         echo "liki commit: $(git -C skills-repo rev-parse --short HEAD)"
         echo "liki VERSION: $(cat skills-repo/skills/liki/VERSION)"
+    - name: Build skill archive (dist/ 不入库，CI 现场构建)
+      shell: bash
+      run: |
+        cd skills-repo
+        bash scripts/build-archive.sh
+        cd ..
     - name: Prepare unified skill + webapp
       shell: bash
       run: |
