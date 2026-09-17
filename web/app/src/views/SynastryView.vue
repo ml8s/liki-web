@@ -106,7 +106,6 @@ import {
   engineBaziChart,
   engineCityCoords,
   engineSolarTime,
-  type BaziBondPair,
   type BaziBondResult,
   type BaziChartData,
 } from '@/api/engine'

@@ -291,8 +291,6 @@ async function compute() {
   }
 }
 
-defineExpose({ compute })
-
 // 自动排盘：进入档案详情（或切换档案）即出盘，免手动点「排盘」。
 watch(() => props.profile?.id, () => {
   if (props.auto && props.profile) void compute()

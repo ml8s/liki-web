@@ -119,7 +119,6 @@ describe('chat streaming failure states', () => {
     entitlements.loaded = true
 
     const chatApi = await import('@/api/chat')
-    const abortError = new DOMException('The operation was aborted.', 'AbortError')
     vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_sessionId, _content, onEvent, signal) => {
       onEvent({ type: 'text-delta', content: '部分回复' })
       await Promise.resolve()

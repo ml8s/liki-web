@@ -17,7 +17,7 @@
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item v-if="auth.user?.last_login_at" label="最近登录">
-          {{ formatTime(auth.user.last_login_at) }}
+          {{ formatDateTime(auth.user.last_login_at) }}
         </el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -54,7 +54,7 @@
               <el-tag v-if="item.is_current" type="success" size="small" effect="light">当前设备</el-tag>
             </div>
             <div class="session-meta">
-              最近活跃：{{ formatTime(item.last_seen_at) }} · 登录于 {{ formatTime(item.created_at) }}
+              最近活跃：{{ formatDateTime(item.last_seen_at) }} · 登录于 {{ formatDateTime(item.created_at) }}
             </div>
           </div>
           <el-button
@@ -96,6 +96,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { fetchSessions, revokeSession, revokeAllSessions, type SessionInfo } from '@/api/me'
 import { erasureAccount } from '@/api/account'
+import { formatDateTime } from '@/utils/format'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppEmpty from '@/components/app/AppEmpty.vue'
 import AppErrorState from '@/components/app/AppErrorState.vue'
@@ -124,11 +125,6 @@ function deviceLabel(userAgent: string) {
   if (ua.includes('iphone') || ua.includes('android')) return '手机'
   if (ua.includes('ipad')) return '平板'
   return '电脑'
-}
-
-function formatTime(value: string) {
-  if (!value) return '—'
-  return new Date(value).toLocaleString('zh-CN', { hour12: false })
 }
 
 async function load() {

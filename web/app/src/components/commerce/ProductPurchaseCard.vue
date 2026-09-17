@@ -11,7 +11,7 @@
 
     <p>{{ product.description }}</p>
     <ul class="skills">
-      <li v-for="domain in chatDomains" :key="domain">{{ domain }}</li>
+      <li v-for="s in chatServices" :key="s.key">{{ s.label }} · {{ s.desc }}</li>
     </ul>
 
     <div class="actions">
@@ -34,7 +34,7 @@
 
 <script setup lang="ts">
 import type { ChatProduct } from '@/api/commerce'
-import { chatDomains } from '@/config/chat'
+import { chatServices } from '@/config/chat'
 
 defineProps<{
   product: ChatProduct

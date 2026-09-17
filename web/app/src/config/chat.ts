@@ -14,9 +14,6 @@ export const chatSkills: SkillDefinition[] = [
   },
 ]
 
-// 产品包含的领域（用于购买卡展示，非 skill 标识）。
-export const chatDomains = ['八字 · 紫微', '起名 · 改名', '六爻 · 奇门', '八宅 · 玄空']
-
 export interface ChatService {
   key: string
   label: string

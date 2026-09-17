@@ -67,7 +67,7 @@
             @click="router.push(`/chat/${s.id}`)"
           >
             <span class="rs-title">{{ s.profileName || s.title }}</span>
-            <span class="rs-meta">{{ skillLabel(s.skill) }} · {{ formatTime(s.last_message_at ?? s.updated_at) }}</span>
+            <span class="rs-meta">{{ skillLabel(s.skill) }} · {{ formatDateTime(s.last_message_at ?? s.updated_at) }}</span>
           </div>
         </div>
       </template>
@@ -82,6 +82,7 @@ import { useChatStore, skillLabel } from '@/stores/chat'
 import { useProfilesStore } from '@/stores/profiles'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { chatServices, serviceByKey } from '@/config/chat'
+import { formatDateTime } from '@/utils/format'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import AppSkeleton from '@/components/app/AppSkeleton.vue'
@@ -101,11 +102,6 @@ const recentSessions = computed(() =>
     profileName: profiles.list.find(p => p.id === s.profile_id)?.nickname ?? '',
   })),
 )
-
-function formatTime(value: string) {
-  if (!value) return ''
-  return new Date(value).toLocaleString('zh-CN', { hour12: false })
-}
 
 function startService(key: string) {
   const svc = serviceByKey(key)
