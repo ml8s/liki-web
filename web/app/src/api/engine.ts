@@ -214,3 +214,26 @@ export interface LiuyaoSnapshotResult {
 export function engineLiuyaoSnapshot(question: string, mode = 'auto'): Promise<LiuyaoSnapshotResult> {
   return engineRpc<LiuyaoSnapshotResult>('liuyao_snapshot', { question, mode })
 }
+
+export interface HuangliCandidate {
+  date: string
+  jian_chu?: string
+  suitability?: 'recommended' | 'possible' | 'unsuitable' | 'unspecified'
+  reason?: string
+  warnings?: string[]
+}
+
+export interface HuangliDaysResult {
+  event?: string
+  event_label?: string
+  range?: { start_date: string; end_date: string; days: number }
+  recommended?: HuangliCandidate[]
+  unsuitable?: HuangliCandidate[]
+  candidates?: HuangliCandidate[]
+  safety_advisory?: string
+}
+
+/** 黄历择日：按事项与日期范围返回推荐/排除候选。 */
+export function engineHuangliDays(question: string, event: string, startDate: string, endDate: string): Promise<HuangliDaysResult> {
+  return engineRpc<HuangliDaysResult>('huangli_days', { question, event, start_date: startDate, end_date: endDate })
+}

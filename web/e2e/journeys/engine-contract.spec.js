@@ -106,6 +106,11 @@ const liuyaoSnapshot = {
   focus: { yong_shen: '妻财', yong_line: '三爻', world: '三爻', other: '六爻' },
   timing_candidates: [{ note: '午月' }],
 }
+const huangliDays = {
+  event: 'wedding', event_label: '结婚', range: { start_date: '2026-10-01', end_date: '2026-10-31', days: 31 },
+  recommended: [{ date: '2026-10-06', jian_chu: '除', suitability: 'recommended', reason: '宜嫁娶' }],
+  unsuitable: [{ date: '2026-10-09', suitability: 'unsuitable', reason: '诸事不宜' }],
+}
 
 function routeEngine(page) {
   return page.route('**/jsonrpc', async route => {
@@ -122,6 +127,7 @@ function routeEngine(page) {
       case 'bazi.bond': data = bond; break
       case 'qiming.pick': data = qimingPick; break
       case 'liuyao_snapshot': data = liuyaoSnapshot; break
+      case 'huangli_days': data = huangliDays; break
       default: data = {}
     }
     return route.fulfill(rpc(data))
@@ -218,4 +224,26 @@ test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
   await expect(page.locator('.gua-name')).toHaveText('水火既济') // board.name
   await expect(page.locator('.gua-sub')).toContainText('坎') // board.palace
   await expect(page.locator('.rel-text')).toContainText('妻财') // focus.yong_shen
+})
+
+test('择日按真实契约渲染（huangli_days）', async ({ page }) => {
+  await routeApp(page)
+  await page.route('**/api/profiles**', r => r.fulfill(json({ profiles: [profile], next_cursor: '' })))
+  await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
+  await routeEngine(page)
+
+  await page.goto('/app/huangli')
+  await page.waitForSelector('input[placeholder="起始"]', { timeout: 10000 })
+  await page.locator('.el-select').first().click()
+  await page.locator('.el-select-dropdown__item:has-text("结婚")').first().click()
+  await page.locator('input[placeholder="起始"]').fill('2026-10-01')
+  await page.keyboard.press('Enter')
+  await page.locator('input[placeholder="结束"]').fill('2026-10-31')
+  await page.keyboard.press('Enter')
+  await page.click('button:has-text("择日")')
+  await page.waitForSelector('.day.good', { timeout: 12000 })
+  await expect(page.locator('.day.good .d-date').first()).toHaveText('2026-10-06') // recommended[].date
+  await expect(page.locator('.day.bad')).toHaveCount(1) // unsuitable
 })

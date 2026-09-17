@@ -8,6 +8,7 @@ const protectedPages = [
   { path: '/app/naming', heading: '起名' },
   { path: '/app/divination', heading: '问卦' },
   { path: '/app/fengshui', heading: '风水' },
+  { path: '/app/huangli', heading: '择日' },
   { path: '/app/chat', heading: 'Liki Chat' },
   { path: '/app/orders', heading: '订单' },
   { path: '/app/account', heading: '账户' },

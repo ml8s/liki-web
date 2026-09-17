@@ -23,6 +23,7 @@ const router = createRouter({
         { path: 'naming', name: 'naming', component: () => import('@/views/NamingView.vue'), meta: { title: '起名' } },
         { path: 'divination', name: 'divination', component: () => import('@/views/DivinationView.vue'), meta: { title: '问卦' } },
         { path: 'fengshui', name: 'fengshui', component: () => import('@/views/FengshuiView.vue'), meta: { title: '风水' } },
+        { path: 'huangli', name: 'huangli', component: () => import('@/views/HuangliView.vue'), meta: { title: '择日' } },
         { path: 'chat', name: 'chat', component: () => import('@/views/ChatListView.vue'), meta: { title: '统一 Chat' } },
         { path: 'chat/:sessionId', name: 'chat-session', component: () => import('@/views/ChatSessionView.vue'), meta: { title: '咨询' } },
         { path: 'orders', name: 'orders', component: () => import('@/views/OrdersView.vue'), meta: { title: '订单' } },

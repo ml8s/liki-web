@@ -38,6 +38,7 @@ const pages = [
   { path: '/app/naming', name: 'naming', marker: '.el-select' },
   { path: '/app/divination', name: 'divination', marker: 'input[placeholder*="项目"]' },
   { path: '/app/fengshui', name: 'fengshui', marker: '.el-select' },
+  { path: '/app/huangli', name: 'huangli', marker: '.el-select' },
   { path: '/app/chat', name: 'chat-list', marker: '.picker-row' },
   { path: '/app/chat/chat_1', name: 'chat-session', marker: '.thread' },
   { path: '/app/orders', name: 'orders', marker: '.orders-table, .order-cards' },
