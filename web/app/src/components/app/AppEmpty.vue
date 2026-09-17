@@ -10,5 +10,5 @@ defineProps<{ description: string }>()
 </script>
 
 <style scoped>
-.app-empty-slogan { color: var(--liki-text-3); font-size: 13px; margin: -4px 0 8px; }
+.app-empty-slogan { color: var(--liki-text-2); font-size: 13px; margin: -4px 0 8px; }
 </style>

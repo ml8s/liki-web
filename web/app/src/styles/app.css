@@ -6,19 +6,24 @@
   --liki-primary-border: #d9d2f5;
   --liki-gold: #c9a45e;
   --liki-gold-tint: #f6edd9;
-  --liki-ink: #232733;
-  --liki-paper: #faf9f7;
+  --liki-ink: #1e2230;
+  --liki-paper: #f7f6f4;
   --liki-surface: #ffffff;
-  --liki-text-2: #5b6472;
-  --liki-text-3: #6b7280;
-  --liki-line: #e3e1dc;
+  --liki-text-2: #556070;
+  --liki-text-3: #697382;
+  --liki-line: #e6e4e0;
+
+  /* 排版 */
+  --liki-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --liki-font-serif: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
 
   /* 动效 token（redesign §9.4） */
   --liki-dur: 160ms;
-  --liki-dur-slow: 200ms;
+  --liki-dur-slow: 220ms;
   --liki-ease: cubic-bezier(0.2, 0, 0, 1);
+  --liki-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* ── Element Plus 主色覆盖（其余语义色保持默认）── */
+  /* ── Element Plus 主色覆盖 ── */
   --el-color-primary: var(--liki-primary);
   --el-color-primary-light-3: #8f82de;
   --el-color-primary-light-5: #b3aae8;
@@ -27,7 +32,7 @@
   --el-color-primary-light-9: var(--liki-primary-tint);
   --el-color-primary-dark-2: var(--liki-primary-hover);
 
-  /* EP 默认语义色在浅底不达标，统一加深至 WCAG AA（文本 12px 需 ≥4.5:1） */
+  /* EP 默认语义色在浅底不达标，统一加深至 WCAG AA */
   --el-color-danger: #c5302c;
   --el-color-danger-dark-2: #ab2825;
   --el-color-success: #36701e;
@@ -35,18 +40,55 @@
   --el-table-header-text-color: #4a5568;
   --el-empty-description-color: #5b6472;
   --el-alert-title-color: #303133;
-  --el-text-color-secondary: #5b6472;
+  --el-text-color-secondary: #556070;
+
+  /* ── 圆角体系（同心：卡片 12px → 按钮/输入 8px → 小件 6px）── */
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+  --el-border-radius-round: 999px;
+
+  /* 阴影体系（分层透明投影做深度，边框做结构） */
+  --el-box-shadow: 0 1px 2px rgba(30, 34, 48, 0.04), 0 3px 10px rgba(30, 34, 48, 0.05);
+  --el-box-shadow-light: 0 1px 2px rgba(30, 34, 48, 0.03), 0 2px 6px rgba(30, 34, 48, 0.04);
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: var(--liki-font-sans);
   background: var(--liki-paper);
   color: var(--liki-ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-serif {
-  font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+  font-family: var(--liki-font-serif);
+}
+
+/* 排版：标题平衡换行 + 微负字距；正文漂亮换行 */
+h1, h2, h3 {
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+p {
+  text-wrap: pretty;
+}
+
+/* 主按钮：按压反馈 scale(.96)，触感自然 */
+.el-button {
+  transition: color var(--liki-dur) var(--liki-ease), border-color var(--liki-dur) var(--liki-ease),
+    background-color var(--liki-dur) var(--liki-ease), transform var(--liki-dur) var(--liki-ease),
+    box-shadow var(--liki-dur) var(--liki-ease);
+}
+.el-button--primary:not(.is-disabled):active,
+.el-button:not(.is-text):not(.is-link):active {
+  transform: scale(0.96);
+}
+
+/* 卡片：轻投影制造层级，边框留作结构 */
+.el-card {
+  box-shadow: var(--el-box-shadow-light);
 }
 
 /* 路由页面切换过渡 */

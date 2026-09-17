@@ -48,12 +48,21 @@ defineEmits<{ logout: [] }>()
 .nav-group-secondary { border-top: 1px solid rgba(255,255,255,.12); padding-top: 16px; }
 .nav-label { font-size: 12px; color: #8b93a1; letter-spacing: 1px; padding: 0 12px 4px; }
 .side-nav a {
+  position: relative;
   color: #cfd3db; text-decoration: none; padding: 10px 12px;
-  border-radius: 6px; font-size: 15px;
+  border-radius: 8px; font-size: 15px;
   transition: background var(--liki-dur) var(--liki-ease), color var(--liki-dur) var(--liki-ease);
 }
-.side-nav a:hover { background: rgba(255,255,255,.08); }
-.side-nav a.on { background: var(--liki-primary); color: #fff; }
+.side-nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.side-nav a.on { background: rgba(109,90,207,.32); color: #fff; }
+.side-nav a.on::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--liki-gold);
+}
 .side-user { border-top: 1px solid rgba(255,255,255,.12); padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .email { font-size: 13px; opacity: .85; word-break: break-all; }
 @media (max-width: 1023px) { .app-sidebar { display: none; } }

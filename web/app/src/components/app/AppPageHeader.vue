@@ -20,15 +20,28 @@ defineProps<{
 <style scoped>
 .app-page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
-h1 { margin: 0 0 6px; font-size: 24px; line-height: 1.25; }
-p { margin: 0; color: #666; }
+h1 {
+  margin: 0 0 6px;
+  font-family: var(--liki-font-serif);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--liki-text-2);
+  text-wrap: pretty;
+}
 .actions { display: flex; align-items: center; gap: 10px; }
 @media (max-width: 640px) {
   .app-page-header { align-items: flex-start; flex-direction: column; }
+  h1 { font-size: 27px; }
 }
 </style>

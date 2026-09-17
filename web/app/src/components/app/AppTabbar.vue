@@ -26,14 +26,23 @@
   z-index: 50;
 }
 .app-tabbar a {
+  position: relative;
   flex: 1;
   display: flex; align-items: center; justify-content: center;
-  height: 52px;
+  height: 54px;
   color: var(--liki-text-2);
   text-decoration: none;
   font-size: 14px;
   transition: color var(--liki-dur) var(--liki-ease);
 }
 .app-tabbar a.on { color: var(--liki-primary); font-weight: 600; }
+.app-tabbar a.on::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 28%; right: 28%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--liki-gold);
+}
 @media (min-width: 1024px) { .app-tabbar { display: none; } }
 </style>
