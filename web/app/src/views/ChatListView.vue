@@ -63,7 +63,7 @@
       />
 
       <h2>最近会话</h2>
-      <AppEmpty v-if="!chat.sessions.length" description="还没有会话，先在上方选择档案与领域开启咨询" />
+      <AppEmpty v-if="!chat.sessions.length" description="还没有会话，先在上方选择档案与领域开启解读" />
       <SessionList
         v-else
         :sessions="displaySessions"

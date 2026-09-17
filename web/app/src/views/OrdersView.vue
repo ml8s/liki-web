@@ -92,7 +92,8 @@ async function load() {
 function formatAmount(row: unknown) {
   const order = row as ChatOrder
   const amount = (order.amount_minor / 100).toFixed(2)
-  return `${order.currency} ${amount}`
+  const symbol = order.currency === 'CNY' ? '¥' : order.currency === 'USD' ? '$' : `${order.currency} `
+  return `${symbol}${amount}`
 }
 
 function statusLabel(status: ChatOrder['status']) {
