@@ -35,7 +35,7 @@ const PAGES = [
     checks: [
       { selector: '.landing-hero h1', text: '懂命理，用 Liki' },
       { selector: '.landing-paipan', text: '免费排盘' },
-      { selector: '.landing-services', text: '四大命理服务' },
+      { selector: '.landing-services', text: '五大命理服务' },
       { selector: '.landing-trust', text: '为什么可信' },
     ] },
   // 开发者 skill 页（原品牌门面迁址）
