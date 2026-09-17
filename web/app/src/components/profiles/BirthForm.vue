@@ -128,11 +128,28 @@ function submit() {
 </script>
 
 <style scoped>
-.step-label { font-weight: 600; margin: 4px 0 12px; color: var(--liki-text-2); }
+.step-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--liki-font-serif);
+  font-weight: 700;
+  margin: 8px 0 14px;
+  color: var(--liki-ink);
+}
+.step-label::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--liki-gold);
+}
 .birth-form .el-form-item { margin-bottom: 16px; }
 .date-row { display: flex; gap: 10px; width: 100%; align-items: center; }
 .date-row :deep(.el-date-editor) { flex: 1; }
-.shichen { display: flex; flex-wrap: wrap; gap: 6px; }
+.shichen { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.shichen .el-button { margin: 0; }
 .hint { color: var(--liki-text-2); font-size: 13px; margin: 0; }
 .submit { width: 100%; }
+@media (max-width: 480px) { .shichen { grid-template-columns: repeat(4, 1fr); } }
 </style>

@@ -201,7 +201,22 @@ onMounted(load)
 <style scoped>
 .block { margin-bottom: 20px; border-radius: 12px; }
 .card-title { font-weight: 600; }
-.section-title { font-size: 18px; margin: 24px 0 12px; }
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--liki-font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  margin: 24px 0 12px;
+}
+.section-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--liki-gold);
+}
 .sessions-head { display: flex; align-items: center; justify-content: space-between; }
 .session-list { list-style: none; margin: 0; padding: 0; }
 .session-item {
