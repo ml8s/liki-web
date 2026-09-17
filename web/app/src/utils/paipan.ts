@@ -21,7 +21,15 @@ export async function baziChartFor(birth: BirthInfo): Promise<BaziChartData> {
   if (known === 'unknown' || !birth.birth_time) throw new Error('需要出生时间')
   let longitude = 120
   if (known === 'known' && birth.birth_place) {
-    const coords = await engineCityCoords(birth.birth_place)
+    let coords: { longitude?: number } | null = null
+    try {
+      coords = await engineCityCoords(birth.birth_place)
+    } catch {
+      throw new Error(`无法识别出生地「${birth.birth_place}」，无法做真太阳时修正；请改用常见城市名，或移除此出生地后重试`)
+    }
+    if (!coords || typeof coords.longitude !== 'number') {
+      throw new Error(`未找到出生地「${birth.birth_place}」；请改用常见城市名，或移除此出生地后重试`)
+    }
     longitude = coords.longitude
   }
   const datetime = `${birth.birth_date}T${birth.birth_time}:00+08:00`

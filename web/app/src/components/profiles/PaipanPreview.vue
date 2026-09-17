@@ -265,10 +265,22 @@ async function compute() {
   loading.value = true
   try {
     const datetime = `${p.birth_date}T${p.birth_time}:00+08:00`
-    // 真太阳时两路：有地点+精确时刻 → 校正；其余取东八区 120° 仅做历法换算
+    // 真太阳时：仅当精确时间+出生地可解析时才做校正；否则不静默降级，失败即提示
     let longitude = 120
     if (p.birth_time_known === 'known' && p.birth_place) {
-      const coords = await engineCityCoords(p.birth_place)
+      let coords: { longitude?: number } | null = null
+      try {
+        coords = await engineCityCoords(p.birth_place)
+      } catch {
+        error.value = `无法识别出生地「${p.birth_place}」，无法做真太阳时修正；请改用常见城市名，或移除此出生地后重试`
+        loading.value = false
+        return
+      }
+      if (!coords || typeof coords.longitude !== 'number') {
+        error.value = `未找到出生地「${p.birth_place}」；请改用常见城市名，或移除此出生地后重试`
+        loading.value = false
+        return
+      }
       longitude = coords.longitude
     }
     const t = await engineSolarTime(datetime, longitude)

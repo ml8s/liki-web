@@ -34,7 +34,7 @@ try {
       draft.value = {
         birth_date: parsed.birth_date,
         birth_time: parsed.birth_time ?? '',
-        gender: parsed.gender ?? 'female',
+        ...(parsed.gender === 'male' || parsed.gender === 'female' ? { gender: parsed.gender } : {}),
         calendar: parsed.calendar ?? 'solar',
         birth_time_known: parsed.birth_time ? 'known' : 'unknown',
         nickname: '',

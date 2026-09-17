@@ -620,5 +620,6 @@
   "site.dev": "开发者",
   "index.services.cta": "去体验 →",
   "index.services.bond.title": "合盘",
-  "index.services.bond.desc": "两人八字合婚·关系分析"
+  "index.services.bond.desc": "两人八字合婚·关系分析",
+  "index.paipan.gender_placeholder": "请选择性别"
 }

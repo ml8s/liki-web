@@ -620,5 +620,6 @@
   "site.dev": "Developers",
   "index.services.cta": "Try it →",
   "index.services.bond.title": "Synastry",
-  "index.services.bond.desc": "Two-person BaZi compatibility"
+  "index.services.bond.desc": "Two-person BaZi compatibility",
+  "index.paipan.gender_placeholder": "Select gender"
 }

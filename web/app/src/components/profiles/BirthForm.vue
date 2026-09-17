@@ -22,7 +22,7 @@
           type="date"
           value-format="YYYY-MM-DD"
           placeholder="选择日期"
-          :disabled-date="disableFuture"
+          :disabled-date="disabledDate"
           style="width: 100%"
           @update:model-value="birthDateError = ''"
         />
@@ -103,8 +103,9 @@ const shichen = [
 
 watch(timeValue, value => { if (value) birthTime.value = value })
 
-function disableFuture(date: Date) {
-  return date.getTime() > Date.now()
+// 出生日期合法区间：1900 年起至今天（后端同样校验，前端先行拦截）
+function disabledDate(date: Date) {
+  return date.getTime() > Date.now() || date.getFullYear() < 1900
 }
 
 const birthDate = computed(() => (calendar.value === 'solar' ? solarDate.value : lunarDate.value))
@@ -121,6 +122,9 @@ function submit() {
   }
   if (!birthDate.value) {
     birthDateError.value = '请选择出生日期'
+    ok = false
+  } else if (calendar.value === 'lunar' && !/^\d{4}-闰?\d{1,2}-\d{1,2}$/.test(birthDate.value)) {
+    birthDateError.value = '农历日期格式如 1958-闰5-12 或 1990-5-12'
     ok = false
   }
   if (birthTimeKnown.value === 'known' && !birthTime.value) {
