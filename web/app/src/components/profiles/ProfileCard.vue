@@ -31,9 +31,13 @@ const initial = computed(() => props.profile.nickname.slice(0, 1))
   display: flex; align-items: center; gap: 14px;
   background: var(--liki-surface); border: 1px solid var(--liki-line);
   border-radius: 12px; padding: 16px 18px; cursor: pointer;
-  transition: border-color .18s ease, box-shadow .18s ease;
+  transition: border-color var(--liki-dur) var(--liki-ease), box-shadow var(--liki-dur) var(--liki-ease), transform var(--liki-dur) var(--liki-ease);
 }
-.profile-card:hover { border-color: var(--liki-primary-border); box-shadow: 0 4px 16px rgba(35,39,51,.06); }
+.profile-card:hover {
+  border-color: var(--liki-primary-border);
+  box-shadow: 0 6px 18px rgba(30, 34, 48, 0.08);
+  transform: translateY(-1px);
+}
 .avatar {
   width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
   background: var(--liki-primary-tint); color: var(--liki-primary);

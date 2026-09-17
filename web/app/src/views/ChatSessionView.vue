@@ -161,11 +161,23 @@ onBeforeUnmount(() => {
 .session-header {
   padding-bottom: 14px;
   margin-bottom: 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--liki-line);
 }
-.session-header a { display: inline-block; padding: 4px 0; }
-.session-header h1 { margin: 6px 0; font-size: 22px; }
-.session-header p { margin: 0; color: #666; }
+.session-header a {
+  display: inline-block;
+  padding: 4px 0;
+  color: var(--liki-primary);
+  text-decoration: none;
+  font-size: 13px;
+}
+.session-header h1 {
+  margin: 8px 0 6px;
+  font-family: var(--liki-font-serif);
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+.session-header p { margin: 0; color: var(--liki-text-2); font-size: 13px; }
 .thread { flex: 1; overflow: auto; padding-right: 8px; }
 .composer-alert { margin: 12px 0 0; }
 .error-row { display: flex; align-items: flex-start; gap: 10px; }

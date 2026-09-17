@@ -57,7 +57,7 @@ function onKeydown(event: Event) {
 </script>
 
 <style scoped>
-.composer { padding-top: 12px; border-top: 1px solid #e5e7eb; }
+.composer { padding-top: 12px; border-top: 1px solid var(--liki-line); }
 .actions {
   display: flex;
   align-items: center;

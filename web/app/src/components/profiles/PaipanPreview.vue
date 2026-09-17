@@ -25,7 +25,7 @@
         <el-tabs v-model="tab">
           <el-tab-pane label="八字" name="bazi">
             <div class="pillars">
-              <div v-for="item in baziPillars" :key="item.label" class="pillar">
+              <div v-for="item in baziPillars" :key="item.label" :class="['pillar', { self: item.self }]">
                 <div class="label">{{ item.label }}</div>
                 <div class="gl font-serif">{{ item.gan }}{{ item.zhi }}</div>
                 <div class="sub">{{ item.shiShen }}</div>
@@ -69,7 +69,7 @@
 
           <el-tab-pane label="紫微" name="ziwei">
             <div class="palaces">
-              <div v-for="g in ziweiGongs" :key="g.name" :class="['palace', { shen: g.is_shen_gong }]">
+              <div v-for="g in ziweiGongs" :key="g.name" :class="['palace', { ming: g.name === '命宫', shen: g.is_shen_gong }]">
                 <div class="pname">{{ g.name }}</div>
                 <div class="pstar">{{ mainStars(g) }}</div>
                 <div class="pminor">{{ minorStars(g) }}</div>
@@ -158,6 +158,7 @@ const baziPillars = computed(() => {
     const cang = p.cang_gan ? [p.cang_gan.main, p.cang_gan.mid, p.cang_gan.minor].filter(Boolean).join(' ') : ''
     return {
       label,
+      self: label === '日柱',
       gan: p.gan,
       zhi: p.zhi,
       naYin: p.na_yin ?? '',
@@ -298,7 +299,11 @@ watch(() => props.profile?.id, () => {
 </script>
 
 <style scoped>
-.paipan-preview { border-radius: 12px; margin-bottom: 20px; }
+.paipan-preview {
+  border-radius: 12px; margin-bottom: 20px;
+  position: relative;
+  border-top: 2px solid var(--liki-gold);
+}
 .preview-head { display: flex; align-items: center; justify-content: space-between; }
 .card-title { font-weight: 600; }
 .hint { color: var(--liki-text-2); font-size: 13px; margin: 4px 0 12px; }
@@ -308,12 +313,14 @@ watch(() => props.profile?.id, () => {
 .pillars {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
   background: var(--liki-line); border: 1px solid var(--liki-line);
-  border-radius: 6px; overflow: hidden;
+  border-radius: 8px; overflow: hidden;
 }
-.pillar { background: var(--liki-surface); padding: 14px 8px; text-align: center; }
-.pillar .label { font-size: 12px; color: var(--liki-text-3); margin-bottom: 6px; }
-.pillar .gl { font-size: 22px; font-weight: 700; }
-.pillar .sub { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
+.pillar { background: var(--liki-surface); padding: 16px 8px; text-align: center; }
+.pillar.self { background: linear-gradient(180deg, var(--liki-gold-tint), #fdfaf3); }
+.pillar .label { font-size: 12px; color: var(--liki-text-3); margin-bottom: 8px; letter-spacing: 0.08em; }
+.pillar .gl { font-size: 25px; font-weight: 700; letter-spacing: 0.02em; }
+.pillar.self .gl { color: #8a6a2f; }
+.pillar .sub { font-size: 12px; color: var(--liki-text-2); margin-top: 4px; }
 .pillar .nayin { color: var(--liki-text-3); }
 .pillar .cang { color: var(--liki-text-3); font-size: 11px; }
 .void-tag { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 999px; background: var(--liki-gold-tint); color: #8a6a2f; font-size: 11px; }
@@ -349,8 +356,10 @@ watch(() => props.profile?.id, () => {
   border-radius: 6px; overflow: hidden;
 }
 .palace { background: var(--liki-surface); padding: 10px 4px; text-align: center; min-height: 68px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.palace.ming { background: linear-gradient(180deg, var(--liki-gold-tint), #fdfaf3); }
 .palace.shen { background: var(--liki-primary-tint); }
 .palace .pname { font-size: 13px; font-weight: 600; }
+.palace.ming .pname, .palace.ming .pstar { color: #8a6a2f; }
 .palace .pstar { font-size: 12px; color: var(--liki-primary); margin-top: 3px; }
 .palace .pminor { font-size: 11px; color: var(--liki-text-3); margin-top: 2px; }
 

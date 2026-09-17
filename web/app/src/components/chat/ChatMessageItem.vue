@@ -76,15 +76,27 @@ function fallbackCopy(text: string, done: () => void) {
   background: var(--liki-surface);
 }
 .message.system { background: transparent; border: none; padding: 0; }
-.message.user { background: var(--liki-primary-tint); border-color: var(--liki-primary-border); }
-.role { margin-bottom: 6px; font-size: 12px; font-weight: 700; color: var(--liki-text-2); }
+.message.user {
+  max-width: min(78%, 640px);
+  margin-left: auto;
+  background: var(--liki-primary-tint);
+  border-color: var(--liki-primary-border);
+}
+.role {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--liki-text-2);
+}
+.message.user .role { text-align: right; }
+.message.assistant .role { font-family: var(--liki-font-serif); font-weight: 700; color: #8a6a2f; }
 .content { line-height: 1.65; white-space: pre-wrap; color: var(--liki-ink); }
 .thinking {
   margin-bottom: 10px;
   padding: 8px 12px;
   border: 1px dashed var(--liki-line);
   border-radius: 8px;
-  background: var(--liki-bg);
+  background: var(--liki-paper);
 }
 .thinking summary {
   cursor: pointer;

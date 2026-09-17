@@ -76,7 +76,7 @@ p {
 }
 
 /* 主按钮：按压反馈 scale(.96)，触感自然 */
-.el-button {
+.el-button.el-button {
   transition: color var(--liki-dur) var(--liki-ease), border-color var(--liki-dur) var(--liki-ease),
     background-color var(--liki-dur) var(--liki-ease), transform var(--liki-dur) var(--liki-ease),
     box-shadow var(--liki-dur) var(--liki-ease);
@@ -90,6 +90,21 @@ p {
 .el-card {
   box-shadow: var(--el-box-shadow-light);
 }
+.el-card.el-card .el-card__header {
+  border-bottom-color: var(--liki-line);
+  padding: 14px 16px;
+}
+
+/* Tabs：弱化默认重下划线，激活项用品牌色 + 细金线（按需注入的 EP 样式后置，需提升特异性覆盖） */
+.el-tabs .el-tabs__header { margin-bottom: 14px; }
+.el-tabs .el-tabs__nav-wrap::after { height: 1px; background-color: var(--liki-line); }
+.el-tabs .el-tabs__item {
+  color: var(--liki-text-2);
+  font-size: 14px;
+  height: 42px;
+}
+.el-tabs .el-tabs__item.is-active { color: var(--liki-primary); font-weight: 600; }
+.el-tabs .el-tabs__active-bar { background-color: var(--liki-gold); height: 2px; }
 
 /* 路由页面切换过渡 */
 .page-fade-enter-active,
