@@ -9,7 +9,7 @@ const session = {
   user_id: 'usr_1',
   profile_id: '',
   skill: 'liki',
-  title: '命理咨询',
+  title: '命理解读',
   status: 'active',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -81,7 +81,7 @@ describe('chat store', () => {
     chat.activeSession = session
     await chat.send(' 你好 ')
 
-    expect(createSpy).toHaveBeenCalledWith('', 'liki', '命理咨询')
+    expect(createSpy).toHaveBeenCalledWith('', 'liki', '命理解读')
     expect(sendSpy).toHaveBeenCalledWith(session.id, '你好', expect.any(Function), expect.any(AbortSignal))
     expect(chat.messages).toEqual([userMessage, assistantMessage])
     expect(chat.activeSession?.id).toBe(session.id)

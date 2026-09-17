@@ -61,7 +61,7 @@ export const useChatStore = defineStore('chat', {
         throw new Error('当前订单未开通该 skill')
       }
       const nickname = useProfilesStore().list.find(p => p.id === profileId)?.nickname ?? ''
-      const title = nickname ? `${nickname} · ${skillLabel(skill)}咨询` : `${skillLabel(skill)}咨询`
+      const title = nickname ? `${nickname} · ${skillLabel(skill)}解读` : `${skillLabel(skill)}解读`
       const session = await createChatSession(profileId, skill, title)
       this.sessions.unshift(session)
       return session
@@ -203,7 +203,7 @@ export const useChatStore = defineStore('chat', {
 
 export function skillLabel(skill: string): string {
   const labels: Record<string, string> = {
-    // 会话标题为 `${label}咨询`，故用「命理」而非「命理咨询」。
+    // 会话标题为 `${label}解读`，故用「命理」而非「命理解读」。
     'liki': '命理',
   }
   return labels[skill] ?? skill

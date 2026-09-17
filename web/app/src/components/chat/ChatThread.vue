@@ -1,6 +1,6 @@
 <template>
   <div class="thread" role="log" aria-live="polite" aria-label="消息列表">
-    <AppEmpty v-if="!loading && !messages.length" description="描述你的问题，开始咨询" />
+    <AppEmpty v-if="!loading && !messages.length" description="描述你的问题，开始解读" />
     <ChatMessageItem v-for="message in messages" :key="message.id" :message="message" />
   </div>
 </template>

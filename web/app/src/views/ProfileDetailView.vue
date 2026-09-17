@@ -28,7 +28,7 @@
         </template>
 
         <template v-else>
-          <p class="hint">解锁 Liki Chat 后可围绕此人的出生信息自由对话。</p>
+          <p class="hint">解锁 Liki Chat 后可围绕此人的出生信息进行专业解读。</p>
           <el-button type="primary" size="large" :loading="entitlements.loading" @click="goChat">解锁 Chat</el-button>
         </template>
       </el-card>

@@ -16,7 +16,7 @@
       :loading="starting"
       @click="$emit('start')"
     >
-      开始咨询
+      开始解读
     </el-button>
   </el-card>
 </template>

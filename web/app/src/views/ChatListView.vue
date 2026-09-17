@@ -2,7 +2,7 @@
   <section>
     <AppPageHeader
       title="Liki Chat"
-      subtitle="起名、八字、问卦、风水，一个入口统一咨询。"
+      subtitle="八字、合盘、起名、问卦、风水——一个入口，专业解读。"
     >
       <template #actions>
         <el-button :loading="commerce.refreshing" @click="commerce.refresh">刷新</el-button>
