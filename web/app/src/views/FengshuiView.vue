@@ -15,7 +15,7 @@
     <el-card v-if="loading" class="block" shadow="never"><template #header><span class="card-title">命卦</span></template>排盘中…</el-card>
 
     <template v-if="bazhai">
-      <el-card class="block" shadow="never">
+      <el-card class="block pan" shadow="never">
         <template #header><span class="card-title">命卦与吉凶方</span></template>
         <div class="mingua-row">
           <div class="mingua font-serif">{{ bazhai.ming_gua.gua.name }}</div>
@@ -119,6 +119,7 @@ onMounted(async () => {
 
 <style scoped>
 .block { border-radius: 12px; margin-bottom: 20px; }
+.block.pan { border-top: 2px solid var(--liki-gold); }
 .card-title { font-weight: 600; }
 .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .mingua-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }

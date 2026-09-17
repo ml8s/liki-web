@@ -15,7 +15,7 @@
     </el-card>
 
     <template v-if="snapshot">
-      <el-card class="block" shadow="never">
+      <el-card class="block pan" shadow="never">
         <template #header><span class="card-title">卦象</span></template>
         <div class="gua-row">
           <div class="gua-name font-serif">{{ guaName }}</div>
@@ -109,6 +109,7 @@ onMounted(async () => {
 
 <style scoped>
 .block { border-radius: 12px; margin-bottom: 20px; }
+.block.pan { border-top: 2px solid var(--liki-gold); }
 .card-title { font-weight: 600; }
 .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .gua-row { display: flex; align-items: baseline; gap: 12px; }

@@ -15,7 +15,7 @@
     <el-card v-if="loading" class="block" shadow="never"><template #header><span class="card-title">喜用五行</span></template>排盘中…</el-card>
 
     <template v-if="preview">
-      <el-card class="block" shadow="never">
+      <el-card class="block pan" shadow="never">
         <template #header><span class="card-title">喜用五行</span></template>
         <div class="ys">{{ preview.yongText }}</div>
         <div v-if="singlePool.length" class="sec-title">单字候选</div>
@@ -113,6 +113,7 @@ onMounted(async () => {
 
 <style scoped>
 .block { border-radius: 12px; margin-bottom: 20px; }
+.block.pan { border-top: 2px solid var(--liki-gold); }
 .card-title { font-weight: 600; }
 .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .ys { font-size: 15px; color: var(--liki-ink); }

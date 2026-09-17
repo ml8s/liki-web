@@ -142,10 +142,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.login-page { min-height: 100vh; display: grid; place-items: center; background: #f7f7f5; padding: 24px; }
-.login-card { width: min(420px, 100%); }
-h1 { margin: 0 0 8px; font-size: 24px; }
-.hint { color: #666; margin: 0 0 20px; }
+.login-page { min-height: 100vh; display: grid; place-items: center; background: var(--liki-paper); padding: 24px; }
+.login-card { width: min(420px, 100%); border-top: 2px solid var(--liki-gold); }
+h1 { margin: 0 0 8px; font-family: var(--liki-font-serif); font-size: 28px; line-height: 1.2; }
+.hint { color: var(--liki-text-2); margin: 0 0 20px; }
 .slogan { color: var(--liki-primary); margin: 0 0 4px; font-size: 15px; }
 .values { display: flex; gap: 8px; justify-content: center; margin: 6px 0 12px; flex-wrap: wrap; }
 .value { font-size: 12px; color: var(--liki-text-2); background: var(--liki-primary-tint); padding: 3px 10px; border-radius: 999px; }

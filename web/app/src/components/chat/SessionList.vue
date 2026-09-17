@@ -62,6 +62,12 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMqChange))
   padding: 14px 16px;
   text-decoration: none;
   color: inherit;
+  transition: border-color var(--liki-dur) var(--liki-ease), transform var(--liki-dur) var(--liki-ease), box-shadow var(--liki-dur) var(--liki-ease);
+}
+.session-card:hover {
+  border-color: var(--liki-primary-border);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(30, 34, 48, 0.08);
 }
 .sc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sc-title { font-weight: 600; }

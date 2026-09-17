@@ -52,7 +52,7 @@ function formatMinor(amount: number): string {
 .product-card { border-color: #f3d19e; }
 .header { display: flex; align-items: center; justify-content: space-between; }
 p { color: #555; }
-.skills { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 18px; margin: 12px 0 20px; color: #666; }
+.skills { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 18px; margin: 12px 0 20px; color: var(--liki-text-2); }
 .actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .prices { display: flex; gap: 14px; font-size: 20px; font-weight: 700; }
 @media (max-width: 640px) {

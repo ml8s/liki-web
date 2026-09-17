@@ -25,7 +25,7 @@
     </el-card>
 
     <template v-if="result">
-      <el-card class="block" shadow="never">
+      <el-card class="block pan" shadow="never">
         <template #header><span class="card-title">黄历推荐（{{ result.event_label || EVENTS[result.event || event] }}）</span></template>
         <div v-if="recommended.length" class="days">
           <div v-for="d in recommended" :key="d.date" class="day good">
@@ -116,6 +116,7 @@ onMounted(async () => {
 
 <style scoped>
 .block { border-radius: 12px; margin-bottom: 20px; }
+.block.pan { border-top: 2px solid var(--liki-gold); }
 .card-title { font-weight: 600; }
 .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
