@@ -92,7 +92,7 @@
   "index.hero.subtitle": "Deterministic charting. Built to professional standards. Verifiable conclusions.",
   "index.cta.paipan": "Start free chart",
   "index.cta.learn": "Learn more",
-  "index.services.title": "Four metaphysics services",
+  "index.services.title": "Five metaphysics services",
   "index.services.naming.title": "Naming",
   "index.services.naming.desc": "Name by BaZi YongShen, balanced Five Elements",
   "index.services.bazi.title": "BaZi",
@@ -618,5 +618,7 @@
   "index.paipan.male": "Male",
   "index.paipan.hint": "These details carry over after you sign in to continue charting.",
   "site.dev": "Developers",
-  "index.services.cta": "Try it →"
+  "index.services.cta": "Try it →",
+  "index.services.bond.title": "Synastry",
+  "index.services.bond.desc": "Two-person BaZi compatibility"
 }

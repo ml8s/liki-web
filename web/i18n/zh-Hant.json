@@ -92,7 +92,7 @@
   "index.hero.subtitle": "確定性排盤，專業命理師標準，結論可驗證。",
   "index.cta.paipan": "開始免費排盤",
   "index.cta.learn": "了解更多",
-  "index.services.title": "四大命理服務",
+  "index.services.title": "五大命理服務",
   "index.services.naming.title": "起名",
   "index.services.naming.desc": "依八字用神取名，五行配字",
   "index.services.bazi.title": "八字",
@@ -618,5 +618,7 @@
   "index.paipan.male": "男",
   "index.paipan.hint": "登入後自動帶入這些資訊，繼續免費排盤。",
   "site.dev": "開發者",
-  "index.services.cta": "去體驗 →"
+  "index.services.cta": "去體驗 →",
+  "index.services.bond.title": "合盤",
+  "index.services.bond.desc": "兩人八字合婚·關係分析"
 }
