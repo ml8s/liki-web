@@ -25,12 +25,12 @@ export interface ChatService {
 }
 
 // 价值入口：按用户场景命名（看命/合盘/起名/问卦/风水），不按引擎 skill。
-// route：特殊入口路由（看命→人列表排盘、合盘→/synastry）；无 route 走对话意图。
+// route：每个入口都有免费盘面页（看命/风水→人列表排盘、起名/问卦/合盘→独立预览页）；付费解读统一进 Chat。
 export const chatServices: ChatService[] = [
   { key: 'bazi', label: '看命', desc: '八字·紫微·大运·流年·格局', intent: '我想咨询八字。', route: '/profiles' },
-  { key: 'naming', label: '起名', desc: '依八字用神取名，五行配字', intent: '我想咨询起名。' },
-  { key: 'divination', label: '问卦', desc: '六爻·奇门断事', intent: '我想问卦。' },
-  { key: 'fengshui', label: '风水', desc: '八宅·玄空·流年飞星', intent: '我想咨询风水。' },
+  { key: 'naming', label: '起名', desc: '依八字用神取名，五行配字', intent: '我想咨询起名。', route: '/naming' },
+  { key: 'divination', label: '问卦', desc: '六爻·奇门断事', intent: '我想问卦。', route: '/divination' },
+  { key: 'fengshui', label: '风水', desc: '八宅·玄空·流年飞星', intent: '我想咨询风水。', route: '/fengshui' },
   { key: 'bond', label: '合盘', desc: '两人八字合婚·关系分析', intent: '我想咨询合盘。', route: '/synastry' },
 ]
 

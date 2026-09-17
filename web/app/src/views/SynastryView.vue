@@ -103,12 +103,10 @@ import { useEntitlementsStore } from '@/stores/entitlements'
 import { useChatStore } from '@/stores/chat'
 import {
   engineBaziBond,
-  engineBaziChart,
-  engineCityCoords,
-  engineSolarTime,
   type BaziBondResult,
   type BaziChartData,
 } from '@/api/engine'
+import { baziChartFor } from '@/utils/paipan'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
@@ -149,25 +147,10 @@ async function loadA() {
   try {
     const p = profileA.value
     if (!p) return
-    if (p.calendar === 'lunar' || p.birth_time_known === 'unknown' || !p.birth_time) {
-      throw new Error('档案需公历出生时间才能合盘')
-    }
-    chartA.value = await chartFor(p.gender, p.birth_date, p.birth_time, p.birth_time_known, p.birth_place)
+    chartA.value = await baziChartFor(p)
   } catch (err) {
     error.value = toUserMessage(err, '读取档案失败')
   }
-}
-
-async function chartFor(gender: string, birthDate: string, birthTime: string, known: string, place: string) {
-  let longitude = 120
-  if (known === 'known' && place) {
-    const coords = await engineCityCoords(place)
-    longitude = coords.longitude
-  }
-  const datetime = `${birthDate}T${birthTime}:00+08:00`
-  const t = await engineSolarTime(datetime, longitude)
-  const solar = known === 'known' && place ? t.solar : datetime
-  return engineBaziChart(solar, gender)
 }
 
 async function compute() {
@@ -183,7 +166,7 @@ async function compute() {
   try {
     if (!chartA.value) await loadA()
     if (!chartA.value) return
-    bChart.value = await chartFor(b.value.gender, b.value.birth_date, b.value.birth_time, 'known', b.value.birth_place)
+    bChart.value = await baziChartFor({ gender: b.value.gender, birth_date: b.value.birth_date, birth_time: b.value.birth_time, birth_time_known: 'known', birth_place: b.value.birth_place })
     result.value = await engineBaziBond(chartA.value, bChart.value)
   } catch (err) {
     error.value = toUserMessage(err, '合盘失败')

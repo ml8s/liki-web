@@ -189,3 +189,28 @@ export interface BaziBondResult {
 export function engineBaziBond(chartA: unknown, chartB: unknown): Promise<BaziBondResult> {
   return engineRpc<BaziBondResult>('bazi.bond', { a: { chart: chartA }, b: { chart: chartB } })
 }
+
+export interface QimingPickResult {
+  wuxing1: string
+  wuxing2?: string
+  pools: Array<{ slot: string; chars: Array<{ char: string; frequency: string }> }>
+}
+
+/** 起名取字：按用神五行（金木水火土）取单/双字候选。 */
+export function engineQimingPick(wuxing1: string, wuxing2: string, count: number): Promise<QimingPickResult> {
+  return engineRpc<QimingPickResult>('qiming.pick', { wuxing1, wuxing2, count })
+}
+
+export interface LiuyaoSnapshotResult {
+  question?: string
+  casting?: { mode?: string; yaos?: unknown[]; dong_yao?: unknown[] }
+  board?: { name?: string; palace?: string; xun_kong?: string; ben_gua?: unknown; bian_gua?: unknown }
+  focus?: { yong_shen?: string; world?: string; other?: string }
+  timing_candidates?: unknown[]
+  safety_advisory?: string
+}
+
+/** 问卦摇卦：创建六爻 immutable snapshot（卦象/用神/应期候选一次完成）。 */
+export function engineLiuyaoSnapshot(question: string, mode = 'auto'): Promise<LiuyaoSnapshotResult> {
+  return engineRpc<LiuyaoSnapshotResult>('liuyao_snapshot', { question, mode })
+}
