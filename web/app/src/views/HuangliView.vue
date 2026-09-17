@@ -94,6 +94,11 @@ async function calc() {
     error.value = '结束日期不能早于起始日期'
     return
   }
+  const spanDays = Math.round((new Date(endDate.value).getTime() - new Date(startDate.value).getTime()) / 86400000) + 1
+  if (spanDays > 120) {
+    error.value = `择日范围最长 120 天（当前 ${spanDays} 天），请缩短日期范围`
+    return
+  }
   loading.value = true
   error.value = ''
   result.value = null
