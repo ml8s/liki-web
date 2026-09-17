@@ -109,12 +109,7 @@ function startChat() {
   const p = profile.value
   if (!p) return
   chat.pendingIntent = '我想咨询风水。'
-  const existing = chat.sessions.find(s => s.profile_id === p.id)
-  if (existing) {
-    void router.push(`/chat/${existing.id}`)
-  } else {
-    void chat.createSession(p.id, 'liki').then(s => router.push(`/chat/${s.id}`)).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
-  }
+  void chat.ensureSession(p.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
 }
 
 onMounted(async () => {

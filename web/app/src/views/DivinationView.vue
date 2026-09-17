@@ -99,12 +99,7 @@ function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
   chat.pendingIntent = `我想问卦。问题：${question.value.trim()}`
-  const existing = chat.sessions.find(s => s.profile_id === profile.id)
-  if (existing) {
-    void router.push(`/chat/${existing.id}`)
-  } else {
-    void chat.createSession(profile.id, 'liki').then(s => router.push(`/chat/${s.id}`)).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
-  }
+  void chat.ensureSession(profile.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
 }
 
 onMounted(async () => {

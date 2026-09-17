@@ -66,6 +66,12 @@ export const useChatStore = defineStore('chat', {
       this.sessions.unshift(session)
       return session
     },
+    /** 取该档案的会话：有则复用（继续），无则新建。 */
+    async ensureSession(profileId: string) {
+      const existing = this.sessions.find(s => s.profile_id === profileId)
+      if (existing) return existing
+      return this.createSession(profileId, 'liki')
+    },
     async openSession(sessionId: string) {
       this.loadingMessages = true
       this.error = ''

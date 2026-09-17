@@ -92,6 +92,21 @@ const bond = {
   shi_shen_cross: { jia_dui_yi: { nian_gan: '偏财', ri_gan: '日主' }, yi_dui_jia: { nian_gan: '偏印', ri_gan: '日主' } },
 }
 
+const qimingPick = {
+  wuxing1: '金', wuxing2: '水',
+  pools: [
+    { slot: 'first', chars: [{ char: '锐', frequency: '2k' }, { char: '铭', frequency: '1k' }] },
+    { slot: 'second', chars: [{ char: '泓', frequency: '1k' }] },
+  ],
+}
+const liuyaoSnapshot = {
+  question: '这个项目能成吗',
+  casting: { mode: 'auto', rounds: 3, yaos: [[1, 2, 3], [4, 5, 6], [7, 8, 9]], dong_yao: [3], casting_id: 'c1', order: 0 },
+  board: { name: '水火既济', palace: '坎', palace_wuxing: '水', xun_kong: '午未', lines: [], bian_lines: [], ri_gan: '戊', ri_zhi: '子', yue_gan: '甲', yue_zhi: '寅' },
+  focus: { yong_shen: '妻财', yong_line: '三爻', world: '三爻', other: '六爻' },
+  timing_candidates: [{ note: '午月' }],
+}
+
 function routeEngine(page) {
   return page.route('**/jsonrpc', async route => {
     const { method } = await route.request().postDataJSON()
@@ -105,6 +120,8 @@ function routeEngine(page) {
       case 'ziwei.fullchart': data = ziweiFull; break
       case 'bazhai.chart': data = bazhai; break
       case 'bazi.bond': data = bond; break
+      case 'qiming.pick': data = qimingPick; break
+      case 'liuyao_snapshot': data = liuyaoSnapshot; break
       default: data = {}
     }
     return route.fulfill(rpc(data))
@@ -166,4 +183,39 @@ test('合盘按真实引擎契约渲染（bazi.bond）', async ({ page }) => {
   await expect(page.locator('.rel-text')).toContainText('三合') // 地支关系（对象 detail）
   await expect(page.locator('.rel-chip')).toContainText(['六合', '六冲'])
   await expect(page.locator('.rel-chip')).toContainText(['妈妈年柱看对方：偏财'])
+})
+
+test('起名按真实契约渲染（qiming.pick）', async ({ page }) => {
+  await routeApp(page)
+  await page.route('**/api/profiles**', r => (r.request().url().endsWith('/profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
+  await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
+  await routeEngine(page)
+
+  await page.goto('/app/naming')
+  await page.waitForSelector('.el-select', { timeout: 10000 })
+  await page.locator('.el-select').first().click()
+  await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
+  await page.waitForSelector('.char', { timeout: 12000 })
+  await expect(page.locator('.ys')).toContainText('金') // 用神五行（fu_yi.yong）
+  await expect(page.locator('.char')).toContainText(['锐', '铭']) // qiming.pick 字池（char/frequency）
+})
+
+test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
+  await routeApp(page)
+  await page.route('**/api/profiles**', r => r.fulfill(json({ profiles: [profile], next_cursor: '' })))
+  await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
+  await routeEngine(page)
+
+  await page.goto('/app/divination')
+  await page.waitForSelector('input[placeholder*="项目"]', { timeout: 10000 })
+  await page.locator('input[placeholder*="项目"]').fill('这个项目能成吗')
+  await page.click('button:has-text("摇卦")')
+  await page.waitForSelector('.gua-name', { timeout: 12000 })
+  await expect(page.locator('.gua-name')).toHaveText('水火既济') // board.name
+  await expect(page.locator('.gua-sub')).toContainText('坎') // board.palace
+  await expect(page.locator('.rel-text')).toContainText('妻财') // focus.yong_shen
 })

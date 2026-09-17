@@ -217,20 +217,15 @@ const shiShenRows = computed(() => {
 
 async function startInterpretation() {
   const p = profileA.value
-  const bProfile = b.value
   if (!p) return
+  const bProfile = b.value
   const bInfo = `${bProfile.gender === 'male' ? '男' : '女'}，公历 ${bProfile.birth_date} ${bProfile.birth_time}${bProfile.birth_place ? `，出生地 ${bProfile.birth_place}` : ''}`
   chat.pendingIntent = `请为我（${p.nickname}）与对方做合盘解读。对方信息：${bInfo}。`
-  const existing = chat.sessions.find(s => s.profile_id === p.id)
-  if (existing) {
-    void router.push(`/chat/${existing.id}`)
-  } else {
-    try {
-      const session = await chat.createSession(p.id, 'liki')
-      void router.push(`/chat/${session.id}`)
-    } catch (err) {
-      error.value = toUserMessage(err, '创建会话失败')
-    }
+  try {
+    const session = await chat.ensureSession(p.id)
+    if (session) void router.push(`/chat/${session.id}`)
+  } catch (err) {
+    error.value = toUserMessage(err, '创建会话失败')
   }
 }
 
