@@ -15,7 +15,7 @@ runs:
       shell: bash
       run: |
         echo "liki commit: $(git -C skills-repo rev-parse --short HEAD)"
-        echo "liki VERSION: $(cat skills-repo/skills/liki/VERSION)"
+        echo "liki VERSION: $(cat skills-repo/skills/liki/VERSION.txt)"
     - name: Build skill archive (dist/ 不入库，CI 现场构建)
       shell: bash
       run: |
@@ -38,9 +38,9 @@ runs:
       shell: bash
       run: |
         test -f "web/skills/liki/SKILL.md" || { echo "❌ Missing web/skills/liki/SKILL.md"; exit 1; }
-        test -f "web/skills/liki/VERSION" || { echo "❌ Missing web/skills/liki/VERSION"; exit 1; }
+        test -f "web/skills/liki/VERSION.txt" || { echo "❌ Missing web/skills/liki/VERSION.txt"; exit 1; }
         test -f "web/skills/liki/bazi/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
         test -f "web/skills/liki/bazi/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
         test -f "web/skills/liki/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
         test -f "web/skills/liki.tar.gz" || { echo "❌ Missing skills/liki.tar.gz"; exit 1; }
-        echo "✓ 统一 liki skill 结构完整（SKILL.md + VERSION + bazi 工具链/webapp + 归档）"
+        echo "✓ 统一 liki skill 结构完整（SKILL.md + VERSION.txt + bazi 工具链/webapp + 归档）"

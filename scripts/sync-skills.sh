@@ -1,7 +1,7 @@
 #!/bin/bash
 # Sync the liki skill repo to the web serving directory.
 # Single unified skill: liki (SKILL.md router + bazi/divination/fengshui/naming domains,
-# each = ENTRY.md + app/ + domains/ + tools/; single root VERSION/feedback).
+# each = ENTRY.md + app/ + domains/ + tools/; single root VERSION.txt/feedback).
 # Usage: scripts/sync-skills.sh [--dest web/skills]
 set -euo pipefail
 
