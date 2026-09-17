@@ -272,6 +272,9 @@ func profileContext(p profile.Profile) string {
 	if p.BirthPlace != "" {
 		b.WriteString("出生地：" + p.BirthPlace + "\n")
 	}
+	if p.Note != "" {
+		b.WriteString("用户备注：" + p.Note + "\n")
+	}
 	b.WriteString("请基于以上出生信息，使用排盘工具计算命盘后再进行解读。")
 	return b.String()
 }

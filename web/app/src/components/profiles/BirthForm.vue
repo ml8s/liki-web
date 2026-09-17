@@ -4,8 +4,8 @@
     <el-form-item label="称呼" :error="nicknameError">
       <el-input v-model="nickname" placeholder="如：妈妈 / 我本人" maxlength="40" @update:model-value="nicknameError = ''" />
     </el-form-item>
-    <el-form-item label="性别">
-      <el-radio-group v-model="gender">
+    <el-form-item label="性别" :error="genderError">
+      <el-radio-group v-model="gender" @update:model-value="genderError = ''">
         <el-radio-button value="female">女</el-radio-button>
         <el-radio-button value="male">男</el-radio-button>
       </el-radio-group>
@@ -38,9 +38,14 @@
         <el-radio-button value="unknown">不确定</el-radio-button>
       </el-radio-group>
     </el-form-item>
-    <el-form-item v-if="birthTimeKnown === 'known'" label="精确时间（将做真太阳时修正）">
-      <el-time-picker v-model="timeValue" format="HH:mm" value-format="HH:mm" placeholder="如 06:00" style="width: 100%" />
-    </el-form-item>
+    <template v-if="birthTimeKnown === 'known'">
+      <el-form-item label="精确时间（将做真太阳时修正）" :error="timeError">
+        <el-time-picker v-model="timeValue" format="HH:mm" value-format="HH:mm" placeholder="如 06:00" style="width: 100%" @update:model-value="timeError = ''" />
+      </el-form-item>
+      <el-form-item label="出生地（城市，用于真太阳时修正）">
+        <el-input v-model="birthPlace" placeholder="如：上海" />
+      </el-form-item>
+    </template>
     <el-form-item v-else-if="birthTimeKnown === 'approximate'" label="时辰（按已定时辰排，不校正）">
       <div class="shichen">
         <el-button v-for="item in shichen" :key="item.label" size="small" :type="birthTime === item.value ? 'primary' : 'default'" @click="birthTime = item.value">
@@ -53,19 +58,8 @@
     </el-form-item>
 
     <div class="step-label">更多信息（可选）</div>
-    <el-form-item label="出生地（城市）">
-      <el-input v-model="birthPlace" placeholder="用于真太阳时修正，如：上海" />
-    </el-form-item>
-    <el-form-item label="关系">
-      <el-select v-model="relation" placeholder="本人 / 家人 / 朋友…" clearable style="width: 100%">
-        <el-option label="本人" value="本人" />
-        <el-option label="家人" value="家人" />
-        <el-option label="朋友" value="朋友" />
-        <el-option label="其他" value="其他" />
-      </el-select>
-    </el-form-item>
     <el-form-item label="备注">
-      <el-input v-model="note" type="textarea" :rows="2" placeholder="可选" />
+      <el-input v-model="note" type="textarea" :rows="2" placeholder="如：这是我想深度了解的人" />
     </el-form-item>
     <el-form-item>
       <el-checkbox v-model="thirdPartyConsent">我确认已获得该人的同意为其建档</el-checkbox>
@@ -85,7 +79,7 @@ const props = withDefaults(defineProps<{ submitting?: boolean; initial?: Partial
 const emit = defineEmits<{ submit: [ProfileInput] }>()
 
 const nickname = ref(props.initial?.nickname ?? '')
-const gender = ref<'male' | 'female'>(props.initial?.gender ?? 'female')
+const gender = ref<'male' | 'female' | ''>(props.initial?.gender ?? '')
 const calendar = ref<'solar' | 'lunar'>(props.initial?.calendar ?? 'solar')
 const solarDate = ref(props.initial?.birth_date ?? '')
 const lunarDate = ref(props.initial?.birth_date ?? '')
@@ -93,11 +87,12 @@ const birthTimeKnown = ref<ProfileInput['birth_time_known']>(props.initial?.birt
 const birthTime = ref(props.initial?.birth_time ?? '')
 const timeValue = ref(props.initial?.birth_time ?? '')
 const birthPlace = ref(props.initial?.birth_place ?? '')
-const relation = ref(props.initial?.relation ?? '')
 const note = ref(props.initial?.note ?? '')
 const thirdPartyConsent = ref(props.initial?.third_party_consent ?? false)
 const nicknameError = ref('')
 const birthDateError = ref('')
+const genderError = ref('')
+const timeError = ref('')
 
 const shichen = [
   { label: '子', value: '23:00' }, { label: '丑', value: '01:00' }, { label: '寅', value: '03:00' },
@@ -120,20 +115,27 @@ function submit() {
     nicknameError.value = '请填写称呼'
     ok = false
   }
+  if (!gender.value) {
+    genderError.value = '请选择性别'
+    ok = false
+  }
   if (!birthDate.value) {
     birthDateError.value = '请选择出生日期'
+    ok = false
+  }
+  if (birthTimeKnown.value === 'known' && !birthTime.value) {
+    timeError.value = '请选择精确时间'
     ok = false
   }
   if (!ok) return
   emit('submit', {
     nickname: nickname.value.trim(),
-    gender: gender.value,
+    gender: gender.value || 'female',
     calendar: calendar.value,
     birth_date: birthDate.value,
     birth_time: birthTime.value,
     birth_time_known: birthTimeKnown.value,
-    birth_place: birthPlace.value.trim(),
-    relation: relation.value,
+    birth_place: birthTimeKnown.value === 'known' ? birthPlace.value.trim() : '',
     note: note.value.trim(),
     third_party_consent: thirdPartyConsent.value,
   })

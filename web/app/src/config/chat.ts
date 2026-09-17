@@ -29,8 +29,8 @@ export interface ChatService {
 export const chatServices: ChatService[] = [
   { key: 'bazi', label: '看命', desc: '八字·紫微·大运·流年·格局', intent: '我想咨询八字。', route: '/profiles' },
   { key: 'naming', label: '起名', desc: '依八字用神取名，五行配字', intent: '我想咨询起名。', route: '/naming' },
-  { key: 'divination', label: '问卦', desc: '六爻·奇门断事', intent: '我想问卦。', route: '/divination' },
-  { key: 'fengshui', label: '风水', desc: '八宅·玄空·流年飞星', intent: '我想咨询风水。', route: '/fengshui' },
+  { key: 'divination', label: '问卦', desc: '六爻断事·用神应期', intent: '我想问卦。', route: '/divination' },
+  { key: 'fengshui', label: '风水', desc: '八宅·流年飞星·吉凶方位', intent: '我想咨询风水。', route: '/fengshui' },
   { key: 'huangli', label: '择日', desc: '黄历择日·宜忌', intent: '我想咨询择日。', route: '/huangli' },
   { key: 'bond', label: '合盘', desc: '两人八字合婚·关系分析', intent: '我想咨询合盘。', route: '/synastry' },
 ]
