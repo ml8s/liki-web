@@ -275,6 +275,7 @@ async function compute() {
     const solar = p.birth_time_known === 'known' && p.birth_place ? t.solar : datetime
     if (p.birth_time_known === 'known' && p.birth_place) correction.value = '已做真太阳时修正'
     else if (p.birth_time_known === 'known') correction.value = '未做真太阳时修正（未填出生地）'
+    else if (p.birth_place) correction.value = '按已定时辰排盘（出生地仅用于精确时间校正，此时不生效）'
     else correction.value = '按已定时辰排盘，未做校正'
 
     baziChart.value = await engineBaziChart(solar, p.gender)

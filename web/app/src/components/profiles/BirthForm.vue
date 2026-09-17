@@ -1,8 +1,8 @@
 <template>
   <el-form label-position="top" class="birth-form" @submit.prevent>
     <div class="step-label">基本信息</div>
-    <el-form-item label="称呼">
-      <el-input v-model="nickname" placeholder="如：妈妈 / 我本人" maxlength="40" />
+    <el-form-item label="称呼" :error="nicknameError">
+      <el-input v-model="nickname" placeholder="如：妈妈 / 我本人" maxlength="40" @update:model-value="nicknameError = ''" />
     </el-form-item>
     <el-form-item label="性别">
       <el-radio-group v-model="gender">
@@ -10,7 +10,7 @@
         <el-radio-button value="male">男</el-radio-button>
       </el-radio-group>
     </el-form-item>
-    <el-form-item label="出生日期">
+    <el-form-item label="出生日期" :error="birthDateError">
       <div class="date-row">
         <el-radio-group v-model="calendar" size="small">
           <el-radio-button value="solar">公历</el-radio-button>
@@ -24,8 +24,9 @@
           placeholder="选择日期"
           :disabled-date="disableFuture"
           style="width: 100%"
+          @update:model-value="birthDateError = ''"
         />
-        <el-input v-else v-model="lunarDate" placeholder="如 1958-闰5-12 或 1990-5-12" />
+        <el-input v-else v-model="lunarDate" placeholder="如 1958-闰5-12 或 1990-5-12" @update:model-value="birthDateError = ''" />
       </div>
     </el-form-item>
 
@@ -95,6 +96,8 @@ const birthPlace = ref(props.initial?.birth_place ?? '')
 const relation = ref(props.initial?.relation ?? '')
 const note = ref(props.initial?.note ?? '')
 const thirdPartyConsent = ref(props.initial?.third_party_consent ?? false)
+const nicknameError = ref('')
+const birthDateError = ref('')
 
 const shichen = [
   { label: '子', value: '23:00' }, { label: '丑', value: '01:00' }, { label: '寅', value: '03:00' },
@@ -112,6 +115,16 @@ function disableFuture(date: Date) {
 const birthDate = computed(() => (calendar.value === 'solar' ? solarDate.value : lunarDate.value))
 
 function submit() {
+  let ok = true
+  if (!nickname.value.trim()) {
+    nicknameError.value = '请填写称呼'
+    ok = false
+  }
+  if (!birthDate.value) {
+    birthDateError.value = '请选择出生日期'
+    ok = false
+  }
+  if (!ok) return
   emit('submit', {
     nickname: nickname.value.trim(),
     gender: gender.value,

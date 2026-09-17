@@ -106,6 +106,12 @@ p {
 .el-tabs .el-tabs__item.is-active { color: var(--liki-primary); font-weight: 600; }
 .el-tabs .el-tabs__active-bar { background-color: var(--liki-gold); height: 2px; }
 
+/* 输入字数计数器：EP 默认占位色对比度不足，加深至可读 */
+.el-input .el-input__count-inner {
+  background-color: var(--liki-surface);
+  color: var(--liki-text-2);
+}
+
 /* 路由页面切换过渡 */
 .page-fade-enter-active,
 .page-fade-leave-active {

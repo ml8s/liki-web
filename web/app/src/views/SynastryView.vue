@@ -33,7 +33,7 @@
           </el-form-item>
         </div>
       </el-form>
-      <el-button type="primary" :loading="loading" :disabled="!profileAId" @click="compute">合盘</el-button>
+      <el-button type="primary" :loading="loading" :disabled="!profileAId || !b.birth_date || !b.birth_time" @click="compute">合盘</el-button>
     </el-card>
 
     <template v-if="result">

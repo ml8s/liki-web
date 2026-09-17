@@ -8,7 +8,7 @@
       <template #header><span class="card-title">摇卦</span></template>
       <el-form label-position="top" @submit.prevent="cast">
         <el-form-item label="你想问的一件事">
-          <el-input v-model="question" placeholder="如：这个项目能不能成 / 何时有结果" />
+          <el-input v-model="question" maxlength="200" placeholder="如：这个项目能不能成 / 何时有结果" show-word-limit />
         </el-form-item>
         <el-button type="primary" :loading="loading" :disabled="!question.trim()" @click="cast">摇卦</el-button>
       </el-form>

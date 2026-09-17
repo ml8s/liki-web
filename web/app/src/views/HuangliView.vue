@@ -90,6 +90,10 @@ const unsuitable = computed(() => result.value?.unsuitable ?? [])
 
 async function calc() {
   if (!event.value || !startDate.value || !endDate.value) return
+  if (startDate.value > endDate.value) {
+    error.value = '结束日期不能早于起始日期'
+    return
+  }
   loading.value = true
   error.value = ''
   result.value = null
