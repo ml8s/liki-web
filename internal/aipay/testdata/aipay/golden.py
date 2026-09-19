@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Independent protocol oracle for Liki's Alipay AI Pay donation flow.
+"""Independent protocol oracle for Liki's Alipay AI Pay aipay flow.
 
 The file is a test asset. It is not imported by production code and it uses
-only the Python standard library. RSA support is intentionally limited to the
+only the Python standard library. RSA aipay is intentionally limited to the
 RSASSA-PKCS1-v1_5/SHA-256 algorithm used by the A2M contract.
 """
 
@@ -63,7 +63,7 @@ def read_der_tlv(data: bytes, offset: int) -> tuple[int, bytes, int]:
     if length & 0x80:
         size = length & 0x7F
         if size == 0 or size > 4:
-            raise ValueError("unsupported DER length")
+            raise ValueError("unaipayed DER length")
         length = int.from_bytes(data[offset : offset + size], "big")
         offset += size
     value = data[offset : offset + length]
@@ -97,7 +97,7 @@ def parse_private_key_pem(pem: str) -> dict[str, int]:
         # PKCS#8: version, AlgorithmIdentifier, OCTET wrapping a PKCS#1 key.
         integers = parse_der_sequence(items[2][1])
     else:
-        raise ValueError("unsupported private key DER structure")
+        raise ValueError("unaipayed private key DER structure")
 
     names = ("version", "n", "e", "d", "p", "q", "dp", "dq", "qinv")
     if len(integers) < 9 or any(tag != 0x02 for tag, _ in integers[:9]):
@@ -186,17 +186,17 @@ def proof(payment_proof: str, trade_no: str, client_session: str = "") -> dict[s
 
 
 def signed_sync_response(method: str, node: dict[str, Any], private_key: dict[str, int]) -> dict[str, Any]:
-    fields = strip_signature_fields(node)
-    canonical = canonical_params(fields)
-    signature = rsa_sha256_sign(private_key, canonical)
-    envelope = {method: node, "sign": signature}
+    content = compact_json(node)
+    signature = rsa_sha256_sign(private_key, content)
+    response_key = method.replace(".", "_") + "_response"
+    envelope = {response_key: node, "sign": signature}
     raw = compact_json(envelope)
     return {
         "method": method,
         "raw": raw,
         "node": node,
         "signature": signature,
-        "canonical": canonical,
+        "content": content,
     }
 
 
@@ -206,8 +206,8 @@ def default_vectors(private_key: dict[str, int]) -> dict[str, Any]:
         "out_trade_no": "order-1",
         "amount": "1.00",
         "currency": "CNY",
-        "resource_id": "/api/donations/redeem",
-        "goods_name": "Liki 捐赠",
+        "resource_id": "/api/aipay",
+        "goods_name": "Liki 服务支持",
         "pay_before": "2026-01-01T00:00:00+08:00",
         "seller_id": "2088seller",
         "seller_name": "Liki",
@@ -225,7 +225,7 @@ def default_vectors(private_key: dict[str, int]) -> dict[str, Any]:
         "trade_no": "trade-1",
         "out_trade_no": "order-1",
         "amount": "1.00",
-        "resource_id": "/api/donations/redeem",
+        "resource_id": "/api/aipay",
     }, private_key)
     confirm = signed_sync_response(CONFIRM_METHOD, {"code": "10000", "msg": "Success"}, private_key)
     return {
@@ -249,12 +249,8 @@ def default_vectors(private_key: dict[str, int]) -> dict[str, Any]:
         "payment_proof": proof("platform-inner-proof", "trade-1", "client-session"),
         "sync_responses": {"verify": response, "confirm": confirm},
         "negative_cases": {
-            "empty_values_skipped": {
-                "params": {"b": "2", "a": "", "c": None},
-                "canonical": "b=2",
-            },
             "tampered_response": {
-                "canonical": response["canonical"] + "&amount=2.00",
+                "content": compact_json({**response["node"], "amount": "2.00"}),
                 "signature": response["signature"],
                 "valid": False,
             },
@@ -272,8 +268,8 @@ def validate_vectors(vectors: dict[str, Any]) -> list[str]:
     }
     checks = (
         ("seller_bill", vectors["seller_bill"]["canonical"], vectors["seller_bill"]["signature"]),
-        ("verify", vectors["sync_responses"]["verify"]["canonical"], vectors["sync_responses"]["verify"]["signature"]),
-        ("confirm", vectors["sync_responses"]["confirm"]["canonical"], vectors["sync_responses"]["confirm"]["signature"]),
+        ("verify", vectors["sync_responses"]["verify"]["content"], vectors["sync_responses"]["verify"]["signature"]),
+        ("confirm", vectors["sync_responses"]["confirm"]["content"], vectors["sync_responses"]["confirm"]["signature"]),
     )
     for name, canonical, signature in checks:
         if not rsa_sha256_verify(public_key, canonical, signature):
@@ -291,7 +287,7 @@ def validate_vectors(vectors: dict[str, Any]) -> list[str]:
         errors.append("Payment-Proof round trip failed")
 
     negative = vectors["negative_cases"]
-    if rsa_sha256_verify(public_key, negative["tampered_response"]["canonical"], negative["tampered_response"]["signature"]):
+    if rsa_sha256_verify(public_key, negative["tampered_response"]["content"], negative["tampered_response"]["signature"]):
         errors.append("tampered response unexpectedly verified")
     return errors
 

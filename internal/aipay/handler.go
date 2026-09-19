@@ -1,10 +1,11 @@
-package donation
+package aipay
 
 import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -31,11 +32,11 @@ type Handler struct {
 
 func NewHandler(store *Store, gateway Gateway, config Config) (*Handler, error) {
 	if store == nil {
-		return nil, errors.New("donation: store is required")
+		return nil, errors.New("aipay: store is required")
 	}
 	amount := ""
 	if config.Enabled() && gateway == nil {
-		return nil, errors.New("donation: gateway is required when enabled")
+		return nil, errors.New("aipay: gateway is required when enabled")
 	}
 	if config.Enabled() {
 		var err error
@@ -61,13 +62,13 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit func(http.HandlerFunc
 	if limit == nil {
 		limit = func(next http.HandlerFunc) http.HandlerFunc { return next }
 	}
-	mux.HandleFunc("POST /api/donations/redeem", limit(h.HandleRedeem))
+	mux.HandleFunc("POST /api/aipay", limit(h.HandlePay))
 }
 
-func (h *Handler) HandleRedeem(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandlePay(w http.ResponseWriter, r *http.Request) {
 	if !h.config.Enabled() || h.gateway == nil {
-		writeError(w, http.StatusServiceUnavailable, "donation_disabled",
-			"捐赠通道未开放；所有 Liki 功能仍可正常使用")
+		writeError(w, http.StatusServiceUnavailable, "aipay_disabled",
+			"付费通道未开放；所有 Liki 功能仍可正常使用")
 		return
 	}
 
@@ -95,7 +96,7 @@ func (h *Handler) paymentRequired(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Payment-Needed", encoded)
 	writeJSON(w, http.StatusPaymentRequired, map[string]any{
 		"code":         "Payment-Needed",
-		"message":      "Liki 是捐赠制。支付后获得捐赠凭证，所有功能仍然免费。",
+		"message":      "Liki 先使用后付费。付费后获得凭证，所有功能仍然免费。",
 		"out_trade_no": bill.OutTradeNo,
 		"amount":       bill.Amount,
 		"currency":     bill.Currency,
@@ -116,6 +117,7 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 
 	verified, err := h.gateway.Verify(r.Context(), proof)
 	if err != nil || !verified.Active {
+		slog.Warn("aipay proof verify failed", "err", err, "active", verified.Active)
 		h.proofRejected(w)
 		return
 	}
@@ -144,7 +146,7 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 	if order.FulfillmentStatus != FulfillmentConfirmed {
 		if err := h.gateway.Confirm(r.Context(), order.TradeNo); err != nil {
 			writeError(w, http.StatusBadGateway, "fulfillment_confirm_failed",
-				"捐赠已收到，回执确认未完成；请使用同一 Payment-Proof 重试")
+				"付费已收到，回执确认未完成；请使用同一 Payment-Proof 重试")
 			return
 		}
 		confirmed = true
@@ -157,18 +159,32 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 		}
 	}
 
+	// The Alipay A2M test tool requires a Payment-Validation header with a
+	// Base64URL-encoded proof of successful verification and delivery.
+	validation, err := json.Marshal(map[string]any{
+		"trade_no":     order.TradeNo,
+		"out_trade_no": order.OutTradeNo,
+		"validated":    true,
+		"resource_id":  ResourceID,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		return
+	}
+	w.Header().Set("Payment-Validation", base64.RawURLEncoding.EncodeToString(validation))
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"resource_id": ResourceID,
 		"content": map[string]any{
 			"schema_version": SchemaVersion,
-			"kind":           "donation-receipt",
+			"kind":           "aipay-receipt",
 			"status":         "received",
 			"receipt_id":     order.ReceiptID,
 			"out_trade_no":   order.OutTradeNo,
 			"trade_no":       order.TradeNo,
 			"amount":         order.Amount,
 			"currency":       order.Currency,
-			"donated_at":     order.PaidAt,
+			"paid_at":        order.PaidAt,
 			"message":        "感谢支持。Liki 会继续免费开放。",
 		},
 		"credential_path":       CredentialPath,
@@ -178,7 +194,7 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 
 func (h *Handler) proofRejected(w http.ResponseWriter) {
 	writeError(w, http.StatusPaymentRequired, "Payment-Needed",
-		"支付凭证无效或未通过校验；请重新完成捐赠后重试。")
+		"支付凭证无效或未通过校验；请重新完成支付后重试。")
 }
 
 func validProofFormat(proof string) bool {

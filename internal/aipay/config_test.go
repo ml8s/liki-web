@@ -1,4 +1,4 @@
-package donation
+package aipay
 
 import (
 	"errors"
@@ -80,5 +80,27 @@ func TestLoadSandboxConfigRejectsInsecureOrInvalidFiles(t *testing.T) {
 	missing := filepath.Join(dir, "missing.json")
 	if _, err := LoadSandboxConfig(missing); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("missing file error = %v", err)
+	}
+}
+
+func TestLoadSandboxConfigRejectsSymlink(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target.json")
+	if err := os.WriteFile(target, []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "link.json")
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("cannot create symlink: %v", err)
+	}
+	if _, err := LoadSandboxConfig(link); err == nil || !strings.Contains(err.Error(), "regular file") {
+		t.Fatalf("symlink error = %v, want regular file error", err)
+	}
+}
+
+func TestLoadSandboxConfigRejectsMalformedJSON(t *testing.T) {
+	path := writeSandboxConfig(t, `not-valid-json`)
+	if _, err := LoadSandboxConfig(path); err == nil || !strings.Contains(err.Error(), "decode") {
+		t.Fatalf("malformed JSON error = %v", err)
 	}
 }

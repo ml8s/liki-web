@@ -1,4 +1,4 @@
-package donation
+package aipay
 
 import (
 	"context"
@@ -51,7 +51,7 @@ func newAlipayHarnessWithHandler(t *testing.T, publicKey *rsa.PublicKey, handler
 		SellerName:      "Liki",
 		ServiceID:       "service-id",
 		Amount:          "1.00",
-		GoodsName:       "Liki 捐赠",
+		GoodsName:       "Liki 服务支持",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -93,16 +93,13 @@ func signedResponse(t *testing.T, key *rsa.PrivateKey, method string, response m
 	if err != nil {
 		t.Fatal(err)
 	}
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(responseRaw, &fields); err != nil {
-		t.Fatal(err)
-	}
 	envelope := map[string]json.RawMessage{}
 	if err := json.Unmarshal(responseRaw, &envelope); err != nil {
 		t.Fatal(err)
 	}
-	envelope[method] = responseRaw
-	envelope["sign"] = json.RawMessage(jsonQuote(signRSA(t, key, signContentRaw(fields))))
+	responseKey := strings.ReplaceAll(method, ".", "_") + "_response"
+	envelope[responseKey] = responseRaw
+	envelope["sign"] = json.RawMessage(jsonQuote(signRSA(t, key, string(responseRaw))))
 	raw, err := json.Marshal(envelope)
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +180,7 @@ func TestAlipayClientSignsAndVerifiesA2MCalls(t *testing.T) {
 		Amount:     "1.00",
 		Currency:   Currency,
 		ResourceID: ResourceID,
-		GoodsName:  "Liki 捐赠",
+		GoodsName:  "Liki 服务支持",
 		PayBefore:  time.Now().Format(time.RFC3339),
 		Status:     StatusPending,
 	})
@@ -228,6 +225,47 @@ func TestAlipayClientRejectsTamperedResponse(t *testing.T) {
 	proof := base64.RawURLEncoding.EncodeToString([]byte(`{"protocol":{"payment_proof":"p","trade_no":"t"}}`))
 	if _, err := harness.client.Verify(context.Background(), proof); err == nil {
 		t.Fatal("expected tampered response to fail")
+	}
+}
+
+func TestAlipayClientRejectsGatewayHTTPErrors(t *testing.T) {
+	for _, code := range []int{http.StatusInternalServerError, http.StatusNotFound, http.StatusBadGateway} {
+		t.Run(http.StatusText(code), func(t *testing.T) {
+			harness := newAlipayHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+				http.Error(w, "server error", code)
+			})
+			proof := base64.RawURLEncoding.EncodeToString(
+				[]byte(`{"protocol":{"payment_proof":"p","trade_no":"t"}}`))
+			_, err := harness.client.Verify(context.Background(), proof)
+			if err == nil || !strings.Contains(err.Error(), "alipay HTTP") {
+				t.Fatalf("err = %v, want alipay HTTP %d", err, code)
+			}
+		})
+	}
+}
+
+func TestAlipayClientRejectsMalformedGatewayJSON(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "invalid json", body: `not-json`},
+		{name: "missing response node", body: `{"sign":"abc"}`},
+		{name: "missing signature", body: `{"alipay_aipay_agent_payment_verify_response":{"code":"10000"}}`},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			harness := newAlipayHarness(t, func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(test.body))
+			})
+			proof := base64.RawURLEncoding.EncodeToString(
+				[]byte(`{"protocol":{"payment_proof":"p","trade_no":"t"}}`))
+			_, err := harness.client.Verify(context.Background(), proof)
+			if err == nil {
+				t.Fatal("expected malformed gateway response to fail")
+			}
+		})
 	}
 }
 

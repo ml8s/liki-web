@@ -1,4 +1,4 @@
-package donation
+package aipay
 
 import (
 	"bytes"
@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -50,11 +49,11 @@ func NewClient(config Config) (*Client, error) {
 	}
 	privateKey, err := parsePrivateKey(config.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("donation: parse alipay private key: %w", err)
+		return nil, fmt.Errorf("aipay: parse alipay private key: %w", err)
 	}
 	publicKey, err := parsePublicKey(config.AlipayPublicKey)
 	if err != nil {
-		return nil, fmt.Errorf("donation: parse alipay public key: %w", err)
+		return nil, fmt.Errorf("aipay: parse alipay public key: %w", err)
 	}
 	return &Client{
 		config:     config,
@@ -92,7 +91,7 @@ func (c *Client) PaymentNeededHeader(_ context.Context, bill Bill) (string, erro
 	}
 	raw, err := json.Marshal(body)
 	if err != nil {
-		return "", fmt.Errorf("donation: encode payment needed: %w", err)
+		return "", fmt.Errorf("aipay: encode payment needed: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
@@ -122,7 +121,7 @@ func (c *Client) Verify(ctx context.Context, proof string) (VerifiedPayment, err
 		Active     *bool  `json:"active"`
 	}
 	if err := json.Unmarshal(node, &response); err != nil {
-		return VerifiedPayment{}, fmt.Errorf("donation: decode alipay verification: %w", err)
+		return VerifiedPayment{}, fmt.Errorf("aipay: decode alipay verification: %w", err)
 	}
 	if response.Code != "10000" {
 		return VerifiedPayment{}, ErrGatewayRejected
@@ -162,7 +161,7 @@ func (c *Client) signSellerBill(bill Bill) (string, error) {
 func (c *Client) execute(ctx context.Context, method string, biz map[string]string) (json.RawMessage, error) {
 	bizRaw, err := json.Marshal(biz)
 	if err != nil {
-		return nil, fmt.Errorf("donation: encode alipay biz content: %w", err)
+		return nil, fmt.Errorf("aipay: encode alipay biz content: %w", err)
 	}
 	params := map[string]string{
 		"app_id":      c.config.AppID,
@@ -186,23 +185,23 @@ func (c *Client) execute(ctx context.Context, method string, biz map[string]stri
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.config.Gateway, strings.NewReader(form.Encode()))
 	if err != nil {
-		return nil, fmt.Errorf("donation: create alipay request: %w", err)
+		return nil, fmt.Errorf("aipay: create alipay request: %w", err)
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8")
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("donation: call alipay: %w", err)
+		return nil, fmt.Errorf("aipay: call alipay: %w", err)
 	}
 	defer func() { _ = response.Body.Close() }()
 	raw, err := io.ReadAll(io.LimitReader(response.Body, maxGatewayBytes+1))
 	if err != nil {
-		return nil, fmt.Errorf("donation: read alipay response: %w", err)
+		return nil, fmt.Errorf("aipay: read alipay response: %w", err)
 	}
 	if len(raw) > maxGatewayBytes {
-		return nil, errors.New("donation: alipay response too large")
+		return nil, errors.New("aipay: alipay response too large")
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("donation: alipay HTTP %d", response.StatusCode)
+		return nil, fmt.Errorf("aipay: alipay HTTP %d", response.StatusCode)
 	}
 	return c.decodeSignedResponse(method, raw)
 }
@@ -210,31 +209,43 @@ func (c *Client) execute(ctx context.Context, method string, biz map[string]stri
 func (c *Client) decodeSignedResponse(method string, raw []byte) (json.RawMessage, error) {
 	var envelope map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &envelope); err != nil {
-		return nil, fmt.Errorf("donation: decode alipay envelope: %w", err)
+		return nil, fmt.Errorf("aipay: decode alipay envelope: %w", err)
 	}
-	node, ok := envelope[method]
+	// Alipay OpenAPI returns the response node keyed by the method name with
+	// dots replaced by underscores, e.g.
+	// "alipay.aipay.agent.payment.verify" → "alipay_aipay_agent_payment_verify_response".
+	responseKey := strings.ReplaceAll(method, ".", "_") + "_response"
+	node, ok := envelope[responseKey]
 	if !ok {
 		node, ok = envelope["error_response"]
 	}
 	if !ok {
-		return nil, errors.New("donation: alipay response node missing")
+		return nil, errors.New("aipay: alipay response node missing")
 	}
 	signature, ok := envelope["sign"]
 	if !ok {
-		return nil, errors.New("donation: alipay response signature missing")
+		return nil, errors.New("aipay: alipay response signature missing")
 	}
 	var signatureValue string
 	if err := json.Unmarshal(signature, &signatureValue); err != nil {
-		return nil, fmt.Errorf("donation: decode alipay signature: %w", err)
+		return nil, fmt.Errorf("aipay: decode alipay signature: %w", err)
 	}
+	// The Alipay gateway signs the raw JSON string of the response node,
+	// preserving the exact key ordering and formatting as returned.
+	content := strings.TrimSpace(string(node))
+	// Remove sign/sign_type if they appear inside the response node itself.
 	var responseFields map[string]json.RawMessage
-	if err := json.Unmarshal(node, &responseFields); err != nil {
-		return nil, fmt.Errorf("donation: decode alipay response node: %w", err)
+	if err := json.Unmarshal(node, &responseFields); err == nil {
+		if _, hasSign := responseFields["sign"]; hasSign {
+			delete(responseFields, "sign")
+			delete(responseFields, "sign_type")
+			if cleaned, err := json.Marshal(responseFields); err == nil {
+				content = string(cleaned)
+			}
+		}
 	}
-	delete(responseFields, "sign")
-	delete(responseFields, "sign_type")
-	if err := c.verify(signContentRaw(responseFields), signatureValue); err != nil {
-		return nil, fmt.Errorf("donation: verify alipay response: %w", err)
+	if err := c.verify(content, signatureValue); err != nil {
+		return nil, fmt.Errorf("aipay: verify alipay response: %w", err)
 	}
 	return node, nil
 }
@@ -243,7 +254,7 @@ func (c *Client) sign(content string) (string, error) {
 	digest := sha256.Sum256([]byte(content))
 	signature, err := rsa.SignPKCS1v15(rand.Reader, c.privateKey, crypto.SHA256, digest[:])
 	if err != nil {
-		return "", fmt.Errorf("donation: sign alipay request: %w", err)
+		return "", fmt.Errorf("aipay: sign alipay request: %w", err)
 	}
 	return base64.StdEncoding.EncodeToString(signature), nil
 }
@@ -255,7 +266,7 @@ func (c *Client) verify(content, signature string) error {
 	}
 	publicKey, ok := c.publicKey.(*rsa.PublicKey)
 	if !ok {
-		return errors.New("donation: alipay public key is not RSA")
+		return errors.New("aipay: alipay public key is not RSA")
 	}
 	digest := sha256.Sum256([]byte(content))
 	return rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, digest[:], rawSignature)
@@ -284,35 +295,6 @@ func signContent(params map[string]string) string {
 	return out.String()
 }
 
-// signContentRaw preserves the exact response JSON values for signature input.
-func signContentRaw(fields map[string]json.RawMessage) string {
-	keys := make([]string, 0, len(fields))
-	for key := range fields {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	var out bytes.Buffer
-	first := true
-	for _, key := range keys {
-		value := strings.TrimSpace(string(fields[key]))
-		if value == "" || value == "null" || value == `""` {
-			continue
-		}
-		if !first {
-			out.WriteByte('&')
-		}
-		first = false
-		out.WriteString(key)
-		out.WriteByte('=')
-		if unquoted, err := strconv.Unquote(value); err == nil && (value[0] == '"' || value[0] == '\'') {
-			out.WriteString(unquoted)
-		} else {
-			out.WriteString(value)
-		}
-	}
-	return out.String()
-}
-
 func parsePrivateKey(value string) (*rsa.PrivateKey, error) {
 	raw, err := decodeKeyMaterial(value)
 	if err != nil {
@@ -323,7 +305,7 @@ func parsePrivateKey(value string) (*rsa.PrivateKey, error) {
 	}
 	parsed, err := x509.ParsePKCS8PrivateKey(raw)
 	if err != nil {
-		return nil, errors.New("unsupported private key encoding")
+		return nil, errors.New("unaipayed private key encoding")
 	}
 	key, ok := parsed.(*rsa.PrivateKey)
 	if !ok {
@@ -339,7 +321,7 @@ func parsePublicKey(value string) (crypto.PublicKey, error) {
 	}
 	parsed, err := x509.ParsePKIXPublicKey(raw)
 	if err != nil {
-		return nil, errors.New("unsupported public key encoding")
+		return nil, errors.New("unaipayed public key encoding")
 	}
 	if _, ok := parsed.(*rsa.PublicKey); !ok {
 		return nil, errors.New("public key is not RSA")

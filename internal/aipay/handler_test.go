@@ -1,4 +1,4 @@
-package donation
+package aipay
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -67,7 +68,7 @@ func testConfig() Config {
 		SellerName:      "Liki",
 		ServiceID:       "service",
 		Amount:          "1.00",
-		GoodsName:       "Liki 捐赠",
+		GoodsName:       "Liki 服务支持",
 	}
 }
 
@@ -80,11 +81,11 @@ func TestNormalizedAmountRemovesLeadingZeros(t *testing.T) {
 	}
 }
 
-func postRedeem(t *testing.T, handler *Handler, proof string) *httptest.ResponseRecorder {
+func postPay(t *testing.T, handler *Handler, proof string) *httptest.ResponseRecorder {
 	t.Helper()
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/donations/redeem", nil)
+	request := httptest.NewRequest(http.MethodPost, "/api/aipay", nil)
 	if proof != "" {
 		request.Header.Set("Payment-Proof", proof)
 	}
@@ -113,7 +114,7 @@ func decodePaymentNeeded(t *testing.T, response *httptest.ResponseRecorder) map[
 	return bill
 }
 
-func TestRedeemDisabledReturnsServiceUnavailable(t *testing.T) {
+func TestPayDisabledReturnsServiceUnavailable(t *testing.T) {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -127,17 +128,17 @@ func TestRedeemDisabledReturnsServiceUnavailable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := postRedeem(t, handler, ""); got.Code != http.StatusServiceUnavailable {
+	if got := postPay(t, handler, ""); got.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d, want 503", got.Code)
 	}
 }
 
-func TestRedeemWithoutProofReturnsSignedPaymentNeeded(t *testing.T) {
+func TestPayWithoutProofReturnsSignedPaymentNeeded(t *testing.T) {
 	handler, gateway, _ := newTestHandler(t)
 	gateway.needed = base64.RawURLEncoding.EncodeToString([]byte(
 		`{"protocol":{"resource_id":"` + ResourceID + `","currency":"CNY"}}`))
 
-	response := postRedeem(t, handler, "")
+	response := postPay(t, handler, "")
 	bill := decodePaymentNeeded(t, response)
 	protocol, ok := bill["protocol"].(map[string]any)
 	if !ok {
@@ -151,7 +152,7 @@ func TestRedeemWithoutProofReturnsSignedPaymentNeeded(t *testing.T) {
 	}
 }
 
-func TestRedeemInvalidOrRejectedProofReturnsPaymentRequired(t *testing.T) {
+func TestPayInvalidOrRejectedProofReturnsPaymentRequired(t *testing.T) {
 	handler, gateway, _ := newTestHandler(t)
 
 	tests := []struct {
@@ -172,14 +173,26 @@ func TestRedeemInvalidOrRejectedProofReturnsPaymentRequired(t *testing.T) {
 				}
 				return *test.verify, nil
 			}
-			if got := postRedeem(t, handler, test.proof); got.Code != http.StatusPaymentRequired {
+			if got := postPay(t, handler, test.proof); got.Code != http.StatusPaymentRequired {
 				t.Fatalf("status = %d, want 402; body=%q", got.Code, got.Body.String())
 			}
 		})
 	}
 }
 
-func TestRedeemSuccessfulProofReturnsReceiptAndConfirms(t *testing.T) {
+func TestPayRejectsOversizedProof(t *testing.T) {
+	handler, gateway, _ := newTestHandler(t)
+	gateway.verifyFunc = func(string) (VerifiedPayment, error) {
+		t.Error("verify should not be called for oversized proof")
+		return VerifiedPayment{}, nil
+	}
+	oversized := strings.Repeat("A", 64*1024+1)
+	if got := postPay(t, handler, oversized); got.Code != http.StatusPaymentRequired {
+		t.Fatalf("status = %d, want 402", got.Code)
+	}
+}
+
+func TestPaySuccessfulProofReturnsReceiptAndConfirms(t *testing.T) {
 	handler, gateway, _ := newTestHandler(t)
 	gateway.verifyFunc = func(proof string) (VerifiedPayment, error) {
 		if proof != proofJSON(t, "outer-proof", "trade-1") {
@@ -196,7 +209,7 @@ func TestRedeemSuccessfulProofReturnsReceiptAndConfirms(t *testing.T) {
 
 	// The fake bill is created in the expected gateway sequence by a first
 	// request; its generated out_trade_no is then used by the verified proof.
-	first := postRedeem(t, handler, "")
+	first := postPay(t, handler, "")
 	if first.Code != http.StatusPaymentRequired {
 		t.Fatalf("bill status = %d", first.Code)
 	}
@@ -211,7 +224,7 @@ func TestRedeemSuccessfulProofReturnsReceiptAndConfirms(t *testing.T) {
 		}, nil
 	}
 
-	response := postRedeem(t, handler, proofJSON(t, "outer-proof", "trade-1"))
+	response := postPay(t, handler, proofJSON(t, "outer-proof", "trade-1"))
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d; body=%q", response.Code, response.Body.String())
 	}
@@ -230,23 +243,45 @@ func TestRedeemSuccessfulProofReturnsReceiptAndConfirms(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if body.ResourceID != ResourceID || body.Content.Kind != "donation-receipt" {
+	if body.ResourceID != ResourceID || body.Content.Kind != "aipay-receipt" {
 		t.Fatalf("body = %#v", body)
 	}
-	if body.Content.SchemaVersion != "liki-donation-v1" || body.Content.Status != "received" {
+	if body.Content.SchemaVersion != "liki-aipay-v1" || body.Content.Status != "received" {
 		t.Fatalf("receipt identity = %#v", body.Content)
 	}
-	if body.Content.Amount != "1.00" || body.CredentialPath != "~/.liki/donation.json" {
+	if body.Content.Amount != "1.00" || body.CredentialPath != "~/.liki/aipay.json" {
 		t.Fatalf("receipt = %#v", body)
 	}
 	if !body.FulfillmentConfirmed || gateway.confirms != 1 {
 		t.Fatalf("confirmed=%v gateway.confirm calls=%d", body.FulfillmentConfirmed, gateway.confirms)
 	}
+
+	pv := response.Header().Get("Payment-Validation")
+	if pv == "" {
+		t.Fatal("Payment-Validation header is empty")
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(pv)
+	if err != nil {
+		t.Fatalf("decode Payment-Validation: %v", err)
+	}
+	var validation struct {
+		TradeNo    string `json:"trade_no"`
+		OutTradeNo string `json:"out_trade_no"`
+		Validated  bool   `json:"validated"`
+		ResourceID string `json:"resource_id"`
+	}
+	if err := json.Unmarshal(raw, &validation); err != nil {
+		t.Fatalf("unmarshal Payment-Validation: %v", err)
+	}
+	if !validation.Validated || validation.TradeNo != "trade-1" ||
+		validation.ResourceID != ResourceID {
+		t.Fatalf("validation = %#v", validation)
+	}
 }
 
-func TestRedeemSameProofDoesNotConfirmTwice(t *testing.T) {
+func TestPaySameProofDoesNotConfirmTwice(t *testing.T) {
 	handler, gateway, _ := newTestHandler(t)
-	first := postRedeem(t, handler, "")
+	first := postPay(t, handler, "")
 	if first.Code != http.StatusPaymentRequired {
 		t.Fatalf("bill status = %d", first.Code)
 	}
@@ -259,8 +294,8 @@ func TestRedeemSameProofDoesNotConfirmTwice(t *testing.T) {
 		}, nil
 	}
 
-	firstRedeem := postRedeem(t, handler, proof)
-	secondRedeem := postRedeem(t, handler, proof)
+	firstRedeem := postPay(t, handler, proof)
+	secondRedeem := postPay(t, handler, proof)
 	if firstRedeem.Code != http.StatusOK || secondRedeem.Code != http.StatusOK {
 		t.Fatalf("statuses = %d/%d", firstRedeem.Code, secondRedeem.Code)
 	}
@@ -269,9 +304,9 @@ func TestRedeemSameProofDoesNotConfirmTwice(t *testing.T) {
 	}
 }
 
-func TestRedeemConfirmationFailureCanBeRetriedWithSameProof(t *testing.T) {
+func TestPayConfirmationFailureCanBeRetriedWithSameProof(t *testing.T) {
 	handler, gateway, _ := newTestHandler(t)
-	if response := postRedeem(t, handler, ""); response.Code != http.StatusPaymentRequired {
+	if response := postPay(t, handler, ""); response.Code != http.StatusPaymentRequired {
 		t.Fatalf("bill status = %d", response.Code)
 	}
 	order := latestOrder(t, handler.store)
@@ -284,12 +319,12 @@ func TestRedeemConfirmationFailureCanBeRetriedWithSameProof(t *testing.T) {
 	}
 	gateway.confirmErr = errors.New("alipay unavailable")
 
-	failed := postRedeem(t, handler, proof)
+	failed := postPay(t, handler, proof)
 	if failed.Code != http.StatusBadGateway {
 		t.Fatalf("failed status = %d; body=%q", failed.Code, failed.Body.String())
 	}
 	gateway.confirmErr = nil
-	retried := postRedeem(t, handler, proof)
+	retried := postPay(t, handler, proof)
 	if retried.Code != http.StatusOK {
 		t.Fatalf("retried status = %d; body=%q", retried.Code, retried.Body.String())
 	}
@@ -317,7 +352,12 @@ func proofJSON(t *testing.T, paymentProof, tradeNo string) string {
 
 func latestOrder(t *testing.T, store *Store) Order {
 	t.Helper()
-	order, err := store.LatestOrder(context.Background())
+	order, err := scanOrder(func(dest ...any) error {
+		return store.db.QueryRowContext(context.Background(), `
+SELECT out_trade_no, trade_no, amount, currency, resource_id, goods_name,
+       pay_before, status, fulfillment_status, receipt_id, paid_at
+FROM aipay_orders ORDER BY created_at DESC, rowid DESC LIMIT 1`).Scan(dest...)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

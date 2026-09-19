@@ -1,19 +1,19 @@
-# Liki Alipay AI Pay Donation System Plan
+# Liki Alipay AI Pay Aipay System Plan
 
 Status: approved for implementation  
 Date: 2026-09-19
 
 ## 1. Goal
 
-Add an Alipay AI Pay based voluntary donation flow for agent users.
+Add an Alipay AI Pay based voluntary aipay flow for agent users.
 
-The donation system is intentionally independent from the existing commercial
+The aipay system is intentionally independent from the existing commercial
 payment system. It does not create entitlements, unlock RPC methods, change LLM
 quality, or introduce a user tier.
 
 ```text
 /api/payments/*     commercial products, orders, entitlements
-/api/donations/*    voluntary donation receipts
+/api/aipays/*    voluntary aipay receipts
 /jsonrpc            free business methods
 engine              payment-unaware
 ```
@@ -21,14 +21,14 @@ engine              payment-unaware
 ## 2. Product Rules
 
 - All existing RPC features remain free.
-- A donation gives gratitude and a receipt, not a service level or privilege.
+- A aipay gives gratitude and a receipt, not a service level or privilege.
 - A session asks at most once.
 - Ask only after a completed result has been positively acknowledged by the
-  user, or when the user explicitly asks how to support Liki.
+  user, or when the user explicitly asks how to aipay Liki.
 - Never ask before a task, during work, immediately after an unacknowledged
   result, or while the user is dissatisfied and requesting corrections.
 - If there is no explicit satisfaction signal, do not ask.
-- If `~/.liki/donation.json` already contains a valid receipt, do not ask.
+- If `~/.liki/aipay.json` already contains a valid receipt, do not ask.
 - If the user declines, do not ask again for that session.
 - Failure or decline never blocks normal use.
 - Do not use religious wording such as “上香”. The product name is “捐赠”.
@@ -49,13 +49,13 @@ retry with Payment-Proof
   -> 200 response
 ```
 
-Liki donation mapping:
+Liki aipay mapping:
 
-| Alipay concept | Liki donation meaning |
+| Alipay concept | Liki aipay meaning |
 | --- | --- |
-| Resource | `/api/donations/redeem` |
-| Payment | Voluntary support |
-| Resource result | Donation receipt |
+| Resource | `/api/aipays/redeem` |
+| Payment | Voluntary aipay |
+| Resource result | Aipay receipt |
 | Fulfillment | Persist and return the receipt |
 | Access control | None |
 
@@ -67,7 +67,7 @@ It only changes the product meaning: the resource is a receipt, not access.
 ### 4.1 Create bill
 
 ```http
-POST /api/donations/redeem
+POST /api/aipays/redeem
 ```
 
 No `Payment-Proof` header. The response is HTTP 402 and contains a signed
@@ -87,7 +87,7 @@ No `Payment-Proof` header. The response is HTTP 402 and contains a signed
 ### 4.2 Redeem proof
 
 ```http
-POST /api/donations/redeem
+POST /api/aipays/redeem
 Payment-Proof: <base64url proof>
 ```
 
@@ -114,20 +114,20 @@ The response resource is a whole-file credential object:
 
 ```json
 {
-  "resource_id": "/api/donations/redeem",
+  "resource_id": "/api/aipays/redeem",
   "content": {
-    "schema_version": "liki-donation-v1",
-    "kind": "donation-receipt",
+    "schema_version": "liki-aipay-v1",
+    "kind": "aipay-receipt",
     "status": "received",
     "receipt_id": "...",
     "out_trade_no": "...",
     "trade_no": "...",
     "amount": "1.00",
     "currency": "CNY",
-    "donated_at": "2026-09-19T00:00:00Z",
+    "paid_at": "2026-09-19T00:00:00Z",
     "message": "感谢支持。Liki 会继续免费开放。"
   },
-  "credential_path": "~/.liki/donation.json",
+  "credential_path": "~/.liki/aipay.json",
   "fulfillment_confirmed": true
 }
 ```
@@ -140,7 +140,7 @@ token or invent additional fields.
 Add a dedicated package:
 
 ```text
-internal/donation/
+internal/aipay/
   types.go
   store.go
   handler.go
@@ -159,7 +159,7 @@ Responsibilities:
 SQLite table:
 
 ```text
-donation_orders
+aipay_orders
   out_trade_no
   trade_no
   amount
@@ -194,7 +194,7 @@ ALIPAY_PUBLIC_KEY=
 ALIPAY_GATEWAY=https://openapi.alipay.com/gateway.do
 ALIPAY_SELLER_ID=
 ALIPAY_SERVICE_ID=
-ALIPAY_DONATION_AMOUNT=1.00
+ALIPAY_AIPAY_AMOUNT=1.00
 ALIPAY_CONFIG_FILE=
 ```
 
@@ -212,20 +212,20 @@ Rules:
   mock and all protocol checks remain enabled.
 - The official quick-sandbox bootstrap does not offer Go as a first-class
   runtime. Go is implemented directly against the A2M contract; protocol
-  fixtures live in `internal/donation/testdata/aipay`.
-- Keys are loaded only by the donation package and are never logged.
+  fixtures live in `internal/aipay/testdata/aipay`.
+- Keys are loaded only by the aipay package and are never logged.
 - Logs must not contain `Payment-Proof`, private keys, or full buyer data.
 
 ## 7. Skill Flow
 
-Add a small donation helper and a concise `Donation` section to `SKILL.md`.
+Add a small aipay helper and a concise `Aipay` section to `SKILL.md`.
 
-The helper is `web/skills/liki/donation.py`.
+The helper is `web/skills/liki/aipay.py`.
 
 ```bash
-python3 donation.py status
-python3 donation.py request
-python3 donation.py confirm --proof-file /tmp/payment-proof
+python3 aipay.py status
+python3 aipay.py request
+python3 aipay.py confirm --proof-file /tmp/payment-proof
 ```
 
 `confirm` also accepts the proof on stdin. Command-line arguments and logs must
@@ -233,20 +233,20 @@ not contain the proof.
 
 The complete behavior is:
 
-1. Read `~/.liki/donation.json`.
-2. If `schema_version=liki-donation-v1`, `kind=donation-receipt`, and
+1. Read `~/.liki/aipay.json`.
+2. If `schema_version=liki-aipay-v1`, `kind=aipay-receipt`, and
    `status=received`, stop silently.
 3. Offer only after the user confirms satisfaction with a completed result,
-   thanks the agent, or explicitly asks how to support Liki.
+   thanks the agent, or explicitly asks how to aipay Liki.
 4. Do not offer before the result, during analysis, after an unacknowledged
    result, or while the user is dissatisfied and asking for corrections.
-5. If the user agrees, call the donation helper without proof.
+5. If the user agrees, call the aipay helper without proof.
 6. Use the returned `Payment-Needed` bill with Alipay AI Pay.
 7. After payment, retry with `Payment-Proof`.
-8. Write the returned `content` whole to `~/.liki/donation.json`.
+8. Write the returned `content` whole to `~/.liki/aipay.json`.
 9. If the user declines or the flow fails, continue normally.
 
-The skill must not say donation unlocks features.
+The skill must not say aipay unlocks features.
 
 ## 8. Test Checklist
 
@@ -269,7 +269,7 @@ Backend:
 Skill helper:
 
 - Valid receipt suppresses prompting.
-- Invalid receipt does not count as donated.
+- Invalid receipt does not count as paid.
 - Request mode returns a protocol bill without storing payment data.
 - Confirm mode writes the returned credential as a whole object.
 - Network and protocol failures do not create a local receipt.

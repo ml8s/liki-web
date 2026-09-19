@@ -1,8 +1,8 @@
-// Package donation implements a voluntary Alipay AI Pay donation flow.
+// Package aipay implements a voluntary Alipay AI Pay flow.
 //
 // It is deliberately separate from commercial payments and entitlements: a
-// donation produces a receipt only and never grants access to RPC methods.
-package donation
+// aipay produces a receipt only and never grants access to RPC methods.
+package aipay
 
 import (
 	"errors"
@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	ResourceID       = "/api/donations/redeem"
+	ResourceID       = "/api/aipay"
 	Currency         = "CNY"
-	CredentialPath   = "~/.liki/donation.json"
-	SchemaVersion    = "liki-donation-v1"
-	DefaultGoodsName = "Liki 捐赠"
+	CredentialPath   = "~/.liki/aipay.json"
+	SchemaVersion    = "liki-aipay-v1"
+	DefaultGoodsName = "Liki AI 付费服务"
 )
 
 const (
@@ -28,12 +28,12 @@ const (
 )
 
 var (
-	ErrOrderNotFound      = errors.New("donation: order not found")
-	ErrProofNotAllowed    = errors.New("donation: proof is not valid for this order")
-	ErrFulfillmentInvalid = errors.New("donation: invalid fulfillment state")
-	ErrProofInvalid       = errors.New("donation: invalid payment proof")
-	ErrGatewayRejected    = errors.New("donation: alipay rejected payment verification")
-	ErrDisabled           = errors.New("donation: disabled")
+	ErrOrderNotFound      = errors.New("aipay: order not found")
+	ErrProofNotAllowed    = errors.New("aipay: proof is not valid for this order")
+	ErrFulfillmentInvalid = errors.New("aipay: invalid fulfillment state")
+	ErrProofInvalid       = errors.New("aipay: invalid payment proof")
+	ErrGatewayRejected    = errors.New("aipay: alipay rejected payment verification")
+	ErrDisabled           = errors.New("aipay: disabled")
 )
 
 var amountPattern = regexp.MustCompile(`^\d+(?:\.\d{1,2})?$`)
@@ -60,21 +60,21 @@ func (c Config) Enabled() bool {
 
 func (c Config) normalizedAmount() (string, error) {
 	if !amountPattern.MatchString(c.Amount) {
-		return "", errors.New("donation: ALIPAY_DONATION_AMOUNT must be a decimal amount with at most 2 fraction digits")
+		return "", errors.New("aipay: ALIPAY_AIPAY_AMOUNT must be a decimal amount with at most 2 fraction digits")
 	}
 	parts := strings.SplitN(c.Amount, ".", 2)
 	integer, err := strconv.ParseUint(parts[0], 10, 64)
 	if err != nil {
-		return "", errors.New("donation: ALIPAY_DONATION_AMOUNT is out of range")
+		return "", errors.New("aipay: ALIPAY_AIPAY_AMOUNT is out of range")
 	}
 	if len(parts) == 1 {
 		if integer == 0 {
-			return "", errors.New("donation: ALIPAY_DONATION_AMOUNT must be positive")
+			return "", errors.New("aipay: ALIPAY_AIPAY_AMOUNT must be positive")
 		}
 		return strconv.FormatUint(integer, 10) + ".00", nil
 	}
 	if integer == 0 && strings.Trim(parts[1], "0") == "" {
-		return "", errors.New("donation: ALIPAY_DONATION_AMOUNT must be positive")
+		return "", errors.New("aipay: ALIPAY_AIPAY_AMOUNT must be positive")
 	}
 	return strconv.FormatUint(integer, 10) + "." + parts[1] + strings.Repeat("0", 2-len(parts[1])), nil
 }

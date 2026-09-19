@@ -1,0 +1,96 @@
+{
+  "algorithm": {
+    "hash": "SHA-256",
+    "payload_encoding": "base64url-no-padding",
+    "signature": "RSASSA-PKCS1-v1_5",
+    "signature_encoding": "base64-standard"
+  },
+  "negative_cases": {
+    "tampered_response": {
+      "content": "{\"active\":true,\"amount\":\"2.00\",\"code\":\"10000\",\"msg\":\"Success\",\"out_trade_no\":\"order-1\",\"resource_id\":\"/api/aipay\",\"trade_no\":\"trade-1\"}",
+      "signature": "byrBMVdDcyvZQhtbxxxiZ1eY+aAXrDpVJr8IQN1Gimsf0uYFW0UPYJk363KqabrioeaJ+3Kdr4gtFAsaDIUw8wLfKNHy4CkBcAK4zEpkaIxooseFe+Prhj9OknEXqtm67PJ76LYrIx/q57zEXjTKQd64ArU1QECelkerdh5PkauYQ0GxRJ2hWt/IBmQ/ucVrb7zKpy8OIpzkxeTRrCZNt8ov5h6PUISw8o72OpsBC7Td2reAALnHsO0X7KJPMm31eutY6weeI2QgOhniJACal21gfME6WUMajr2t4D0tpyY1ZviJeULmsaDeixu53nF167Iql9EkxxXaHSKY7E+Hvw==",
+      "valid": false
+    }
+  },
+  "payment_needed": {
+    "decoded": {
+      "method": {
+        "goods_name": "Liki 服务支持",
+        "seller_app_id": "sandbox-app",
+        "seller_id": "2088seller",
+        "seller_name": "Liki",
+        "seller_unique_id_key": "seller_id",
+        "service_id": "api_mock_service_id"
+      },
+      "protocol": {
+        "amount": "1.00",
+        "currency": "CNY",
+        "out_trade_no": "order-1",
+        "pay_before": "2026-01-01T00:00:00+08:00",
+        "resource_id": "/api/aipay",
+        "seller_sign_type": "RSA2",
+        "seller_signature": "WJQP+clkOO5wV4T/GBwiOtocpT0wTixoRk0ODUhKwy6Z2kNwLh08WdJA4KdLdmLyG+BrZDoqXEJNQzPC1kohzrKeZLdexGScKcrL3lCTXz/MpzL+l8vixaTLOFP/9waGwOzPN/Z1uRYko+SFpI9+glKRUeH5+31O0AC4xM1I4pyrsqhv0Wzz9HinPoKlgKJ2NmdvDFrSpb3LU8uKZLr2bYraF2PqhRZsHEx0lTyCs6DDjI+2yccA5rxfmPAE5EHrjjB+4DB/Lfji7fGSRgHvCT23gGFyLdLHFU87+Acl15UW42rY20JtSBT7TSbQK2+wKiqLMJ8CM9e5Y/7XGnnl5Q==",
+        "seller_unique_id": "2088seller"
+      }
+    },
+    "encoded": "eyJtZXRob2QiOnsiZ29vZHNfbmFtZSI6Ikxpa2kg5pyN5Yqh5pSv5oyBIiwic2VsbGVyX2FwcF9pZCI6InNhbmRib3gtYXBwIiwic2VsbGVyX2lkIjoiMjA4OHNlbGxlciIsInNlbGxlcl9uYW1lIjoiTGlraSIsInNlbGxlcl91bmlxdWVfaWRfa2V5Ijoic2VsbGVyX2lkIiwic2VydmljZV9pZCI6ImFwaV9tb2NrX3NlcnZpY2VfaWQifSwicHJvdG9jb2wiOnsiYW1vdW50IjoiMS4wMCIsImN1cnJlbmN5IjoiQ05ZIiwib3V0X3RyYWRlX25vIjoib3JkZXItMSIsInBheV9iZWZvcmUiOiIyMDI2LTAxLTAxVDAwOjAwOjAwKzA4OjAwIiwicmVzb3VyY2VfaWQiOiIvYXBpL2FpcGF5Iiwic2VsbGVyX3NpZ25fdHlwZSI6IlJTQTIiLCJzZWxsZXJfc2lnbmF0dXJlIjoiV0pRUCtjbGtPTzV3VjRUL0dCd2lPdG9jcFQwd1RpeG9SazBPRFVoS3d5Nloya053TGgwOFdkSkE0S2RMZG1MeUcrQnJaRG9xWEVKTlF6UEMxa29oenJLZVpMZGV4R1NjS2NyTDNsQ1RYei9NcHpMK2w4dml4YVRMT0ZQLzl3YUd3T3pQTi9aMXVSWWtvK1NGcEk5K2dsS1JVZUg1KzMxTzBBQzR4TTFJNHB5cnNxaHYwV3p6OUhpblBvS2xnS0oyTm1kdkRGclNwYjNMVTh1S1pMcjJiWXJhRjJQcWhSWnNIRXgwbFR5Q3M2RERqSSsyeWNjQTVyeGZtUEFFNUVIcmpqQis0REIvTGZqaTdmR1NSZ0h2Q1QyM2dHRnlMZExIRlU4NytBY2wxNVVXNDJyWTIwSnRTQlQ3VFNiUUsyK3dLaXFMTUo4Q005ZTVZLzdYR25ubDVRPT0iLCJzZWxsZXJfdW5pcXVlX2lkIjoiMjA4OHNlbGxlciJ9fQ"
+  },
+  "payment_proof": {
+    "decoded": {
+      "method": {
+        "client_session": "client-session"
+      },
+      "protocol": {
+        "payment_proof": "platform-inner-proof",
+        "trade_no": "trade-1"
+      }
+    },
+    "encoded": "eyJtZXRob2QiOnsiY2xpZW50X3Nlc3Npb24iOiJjbGllbnQtc2Vzc2lvbiJ9LCJwcm90b2NvbCI6eyJwYXltZW50X3Byb29mIjoicGxhdGZvcm0taW5uZXItcHJvb2YiLCJ0cmFkZV9ubyI6InRyYWRlLTEifX0"
+  },
+  "public_key": {
+    "e_int": 65537,
+    "n_hex": "988d85d1cad2df8524d1712754845768a0d75579781b16c7351ba9f76cd0b2b6eaf1b117bb32979d5fddf18c5b8344dfd22e10b816d5f4efdb001de25f529fad5ae6cf8259e9bba7a90ddc74e77466506adf1e02f5bf490f6585c4ff945d35724ed4825498c73a1affa87b308c1bf6002a14adba71ed88b850d1ee9dd46f58a17b6b0c605690aa19d801529a8488be12ea857a0901359a29f723680d7058e7c25258e3884e8dd591d137408d0f33f0cfa6b84ebedb7cc7db18b31396a4eb04f461301c82bd80254601178daf8b8812177c38309b0ce948fa75ece03061d0fea8eb726f88c2c3abdabcd08f061aa4198d832bc0b87fce65b2444081499a581789"
+  },
+  "schema_version": "liki-aipay-golden-v1",
+  "seller_bill": {
+    "canonical": "amount=1.00&currency=CNY&goods_name=Liki 服务支持&out_trade_no=order-1&pay_before=2026-01-01T00:00:00+08:00&resource_id=/api/aipay&seller_id=2088seller&service_id=api_mock_service_id",
+    "params": {
+      "amount": "1.00",
+      "currency": "CNY",
+      "goods_name": "Liki 服务支持",
+      "out_trade_no": "order-1",
+      "pay_before": "2026-01-01T00:00:00+08:00",
+      "resource_id": "/api/aipay",
+      "seller_id": "2088seller",
+      "service_id": "api_mock_service_id"
+    },
+    "signature": "WJQP+clkOO5wV4T/GBwiOtocpT0wTixoRk0ODUhKwy6Z2kNwLh08WdJA4KdLdmLyG+BrZDoqXEJNQzPC1kohzrKeZLdexGScKcrL3lCTXz/MpzL+l8vixaTLOFP/9waGwOzPN/Z1uRYko+SFpI9+glKRUeH5+31O0AC4xM1I4pyrsqhv0Wzz9HinPoKlgKJ2NmdvDFrSpb3LU8uKZLr2bYraF2PqhRZsHEx0lTyCs6DDjI+2yccA5rxfmPAE5EHrjjB+4DB/Lfji7fGSRgHvCT23gGFyLdLHFU87+Acl15UW42rY20JtSBT7TSbQK2+wKiqLMJ8CM9e5Y/7XGnnl5Q=="
+  },
+  "sync_responses": {
+    "confirm": {
+      "content": "{\"code\":\"10000\",\"msg\":\"Success\"}",
+      "method": "alipay.aipay.agent.fulfillment.confirm",
+      "node": {
+        "code": "10000",
+        "msg": "Success"
+      },
+      "raw": "{\"alipay_aipay_agent_fulfillment_confirm_response\":{\"code\":\"10000\",\"msg\":\"Success\"},\"sign\":\"AquhIeC/iw+acp+d+WaYShu11480VW/KEov1sLgtceiKMJ1AEkKxvgwZdk9m4jraOFY6VtM+WKKtLGW4jF4eMUDZxz0qtkmbfQ36H0w83EIgCgIAdFqWd9z9NGoqtO7RDv66HCJbY2cpeCDc9uXju8U65DBlyUbIWR48FSaql6b4T9k0LV2JVnYQA9P7Kqkqwi8FFvig6rydCW9yZmkAAtk7LBp1gBCD9q4JTmIh3ik8CVbptpvpbkGtgLfWtdOTFj9Ws9iOuMGgKsUeMjvJsRX4TTMywpuVNqY9InEtZDHO8bqonq73ggsAhPFFXr05XjrYAGqlyfwYovH2w7vrmw==\"}",
+      "signature": "AquhIeC/iw+acp+d+WaYShu11480VW/KEov1sLgtceiKMJ1AEkKxvgwZdk9m4jraOFY6VtM+WKKtLGW4jF4eMUDZxz0qtkmbfQ36H0w83EIgCgIAdFqWd9z9NGoqtO7RDv66HCJbY2cpeCDc9uXju8U65DBlyUbIWR48FSaql6b4T9k0LV2JVnYQA9P7Kqkqwi8FFvig6rydCW9yZmkAAtk7LBp1gBCD9q4JTmIh3ik8CVbptpvpbkGtgLfWtdOTFj9Ws9iOuMGgKsUeMjvJsRX4TTMywpuVNqY9InEtZDHO8bqonq73ggsAhPFFXr05XjrYAGqlyfwYovH2w7vrmw=="
+    },
+    "verify": {
+      "content": "{\"active\":true,\"amount\":\"1.00\",\"code\":\"10000\",\"msg\":\"Success\",\"out_trade_no\":\"order-1\",\"resource_id\":\"/api/aipay\",\"trade_no\":\"trade-1\"}",
+      "method": "alipay.aipay.agent.payment.verify",
+      "node": {
+        "active": true,
+        "amount": "1.00",
+        "code": "10000",
+        "msg": "Success",
+        "out_trade_no": "order-1",
+        "resource_id": "/api/aipay",
+        "trade_no": "trade-1"
+      },
+      "raw": "{\"alipay_aipay_agent_payment_verify_response\":{\"active\":true,\"amount\":\"1.00\",\"code\":\"10000\",\"msg\":\"Success\",\"out_trade_no\":\"order-1\",\"resource_id\":\"/api/aipay\",\"trade_no\":\"trade-1\"},\"sign\":\"byrBMVdDcyvZQhtbxxxiZ1eY+aAXrDpVJr8IQN1Gimsf0uYFW0UPYJk363KqabrioeaJ+3Kdr4gtFAsaDIUw8wLfKNHy4CkBcAK4zEpkaIxooseFe+Prhj9OknEXqtm67PJ76LYrIx/q57zEXjTKQd64ArU1QECelkerdh5PkauYQ0GxRJ2hWt/IBmQ/ucVrb7zKpy8OIpzkxeTRrCZNt8ov5h6PUISw8o72OpsBC7Td2reAALnHsO0X7KJPMm31eutY6weeI2QgOhniJACal21gfME6WUMajr2t4D0tpyY1ZviJeULmsaDeixu53nF167Iql9EkxxXaHSKY7E+Hvw==\"}",
+      "signature": "byrBMVdDcyvZQhtbxxxiZ1eY+aAXrDpVJr8IQN1Gimsf0uYFW0UPYJk363KqabrioeaJ+3Kdr4gtFAsaDIUw8wLfKNHy4CkBcAK4zEpkaIxooseFe+Prhj9OknEXqtm67PJ76LYrIx/q57zEXjTKQd64ArU1QECelkerdh5PkauYQ0GxRJ2hWt/IBmQ/ucVrb7zKpy8OIpzkxeTRrCZNt8ov5h6PUISw8o72OpsBC7Td2reAALnHsO0X7KJPMm31eutY6weeI2QgOhniJACal21gfME6WUMajr2t4D0tpyY1ZviJeULmsaDeixu53nF167Iql9EkxxXaHSKY7E+Hvw=="
+    }
+  }
+}

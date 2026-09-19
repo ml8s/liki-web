@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.09.19.3 —— Alipay A2M 沙箱联调通过
+
+- 修复 OpenAPI 同步响应 key：`alipay.aipay.agent.payment.verify` → `alipay_aipay_agent_payment_verify_response`（点→下划线）。
+- 修复同步响应验签：Alipay 网关对 raw JSON node 签名，不是 canonical key=value 串。
+- 新增 `Payment-Validation` 响应头（Base64URL JSON），官方 A2M 联调工具要求。
+- 新增 proof verify 失败日志（`slog.Warn`），便于线上排障。
+- Golden vectors 与 conformance tests 同步修正 raw JSON 签名规则。
+- 端到端沙箱联调通过：402 → 收银 → Payment-Proof → verify → confirm → receipt + Payment-Validation。
+
 ## 2026.09.19.2 —— Alipay A2M Golden 校准
 
 - 新增测试资产 `internal/donation/testdata/aipay`：纯标准库 Python Golden oracle 与已签名协议 vectors，用于独立校准 Go A2M 实现；Go CI 直接消费 vectors，不依赖 Python。

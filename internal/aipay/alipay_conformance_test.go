@@ -1,6 +1,7 @@
-package donation
+package aipay
 
 import (
+	"bytes"
 	"crypto/rsa"
 	"encoding/json"
 	"math/big"
@@ -46,12 +47,8 @@ type goldenVectors struct {
 		Confirm goldenSyncResponse `json:"confirm"`
 	} `json:"sync_responses"`
 	NegativeCases struct {
-		EmptyValuesSkipped struct {
-			Params    map[string]json.RawMessage `json:"params"`
-			Canonical string                     `json:"canonical"`
-		} `json:"empty_values_skipped"`
 		TamperedResponse struct {
-			Canonical string `json:"canonical"`
+			Content   string `json:"content"`
 			Signature string `json:"signature"`
 			Valid     bool   `json:"valid"`
 		} `json:"tampered_response"`
@@ -63,7 +60,7 @@ type goldenSyncResponse struct {
 	Raw       string          `json:"raw"`
 	Node      json.RawMessage `json:"node"`
 	Signature string          `json:"signature"`
-	Canonical string          `json:"canonical"`
+	Content   string          `json:"content"`
 }
 
 func loadAipayGolden(t *testing.T) goldenVectors {
@@ -94,7 +91,7 @@ func TestAipayGoldenAlgorithm(t *testing.T) {
 		vectors.Algorithm.Hash != "SHA-256" ||
 		vectors.Algorithm.SignatureEncoding != "base64-standard" ||
 		vectors.Algorithm.PayloadEncoding != "base64url-no-padding" {
-		t.Fatalf("unsupported golden algorithm: %+v", vectors.Algorithm)
+		t.Fatalf("unaipayed golden algorithm: %+v", vectors.Algorithm)
 	}
 }
 
@@ -148,8 +145,9 @@ func TestAipayGoldenSyncResponseSignature(t *testing.T) {
 				t.Fatalf("decode signed response: %v", err)
 			}
 			assertEqualJSON(t, "response node", responseFields(t, node), responseFields(t, response.Node))
-			if got := signContentRaw(responseFields(t, response.Node)); got != response.Canonical {
-				t.Fatalf("canonical mismatch\nGo:    %q\nGolden: %q", got, response.Canonical)
+			compact := compactJSON(t, response.Node)
+			if compact != response.Content {
+				t.Fatalf("response content mismatch\nGo:    %q\nGolden: %q", compact, response.Content)
 			}
 		})
 	}
@@ -159,10 +157,7 @@ func TestAipayGoldenNegativeCases(t *testing.T) {
 	vectors := loadAipayGolden(t)
 	client := &Client{publicKey: goldenPublicKey(t, vectors)}
 
-	if got := signContentRaw(vectors.NegativeCases.EmptyValuesSkipped.Params); got != vectors.NegativeCases.EmptyValuesSkipped.Canonical {
-		t.Fatalf("empty-value canonical = %q, want %q", got, vectors.NegativeCases.EmptyValuesSkipped.Canonical)
-	}
-	if err := client.verify(vectors.NegativeCases.TamperedResponse.Canonical, vectors.NegativeCases.TamperedResponse.Signature); err == nil {
+	if err := client.verify(vectors.NegativeCases.TamperedResponse.Content, vectors.NegativeCases.TamperedResponse.Signature); err == nil {
 		t.Fatal("tampered response signature unexpectedly verified")
 	}
 }
@@ -174,6 +169,15 @@ func responseFields(t *testing.T, node json.RawMessage) map[string]json.RawMessa
 		t.Fatalf("decode golden response node: %v", err)
 	}
 	return fields
+}
+
+func compactJSON(t *testing.T, raw json.RawMessage) string {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, raw); err != nil {
+		t.Fatalf("compact JSON: %v", err)
+	}
+	return buf.String()
 }
 
 func assertEqualJSON(t *testing.T, name string, got, want any) {

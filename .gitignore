@@ -60,3 +60,5 @@ web/.astro/
 # Temp
 social.md
 web/.well-known/
+/keys/
+/.env.production.alipay

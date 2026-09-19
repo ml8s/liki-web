@@ -1,6 +1,6 @@
 # Alipay AI Pay Golden vectors
 
-This directory is a **test-only protocol oracle** for the donation endpoint.
+This directory is a **test-only protocol oracle** for the aipay endpoint.
 It is not production code, is not imported by the server, and must never be
 wired into request handling.
 
@@ -21,7 +21,7 @@ The associated key is generated solely for fixtures and is not a production
 secret. Go tests consume the committed vectors directly, so CI does not require
 Python.
 
-The local official Alipay quick-sandbox flow supports Java, Python, Node.js,
+The local official Alipay quick-sandbox flow aipays Java, Python, Node.js,
 C#, and PHP; it does not offer Go as a first-class runtime. Go is still valid
 for production because it is an AOT native binary. Liki therefore implements
 the official A2M contract directly and uses these vectors to check protocol

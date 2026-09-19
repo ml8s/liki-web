@@ -36,7 +36,14 @@ case "$REGION" in
 esac
 
 echo "── deploy $REGION ($DOMAIN) ──"
+DEPLOY_ENV_DIR=$(mktemp -d)
+cp .env "$DEPLOY_ENV_DIR/.env"
+if [ -f .env.production.alipay ]; then
+  cat .env.production.alipay >> "$DEPLOY_ENV_DIR/.env"
+  echo "✓ merged .env.production.alipay into deploy env"
+fi
 scripts/deploy-remote.sh --server "$SERVER" --user "$USER" --domain "$DOMAIN" \
-  --image /tmp/liki_images.tar.gz --env .env
+  --image /tmp/liki_images.tar.gz --env "$DEPLOY_ENV_DIR/.env"
+rm -rf "$DEPLOY_ENV_DIR"
 rm -f /tmp/liki_images.tar.gz
 echo "✅ deployed to $REGION"

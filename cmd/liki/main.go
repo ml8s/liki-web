@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"liki-web/internal/product"
 	"log/slog"
 	"net"
@@ -19,11 +18,11 @@ import (
 
 	"liki-web/internal/account"
 	"liki-web/internal/agent"
+	"liki-web/internal/aipay"
 	"liki-web/internal/auth"
 	"liki-web/internal/chat"
 	"liki-web/internal/commerce"
 	"liki-web/internal/dodo"
-	"liki-web/internal/donation"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
 	"liki-web/internal/naming"
@@ -68,7 +67,7 @@ type Config struct {
 	XunhuAppID          string
 	XunhuAppSecret      string
 	PaymentWebhookURL   string
-	AlipayConfig        donation.Config
+	AlipayConfig        aipay.Config
 	DeepseekAPIKey      string
 	LLMModel            string
 	LLMThinking         bool
@@ -117,22 +116,22 @@ func LoadConfig() Config {
 	}
 }
 
-func loadAlipayConfig() donation.Config {
+func loadAlipayConfig() aipay.Config {
 	sellerName := envOr("ALIPAY_SELLER_NAME", "Liki")
 	if path := os.Getenv("ALIPAY_CONFIG_FILE"); path != "" {
-		config, err := donation.LoadSandboxConfig(path)
+		config, err := aipay.LoadSandboxConfig(path)
 		if err != nil {
 			// Configuration errors must be visible while the endpoint remains
 			// disabled; they must not leak credential material.
-			fmt.Fprintf(os.Stderr, "donation disabled: %v\n", err)
-			return donation.Config{}
+			slog.Warn("aipay disabled", "err", err)
+			return aipay.Config{}
 		}
 		config.SellerName = sellerName
-		config.Amount = os.Getenv("ALIPAY_DONATION_AMOUNT")
-		config.GoodsName = donation.DefaultGoodsName
+		config.Amount = os.Getenv("ALIPAY_AIPAY_AMOUNT")
+		config.GoodsName = aipay.DefaultGoodsName
 		return config
 	}
-	return donation.Config{
+	return aipay.Config{
 		AppID:           os.Getenv("ALIPAY_APP_ID"),
 		PrivateKey:      os.Getenv("ALIPAY_PRIVATE_KEY"),
 		AlipayPublicKey: os.Getenv("ALIPAY_PUBLIC_KEY"),
@@ -140,8 +139,8 @@ func loadAlipayConfig() donation.Config {
 		SellerID:        os.Getenv("ALIPAY_SELLER_ID"),
 		SellerName:      sellerName,
 		ServiceID:       os.Getenv("ALIPAY_SERVICE_ID"),
-		Amount:          os.Getenv("ALIPAY_DONATION_AMOUNT"),
-		GoodsName:       donation.DefaultGoodsName,
+		Amount:          os.Getenv("ALIPAY_AIPAY_AMOUNT"),
+		GoodsName:       aipay.DefaultGoodsName,
 	}
 }
 
@@ -351,25 +350,25 @@ func main() {
 		slog.Error("init commerce schema", "err", err)
 		os.Exit(1)
 	}
-	donationStore := donation.NewStore(db)
-	if err := donationStore.Migrate(ctx); err != nil {
-		slog.Error("init donation schema", "err", err)
+	aipayStore := aipay.NewStore(db)
+	if err := aipayStore.Migrate(ctx); err != nil {
+		slog.Error("init aipay schema", "err", err)
 		os.Exit(1)
 	}
-	var donationGateway donation.Gateway
+	var aipayGateway aipay.Gateway
 	if cfg.AlipayConfig.Enabled() {
-		client, err := donation.NewClient(cfg.AlipayConfig)
+		client, err := aipay.NewClient(cfg.AlipayConfig)
 		if err != nil {
-			slog.Error("init alipay donation client", "err", err)
+			slog.Error("init alipay aipay client", "err", err)
 			os.Exit(1)
 		}
-		donationGateway = client
+		aipayGateway = client
 	} else {
-		slog.Warn("alipay donation is not fully configured; it is disabled")
+		slog.Warn("alipay aipay is not fully configured; it is disabled")
 	}
-	donationHandler, err := donation.NewHandler(donationStore, donationGateway, cfg.AlipayConfig)
+	aipayHandler, err := aipay.NewHandler(aipayStore, aipayGateway, cfg.AlipayConfig)
 	if err != nil {
-		slog.Error("init donation handler", "err", err)
+		slog.Error("init aipay handler", "err", err)
 		os.Exit(1)
 	}
 	chatDuration := 30 * 24 * time.Hour
@@ -461,7 +460,7 @@ func main() {
 		EntitlementHandler: entitlement.NewHandler(entitlements, authHandler.RequireUser),
 		ChatHandler:        chatHandler,
 		CommerceHandler:    commerceHandler,
-		DonationHandler:    donationHandler,
+		AipayHandler:       aipayHandler,
 		ProfileHandler:     profile.NewHandler(profileStore, authHandler.RequireUser),
 		AccountHandler:     account.NewHandler(profileStore, chatStore, authHandler.RequireUser),
 		NamingStore:        namingStore,

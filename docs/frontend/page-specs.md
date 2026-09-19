@@ -42,4 +42,4 @@
 - Goal: conversation within one internal skill.
 - Data: `GET /api/chat/sessions/{id}`, messages API, SSE generation API.
 - States: loading, empty, thinking, streaming, completed, failed, stopped, unauthorized, expired entitlement, not found.
-- Behavior: restore a direct link after refresh; append both persisted messages after the SSE done event; support stop; scroll to the latest message.
+- Behavior: restore a direct link after refresh; append both persisted messages after the SSE done event; aipay stop; scroll to the latest message.

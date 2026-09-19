@@ -1,4 +1,4 @@
-package donation
+package aipay
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func newDonationStore(t *testing.T) *Store {
+func newAipayStore(t *testing.T) *Store {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
@@ -26,11 +26,11 @@ func newDonationStore(t *testing.T) *Store {
 	return store
 }
 
-func TestDonationStoreCreatesBillAndIdempotentFulfillment(t *testing.T) {
+func TestAipayStoreCreatesBillAndIdempotentFulfillment(t *testing.T) {
 	ctx := context.Background()
-	store := newDonationStore(t)
+	store := newAipayStore(t)
 
-	bill, err := store.CreateBill(ctx, "1.00", "Liki 捐赠")
+	bill, err := store.CreateBill(ctx, "1.00", "Liki 服务支持")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,10 +78,10 @@ func TestDonationStoreCreatesBillAndIdempotentFulfillment(t *testing.T) {
 	}
 }
 
-func TestDonationStoreRejectsMismatchedVerifiedPayment(t *testing.T) {
+func TestAipayStoreRejectsMismatchedVerifiedPayment(t *testing.T) {
 	ctx := context.Background()
-	store := newDonationStore(t)
-	bill, err := store.CreateBill(ctx, "1.00", "Liki 捐赠")
+	store := newAipayStore(t)
+	bill, err := store.CreateBill(ctx, "1.00", "Liki 服务支持")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,16 +103,16 @@ func TestDonationStoreRejectsMismatchedVerifiedPayment(t *testing.T) {
 	}
 }
 
-func TestDonationStoreRejectsExpiredPendingOrder(t *testing.T) {
+func TestAipayStoreRejectsExpiredPendingOrder(t *testing.T) {
 	ctx := context.Background()
-	store := newDonationStore(t)
-	bill, err := store.CreateBill(ctx, "1.00", "Liki 捐赠")
+	store := newAipayStore(t)
+	bill, err := store.CreateBill(ctx, "1.00", "Liki 服务支持")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	past := store.nowFun().Add(-time.Minute).Format(time.RFC3339)
-	if _, err := store.db.ExecContext(ctx, `UPDATE donation_orders SET pay_before=? WHERE out_trade_no=?`, past, bill.OutTradeNo); err != nil {
+	if _, err := store.db.ExecContext(ctx, `UPDATE aipay_orders SET pay_before=? WHERE out_trade_no=?`, past, bill.OutTradeNo); err != nil {
 		t.Fatal(err)
 	}
 	paid := VerifiedPayment{OutTradeNo: bill.OutTradeNo, Amount: "1.00", ResourceID: ResourceID}
