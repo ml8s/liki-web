@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"liki-web/internal/product"
 	"log/slog"
 	"net"
@@ -101,28 +102,46 @@ func LoadConfig() Config {
 		XunhuAppID:          envOr("XUNHU_APPID", ""),
 		XunhuAppSecret:      envOr("XUNHU_APPSECRET", ""),
 		PaymentWebhookURL:   envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
-		AlipayConfig: donation.Config{
-			AppID:           os.Getenv("ALIPAY_APP_ID"),
-			PrivateKey:      os.Getenv("ALIPAY_PRIVATE_KEY"),
-			AlipayPublicKey: os.Getenv("ALIPAY_PUBLIC_KEY"),
-			Gateway:         envOr("ALIPAY_GATEWAY", "https://openapi.alipay.com/gateway.do"),
-			SellerID:        os.Getenv("ALIPAY_SELLER_ID"),
-			SellerName:      envOr("ALIPAY_SELLER_NAME", "Liki"),
-			ServiceID:       os.Getenv("ALIPAY_SERVICE_ID"),
-			Amount:          os.Getenv("ALIPAY_DONATION_AMOUNT"),
-			GoodsName:       "Liki 捐赠",
-		},
-		DeepseekAPIKey: envOr("DEEPSEEK_API_KEY", ""),
-		LLMModel:       envOr("LLM_MODEL", ""),
-		LLMThinking:    envOrBool("LLM_THINKING", false),
-		SkillsDir:      envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:     envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
-		EngineURL:      envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
-		SelfURL:        envOr("LIKI_SELF_URL", "http://127.0.0.1:8080"),
-		ReturnURL:      envOr("RETURN_URL", ""),
-		JWTSecret:      os.Getenv("JWT_SECRET"),
-		ListenAddr:     envOr("LISTEN_ADDR", ":8080"),
-		DevMode:        envOrBool("DEV_MODE", false),
+		AlipayConfig:        loadAlipayConfig(),
+		DeepseekAPIKey:      envOr("DEEPSEEK_API_KEY", ""),
+		LLMModel:            envOr("LLM_MODEL", ""),
+		LLMThinking:         envOrBool("LLM_THINKING", false),
+		SkillsDir:           envOr("LIKI_SKILLS_DIR", "web/skills"),
+		PromptFile:          envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
+		EngineURL:           envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
+		SelfURL:             envOr("LIKI_SELF_URL", "http://127.0.0.1:8080"),
+		ReturnURL:           envOr("RETURN_URL", ""),
+		JWTSecret:           os.Getenv("JWT_SECRET"),
+		ListenAddr:          envOr("LISTEN_ADDR", ":8080"),
+		DevMode:             envOrBool("DEV_MODE", false),
+	}
+}
+
+func loadAlipayConfig() donation.Config {
+	sellerName := envOr("ALIPAY_SELLER_NAME", "Liki")
+	if path := os.Getenv("ALIPAY_CONFIG_FILE"); path != "" {
+		config, err := donation.LoadSandboxConfig(path)
+		if err != nil {
+			// Configuration errors must be visible while the endpoint remains
+			// disabled; they must not leak credential material.
+			fmt.Fprintf(os.Stderr, "donation disabled: %v\n", err)
+			return donation.Config{}
+		}
+		config.SellerName = sellerName
+		config.Amount = os.Getenv("ALIPAY_DONATION_AMOUNT")
+		config.GoodsName = donation.DefaultGoodsName
+		return config
+	}
+	return donation.Config{
+		AppID:           os.Getenv("ALIPAY_APP_ID"),
+		PrivateKey:      os.Getenv("ALIPAY_PRIVATE_KEY"),
+		AlipayPublicKey: os.Getenv("ALIPAY_PUBLIC_KEY"),
+		Gateway:         envOr("ALIPAY_GATEWAY", "https://openapi.alipay.com/gateway.do"),
+		SellerID:        os.Getenv("ALIPAY_SELLER_ID"),
+		SellerName:      sellerName,
+		ServiceID:       os.Getenv("ALIPAY_SERVICE_ID"),
+		Amount:          os.Getenv("ALIPAY_DONATION_AMOUNT"),
+		GoodsName:       donation.DefaultGoodsName,
 	}
 }
 

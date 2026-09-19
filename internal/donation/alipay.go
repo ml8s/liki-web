@@ -268,13 +268,15 @@ func signContent(params map[string]string) string {
 	}
 	sort.Strings(keys)
 	var out bytes.Buffer
-	for index, key := range keys {
+	first := true
+	for _, key := range keys {
 		if params[key] == "" {
 			continue
 		}
-		if index > 0 {
+		if !first {
 			out.WriteByte('&')
 		}
+		first = false
 		out.WriteString(key)
 		out.WriteByte('=')
 		out.WriteString(params[key])
@@ -290,14 +292,16 @@ func signContentRaw(fields map[string]json.RawMessage) string {
 	}
 	sort.Strings(keys)
 	var out bytes.Buffer
-	for index, key := range keys {
+	first := true
+	for _, key := range keys {
 		value := strings.TrimSpace(string(fields[key]))
-		if value == "" || value == "null" {
+		if value == "" || value == "null" || value == `""` {
 			continue
 		}
-		if index > 0 {
+		if !first {
 			out.WriteByte('&')
 		}
+		first = false
 		out.WriteString(key)
 		out.WriteByte('=')
 		if unquoted, err := strconv.Unquote(value); err == nil && (value[0] == '"' || value[0] == '\'') {

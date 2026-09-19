@@ -195,6 +195,7 @@ ALIPAY_GATEWAY=https://openapi.alipay.com/gateway.do
 ALIPAY_SELLER_ID=
 ALIPAY_SERVICE_ID=
 ALIPAY_DONATION_AMOUNT=1.00
+ALIPAY_CONFIG_FILE=
 ```
 
 Rules:
@@ -202,7 +203,16 @@ Rules:
 - The endpoint is disabled unless every required Alipay configuration is set.
 - Amount is explicit; there is no implicit default price.
 - Production uses `https://openapi.alipay.com/gateway.do`.
-- Sandbox may be enabled only through explicit environment configuration.
+- Production must not set `ALIPAY_CONFIG_FILE`; its gateway, service ID, and
+  credentials must come from the production environment.
+- Local sandbox may set `ALIPAY_CONFIG_FILE` to an explicit, ignored, mode-0600
+  `.alipay-sandbox.json` file produced by the official local sandbox flow. The
+  loader maps `appIds[0].appId`, `appPrivatePkcsKey`, and `alipayPublicKey`,
+  pins the sandbox gateway, and uses the fixed sandbox service ID. It is not a
+  mock and all protocol checks remain enabled.
+- The official quick-sandbox bootstrap does not offer Go as a first-class
+  runtime. Go is implemented directly against the A2M contract; protocol
+  fixtures live in `internal/donation/testdata/aipay`.
 - Keys are loaded only by the donation package and are never logged.
 - Logs must not contain `Payment-Proof`, private keys, or full buyer data.
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.09.19.2 —— Alipay A2M Golden 校准
+
+- 新增测试资产 `internal/donation/testdata/aipay`：纯标准库 Python Golden oracle 与已签名协议 vectors，用于独立校准 Go A2M 实现；Go CI 直接消费 vectors，不依赖 Python。
+- 新增 A2M conformance tests：覆盖商家账单签名、Payment-Needed/Payment-Proof 编码、verify/confirm 同步响应验签、空值跳过与篡改拒绝。
+- 修复 Go OpenAPI 签名串：同步响应 JSON 空字符串/null 按规则跳过；跳过后不再生成前导 `&`。
+- 新增官方沙箱 `.alipay-sandbox.json` 显式加载器：仅本地显式 `ALIPAY_CONFIG_FILE` 启用，强制 0600、固定沙箱网关和 service ID，不引入 mock 旁路；生产仍走环境变量。
+
 ## 2026.09.19.1 —— Alipay AI Pay 捐赠凭证
 
 - 新增独立的 `POST /api/donations/redeem`：无凭证返回 402 + Payment-Needed；凭证经支付宝 A2M 验付、本地幂等落库并履约确认后返回捐赠凭证。
