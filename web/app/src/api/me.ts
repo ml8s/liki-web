@@ -1,5 +1,14 @@
 import { request } from './http'
-import type { Me } from '@/types'
+
+export type UserStatus = 'active' | 'disabled' | 'deleted'
+
+export interface Me {
+  id: string
+  email: string
+  status: UserStatus
+  locale: string
+  last_login_at?: string
+}
 
 export interface SessionInfo {
   id: string

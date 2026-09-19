@@ -28,9 +28,9 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ChatSession } from '@/api/chat'
 import { formatDateTime } from '@/utils/format'
+import { useMobile } from '@/composables/useMobile'
 
 defineProps<{
   sessions: Array<ChatSession & { skillLabel?: string }>
@@ -38,17 +38,7 @@ defineProps<{
 
 defineEmits<{ open: [session: ChatSession] }>()
 
-const isMobile = ref(false)
-let mq: MediaQueryList | null = null
-function onMqChange(e: MediaQueryListEvent | MediaQueryList) {
-  isMobile.value = e.matches
-}
-onMounted(() => {
-  mq = window.matchMedia('(max-width: 640px)')
-  onMqChange(mq)
-  mq.addEventListener('change', onMqChange)
-})
-onBeforeUnmount(() => mq?.removeEventListener('change', onMqChange))
+const isMobile = useMobile(640)
 </script>
 
 <style scoped>

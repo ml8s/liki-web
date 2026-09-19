@@ -420,7 +420,10 @@ func scanUser(scan func(dest ...any) error) (User, error) {
 }
 
 func mustTime(value string) time.Time {
-	parsed, _ := time.Parse(time.RFC3339, value)
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		parsed = time.Time{}
+	}
 	return parsed
 }
 

@@ -16,3 +16,8 @@ export function toUserMessage(error: unknown, fallback: string): string {
   }
   return fallback
 }
+
+/** 统一的 store 错误消息函数，内部委托 toUserMessage。 */
+export function errorMessage(error: unknown): string {
+  return toUserMessage(error, '请求失败')
+}

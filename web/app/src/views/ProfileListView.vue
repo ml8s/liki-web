@@ -39,7 +39,7 @@ const profiles = useProfilesStore()
 const error = profiles.error
 
 async function load() {
-  await profiles.loadList(true)
+  await profiles.loadList()
 }
 
 function open(profile: Profile) {

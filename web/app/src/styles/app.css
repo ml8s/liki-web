@@ -5,6 +5,7 @@
   --liki-primary-tint: #eeeafc;
   --liki-primary-border: #d9d2f5;
   --liki-gold: #c9a45e;
+  --liki-gold-text: #8b6914;
   --liki-gold-tint: #f6edd9;
   --liki-ink: #1e2230;
   --liki-paper: #f7f6f4;
@@ -121,6 +122,13 @@ p {
 .page-fade-leave-to {
   opacity: 0;
 }
+
+/* ── 服务视图共享样式（看命/起名/问卦/风水/择日/合盘）── */
+.service-view .block { border-radius: 12px; margin-bottom: 20px; }
+.service-view .block.pan { border-top: 2px solid var(--liki-gold); }
+.service-view .card-title { font-weight: 600; }
+.service-view .hint { color: var(--liki-text-2); margin: 0 0 14px; }
+.service-view .sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; }
 
 /* 尊重减弱动效偏好（redesign §9.4 #10） */
 @media (prefers-reduced-motion: reduce) {

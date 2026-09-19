@@ -11,24 +11,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-
-interface ProfileSummary {
-  nickname?: string
-  name?: string
-  gender?: string
-  relation?: string
-  calendar?: string
-  birth_date?: string
-  birth_time?: string
-  birth_time_known?: string
-  birth_place?: string
-}
+import type { Profile } from '@/api/profiles'
 
 const props = defineProps<{ content: string }>()
 
-const data = computed<ProfileSummary>(() => {
+const data = computed<Partial<Profile>>(() => {
   try {
-    return JSON.parse(props.content) as ProfileSummary
+    return JSON.parse(props.content) as Partial<Profile>
   } catch {
     return {}
   }
@@ -40,7 +29,8 @@ const summary = computed(() => {
   const d = data.value
   const calendar = d.calendar === 'lunar' ? '农历' : '公历'
   const gender = d.gender === 'male' ? '男' : d.gender === 'female' ? '女' : ''
-  const known = { known: '已知', approximate: '时辰', unknown: '不确定' }[d.birth_time_known ?? ''] ?? ''
+  const knownMap: Record<string, string> = { known: '已知', approximate: '时辰', unknown: '不确定' }
+  const known = knownMap[d.birth_time_known ?? ''] ?? ''
   const place = d.birth_place ? ` · ${d.birth_place}` : ''
   return [calendar, d.birth_date, d.birth_time, gender, known, place].filter(Boolean).join(' ')
 })

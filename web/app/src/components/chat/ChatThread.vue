@@ -14,12 +14,6 @@ defineProps<{
   messages: ChatMessage[]
   loading?: boolean
 }>()
-
-defineExpose({
-  scrollToBottom() {
-    // The scroll container belongs to the parent layout; parent controls it.
-  },
-})
 </script>
 
 <style scoped>

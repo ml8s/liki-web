@@ -12,11 +12,27 @@ interface RpcResult<T> {
   data: T
 }
 
+/** 引擎 RPC 方法名（单一真相源——API 层和 E2E mock 均从此导入）。 */
+export const RPC_METHODS = {
+  TianwenTime: 'tianwen.time',
+  CityCoords: 'city.coords',
+  BaziChart: 'bazi.chart',
+  BaziFullChart: 'bazi.fullchart',
+  ZiweiChart: 'ziwei.chart',
+  ZiweiFullChart: 'ziwei.fullchart',
+  BazhaiChart: 'bazhai.chart',
+  BaziBond: 'bazi.bond',
+  QimingPick: 'qiming.pick',
+  LiuyaoQigua: 'liuyao.qigua',
+  LiuyaoChart: 'liuyao.chart',
+  HuangliDays: 'huangli.days',
+} as const
+
 export async function engineRpc<T = unknown>(method: string, params: unknown): Promise<T> {
   const response = await fetch('/jsonrpc', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method, params, id: ++rpcId }),
+    body: JSON.stringify({ jsonrpc: '2.0', method, params, id: (rpcId = (rpcId + 1) % 1_000_000) }),
   })
   if (!response.ok) {
     throw new Error(`引擎服务不可用（HTTP ${response.status}）`)
@@ -37,14 +53,25 @@ export interface BaziZhu {
   na_yin?: string
 }
 
+export interface BaziDaYunRootRef {
+  source: string
+  pillar?: string
+  stem: string
+  branch: string
+}
+
 export interface BaziDaYunStep {
   gan: string
   zhi: string
   name: string
-  wuxing?: string
-  shi_shen?: string
+  start_date?: string
+  end_date?: string
   start_year?: number
   end_year?: number
+  wuxing?: string
+  shi_shen?: string
+  rooted?: boolean
+  root_refs?: BaziDaYunRootRef[]
 }
 
 export interface BaziDaYun {
@@ -62,25 +89,91 @@ export interface BaziChartData {
   birth_year?: number
   gender?: string
   zi_shi_rule?: string
+  zodiac?: string
+  day_xun?: string
+  day_xun_kong?: string
   da_yun?: BaziDaYun
 }
 
-export function engineSolarTime(time: string, longitude: number): Promise<{ solar: string; lunar: unknown }> {
-  return engineRpc<{ solar: string; lunar: unknown }>('tianwen.time', { time, longitude })
+export function engineSolarTime(time: string, longitude: number): Promise<{ solar: string; lunar: string }> {
+  return engineRpc<{ solar: string; lunar: string }>(RPC_METHODS.TianwenTime, { time, longitude })
 }
 
 export function engineCityCoords(city: string): Promise<{ longitude: number; latitude: number }> {
-  return engineRpc<{ longitude: number; latitude: number }>('city.coords', { city })
+  return engineRpc<{ longitude: number; latitude: number }>(RPC_METHODS.CityCoords, { city })
 }
 
 export function engineBaziChart(solarTime: string, gender: string): Promise<BaziChartData> {
-  return engineRpc<BaziChartData>('bazi.chart', { solar_time: solarTime, gender })
+  return engineRpc<BaziChartData>(RPC_METHODS.BaziChart, { solar_time: solarTime, gender })
+}
+
+export interface BaziFuYiBasis {
+  root_type?: string
+  season?: string
+  yin_bi_count?: number
+  day_master_roots?: Array<{ stem: string; zhi: string }>
+  relation_facts?: Array<{ field: string; group: string; pillars?: string[]; branches?: string[]; targets?: string[] }>
+}
+
+export interface BaziFuYi {
+  qiangruo?: string
+  yong?: string
+  xi?: string
+  ji?: string
+  wuxing_count?: Record<string, number>
+  wang_shuai?: Record<string, string>
+  pattern?: string
+  model?: string
+  basis?: BaziFuYiBasis
+}
+
+export interface BaziTiaoHouAvailability {
+  stem?: string
+  transparent?: boolean
+  hidden?: boolean
+  branch?: string
+}
+
+export interface BaziTiaoHou {
+  yong?: string
+  xi?: string
+  season?: string
+  detail?: string
+  model?: string
+  primary?: BaziTiaoHouAvailability
+  secondary?: BaziTiaoHouAvailability
+}
+
+export interface BaziGeJuStructure {
+  wuxing?: string
+  transparent_pillars?: string[]
+  roots?: Array<{ stem: string; zhi: string }>
+  season?: string
+  timely?: boolean
+  strength?: string
+}
+
+export interface BaziGeJu {
+  ge_ju?: string
+  yong_fa?: string
+  yong?: string
+  xi?: string
+  ji?: string
+  pattern_god?: string
+  pattern_god_ten_god?: string
+  pattern_god_source?: string
+  structure?: {
+    pattern?: BaziGeJuStructure
+    controller?: BaziGeJuStructure
+    generator?: BaziGeJuStructure
+    relation_facts?: Array<{ field: string; group: string; pillars?: string[]; branches?: string[]; targets?: string[] }>
+  }
 }
 
 export interface BaziYongShen {
-  fu_yi?: { qiangruo?: string; yong?: string; xi?: string; ji?: string }
-  tiao_hou?: { yong?: string; xi?: string; season?: string }
-  ge_ju?: { ge_ju?: string; yong_fa?: string; yong?: string; xi?: string; ji?: string }
+  fu_yi?: BaziFuYi
+  tiao_hou?: BaziTiaoHou
+  ge_ju?: BaziGeJu
 }
 
 export interface BaziShenSha {
@@ -89,12 +182,25 @@ export interface BaziShenSha {
   description?: string
 }
 
+export interface BaziShiShenEntry {
+  shi_shen: string
+  name?: string
+  source?: string
+  gan?: string
+}
+
 export interface BaziZhuFull extends BaziZhu {
-  /** 十神数组（首项为天干十神） */
-  shi_shens?: Array<{ shi_shen: string; name?: string }>
+  day_master_trend?: string
+  xun?: string
+  xun_kong?: string
+  self_sitting?: string
+  shi_shens?: BaziShiShenEntry[]
   cang_gan?: { main?: string; mid?: string; minor?: string }
   shen_sha?: BaziShenSha[]
   is_void?: boolean
+  is_self_he?: boolean
+  is_kui_gang?: boolean
+  self_he_name?: string
 }
 
 export interface BaziSanYuan {
@@ -103,28 +209,234 @@ export interface BaziSanYuan {
   shen_gong?: { gan: string; zhi: string }
 }
 
-export function engineBaziFullChart(chart: unknown): Promise<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; yong_shen?: BaziYongShen; san_yuan?: BaziSanYuan }> {
-  return engineRpc<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; yong_shen?: BaziYongShen; san_yuan?: BaziSanYuan }>('bazi.fullchart', { chart })
+export interface ChangShengStage {
+  name: string
+  index: string
+}
+
+export interface TenGodState {
+  shi_shen: string
+  wuxing: string
+  transparent: boolean
+  hidden: boolean
+  rooted: boolean
+  timely: boolean
+  count: number
+  strength: string
+}
+
+export interface ElementState {
+  wuxing: string
+  season: string
+  season_strength: string
+  strength: string
+  transparent: boolean
+  rooted: boolean
+  controls: string
+  controlled_by: string
+  controller_strength: string
+  reasons: string[]
+}
+
+export interface RelationGroup {
+  field: string
+  group: string
+}
+
+export interface LuRoot {
+  shi_shen: string
+  gan: string
+  zhi: string
+}
+
+export interface NayinRelEntry {
+  a: string
+  b: string
+  relation: string
+}
+
+export interface GongJia {
+  pillar_a: number
+  pillar_b: number
+  type: string
+  zhi: string
+}
+
+export interface AtomicFacts {
+  day_master_element?: string
+  day_master_stem?: string
+  day_branch?: string
+  month_longevity?: string
+  year_stem_ten_god?: string
+  month_main_ten_god?: string
+  hour_stem_ten_god?: string
+  pattern_god_transparent?: boolean
+  pillar_punishments?: Record<string, boolean>
+  officer_killing_cleaned?: boolean
+  wealth_tomb_present?: boolean
+  wealth_star_in_tomb?: boolean
+}
+
+export interface ShenShaSchool {
+  dual_reference?: string[]
+  policy?: string
+}
+
+export interface BaziFullChartData {
+  nian: BaziZhuFull
+  yue: BaziZhuFull
+  ri: BaziZhuFull
+  shi: BaziZhuFull
+  da_yun?: BaziDaYun
+  gender?: string
+  birth_year?: number
+  yong_shen?: BaziYongShen
+  fu_yi?: BaziFuYi
+  tiao_hou?: BaziTiaoHou
+  ge_ju?: BaziGeJu
+  shen_sha_school?: ShenShaSchool
+  lu_roots?: LuRoot[]
+  relation_groups?: RelationGroup[]
+  ten_god_states?: TenGodState[]
+  element_states?: ElementState[]
+  atomic_facts?: AtomicFacts
+  san_yuan?: BaziSanYuan
+  tai_xi?: { gan: string; zhi: string }
+  gong_jia?: GongJia[]
+  nayin_rel?: NayinRelEntry[]
+  chang_sheng?: ChangShengStage[]
+  san_qi_name?: string
+  zodiac?: string
+  gan_he?: Array<{ gan_a: string; gan_b: string; type: string; relation: string }>
+  zhi_liu_he?: Array<{ zhi_a: string; zhi_b: string; type: string; detail: string }>
+  san_he?: Array<{ field: string; group: string }>
+  san_hui?: Array<{ field: string; group: string }>
+  liu_chong?: Array<{ zhi_a: string; zhi_b: string; type: string; detail: string }>
+  liu_hai?: Array<{ zhi_a: string; zhi_b: string; type: string; detail: string }>
+  liu_xing?: Array<{ zhi_a: string; zhi_b: string; type: string; detail: string }>
+  liu_po?: Array<{ zhi_a: string; zhi_b: string; type: string; detail: string }>
+  an_he?: Array<{ zhi_a: string; zhi_b: string; type: string; detail: string }>
+  day_xun?: string
+  day_xun_kong?: string
+}
+
+export function engineBaziFullChart(chart: unknown): Promise<BaziFullChartData> {
+  return engineRpc<BaziFullChartData>(RPC_METHODS.BaziFullChart, { chart })
+}
+
+export interface ZiweiStarInfo {
+  xing: string
+  name: string
+  is_zhu_xing?: boolean
+  si_hua?: string
+  liang_du?: string
 }
 
 export interface ZiweiGong {
+  index: number
   name: string
-  xing_yao: Array<{ name: string; is_zhu_xing?: boolean; liang_du?: string }>
+  gan?: string
+  zhi?: string
   is_shen_gong?: boolean
+  is_yuan_gong?: boolean
+  xing_yao: ZiweiStarInfo[]
+  zi_wei?: number
+  ages?: number[]
+  chang_sheng?: string
+  bo_shi?: string
+  jiang_qian?: string
+  sui_qian?: string
+  za_yao?: string[]
+}
+
+export interface ZiweiSiHuaResult {
+  [star: string]: string
+}
+
+export interface ZiweiKongGong {
+  gong_name: string
+  jie_xing: string[]
+  dui_gong: string
+}
+
+export interface ZiweiPattern {
+  name: string
+  description: string
+}
+
+export interface ZiweiSanFang {
+  name: string
+  zhu_xing: string[]
+  fu_xing: string[]
+  si_hua: string[]
+}
+
+export interface ZiweiPalaceFact {
+  palace: string
+  kind: string
+  target: string
+  star?: string
+  value?: string
 }
 
 export interface ZiweiChart {
+  school?: string
   gong_wei: ZiweiGong[]
   ming_gong?: number
   shen_gong?: number
+  ju_shu?: number
+  ju_shu_name?: string
+  ziwei_pos?: number
+  si_hua?: ZiweiSiHuaResult
+  palace_facts?: ZiweiPalaceFact[]
+  kong_gong?: ZiweiKongGong[]
+  nian_gan?: string
+  nian_zhi?: string
+  shi_zhi?: string
+  birth_year?: number
+  lunar_month?: number
+  lunar_day?: number
+  birth_lunar_month?: number
+  birth_is_leap?: boolean
+  gender?: string
+  ming_zhu?: string
+  shen_zhu?: string
+  patterns?: ZiweiPattern[]
+  san_fang?: ZiweiSanFang[]
 }
 
-export function engineZiweiChart(lunar: unknown, gender: string): Promise<unknown> {
-  return engineRpc<unknown>('ziwei.chart', { lunar, gender })
+export interface ZiweiChartData {
+  school?: string
+  gong_wei: ZiweiGong[]
+  ming_gong?: number
+  shen_gong?: number
+  ju_shu?: number
+  ju_shu_name?: string
+  ziwei_pos?: number
+  si_hua?: ZiweiSiHuaResult
+  palace_facts?: ZiweiPalaceFact[]
+  kong_gong?: ZiweiKongGong[]
+  nian_gan?: string
+  nian_zhi?: string
+  shi_zhi?: string
+  birth_year?: number
+  lunar_month?: number
+  lunar_day?: number
+  birth_lunar_month?: number
+  birth_is_leap?: boolean
+  gender?: string
+  ming_zhu?: string
+  shen_zhu?: string
+  patterns?: ZiweiPattern[]
+  san_fang?: ZiweiSanFang[]
+}
+
+export function engineZiweiChart(lunar: string, gender: string): Promise<ZiweiChartData> {
+  return engineRpc<ZiweiChartData>(RPC_METHODS.ZiweiChart, { lunar, gender })
 }
 
 export function engineZiweiFullChart(chart: unknown): Promise<ZiweiChart> {
-  return engineRpc<ZiweiChart>('ziwei.fullchart', { chart })
+  return engineRpc<ZiweiChart>(RPC_METHODS.ZiweiFullChart, { chart })
 }
 
 export interface BazhaiLiuNianXing {
@@ -140,7 +452,7 @@ export interface BazhaiChart {
 }
 
 export function engineBazhaiChart(birthYear: number, gender: string): Promise<BazhaiChart> {
-  return engineRpc<BazhaiChart>('bazhai.chart', { birth_year: birthYear, gender })
+  return engineRpc<BazhaiChart>(RPC_METHODS.BazhaiChart, { birth_year: birthYear, gender })
 }
 
 export interface BaziGanRelation {
@@ -187,7 +499,7 @@ export interface BaziBondResult {
 
 /** 八字合盘：输入双方最小命盘（bazi.chart 结果）。 */
 export function engineBaziBond(chartA: unknown, chartB: unknown): Promise<BaziBondResult> {
-  return engineRpc<BaziBondResult>('bazi.bond', { a: { chart: chartA }, b: { chart: chartB } })
+  return engineRpc<BaziBondResult>(RPC_METHODS.BaziBond, { a: { chart: chartA }, b: { chart: chartB } })
 }
 
 export interface QimingPickResult {
@@ -198,21 +510,83 @@ export interface QimingPickResult {
 
 /** 起名取字：按用神五行（金木水火土）取单/双字候选。 */
 export function engineQimingPick(wuxing1: string, wuxing2: string, count: number): Promise<QimingPickResult> {
-  return engineRpc<QimingPickResult>('qiming.pick', { wuxing1, wuxing2, count })
+  const params: Record<string, unknown> = { wuxing1, count }
+  if (wuxing2) params.wuxing2 = wuxing2
+  return engineRpc<QimingPickResult>(RPC_METHODS.QimingPick, params)
 }
 
-export interface LiuyaoSnapshotResult {
-  question?: string
-  casting?: { mode?: string; yaos?: unknown[]; dong_yao?: unknown[] }
-  board?: { name?: string; palace?: string; xun_kong?: string; ben_gua?: unknown; bian_gua?: unknown }
+export interface LiuyaoCasting {
+  schema_version?: string
+  mode?: string
+  order?: number[]
+  yaos?: unknown[]
+  dong_yao?: number[]
+  casting_id?: string
+  rounds?: unknown[]
+}
+
+export interface LiuyaoLine {
+  xing?: string
+  liu_qin?: string
+  di_zhi?: string
+  tian_gan?: string
+  wang_shuai?: string
+  ri_chen_relation?: string
+}
+
+export interface LiuyaoBoard {
+  name?: string
+  ben_gua?: string
+  bian_gua?: string
+  gong?: string
+  gong_wuxing?: string
+  ri_chen_gan?: string
+  ri_chen_zhi?: string
+  yue_jian_zhi?: string
+  yue_jian_gan?: string
+  xun_kong?: string[]
+  lines?: LiuyaoLine[]
+  bian_yao?: LiuyaoLine[]
+}
+
+export interface LiuyaoYongShen {
+  name?: string
+  position?: number
+  world?: string
+  other?: string
+}
+
+export interface LiuyaoTimingCandidate {
+  time?: string
+  description?: string
+}
+
+export interface LiuyaoPattern {
+  name?: string
+  description?: string
+}
+
+export interface LiuyaoChartResult {
+  casting?: LiuyaoCasting
+  board?: LiuyaoBoard
   focus?: { yong_shen?: string; world?: string; other?: string }
-  timing_candidates?: unknown[]
+  yong_shen?: LiuyaoYongShen
+  gua_ci?: { gua?: string; ci?: string }
+  timing_candidates?: LiuyaoTimingCandidate[]
   safety_advisory?: string
+  patterns?: LiuyaoPattern[]
 }
 
-/** 问卦摇卦：创建六爻 immutable snapshot（卦象/用神/应期候选一次完成）。 */
-export function engineLiuyaoSnapshot(question: string, mode = 'auto'): Promise<LiuyaoSnapshotResult> {
-  return engineRpc<LiuyaoSnapshotResult>('liuyao_snapshot', { question, mode })
+/** 六爻起卦：生成 casting 收据。 */
+export function engineLiuyaoQigua(mode = 'auto'): Promise<{ casting: LiuyaoCasting }> {
+  return engineRpc<{ casting: LiuyaoCasting }>(RPC_METHODS.LiuyaoQigua, { mode })
+}
+
+/** 六爻装卦：传入 casting + 真太阳时，返回卦象/用神/应期。 */
+export function engineLiuyaoChart(solarTime: string, casting: LiuyaoCasting, yongShen?: string): Promise<LiuyaoChartResult> {
+  const params: Record<string, unknown> = { solar_time: solarTime, casting }
+  if (yongShen) params.yong_shen = yongShen
+  return engineRpc<LiuyaoChartResult>(RPC_METHODS.LiuyaoChart, params)
 }
 
 export interface HuangliCandidate {
@@ -235,5 +609,5 @@ export interface HuangliDaysResult {
 
 /** 黄历择日：按事项与日期范围返回推荐/排除候选。 */
 export function engineHuangliDays(question: string, event: string, startDate: string, endDate: string): Promise<HuangliDaysResult> {
-  return engineRpc<HuangliDaysResult>('huangli_days', { question, event, start_date: startDate, end_date: endDate })
+  return engineRpc<HuangliDaysResult>(RPC_METHODS.HuangliDays, { question, event, start_date: startDate, end_date: endDate })
 }

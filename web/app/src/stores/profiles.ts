@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { toUserMessage } from '@/utils/errors'
+import { errorMessage } from '@/utils/errors'
 import {
   createProfile,
   deleteProfile,
@@ -16,6 +16,8 @@ interface ProfilesState {
   loading: boolean
   detailLoading: boolean
   error: string
+  _lastRefresh: number
+  next_cursor: string
 }
 
 export const useProfilesStore = defineStore('profiles', {
@@ -25,21 +27,29 @@ export const useProfilesStore = defineStore('profiles', {
     loading: false,
     detailLoading: false,
     error: '',
+    _lastRefresh: 0,
+    next_cursor: '',
   }),
-  getters: {
-    byId: state => (id: string) => state.list.find(item => item.id === id) ?? state.detail,
-    defaultProfile: state => state.list.find(item => item.id) ?? null,
-  },
+  getters: {},
   actions: {
-    async loadList(force = false) {
-      if (this.loading || (this.list.length && !force)) return
+    async loadList(cursor?: string, force = false) {
+      const effectiveCursor = cursor || ''
+      const lastRefresh = this?._lastRefresh ?? 0
+      const now = Date.now()
+      const STALE_AFTER = 30_000
+      if (!force && this.loading) return
+      if (!force && this.list.length && now - lastRefresh < STALE_AFTER) return
       this.loading = true
+      this._lastRefresh = now
       this.error = ''
       try {
-        const result = await fetchProfiles()
+        const result = await fetchProfiles(effectiveCursor)
         this.list = result.profiles
+        // 下一页 cursor（若后端返回非空，则下次传入）
+        if (result.next_cursor) this.next_cursor = result.next_cursor
       } catch (error) {
         this.error = errorMessage(error)
+        this.list = []
       } finally {
         this.loading = false
       }
@@ -82,7 +92,3 @@ export const useProfilesStore = defineStore('profiles', {
     },
   },
 })
-
-export function errorMessage(error: unknown): string {
-  return toUserMessage(error, '请求失败')
-}

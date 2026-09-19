@@ -2,10 +2,12 @@
   <section class="chat-page">
     <div class="chat-main">
       <header class="session-header">
-        <router-link v-if="chat.activeSession?.profile_id" :to="`/profiles/${chat.activeSession.profile_id}`">← 返回档案</router-link>
-        <router-link v-else to="/chat">← 会话列表</router-link>
+        <div class="header-nav">
+          <router-link v-if="chat.activeSession?.profile_id" :to="`/profiles/${chat.activeSession.profile_id}`">← 返回档案</router-link>
+          <router-link v-else to="/chat">← 会话列表</router-link>
+        </div>
         <h1>{{ chat.activeSession?.title || '加载中' }}</h1>
-        <p v-if="chat.activeSession">领域：{{ skillLabel(chat.activeSession.skill) }}</p>
+        <p v-if="chat.activeSession" class="skill-badge">{{ skillLabel(chat.activeSession.skill) }}</p>
       </header>
 
       <div
@@ -19,11 +21,7 @@
 
       <ChatStreamStatus :phase="chat.phase" />
       <div v-if="chat.error" class="error-row">
-        <AppAlert
-          :title="chat.error"
-          type="error"
-          class="composer-alert"
-        />
+        <AppAlert :title="chat.error" type="error" class="composer-alert" />
         <el-button size="small" @click="retry">重试</el-button>
       </div>
 
@@ -106,18 +104,23 @@ function retry() {
 
 watch(sessionId, async id => {
   if (id) {
-    await chat.openSession(id)
-    // 服务入口：会话打开后自动发出首条意图（内存态，刷新即失不重发）。
-    if (chat.pendingIntent) {
-      const intent = chat.pendingIntent
-      chat.pendingIntent = ''
-      await chat.send(intent)
+    try {
+      await chat.openSession(id)
+      // 服务入口：会话打开后自动发出首条意图（内存态，刷新即失不重发）。
+      if (chat.pendingIntent) {
+        const intent = chat.pendingIntent
+        chat.pendingIntent = ''
+        await chat.send(intent)
+      }
+      await scrollToEnd()
+    } catch (error) {
+      // store 内部已设 error state；此处防御编程错误导致的 unhandled rejection。
+      console.error('[ChatSession] 会话加载/发送失败:', error)
     }
-    await scrollToEnd()
   }
 }, { immediate: true })
 
-watch(() => chat.messages, () => scrollToEnd(), { deep: true })
+watch(() => chat.messages.length, () => scrollToEnd())
 
 function onGlobalKeydown(event: KeyboardEvent) {
   // Esc 停止生成（借命名 chat 实践）。
@@ -159,10 +162,11 @@ onBeforeUnmount(() => {
   height: calc(100dvh - 130px);
 }
 .session-header {
-  padding-bottom: 14px;
-  margin-bottom: 14px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
   border-bottom: 1px solid var(--liki-line);
 }
+.header-nav { margin-bottom: 4px; }
 .session-header a {
   display: inline-block;
   padding: 4px 0;
@@ -171,15 +175,22 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 .session-header h1 {
-  margin: 8px 0 6px;
+  margin: 6px 0 6px;
   font-family: var(--liki-font-serif);
-  font-size: 24px;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
+  font-size: 22px;
+  line-height: 1.3;
 }
-.session-header p { margin: 0; color: var(--liki-text-2); font-size: 13px; }
+.skill-badge {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 10px;
+  font-size: 12px;
+  color: var(--liki-gold-text);
+  border: 1px solid var(--liki-gold);
+  border-radius: 4px;
+}
 .thread { flex: 1; overflow: auto; padding-right: 8px; }
 .composer-alert { margin: 12px 0 0; }
 .error-row { display: flex; align-items: flex-start; gap: 10px; }
-.error-row .el-button { margin-top: 14px; }
+.error-row .el-button { margin-top: 12px; }
 </style>

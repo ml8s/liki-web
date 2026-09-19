@@ -17,7 +17,6 @@
       <el-descriptions-item v-if="profile.name" label="姓名">{{ profile.name }}</el-descriptions-item>
       <el-descriptions-item label="性别">{{ profile.gender === 'male' ? '男' : '女' }}</el-descriptions-item>
       <el-descriptions-item label="出生">{{ birthSummary(profile) }}</el-descriptions-item>
-      <el-descriptions-item v-if="profile.relation" label="关系">{{ profile.relation }}</el-descriptions-item>
       <el-descriptions-item v-if="profile.note" label="备注">{{ profile.note }}</el-descriptions-item>
       <el-descriptions-item label="版本">v{{ profile.version }}</el-descriptions-item>
     </el-descriptions>
@@ -33,6 +32,10 @@ defineProps<{ profile: Profile; submitting?: boolean }>()
 defineEmits<{ update: [ProfileInput] }>()
 
 const editing = ref(false)
+
+defineExpose({
+  closeEdit() { editing.value = false },
+})
 </script>
 
 <style scoped>

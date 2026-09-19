@@ -10,14 +10,17 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 
-// 未捕获异常/异步拒绝 → 错误边界（防白屏）
+// 渲染/模板错误 → 组件树不可恢复 → fatal 错误页（防白屏）。
 app.config.errorHandler = (error, _instance, info) => {
   console.error('[Liki] 未捕获异常:', error, info)
   reportFatal(error)
 }
+
+// 异步 rejection（网络超时 / fire-and-forget 失败）→ 记录但**不崩溃**。
+// 工业 AA 标准：fatal boundary 只给渲染错误；异步错误降级为日志 + store 内部 error state。
 window.addEventListener('unhandledrejection', event => {
   console.error('[Liki] 未处理 Promise 拒绝:', event.reason)
-  reportFatal(event.reason)
+  event.preventDefault()
 })
 
 app.mount('#app')

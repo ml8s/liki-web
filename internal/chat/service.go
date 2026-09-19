@@ -34,14 +34,14 @@ type Service struct {
 	profiles     *profile.Store
 	runners      map[Skill]Runner
 	locks        sync.Mutex
-	sessionLocks map[string]*sync.Mutex
+	sessionLocks sync.Map // sessionID -> *sync.Mutex
 }
 
 func NewService(store *Store, entitlements *entitlement.Store, profiles *profile.Store, runners map[Skill]Runner) *Service {
 	if runners == nil {
 		runners = make(map[Skill]Runner)
 	}
-	return &Service{store: store, entitlements: entitlements, profiles: profiles, runners: runners, sessionLocks: make(map[string]*sync.Mutex)}
+	return &Service{store: store, entitlements: entitlements, profiles: profiles, runners: runners, sessionLocks: sync.Map{}}
 }
 
 func (s *Service) runnerFor(skill Skill) (Runner, error) {
@@ -75,15 +75,17 @@ func (s *Service) Session(ctx context.Context, userID, sessionID string) (Sessio
 }
 
 func (s *Service) lockSession(sessionID string) func() {
+	// sync.Map 没有直接的 DeleteIfExists，使用 Store + Load 删除
 	s.locks.Lock()
-	lock, ok := s.sessionLocks[sessionID]
-	if !ok {
-		lock = &sync.Mutex{}
-		s.sessionLocks[sessionID] = lock
-	}
+	lock, _ := s.sessionLocks.LoadOrStore(sessionID, &sync.Mutex{})
+	m := lock.(*sync.Mutex)
 	s.locks.Unlock()
-	lock.Lock()
-	return lock.Unlock
+	m.Lock()
+	return func() {
+		m.Unlock()
+		// 释放后从 map 移除，防止内存泄漏
+		s.sessionLocks.Delete(sessionID)
+	}
 }
 
 func (s *Service) CreateSession(ctx context.Context, userID, skill, title, profileID string) (Session, error) {
@@ -240,7 +242,6 @@ func systemProfileContent(p profile.Profile) (string, error) {
 		"nickname":            p.Nickname,
 		"name":                p.Name,
 		"gender":              p.Gender,
-		"relation":            p.Relation,
 		"calendar":            p.Calendar,
 		"birth_date":          p.BirthDate,
 		"birth_time":          p.BirthTime,
@@ -265,6 +266,9 @@ func profileContext(p profile.Profile) string {
 		b.WriteString("姓名：" + p.Name + "\n")
 	}
 	genderLabel := map[string]string{"male": "男", "female": "女"}[p.Gender]
+	if genderLabel == "" {
+		genderLabel = "未知"
+	}
 	b.WriteString("性别：" + genderLabel + "\n")
 	b.WriteString("历法：" + p.Calendar + "\n")
 	b.WriteString("出生日期：" + p.BirthDate + "\n")

@@ -11,9 +11,9 @@
         <div class="hero-gold" />
         <p class="hero-kicker">懂命理，用 Liki</p>
         <h1 class="hero-title">工作台</h1>
-        <p class="hero-sub">{{ purchased ? '六大命理服务已就绪，随时对话解读。' : '免费排盘看全，Liki Chat 解锁专业解读。' }}</p>
+        <p class="hero-sub">{{ entitlements.purchased ? '六大命理服务已就绪，随时对话解读。' : '免费排盘看全，Liki Chat 解锁专业解读。' }}</p>
         <div class="hero-actions">
-          <el-button type="primary" size="large" @click="router.push('/chat')">{{ purchased ? '开始 Chat' : '解锁 Liki Chat' }}</el-button>
+          <el-button type="primary" size="large" @click="router.push('/chat')">{{ entitlements.purchased ? '开始 Chat' : '解锁 Liki Chat' }}</el-button>
         </div>
       </div>
 
@@ -100,7 +100,6 @@ const profiles = useProfilesStore()
 const entitlements = useEntitlementsStore()
 
 const loading = computed(() => chat.loadingSessions || profiles.loading || entitlements.loading)
-const purchased = computed(() => entitlements.allowedSkills.length > 0)
 const recentProfiles = computed(() => profiles.list.slice(0, 3))
 const recentSessions = computed(() =>
   chat.sessions.slice(0, 3).map(s => ({
@@ -125,15 +124,19 @@ function startService(key: string) {
   void router.push(`/chat?profile=${profiles.list[0].id}&service=${key}`)
 }
 
-onMounted(async () => {
-  await Promise.all([chat.loadSessions(), profiles.loadList(), entitlements.load()])
-  // 营销站/外链服务意图：/app?service=<key> → 自动启动该服务。
-  const raw = route.query.service
-  const key = Array.isArray(raw) ? String(raw[0] ?? '') : String(raw ?? '')
-  if (key && serviceByKey(key)) {
-    await router.replace({ query: {} })
-    startService(key)
-  }
+onMounted(() => {
+  // 非阻塞并行加载，不 await——避免阻塞首屏渲染。
+  profiles.loadList()
+  entitlements.load()
+  chat.loadSessions().then(() => {
+    // 营销站/外链服务意图：/app?service=<key> → 自动启动该服务。
+    const raw = route.query.service
+    const key = Array.isArray(raw) ? String(raw[0] ?? '') : String(raw ?? '')
+    if (key && serviceByKey(key)) {
+      void router.replace({ query: {} })
+      startService(key)
+    }
+  })
 })
 </script>
 

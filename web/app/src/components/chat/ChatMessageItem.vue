@@ -18,7 +18,7 @@
       class="copy"
       type="button"
       :aria-label="copied ? '已复制' : '复制回答'"
-      @click="copy"
+      @click="handleCopy"
     >
       {{ copied ? '✓ 已复制' : '复制' }}
     </button>
@@ -26,43 +26,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 import type { ChatMessage } from '@/api/chat'
+import { useClipboard } from '@/composables/useClipboard'
 import SystemProfileCard from '@/components/chat/SystemProfileCard.vue'
 
 const props = defineProps<{ message: ChatMessage }>()
 const copied = ref(false)
+const { copy } = useClipboard()
 
-// 复制：优先 navigator.clipboard，失败/不可用时降级 execCommand（借命名 chat 实践）。
-async function copy() {
-  const text = props.message.content
-  const done = () => {
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 1200)
-  }
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done))
-  } else {
-    fallbackCopy(text, done)
-  }
-}
+onBeforeUnmount(() => {})
 
-function fallbackCopy(text: string, done: () => void) {
-  const ta = document.createElement('textarea')
-  ta.value = text
-  ta.setAttribute('readonly', '')
-  ta.style.position = 'fixed'
-  ta.style.top = '-9999px'
-  document.body.appendChild(ta)
-  ta.select()
-  let ok = false
-  try {
-    ok = document.execCommand('copy')
-  } catch {
-    ok = false
-  }
-  document.body.removeChild(ta)
-  if (ok) done()
+// 复制：优先 navigator.clipboard，失败/不可用时降级 execCommand
+async function handleCopy() {
+  await copy(props.message.content)
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 1200)
 }
 </script>
 

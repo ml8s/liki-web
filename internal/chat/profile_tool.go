@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -82,7 +83,6 @@ func UpdateProfileBirthTimeHandler(selfURL, cookieName string, client *http.Clie
 			"nickname":            current.Nickname,
 			"name":                current.Name,
 			"gender":              current.Gender,
-			"relation":            current.Relation,
 			"calendar":            current.Calendar,
 			"birth_date":          current.BirthDate,
 			"birth_time":          args.BirthTime,
@@ -125,7 +125,6 @@ type profilePayload struct {
 	Nickname          string `json:"nickname"`
 	Name              string `json:"name"`
 	Gender            string `json:"gender"`
-	Relation          string `json:"relation"`
 	Calendar          string `json:"calendar"`
 	BirthDate         string `json:"birth_date"`
 	BirthTime         string `json:"birth_time"`
@@ -146,7 +145,9 @@ func callProfileAPI(ctx context.Context, client *http.Client, method, selfURL, c
 	}
 	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	url := strings.TrimRight(selfURL, "/") + "/api/profiles/" + profileID
+	base := strings.TrimRight(selfURL, "/")
+	u, _ := url.ParseRequestURI(base + "/api/profiles/" + profileID)
+	url := u.String()
 	req, err := http.NewRequestWithContext(reqCtx, method, url, payload)
 	if err != nil {
 		return profilePayload{}, err

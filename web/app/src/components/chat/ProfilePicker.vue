@@ -13,14 +13,12 @@ import { computed } from 'vue'
 import type { Profile } from '@/api/profiles'
 
 const props = defineProps<{ profiles: Profile[]; modelValue?: string }>()
-const emit = defineEmits<{ 'update:modelValue': [string]; change: [Profile] }>()
+const emit = defineEmits<{ 'update:modelValue': [string] }>()
 
 const selectedId = computed({
   get: () => props.modelValue ?? props.profiles[0]?.id ?? '',
   set: (value: string) => {
     emit('update:modelValue', value)
-    const profile = props.profiles.find(p => p.id === value)
-    if (profile) emit('change', profile)
   },
 })
 </script>

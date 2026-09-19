@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <section class="service-view">
     <AppPageHeader title="合盘" subtitle="用你的档案与对方信息，查看两人的八字合盘。" />
 
     <AppAlert v-if="error" :title="error" type="error" />
@@ -75,6 +75,20 @@
           </div>
         </div>
 
+        <div v-if="nayinRels.length" class="rel-sec">
+          <div class="sec-title">纳音关系</div>
+          <div class="rels">
+            <span v-for="r in nayinRels" :key="r" class="rel-chip nayin">{{ r }}</span>
+          </div>
+        </div>
+
+        <div v-if="shenshaRels.length" class="rel-sec">
+          <div class="sec-title">神煞互看</div>
+          <div class="rels">
+            <span v-for="r in shenshaRels" :key="r" class="rel-chip shensha">{{ r }}</span>
+          </div>
+        </div>
+
         <div v-if="shiShenRows.length" class="rel-sec">
           <div class="sec-title">十神互看</div>
           <div class="rels">
@@ -96,11 +110,9 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useProfilesStore } from '@/stores/profiles'
-import { useEntitlementsStore } from '@/stores/entitlements'
-import { useChatStore } from '@/stores/chat'
+import { useServiceView } from '@/composables/useServiceView'
 import {
   engineBaziBond,
   type BaziBondResult,
@@ -111,14 +123,14 @@ import AppAlert from '@/components/app/AppAlert.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
 const router = useRouter()
-const profiles = useProfilesStore()
-const entitlements = useEntitlementsStore()
-const chat = useChatStore()
+const { profiles, entitlements, chat } = useServiceView()
+
+interface SynastryInput { gender: string; birth_date: string; birth_time: string; birth_place: string }
 
 const profileAId = ref('')
 const chartA = ref<BaziChartData | null>(null)
 const bChart = ref<BaziChartData | null>(null)
-const b = ref({ gender: 'female', birth_date: '', birth_time: '', birth_place: '' })
+const b = ref<SynastryInput>({ gender: 'female', birth_date: '', birth_time: '', birth_place: '' })
 const result = ref<BaziBondResult | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -200,6 +212,24 @@ const keyRels = computed(() => {
   return [...set].slice(0, 8)
 })
 
+const nayinRels = computed(() => {
+  const pairs = result.value?.nayin_cross?.pairs ?? []
+  return pairs.filter(p => p.relation && p.relation !== '无').map(p =>
+    `${ZHU_LABELS[p.jia_zhu] ?? p.jia_zhu}·${p.jia_na_yin} ↔ ${ZHU_LABELS[p.yi_zhu] ?? p.yi_zhu}·${p.yi_na_yin}：${p.relation}`
+  )
+})
+
+const shenshaRels = computed(() => {
+  const cross = result.value?.shensha_cross
+  if (!cross) return []
+  const rows: string[] = []
+  for (const [name, info] of Object.entries(cross)) {
+    if (info.jia_ru_yi) rows.push(`${aName.value}的${name}入对方命盘`)
+    if (info.yi_ru_jia) rows.push(`对方的${name}入${aName.value}命盘`)
+  }
+  return rows.slice(0, 10)
+})
+
 const shiShenRows = computed(() => {
   const cross = result.value?.shi_shen_cross
   if (!cross) return []
@@ -228,32 +258,28 @@ async function startInterpretation() {
     error.value = toUserMessage(err, '创建会话失败')
   }
 }
-
-onMounted(async () => {
-  await Promise.all([profiles.loadList(), entitlements.load(), chat.loadSessions()])
-})
 </script>
 
 <style scoped>
-.block { border-radius: 12px; margin-bottom: 20px; }
-.block.pan { border-top: 2px solid var(--liki-gold); }
-.card-title { font-weight: 600; }
-.hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .charts { display: grid; gap: 14px; }
 .chart-row { display: flex; align-items: center; gap: 12px; }
-.person { flex: 0 0 56px; font-weight: 600; font-size: 14px; }
+.person { flex: 0 0 56px; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; flex: 1; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; }
 .pillar { background: var(--liki-surface); padding: 8px 4px; text-align: center; }
 .pillar .pl { font-size: 11px; color: var(--liki-text-3); }
 .pillar .gl { font-size: 18px; font-weight: 700; }
 .pillar .sub { font-size: 11px; color: var(--liki-text-2); }
 .rel-sec { margin-top: 16px; }
-.sec-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--liki-text-1); }
+.sec-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
 .rel-text { font-size: 14px; color: var(--liki-ink); }
 .rels { display: flex; flex-wrap: wrap; gap: 8px; }
 .rel-chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--liki-line); background: var(--liki-surface); font-size: 12px; color: var(--liki-text-2); }
+.rel-chip.nayin { border-color: var(--liki-gold-border, #c9a45e33); background: var(--liki-gold-tint); }
+.rel-chip.shensha { border-color: var(--liki-primary-border, #5f4bc222); background: var(--liki-primary-tint); }
 @media (max-width: 640px) {
-  .pillars { grid-template-columns: repeat(4, 1fr); }
+  .pillars { grid-template-columns: repeat(2, 1fr); }
+  .chart-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .person { flex: none; }
 }
 </style>

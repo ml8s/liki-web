@@ -1,33 +1,6 @@
-#!/usr/bin/env bash
-# pre-push — run fast checks before git push; full CI is deferred to GitHub Actions.
+#!/bin/bash
+# pre-push — 快速静态检查，全量测试由 CI 兜底
 set -eo pipefail
-
 cd "$(git rev-parse --show-toplevel)"
-
-make check build test-db
-
-# Docker E2E: 仅当 engine 目录可写时运行
-if [ -d ../liki-skills/engine ] && [ -w ../liki-skills/engine ]; then
-  echo ""
-  echo "=== Docker E2E ==="
-  # 环境起不来 → 跳过（CI 完整验证）；环境就绪 → 测试失败必须拦（不再 || true 吞结果）
-  if scripts/docker-test.sh up >/dev/null 2>&1 && curl -sf -o /dev/null http://localhost:8080/api/health; then
-    RC=0
-    make test-api URL=http://localhost:8080 API_URL=http://localhost:8080 || RC=1
-    make test-ui URL=http://localhost:8080 || RC=1
-    scripts/docker-test.sh down >/dev/null 2>&1 || true
-    if [ "$RC" -ne 0 ]; then
-      echo "❌ Docker E2E 失败，push 已阻止"
-      exit 1
-    fi
-  else
-    scripts/docker-test.sh down >/dev/null 2>&1 || true
-    echo "⚠ Docker E2E 环境未就绪，跳过（CI 会完整验证）"
-  fi
-  echo ""
-else
-  echo "⚠ 引擎目录不可写，跳过 Docker E2E"
-fi
-
-echo ""
+make check
 echo "✓ pre-push ok"

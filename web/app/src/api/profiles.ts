@@ -7,7 +7,6 @@ export interface Profile {
   nickname: string
   name: string
   gender: 'male' | 'female'
-  relation: string
   calendar: 'solar' | 'lunar'
   birth_date: string
   birth_time: string
@@ -24,7 +23,6 @@ export interface ProfileInput {
   nickname: string
   name?: string
   gender: 'male' | 'female'
-  relation?: string
   calendar: 'solar' | 'lunar'
   birth_date: string
   birth_time: string
@@ -39,8 +37,8 @@ export interface ProfileListResult {
   next_cursor: string
 }
 
-export function fetchProfiles(): Promise<ProfileListResult> {
-  return get<ProfileListResult>('/api/profiles?limit=50')
+export function fetchProfiles(cursor?: string): Promise<ProfileListResult> {
+  return get<ProfileListResult>(`/api/profiles?limit=50${cursor ? '&cursor=' + cursor : ''}`)
 }
 
 export function fetchProfile(id: string): Promise<Profile> {

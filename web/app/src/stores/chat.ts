@@ -10,9 +10,13 @@ import {
 } from '@/api/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useProfilesStore } from '@/stores/profiles'
-import { toUserMessage } from '@/utils/errors'
+import { errorMessage } from '@/utils/errors'
 
 let streamController: AbortController | null = null
+
+function localId(): string {
+  return `local-${crypto.randomUUID()}-${Date.now()}`
+}
 
 interface ChatState {
   sessions: ChatSession[]
@@ -39,11 +43,9 @@ export const useChatStore = defineStore('chat', {
     error: '',
     pendingIntent: '',
   }),
-  getters: {
-    canSend: state => !!state.activeSession && !state.sending,
-  },
   actions: {
-    async loadSessions() {
+    async loadSessions(force = false) {
+      if (this.loadingSessions || (this.sessions.length && !force)) return
       this.loadingSessions = true
       this.error = ''
       try {
@@ -98,8 +100,8 @@ export const useChatStore = defineStore('chat', {
       this.phase = '思考中'
       streamController = new AbortController()
 
-      const userId = `local-user-${Date.now()}`
-      const assistantId = `local-assistant-${Date.now()}`
+      const userId = localId()
+      const assistantId = localId()
       this.messages.push({
         id: userId,
         session_id: session.id,
@@ -179,7 +181,8 @@ export const useChatStore = defineStore('chat', {
         try {
           this.messages = await fetchChatMessages(session.id)
         } catch {
-          this.messages = this.messages.filter(item => item.id !== userId && item.id !== assistantId)
+          // 保留本地消息，标记为失败状态
+          assistant.error = this.error || '发送失败'
         }
         if (aborted) return
       } finally {
@@ -213,8 +216,4 @@ export function skillLabel(skill: string): string {
     'liki': '命理',
   }
   return labels[skill] ?? skill
-}
-
-export function errorMessage(error: unknown): string {
-  return toUserMessage(error, '请求失败')
 }

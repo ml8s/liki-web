@@ -62,6 +62,9 @@ func (r *ChatToolRegistry) Register(name, desc string, params json.RawMessage, h
 }
 
 func (r *ChatToolRegistry) addSchema(def json.RawMessage) {
+	if def == nil {
+		return
+	}
 	r.cachedSchemas = append(r.cachedSchemas, llm.ToolDef{Type: llm.ToolTypeFunction, Function: def})
 }
 
@@ -262,7 +265,10 @@ func toolDef(name, desc string, params json.RawMessage) json.RawMessage {
 	}
 	b, err := json.Marshal(fn)
 	if err != nil {
-		panic("marshal tool def: " + err.Error())
+		// json.Marshal on map[string]any with RawMessage values never fails in
+		// practice; log + return nil to avoid crashing the process.
+		slog.Error("marshal tool def", "tool", name, "err", err)
+		return nil
 	}
 	return b
 }

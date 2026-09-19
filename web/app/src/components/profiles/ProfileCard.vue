@@ -4,7 +4,6 @@
     <div class="info" @click="$emit('open', profile)">
       <div class="name-row">
         <span class="name font-serif">{{ profile.nickname }}</span>
-        <el-tag v-if="profile.relation" size="small" effect="plain">{{ profile.relation }}</el-tag>
       </div>
       <div class="meta">{{ birthSummary(profile) }}</div>
     </div>

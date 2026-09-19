@@ -6,7 +6,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sync"
 )
+
+var migrateMu sync.Mutex
 
 type Migration struct {
 	ID string
@@ -14,6 +17,8 @@ type Migration struct {
 }
 
 func Run(ctx context.Context, db *sql.DB, migrations []Migration) error {
+	migrateMu.Lock()
+	defer migrateMu.Unlock()
 	if _, err := db.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS schema_migrations (
     scope TEXT NOT NULL,

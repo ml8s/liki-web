@@ -1,12 +1,20 @@
 import { defineStore } from 'pinia'
-import router from '@/router'
 import { checkoutChatProduct, fetchChatProducts, type ChatProduct } from '@/api/commerce'
 import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useProfilesStore } from '@/stores/profiles'
 import { toUserMessage } from '@/utils/errors'
+import { toFirstQueryString } from '@/utils/format'
 
 type PaymentState = 'idle' | 'verifying' | 'confirmed' | 'unpaid'
+
+/** handlePaymentReturn 返回值：由调用方决定路由跳转。 */
+export interface PaymentReturnResult {
+  action: 'none' | 'poll' | 'enter_chat' | 'show_message'
+  sessionId?: string
+  message?: string
+  state?: PaymentState
+}
 
 interface CommerceState {
   products: ChatProduct[]
@@ -38,10 +46,6 @@ export const useCommerceStore = defineStore('commerce', {
       !state.products.length && (state.loadingProducts || useEntitlementsStore().loading || useChatStore().loadingSessions),
   },
   actions: {
-    firstQuery(value: unknown): string {
-      if (Array.isArray(value)) return String(value[0] ?? '')
-      return String(value ?? '')
-    },
     wait(ms: number) {
       return new Promise(resolve => setTimeout(resolve, ms))
     },
@@ -77,22 +81,22 @@ export const useCommerceStore = defineStore('commerce', {
       try {
         await Promise.all([
           useEntitlementsStore().load(true),
-          useChatStore().loadSessions(),
+          useChatStore().loadSessions(true),
           this.loadProducts(),
         ])
       } finally {
         this.refreshing = false
       }
     },
-    async clearPaymentQuery() {
-      await router.replace({ path: '/chat', query: {} })
-    },
-    async handlePaymentReturn() {
-      const query = router.currentRoute.value.query
-      const orderId = this.firstQuery(query.order_id)
-      const paymentIntentId = this.firstQuery(query.payment_intent_id)
-      const status = this.firstQuery(query.status)
-      if (!orderId && !paymentIntentId) return
+    /**
+     * 处理支付回调。接收路由查询参数，返回结果对象供调用方决定路由跳转。
+     * store 不再直接操作 router。
+     */
+    async handlePaymentReturn(query: Record<string, unknown>): Promise<PaymentReturnResult> {
+      const orderId = toFirstQueryString(query.order_id)
+      const paymentIntentId = toFirstQueryString(query.payment_intent_id)
+      const status = toFirstQueryString(query.status)
+      if (!orderId && !paymentIntentId) return { action: 'none' }
 
       if (status === 'paid') {
         this.paymentState = 'verifying'
@@ -103,37 +107,37 @@ export const useCommerceStore = defineStore('commerce', {
           if (this.chatPurchased) {
             this.paymentState = 'confirmed'
             this.paymentMessage = '支付成功，Liki Chat 已开通。'
-            await this.clearPaymentQuery()
-            await this.enterInterpretation()
-            return
+            // 轮询成功后由调用方 enterInterpretation
+            return { action: 'enter_chat' }
           }
-          await this.wait(1000 * (attempt + 1))
+          const delay = Math.min(1000 * Math.pow(2, attempt), 5000)
+          await this.wait(delay)
         }
         this.paymentState = 'verifying'
         this.paymentMessage = '支付已收到，权益开通仍在处理。请稍后刷新本页。'
-        await this.clearPaymentQuery()
-        return
+        return { action: 'show_message', message: this.paymentMessage, state: 'verifying' }
       }
 
       if (status === 'unpaid') {
         this.paymentState = 'unpaid'
         this.paymentMessage = '支付尚未完成。如已完成付款，请稍后刷新订单状态。'
       }
-      await this.clearPaymentQuery()
+      return { action: 'show_message', message: this.paymentMessage, state: this.paymentState }
     },
     // V4：支付成功后直达解读——有档案则用默认 skill（八字）建会话并跳转。
-    async enterInterpretation() {
+    async enterInterpretation(): Promise<string | null> {
       const profiles = useProfilesStore()
       if (!profiles.list.length) {
         await profiles.loadList()
       }
       const profileId = profiles.list[0]?.id ?? ''
-      if (!profileId) return
+      if (!profileId) return null
       try {
         const session = await useChatStore().createSession(profileId, 'liki')
-        await router.replace(`/chat/${session.id}`)
+        return session.id
       } catch (error) {
         this.actionError = toUserMessage(error, '创建会话失败')
+        return null
       }
     },
   },

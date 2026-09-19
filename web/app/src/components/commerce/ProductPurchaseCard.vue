@@ -1,5 +1,5 @@
 <template>
-  <el-card class="product-card" shadow="hover">
+  <el-card class="product-card" shadow="never">
     <template #header>
       <div class="header">
         <strong>{{ product.name }}</strong>
@@ -15,10 +15,7 @@
     </ul>
 
     <div class="actions">
-      <div class="prices">
-        <span v-if="product.prices.CNY">¥{{ formatMinor(product.prices.CNY) }}</span>
-        <span v-if="product.prices.USD">${{ formatMinor(product.prices.USD) }}</span>
-      </div>
+      <div class="price">{{ priceLabel }}</div>
       <el-button
         type="primary"
         size="large"
@@ -26,35 +23,48 @@
         :loading="buying"
         @click="$emit('purchase')"
       >
-        购买 Liki Chat
+        {{ product.purchased ? '已开通' : '立即开通' }}
       </el-button>
     </div>
   </el-card>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ChatProduct } from '@/api/commerce'
 import { chatServices } from '@/config/chat'
+import { useAuthStore } from '@/stores/auth'
 
-defineProps<{
+const props = defineProps<{
   product: ChatProduct
   buying?: boolean
 }>()
 
 defineEmits<{ purchase: [] }>()
 
-function formatMinor(amount: number): string {
-  return (amount / 100).toFixed(2)
-}
+const auth = useAuthStore()
+
+const isZh = computed(() => auth.user?.locale?.startsWith('zh') ?? true)
+
+const priceLabel = computed(() => {
+  if (isZh.value && props.product.prices.CNY) {
+    return `¥${(props.product.prices.CNY / 100).toFixed(2)}`
+  }
+  if (props.product.prices.USD) {
+    return `$${(props.product.prices.USD / 100).toFixed(2)}`
+  }
+  const minor = Object.values(props.product.prices)[0]
+  return minor != null ? `${minor / 100}` : ''
+})
 </script>
 
 <style scoped>
-.product-card { border-color: #f3d19e; }
+.product-card { border-radius: 12px; border-color: var(--liki-gold); margin-bottom: 20px; }
 .header { display: flex; align-items: center; justify-content: space-between; }
-p { color: #555; }
-.skills { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 18px; margin: 12px 0 20px; color: var(--liki-text-2); }
+p { color: var(--liki-text-2); margin: 0 0 12px; }
+.skills { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 18px; margin: 0 0 20px; color: var(--liki-text-2); font-size: 13px; }
 .actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.prices { display: flex; gap: 14px; font-size: 20px; font-weight: 700; }
+.price { font-size: 22px; font-weight: 700; color: var(--liki-ink); font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .actions { align-items: stretch; flex-direction: column; }
 }

@@ -66,13 +66,13 @@
 	}
 
 	# Standard BCP 47 paths
-	redir /zh-Hans  /zh-Hans/ 308
-	redir /zh-Hant  /zh-Hant/ 308
-	redir /en  /en/ 308
+	redir /zh-Hans /zh-Hans/ 308
+	redir /zh-Hant /zh-Hant/ 308
+	redir /en /en/ 308
 
 	# Legacy redirects: old locale paths → new BCP 47 paths
-	redir /zh  /zh-Hans/ 308
-	redir /hk  /zh-Hant/ 308
+	redir /zh /zh-Hans/ 308
+	redir /hk /zh-Hant/ 308
 	@zh-legacy path_regexp zh ^/zh/(.*)
 	redir @zh-legacy /zh-Hans/{re.zh.1} 308
 	@hk-legacy path_regexp hk ^/hk/(.*)
@@ -103,12 +103,6 @@
 	redir @rootEn /en/ 302
 	redir / /zh-Hant/ 302
 	redir /index.html /zh-Hant/ 302
-
-
-
-
-
-
 
 	# /hepan
 	@hepanZhHans {
@@ -161,7 +155,6 @@
 	redir /disclaimer /zh-Hant/disclaimer 302
 	redir /privacy /zh-Hant/privacy 302
 	redir /terms /zh-Hant/terms 302
-
 
 	# Skills — serve SKILL.md for AI agent discovery
 	redir /skills /skills/liki/SKILL.md 308

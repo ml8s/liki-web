@@ -31,7 +31,11 @@ const route = useRoute()
 const mainEl = ref<HTMLElement | null>(null)
 
 onMounted(async () => {
-  await auth.loadMe()
+  try {
+    await auth.loadMe()
+  } catch {
+    // 路由守卫已处理 401 重定向；网络异常不崩溃整页。
+  }
 })
 
 // 路由切换后把焦点移到主内容，供键盘/读屏用户感知页面已变更。

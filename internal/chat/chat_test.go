@@ -434,8 +434,8 @@ func TestUpdateProfileBirthTimeTool(t *testing.T) {
 
 	// Mock the platform API that the tool calls over the network, the same
 	// endpoint the frontend uses. It authenticates via the session cookie.
-	profileJSON := `{"id":"p_1","user_id":"user_1","version":1,"nickname":"妈妈","name":"","gender":"female","relation":"家人","calendar":"lunar","birth_date":"1958-闰5-12","birth_time":"06:00","birth_time_known":"known","birth_place":"上海","note":"","third_party_consent":true}`
-	patchedJSON := `{"id":"p_1","user_id":"user_1","version":2,"nickname":"妈妈","name":"","gender":"female","relation":"家人","calendar":"lunar","birth_date":"1958-闰5-12","birth_time":"07:00","birth_time_known":"known","birth_place":"上海","note":"","third_party_consent":true}`
+	profileJSON := `{"id":"p_1","user_id":"user_1","version":1,"nickname":"妈妈","name":"","gender":"female","calendar":"lunar","birth_date":"1958-闰5-12","birth_time":"06:00","birth_time_known":"known","birth_place":"上海","note":"","third_party_consent":true}`
+	patchedJSON := `{"id":"p_1","user_id":"user_1","version":2,"nickname":"妈妈","name":"","gender":"female","calendar":"lunar","birth_date":"1958-闰5-12","birth_time":"07:00","birth_time_known":"known","birth_place":"上海","note":"","third_party_consent":true}`
 	var sentVersion int
 	var receivedCookie string
 	mux := http.NewServeMux()

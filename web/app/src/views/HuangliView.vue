@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <section class="service-view">
     <AppPageHeader title="择日" subtitle="选事项与日期范围，先看黄历推荐；择日解读进对话。" />
 
     <AppAlert v-if="error" :title="error" type="error" />
@@ -27,29 +27,45 @@
     <template v-if="result">
       <el-card class="block pan" shadow="never">
         <template #header><span class="card-title">黄历推荐（{{ result.event_label || EVENTS[result.event || event] }}）</span></template>
+        <div v-if="result.range" class="range-info">
+          查询范围：{{ result.range.start_date }} 至 {{ result.range.end_date }}（共 {{ result.range.days }} 天）
+        </div>
         <div v-if="recommended.length" class="days">
           <div v-for="d in recommended" :key="d.date" class="day good">
             <div class="d-date">{{ d.date }}</div>
             <div class="d-sub">{{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}</div>
+            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join('；') }}</div>
           </div>
         </div>
         <p v-if="!recommended.length" class="hint">该范围内没有推荐吉日。</p>
+        <div v-if="possible.length" class="sec-title">可选</div>
+        <div v-if="possible.length" class="days">
+          <div v-for="d in possible" :key="d.date" class="day possible">
+            <div class="d-date">{{ d.date }}</div>
+            <div class="d-sub">{{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}</div>
+            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join('；') }}</div>
+          </div>
+        </div>
         <div v-if="unsuitable.length" class="sec-title">不宜</div>
         <div v-if="unsuitable.length" class="days">
           <div v-for="d in unsuitable" :key="d.date" class="day bad">
             <div class="d-date">{{ d.date }}</div>
             <div class="d-sub">{{ d.reason || '不宜' }}</div>
+            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join('；') }}</div>
           </div>
+        </div>
+        <div v-if="result.safety_advisory" class="safety-box">
+          <AppAlert :title="result.safety_advisory" type="warning" />
         </div>
       </el-card>
 
       <el-card class="block" shadow="never">
         <template #header><span class="card-title">择日解读</span></template>
-        <p v-if="purchased" class="hint">进入对话，命理顾问结合黄历为你做择日解读。</p>
+        <p v-if="entitlements.purchased" class="hint">进入对话，命理顾问结合黄历为你做择日解读。</p>
         <p v-else class="hint">解锁 Liki Chat 后可获得专业择日解读。</p>
         <p v-if="!profiles.list.length" class="hint">择日解读需要一个档案，先<a href="/app/profiles/new">建立档案</a>。</p>
-        <el-button v-if="purchased && profiles.list.length" type="primary" size="large" @click="startChat">择日解读</el-button>
-        <el-button v-else type="primary" size="large" @click="router.push(profiles.list.length ? '/chat' : '/profiles/new')">{{ purchased ? '建立档案' : '解锁 Chat' }}</el-button>
+        <el-button v-if="entitlements.purchased && profiles.list.length" type="primary" size="large" @click="startChat">择日解读</el-button>
+        <el-button v-else type="primary" size="large" @click="router.push(profiles.list.length ? '/chat' : '/profiles/new')">{{ entitlements.purchased ? '建立档案' : '解锁 Chat' }}</el-button>
       </el-card>
     </template>
   </section>
@@ -57,11 +73,9 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useProfilesStore } from '@/stores/profiles'
-import { useEntitlementsStore } from '@/stores/entitlements'
-import { useChatStore } from '@/stores/chat'
+import { useServiceView } from '@/composables/useServiceView'
 import { engineHuangliDays, type HuangliDaysResult } from '@/api/engine'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
@@ -73,9 +87,7 @@ const EVENTS: Record<string, string> = {
 }
 
 const router = useRouter()
-const profiles = useProfilesStore()
-const entitlements = useEntitlementsStore()
-const chat = useChatStore()
+const { profiles, entitlements, chat } = useServiceView()
 
 const event = ref('wedding')
 const startDate = ref('')
@@ -84,8 +96,8 @@ const result = ref<HuangliDaysResult | null>(null)
 const loading = ref(false)
 const error = ref('')
 
-const purchased = computed(() => entitlements.allowedSkills.length > 0)
 const recommended = computed(() => result.value?.recommended ?? [])
+const possible = computed(() => result.value?.candidates?.filter(d => d.suitability === 'possible') ?? [])
 const unsuitable = computed(() => result.value?.unsuitable ?? [])
 
 async function calc() {
@@ -118,22 +130,18 @@ function startChat() {
   void chat.ensureSession(profile.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
 }
 
-onMounted(async () => {
-  await Promise.all([profiles.loadList(), entitlements.load(), chat.loadSessions()])
-})
 </script>
 
 <style scoped>
-.block { border-radius: 12px; margin-bottom: 20px; }
-.block.pan { border-top: 2px solid var(--liki-gold); }
-.card-title { font-weight: 600; }
-.hint { color: var(--liki-text-2); margin: 0 0 14px; }
+.range-info { font-size: 13px; color: var(--liki-text-2); margin-bottom: 12px; }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-.sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; }
 .days { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
 .day { border: 1px solid var(--liki-line); border-radius: 8px; padding: 10px; text-align: center; }
-.day.good { border-color: #bfe6bf; background: #f4faf4; }
-.day.bad { border-color: #f3c9c9; background: #fdf7f7; }
+.day.good { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
+.day.possible { border-color: var(--liki-line); background: var(--liki-surface); }
+.day.bad { border-color: var(--el-color-danger-light-7); background: var(--el-color-danger-light-9); }
 .d-date { font-weight: 700; }
 .d-sub { font-size: 12px; color: var(--liki-text-2); margin-top: 4px; }
+.d-warn { font-size: 11px; color: var(--el-color-warning); margin-top: 4px; }
+.safety-box { margin-top: 14px; }
 </style>

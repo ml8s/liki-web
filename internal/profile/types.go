@@ -22,7 +22,6 @@ type Profile struct {
 	Nickname          string     `json:"nickname"`
 	Name              string     `json:"name"`
 	Gender            string     `json:"gender"`
-	Relation          string     `json:"relation"`
 	Calendar          string     `json:"calendar"`
 	BirthDate         string     `json:"birth_date"`
 	BirthTime         string     `json:"birth_time"`
@@ -42,7 +41,6 @@ type Input struct {
 	Nickname          string `json:"nickname"`
 	Name              string `json:"name"`
 	Gender            string `json:"gender"`
-	Relation          string `json:"relation"`
 	Calendar          string `json:"calendar"`
 	BirthDate         string `json:"birth_date"`
 	BirthTime         string `json:"birth_time"`

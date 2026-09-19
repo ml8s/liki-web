@@ -1,13 +1,6 @@
 <template>
   <section>
-    <AppPageHeader
-      title="Liki Chat"
-      subtitle="八字、合盘、起名、问卦、风水——一个入口，专业解读。"
-    >
-      <template #actions>
-        <el-button :loading="commerce.refreshing" @click="commerce.refresh">刷新</el-button>
-      </template>
-    </AppPageHeader>
+    <AppPageHeader title="Liki Chat" subtitle="八字、合盘、起名、问卦、风水——一个入口，专业解读。" />
 
     <AppAlert v-if="chat.error" :title="chat.error" type="error" />
     <AppAlert
@@ -34,26 +27,30 @@
         @purchase="commerce.buy"
       />
 
-      <div class="picker-row">
+      <el-card class="section-card" shadow="never">
+        <template #header><span class="card-title">选择档案</span></template>
         <ProfilePicker
           :profiles="profiles.list"
           :model-value="activeProfileId"
           @update:model-value="activeProfileId = $event"
         />
         <AppAlert v-if="!activeProfileId" title="请先选择一个档案" type="info" class="inline-alert" />
-      </div>
+      </el-card>
 
-      <div class="skill-grid">
-        <SkillCard
-          v-for="item in chatSkills"
-          :key="item.id"
-          :label="item.label"
-          :description="item.description"
-          :enabled="canStart(item.id)"
-          :starting="creating === item.id"
-          @start="create(item.id)"
-        />
-      </div>
+      <el-card class="section-card" shadow="never">
+        <template #header><span class="card-title">选择解读领域</span></template>
+        <div class="skill-grid">
+          <SkillCard
+            v-for="item in chatSkills"
+            :key="item.id"
+            :label="item.label"
+            :description="item.description"
+            :enabled="canStart(item.id)"
+            :starting="creating === item.id"
+            @start="create(item.id)"
+          />
+        </div>
+      </el-card>
 
       <AppAlert
         v-if="pendingService"
@@ -62,19 +59,22 @@
         type="info"
       />
 
-      <h2>最近会话</h2>
-      <AppEmpty v-if="!chat.sessions.length" description="还没有会话，先在上方选择档案与领域开启解读" />
-      <SessionList
-        v-else
-        :sessions="displaySessions"
-        @open="openSession"
-      />
+      <el-card class="section-card" shadow="never">
+        <template #header><span class="card-title">最近会话</span></template>
+        <AppEmpty v-if="!chat.sessions.length" description="还没有会话，选择档案与领域后开启解读" />
+        <SessionList
+          v-else
+          :sessions="displaySessions"
+          @open="openSession"
+        />
+      </el-card>
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
+import { toFirstQueryString } from '@/utils/format'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChatStore, skillLabel } from '@/stores/chat'
@@ -135,30 +135,45 @@ async function create(skill: string) {
 }
 
 onMounted(async () => {
-  await commerce.refresh()
-  await profiles.loadList()
-  const preset = commerce.firstQuery(route.query.profile)
-  if (preset && profiles.list.some(p => p.id === preset)) {
-    activeProfileId.value = preset
-  } else if (profiles.list.length) {
-    activeProfileId.value = profiles.list[0].id
+  try {
+    await commerce.refresh()
+    await profiles.loadList()
+    const preset = toFirstQueryString(route.query.profile)
+    if (preset && profiles.list.some(p => p.id === preset)) {
+      activeProfileId.value = preset
+    } else if (profiles.list.length) {
+      activeProfileId.value = profiles.list[0].id
+    }
+    // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
+    const presetService = toFirstQueryString(route.query.service)
+    const svc = serviceByKey(presetService)
+    if (svc) chat.pendingIntent = svc.intent
+
+    // 支付回调处理：store 返回结果，由 view 决定路由。
+    const paymentResult = await commerce.handlePaymentReturn(route.query)
+    if (paymentResult.action === 'enter_chat') {
+      const sessionId = await commerce.enterInterpretation()
+      if (sessionId) {
+        await router.replace({ path: '/chat', query: {} })
+        await router.push(`/chat/${sessionId}`)
+      }
+    } else if (paymentResult.action === 'show_message') {
+      await router.replace({ path: '/chat', query: {} })
+    }
+  } catch (error) {
+    // 网络/初始化失败不崩溃——store 内部已有 error state 展示。
+    console.error('[ChatList] 初始化失败:', error)
   }
-  // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
-  const presetService = commerce.firstQuery(route.query.service)
-  const svc = serviceByKey(presetService)
-  if (svc) chat.pendingIntent = svc.intent
-  await commerce.handlePaymentReturn()
 })
 </script>
 
 <style scoped>
-.picker-row { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+.section-card { border-radius: 12px; margin-bottom: 16px; }
+.card-title { font-weight: 600; }
 .inline-alert { margin-bottom: 0; }
 .skill-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
-  margin-bottom: 32px;
 }
-h2 { margin: 0 0 14px; }
 </style>

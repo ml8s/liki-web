@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { fetchMe } from '@/api/me'
 import * as authApi from '@/api/auth'
-import type { Me } from '@/types'
+import type { Me } from '@/api/me'
 
 type AuthStatus = 'unknown' | 'authenticated' | 'unauthenticated'
 
@@ -26,12 +26,11 @@ export const useAuthStore = defineStore('auth', {
         this.status = 'authenticated'
         return this.user
       } catch (error) {
-        if (error instanceof Error && 'status' in error && (error as any).status === 401) {
-          this.status = 'unauthenticated'
-          this.user = null
-          return null
-        }
-        throw error
+        // 与其他 store 统一：内部 catch，不 re-throw。
+        // 路由守卫通过 user=null → 重定向 login；AppLayout 无需额外 catch。
+        this.status = 'unauthenticated'
+        this.user = null
+        return null
       } finally {
         this.loading = false
       }
@@ -46,9 +45,12 @@ export const useAuthStore = defineStore('auth', {
       return result.user
     },
     async logout() {
+    try {
       await authApi.logout()
+    } finally {
       this.user = null
       this.status = 'unauthenticated'
-    },
+    }
+  },
   },
 })

@@ -10,7 +10,6 @@ const profile = {
   nickname: '妈妈',
   name: '',
   gender: 'female',
-  relation: '家人',
   calendar: 'lunar',
   birth_date: '1958-闰5-12',
   birth_time: '06:00',
@@ -36,7 +35,7 @@ describe('profiles store', () => {
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     ))
     const store = useProfilesStore()
-    await store.loadList(true)
+    await store.loadList(undefined, true)
     expect(store.list).toEqual([profile])
     expect(store.error).toBe('')
   })

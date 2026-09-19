@@ -58,9 +58,10 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { fetchChatOrders, type ChatOrder } from '@/api/orders'
 import { formatDateTime, productName } from '@/utils/format'
+import { useMobile } from '@/composables/useMobile'
 import AppAlert from '@/components/app/AppAlert.vue'
 import AppEmpty from '@/components/app/AppEmpty.vue'
 import AppErrorState from '@/components/app/AppErrorState.vue'
@@ -70,12 +71,7 @@ import AppSkeleton from '@/components/app/AppSkeleton.vue'
 const orders = ref<ChatOrder[]>([])
 const loading = ref(false)
 const error = ref('')
-const isMobile = ref(false)
-let mq: MediaQueryList | null = null
-
-function onMqChange(e: MediaQueryListEvent | MediaQueryList) {
-  isMobile.value = e.matches
-}
+const isMobile = useMobile()
 
 async function load() {
   loading.value = true
@@ -89,8 +85,8 @@ async function load() {
   }
 }
 
-function formatAmount(row: unknown) {
-  const order = row as ChatOrder
+function formatAmount(row: Record<string, unknown>) {
+  const order = row as unknown as ChatOrder
   const amount = (order.amount_minor / 100).toFixed(2)
   const symbol = order.currency === 'CNY' ? '¥' : order.currency === 'USD' ? '$' : `${order.currency} `
   return `${symbol}${amount}`
@@ -108,14 +104,7 @@ function statusType(status: ChatOrder['status']) {
 }
 
 onMounted(() => {
-  mq = window.matchMedia('(max-width: 640px)')
-  onMqChange(mq)
-  mq.addEventListener('change', onMqChange)
   load()
-})
-
-onBeforeUnmount(() => {
-  mq?.removeEventListener('change', onMqChange)
 })
 </script>
 

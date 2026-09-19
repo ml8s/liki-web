@@ -56,7 +56,18 @@ UPDATE payment_intents SET product='mingshu' WHERE product='lifebook';
 }
 
 func (s *IntentStore) ensureColumn(ctx context.Context, table, column, definition string) error {
-	rows, err := s.db.QueryContext(ctx, `PRAGMA table_info(`+table+`)`)
+	// 白名单校验表名，防止 SQL 注入（虽然当前调用方传硬编码值，但保持防御性）。
+	switch table {
+	case "payment_intents", "fulfillment_tasks":
+	default:
+		return fmt.Errorf("unexpected table name: %q", table)
+	}
+	switch column {
+	case "user_id", "webhook_event":
+	default:
+		return fmt.Errorf("unexpected column name: %q", column)
+	}
+	rows, err := s.db.QueryContext(ctx, fmt.Sprintf("PRAGMA table_info(%s)", table))
 	if err != nil {
 		return err
 	}
@@ -77,7 +88,7 @@ func (s *IntentStore) ensureColumn(ctx context.Context, table, column, definitio
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(ctx, `ALTER TABLE `+table+` ADD COLUMN `+column+` `+definition)
+	_, err = s.db.ExecContext(ctx, fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, definition))
 	return err
 }
 

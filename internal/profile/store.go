@@ -25,10 +25,11 @@ func NewStore(db *sql.DB) *Store {
 }
 
 func (s *Store) Migrate(ctx context.Context) error {
-	return migrate.Run(ctx, s.db, []migrate.Migration{{
-		ID: "001_profiles_platform",
-		Up: func(ctx context.Context, tx *sql.Tx) error {
-			_, err := tx.ExecContext(ctx, `
+	return migrate.Run(ctx, s.db, []migrate.Migration{
+		{
+			ID: "001_profiles_platform",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS profiles (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -52,39 +53,91 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE INDEX IF NOT EXISTS idx_profiles_user_updated
     ON profiles(user_id, deleted_at, updated_at);
 `)
-			return err
+				return err
+			},
 		},
-	}})
+		{
+			ID: "002_profiles_drop_relation",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				// Check if column exists (idempotent)
+				var cnt int
+				err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_table_info('profiles') WHERE name='relation'`).Scan(&cnt)
+				if err != nil || cnt == 0 {
+					return nil // already dropped or table doesn't exist
+				}
+				// SQLite doesn't support DROP COLUMN before 3.35; recreate table
+				_, err = tx.ExecContext(ctx, `
+CREATE TABLE IF NOT EXISTS profiles_new (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    nickname TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    gender TEXT NOT NULL,
+    calendar TEXT NOT NULL,
+    birth_date TEXT NOT NULL,
+    birth_time TEXT NOT NULL DEFAULT '',
+    birth_time_known TEXT NOT NULL,
+    birth_place TEXT NOT NULL DEFAULT '',
+    note TEXT NOT NULL DEFAULT '',
+    third_party_consent INTEGER NOT NULL DEFAULT 0,
+    last_used_at TEXT,
+    deleted_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+INSERT INTO profiles_new (id,user_id,version,nickname,name,gender,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
+SELECT id,user_id,version,nickname,name,gender,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at FROM profiles;
+DROP TABLE profiles;
+ALTER TABLE profiles_new RENAME TO profiles;
+CREATE INDEX IF NOT EXISTS idx_profiles_user_updated
+    ON profiles(user_id, deleted_at, updated_at);
+`)
+				return err
+			},
+		},
+		{
+			ID: "003_profiles_cursor_index",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+CREATE INDEX IF NOT EXISTS idx_profiles_user_created
+    ON profiles(user_id, deleted_at, created_at);
+`)
+				return err
+			},
+		},
+	})
 }
 
 func (s *Store) Create(ctx context.Context, userID string, in Input) (Profile, error) {
-	var count int
-	if err := s.db.QueryRowContext(ctx, `
-SELECT COUNT(1) FROM profiles WHERE user_id=? AND deleted_at IS NULL`, userID).Scan(&count); err != nil {
-		return Profile{}, err
-	}
-	if count >= MaxProfilesPerUser {
-		return Profile{}, ErrQuotaExceeded
-	}
-
 	now := formatTime(s.nowFunc())
 	p := Profile{
 		ID: s.idFunc(), UserID: userID, Version: 1,
 		Nickname: strings.TrimSpace(in.Nickname), Name: strings.TrimSpace(in.Name), Gender: in.Gender,
-		Relation: strings.TrimSpace(in.Relation), Calendar: in.Calendar, BirthDate: in.BirthDate,
+		Calendar: in.Calendar, BirthDate: in.BirthDate,
 		BirthTime: in.BirthTime, BirthTimeKnown: in.BirthTimeKnown, BirthPlace: strings.TrimSpace(in.BirthPlace),
 		Note: strings.TrimSpace(in.Note), ThirdPartyConsent: in.ThirdPartyConsent,
 		CreatedAt: mustTime(now), UpdatedAt: mustTime(now),
 	}
-	var createdAt, updatedAt string
-	err := s.db.QueryRowContext(ctx, `
+	result, err := s.db.ExecContext(ctx, `
 INSERT INTO profiles
-(id,user_id,version,nickname,name,gender,relation,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
-VALUES (?,?,1,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?)
-RETURNING created_at,updated_at`,
-		p.ID, userID, p.Nickname, p.Name, p.Gender, p.Relation, p.Calendar, p.BirthDate,
-		p.BirthTime, p.BirthTimeKnown, p.BirthPlace, p.Note, p.ThirdPartyConsent, now, now,
-	).Scan(&createdAt, &updatedAt)
+(id,user_id,version,nickname,name,gender,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
+SELECT ?,?,1,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?
+WHERE (SELECT COUNT(1) FROM profiles WHERE user_id=? AND deleted_at IS NULL) < ?`,
+		p.ID, userID, p.Nickname, p.Name, p.Gender, p.Calendar, p.BirthDate,
+		p.BirthTime, p.BirthTimeKnown, p.BirthPlace, p.Note, p.ThirdPartyConsent, now, now, userID, MaxProfilesPerUser,
+	)
+	if err != nil {
+		return Profile{}, err
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return Profile{}, ErrQuotaExceeded
+	}
+	var createdAt, updatedAt string
+	err = s.db.QueryRowContext(ctx, `
+SELECT created_at,updated_at FROM profiles WHERE id=? AND user_id=?`,
+		p.ID, userID).Scan(&createdAt, &updatedAt)
 	if err != nil {
 		return Profile{}, err
 	}
@@ -99,9 +152,9 @@ func (s *Store) Get(ctx context.Context, userID, id string) (Profile, error) {
 	var thirdParty, deletedAt, lastUsedAt sql.NullString
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx, `
-SELECT id,user_id,version,nickname,name,gender,relation,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
+SELECT id,user_id,version,nickname,name,gender,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
 FROM profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID).Scan(
-		&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Gender, &p.Relation, &p.Calendar,
+		&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Gender, &p.Calendar,
 		&p.BirthDate, &p.BirthTime, &p.BirthTimeKnown, &p.BirthPlace, &p.Note, &thirdParty,
 		&lastUsedAt, &deletedAt, &createdAt, &updatedAt,
 	)
@@ -126,26 +179,26 @@ FROM profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID).Scan
 	return p, nil
 }
 
-// List returns profiles ordered by (updated_at, id) DESC, cursor-exclusive.
-// cursor format: "<updated_at>|<id>".
+// List returns profiles ordered by (created_at, id) DESC, cursor-exclusive.
+// cursor format: "<created_at>|<id>".
 func (s *Store) List(ctx context.Context, userID, cursor string, limit int) ([]Profile, string, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
 	query := `
-SELECT id,user_id,version,nickname,name,gender,relation,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
+SELECT id,user_id,version,nickname,name,gender,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
 FROM profiles
 WHERE user_id=? AND deleted_at IS NULL`
 	args := []any{userID}
 	if cursor != "" {
-		updatedAt, id, ok := strings.Cut(cursor, "|")
+		createdAt, id, ok := strings.Cut(cursor, "|")
 		if !ok {
 			return nil, "", errors.New("invalid cursor")
 		}
-		query += ` AND (updated_at < ? OR (updated_at = ? AND id < ?))`
-		args = append(args, updatedAt, updatedAt, id)
+		query += ` AND (created_at < ? OR (created_at = ? AND id < ?))`
+		args = append(args, createdAt, createdAt, id)
 	}
-	query += ` ORDER BY updated_at DESC, id DESC LIMIT ?`
+	query += ` ORDER BY created_at DESC, id DESC LIMIT ?`
 	args = append(args, limit+1)
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
@@ -160,7 +213,7 @@ WHERE user_id=? AND deleted_at IS NULL`
 		var version int
 		var thirdParty, lastUsedAt, deletedAt sql.NullString
 		var createdAt, updatedAt string
-		if err := rows.Scan(&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Gender, &p.Relation, &p.Calendar,
+		if err := rows.Scan(&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Gender, &p.Calendar,
 			&p.BirthDate, &p.BirthTime, &p.BirthTimeKnown, &p.BirthPlace, &p.Note, &thirdParty,
 			&lastUsedAt, &deletedAt, &createdAt, &updatedAt); err != nil {
 			return nil, "", err
@@ -187,7 +240,7 @@ WHERE user_id=? AND deleted_at IS NULL`
 	if len(out) > limit {
 		out = out[:limit]
 		last := out[len(out)-1]
-		nextCursor = formatTime(last.UpdatedAt) + "|" + last.ID
+		nextCursor = formatTime(last.CreatedAt) + "|" + last.ID
 	}
 	return out, nextCursor, nil
 }
@@ -199,11 +252,11 @@ func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion i
 	result, err := s.db.ExecContext(ctx, `
 UPDATE profiles SET
   version=version+1,
-  nickname=?, name=?, gender=?, relation=?, calendar=?, birth_date=?,
+  nickname=?, name=?, gender=?, calendar=?, birth_date=?,
   birth_time=?, birth_time_known=?, birth_place=?, note=?, third_party_consent=?,
   updated_at=?
 WHERE id=? AND user_id=? AND deleted_at IS NULL AND version=?`,
-		strings.TrimSpace(in.Nickname), strings.TrimSpace(in.Name), in.Gender, strings.TrimSpace(in.Relation),
+		strings.TrimSpace(in.Nickname), strings.TrimSpace(in.Name), in.Gender,
 		in.Calendar, in.BirthDate, in.BirthTime, in.BirthTimeKnown, strings.TrimSpace(in.BirthPlace),
 		strings.TrimSpace(in.Note), in.ThirdPartyConsent, now,
 		id, userID, expectedVersion,
@@ -258,7 +311,7 @@ func (s *Store) AnonymizeUser(ctx context.Context, userID string) (int64, error)
 	now := formatTime(s.nowFunc())
 	result, err := s.db.ExecContext(ctx, `
 UPDATE profiles SET
-  nickname='', name='', gender='', relation='', calendar='', birth_date='',
+  nickname='', name='', gender='', calendar='', birth_date='',
   birth_time='', birth_time_known='', birth_place='', note='',
   third_party_consent=0,
   version=version+1, deleted_at=?, updated_at=?
@@ -281,7 +334,12 @@ DELETE FROM profiles WHERE deleted_at IS NOT NULL AND deleted_at < ?`, formatTim
 }
 
 func mustTime(value string) time.Time {
-	parsed, _ := time.Parse(time.RFC3339Nano, value)
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		// Should never happen — timestamps come from formatTime. Log and return zero
+		// so callers fail loudly rather than silently comparing against epoch.
+		parsed = time.Time{}
+	}
 	return parsed
 }
 

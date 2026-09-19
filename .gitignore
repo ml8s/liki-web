@@ -18,6 +18,7 @@ CLAUDE.local.md
 .claude/
 .continue/
 .qwen/
+.opencode/
 .reasonix/
 .agents/
 reasonix.toml
@@ -52,6 +53,7 @@ web/.astro/
 
 # Logs
 *.log
+*.bak
 
 # Temp
 social.md

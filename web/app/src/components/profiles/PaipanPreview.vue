@@ -114,22 +114,21 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
+import { BaziFullChartData } from '@/api/engine'
 import { computed, ref, watch } from 'vue'
 import {
   engineBazhaiChart,
   engineBaziChart,
   engineBaziFullChart,
-  engineCityCoords,
-  engineSolarTime,
   engineZiweiChart,
   engineZiweiFullChart,
   type BazhaiChart,
   type BaziChartData,
-  type BaziSanYuan,
   type BaziZhuFull,
   type BaziYongShen,
   type ZiweiChart,
 } from '@/api/engine'
+import { resolvePaipanContext } from '@/utils/paipan'
 import type { Profile } from '@/api/profiles'
 import AppAlert from '@/components/app/AppAlert.vue'
 
@@ -140,7 +139,7 @@ const error = ref('')
 const correction = ref('')
 const tab = ref('bazi')
 const baziChart = ref<BaziChartData | null>(null)
-const baziFull = ref<{ nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull; san_yuan?: BaziSanYuan } | null>(null)
+const baziFull = ref<BaziFullChartData | null>(null)
 const ziwei = ref<ZiweiChart | null>(null)
 const bazhai = ref<BazhaiChart | null>(null)
 const yongShen = ref<BaziYongShen | null>(null)
@@ -197,22 +196,28 @@ const daYunSteps = computed(() => baziChart.value?.da_yun?.steps ?? [])
 const currentStepIndex = computed(() => baziChart.value?.da_yun?.current_step_index ?? -1)
 
 const yongShenSummary = computed(() => {
-  const ys = yongShen.value
-  if (!ys) return []
+  // 从 baziFull.value 获取 full 对象（由 engineBaziFullChart 返回）
+  const full = baziFull.value
+  if (!full) return []
+  const { fu_yi, tiao_hou, ge_ju } = full // full 即 engineBaziFullChart 返回的对象
   const rows: Array<{ label: string; text: string }> = []
-  if (ys.fu_yi?.qiangruo) {
+
+  // 扶抑
+  if (fu_yi?.qiangruo) {
     rows.push({
       label: '扶抑',
-      text: `${ys.fu_yi.qiangruo} · 喜 ${ys.fu_yi.xi ?? '—'} 忌 ${ys.fu_yi.ji ?? '—'}`,
+      text: `${fu_yi.qiangruo} · 喜 ${fu_yi.xi ?? '—'} 忌 ${fu_yi.ji ?? '—'}`
     })
   }
-  if (ys.tiao_hou?.yong) {
-    rows.push({ label: '调候', text: `用 ${ys.tiao_hou.yong} · 喜 ${ys.tiao_hou.xi ?? '—'}` })
+  // 调候
+  if (tiao_hou?.yong) {
+    rows.push({ label: '调候', text: `用 ${tiao_hou.yong} · 喜 ${tiao_hou.xi ?? '—'}` })
   }
-  if (ys.ge_ju?.ge_ju) {
+  // 格局
+  if (ge_ju?.ge_ju) {
     rows.push({
       label: '格局',
-      text: `${ys.ge_ju.ge_ju}${ys.ge_ju.yong_fa ? ` · ${ys.ge_ju.yong_fa}` : ''} · 喜 ${ys.ge_ju.xi ?? '—'} 忌 ${ys.ge_ju.ji ?? '—'}`,
+      text: `${ge_ju.ge_ju}${ge_ju.yong_fa ? ` · ${ge_ju.yong_fa}` : ''} · 喜 ${ge_ju.xi ?? '—'} 忌 ${ge_ju.ji ?? '—'}`
     })
   }
   return rows
@@ -264,37 +269,17 @@ async function compute() {
   }
   loading.value = true
   try {
-    const datetime = `${p.birth_date}T${p.birth_time}:00+08:00`
-    // 真太阳时：仅当精确时间+出生地可解析时才做校正；否则不静默降级，失败即提示
-    let longitude = 120
-    if (p.birth_time_known === 'known' && p.birth_place) {
-      let coords: { longitude?: number } | null = null
-      try {
-        coords = await engineCityCoords(p.birth_place)
-      } catch {
-        error.value = `无法识别出生地「${p.birth_place}」，无法做真太阳时修正；请改用常见城市名，或移除此出生地后重试`
-        loading.value = false
-        return
-      }
-      if (!coords || typeof coords.longitude !== 'number') {
-        error.value = `未找到出生地「${p.birth_place}」；请改用常见城市名，或移除此出生地后重试`
-        loading.value = false
-        return
-      }
-      longitude = coords.longitude
-    }
-    const t = await engineSolarTime(datetime, longitude)
-    const solar = p.birth_time_known === 'known' && p.birth_place ? t.solar : datetime
-    if (p.birth_time_known === 'known' && p.birth_place) correction.value = '已做真太阳时修正'
-    else if (p.birth_time_known === 'known') correction.value = '未做真太阳时修正（未填出生地）'
+    const ctx = await resolvePaipanContext(p)
+    if (ctx.corrected) correction.value = '已做真太阳时修正'
+    else if (p.birth_time_known === 'known' && !p.birth_place) correction.value = '未做真太阳时修正（未填出生地）'
     else if (p.birth_place) correction.value = '按已定时辰排盘（出生地仅用于精确时间校正，此时不生效）'
     else correction.value = '按已定时辰排盘，未做校正'
 
-    baziChart.value = await engineBaziChart(solar, p.gender)
+    baziChart.value = await engineBaziChart(ctx.solar, p.gender)
     const full = await engineBaziFullChart(baziChart.value)
     baziFull.value = full
     yongShen.value = full.yong_shen ?? null
-    const zwChart = await engineZiweiChart(t.lunar, p.gender)
+    const zwChart = await engineZiweiChart(ctx.lunar, p.gender)
     ziwei.value = await engineZiweiFullChart(zwChart)
     const birthYear = baziChart.value.birth_year ?? parseInt(p.birth_date.slice(0, 4), 10)
     bazhai.value = await engineBazhaiChart(birthYear, p.gender)

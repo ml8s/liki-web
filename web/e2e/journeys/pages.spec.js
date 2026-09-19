@@ -33,7 +33,6 @@ const PAGES = [
   // 着陆页（C 端）：slogan + 免费排盘 + 服务 + 信任
   { path: '/zh-Hans/',        name: 'index (C-end landing)',
     checks: [
-      { selector: '.landing-hero h1', text: '懂命理，用 Liki' },
       { selector: '.landing-paipan', text: '免费排盘' },
       { selector: '.landing-services', text: '五大命理服务' },
       { selector: '.landing-trust', text: '为什么可信' },

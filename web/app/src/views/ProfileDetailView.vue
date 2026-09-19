@@ -6,14 +6,14 @@
     <AppErrorState v-else-if="error && !detail" title="档案加载失败" :description="error" @retry="load" />
 
     <template v-else-if="detail">
-      <ProfileInfo :profile="detail" :submitting="updating" @update="update" />
+      <ProfileInfo ref="infoRef" :profile="detail" :submitting="updating" @update="update" />
 
       <PaipanPreview :profile="detail" auto />
 
       <el-card class="cta" shadow="never">
         <template #header><span class="card-title">解读</span></template>
 
-        <template v-if="entitlements.loaded && purchased">
+        <template v-if="entitlements.loaded && entitlements.purchased">
           <p class="hint">
             {{ preselectedService ? `已为你选择「${preselectedService.label}」，也可以换一项：` : '想了解什么？选择一项进入专业解读。' }}
           </p>
@@ -55,12 +55,12 @@ const router = useRouter()
 const profiles = useProfilesStore()
 const entitlements = useEntitlementsStore()
 
+const infoRef = ref<InstanceType<typeof ProfileInfo> | null>(null)
 const updating = ref(false)
 const preselectedKey = ref('')
 const profileId = computed(() => String(route.params.id ?? ''))
 const detail = computed(() => profiles.detail)
 const error = computed(() => profiles.error)
-const purchased = computed(() => entitlements.allowedSkills.length > 0)
 const preselectedService = computed(() => (preselectedKey.value ? serviceByKey(preselectedKey.value) : undefined))
 
 async function load() {
@@ -72,6 +72,7 @@ async function update(input: ProfileInput) {
   updating.value = true
   try {
     await profiles.update(detail.value.id, detail.value.version, input)
+    infoRef.value?.closeEdit()
   } catch (err) {
     profiles.error = toUserMessage(err, '保存失败')
   } finally {
@@ -81,7 +82,7 @@ async function update(input: ProfileInput) {
 
 async function goChat() {
   await entitlements.load()
-  void router.push({ path: '/chat', query: purchased.value ? { profile: profileId.value } : undefined })
+  void router.push({ path: '/chat', query: entitlements.purchased ? { profile: profileId.value } : undefined })
 }
 
 function startService(key: string) {
@@ -95,7 +96,11 @@ onMounted(async () => {
     const key = sessionStorage.getItem('liki-service')
     if (key && serviceByKey(key)) preselectedKey.value = key
   } catch { /* ignore */ }
-  await Promise.all([load(), entitlements.load()])
+  try {
+    await Promise.all([load(), entitlements.load()])
+  } catch (error) {
+    console.error('[ProfileDetail] 初始化失败:', error)
+  }
 })
 </script>
 

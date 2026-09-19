@@ -1,5 +1,11 @@
 import { post } from './http'
-import type { EmailCodeResponse, Me } from '@/types'
+import type { Me } from './me'
+
+export interface EmailCodeResponse {
+  email: string
+  expires_at: string
+  dev_code?: string
+}
 
 export function requestEmailCode(email: string): Promise<EmailCodeResponse> {
   return post<EmailCodeResponse>('/api/auth/email/code', { email })

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026.09.19 —— Makefile 领域解耦 + 全量质量修复
+
+- **Makefile 重构**：34 target → 20 个，按领域解耦为 `check`（静态检查+安全扫描）→ `test`（全量测试+E2E）→ `gate`（check+test 并行组合=部署门槛）→ `deploy` → `smoke`；零内联编排 shell，复杂逻辑提取到 6 个新脚本（check-caddy/check-skills/check-packaging/e2e/deploy/smoke）
+- **CI 对齐**：5 job → 3 job（check/test/e2e），直接调 make target；补 vue-tsc（CI 原缺失）、check-caddy（CI 原假绿灯）；govulncheck/Trivy 从独立 security job 并入 check job
+- **测试修复**：profile cursor 分页 INSERT 改用纳秒时间戳（datetime('now') 秒级精度导致同秒排序不确定）；List cursor 统一用 `created_at`（原 ORDER BY 和 cursor 列不匹配）；新增 migration 003 补 `idx_profiles_user_created` 索引
+- **错误架构**：`unhandledrejection` 不再调 `reportFatal`（网络异常不崩 app）；AppLayout/ChatListView/ProfileDetailView/ChatSessionView onMounted 加 try/catch；`auth.loadMe` 移除 re-throw 统一为 return null
+- **安全**：`payment/store.go` SQL 拼接 → 白名单 + Sprintf；`agent/tools.go` panic → slog.Error + nil guard；`ALTER TABLE` 拼接加列名白名单
+- **类型安全**：`usePaipanData.ts` 10 处 `any` → 引用已有类型；`engineSolarTime` `lunar: unknown` → `string`；`engineZiweiChart` 参数 `unknown` → `string`
+- **死代码清理**：删除 `usePaipanData.ts`（零消费者）、`canSend` getter（零引用）、`stream-renderer.test.js`（测试代码副本非生产码）、`brand.test.js`/`i18n.test.js`（E2E 已覆盖）、`check-no-legacy-skills.sh`（迁移已完成）
+- **冗余收敛**：`PaipanPreview` 30 行排盘逻辑 → 复用 `resolvePaipanContext()`；错误消息 4 处字面量 → `ERR_CITY_NOT_FOUND`/`ERR_CITY_INVALID` 常量
+- **RPC 方法名**：`RPC_METHODS` 常量从 `engine.ts` 导出，API 层和 E2E mock 统一引用，消除方法名漂移
+- **types.ts 删除**：`Me`→`api/me.ts`、`EmailCodeResponse`→`api/auth.ts`，类型 co-location 到产生方
+- **Caddyfile**：`caddy fmt --overwrite` 修复格式
+- **pre-push hook**：从 30 行旧 target 引用简化为 `make check`
+
+# Changelog
+
 ## 2026.09.16 —— brand renormalized to Liki
 
 - 主品牌统一为 `Liki`，不再设置中文核心品牌名；中文展示口径为 `Liki 命理`。

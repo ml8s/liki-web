@@ -2,6 +2,7 @@
 // 引擎契约回归：用「真实引擎输出形状」渲染免费排盘与合盘，防止字段漂移被假 mock 掩盖。
 // 排盘/合盘 = 前端 TS 直连引擎 RPC（只读），契约归 liki/engine。
 import { test, expect } from '@playwright/test'
+import { RPC_METHODS } from '../../app/src/api/engine'
 
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const rpc = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ result: { data } }) })
@@ -102,7 +103,7 @@ const qimingPick = {
 const liuyaoSnapshot = {
   question: '这个项目能成吗',
   casting: { mode: 'auto', rounds: 3, yaos: [[1, 2, 3], [4, 5, 6], [7, 8, 9]], dong_yao: [3], casting_id: 'c1', order: 0 },
-  board: { name: '水火既济', palace: '坎', palace_wuxing: '水', xun_kong: '午未', lines: [], bian_lines: [], ri_gan: '戊', ri_zhi: '子', yue_gan: '甲', yue_zhi: '寅' },
+  board: { name: '水火既济', gong: '坎', gong_wuxing: '水', xun_kong: ['午', '未'], lines: [], bian_lines: [], ri_chen_gan: '戊', ri_chen_zhi: '子', yue_jian_gan: '甲', yue_jian_zhi: '寅' },
   focus: { yong_shen: '妻财', yong_line: '三爻', world: '三爻', other: '六爻' },
   timing_candidates: [{ note: '午月' }],
 }
@@ -117,17 +118,18 @@ function routeEngine(page) {
     const { method } = await route.request().postDataJSON()
     let data
     switch (method) {
-      case 'city.coords': data = { longitude: 121.47, latitude: 31.23 }; break
-      case 'tianwen.time': data = { solar: '1958-05-12T06:00:00+08:00', lunar: { year: 1958, month: 4, day: 24 } }; break
-      case 'bazi.chart': data = baziChart; break
-      case 'bazi.fullchart': data = baziFull; break
-      case 'ziwei.chart': data = ziweiChart; break
-      case 'ziwei.fullchart': data = ziweiFull; break
-      case 'bazhai.chart': data = bazhai; break
-      case 'bazi.bond': data = bond; break
-      case 'qiming.pick': data = qimingPick; break
-      case 'liuyao_snapshot': data = liuyaoSnapshot; break
-      case 'huangli_days': data = huangliDays; break
+      case RPC_METHODS.CityCoords: data = { longitude: 121.47, latitude: 31.23 }; break
+      case RPC_METHODS.TianwenTime: data = { solar: '1958-05-12T06:00:00+08:00', lunar: { year: 1958, month: 4, day: 24 } }; break
+      case RPC_METHODS.BaziChart: data = baziChart; break
+      case RPC_METHODS.BaziFullChart: data = baziFull; break
+      case RPC_METHODS.ZiweiChart: data = ziweiChart; break
+      case RPC_METHODS.ZiweiFullChart: data = ziweiFull; break
+      case RPC_METHODS.BazhaiChart: data = bazhai; break
+      case RPC_METHODS.BaziBond: data = bond; break
+      case RPC_METHODS.QimingPick: data = qimingPick; break
+      case RPC_METHODS.LiuyaoQigua: data = { casting: liuyaoSnapshot.casting }; break
+      case RPC_METHODS.LiuyaoChart: data = liuyaoSnapshot; break
+      case RPC_METHODS.HuangliDays: data = huangliDays; break
       default: data = {}
     }
     return route.fulfill(rpc(data))
@@ -222,7 +224,7 @@ test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
   await page.click('button:has-text("摇卦")')
   await page.waitForSelector('.gua-name', { timeout: 12000 })
   await expect(page.locator('.gua-name')).toHaveText('水火既济') // board.name
-  await expect(page.locator('.gua-sub')).toContainText('坎') // board.palace
+  await expect(page.locator('.gua-info')).toContainText('坎') // board.gong
   await expect(page.locator('.rel-text')).toContainText('妻财') // focus.yong_shen
 })
 
