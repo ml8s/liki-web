@@ -50,7 +50,7 @@ jobs:
           go vet ./...
           make lint-js typecheck check-html check-security check-caddy check-skills check-version
 
-  # ── test：对应 make test-go + test-js + build + check-packaging（e2e 单独 job）──
+  # ── test：对应 make test-go + test-js + test-python + build + check-packaging（e2e 单独 job）──
   test:
     runs-on: ubuntu-latest
     steps:
@@ -84,6 +84,9 @@ jobs:
 
       - name: Vitest
         run: make test-js
+
+      - name: Python helper tests
+        run: make test-python
 
       - name: Build
         run: make build

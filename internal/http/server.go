@@ -14,6 +14,7 @@ import (
 	"liki-web/internal/auth"
 	"liki-web/internal/chat"
 	"liki-web/internal/commerce"
+	"liki-web/internal/donation"
 	"liki-web/internal/entitlement"
 	"liki-web/internal/feedback"
 	"liki-web/internal/hepan"
@@ -31,6 +32,7 @@ type ServerDeps struct {
 	EntitlementHandler *entitlement.Handler
 	ChatHandler        *chat.Handler
 	CommerceHandler    *commerce.Handler
+	DonationHandler    *donation.Handler
 	ProfileHandler     *profile.Handler
 	AccountHandler     *account.Handler
 	NamingStore        *naming.Store
@@ -89,6 +91,14 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 			return rl.Wrap(5.0/60, 6, next)
 		}
 		deps.CommerceHandler.RegisterRoutes(mux, commerceLimit)
+	}
+	if deps.DonationHandler != nil {
+		// Donation bills and proof redemption are write-like endpoints and get
+		// a stricter budget than ordinary free API reads.
+		donationLimit := func(next http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(2.0/60, 4, next)
+		}
+		deps.DonationHandler.RegisterRoutes(mux, donationLimit)
 	}
 
 	// ── platform profiles ──

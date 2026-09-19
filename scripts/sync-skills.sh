@@ -17,10 +17,11 @@ done
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# skills 仓根（ml8s/liki 的 clone 目录，与仓库名一致）
-SRC_ROOT="$PROJECT_DIR/../liki/skills"
-DIST_DIR="$PROJECT_DIR/../liki/dist"   # 构建产物在 liki 仓库根
-WEBAPP_SRC="$PROJECT_DIR/../liki/webapp"
+# skills 仓根（本地默认 ../liki；CI 的 prepare-skills 使用 skills-repo）。
+SKILLS_REPO_ROOT="${SKILLS_REPO_ROOT:-$PROJECT_DIR/../liki}"
+SRC_ROOT="$SKILLS_REPO_ROOT/skills"
+DIST_DIR="$SKILLS_REPO_ROOT/dist"   # 构建产物在 liki 仓库根
+WEBAPP_SRC="$SKILLS_REPO_ROOT/webapp"
 WELL_KNOWN_DIR="$PROJECT_DIR/web/.well-known/agent-skills"
 
 SKILL="liki"
@@ -77,7 +78,7 @@ if [ -f "$DIST_DIR/$SKILL.tar.gz" ]; then
   cp "$DIST_DIR/$SKILL.tar.gz" "$PROJECT_DIR/$DEST/$SKILL.tar.gz"
   echo "  ✓ archive synced: $SKILL.tar.gz"
 else
-  echo "  WARNING: dist/$SKILL.tar.gz not found. Run: cd "$PROJECT_DIR/../liki" && make build-archive" >&2
+	echo "  WARNING: dist/$SKILL.tar.gz not found. Run: cd \"$SKILLS_REPO_ROOT\" && make build-skill" >&2
 fi
 
 # ── 3. index.json（单一 skill 索引）──

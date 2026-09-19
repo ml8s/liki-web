@@ -22,6 +22,7 @@ import (
 	"liki-web/internal/chat"
 	"liki-web/internal/commerce"
 	"liki-web/internal/dodo"
+	"liki-web/internal/donation"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
 	"liki-web/internal/naming"
@@ -66,6 +67,7 @@ type Config struct {
 	XunhuAppID          string
 	XunhuAppSecret      string
 	PaymentWebhookURL   string
+	AlipayConfig        donation.Config
 	DeepseekAPIKey      string
 	LLMModel            string
 	LLMThinking         bool
@@ -99,17 +101,28 @@ func LoadConfig() Config {
 		XunhuAppID:          envOr("XUNHU_APPID", ""),
 		XunhuAppSecret:      envOr("XUNHU_APPSECRET", ""),
 		PaymentWebhookURL:   envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
-		DeepseekAPIKey:      envOr("DEEPSEEK_API_KEY", ""),
-		LLMModel:            envOr("LLM_MODEL", ""),
-		LLMThinking:         envOrBool("LLM_THINKING", false),
-		SkillsDir:           envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:          envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
-		EngineURL:           envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
-		SelfURL:             envOr("LIKI_SELF_URL", "http://127.0.0.1:8080"),
-		ReturnURL:           envOr("RETURN_URL", ""),
-		JWTSecret:           os.Getenv("JWT_SECRET"),
-		ListenAddr:          envOr("LISTEN_ADDR", ":8080"),
-		DevMode:             envOrBool("DEV_MODE", false),
+		AlipayConfig: donation.Config{
+			AppID:           os.Getenv("ALIPAY_APP_ID"),
+			PrivateKey:      os.Getenv("ALIPAY_PRIVATE_KEY"),
+			AlipayPublicKey: os.Getenv("ALIPAY_PUBLIC_KEY"),
+			Gateway:         envOr("ALIPAY_GATEWAY", "https://openapi.alipay.com/gateway.do"),
+			SellerID:        os.Getenv("ALIPAY_SELLER_ID"),
+			SellerName:      envOr("ALIPAY_SELLER_NAME", "Liki"),
+			ServiceID:       os.Getenv("ALIPAY_SERVICE_ID"),
+			Amount:          os.Getenv("ALIPAY_DONATION_AMOUNT"),
+			GoodsName:       "Liki 捐赠",
+		},
+		DeepseekAPIKey: envOr("DEEPSEEK_API_KEY", ""),
+		LLMModel:       envOr("LLM_MODEL", ""),
+		LLMThinking:    envOrBool("LLM_THINKING", false),
+		SkillsDir:      envOr("LIKI_SKILLS_DIR", "web/skills"),
+		PromptFile:     envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
+		EngineURL:      envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
+		SelfURL:        envOr("LIKI_SELF_URL", "http://127.0.0.1:8080"),
+		ReturnURL:      envOr("RETURN_URL", ""),
+		JWTSecret:      os.Getenv("JWT_SECRET"),
+		ListenAddr:     envOr("LISTEN_ADDR", ":8080"),
+		DevMode:        envOrBool("DEV_MODE", false),
 	}
 }
 
@@ -319,6 +332,27 @@ func main() {
 		slog.Error("init commerce schema", "err", err)
 		os.Exit(1)
 	}
+	donationStore := donation.NewStore(db)
+	if err := donationStore.Migrate(ctx); err != nil {
+		slog.Error("init donation schema", "err", err)
+		os.Exit(1)
+	}
+	var donationGateway donation.Gateway
+	if cfg.AlipayConfig.Enabled() {
+		client, err := donation.NewClient(cfg.AlipayConfig)
+		if err != nil {
+			slog.Error("init alipay donation client", "err", err)
+			os.Exit(1)
+		}
+		donationGateway = client
+	} else {
+		slog.Warn("alipay donation is not fully configured; it is disabled")
+	}
+	donationHandler, err := donation.NewHandler(donationStore, donationGateway, cfg.AlipayConfig)
+	if err != nil {
+		slog.Error("init donation handler", "err", err)
+		os.Exit(1)
+	}
 	chatDuration := 30 * 24 * time.Hour
 	commerceFulfiller := func(productID commerce.Product) *commerce.Fulfiller {
 		return commerce.NewFulfiller(commerceOrders, entitlements, productID, chatDuration)
@@ -408,6 +442,7 @@ func main() {
 		EntitlementHandler: entitlement.NewHandler(entitlements, authHandler.RequireUser),
 		ChatHandler:        chatHandler,
 		CommerceHandler:    commerceHandler,
+		DonationHandler:    donationHandler,
 		ProfileHandler:     profile.NewHandler(profileStore, authHandler.RequireUser),
 		AccountHandler:     account.NewHandler(profileStore, chatStore, authHandler.RequireUser),
 		NamingStore:        namingStore,

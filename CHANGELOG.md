@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.09.19.1 —— Alipay AI Pay 捐赠凭证
+
+- 新增独立的 `POST /api/donations/redeem`：无凭证返回 402 + Payment-Needed；凭证经支付宝 A2M 验付、本地幂等落库并履约确认后返回捐赠凭证。
+- 捐赠与商业 payment / entitlement 完全隔离：不创建权益、不解锁 RPC、不改 engine；所有功能继续免费。
+- 新增 `internal/donation` 协议客户端、SQLite 状态机、handler 和契约测试；未配置 Alipay 时端点返回 503 disabled。
+- Skill 新增 `donation.py`：只在完整结果获用户满意确认后提示一次；凭证整块原子写入 `~/.liki/donation.json`。
+- Make 新增 `test-python`，CI test job 同步执行；环境样例补充 Alipay 捐赠配置。
+
 ## 2026.09.19 —— Makefile 领域解耦 + 全量质量修复
 
 - **Makefile 重构**：34 target → 20 个，按领域解耦为 `check`（静态检查+安全扫描）→ `test`（全量测试+E2E）→ `gate`（check+test 并行组合=部署门槛）→ `deploy` → `smoke`；零内联编排 shell，复杂逻辑提取到 6 个新脚本（check-caddy/check-skills/check-packaging/e2e/deploy/smoke）

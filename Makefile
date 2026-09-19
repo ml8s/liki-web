@@ -1,13 +1,13 @@
 .DEFAULT_GOAL := help
 .PHONY: help check test gate deploy-us deploy-cn smoke e2e \
-        lint-go lint-js typecheck test-go test-js test-skills \
+        lint-go lint-js typecheck test-go test-js test-python test-skills \
         check-html check-security \
         build build-skills build-sitemap build-web build-go build-docker \
         dev clean hooks version version-minor version-major
 
 # ── 环境 ──
 NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
-SKILLS_DIR := ../liki
+SKILLS_DIR := $(if $(wildcard ../liki/scripts/build-archive.sh),../liki,skills-repo)
 VERSION_FILE := cmd/liki/VERSION
 SKILLS := liki
 export PATH := $(HOME)/app/go/bin:$(HOME)/app/go-tools/bin:$(HOME)/go/bin:$(PATH)
@@ -37,7 +37,7 @@ help: ## 列出所有 target
 
 check: lint-go lint-js typecheck check-html check-security check-caddy check-skills check-version ## 静态检查 + 安全扫描（~3min）
 
-test: test-go test-js e2e build check-packaging ## 全量测试（~15min，含 E2E）
+test: test-go test-js test-python e2e build check-packaging ## 全量测试（~15min，含 E2E）
 
 gate: check test ## 部署门槛：check + test 全过才能部署
 
@@ -70,6 +70,9 @@ test-go: ## Go 测试
 test-js: ## vitest（legacy + Vue SPA）
 	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest run test/
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npm run test
+
+test-python: ## Python helper tests
+	python3 -m unittest discover -s web/test -p '*_test.py' -q
 
 test-skills: ## Python skill 测试
 	cd $(SKILLS_DIR) && python3 -m pytest tests/ -q --ignore=tests/test_integration.py
@@ -125,7 +128,9 @@ check-caddy:
 	scripts/check-caddy.sh
 
 build-skills:
-	if [ -d "$(SKILLS_DIR)" ]; then cd $(SKILLS_DIR) && scripts/build-archive.sh && $(MAKE) --no-print-directory sync-skills; else echo "⚠ ../liki not found, skipping"; fi
+	test -f "$(SKILLS_DIR)/scripts/build-archive.sh" || { echo "❌ skills source not found: $(SKILLS_DIR)" >&2; exit 1; }
+	cd $(SKILLS_DIR) && scripts/build-archive.sh
+	SKILLS_REPO=$(SKILLS_DIR) scripts/sync-skills.sh
 
 build-sitemap:
 	node web/scripts/build-sitemap.cjs
