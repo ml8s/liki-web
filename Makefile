@@ -125,12 +125,7 @@ check-caddy:
 	scripts/check-caddy.sh
 
 build-skills:
-	if [ -d "$(SKILLS_DIR)" ]; then
-		cd $(SKILLS_DIR) && scripts/build-archive.sh;
-		$(MAKE) --no-print-directory sync-skills;
-	else
-		echo "⚠ ../liki not found, skipping skills sync (CI: composite action handles this)";
-	fi
+	if [ -d "$(SKILLS_DIR)" ]; then cd $(SKILLS_DIR) && scripts/build-archive.sh && $(MAKE) --no-print-directory sync-skills; else echo "⚠ ../liki not found, skipping"; fi
 
 build-sitemap:
 	node web/scripts/build-sitemap.cjs

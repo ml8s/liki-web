@@ -34,18 +34,21 @@ jobs:
           cd web && npm ci
           cd app && npm ci
 
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.13.1
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
       - name: Install caddy
         run: |
           curl -sfL "https://caddyserver.com/api/download?os=linux&arch=amd64" -o /usr/local/bin/caddy
           chmod +x /usr/local/bin/caddy
 
-      - name: make check
-        run: make check
+      - name: Lint Go (golangci-lint-action)
+        uses: golangci/golangci-lint-action@v8.0.0
+        with:
+          version: v2.13.1
+          args: --timeout=3m
+
+      - name: make check (lint-go skipped, done by action above)
+        run: |
+          go vet ./...
+          make lint-js typecheck check-html check-security check-caddy check-skills check-version
 
   # ── test：对应 make test-go + test-js + build + check-packaging（e2e 单独 job）──
   test:
