@@ -30,7 +30,9 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
-        run: cd web && npm ci && cd web/app && npm ci
+        run: |
+          cd web && npm ci
+          cd app && npm ci
 
       - name: Install golangci-lint
         run: |
@@ -64,7 +66,9 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
-        run: cd web && npm ci && cd web/app && npm ci
+        run: |
+          cd web && npm ci
+          cd app && npm ci
 
       - name: Go test + coverage
         run: |
