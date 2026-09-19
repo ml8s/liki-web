@@ -130,7 +130,7 @@ check-caddy:
 build-skills:
 	test -f "$(SKILLS_DIR)/scripts/build-archive.sh" || { echo "❌ skills source not found: $(SKILLS_DIR)" >&2; exit 1; }
 	cd $(SKILLS_DIR) && scripts/build-archive.sh
-	SKILLS_REPO=$(SKILLS_DIR) scripts/sync-skills.sh
+	SKILLS_REPO_ROOT=$(SKILLS_DIR) scripts/sync-skills.sh
 
 build-sitemap:
 	node web/scripts/build-sitemap.cjs
