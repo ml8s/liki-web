@@ -1,4 +1,4 @@
-package chat
+package liki
 
 import (
 	"context"
@@ -11,19 +11,56 @@ import (
 	"liki-web/internal/migrate"
 )
 
-var ErrSessionNotFound = errors.New("chat: session not found")
+var ErrSessionNotFound = errors.New("liki: session not found")
 
-type Store struct {
+type SessionStatus string
+
+const (
+	SessionActive SessionStatus = "active"
+	SessionClosed SessionStatus = "closed"
+)
+
+type Session struct {
+	ID            string        `json:"id"`
+	UserID        string        `json:"user_id"`
+	ProfileID     string        `json:"profile_id"`
+	Skill         string        `json:"skill"`
+	Title         string        `json:"title"`
+	Status        SessionStatus `json:"status"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
+	LastMessageAt *time.Time    `json:"last_message_at"`
+}
+
+type MessageKind string
+
+const (
+	KindText          MessageKind = "text"
+	KindSystemProfile MessageKind = "system_profile"
+)
+
+type Message struct {
+	ID        string      `json:"id"`
+	SessionID string      `json:"session_id"`
+	UserID    string      `json:"user_id"`
+	Role      string      `json:"role"`
+	Kind      MessageKind `json:"kind"`
+	Content   string      `json:"content"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+// ChatStore manages the unified_chat_sessions and unified_chat_messages tables.
+type ChatStore struct {
 	db      *sql.DB
 	nowFunc func() time.Time
 	idFunc  func() string
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{db: db, nowFunc: func() time.Time { return time.Now().UTC() }, idFunc: func() string { return uuid.NewString() }}
+func NewChatStore(db *sql.DB) *ChatStore {
+	return &ChatStore{db: db, nowFunc: func() time.Time { return time.Now().UTC() }, idFunc: uuid.NewString}
 }
 
-func (s *Store) Migrate(ctx context.Context) error {
+func (s *ChatStore) Migrate(ctx context.Context) error {
 	return migrate.Run(ctx, s.db, []migrate.Migration{
 		{
 			ID: "001_unified_chat_runtime",
@@ -77,8 +114,8 @@ CREATE INDEX IF NOT EXISTS idx_unified_chat_sessions_user_profile
 	})
 }
 
-func (s *Store) CreateSession(ctx context.Context, userID, skill, title, profileID string) (Session, error) {
-	now := formatTime(s.nowFunc())
+func (s *ChatStore) CreateSession(ctx context.Context, userID, skill, title, profileID string) (Session, error) {
+	now := chatFormatTime(s.nowFunc())
 	session := Session{ID: s.idFunc(), UserID: userID, Skill: skill, Title: title, ProfileID: profileID, Status: SessionActive}
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx, `
@@ -90,8 +127,8 @@ RETURNING created_at,updated_at`,
 	if err != nil {
 		return Session{}, err
 	}
-	session.CreatedAt = mustTime(createdAt)
-	session.UpdatedAt = mustTime(updatedAt)
+	session.CreatedAt = chatMustTime(createdAt)
+	session.UpdatedAt = chatMustTime(updatedAt)
 	return session, nil
 }
 
@@ -104,16 +141,16 @@ func scanSession(scan func(dest ...any) error) (Session, error) {
 		return Session{}, err
 	}
 	session.Status = SessionStatus(status)
-	session.CreatedAt = mustTime(createdAt)
-	session.UpdatedAt = mustTime(updatedAt)
+	session.CreatedAt = chatMustTime(createdAt)
+	session.UpdatedAt = chatMustTime(updatedAt)
 	if lastMessage.Valid {
-		t := mustTime(lastMessage.String)
+		t := chatMustTime(lastMessage.String)
 		session.LastMessageAt = &t
 	}
 	return session, nil
 }
 
-func (s *Store) GetSession(ctx context.Context, userID, sessionID string) (Session, error) {
+func (s *ChatStore) GetSession(ctx context.Context, userID, sessionID string) (Session, error) {
 	session, err := scanSession(s.db.QueryRowContext(ctx, `
 SELECT id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at
 FROM unified_chat_sessions WHERE id=? AND user_id=?`, sessionID, userID).Scan)
@@ -123,7 +160,7 @@ FROM unified_chat_sessions WHERE id=? AND user_id=?`, sessionID, userID).Scan)
 	return session, err
 }
 
-func (s *Store) ListSessions(ctx context.Context, userID string) ([]Session, error) {
+func (s *ChatStore) ListSessions(ctx context.Context, userID string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at
 FROM unified_chat_sessions WHERE user_id=? AND status='active'
@@ -143,7 +180,7 @@ ORDER BY COALESCE(last_message_at,updated_at) DESC`, userID)
 	return out, rows.Err()
 }
 
-func (s *Store) ListMessages(ctx context.Context, userID, sessionID string) ([]Message, error) {
+func (s *ChatStore) ListMessages(ctx context.Context, userID, sessionID string) ([]Message, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT m.id,m.session_id,m.user_id,m.role,m.kind,m.content,m.created_at
 FROM unified_chat_messages m
@@ -162,14 +199,14 @@ ORDER BY m.created_at, m.id`, sessionID, userID)
 			return nil, err
 		}
 		message.Kind = MessageKind(kind)
-		message.CreatedAt = mustTime(createdAt)
+		message.CreatedAt = chatMustTime(createdAt)
 		out = append(out, message)
 	}
 	return out, rows.Err()
 }
 
-func (s *Store) AppendMessage(ctx context.Context, userID, sessionID, role string, kind MessageKind, content string) (Message, error) {
-	now := formatTime(s.nowFunc())
+func (s *ChatStore) AppendMessage(ctx context.Context, userID, sessionID, role string, kind MessageKind, content string) (Message, error) {
+	now := chatFormatTime(s.nowFunc())
 	if kind == "" {
 		kind = KindText
 	}
@@ -183,21 +220,21 @@ RETURNING created_at`, message.ID, sessionID, userID, role, string(kind), conten
 	if err != nil {
 		return Message{}, err
 	}
-	message.CreatedAt = mustTime(createdAt)
+	message.CreatedAt = chatMustTime(createdAt)
 	_, err = s.db.ExecContext(ctx, `
 UPDATE unified_chat_sessions SET updated_at=?, last_message_at=CASE WHEN last_message_at IS NULL OR last_message_at<? THEN ? ELSE last_message_at END
 WHERE id=?`, now, now, now, sessionID)
 	return message, err
 }
 
-func (s *Store) TouchSession(ctx context.Context, sessionID string, now time.Time) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE unified_chat_sessions SET updated_at=? WHERE id=?`, formatTime(now), sessionID)
+func (s *ChatStore) TouchSession(ctx context.Context, sessionID string, now time.Time) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE unified_chat_sessions SET updated_at=? WHERE id=?`, chatFormatTime(now), sessionID)
 	return err
 }
 
 // AnonymizeUserMessages clears the PII-bearing system_profile payloads (they
 // embed birth info) for a user's chat history during compliance erasure.
-func (s *Store) AnonymizeUserMessages(ctx context.Context, userID string) (int64, error) {
+func (s *ChatStore) AnonymizeUserMessages(ctx context.Context, userID string) (int64, error) {
 	result, err := s.db.ExecContext(ctx, `
 UPDATE unified_chat_messages SET content=''
 WHERE user_id=? AND kind=?`, userID, string(KindSystemProfile))
@@ -207,7 +244,7 @@ WHERE user_id=? AND kind=?`, userID, string(KindSystemProfile))
 	return result.RowsAffected()
 }
 
-func mustTime(value string) time.Time {
+func chatMustTime(value string) time.Time {
 	parsed, err := time.Parse(time.RFC3339Nano, value)
 	if err != nil {
 		parsed = time.Time{}
@@ -215,9 +252,9 @@ func mustTime(value string) time.Time {
 	return parsed
 }
 
-// formatTime uses fixed nanosecond precision so lexicographic UTC timestamp
+// chatFormatTime uses fixed nanosecond precision so lexicographic UTC timestamp
 // ordering remains deterministic even when messages are written in quick
 // succession. Go's RFC3339Nano strips trailing zeroes and can break ordering.
-func formatTime(value time.Time) string {
+func chatFormatTime(value time.Time) string {
 	return value.Format("2006-01-02T15:04:05.000000000Z07:00")
 }

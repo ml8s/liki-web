@@ -1,4 +1,4 @@
-package entitlement
+package liki
 
 import (
 	"context"
@@ -14,38 +14,85 @@ import (
 	"liki-web/internal/migrate"
 )
 
-type Store struct {
+// EntitlementStatus is the lifecycle state of a capability grant.
+type EntitlementStatus string
+
+const (
+	StatusActive  EntitlementStatus = "active"
+	StatusRevoked EntitlementStatus = "revoked"
+	StatusExpired EntitlementStatus = "expired"
+)
+
+// Entitlement records a user's right to use one or more skills.
+type Entitlement struct {
+	ID        string
+	UserID    string
+	Email     string
+	ProductID Product
+	Skills    []Skill
+	Status    EntitlementStatus
+	Source    string
+	SourceID  string
+	StartsAt  time.Time
+	ExpiresAt time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (e Entitlement) MarshalJSON() ([]byte, error) {
+	skills := make([]string, 0, len(e.Skills))
+	for _, skill := range e.Skills {
+		skills = append(skills, string(skill))
+	}
+	return json.Marshal(struct {
+		ID        string    `json:"id"`
+		UserID    string    `json:"user_id"`
+		Email     string    `json:"email"`
+		ProductID string    `json:"product_id"`
+		Skills    []string  `json:"skills"`
+		Status    string    `json:"status"`
+		StartsAt  time.Time `json:"starts_at"`
+		ExpiresAt time.Time `json:"expires_at"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}{
+		ID: e.ID, UserID: e.UserID, Email: e.Email, ProductID: string(e.ProductID),
+		Skills: skills, Status: string(e.Status), StartsAt: e.StartsAt, ExpiresAt: e.ExpiresAt,
+		CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt,
+	})
+}
+
+// EntitlementStore manages the products and entitlements tables in the liki
+// product database. It stores platform user IDs as plain TEXT soft references.
+type EntitlementStore struct {
 	db      *sql.DB
 	nowFunc func() time.Time
 	idFunc  func() string
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{db: db, nowFunc: func() time.Time { return time.Now().UTC() }, idFunc: func() string { return uuid.NewString() }}
+func NewEntitlementStore(db *sql.DB) *EntitlementStore {
+	return &EntitlementStore{db: db, nowFunc: func() time.Time { return time.Now().UTC() }, idFunc: uuid.NewString}
 }
 
-func (s *Store) Migrate(ctx context.Context) error {
+func (s *EntitlementStore) Migrate(ctx context.Context) error {
 	return migrate.Run(ctx, s.db, []migrate.Migration{{
-		// This is an unreleased runtime boundary, not a compatibility release:
-		// old report-product grants must not leak into the unified Chat model.
+		// Idempotent schema creation. Never DROP existing tables to
+		// avoid destroying production entitlement data on restart.
 		ID: "002_single_chat_product",
 		Up: func(ctx context.Context, tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx, `
-DROP TABLE IF EXISTS entitlements;
-DROP TABLE IF EXISTS products;
-
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     skills TEXT NOT NULL,
     active INTEGER NOT NULL DEFAULT 1
 );
 
-CREATE TABLE entitlements (
+CREATE TABLE IF NOT EXISTS entitlements (
     id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     email TEXT NOT NULL,
-    product_id TEXT NOT NULL REFERENCES products(id),
+    product_id TEXT NOT NULL,
     skills TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('active','revoked','expired')),
     source TEXT NOT NULL,
@@ -56,9 +103,9 @@ CREATE TABLE entitlements (
     updated_at TEXT NOT NULL,
     UNIQUE(source, source_id, product_id)
 );
-CREATE INDEX idx_entitlements_user_status_expires
+CREATE INDEX IF NOT EXISTS idx_entitlements_user_status_expires
     ON entitlements(user_id, status, expires_at);
-CREATE INDEX idx_entitlements_source
+CREATE INDEX IF NOT EXISTS idx_entitlements_source
     ON entitlements(source, source_id);
 `)
 			if err != nil {
@@ -70,7 +117,7 @@ CREATE INDEX idx_entitlements_source
 					return err
 				}
 				if _, err := tx.ExecContext(ctx, `
-INSERT INTO products (id,name,skills,active) VALUES (?,?,?,1)`,
+INSERT OR IGNORE INTO products (id,name,skills,active) VALUES (?,?,?,1)`,
 					string(definition.ID), definition.Name, string(skillsJSON)); err != nil {
 					return err
 				}
@@ -83,7 +130,7 @@ INSERT INTO products (id,name,skills,active) VALUES (?,?,?,1)`,
 // GrantForProduct grants a commercial Chat product to an existing platform
 // user. User creation belongs to auth; entitlement never synthesizes users
 // from payment webhooks.
-func (s *Store) GrantForProduct(
+func (s *EntitlementStore) GrantForProduct(
 	ctx context.Context,
 	userID string,
 	email string,
@@ -101,10 +148,10 @@ func (s *Store) GrantForProduct(
 		return Entitlement{}, err
 	}
 	if userID == "" || email == "" || source == "" || sourceID == "" {
-		return Entitlement{}, fmt.Errorf("entitlement: grant requires user, email, source, and source id")
+		return Entitlement{}, fmt.Errorf("liki: grant requires user, email, source, and source id")
 	}
 	if duration <= 0 {
-		return Entitlement{}, fmt.Errorf("entitlement: grant duration must be positive")
+		return Entitlement{}, fmt.Errorf("liki: grant duration must be positive")
 	}
 
 	now := s.nowFunc()
@@ -122,8 +169,8 @@ WHERE user_id=? AND product_id=? AND status='active' AND expires_at>?`,
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return Entitlement{}, err
 	}
-	if currentExpires.Valid && mustTime(currentExpires.String).After(now) {
-		startsAt = mustTime(currentExpires.String)
+	if currentExpires.Valid && entitlementMustTime(currentExpires.String).After(now) {
+		startsAt = entitlementMustTime(currentExpires.String)
 	}
 	expires := startsAt.Add(duration)
 
@@ -137,7 +184,7 @@ ON CONFLICT(source,source_id,product_id) DO NOTHING`,
 		startsAt.Format(time.RFC3339), expires.Format(time.RFC3339),
 		now.Format(time.RFC3339), now.Format(time.RFC3339))
 	if err != nil {
-		return Entitlement{}, fmt.Errorf("entitlement: grant: %w", err)
+		return Entitlement{}, fmt.Errorf("liki: grant: %w", err)
 	}
 	return s.latestForSource(ctx, userID, productID, source, sourceID)
 }
@@ -156,20 +203,20 @@ func scanEntitlement(scan func(dest ...any) error) (Entitlement, error) {
 	if err := json.Unmarshal([]byte(skillsJSON), &entitlement.Skills); err != nil {
 		return Entitlement{}, err
 	}
-	entitlement.Status = Status(status)
-	entitlement.StartsAt = mustTime(startsAt)
-	entitlement.ExpiresAt = mustTime(expiresAt)
-	entitlement.CreatedAt = mustTime(createdAt)
-	entitlement.UpdatedAt = mustTime(updatedAt)
+	entitlement.Status = EntitlementStatus(status)
+	entitlement.StartsAt = entitlementMustTime(startsAt)
+	entitlement.ExpiresAt = entitlementMustTime(expiresAt)
+	entitlement.CreatedAt = entitlementMustTime(createdAt)
+	entitlement.UpdatedAt = entitlementMustTime(updatedAt)
 	return entitlement, nil
 }
 
-func mustTime(value string) time.Time {
+func entitlementMustTime(value string) time.Time {
 	parsed, _ := time.Parse(time.RFC3339, value)
 	return parsed
 }
 
-func (s *Store) latestForSource(ctx context.Context, userID string, productID Product, source, sourceID string) (Entitlement, error) {
+func (s *EntitlementStore) latestForSource(ctx context.Context, userID string, productID Product, source, sourceID string) (Entitlement, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT id,user_id,email,product_id,skills,status,source,source_id,starts_at,expires_at,created_at,updated_at
 FROM entitlements
@@ -179,7 +226,7 @@ ORDER BY created_at DESC LIMIT 1`,
 	return scanEntitlement(row.Scan)
 }
 
-func (s *Store) ListActiveByUser(ctx context.Context, userID string) ([]Entitlement, error) {
+func (s *EntitlementStore) ListActiveByUser(ctx context.Context, userID string) ([]Entitlement, error) {
 	now := s.nowFunc().Format(time.RFC3339)
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,user_id,email,product_id,skills,status,source,source_id,starts_at,expires_at,created_at,updated_at
@@ -202,7 +249,7 @@ ORDER BY expires_at DESC, created_at DESC`, userID, now, now)
 	return out, rows.Err()
 }
 
-func (s *Store) AllowedSkills(ctx context.Context, userID string) ([]Skill, error) {
+func (s *EntitlementStore) AllowedSkills(ctx context.Context, userID string) ([]Skill, error) {
 	items, err := s.ListActiveByUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -217,7 +264,7 @@ func (s *Store) AllowedSkills(ctx context.Context, userID string) ([]Skill, erro
 	return []Skill{}, nil
 }
 
-func (s *Store) HasSkill(ctx context.Context, userID string, skill Skill) (bool, error) {
+func (s *EntitlementStore) HasSkill(ctx context.Context, userID string, skill Skill) (bool, error) {
 	if skill != SkillLiki {
 		return false, nil
 	}
@@ -228,7 +275,7 @@ func (s *Store) HasSkill(ctx context.Context, userID string, skill Skill) (bool,
 	return len(skills) > 0, nil
 }
 
-func (s *Store) ExpireDue(ctx context.Context) (int64, error) {
+func (s *EntitlementStore) ExpireDue(ctx context.Context) (int64, error) {
 	now := s.nowFunc().Format(time.RFC3339)
 	result, err := s.db.ExecContext(ctx, `
 UPDATE entitlements SET status='expired', updated_at=?
@@ -238,7 +285,3 @@ WHERE status='active' AND expires_at<=?`, now, now)
 	}
 	return result.RowsAffected()
 }
-
-// NewEntitlementStore is an explicit constructor alias used by callers that
-// prefer a descriptive store name.
-func NewEntitlementStore(db *sql.DB) *Store { return NewStore(db) }

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"liki-web/internal/auth"
-	"liki-web/internal/chat"
+	"liki-web/internal/liki"
 	"liki-web/internal/profile"
 )
 
@@ -14,11 +14,11 @@ type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
 	profiles    *profile.Store
-	chat        *chat.Store
+	chat        *liki.ChatStore
 	requireUser RequireUserFunc
 }
 
-func NewHandler(profiles *profile.Store, chatStore *chat.Store, requireUser RequireUserFunc) *Handler {
+func NewHandler(profiles *profile.Store, chatStore *liki.ChatStore, requireUser RequireUserFunc) *Handler {
 	return &Handler{profiles: profiles, chat: chatStore, requireUser: requireUser}
 }
 

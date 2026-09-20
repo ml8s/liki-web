@@ -4,7 +4,8 @@ package payment
 import (
 	"database/sql"
 	"errors"
-	"fmt"
+
+	"liki-web/internal/sqliteutil"
 )
 
 // ---------------------------------------------------------------------------
@@ -66,10 +67,5 @@ var (
 
 // OpenDB opens a SQLite database and creates it if needed.
 func OpenDB(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", path+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)")
-	if err != nil {
-		return nil, fmt.Errorf("open db: %w", err)
-	}
-	db.SetMaxOpenConns(1)
-	return db, nil
+	return sqliteutil.Open(path)
 }

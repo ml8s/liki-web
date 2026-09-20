@@ -139,7 +139,7 @@ jobs:
           LIKI_ENGINE_HOST: localhost
         run: |
           mkdir -p /tmp/liki-e2e && chmod 777 /tmp/liki-e2e
-          HEPAN_DB_PATH=/tmp/liki-e2e/hepan.db ./bin/liki-web -addr :8081 -db /tmp/liki-e2e/liki.db &
+          LIKI_DATA_DIR=/tmp/liki-e2e ./bin/liki-web -addr :8081 &
           for i in $(seq 1 10); do
             curl -sf http://localhost:8081/api/health 2>/dev/null | grep -q '"ok"' && echo "Go ready" && break
             sleep 1

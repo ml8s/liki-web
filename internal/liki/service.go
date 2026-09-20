@@ -1,4 +1,4 @@
-package chat
+package liki
 
 import (
 	"context"
@@ -10,34 +10,33 @@ import (
 	"time"
 
 	"liki-web/internal/agent"
-	"liki-web/internal/entitlement"
 	"liki-web/internal/llm"
 	"liki-web/internal/profile"
 )
 
-type Skill = entitlement.Skill
-
 var (
-	ErrSkillForbidden    = errors.New("chat: skill forbidden")
-	ErrMessageEmpty      = errors.New("chat: message empty")
-	ErrRunnerUnavailable = errors.New("chat: runner unavailable for skill")
+	ErrSkillForbidden    = errors.New("liki: skill forbidden")
+	ErrMessageEmpty      = errors.New("liki: message empty")
+	ErrRunnerUnavailable = errors.New("liki: runner unavailable for skill")
 )
 
+// Runner abstracts the LLM execution engine for one skill.
 type Runner interface {
 	Execute(ctx context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent), phaseMsg func() string) ([]llm.Message, error)
 	Prompt() string
 }
 
+// Service orchestrates chat sessions with entitlement checks.
 type Service struct {
-	store        *Store
-	entitlements *entitlement.Store
+	store        *ChatStore
+	entitlements *EntitlementStore
 	profiles     *profile.Store
 	runners      map[Skill]Runner
 	locks        sync.Mutex
 	sessionLocks sync.Map // sessionID -> *sync.Mutex
 }
 
-func NewService(store *Store, entitlements *entitlement.Store, profiles *profile.Store, runners map[Skill]Runner) *Service {
+func NewService(store *ChatStore, entitlements *EntitlementStore, profiles *profile.Store, runners map[Skill]Runner) *Service {
 	if runners == nil {
 		runners = make(map[Skill]Runner)
 	}
@@ -75,7 +74,6 @@ func (s *Service) Session(ctx context.Context, userID, sessionID string) (Sessio
 }
 
 func (s *Service) lockSession(sessionID string) func() {
-	// sync.Map 没有直接的 DeleteIfExists，使用 Store + Load 删除
 	s.locks.Lock()
 	lock, _ := s.sessionLocks.LoadOrStore(sessionID, &sync.Mutex{})
 	m := lock.(*sync.Mutex)
@@ -83,7 +81,6 @@ func (s *Service) lockSession(sessionID string) func() {
 	m.Lock()
 	return func() {
 		m.Unlock()
-		// 释放后从 map 移除，防止内存泄漏
 		s.sessionLocks.Delete(sessionID)
 	}
 }
@@ -100,7 +97,6 @@ func (s *Service) CreateSession(ctx context.Context, userID, skill, title, profi
 		title = strings.TrimSpace(skill) + " consultation"
 	}
 	if profileID != "" && s.profiles != nil {
-		// Profile ownership is enforced by the store query (user_id scoped).
 		if _, err := s.profiles.Get(ctx, userID, profileID); err != nil {
 			return Session{}, err
 		}
@@ -111,12 +107,12 @@ func (s *Service) CreateSession(ctx context.Context, userID, skill, title, profi
 	}
 	if profileID != "" && s.profiles != nil {
 		if err := s.profiles.TouchLastUsed(ctx, userID, profileID); err != nil {
-			slog.Warn("chat: touch profile last_used", "profile_id", profileID, "err", err)
+			slog.Warn("liki: touch profile last_used", "profile_id", profileID, "err", err)
 		}
 		if p, err := s.profiles.Get(ctx, userID, profileID); err == nil {
 			if content, err := systemProfileContent(p); err == nil {
 				if _, err := s.store.AppendMessage(ctx, userID, session.ID, "assistant", KindSystemProfile, content); err != nil {
-					slog.Warn("chat: write system_profile message", "session_id", session.ID, "err", err)
+					slog.Warn("liki: write system_profile message", "session_id", session.ID, "err", err)
 				}
 			}
 		}
@@ -125,8 +121,6 @@ func (s *Service) CreateSession(ctx context.Context, userID, skill, title, profi
 }
 
 func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content string, onEvent func(agent.ChatEvent)) (Message, Message, Session, error) {
-	// Serialize generation for one conversation. Two parallel submissions must
-	// not interleave writes or produce divergent transcript histories.
 	unlock := s.lockSession(sessionID)
 	defer unlock()
 
@@ -153,12 +147,8 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 		return Message{}, Message{}, Session{}, err
 	}
 
-	// Carry the session identity into tool execution so server-side tools can
-	// prove which profile they are allowed to mutate.
 	ctx = withSessionBinding(ctx, sessionBinding{UserID: userID, SessionID: session.ID, ProfileID: session.ProfileID})
 
-	// AppendMessage's result is intentionally discarded; ListMessages provides
-	// the exact persisted row and prevents request/DB ordering drift.
 	_, err = s.store.AppendMessage(ctx, userID, sessionID, "user", KindText, content)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
@@ -167,11 +157,8 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
-	// The database, not the request path, defines the persisted conversation.
 	userMessage := history[len(history)-1]
 
-	// The system prompt is the scoped skill prompt; a bound profile appends its
-	// user info so the agent computes charts from trusted, persisted input.
 	systemPrompt := chatRunner.Prompt()
 	if session.ProfileID != "" && s.profiles != nil {
 		if p, err := s.profiles.Get(ctx, userID, session.ProfileID); err == nil {
@@ -183,8 +170,6 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	msgs = append(msgs, llm.Message{Role: llm.RoleSystem, Content: systemPrompt})
 	for _, item := range history {
 		if item.Kind == KindSystemProfile {
-			// System-written profile card is context for the model but not a
-			// user/assistant turn; skip it to avoid a phantom assistant line.
 			continue
 		}
 		msgs = append(msgs, llm.Message{Role: llm.Role(item.Role), Content: item.Content})
@@ -205,15 +190,13 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 
 	response := assistantContent(result)
 	if response == "" {
-		return Message{}, Message{}, Session{}, errors.New("chat: agent returned no assistant response")
+		return Message{}, Message{}, Session{}, errors.New("liki: agent returned no assistant response")
 	}
 	responseMsg, err := s.store.AppendMessage(ctx, userID, sessionID, "assistant", KindText, response)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
 	_ = s.store.TouchSession(ctx, sessionID, time.Now().UTC())
-	// Return the database state after TouchSession so the API contract is the
-	// same as a subsequent session detail read.
 	session, err = s.store.GetSession(ctx, userID, sessionID)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err

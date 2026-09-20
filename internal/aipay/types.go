@@ -16,7 +16,7 @@ const (
 	Currency         = "CNY"
 	CredentialPath   = "~/.liki/aipay.json"
 	SchemaVersion    = "liki-aipay-v1"
-	DefaultGoodsName = "Liki AI 付费服务"
+	DefaultGoodsName = "Liki 命理工具"
 )
 
 const (

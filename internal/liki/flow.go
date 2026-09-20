@@ -1,4 +1,4 @@
-package commerce
+package liki
 
 import (
 	"context"
@@ -7,20 +7,19 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/entitlement"
 	"liki-web/internal/payment"
 )
 
-// Fulfiller adapts a commercial Chat order to the generic payment runtime and
+// Fulfiller adapts a Liki Chat order to the generic payment runtime and
 // grants its entitlement only after a captured payment is durably fulfilled.
 type Fulfiller struct {
-	orders       *Store
-	entitlements *entitlement.Store
+	orders       *OrderStore
+	entitlements *EntitlementStore
 	productID    Product
 	duration     time.Duration
 }
 
-func NewFulfiller(orders *Store, entitlements *entitlement.Store, productID Product, duration time.Duration) *Fulfiller {
+func NewFulfiller(orders *OrderStore, entitlements *EntitlementStore, productID Product, duration time.Duration) *Fulfiller {
 	return &Fulfiller{orders: orders, entitlements: entitlements, productID: productID, duration: duration}
 }
 
@@ -32,7 +31,7 @@ func (f *Fulfiller) PrepareCheckout(ctx context.Context, businessOrderID string)
 		return payment.BusinessOrder{}, err
 	}
 	if order.Status != OrderPending {
-		return payment.BusinessOrder{}, fmt.Errorf("commerce: order %s is %s, not pending", order.ID, order.Status)
+		return payment.BusinessOrder{}, fmt.Errorf("liki: order %s is %s, not pending", order.ID, order.Status)
 	}
 	return payment.BusinessOrder{
 		ID: order.ID, UserID: order.UserID, Product: string(order.ProductID),
@@ -44,24 +43,24 @@ func (f *Fulfiller) PrepareCheckout(ctx context.Context, businessOrderID string)
 func (f *Fulfiller) OnPaid(ctx context.Context, intent payment.PaymentIntent) error {
 	order, changed, err := f.orders.MarkPaidByIntent(ctx, intent.ID)
 	if err != nil {
-		return fmt.Errorf("commerce: mark order paid: %w", err)
+		return fmt.Errorf("liki: mark order paid: %w", err)
 	}
 	if !changed {
 		// A repeated webhook must remain idempotent for a paid order. A canceled
 		// order must never grant access, even if a stale intent is marked paid.
 		order, err = f.orders.GetOrderForUser(ctx, intent.UserID, intent.BusinessOrderID)
 		if err != nil {
-			return fmt.Errorf("commerce: load paid order: %w", err)
+			return fmt.Errorf("liki: load paid order: %w", err)
 		}
 		if order.Status != OrderPaid {
-			return fmt.Errorf("commerce: order %s is %s, not paid", order.ID, order.Status)
+			return fmt.Errorf("liki: order %s is %s, not paid", order.ID, order.Status)
 		}
 	}
 	if _, err := f.entitlements.GrantForProduct(
 		ctx, order.UserID, order.Email, order.ProductID,
 		"commerce_order", order.ID, f.duration,
 	); err != nil {
-		return fmt.Errorf("commerce: grant entitlement: %w", err)
+		return fmt.Errorf("liki: grant entitlement: %w", err)
 	}
 	return nil
 }

@@ -1,17 +1,9 @@
-package commerce
+package liki
 
-import (
-	"fmt"
+import "fmt"
 
-	"liki-web/internal/entitlement"
-)
-
-// Product shares the stable entitlement product identifier. Commerce owns
-// checkout and orders; entitlement owns the resulting capability grant.
-type Product = entitlement.Product
-
-const ProductChat = entitlement.ProductChat
-
+// Definition describes the commerce-facing product card (name, description,
+// pricing). It shares the Product identifier with the entitlement definition.
 type Definition struct {
 	ID          Product
 	Name        string
@@ -19,7 +11,7 @@ type Definition struct {
 	AmountMinor map[string]int64
 }
 
-func catalog() map[Product]Definition {
+func commerceCatalog() map[Product]Definition {
 	return map[Product]Definition{
 		ProductChat: {
 			ID:          ProductChat,
@@ -32,17 +24,20 @@ func catalog() map[Product]Definition {
 
 // Catalog returns a stable list for API rendering.
 func Catalog() []Definition {
-	return []Definition{catalog()[ProductChat]}
+	return []Definition{commerceCatalog()[ProductChat]}
 }
 
+// DefinitionFor fails closed for unknown products.
 func DefinitionFor(id Product) (Definition, error) {
-	item, ok := catalog()[id]
+	item, ok := commerceCatalog()[id]
 	if !ok {
-		return Definition{}, fmt.Errorf("commerce: unknown product %q", id)
+		return Definition{}, fmt.Errorf("liki: unknown product %q", id)
 	}
 	return item, nil
 }
 
+// AmountMinor returns the catalog price for a product and currency. Unknown
+// combinations fail closed; handlers must never invent a price.
 func AmountMinor(id Product, currency string) (int64, error) {
 	item, err := DefinitionFor(id)
 	if err != nil {
@@ -50,11 +45,12 @@ func AmountMinor(id Product, currency string) (int64, error) {
 	}
 	amount, ok := item.AmountMinor[currency]
 	if !ok || amount <= 0 {
-		return 0, fmt.Errorf("commerce: product %s does not support currency %s", id, currency)
+		return 0, fmt.Errorf("liki: product %s does not support currency %s", id, currency)
 	}
 	return amount, nil
 }
 
+// DetectCurrency derives billing currency from trusted edge/geo headers.
 func DetectCurrency(cfCountry, geoCountry string) string {
 	switch {
 	case cfCountry == "CN" || geoCountry == "CN":

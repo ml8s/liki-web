@@ -1,4 +1,7 @@
-package entitlement
+// Package liki is the conversational agent product. Users purchase access to
+// Liki — a 命理 consultant — not a report. This package owns the product
+// definition, entitlement grants, order lifecycle, and chat runtime.
+package liki
 
 import "fmt"
 
@@ -8,6 +11,14 @@ type Product string
 
 const ProductChat Product = "liki-chat"
 
+// Skill identifies a consultable domain inside the Liki agent.
+type Skill string
+
+// SkillLiki is the single unified skill (the engine routes 八字/起名/问卦/风水
+// internally). 未发布，无历史 skill 兼容负担。
+const SkillLiki Skill = "liki"
+
+// ProductDefinition describes a commercial product and the skills it grants.
 type ProductDefinition struct {
 	ID     Product
 	Name   string
@@ -33,7 +44,7 @@ func ProductCatalog() []ProductDefinition {
 func ProductDefinitionFor(id Product) (ProductDefinition, error) {
 	item, ok := productCatalog[id]
 	if !ok {
-		return ProductDefinition{}, fmt.Errorf("entitlement: unknown chat product %q", id)
+		return ProductDefinition{}, fmt.Errorf("liki: unknown chat product %q", id)
 	}
 	return item, nil
 }

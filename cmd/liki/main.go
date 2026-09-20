@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"liki-web/internal/product"
@@ -16,12 +17,12 @@ import (
 	"syscall"
 	"time"
 
+	"liki-web/internal/sqliteutil"
+
 	"liki-web/internal/account"
 	"liki-web/internal/agent"
 	"liki-web/internal/aipay"
 	"liki-web/internal/auth"
-	"liki-web/internal/chat"
-	"liki-web/internal/commerce"
 	"liki-web/internal/dodo"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
@@ -30,13 +31,11 @@ import (
 	"liki-web/internal/profile"
 	"liki-web/internal/xunhu"
 
-	_ "modernc.org/sqlite"
-
 	"liki-web/internal/email"
-	"liki-web/internal/entitlement"
 	"liki-web/internal/feedback"
 	apphttp "liki-web/internal/http"
 	"liki-web/internal/httputil"
+	"liki-web/internal/liki"
 	"liki-web/internal/llm"
 	"liki-web/internal/metrics"
 	"liki-web/internal/payment"
@@ -49,10 +48,7 @@ var (
 )
 
 type Config struct {
-	DBPath             string
-	LifebookDBPath     string
-	HepanDBPath        string
-	FeedbackDBPath     string
+	DataDir            string
 	FeedbackAPIKey     string
 	ResendAPIKey       string
 	ResendFrom         string
@@ -83,10 +79,7 @@ type Config struct {
 
 func LoadConfig() Config {
 	return Config{
-		DBPath:             envOr("DB_PATH", "/var/lib/liki/naming.db"),
-		LifebookDBPath:     envOr("MINGSHU_DB_PATH", "/var/lib/liki/mingshu.db"),
-		HepanDBPath:        envOr("HEPAN_DB_PATH", "/var/lib/liki/hepan.db"),
-		FeedbackDBPath:     envOr("FEEDBACK_DB_PATH", "/var/lib/liki/feedback.db"),
+		DataDir:            envOr("LIKI_DATA_DIR", "/var/lib/liki"),
 		FeedbackAPIKey:     os.Getenv("FEEDBACK_API_KEY"),
 		ResendAPIKey:       os.Getenv("RESEND_API_KEY"),
 		ResendFrom:         envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
@@ -146,7 +139,7 @@ func loadAlipayConfig() aipay.Config {
 
 func main() {
 	addr := flag.String("addr", ":8080", "listen address")
-	dbPath := flag.String("db", "/var/lib/liki/naming.db", "SQLite database path")
+	dbPath := flag.String("db", "", "deprecated: use LIKI_DATA_DIR; only its parent directory is honored")
 	flag.Parse()
 
 	cfg := LoadConfig()
@@ -161,44 +154,63 @@ func main() {
 	if *addr != ":8080" {
 		cfg.ListenAddr = *addr
 	}
-	if *dbPath != "/var/lib/liki/naming.db" {
-		cfg.DBPath = *dbPath
+	// ── open databases ──
+	dataDir := cfg.DataDir
+	if *dbPath != "" {
+		dataDir = filepath.Dir(*dbPath)
+		slog.Warn("-db is deprecated; use LIKI_DATA_DIR", "data_dir", dataDir)
+	}
+	open := func(name string) *sql.DB {
+		db, err := sqliteutil.Open(filepath.Join(dataDir, name))
+		if err != nil {
+			slog.Error("open database", "name", name, "err", err)
+			os.Exit(1)
+		}
+		return db
 	}
 
-	// Init database
-	db, err := payment.OpenDB(cfg.DBPath)
-	if err != nil {
-		slog.Error("open db", "err", err)
-		os.Exit(1)
-	}
-	defer func() { _ = db.Close() }()
+	platformDB := open("platform.db")
+	defer func() { _ = platformDB.Close() }()
+	profilesDB := open("profiles.db")
+	defer func() { _ = profilesDB.Close() }()
+	feedbackDB := open("feedback.db")
+	defer func() { _ = feedbackDB.Close() }()
+	likiDB := open("liki.db")
+	defer func() { _ = likiDB.Close() }()
+	namingDB := open("naming.db")
+	defer func() { _ = namingDB.Close() }()
+	mingshuDB := open("mingshu.db")
+	defer func() { _ = mingshuDB.Close() }()
+	hepanDB := open("hepan.db")
+	defer func() { _ = hepanDB.Close() }()
+	aipayDB := open("aipay.db")
+	defer func() { _ = aipayDB.Close() }()
 
-	authStore := auth.NewStore(db, []byte(cfg.JWTSecret))
-	namingStore := naming.NewStore(db)
+	// ── platform (auth + payment runtime) ──
+	authStore := auth.NewStore(platformDB, []byte(cfg.JWTSecret))
 
-	// ── feedback（共用 naming 数据库）──
-	var feedbackStore *feedback.Store
-	feedbackStore, err = feedback.NewStore(db)
+	// ── profiles ──
+	profileStore := profile.NewStore(profilesDB)
+
+	// ── feedback ──
+	feedbackStore, err := feedback.NewStore(feedbackDB)
 	if err != nil {
 		slog.Error("init feedback store", "err", err)
 		os.Exit(1)
 	}
 
-	mingshuDB, err := payment.OpenDB(cfg.LifebookDBPath)
-	if err != nil {
-		slog.Error("init mingshu db", "err", err)
-		os.Exit(1)
-	}
+	// ── products ──
+	namingStore := naming.NewStore(namingDB)
 	mingshuStore := mingshu.NewStore(mingshuDB)
 
 	// Init services
 	emailClient := email.New(cfg.ResendAPIKey, cfg.ResendFrom)
 
 	dodoProducts := map[string]string{
-		string(product.ProductNaming):   cfg.DodoProductNaming,
-		string(product.ProductMingShu):  cfg.DodoProductMingShu,
-		string(product.ProductHePan):    cfg.DodoProductHepan,
-		string(entitlement.ProductChat): cfg.DodoProductLikiChat,
+		string(product.ProductNaming):  cfg.DodoProductNaming,
+		string(product.ProductMingShu): cfg.DodoProductMingShu,
+		string(product.ProductHePan):   cfg.DodoProductHepan,
+		string(liki.ProductChat):       cfg.DodoProductLikiChat,
 	}
 	dodoClient := dodo.New(cfg.DodoAPIKey, cfg.DodoWebhookKey, cfg.DodoTestMode, dodoProducts)
 
@@ -241,12 +253,6 @@ func main() {
 	}
 
 	// ── hepan ──
-	hepanDB, err := payment.OpenDB(cfg.HepanDBPath)
-	if err != nil {
-		slog.Error("open hepan db", "err", err)
-		os.Exit(1)
-	}
-	defer func() { _ = hepanDB.Close() }()
 	if _, err := hepanDB.Exec(hepan.Schema); err != nil {
 		slog.Error("init hepan schema", "err", err)
 		os.Exit(1)
@@ -264,12 +270,11 @@ func main() {
 
 	// deny-by-default tool scope so an active session cannot reach another
 	// skill's Python tools or engine domains.
-	profileStore := profile.NewStore(db)
 	if err := profileStore.Migrate(ctx); err != nil {
 		slog.Error("init profile schema", "err", err)
 		os.Exit(1)
 	}
-	chatRunners := make(map[chat.Skill]chat.Runner, len(agent.UnifiedChatSkills))
+	chatRunners := make(map[liki.Skill]liki.Runner, len(agent.UnifiedChatSkills))
 	for _, skillID := range agent.UnifiedChatSkills {
 		tools := agent.NewToolRegistry(cfg.EngineURL)
 		tools.Register("read_file",
@@ -280,7 +285,7 @@ func main() {
 		tools.Register("update_profile_birth_time",
 			"将定盘校验得到的出生时间写回当前会话绑定的档案。仅在你通过 calibrate 确定准确的出生时辰后调用，且只能更新 birth_time 与 birth_time_known。",
 			json.RawMessage(`{"type":"object","properties":{"profile_id":{"type":"string","description":"当前会话绑定的档案 id"},"birth_time":{"type":"string","description":"定盘后的出生时间 HH:mm"},"birth_time_known":{"type":"string","enum":["known","approximate"]}},"required":["profile_id","birth_time","birth_time_known"]}`),
-			chat.UpdateProfileBirthTimeHandler(cfg.SelfURL, auth.DefaultConfig().CookieName, nil))
+			liki.UpdateProfileBirthTimeHandler(cfg.SelfURL, auth.DefaultConfig().CookieName, nil))
 		// Python 工具层（八字/问卦领域），schema 单一来源自各域 skill-tools.json。
 		pythonTools := agent.NewPythonToolRegistry(cfg.SkillsDir)
 		if err := pythonTools.RegisterSkills(tools, agent.PythonSkills...); err != nil {
@@ -298,7 +303,7 @@ func main() {
 			os.Exit(1)
 		}
 		scopedTools := agent.NewScopedToolRegistry(tools, scope)
-		chatRunners[chat.Skill(skillID)] = agent.NewAgent(llmClient, scopedTools, scopedPrompt)
+		chatRunners[liki.Skill(skillID)] = agent.NewAgent(llmClient, scopedTools, scopedPrompt)
 	}
 
 	if cfg.ReturnURL == "" {
@@ -330,7 +335,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	entitlements := entitlement.NewStore(db)
+	entitlements := liki.NewEntitlementStore(likiDB)
 	if err := entitlements.Migrate(ctx); err != nil {
 		slog.Error("init entitlements", "err", err)
 		os.Exit(1)
@@ -338,19 +343,18 @@ func main() {
 	if _, err := entitlements.ExpireDue(ctx); err != nil {
 		slog.Warn("expire entitlements", "err", err)
 	}
-	chatStore := chat.NewStore(db)
+	chatStore := liki.NewChatStore(likiDB)
 	if err := chatStore.Migrate(ctx); err != nil {
 		slog.Error("init chat schema", "err", err)
 		os.Exit(1)
 	}
-	chatService := chat.NewService(chatStore, entitlements, profileStore, chatRunners)
-	chatHandler := chat.NewHandler(chatService, authHandler.RequireUser, nil)
-	commerceOrders := commerce.NewStore(db)
+	chatService := liki.NewService(chatStore, entitlements, profileStore, chatRunners)
+	commerceOrders := liki.NewOrderStore(likiDB)
 	if err := commerceOrders.Migrate(ctx); err != nil {
 		slog.Error("init commerce schema", "err", err)
 		os.Exit(1)
 	}
-	aipayStore := aipay.NewStore(db)
+	aipayStore := aipay.NewStore(aipayDB)
 	if err := aipayStore.Migrate(ctx); err != nil {
 		slog.Error("init aipay schema", "err", err)
 		os.Exit(1)
@@ -372,18 +376,13 @@ func main() {
 		os.Exit(1)
 	}
 	chatDuration := 30 * 24 * time.Hour
-	commerceFulfiller := func(productID commerce.Product) *commerce.Fulfiller {
-		return commerce.NewFulfiller(commerceOrders, entitlements, productID, chatDuration)
-	}
-	var commerceHandler *commerce.Handler
-
 	onPaid := namingOnPaid(namingStore, emailClient, cfg.ReturnURL)
 	onVerification := adminVerification(emailClient)
 
-	intents := payment.NewIntentStore(db)
-	notifications := payment.NewNotificationStore(db)
-	fulfillments := payment.NewFulfillmentTaskStore(db)
-	events := payment.NewPaymentEventStore(db)
+	intents := payment.NewIntentStore(platformDB)
+	notifications := payment.NewNotificationStore(platformDB)
+	fulfillments := payment.NewFulfillmentTaskStore(platformDB)
+	events := payment.NewPaymentEventStore(platformDB)
 	if err := intents.Migrate(ctx); err != nil {
 		slog.Error("init payment intents", "err", err)
 		os.Exit(1)
@@ -431,14 +430,13 @@ func main() {
 		string(product.ProductMingShu): mingshuFlow,
 		string(product.ProductHePan):   hepanFlow,
 
-		string(entitlement.ProductChat): commerceFulfiller(entitlement.ProductChat),
+		string(liki.ProductChat): liki.NewFulfiller(commerceOrders, entitlements, liki.ProductChat, chatDuration),
 	}
 	paymentSender := paymentEmailSender{client: emailClient}
 	paymentRuntime := payment.NewRuntime(gateways, flows, intents, notifications, fulfillments, events, paymentSender, payment.RuntimeOptions{
 		BaseURL:    cfg.ReturnURL,
 		AdminEmail: os.Getenv("ADMIN_EMAIL"),
 	})
-	commerceHandler = commerce.NewHandler(commerceOrders, entitlements, paymentRuntime, authHandler.RequireUser)
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
 	if err := httputil.ValidateJWTSecret(cfg.JWTSecret); err != nil {
@@ -453,28 +451,26 @@ func main() {
 
 	mux := http.NewServeMux()
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
-		OnPaid:             onPaid, // admin-created orders only
-		OnVerification:     onVerification,
-		PaymentRuntime:     paymentRuntime,
-		AuthHandler:        authHandler,
-		EntitlementHandler: entitlement.NewHandler(entitlements, authHandler.RequireUser),
-		ChatHandler:        chatHandler,
-		CommerceHandler:    commerceHandler,
-		AipayHandler:       aipayHandler,
-		ProfileHandler:     profile.NewHandler(profileStore, authHandler.RequireUser),
-		AccountHandler:     account.NewHandler(profileStore, chatStore, authHandler.RequireUser),
-		NamingStore:        namingStore,
-		MingShuStore:       mingshuStore,
-		MingShuGenerator:   mingshuGenerator,
-		HepanStore:         hepanStore,
-		HepanGenerator:     hepanGenerator,
-		FeedbackStore:      feedbackStore,
-		FeedbackAPIKey:     cfg.FeedbackAPIKey,
-		NamingAgent:        namingAgent,
-		Agent:              reportAgent,
-		Analytics:          apphttp.NewAnalytics(),
-		MetricsHandler:     metrics.Handler(os.Getenv("METRICS_TOKEN")),
-		DevMode:            cfg.DevMode,
+		OnPaid:           onPaid, // admin-created orders only
+		OnVerification:   onVerification,
+		PaymentRuntime:   paymentRuntime,
+		AuthHandler:      authHandler,
+		LikiHandler:      liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser),
+		AipayHandler:     aipayHandler,
+		ProfileHandler:   profile.NewHandler(profileStore, authHandler.RequireUser),
+		AccountHandler:   account.NewHandler(profileStore, chatStore, authHandler.RequireUser),
+		NamingStore:      namingStore,
+		MingShuStore:     mingshuStore,
+		MingShuGenerator: mingshuGenerator,
+		HepanStore:       hepanStore,
+		HepanGenerator:   hepanGenerator,
+		FeedbackStore:    feedbackStore,
+		FeedbackAPIKey:   cfg.FeedbackAPIKey,
+		NamingAgent:      namingAgent,
+		Agent:            reportAgent,
+		Analytics:        apphttp.NewAnalytics(),
+		MetricsHandler:   metrics.Handler(os.Getenv("METRICS_TOKEN")),
+		DevMode:          cfg.DevMode,
 	}, BuildTime, Version, rateLimiter, verifyLimiter)
 
 	// Write timeout must accommodate LLM calls (~120s)

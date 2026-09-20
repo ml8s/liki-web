@@ -1,4 +1,4 @@
-package commerce
+package liki
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrOrderNotFound = errors.New("commerce: order not found")
+var ErrOrderNotFound = errors.New("liki: order not found")
 
 type OrderStatus string
 
@@ -35,21 +35,22 @@ type Order struct {
 	PaidAt          *time.Time  `json:"paid_at"`
 }
 
-type Store struct {
-	db     *sql.DB
-	nowFun func() time.Time
-	idFunc func() string
+// OrderStore manages the chat_orders table.
+type OrderStore struct {
+	db      *sql.DB
+	nowFunc func() time.Time
+	idFunc  func() string
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
-		db:     db,
-		nowFun: func() time.Time { return time.Now().UTC() },
-		idFunc: func() string { return uuid.NewString() },
+func NewOrderStore(db *sql.DB) *OrderStore {
+	return &OrderStore{
+		db:      db,
+		nowFunc: func() time.Time { return time.Now().UTC() },
+		idFunc:  uuid.NewString,
 	}
 }
 
-func (s *Store) Migrate(ctx context.Context) error {
+func (s *OrderStore) Migrate(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS chat_orders (
     id TEXT PRIMARY KEY,
@@ -71,12 +72,11 @@ DROP INDEX IF EXISTS idx_chat_orders_user_pending_product;
 	return err
 }
 
-func (s *Store) CreateOrder(ctx context.Context, userID, email string, productID Product, currency string) (Order, error) {
+func (s *OrderStore) CreateOrder(ctx context.Context, userID, email string, productID Product, currency string) (Order, error) {
 	userID = strings.TrimSpace(userID)
 	email = strings.ToLower(strings.TrimSpace(email))
 	currency = strings.ToUpper(strings.TrimSpace(currency))
-	_, err := DefinitionFor(productID)
-	if err != nil {
+	if _, err := DefinitionFor(productID); err != nil {
 		return Order{}, err
 	}
 	amount, err := AmountMinor(productID, currency)
@@ -84,10 +84,10 @@ func (s *Store) CreateOrder(ctx context.Context, userID, email string, productID
 		return Order{}, err
 	}
 	if userID == "" || email == "" {
-		return Order{}, fmt.Errorf("commerce: order requires user and email")
+		return Order{}, fmt.Errorf("liki: order requires user and email")
 	}
 
-	now := s.nowFun()
+	now := s.nowFunc()
 	order := Order{
 		ID: s.idFunc(), UserID: userID, Email: email, ProductID: productID,
 		AmountMinor: amount, Currency: currency, Status: OrderPending,
@@ -101,12 +101,12 @@ VALUES (?,?,?,?,?,?,?,?,?)`,
 		order.Currency, string(order.Status), order.CreatedAt.Format(time.RFC3339),
 		order.UpdatedAt.Format(time.RFC3339))
 	if err != nil {
-		return Order{}, fmt.Errorf("commerce: create order: %w", err)
+		return Order{}, fmt.Errorf("liki: create order: %w", err)
 	}
 	return order, nil
 }
 
-func (s *Store) GetOrderForUser(ctx context.Context, userID, orderID string) (Order, error) {
+func (s *OrderStore) GetOrderForUser(ctx context.Context, userID, orderID string) (Order, error) {
 	order, err := s.getOrder(ctx, orderID)
 	if err != nil {
 		return Order{}, err
@@ -117,7 +117,7 @@ func (s *Store) GetOrderForUser(ctx context.Context, userID, orderID string) (Or
 	return order, nil
 }
 
-func (s *Store) getOrder(ctx context.Context, orderID string) (Order, error) {
+func (s *OrderStore) getOrder(ctx context.Context, orderID string) (Order, error) {
 	var order Order
 	var productID, status, createdAt, updatedAt string
 	var intentID, paidAt sql.NullString
@@ -136,26 +136,26 @@ FROM chat_orders WHERE id=?`, orderID,
 	order.Status = OrderStatus(status)
 	order.PaymentIntentID = intentID.String
 	if order.CreatedAt, err = time.Parse(time.RFC3339, createdAt); err != nil {
-		return Order{}, fmt.Errorf("commerce: parse created_at: %w", err)
+		return Order{}, fmt.Errorf("liki: parse created_at: %w", err)
 	}
 	if order.UpdatedAt, err = time.Parse(time.RFC3339, updatedAt); err != nil {
-		return Order{}, fmt.Errorf("commerce: parse updated_at: %w", err)
+		return Order{}, fmt.Errorf("liki: parse updated_at: %w", err)
 	}
 	if paidAt.Valid {
 		parsed, err := time.Parse(time.RFC3339, paidAt.String)
 		if err != nil {
-			return Order{}, fmt.Errorf("commerce: parse paid_at: %w", err)
+			return Order{}, fmt.Errorf("liki: parse paid_at: %w", err)
 		}
 		order.PaidAt = &parsed
 	}
 	return order, nil
 }
 
-func (s *Store) AttachIntent(ctx context.Context, userID, orderID, intentID string) error {
+func (s *OrderStore) AttachIntent(ctx context.Context, userID, orderID, intentID string) error {
 	result, err := s.db.ExecContext(ctx, `
 UPDATE chat_orders SET payment_intent_id=?, updated_at=?
 WHERE id=? AND user_id=? AND status='pending'`,
-		intentID, s.nowFun().Format(time.RFC3339), orderID, userID)
+		intentID, s.nowFunc().Format(time.RFC3339), orderID, userID)
 	if err != nil {
 		return err
 	}
@@ -165,11 +165,11 @@ WHERE id=? AND user_id=? AND status='pending'`,
 	return nil
 }
 
-func (s *Store) CancelOrder(ctx context.Context, userID, orderID string) error {
+func (s *OrderStore) CancelOrder(ctx context.Context, userID, orderID string) error {
 	result, err := s.db.ExecContext(ctx, `
 UPDATE chat_orders SET status='canceled', updated_at=?
 WHERE id=? AND user_id=? AND status='pending'`,
-		s.nowFun().Format(time.RFC3339), orderID, userID)
+		s.nowFunc().Format(time.RFC3339), orderID, userID)
 	if err != nil {
 		return err
 	}
@@ -179,8 +179,8 @@ WHERE id=? AND user_id=? AND status='pending'`,
 	return nil
 }
 
-func (s *Store) MarkPaidByIntent(ctx context.Context, intentID string) (Order, bool, error) {
-	now := s.nowFun().Format(time.RFC3339)
+func (s *OrderStore) MarkPaidByIntent(ctx context.Context, intentID string) (Order, bool, error) {
+	now := s.nowFunc().Format(time.RFC3339)
 	result, err := s.db.ExecContext(ctx, `
 UPDATE chat_orders SET status='paid', paid_at=?, updated_at=?
 WHERE payment_intent_id=? AND status='pending'`, now, now, intentID)
@@ -218,7 +218,7 @@ FROM chat_orders WHERE payment_intent_id=?`, intentID,
 	return order, true, nil
 }
 
-func (s *Store) ListOrdersForUser(ctx context.Context, userID string, limit int) ([]Order, error) {
+func (s *OrderStore) ListOrdersForUser(ctx context.Context, userID string, limit int) ([]Order, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}

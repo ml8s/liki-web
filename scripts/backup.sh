@@ -1,11 +1,11 @@
 #!/bin/bash
-# backup.sh — SQLite WAL-mode backups (VACUUM INTO) for ALL product databases.
-# Safe to run while the server is live (VACUUM INTO is a read-only operation
-# that copies the database into a new file with WAL checkpointed in).
+# backup.sh — SQLite WAL-mode backups (VACUUM INTO) for all Liki databases.
+# VACUUM INTO is an online, read-only backup operation and includes a
+# checkpointed view of the database, so WAL files are not needed in the copy.
 #
-# 库清单与 cmd/liki/main.go 的默认值一一对齐（env 可覆盖）：
-#   DB_PATH（naming）/ MINGSHU_DB_PATH / HEPAN_DB_PATH / FEEDBACK_DB_PATH
-# 库文件不存在时跳过（开发机常只有部分库）——不视为错误。
+# Database names match cmd/liki/main.go:
+#   platform, profiles, feedback, liki, naming, mingshu, hepan, aipay, referral
+# Missing files are skipped (for example, referral.db may not exist yet).
 #
 # Usage:
 #   scripts/backup.sh                    # keep 30 days, output to data/backups/
@@ -16,53 +16,56 @@
 
 set -euo pipefail
 
+DATA_DIR="${LIKI_DATA_DIR:-data}"
 BACKUP_DIR="${1:-data/backups}"
 RETENTION_DAYS="${2:-30}"
 
-# name:env 顺序表（name = 备份文件名前缀 + prune 匹配模式）
-DBS=(
-  "naming:DB_PATH"
-  "mingshu:MINGSHU_DB_PATH"
-  "hepan:HEPAN_DB_PATH"
-  "feedback:FEEDBACK_DB_PATH"
-)
-# 与 main.go 默认一致（容器内为 /var/lib/liki/*，本地为 data/*）
-declare -A DEFAULTS=(
-  [DB_PATH]="data/liki.db"
-  [MINGSHU_DB_PATH]="data/mingshu.db"
-  [HEPAN_DB_PATH]="data/hepan.db"
-  [FEEDBACK_DB_PATH]="data/feedback.db"
+DATABASES=(
+  platform
+  profiles
+  feedback
+  liki
+  naming
+  mingshu
+  hepan
+  aipay
+  referral
 )
 
-if ! command -v sqlite3 &>/dev/null; then
+if ! command -v sqlite3 >/dev/null 2>&1; then
     echo "[backup] sqlite3 CLI not found — install with: apt install sqlite3"
     exit 1
 fi
 
+for path in "$DATA_DIR" "$BACKUP_DIR"; do
+    case "$path" in *"'"*) echo "[backup] ERROR: path contains single-quote: $path"; exit 1 ;; esac
+done
+
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-DONE=0; SKIPPED=0
+DONE=0
+SKIPPED=0
 
-for entry in "${DBS[@]}"; do
-    name="${entry%%:*}"; env_key="${entry#*:}"
-    db_path="${!env_key:-${DEFAULTS[$env_key]}}"
+for name in "${DATABASES[@]}"; do
+    db_path="$DATA_DIR/$name.db"
 
-    if [ ! -f "$db_path" ]; then
-        echo "[backup] $(date -u +%Y-%m-%dT%H:%M:%SZ) skip $name — $db_path 不存在"
-        SKIPPED=$((SKIPPED+1))
+    if [[ ! -f "$db_path" ]]; then
+        echo "[backup] $(date -u +%Y-%m-%dT%H:%M:%SZ) skip $name — $db_path does not exist"
+        SKIPPED=$((SKIPPED + 1))
         continue
     fi
 
-    BACKUP_FILE="$BACKUP_DIR/${name}-${TIMESTAMP}.db"
-    # Sanity-check: path must not contain single-quotes (would break VACUUM INTO).
-    case "$BACKUP_FILE" in *"'"*) echo "[backup] ERROR: path contains single-quote"; exit 1 ;; esac
+    backup_file="$BACKUP_DIR/$name-$TIMESTAMP.db"
+    echo "[backup] $(date -u +%Y-%m-%dT%H:%M:%SZ) $name ← $db_path"
+    sqlite3 "$db_path" "VACUUM INTO '$backup_file'"
 
-    echo "[backup] $(date -u +%Y-%m-%dT%H:%M:%SZ) $name ← $db_path (VACUUM INTO $BACKUP_FILE)"
-    sqlite3 "$db_path" "VACUUM INTO '$BACKUP_FILE'"
+    if [[ "$(sqlite3 "$backup_file" 'PRAGMA integrity_check;')" != "ok" ]]; then
+        echo "[backup] ERROR: integrity check failed for $backup_file"
+        exit 1
+    fi
 
-    # Prune old backups（按本库前缀，互不误删）
-    find "$BACKUP_DIR" -name "${name}-*.db" -mtime "+${RETENTION_DAYS}" -delete
-    DONE=$((DONE+1))
+    find "$BACKUP_DIR" -name "$name-*.db" -mtime "+${RETENTION_DAYS}" -delete
+    DONE=$((DONE + 1))
 done
 
-echo "[backup] $(date -u +%Y-%m-%dT%H:%M:%SZ) 完成：$DONE 个库备份，$SKIPPED 个跳过 → $BACKUP_DIR（保留 ${RETENTION_DAYS}d）"
+echo "[backup] $(date -u +%Y-%m-%dT%H:%M:%SZ) done: $DONE backed up, $SKIPPED skipped → $BACKUP_DIR (retention ${RETENTION_DAYS}d)"

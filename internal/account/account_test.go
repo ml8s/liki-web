@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"liki-web/internal/auth"
-	"liki-web/internal/chat"
+	"liki-web/internal/liki"
 	"liki-web/internal/profile"
 
 	_ "modernc.org/sqlite"
@@ -33,7 +33,7 @@ func TestHandleErasure(t *testing.T) {
 	if err := profileStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	chatStore := chat.NewStore(db)
+	chatStore := liki.NewChatStore(db)
 	if err := chatStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestHandleErasure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "assistant", chat.KindSystemProfile, `{"birth_date":"1958-闰5-12"}`); err != nil {
+	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "assistant", liki.KindSystemProfile, `{"birth_date":"1958-闰5-12"}`); err != nil {
 		t.Fatal(err)
 	}
 

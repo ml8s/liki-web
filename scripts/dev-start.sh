@@ -27,15 +27,12 @@ export XUNHU_APPSECRET="${XUNHU_APPSECRET:-}"
 export RESEND_API_KEY="${RESEND_API_KEY:-}"
 export RESEND_FROM="${RESEND_FROM:-noreply@localhost}"
 export RETURN_URL="${RETURN_URL:-http://localhost:8080}"
-export DB_PATH="${DB_PATH:-$(pwd)/data/liki.db}"
-export MINGSHU_DB_PATH="${MINGSHU_DB_PATH:-${LIFEBOOK_DB_PATH:-$(pwd)/data/mingshu.db}}"
-export HEPAN_DB_PATH="${HEPAN_DB_PATH:-$(pwd)/data/hepan.db}"
-mkdir -p "$(pwd)/data"
+export LIKI_DATA_DIR="${LIKI_DATA_DIR:-$(pwd)/data}"
+mkdir -p "$LIKI_DATA_DIR"
 export LISTEN_ADDR="${LISTEN_ADDR:-:8081}"
 export LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
 export JWT_SECRET="${JWT_SECRET:-dev-secret-do-not-use-in-production}"
 export DEV_MODE="${DEV_MODE:-true}"
-export FEEDBACK_DB_PATH="${FEEDBACK_DB_PATH:-$(pwd)/data/feedback.db}"
 
 # Caddy binary
 if [ -z "${CADDY_BIN:-}" ]; then

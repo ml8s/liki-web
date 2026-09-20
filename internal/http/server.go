@@ -13,9 +13,7 @@ import (
 	"liki-web/internal/agent"
 	"liki-web/internal/aipay"
 	"liki-web/internal/auth"
-	"liki-web/internal/chat"
-	"liki-web/internal/commerce"
-	"liki-web/internal/entitlement"
+	"liki-web/internal/liki"
 	"liki-web/internal/feedback"
 	"liki-web/internal/hepan"
 	"liki-web/internal/mingshu"
@@ -29,9 +27,7 @@ type ServerDeps struct {
 	OnVerification     func(ctx context.Context, email, code string)
 	PaymentRuntime     *payment.Runtime
 	AuthHandler        *auth.Handler
-	EntitlementHandler *entitlement.Handler
-	ChatHandler        *chat.Handler
-	CommerceHandler    *commerce.Handler
+	LikiHandler        *liki.Handler
 	AipayHandler       *aipay.Handler
 	ProfileHandler     *profile.Handler
 	AccountHandler     *account.Handler
@@ -76,21 +72,12 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		deps.AuthHandler.RegisterRoutes(mux, authCodeLimit, authVerifyLimit)
 	}
 
-	// ── platform entitlements and unified chat ──
-	if deps.EntitlementHandler != nil {
-		deps.EntitlementHandler.RegisterRoutes(mux)
-	}
-	if deps.ChatHandler != nil {
-		chatLimit := func(next http.HandlerFunc) http.HandlerFunc {
+	// ── liki product (entitlements + commerce + chat) ──
+	if deps.LikiHandler != nil {
+		likiLimit := func(next http.HandlerFunc) http.HandlerFunc {
 			return rl.Wrap(5.0/60, 6, next)
 		}
-		deps.ChatHandler.RegisterRoutes(mux, chatLimit)
-	}
-	if deps.CommerceHandler != nil {
-		commerceLimit := func(next http.HandlerFunc) http.HandlerFunc {
-			return rl.Wrap(5.0/60, 6, next)
-		}
-		deps.CommerceHandler.RegisterRoutes(mux, commerceLimit)
+		deps.LikiHandler.RegisterRoutes(mux, likiLimit)
 	}
 	if deps.AipayHandler != nil {
 		// Aipay bills and proof redemption are write-like endpoints and get
