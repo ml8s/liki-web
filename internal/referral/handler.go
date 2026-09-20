@@ -32,27 +32,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit RateLimiterFunc) {
 	mux.HandleFunc("GET /api/referral/me", h.requireUser(h.HandleMe))
 	mux.HandleFunc("POST /api/referral/register", h.requireUser(limit(h.HandleRegister)))
 	mux.HandleFunc("GET /api/referral/me/commissions", h.requireUser(h.HandleCommissions))
-}
-
-// CaptureClick records the landing touch as a 30-day HttpOnly cookie. The code
-// is validated again from referrers when a new account is created.
-func (h *Handler) CaptureClick(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		code := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("ref")))
-		if len(code) >= 4 && len(code) <= 32 {
-			http.SetCookie(w, &http.Cookie{
-				Name:     AttributionCookieName,
-				Value:    code,
-				Path:     "/",
-				MaxAge:   int(AttributionCookieTTL.Seconds()),
-				Expires:  time.Now().UTC().Add(AttributionCookieTTL),
-				HttpOnly: true,
-				Secure:   h.secureCookie,
-				SameSite: http.SameSiteLaxMode,
-			})
-		}
-		next.ServeHTTP(w, r)
-	})
+	mux.HandleFunc("GET /r/{code}", h.HandleLink)
 }
 
 // PostLoginHook is called by auth after a successful email login. Referral
@@ -81,31 +61,19 @@ func (h *Handler) PostLoginHook(w http.ResponseWriter, r *http.Request, user aut
 	})
 }
 
-type registerRequest struct {
-	RecruiterCode string `json:"recruiter_code"`
-}
-
-func (r registerRequest) Validate() error { return nil }
-
 func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
 		httputil.RespondAppError(w, httputil.ErrUnauthorized)
 		return
 	}
-	req, ok := httputil.DecodeAndValidate[registerRequest](w, r)
-	if !ok {
-		return
-	}
-	item, err := h.store.RegisterReferrer(r.Context(), user.ID, req.RecruiterCode)
+	item, err := h.store.RegisterReferrer(r.Context(), user.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrNotEligible):
 			httputil.RespondError(w, http.StatusForbidden, "referral_not_eligible", "需要先购买并激活 Liki Chat")
-		case errors.Is(err, ErrInvalidCode):
-			httputil.RespondError(w, http.StatusUnprocessableEntity, "invalid_referral_code", "招商码无效")
 		case errors.Is(err, ErrSelfReferral):
-			httputil.RespondError(w, http.StatusBadRequest, "self_referral", "不能使用自己的招商码")
+			httputil.RespondError(w, http.StatusBadRequest, "self_referral", "不能通过自己的链接开通")
 		default:
 			slog.Error("referral: register", "user_id", user.ID, "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
@@ -119,6 +87,24 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{"partner": stats})
+}
+
+// HandleLink is the only public referral entry point. It validates the link
+// identifier before writing the HttpOnly attribution cookie.
+func (h *Handler) HandleLink(w http.ResponseWriter, r *http.Request) {
+	if _, err := h.store.ReferrerByCode(r.Context(), r.PathValue("code")); err == nil {
+		http.SetCookie(w, &http.Cookie{
+			Name:     AttributionCookieName,
+			Value:    strings.ToUpper(strings.TrimSpace(r.PathValue("code"))),
+			Path:     "/",
+			MaxAge:   int(AttributionCookieTTL.Seconds()),
+			Expires:  time.Now().UTC().Add(AttributionCookieTTL),
+			HttpOnly: true,
+			Secure:   h.secureCookie,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
+	http.Redirect(w, r, "/zh-Hans/", http.StatusFound)
 }
 
 func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {

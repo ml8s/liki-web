@@ -36,7 +36,7 @@ func paidIntent(provider payment.Provider, buyer string, amount int64) payment.P
 func TestRegisterRequiresPaidAccess(t *testing.T) {
 	store := newStore(t)
 	store.paidCheck = func(context.Context, string) (bool, error) { return false, nil }
-	if _, err := store.RegisterReferrer(context.Background(), "u1", ""); err != ErrNotEligible {
+	if _, err := store.RegisterReferrer(context.Background(), "u1"); err != ErrNotEligible {
 		t.Fatalf("err = %v, want ErrNotEligible", err)
 	}
 }
@@ -45,7 +45,7 @@ func TestRegisterRecruitAndAttribute(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
 
-	kol, err := store.RegisterReferrer(ctx, "u1", "")
+	kol, err := store.RegisterReferrer(ctx, "u1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestRegisterRecruitAndAttribute(t *testing.T) {
 		t.Fatalf("kol = %+v", kol)
 	}
 
-	again, err := store.RegisterReferrer(ctx, "u1", "")
+	again, err := store.RegisterReferrer(ctx, "u1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,8 +61,15 @@ func TestRegisterRecruitAndAttribute(t *testing.T) {
 		t.Fatalf("registration was not idempotent: %+v != %+v", again, kol)
 	}
 
-	if _, err := store.RegisterReferrer(ctx, "u2", kol.Code); err != nil {
+	if _, err := store.Attribute(ctx, "u2", kol.Code); err != nil {
 		t.Fatal(err)
+	}
+	partner, err := store.RegisterReferrer(ctx, "u2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if partner.RecruiterID != kol.UserID {
+		t.Fatalf("recruiter = %q, want %q", partner.RecruiterID, kol.UserID)
 	}
 
 	if _, err := store.Attribute(ctx, "u1", kol.Code); err != ErrSelfReferral {

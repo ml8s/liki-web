@@ -199,9 +199,8 @@ func scanReferrer(scan func(dest ...any) error) (Referrer, error) {
 	return item, nil
 }
 
-func (s *Store) RegisterReferrer(ctx context.Context, userID, recruiterCode string) (Referrer, error) {
+func (s *Store) RegisterReferrer(ctx context.Context, userID string) (Referrer, error) {
 	userID = strings.TrimSpace(userID)
-	recruiterCode = strings.ToUpper(strings.TrimSpace(recruiterCode))
 	if userID == "" {
 		return Referrer{}, ErrNotEligible
 	}
@@ -213,18 +212,13 @@ func (s *Store) RegisterReferrer(ctx context.Context, userID, recruiterCode stri
 		return Referrer{}, ErrNotEligible
 	}
 
+	// The recruiter relationship is derived from the referral link that created
+	// this account. Users never type a promotion or recruiter code.
 	var recruiterID string
-	if recruiterCode != "" {
-		if err := s.db.QueryRowContext(ctx, `
-SELECT user_id FROM referrers WHERE code=? AND status='active'`, recruiterCode).Scan(&recruiterID); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return Referrer{}, ErrInvalidCode
-			}
-			return Referrer{}, err
-		}
-		if recruiterID == userID {
-			return Referrer{}, ErrSelfReferral
-		}
+	if attribution, attributed, err := s.AttributionForUser(ctx, userID); err != nil {
+		return Referrer{}, err
+	} else if attributed && attribution.ReferrerID != userID {
+		recruiterID = attribution.ReferrerID
 	}
 
 	now := formatTime(s.nowFunc())

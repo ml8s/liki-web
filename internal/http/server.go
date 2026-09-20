@@ -153,10 +153,6 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	if webDir != "" {
 		handler = fileServer(webDir, handler)
 	}
-	if deps.ReferralHandler != nil {
-		handler = deps.ReferralHandler.CaptureClick(handler)
-	}
-
 	return handler
 }
 

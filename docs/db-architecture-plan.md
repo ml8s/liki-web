@@ -289,7 +289,7 @@ scripts/migrate-db.py \
 
 - 创建 internal/referral/ 包（已完成）
 - 实现 referrers / attributions / commissions / payouts 表（已完成）
-- 30 天 ref cookie 归因、新账号绑定、自归因拦截（已完成）
+- 30 天 `/r/{token}` cookie 归因、新账号自动绑定、自归因拦截（已完成）
 - Dodo / Xunhu 已支付 intent 先写入 referral.db commission_intents，独立 worker 幂等结算（已完成）
 - payment fulfillment 只广播事实；referral DB 故障不阻塞履约，worker/reconcile 自动补偿（已完成）
 - Partner Portal 前端（待实施）

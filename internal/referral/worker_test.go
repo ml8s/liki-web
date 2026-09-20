@@ -24,11 +24,11 @@ func TestCommissionIntakeSkipsIneligiblePayments(t *testing.T) {
 func TestCommissionWorkerSettlesDodoAndXunhuExactlyOnce(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
-	kol, err := store.RegisterReferrer(ctx, "kol", "")
+	kol, err := store.RegisterReferrer(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.RegisterReferrer(ctx, "recruiter", ""); err != nil {
+	if _, err := store.RegisterReferrer(ctx, "recruiter"); err != nil {
 		t.Fatal(err)
 	}
 	recruiter, err := store.ReferrerByUser(ctx, "recruiter")
@@ -82,7 +82,7 @@ func TestCommissionWorkerSettlesDodoAndXunhuExactlyOnce(t *testing.T) {
 func TestReconcileSuccessfulPaymentsCompensatesAttributionRace(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
-	kol, err := store.RegisterReferrer(ctx, "kol", "")
+	kol, err := store.RegisterReferrer(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}

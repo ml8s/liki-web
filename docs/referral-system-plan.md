@@ -496,7 +496,7 @@ func OnOrderRefunded(ctx, orderID):
 ┌──────────────────────────────────┐
 │  你的推广链接                      │
 │                                  │
-│  liki.hk?ref=MING_abc123        │
+│  liki.hk/r/MINGABC123        │
 │  [复制链接]                       │
 │                                  │
 │  种草文案模板：                    │
@@ -504,7 +504,7 @@ func OnOrderRefunded(ctx, orderID):
 │  │ 想给宝宝取个好名字？这个     │  │
 │  │ 工具能根据八字推荐候选名     │  │
 │  │ 字，还有五行解析 👇         │  │
-│  │ liki.hk?ref=MING_abc123   │  │
+│  │ liki.hk/r/MINGABC123   │  │
 │  └────────────────────────────┘  │
 │  [复制文案]                       │
 └──────────────────────────────────┘
@@ -582,7 +582,7 @@ if (ref) {
     .then(r => r.json())
     .then(d => {
       if (d.valid) {
-        document.cookie = `liki_ref=${ref}; path=/; max-age=${30*24*3600}`
+        // /r/:token is handled by the backend; users never enter a code.
       }
     })
 }

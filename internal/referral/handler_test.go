@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -60,13 +59,19 @@ func TestRegisterRouteReturnsPartner(t *testing.T) {
 	}
 }
 
-func TestCaptureClickSetsThirtyDayCookie(t *testing.T) {
-	handler := NewHandler(newHandlerStore(t), func(next http.HandlerFunc) http.HandlerFunc { return next }, true)
-	target := httptest.NewRequest(http.MethodGet, "/?ref=abcdefghij", nil)
+func TestReferralLinkSetsThirtyDayCookie(t *testing.T) {
+	store := newHandlerStore(t)
+	kol, err := store.RegisterReferrer(context.Background(), "kol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandler(store, func(next http.HandlerFunc) http.HandlerFunc { return next }, true)
+	target := httptest.NewRequest(http.MethodGet, "/r/"+kol.Code, nil)
+	target.SetPathValue("code", kol.Code)
 	rec := httptest.NewRecorder()
-	handler.CaptureClick(http.NotFoundHandler()).ServeHTTP(rec, target)
+	handler.HandleLink(rec, target)
 	cookies := rec.Result().Cookies()
-	if len(cookies) != 1 || cookies[0].Name != AttributionCookieName || cookies[0].Value != "ABCDEFGHIJ" {
+	if len(cookies) != 1 || cookies[0].Name != AttributionCookieName || cookies[0].Value != kol.Code {
 		t.Fatalf("cookies = %+v", cookies)
 	}
 	if cookies[0].MaxAge != int(AttributionCookieTTL.Seconds()) || !cookies[0].HttpOnly || !cookies[0].Secure {
@@ -76,7 +81,7 @@ func TestCaptureClickSetsThirtyDayCookie(t *testing.T) {
 
 func TestPostLoginHookAttributesNewAccountAndClearsCookie(t *testing.T) {
 	store := newHandlerStore(t)
-	kol, err := store.RegisterReferrer(context.Background(), "kol", "")
+	kol, err := store.RegisterReferrer(context.Background(), "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,5 +111,4 @@ func TestPostLoginHookAttributesNewAccountAndClearsCookie(t *testing.T) {
 	if _, ok, _ := store.AttributionForUser(context.Background(), "existing"); ok {
 		t.Fatal("existing account was attributed")
 	}
-	_ = url.Values{}
 }
