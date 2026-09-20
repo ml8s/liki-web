@@ -285,12 +285,15 @@ scripts/migrate-db.py \
 - 由人工完成生产目录切换
 - 保留旧库和冷备份直到上线观察期结束
 
-### Phase 4：实现分销系统
+### Phase 4：实现分销系统（后端已完成）
 
-- 创建 internal/referral/ 包
-- 实现 referrers / attributions / commissions / payouts
-- 对接 fulfillment hook（付款成功 → 计算佣金）
-- Partner Portal 前端
+- 创建 internal/referral/ 包（已完成）
+- 实现 referrers / attributions / commissions / payouts 表（已完成）
+- 30 天 ref cookie 归因、新账号绑定、自归因拦截（已完成）
+- Dodo / Xunhu 已支付 intent 先写入 referral.db commission_intents，独立 worker 幂等结算（已完成）
+- payment fulfillment 只广播事实；referral DB 故障不阻塞履约，worker/reconcile 自动补偿（已完成）
+- Partner Portal 前端（待实施）
+- 管理端审核、提现打款和退款 void（待实施）
 - 详见 docs/referral-system-review.md（评审报告 + 必须修复项）
 
 ## 九、环境变量变更

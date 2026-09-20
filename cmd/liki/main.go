@@ -28,6 +28,7 @@ import (
 	"liki-web/internal/naming"
 	"liki-web/internal/paymentflow"
 	"liki-web/internal/profile"
+	"liki-web/internal/referral"
 	"liki-web/internal/xunhu"
 
 	"liki-web/internal/email"
@@ -330,6 +331,20 @@ func main() {
 	if _, err := entitlements.ExpireDue(ctx); err != nil {
 		slog.Warn("expire entitlements", "err", err)
 	}
+	referralStore, err := referral.Open(filepath.Join(dataDir, "referral.db"), func(ctx context.Context, userID string) (bool, error) {
+		return entitlements.HasSkill(ctx, userID, liki.SkillLiki)
+	})
+	if err != nil {
+		slog.Error("init referral store", "err", err)
+		os.Exit(1)
+	}
+	defer func() { _ = referralStore.Close() }()
+	if err := referralStore.Migrate(ctx); err != nil {
+		slog.Error("init referral schema", "err", err)
+		os.Exit(1)
+	}
+	referralHandler := referral.NewHandler(referralStore, authHandler.RequireUser, !cfg.DevMode)
+	authHandler.SetPostLoginHook(referralHandler.PostLoginHook)
 	chatStore := liki.NewChatStore(likiDB)
 	if err := chatStore.Migrate(ctx); err != nil {
 		slog.Error("init chat schema", "err", err)
@@ -424,6 +439,12 @@ func main() {
 		BaseURL:    cfg.ReturnURL,
 		AdminEmail: os.Getenv("ADMIN_EMAIL"),
 	})
+	paymentRuntime.SetFulfillmentObserver(func(ctx context.Context, intent payment.PaymentIntent) {
+		if _, _, err := referralStore.EnqueueCommissionIntent(ctx, intent); err != nil {
+			slog.Error("referral: enqueue fulfilled payment", "intent_id", intent.ID, "err", err)
+		}
+	})
+	go referralStore.StartCommissionWorker(ctx, platformDB, 5*time.Second)
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
 	if err := httputil.ValidateJWTSecret(cfg.JWTSecret); err != nil {
@@ -442,6 +463,7 @@ func main() {
 		OnVerification:   onVerification,
 		PaymentRuntime:   paymentRuntime,
 		AuthHandler:      authHandler,
+		ReferralHandler:  referralHandler,
 		LikiHandler:      liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser),
 		AipayHandler:     aipayHandler,
 		ProfileHandler:   profile.NewHandler(profileStore, authHandler.RequireUser),

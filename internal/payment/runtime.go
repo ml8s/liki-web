@@ -107,17 +107,23 @@ type RuntimeOptions struct {
 	AdminEmail string
 }
 
+// FulfillmentObserver is a non-critical notification emitted after a product
+// flow's idempotent OnPaid succeeds and the fulfillment task is terminal.
+// Observers must be idempotent and must not block or fail product fulfillment.
+type FulfillmentObserver func(ctx context.Context, intent PaymentIntent)
+
 type Runtime struct {
-	gateways      map[Provider]Gateway
-	flows         map[string]ProductFlow
-	intents       *IntentStore
-	notifications *NotificationStore
-	fulfillments  *FulfillmentTaskStore
-	events        *PaymentEventStore
-	routePolicy   ProviderRoutePolicy
-	sender        EmailSender
-	adminEmail    string
-	baseURL       string
+	gateways            map[Provider]Gateway
+	flows               map[string]ProductFlow
+	intents             *IntentStore
+	notifications       *NotificationStore
+	fulfillments        *FulfillmentTaskStore
+	events              *PaymentEventStore
+	routePolicy         ProviderRoutePolicy
+	sender              EmailSender
+	adminEmail          string
+	baseURL             string
+	fulfillmentObserver FulfillmentObserver
 }
 
 func NewRuntime(
@@ -142,6 +148,10 @@ func NewRuntime(
 		adminEmail:    options.AdminEmail,
 		baseURL:       options.BaseURL,
 	}
+}
+
+func (r *Runtime) SetFulfillmentObserver(observer FulfillmentObserver) {
+	r.fulfillmentObserver = observer
 }
 
 func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (PaymentIntent, error) {
@@ -409,6 +419,9 @@ func (r *Runtime) ProcessFulfillmentTasks(ctx context.Context, limit int) (int, 
 		cancel()
 		if err := r.fulfillments.MarkSucceeded(ctx, task.ID); err != nil {
 			return processed, err
+		}
+		if r.fulfillmentObserver != nil {
+			r.fulfillmentObserver(context.WithoutCancel(ctx), intent)
 		}
 		metrics.Default.Inc("payment_fulfillment_total", map[string]string{"status": "succeeded"})
 		processed++

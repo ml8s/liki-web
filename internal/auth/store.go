@@ -57,6 +57,7 @@ type LoginResult struct {
 	User         User
 	Session      AuthSession
 	SessionToken string
+	IsNewUser    bool
 }
 
 func (s *Store) Migrate(ctx context.Context) error {
@@ -326,6 +327,16 @@ UPDATE auth_codes SET attempts=? WHERE id=?`, attempts, codeID); err != nil {
 	var dbUserID, status, resultLocale string
 	var createdAt, updatedAt string
 	var lastLogin, deleted sql.NullString
+	var existingUserID string
+	isNewUser := false
+	switch err := tx.QueryRowContext(ctx, `SELECT id FROM users WHERE email=?`, email).Scan(&existingUserID); {
+	case errors.Is(err, sql.ErrNoRows):
+		isNewUser = true
+	case err != nil:
+		return LoginResult{}, err
+	default:
+		newUserID = existingUserID
+	}
 	err = tx.QueryRowContext(ctx, `
 INSERT INTO users (id,email,status,locale,created_at,updated_at,last_login_at)
 VALUES (?,?,?, ?,?,?,?)
@@ -390,7 +401,7 @@ VALUES (?,?,?, 'active',?,?,?,? ,?)`,
 	if err = tx.Commit(); err != nil {
 		return LoginResult{}, err
 	}
-	return LoginResult{User: user, Session: session, SessionToken: token}, nil
+	return LoginResult{User: user, Session: session, SessionToken: token, IsNewUser: isNewUser}, nil
 }
 
 func scanUser(scan func(dest ...any) error) (User, error) {

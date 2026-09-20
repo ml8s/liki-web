@@ -12,9 +12,10 @@ import (
 type RateLimiterFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
-	store   *Store
-	service *Service
-	config  Config
+	store         *Store
+	service       *Service
+	config        Config
+	postLoginHook PostLoginHook
 }
 
 func NewHandler(store *Store, service *Service, config Config) (*Handler, error) {
@@ -25,6 +26,12 @@ func NewHandler(store *Store, service *Service, config Config) (*Handler, error)
 		return nil, err
 	}
 	return &Handler{store: store, service: service, config: config}, nil
+}
+
+type PostLoginHook func(w http.ResponseWriter, r *http.Request, user User, isNewUser bool)
+
+func (h *Handler) SetPostLoginHook(hook PostLoginHook) {
+	h.postLoginHook = hook
 }
 
 type sendCodeRequest struct {
@@ -117,6 +124,9 @@ func (h *Handler) HandleVerifyEmailCode(w http.ResponseWriter, r *http.Request) 
 		Secure:   h.config.SecureCookie,
 		SameSite: http.SameSiteLaxMode,
 	})
+	if h.postLoginHook != nil {
+		h.postLoginHook(w, r, result.User, result.IsNewUser)
+	}
 	responseOK(w, map[string]any{
 		"user":       publicUser(result.User),
 		"session_id": result.Session.ID,

@@ -20,6 +20,7 @@ import (
 	"liki-web/internal/naming"
 	"liki-web/internal/payment"
 	"liki-web/internal/profile"
+	"liki-web/internal/referral"
 )
 
 type ServerDeps struct {
@@ -27,6 +28,7 @@ type ServerDeps struct {
 	OnVerification   func(ctx context.Context, email, code string)
 	PaymentRuntime   *payment.Runtime
 	AuthHandler      *auth.Handler
+	ReferralHandler  *referral.Handler
 	LikiHandler      *liki.Handler
 	AipayHandler     *aipay.Handler
 	ProfileHandler   *profile.Handler
@@ -150,6 +152,9 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	webDir := findWebDir()
 	if webDir != "" {
 		handler = fileServer(webDir, handler)
+	}
+	if deps.ReferralHandler != nil {
+		handler = deps.ReferralHandler.CaptureClick(handler)
 	}
 
 	return handler
