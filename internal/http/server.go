@@ -13,9 +13,9 @@ import (
 	"liki-web/internal/agent"
 	"liki-web/internal/aipay"
 	"liki-web/internal/auth"
-	"liki-web/internal/liki"
 	"liki-web/internal/feedback"
 	"liki-web/internal/hepan"
+	"liki-web/internal/liki"
 	"liki-web/internal/mingshu"
 	"liki-web/internal/naming"
 	"liki-web/internal/payment"
@@ -23,26 +23,26 @@ import (
 )
 
 type ServerDeps struct {
-	OnPaid             func(ctx context.Context, orderID string)
-	OnVerification     func(ctx context.Context, email, code string)
-	PaymentRuntime     *payment.Runtime
-	AuthHandler        *auth.Handler
-	LikiHandler        *liki.Handler
-	AipayHandler       *aipay.Handler
-	ProfileHandler     *profile.Handler
-	AccountHandler     *account.Handler
-	NamingStore        *naming.Store
-	MingShuStore       *mingshu.Store
-	MingShuGenerator   *mingshu.Generator
-	HepanStore         *hepan.Store
-	HepanGenerator     *hepan.Generator
-	NamingAgent        *agent.Agent
-	Agent              *agent.Agent
-	Analytics          *Analytics
-	MetricsHandler     http.HandlerFunc
-	FeedbackStore      *feedback.Store
-	FeedbackAPIKey     string
-	DevMode            bool
+	OnPaid           func(ctx context.Context, orderID string)
+	OnVerification   func(ctx context.Context, email, code string)
+	PaymentRuntime   *payment.Runtime
+	AuthHandler      *auth.Handler
+	LikiHandler      *liki.Handler
+	AipayHandler     *aipay.Handler
+	ProfileHandler   *profile.Handler
+	AccountHandler   *account.Handler
+	NamingStore      *naming.Store
+	MingShuStore     *mingshu.Store
+	MingShuGenerator *mingshu.Generator
+	HepanStore       *hepan.Store
+	HepanGenerator   *hepan.Generator
+	NamingAgent      *agent.Agent
+	Agent            *agent.Agent
+	Analytics        *Analytics
+	MetricsHandler   http.HandlerFunc
+	FeedbackStore    *feedback.Store
+	FeedbackAPIKey   string
+	DevMode          bool
 }
 
 func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl, verifyRL *RateLimiter) http.Handler {

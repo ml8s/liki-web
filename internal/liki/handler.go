@@ -26,7 +26,6 @@ type Handler struct {
 	service      *Service
 	runtime      *payment.Runtime
 	requireUser  RequireUserFunc
-	limit        LimitFunc
 }
 
 func NewHandler(orders *OrderStore, entitlements *EntitlementStore, service *Service, runtime *payment.Runtime, requireUser RequireUserFunc) *Handler {

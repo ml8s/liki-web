@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"flag"
 	"liki-web/internal/product"
 	"log/slog"
 	"net"
@@ -138,10 +137,6 @@ func loadAlipayConfig() aipay.Config {
 }
 
 func main() {
-	addr := flag.String("addr", ":8080", "listen address")
-	dbPath := flag.String("db", "", "deprecated: use LIKI_DATA_DIR; only its parent directory is honored")
-	flag.Parse()
-
 	cfg := LoadConfig()
 
 	// Structured logging
@@ -150,16 +145,8 @@ func main() {
 	// Validate required config
 	requireEnv("JWT_SECRET", cfg.JWTSecret, "DEEPSEEK_API_KEY", cfg.DeepseekAPIKey, "LLM_MODEL", cfg.LLMModel)
 
-	// Flags override env when explicitly set
-	if *addr != ":8080" {
-		cfg.ListenAddr = *addr
-	}
 	// ── open databases ──
 	dataDir := cfg.DataDir
-	if *dbPath != "" {
-		dataDir = filepath.Dir(*dbPath)
-		slog.Warn("-db is deprecated; use LIKI_DATA_DIR", "data_dir", dataDir)
-	}
 	open := func(name string) *sql.DB {
 		db, err := sqliteutil.Open(filepath.Join(dataDir, name))
 		if err != nil {

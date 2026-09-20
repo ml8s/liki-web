@@ -73,6 +73,7 @@ test-js: ## vitest（legacy + Vue SPA）
 
 test-python: ## Python helper tests
 	python3 -m unittest discover -s web/test -p '*_test.py' -q
+	python3 -m unittest discover -s scripts/tests -p 'test_*.py' -q
 
 test-skills: ## Python skill 测试
 	cd $(SKILLS_DIR) && python3 -m pytest tests/ -q --ignore=tests/test_integration.py

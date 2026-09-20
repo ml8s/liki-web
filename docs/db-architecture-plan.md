@@ -180,20 +180,38 @@ CREATE TABLE entitlements (...);
 
 线上已经有订单数据在 naming.db 中，迁移必须保证零丢失。
 
-### 迁移脚本 scripts/migrate-db.sh
+### 迁移工具 scripts/migrate-db.py
+
+迁移工具面向完整的 legacy 数据目录，而不是只看一个 `naming.db` 文件。
+旧部署的真实主库可能是 `DB_PATH=/var/lib/liki/liki.db`，所以必须显式传入
+`--legacy-main`。
+
+```bash
+scripts/migrate-db.py \
+  --legacy-main /var/lib/liki/liki.db \
+  --source-dir /var/lib/liki \
+  --target-dir /var/lib/liki-split \
+  --backup-dir /var/backups/liki-migration \
+  --confirm-stopped
+```
 
 步骤：
 
-1. 停止 `liki-web`，并以 `LIKI_MIGRATION_CONFIRM_STOPPED=1` 显式确认
-2. 对源库执行 `PRAGMA integrity_check`
-3. 用 `VACUUM INTO` 生成一致性冷备份
-4. 写入一个全新的空 staging 目录，不允许覆盖已有目标库
-5. 从旧 naming.db 按表搬到 staging 下的新库
-6. 校验每个表的行数和内容 digest
-7. 校验每库 `integrity_check` / `foreign_key_check`
-8. 校验 `entitlements.user_id`、`chat_orders.user_id` 都能命中 platform users
-9. 用 staging 目录启动新版本，人工 smoke test
-10. 确认无误后由人工执行生产目录切换；源库和冷备份继续保留
+1. 停止 `liki-web`
+2. 执行工具并传入 `--confirm-stopped`
+3. 对所有参与源库执行 `PRAGMA integrity_check`
+4. 用 SQLite backup API 生成一致性冷备份
+5. 写入一个全新的空 staging 目录，不允许覆盖已有目标库
+6. 从 legacy 主库按表搬到 staging 下的新库
+7. 合并已经独立存在的 `naming.db` / `feedback.db` / `aipay.db` sidecar
+8. 原样复制 `mingshu.db` / `hepan.db`
+9. 迁移 SQLite `sqlite_sequence`，避免 AUTOINCREMENT ID 复用
+10. 校验每个表的行数和内容 digest
+11. 校验每库 `integrity_check` / `foreign_key_check`
+12. 校验 profiles、entitlements、chat_orders、payment_intents 的 user 软引用
+13. 写出 `migration-manifest.json`
+14. 用 staging 目录启动新版本，人工 smoke test
+15. 确认无误后由人工执行生产目录切换；源库和冷备份继续保留
 
 ### 表迁移映射
 
@@ -220,7 +238,10 @@ CREATE TABLE entitlements (...);
 | chat_messages（naming 的） | naming.db | chat_messages |
 | verification_codes | naming.db | verification_codes |
 
-mingshu.db 和 hepan.db 不需要迁移（已经是独立的）。
+`mingshu.db` 和 `hepan.db` 不做表拆分；工具会原样复制到 staging。
+如果 `naming.db`、`feedback.db`、`aipay.db` 已作为独立文件存在，
+工具会校验 schema 后按主键合并，遇到同主键不同数据会直接失败，
+不会静默覆盖。
 
 ### 校验清单
 
@@ -251,13 +272,13 @@ mingshu.db 和 hepan.db 不需要迁移（已经是独立的）。
 
 - main.go 改用 LIKI_DATA_DIR 统一管理数据目录（已完成）
 - 所有库统一走 internal/sqliteutil（已完成）
-- 编写并加固 scripts/migrate-db.sh（已完成）
+- 编写并加固 scripts/migrate-db.py（已完成）
 - 在 staging 备份库上验证迁移（待执行）
 - 线上执行迁移（待执行）
 
 ### Phase 3.5：生产切换
 
-- 用生产备份副本执行 `scripts/migrate-db.sh`
+- 用生产备份副本执行 `scripts/migrate-db.py`
 - 用 `LIKI_DATA_DIR=<staging>` 启动应用
 - 验证老用户登录、老订单、老 session、老 entitlement
 - 记录迁移前后行数和 digest

@@ -48,11 +48,3 @@ func ProductDefinitionFor(id Product) (ProductDefinition, error) {
 	}
 	return item, nil
 }
-
-func skillsForProduct(id Product) ([]Skill, error) {
-	item, err := ProductDefinitionFor(id)
-	if err != nil {
-		return nil, err
-	}
-	return item.Skills, nil
-}
