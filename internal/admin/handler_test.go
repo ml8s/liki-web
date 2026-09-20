@@ -6,24 +6,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-
-	"liki-web/internal/httputil"
 	"liki-web/internal/naming"
 
 	_ "modernc.org/sqlite"
 )
-
-func TestMain(m *testing.M) {
-	_ = os.Setenv("JWT_SECRET", "test-secret")
-	_ = os.Setenv("ADMIN_EMAIL", "admin@liki.hk")
-	os.Exit(m.Run())
-}
 
 func newTestAdminService(t *testing.T) *naming.AdminService {
 	t.Helper()
@@ -36,13 +26,6 @@ func newTestAdminService(t *testing.T) *naming.AdminService {
 	return naming.NewAdminService(store)
 }
 
-func setJWT(t *testing.T, w http.ResponseWriter, email string) {
-	t.Helper()
-	if err := httputil.SetJWTCookie(w, email, uuid.New().String()); err != nil {
-		t.Fatal("SetJWTCookie:", err)
-	}
-}
-
 func requestWithJWT(t *testing.T, method, path, body, email string) *http.Request {
 	t.Helper()
 	r, err := http.NewRequest(method, path, strings.NewReader(body))
@@ -50,75 +33,7 @@ func requestWithJWT(t *testing.T, method, path, body, email string) *http.Reques
 		t.Fatal("NewRequest:", err)
 	}
 	r.Header.Set("Content-Type", "application/json")
-	if email != "" {
-		w := httptest.NewRecorder()
-		setJWT(t, w, email)
-		for _, c := range w.Result().Cookies() {
-			if c.Name == "liki_token" {
-				r.AddCookie(c)
-			}
-		}
-	}
 	return r
-}
-
-// ── adminAuth ──
-
-func TestAdminAuth_NoCookie(t *testing.T) {
-	t.Parallel()
-	r := httptest.NewRequest("GET", "/api/admin/orders", nil)
-	if adminAuth(r) {
-		t.Error("adminAuth should reject request without cookie")
-	}
-}
-
-func TestAdminAuth_InvalidJWT(t *testing.T) {
-	t.Parallel()
-	r := httptest.NewRequest("GET", "/api/admin/orders", nil)
-	r.AddCookie(&http.Cookie{Name: "liki_token", Value: "not-a-jwt"})
-	if adminAuth(r) {
-		t.Error("adminAuth should reject invalid JWT")
-	}
-}
-
-func TestAdminAuth_WrongEmail(t *testing.T) {
-	t.Parallel()
-	r := requestWithJWT(t, "GET", "/api/admin/orders", "", "user@example.com")
-	if adminAuth(r) {
-		t.Error("adminAuth should reject non-admin email")
-	}
-}
-
-func TestAdminAuth_NoneAlgorithm(t *testing.T) {
-	t.Parallel()
-	r := httptest.NewRequest("GET", "/api/admin/orders", nil)
-	r.AddCookie(&http.Cookie{Name: "liki_token", Value: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20ifQ."})
-	if adminAuth(r) {
-		t.Error("adminAuth should reject JWT with alg=none")
-	}
-}
-
-func TestAdminAuth_ValidAdmin(t *testing.T) {
-	t.Parallel()
-	r := requestWithJWT(t, "GET", "/api/admin/orders", "", "admin@liki.hk")
-	if !adminAuth(r) {
-		t.Error("adminAuth should accept valid admin email")
-	}
-}
-
-// ── adminOnly middleware ──
-
-func TestAdminOnly_NoCookie(t *testing.T) {
-	t.Parallel()
-	handler := adminOnly(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	r := httptest.NewRequest("GET", "/api/admin/orders", nil)
-	w := httptest.NewRecorder()
-	handler(w, r)
-	if w.Code != http.StatusForbidden {
-		t.Errorf("adminOnly without cookie: status=%d, want 403", w.Code)
-	}
 }
 
 // ── HandleListOrders ──

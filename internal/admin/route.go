@@ -3,52 +3,53 @@ package admin
 import (
 	"context"
 	"net/http"
-	"os"
-
-	"github.com/golang-jwt/jwt/v5"
 
 	"liki-web/internal/httputil"
 	"liki-web/internal/naming"
+	"liki-web/internal/referral"
 )
 
+// IdentityFunc resolves the caller from the app's unified session.
+type IdentityFunc func(r *http.Request) (email string, ok bool)
+
 // RegisterRoutes mounts admin handler routes on the given mux.
-func RegisterRoutes(mux *http.ServeMux, svc *naming.AdminService, onPaid func(ctx context.Context, orderID string)) {
+func RegisterRoutes(
+	mux *http.ServeMux,
+	svc *naming.AdminService,
+	onPaid func(ctx context.Context, orderID string),
+	referralStore *referral.Store,
+	identity IdentityFunc,
+	adminEmail string,
+) {
 	h := NewHandler(svc, onPaid)
-	mux.HandleFunc("GET /api/admin/orders", adminOnly(h.HandleListOrders()))
-	mux.HandleFunc("POST /api/admin/orders", adminOnly(h.HandleCreateOrder()))
-	mux.HandleFunc("PATCH /api/admin/orders/{id}/expire", adminOnly(h.HandleUpdateExpire()))
-	mux.HandleFunc("POST /api/admin/verification-codes", adminOnly(h.HandleGenerateCodes()))
-	mux.HandleFunc("GET /api/admin/verification-codes", adminOnly(h.HandleListCodes()))
+	guard := adminOnly(identity, adminEmail)
+
+	mux.HandleFunc("GET /api/admin/session", guard(h.HandleSession(identity)))
+	mux.HandleFunc("GET /api/admin/orders", guard(h.HandleListOrders()))
+	mux.HandleFunc("POST /api/admin/orders", guard(h.HandleCreateOrder()))
+	mux.HandleFunc("PATCH /api/admin/orders/{id}/expire", guard(h.HandleUpdateExpire()))
+	mux.HandleFunc("POST /api/admin/verification-codes", guard(h.HandleGenerateCodes()))
+	mux.HandleFunc("GET /api/admin/verification-codes", guard(h.HandleListCodes()))
+
+	if referralStore != nil {
+		referralAdmin := referral.NewAdminHandler(referralStore)
+		mux.HandleFunc("GET /api/admin/referral/partners", guard(referralAdmin.HandleListPartners()))
+		mux.HandleFunc("GET /api/admin/referral/applications", guard(referralAdmin.HandleListApplications()))
+		mux.HandleFunc("POST /api/admin/referral/applications/{id}/decision", guard(referralAdmin.HandleApplicationDecision()))
+		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/status", guard(referralAdmin.HandlePartnerStatus()))
+		mux.HandleFunc("GET /api/admin/referral/actions", guard(referralAdmin.HandleAdminActions()))
+	}
 }
 
-// adminOnly middleware — requires valid admin JWT.
-func adminOnly(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !adminAuth(r) {
-			httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
-			return
+func adminOnly(identity IdentityFunc, adminEmail string) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			email, ok := identity(r)
+			if !ok || email == "" || email != adminEmail {
+				httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
+				return
+			}
+			next(w, r)
 		}
-		next(w, r)
 	}
-}
-
-// adminAuth verifies JWT and checks email matches ADMIN_EMAIL.
-// Unlike JWTAuth, it does NOT require orderID (admin accounts have no order).
-func adminAuth(r *http.Request) bool {
-	cookie, err := r.Cookie("liki_token")
-	if err != nil {
-		return false
-	}
-	token, err := jwt.Parse(cookie.Value, func(t *jwt.Token) (any, error) {
-		return httputil.JWTSecret(), nil
-	}, jwt.WithValidMethods([]string{"HS256"}))
-	if err != nil || !token.Valid {
-		return false
-	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return false
-	}
-	email, _ := claims["email"].(string)
-	return email != "" && email == os.Getenv("ADMIN_EMAIL")
 }

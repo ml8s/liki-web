@@ -287,6 +287,8 @@ scripts/migrate-db.py \
 
 ### Phase 4：实现分销系统（后端已完成）
 
+- 管理后台复用 App 统一 `liki_session`，不再使用单独 `liki_token` / 管理员验证码端点
+
 - 创建 internal/referral/ 包（已完成）
 - 实现 referrers / attributions / commissions / payouts 表（已完成）
 - 30 天 `/r/{token}` cookie 归因、新账号自动绑定、自归因拦截（已完成）

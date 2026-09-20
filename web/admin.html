@@ -7,335 +7,664 @@
 <title>Liki 管理后台</title>
 <link rel="stylesheet" href="/css/app.css">
 <style>
-body { background: var(--color-surface); min-height: 100vh; padding: 40px 16px; }
-.admin-wrap { max-width: 900px; margin: 0 auto; }
-h1 { font-size: 22px; color: var(--color-text); margin-bottom: 24px; font-weight: 700; }
-.card { background: var(--color-paper); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--color-border); }
-.card h2 { font-size: 15px; color: var(--color-text); margin-bottom: 16px; font-weight: 600; }
-.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-input, select { font:inherit; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 8px; outline: none; background: var(--color-paper); color: var(--color-text); }
-input:focus, select:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-focus); }
-.btn { display:inline-flex; align-items:center; justify-content:center; padding:8px 20px; border-radius:8px; font-weight:500; cursor:pointer; border:none; font-size:14px; transition:all 0.15s; }
-.btn-primary { background:var(--color-accent); color:#fff; }
-.btn-primary:hover { background:var(--color-accent-hover); }
-table { width:100%; border-collapse:collapse; font-size:13px; }
-th,td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--color-border); }
-th { background:var(--color-surface); font-weight:600; color:var(--color-text-muted); }
-.tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; }
-.tag-paid { background:var(--color-accent-soft); color:var(--color-accent-hover); }
-.tag-pending { background:var(--color-accent-soft); color:var(--color-accent-hover); }
-.status-msg { color:var(--color-text-muted); font-size:13px; margin-top:4px; }
-.hidden { display:none }
-#login-error { color:var(--color-error); font-size:13px; margin-top:4px; }
-.btn:disabled { opacity:.5; cursor:not-allowed; }
+body {
+  background: var(--color-surface);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: clamp(16px, 4vw, 40px) var(--space-4);
+}
+.admin-wrap {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.page-title {
+  color: var(--color-text);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 var(--space-6);
+  text-wrap: balance;
+}
+.card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+.card h2 {
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 0 0 var(--space-4);
+  text-wrap: balance;
+}
+.toolbar {
+  display: flex;
+  align-items: end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: min(240px, 100%);
+}
+.field > label {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+input, select, textarea {
+  font: inherit;
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  background: var(--color-paper);
+  color: var(--color-text);
+}
+textarea { min-height: 80px; resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out, opacity 150ms ease-out;
+}
+.btn-primary { background: var(--color-accent); color: #fff; }
+.btn-primary:hover { background: var(--color-accent-hover); }
+.btn-secondary {
+  background: var(--color-paper);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.btn-secondary:hover { border-color: var(--color-accent); color: var(--color-accent-hover); }
+.btn-danger { background: var(--color-error); color: #fff; }
+.btn-danger:hover { filter: brightness(.94); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.table-wrap table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+th, td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  white-space: nowrap;
+}
+th {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+tbody tr:last-child td { border-bottom: 0; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+.tag-muted, .tag-rejected { background: var(--color-border); color: var(--color-text-muted); }
+.tag-danger { background: rgba(220, 53, 69, .12); color: var(--color-error); }
+.status-msg, .empty-state {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
+  text-wrap: pretty;
+}
+.status-error { color: var(--color-error); }
+.empty-state {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+}
+.hidden { display: none !important; }
+.muted { color: var(--color-text-muted); font-size: var(--text-sm); }
+.actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.actions .btn { min-height: 32px; padding: var(--space-1) var(--space-3); }
+@media (max-width: 640px) {
+  .card { padding: var(--space-4); }
+  .toolbar, .actions { align-items: stretch; }
+  .toolbar .btn, .actions .btn { width: 100%; }
+}
 </style>
 </head>
 <body>
-
 <div class="admin-wrap">
+  <h1 class="page-title">Liki 管理后台</h1>
 
-<h1>liki.hk 管理后台</h1>
+  <section id="auth-section" class="card" aria-labelledby="auth-title">
+    <h2 id="auth-title">统一账号登录</h2>
+    <form id="send-code-form" class="toolbar" novalidate>
+      <div class="field">
+        <label for="login-email">管理邮箱</label>
+        <input id="login-email" name="email" type="email" autocomplete="email" required>
+      </div>
+      <button class="btn btn-primary" id="send-code-btn" type="submit">发送验证码</button>
+    </form>
+    <form id="verify-code-form" class="toolbar hidden" novalidate>
+      <div class="field">
+        <label for="login-code">6 位验证码</label>
+        <input id="login-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+      </div>
+      <button class="btn btn-primary" id="verify-code-btn" type="submit">验证登录</button>
+    </form>
+    <p id="login-status" class="status-msg" role="status"></p>
+    <p id="login-error" class="status-msg status-error" role="alert"></p>
+  </section>
 
-<!-- Login -->
-<div id="login-section" class="card">
-  <h2>管理员登录</h2>
-  <div id="login-step1">
-    <div class="row">
-      <label for="login-email" class="sr-only">管理邮箱</label>
-      <input id="login-email" placeholder="管理邮箱" style="width:260px">
-      <button class="btn btn-primary" id="send-code-btn">发送验证码</button>
-    </div>
-    <div id="login-status" class="status-msg" role="alert"></div>
-  </div>
-  <div id="login-step2" class="hidden">
-    <div class="row">
-      <label for="login-code" class="sr-only">验证码</label>
-      <input id="login-code" placeholder="输入 6 位验证码" style="width:180px" maxlength="6">
-      <button class="btn btn-primary" id="verify-code-btn">验证登录</button>
-    </div>
-  </div>
-  <div id="login-error" role="alert"></div>
-</div>
+  <main id="main-section" class="hidden">
+    <section class="card" aria-labelledby="orders-title">
+      <h2 id="orders-title">创建订单</h2>
+      <form id="create-order-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="co-email">用户邮箱</label>
+          <input id="co-email" name="email" type="email" required>
+        </div>
+        <div class="field">
+          <label for="co-expire">有效期</label>
+          <select id="co-expire">
+            <option value="7d">7天</option>
+            <option value="30d">30天</option>
+            <option value="permanent">永久</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="co-btn" type="submit">创建已付款订单</button>
+      </form>
+      <p id="co-status" class="status-msg" role="status"></p>
+    </section>
 
-<!-- Main -->
-<div id="main-section" class="hidden">
+    <section class="card" aria-labelledby="search-title">
+      <h2 id="search-title">订单查询</h2>
+      <form id="search-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="search-email">用户邮箱</label>
+          <input id="search-email" name="email" type="email">
+        </div>
+        <button class="btn btn-primary" id="search-btn" type="submit">搜索</button>
+      </form>
+    </section>
 
-  <!-- Create Order -->
-  <div class="card">
-    <h2>创建订单</h2>
-    <div class="row">
-      <label for="co-email" class="sr-only">用户邮箱</label>
-      <input id="co-email" placeholder="用户邮箱" style="width:260px">
-      <select id="co-expire">
-        <option value="7d">7天</option>
-        <option value="30d">30天</option>
-        <option value="permanent">永久</option>
-      </select>
-      <button class="btn btn-primary" id="co-btn">创建已付款订单</button>
-    </div>
-    <div id="co-status" class="status-msg" role="alert"></div>
-  </div>
+    <section id="results-section" class="card hidden" aria-labelledby="results-title">
+      <h2 id="results-title">搜索结果</h2>
+      <div id="results-container" class="table-wrap"></div>
+    </section>
 
-  <!-- Search -->
-  <div class="card">
-    <h2>订单查询</h2>
-    <div class="row">
-      <label for="search-email" class="sr-only">搜索邮箱</label>
-      <input id="search-email" placeholder="输入邮箱搜索" style="width:260px">
-      <button class="btn btn-primary" id="search-btn">搜索</button>
-    </div>
-  </div>
+    <section class="card" aria-labelledby="codes-title">
+      <h2 id="codes-title">验证码管理</h2>
+      <form id="vc-generate-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="vc-count">生成数量</label>
+          <input id="vc-count" type="number" min="1" max="100" value="1">
+        </div>
+        <button class="btn btn-primary" id="vc-generate-btn" type="submit">生成激活码</button>
+        <button class="btn btn-secondary" id="vc-list-btn" type="button">刷新列表</button>
+        <button class="btn btn-secondary" id="vc-export-btn" type="button">导出 CSV</button>
+      </form>
+      <div id="vc-generated" class="hidden">
+        <p class="muted">新生成的激活码（点击复制）：</p>
+        <div id="vc-new-codes" class="actions"></div>
+      </div>
+      <p id="vc-status" class="status-msg" role="status"></p>
+      <div id="vc-list" class="table-wrap"></div>
+      <div id="vc-pager" class="toolbar hidden">
+        <button class="btn btn-secondary" id="vc-prev-btn" type="button">上一页</button>
+        <span id="vc-page-info" class="muted"></span>
+        <button class="btn btn-secondary" id="vc-next-btn" type="button">下一页</button>
+      </div>
+    </section>
 
-  <!-- Verification Codes -->
-  <div class="card">
-    <h2>验证码管理</h2>
-    <div class="row">
-      <input id="vc-count" placeholder="数量" style="width:80px" value="1" type="number" min="1" max="100">
-      <button class="btn btn-primary" id="vc-generate-btn">生成激活码</button>
-      <button class="btn" id="vc-list-btn" style="background:var(--color-surface);color:var(--color-text)">刷新列表</button>
-      <button class="btn" id="vc-export-btn" style="background:var(--color-surface);color:var(--color-text)">导出CSV</button>
-    </div>
-    <div id="vc-generated" class="hidden" style="margin-top:8px">
-      <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:4px">新生成的激活码（点击复制）：</p>
-      <div id="vc-new-codes" style="display:flex;flex-wrap:wrap;gap:8px"></div>
-    </div>
-    <div id="vc-status" class="status-msg" role="alert"></div>
-    <div id="vc-list" style="margin-top:12px"></div>
-    <div id="vc-pager" class="hidden" style="margin-top:8px;display:flex;gap:8px;align-items:center;font-size:13px;color:var(--color-text-muted)">
-      <button class="btn" id="vc-prev-btn" style="background:var(--color-surface);color:var(--color-text);padding:4px 12px;font-size:12px">上一页</button>
-      <span id="vc-page-info"></span>
-      <button class="btn" id="vc-next-btn" style="background:var(--color-surface);color:var(--color-text);padding:4px 12px;font-size:12px">下一页</button>
-    </div>
-  </div>
+    <section class="card" aria-labelledby="referral-applications-title">
+      <h2 id="referral-applications-title">招商申请</h2>
+      <form id="referral-application-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="referral-application-status-filter">状态</label>
+          <select id="referral-application-status-filter">
+            <option value="pending">待审核</option>
+            <option value="approved">已通过</option>
+            <option value="rejected">已拒绝</option>
+            <option value="">全部</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary" type="submit">刷新</button>
+      </form>
+      <p id="referral-application-status" class="status-msg" role="status"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>推广码</th><th>说明</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+          <tbody id="referral-applications-body"></tbody>
+        </table>
+      </div>
+    </section>
 
-  <!-- Results -->
-  <div id="results-section" class="card hidden">
-    <h2>搜索结果</h2>
-    <div id="results-container"></div>
-  </div>
+    <section class="card" aria-labelledby="referral-partners-title">
+      <h2 id="referral-partners-title">合作伙伴</h2>
+      <form id="referral-partner-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="referral-partner-role">角色</label>
+          <select id="referral-partner-role">
+            <option value="">全部</option>
+            <option value="kol">KOL</option>
+            <option value="channel_partner">Channel Partner</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="referral-partner-status-filter">状态</label>
+          <select id="referral-partner-status-filter">
+            <option value="">全部</option>
+            <option value="active">Active</option>
+            <option value="frozen">Frozen</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="referral-partner-query">搜索</label>
+          <input id="referral-partner-query" type="search" placeholder="ID / 推广码">
+        </div>
+        <button class="btn btn-secondary" type="submit">筛选</button>
+      </form>
+      <p id="referral-partner-status" class="status-msg" role="status"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>推广码</th><th>User ID</th><th>角色</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+          <tbody id="referral-partners-body"></tbody>
+        </table>
+      </div>
+    </section>
 
-</div>
-
+    <section class="card" aria-labelledby="referral-actions-title">
+      <h2 id="referral-actions-title">管理记录</h2>
+      <p id="referral-action-status" class="status-msg" role="status"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>时间</th><th>操作人</th><th>动作</th><th>对象</th><th>原因</th></tr></thead>
+          <tbody id="referral-actions-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 </div>
 
 <script>
 const API = '/api/admin';
-
-document.getElementById('send-code-btn').onclick = async function() {
-  const email = document.getElementById('login-email').value.trim();
-  const st = document.getElementById('login-status');
-  st.textContent = '';
-  if (!email) { st.textContent = '请输入邮箱'; return }
-  this.disabled = true;
-  this.textContent = '发送中…';
-  try {
-    const res = await fetch(API+'/send-code', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email}),
-    });
-    if (!res.ok) { st.textContent = '发送失败'; return }
-    st.textContent = '验证码已发送到邮箱，请查收';
-    document.getElementById('login-step2').classList.remove('hidden');
-  } finally {
-    this.disabled = false;
-    this.textContent = '发送验证码';
+const AUTH_API = '/api/auth/email';
+const $ = id => document.getElementById(id);
+const h = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
+const show = (id, message, isError = false) => {
+  const el = $(id);
+  el.textContent = message;
+  el.classList.toggle('status-error', isError);
+};
+const busy = (button, loading, text) => {
+  if (!button) return;
+  button.disabled = loading;
+  if (loading) { button.dataset.label = button.textContent; button.textContent = text; }
+  else if (button.dataset.label) { button.textContent = button.dataset.label; }
+};
+const readBody = async res => {
+  try { return await res.json(); } catch { return {}; }
+};
+const requestJSON = async (path, options = {}) => {
+  const res = await fetch(path, options);
+  const body = await readBody(res);
+  if (!res.ok) {
+    const error = new Error(body.error?.message || `HTTP ${res.status}`);
+    error.status = res.status;
+    throw error;
   }
+  return body.data || {};
+};
+const setAuthed = authed => {
+  $('auth-section').classList.toggle('hidden', authed);
+  $('main-section').classList.toggle('hidden', !authed);
 };
 
-document.getElementById('verify-code-btn').onclick = async function() {
-  const email = document.getElementById('login-email').value.trim();
-  const code = document.getElementById('login-code').value.trim();
-  const errEl = document.getElementById('login-error');
-  errEl.textContent = '';
-  if (!code) { errEl.textContent = '请输入验证码'; return }
-  this.disabled = true;
-  this.textContent = '验证中…';
+$('send-code-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const email = $('login-email').value.trim();
+  show('login-status', '');
+  show('login-error', '');
+  if (!email) { show('login-error', '请输入邮箱', true); return; }
+  const button = $('send-code-btn');
+  busy(button, true, '发送中…');
   try {
-    const res = await fetch(API+'/verify-code', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, code}),
+    await requestJSON(`${AUTH_API}/code`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
     });
-    if (!res.ok) { errEl.textContent = '验证码错误或已过期'; return }
-    document.getElementById('login-section').classList.add('hidden');
-    document.getElementById('main-section').classList.remove('hidden');
-  } finally {
-    this.disabled = false;
-    this.textContent = '验证登录';
-  }
-};
+    show('login-status', '验证码已发送，请查收邮箱。');
+    $('verify-code-form').classList.remove('hidden');
+    $('login-code').focus();
+  } catch (error) {
+    show('login-error', error.message || '发送失败', true);
+  } finally { busy(button, false); }
+});
 
-document.getElementById('co-btn').onclick = async function() {
-  const email = document.getElementById('co-email').value.trim();
-  const expireSel = document.getElementById('co-expire').value;
-  const st = document.getElementById('co-status');
-  st.textContent = '';
-  if (!email) { st.textContent = '请输入邮箱'; return }
-  this.disabled = true;
-  this.textContent = '创建中…';
+$('verify-code-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const email = $('login-email').value.trim();
+  const code = $('login-code').value.trim();
+  show('login-status', '');
+  show('login-error', '');
+  if (!email || !code) { show('login-error', '请输入邮箱和验证码', true); return; }
+  const button = $('verify-code-btn');
+  busy(button, true, '验证中…');
   try {
-    let expiresAt;
-    if (expireSel === 'permanent') expiresAt = '2999-12-31 23:59:59';
-    else if (expireSel === '30d') expiresAt = new Date(Date.now()+30*86400000).toISOString().slice(0,19).replace('T',' ');
-    else expiresAt = new Date(Date.now()+7*86400000).toISOString().slice(0,19).replace('T',' ');
-    const res = await fetch(API+'/orders', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, expires_at: expiresAt}),
+    await requestJSON(`${AUTH_API}/verify`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code }),
     });
-    if (!res.ok) { st.textContent = '创建失败'; return }
-    const j = await res.json();
-    st.textContent = '已创建 ' + j.data.order_id;
-    document.getElementById('search-email').value = email;
+    await checkAdminSession();
+  } catch (error) {
+    show('login-error', error.message || '验证失败', true);
+  } finally { busy(button, false); }
+});
+
+async function checkAdminSession() {
+  try {
+    await requestJSON(`${API}/session`);
+    setAuthed(true);
+    loadVCList();
+    loadReferralAdmin();
+  } catch {
+    setAuthed(false);
+  }
+}
+
+$('create-order-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const email = $('co-email').value.trim();
+  const expire = $('co-expire').value;
+  show('co-status', '');
+  if (!email) { show('co-status', '请输入邮箱', true); return; }
+  let expiresAt = '2999-12-31 23:59:59';
+  if (expire === '7d') expiresAt = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
+  if (expire === '30d') expiresAt = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
+  const button = $('co-btn');
+  busy(button, true, '创建中…');
+  try {
+    const data = await requestJSON(`${API}/orders`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, expires_at: expiresAt }),
+    });
+    show('co-status', `已创建 ${data.order_id}`);
+    $('search-email').value = email;
     doSearch();
-  } finally {
-    this.disabled = false;
-    this.textContent = '创建已付款订单';
-  }
-};
+  } catch (error) {
+    show('co-status', error.message || '创建失败', true);
+  } finally { busy(button, false); }
+});
 
-document.getElementById('search-btn').onclick = doSearch;
+$('search-form').addEventListener('submit', event => { event.preventDefault(); doSearch(); });
 async function doSearch() {
-  const email = document.getElementById('search-email').value.trim();
+  const email = $('search-email').value.trim();
   if (!email) return;
-  const res = await fetch(API+'/orders?email='+encodeURIComponent(email));
-  if (res.status === 403) { location.reload(); return }
-  if (!res.ok) return;
-  const j = await res.json();
-  const orders = j.data?.orders || [];
-  const sec = document.getElementById('results-section');
-  const container = document.getElementById('results-container');
-  sec.classList.remove('hidden');
-  if (orders.length === 0) {
-    container.innerHTML = '<p style="color:var(--color-text-muted)">未找到订单</p>'; return;
-  }
-  let html = '<table><tr><th>订单ID</th><th>状态</th><th>过期时间</th><th>创建时间</th><th>操作</th></tr>';
-  for (const o of orders) {
-    const tagCls = o.status === 'paid' ? 'tag-paid' : 'tag-pending';
-    html += '<tr><td>'+h(o.order_id)+'</td><td><span class="tag '+tagCls+'">'+h(o.status)+'</span></td><td>'+h(o.expires_at)+'</td><td>'+h(o.created_at)+'</td><td><button class="btn btn-primary" style="font-size:12px;padding:4px 12px" onclick="editExpire(\''+h(o.order_id)+'\',\''+h(o.expires_at)+'\')">改过期</button></td></tr>';
-  }
-  html += '</table>';
-  container.innerHTML = html;
-}
-
-function editExpire(oid, cur) {
-  const val = prompt('修改过期时间（留空=永久）', cur);
-  if (val === null) return;
-  updateExpire(oid, val.trim() || '2999-12-31 23:59:59');
-}
-
-async function updateExpire(oid, expiresAt) {
-  await fetch(API+'/orders/'+oid+'/expire', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({expires_at: expiresAt}) });
-  doSearch();
-}
-
-function h(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
-
-// ── Verification Codes ──
-
-function formatCode(c) { return c.slice(0,4) + '-' + c.slice(4); }
-
-function renderCodeEl(c, st) {
-  const el = document.createElement('code');
-  el.style.cssText = 'cursor:pointer;background:var(--color-accent-soft);padding:4px 10px;border-radius:6px;font-size:15px;font-weight:600;letter-spacing:1px;user-select:all';
-  el.textContent = formatCode(c);
-  el.title = '点击复制';
-  el.onclick = function() { navigator.clipboard.writeText(c).then(function(){ st.textContent = '已复制: '+c; }); };
-  return el;
-}
-
-document.getElementById('vc-generate-btn').onclick = async function() {
-  const count = parseInt(document.getElementById('vc-count').value) || 1;
-  const st = document.getElementById('vc-status');
-  st.textContent = '';
-  this.disabled = true;
-  this.textContent = '生成中…';
   try {
-    const res = await fetch(API+'/verification-codes', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({count}),
-    });
-    if (!res.ok) { st.textContent = '生成失败'; return }
-    const j = await res.json();
-    const codes = j.data.codes || [];
-    const div = document.getElementById('vc-new-codes');
-    div.innerHTML = '';
-    for (const c of codes) {
-      div.appendChild(renderCodeEl(c, st));
+    const data = await requestJSON(`${API}/orders?email=${encodeURIComponent(email)}`);
+    const orders = data.orders || [];
+    $('results-section').classList.remove('hidden');
+    const container = $('results-container');
+    if (!orders.length) {
+      container.innerHTML = '<div class="empty-state">未找到订单。请确认邮箱后重试。</div>';
+      return;
     }
-    document.getElementById('vc-generated').classList.remove('hidden');
-    st.textContent = '已生成 '+codes.length+' 个激活码';
-  } finally {
-    this.disabled = false;
-    this.textContent = '生成激活码';
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>订单 ID</th><th>状态</th><th>过期时间</th><th>创建时间</th><th>操作</th></tr></thead>
+        <tbody>
+          ${orders.map(o => `
+            <tr>
+              <td>${h(o.order_id)}</td><td>${statusTag(o.status)}</td>
+              <td>${h(o.expires_at)}</td><td>${h(o.created_at)}</td>
+              <td><button class="btn btn-secondary" data-expire="${h(o.order_id)}" data-current="${h(o.expires_at)}">改过期</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (error) {
+    $('results-section').classList.remove('hidden');
+    $('results-container').innerHTML = `<div class="empty-state status-error">${h(error.message)}</div>`;
   }
-};
+}
 
-document.getElementById('vc-list-btn').onclick = function() { vcOffset = 0; loadVCList(); };
-document.getElementById('vc-export-btn').onclick = exportCSV;
-document.getElementById('vc-prev-btn').onclick = function() { vcOffset = Math.max(0, vcOffset - vcLimit); loadVCList(); };
-document.getElementById('vc-next-btn').onclick = function() { vcOffset += vcLimit; loadVCList(); };
+$('results-container').addEventListener('click', async event => {
+  const button = event.target.closest('[data-expire]');
+  if (!button) return;
+  const value = window.prompt('修改过期时间（留空 = 永久）', button.dataset.current);
+  if (value === null) return;
+  await requestJSON(`${API}/orders/${encodeURIComponent(button.dataset.expire)}/expire`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expires_at: value.trim() || '2999-12-31 23:59:59' }),
+  });
+  doSearch();
+});
 
 const vcLimit = 20;
 let vcOffset = 0;
-let vcTotal = 0;
+
+$('vc-generate-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const count = Number($('vc-count').value) || 1;
+  const button = $('vc-generate-btn');
+  show('vc-status', '');
+  busy(button, true, '生成中…');
+  try {
+    const data = await requestJSON(`${API}/verification-codes`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count }),
+    });
+    $('vc-new-codes').innerHTML = (data.codes || []).map(item =>
+      `<button class="btn btn-secondary" data-code="${h(item.code)}">${h(formatCode(item.code))}</button>`).join('');
+    $('vc-generated').classList.remove('hidden');
+    show('vc-status', `已生成 ${data.codes?.length || 0} 个激活码`);
+    loadVCList();
+  } catch (error) {
+    show('vc-status', error.message || '生成失败', true);
+  } finally { busy(button, false); }
+});
+
+$('vc-new-codes').addEventListener('click', async event => {
+  const button = event.target.closest('[data-code]');
+  if (!button) return;
+  await navigator.clipboard.writeText(button.dataset.code);
+  show('vc-status', `已复制：${button.dataset.code}`);
+});
+
+$('vc-list-btn').addEventListener('click', () => { vcOffset = 0; loadVCList(); });
+$('vc-prev-btn').addEventListener('click', () => { vcOffset = Math.max(0, vcOffset - vcLimit); loadVCList(); });
+$('vc-next-btn').addEventListener('click', () => { vcOffset += vcLimit; loadVCList(); });
 
 async function loadVCList() {
-  const res = await fetch(API+'/verification-codes?limit='+vcLimit+'&offset='+vcOffset);
-  if (res.status === 403) { location.reload(); return }
-  if (!res.ok) return;
-  const j = await res.json();
-  const codes = j.data.codes || [];
-  vcTotal = j.data.total || codes.length;
-  const container = document.getElementById('vc-list');
-  if (codes.length === 0) {
-    container.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px">暂无验证码</p>';
-  } else {
-    let html = '<table><tr><th>激活码</th><th>状态</th><th>用户邮箱</th><th>创建时间</th><th>使用时间</th></tr>';
-    for (const c of codes) {
-      const statusCls = c.status === 'active' ? 'tag-paid' : c.status === 'used' ? 'tag-pending' : '';
-      const statusLabel = c.status === 'active' ? '可用' : c.status === 'used' ? '已用' : '过期';
-      html += '<tr><td style="font-family:monospace;letter-spacing:1px">'+h(formatCode(c.code))+'</td><td><span class="tag '+statusCls+'">'+h(statusLabel)+'</span></td><td>'+h(c.email||'—')+'</td><td>'+h(c.created_at||'')+'</td><td>'+h(c.used_at||'—')+'</td></tr>';
-    }
-    html += '</table>';
-    container.innerHTML = html;
+  try {
+    const data = await requestJSON(`${API}/verification-codes?limit=${vcLimit}&offset=${vcOffset}`);
+    const codes = data.codes || [];
+    $('vc-list').innerHTML = codes.length ? `
+      <table>
+        <thead><tr><th>激活码</th><th>状态</th><th>邮箱</th><th>创建时间</th><th>使用时间</th></tr></thead>
+        <tbody>${codes.map(c => `
+          <tr><td>${h(formatCode(c.code))}</td><td>${statusTag(c.status)}</td>
+          <td>${h(c.email || '-')}</td><td>${h(c.created_at)}</td><td>${h(c.used_at || '-')}</td></tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty-state">暂无激活码。</div>';
+    const total = Number(data.total || 0);
+    $('vc-pager').classList.toggle('hidden', total <= vcLimit);
+    $('vc-page-info').textContent = `${vcOffset + 1} – ${Math.min(vcOffset + vcLimit, total)} / ${total}`;
+  } catch (error) {
+    show('vc-status', error.message, true);
   }
-  updatePager();
 }
 
 function updatePager() {
-  const pager = document.getElementById('vc-pager');
-  const prevBtn = document.getElementById('vc-prev-btn');
-  const nextBtn = document.getElementById('vc-next-btn');
-  const info = document.getElementById('vc-page-info');
-  if (vcTotal <= vcLimit) { pager.classList.add('hidden'); return; }
-  pager.classList.remove('hidden');
-  prevBtn.disabled = vcOffset === 0;
-  nextBtn.disabled = vcOffset + vcLimit >= vcTotal;
-  info.textContent = (vcOffset + 1) + '-' + Math.min(vcOffset + vcLimit, vcTotal) + ' / ' + vcTotal;
+  const totalPages = Math.max(1, Math.ceil(vcTotal / vcLimit));
+  const page = Math.floor(vcOffset / vcLimit) + 1;
+  $('vc-page-info').textContent = `${page} / ${totalPages}`;
+  $('vc-prev-btn').disabled = page <= 1;
+  $('vc-next-btn').disabled = page >= totalPages;
 }
 
-async function exportCSV() {
-  const res = await fetch(API+'/verification-codes?limit=0');
-  if (!res.ok) return;
-  const j = await res.json();
-  const codes = j.data.codes || [];
-  if (codes.length === 0) { alert('暂无数据可导出'); return; }
-  const header = 'code,status,email,created_at,used_at';
-  const rows = codes.map(function(c) {
-    return [c.code, c.status, c.email||'', c.created_at||'', c.used_at||''].join(',');
-  });
-  const csv = [header].concat(rows).join('\n');
-  const blob = new Blob(['﻿' + csv], {type: 'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'verification-codes.csv';
-  a.click();
+$('vc-export-btn').addEventListener('click', async () => {
+  const data = await requestJSON(`${API}/verification-codes?limit=1000&offset=0`);
+  const codes = data.codes || [];
+  if (!codes.length) { show('vc-status', '暂无数据可导出', true); return; }
+  const csv = ['code,status,email,created_at,used_at'].concat(codes.map(c =>
+    [c.code, c.status, c.email || '', c.created_at || '', c.used_at || ''].join(','))).join('\n');
+  const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'verification-codes.csv'; link.click();
   URL.revokeObjectURL(url);
+});
+
+const referralApplicationsBody = $('referral-applications-body');
+const referralPartnersBody = $('referral-partners-body');
+const referralActionsBody = $('referral-actions-body');
+
+async function loadReferralAdmin() {
+  await Promise.all([loadReferralApplications(), loadReferralPartners(), loadReferralActions()]);
 }
 
-(async ()=>{
-  const res = await fetch(API+'/orders?email=_check_');
-  if (res.status === 403) return;
-  document.getElementById('login-section').classList.add('hidden');
-  document.getElementById('main-section').classList.remove('hidden');
-  loadVCList();
-})();
+async function loadReferralApplications(status = 'pending') {
+  show('referral-application-status', '载入中…');
+  try {
+    const data = await requestJSON(`${API}/referral/applications?status=${encodeURIComponent(status)}&limit=100`);
+    const items = data.applications || [];
+    referralApplicationsBody.innerHTML = items.length ? items.map(item => `
+      <tr>
+        <td>${h(item.code || item.user_id)}</td><td>${h(item.note || '-')}</td>
+        <td>${statusTag(item.status)}</td><td>${h(item.created_at)}</td>
+        <td>${item.status === 'pending' ? `
+          <div class="actions">
+            <button class="btn btn-primary" data-application-approve="${h(item.id)}">通过</button>
+            <button class="btn btn-secondary" data-application-reject="${h(item.id)}">拒绝</button>
+          </div>` : '<span class="muted">已处理</span>'}</td>
+      </tr>`).join('') : '<tr><td colspan="5"><div class="empty-state">当前没有申请。<button class="btn btn-secondary" data-referral-refresh>刷新</button></div></td></tr>';
+    show('referral-application-status', items.length ? `共 ${items.length} 条` : '');
+  } catch (error) { show('referral-application-status', error.message, true); }
+}
+
+async function loadReferralPartners() {
+  show('referral-partner-status', '载入中…');
+  const params = new URLSearchParams({ limit: '100' });
+  if ($('referral-partner-role').value) params.set('role', $('referral-partner-role').value);
+  if ($('referral-partner-status-filter').value) params.set('status', $('referral-partner-status-filter').value);
+  if ($('referral-partner-query').value.trim()) params.set('q', $('referral-partner-query').value.trim());
+  try {
+    const data = await requestJSON(`${API}/referral/partners?${params}`);
+    const items = data.partners || [];
+    referralPartnersBody.innerHTML = items.length ? items.map(item => `
+      <tr>
+        <td>${h(item.code)}</td><td>${h(item.user_id)}</td>
+        <td>${statusTag(item.role)}</td><td>${statusTag(item.status)}</td><td>${h(item.created_at)}</td>
+        <td><div class="actions">
+          ${item.status === 'active'
+            ? `<button class="btn btn-danger" data-partner-freeze="${h(item.user_id)}">冻结</button>`
+            : `<button class="btn btn-secondary" data-partner-unfreeze="${h(item.user_id)}">解冻</button>`}
+        </div></td>
+      </tr>`).join('') : '<tr><td colspan="6"><div class="empty-state">没有匹配的合作伙伴。<button class="btn btn-secondary" data-referral-refresh>刷新</button></div></td></tr>';
+    show('referral-partner-status', items.length ? `共 ${items.length} 位` : '');
+  } catch (error) { show('referral-partner-status', error.message, true); }
+}
+
+async function loadReferralActions() {
+  try {
+    const data = await requestJSON(`${API}/referral/actions?limit=100`);
+    const items = data.actions || [];
+    referralActionsBody.innerHTML = items.length ? items.map(item => `
+      <tr><td>${h(item.created_at)}</td><td>${h(item.actor)}</td><td>${h(item.action)}</td>
+      <td>${h(item.target_id)}</td><td>${h(item.reason || '-')}</td></tr>`).join('')
+      : '<tr><td colspan="5"><span class="muted">暂无管理记录</span></td></tr>';
+  } catch (error) { show('referral-action-status', error.message, true); }
+}
+
+$('referral-application-form').addEventListener('submit', event => {
+  event.preventDefault();
+  loadReferralApplications($('referral-application-status-filter').value);
+});
+$('referral-partner-form').addEventListener('submit', event => {
+  event.preventDefault();
+  loadReferralPartners();
+});
+
+referralApplicationsBody.addEventListener('click', async event => {
+  const approve = event.target.closest('[data-application-approve]');
+  const reject = event.target.closest('[data-application-reject]');
+  if (!approve && !reject) return;
+  const id = approve?.dataset.applicationApprove || reject?.dataset.applicationReject;
+  const reason = window.prompt(approve ? '通过说明：' : '拒绝原因：');
+  if (!reason?.trim()) { show('referral-application-status', '必须填写审核说明', true); return; }
+  if (reject && !window.confirm('确认拒绝该申请？')) return;
+  try {
+    await requestJSON(`${API}/referral/applications/${encodeURIComponent(id)}/decision`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approve: Boolean(approve), reason: reason.trim() }),
+    });
+    loadReferralApplications($('referral-application-status-filter').value);
+    loadReferralPartners();
+    loadReferralActions();
+  } catch (error) { show('referral-application-status', error.message, true); }
+});
+
+referralPartnersBody.addEventListener('click', async event => {
+  const freeze = event.target.closest('[data-partner-freeze]');
+  const unfreeze = event.target.closest('[data-partner-unfreeze]');
+  if (!freeze && !unfreeze) return;
+  const id = freeze?.dataset.partnerFreeze || unfreeze?.dataset.partnerUnfreeze;
+  const reason = window.prompt(freeze ? '冻结原因：' : '解冻原因：');
+  if (!reason?.trim()) { show('referral-partner-status', '必须填写原因', true); return; }
+  if (freeze && !window.confirm('确认冻结该合作伙伴？')) return;
+  try {
+    await requestJSON(`${API}/referral/partners/${encodeURIComponent(id)}/status`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: freeze ? 'frozen' : 'active', reason: reason.trim() }),
+    });
+    loadReferralPartners();
+    loadReferralActions();
+  } catch (error) { show('referral-partner-status', error.message, true); }
+});
+
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-referral-refresh]')) loadReferralAdmin();
+});
+
+function statusTag(status) {
+  const value = (status || '-').toLowerCase();
+  const positive = ['active', 'approved', 'paid', 'succeeded'];
+  const negative = ['frozen', 'rejected', 'failed'];
+  const cls = positive.includes(value) ? 'tag' : negative.includes(value) ? 'tag tag-danger' : 'tag tag-muted';
+  return `<span class="${cls}">${h(status || '-')}</span>`;
+}
+function formatCode(code) { return code.slice(0, 4) + '-' + code.slice(4); }
+
+checkAdminSession();
 </script>
 </body>
 </html>

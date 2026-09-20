@@ -25,15 +25,6 @@ func namingOnPaid(store *naming.Store, sender email.Sender, url string) product.
 	}
 }
 
-func adminVerification(sender email.Sender) func(ctx context.Context, email, code string) {
-	return func(ctx context.Context, email, code string) {
-		body := fmt.Sprintf(`<p>管理员登录验证码：</p><p style="font-size:24px;font-weight:bold;letter-spacing:4px">%s</p><p>5分钟内有效。</p>`, code)
-		if err := sender.SendReport(ctx, email, "验证码 — liki.hk 管理后台", body); err != nil {
-			slog.Error("mail: admin verification", "err", err)
-		}
-	}
-}
-
 type paymentEmailSender struct {
 	client *email.Client
 }

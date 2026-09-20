@@ -23,6 +23,13 @@ func NewHandler(svc *naming.AdminService, onPaid func(ctx context.Context, order
 
 // ── HandleListOrders ──
 
+func (h *AdminService) HandleSession(identity func(*http.Request) (string, bool)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		email, _ := identity(r)
+		httputil.RespondJSON(w, http.StatusOK, map[string]string{"email": email})
+	}
+}
+
 func (h *AdminService) HandleListOrders() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		email := r.URL.Query().Get("email")

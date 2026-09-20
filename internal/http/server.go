@@ -25,10 +25,10 @@ import (
 
 type ServerDeps struct {
 	OnPaid           func(ctx context.Context, orderID string)
-	OnVerification   func(ctx context.Context, email, code string)
 	PaymentRuntime   *payment.Runtime
 	AuthHandler      *auth.Handler
 	ReferralHandler  *referral.Handler
+	ReferralStore    *referral.Store
 	LikiHandler      *liki.Handler
 	AipayHandler     *aipay.Handler
 	ProfileHandler   *profile.Handler
@@ -44,6 +44,7 @@ type ServerDeps struct {
 	MetricsHandler   http.HandlerFunc
 	FeedbackStore    *feedback.Store
 	FeedbackAPIKey   string
+	AdminEmail       string
 	DevMode          bool
 }
 
@@ -129,13 +130,20 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 
 	// ── admin routes (naming-specific — registered here to avoid import cycle) ──
 	if deps.NamingStore != nil {
-		admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid)
+		if deps.AuthHandler != nil || deps.AdminEmail != "" {
+			adminIdentity := func(r *http.Request) (string, bool) {
+				if deps.AuthHandler == nil {
+					return "", false
+				}
+				user, ok := deps.AuthHandler.IdentityFromRequest(r)
+				return user.Email, ok
+			}
+			admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid, deps.ReferralStore, adminIdentity, deps.AdminEmail)
+		}
 	}
 	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3）──
 	// send-code（防邮件轰炸）与 verify-code（防暴破）是独立风险面：独立限流桶，
 	// 避免共享桶互相干扰（打 send 耗尽配额锁死 verify 的 DoS 放大 + 冒烟连发误伤）
-	mux.HandleFunc("POST /api/admin/send-code", rl.Wrap(1.0/60, 3, handleAdminSendCode(deps.OnVerification)))
-	mux.HandleFunc("POST /api/admin/verify-code", verifyRL.Wrap(1.0/60, 3, handleAdminVerifyCode()))
 
 	// ── feedback ──
 	if deps.FeedbackStore != nil {

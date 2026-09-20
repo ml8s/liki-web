@@ -315,23 +315,19 @@ check_401 "GET /api/naming/orders/{id}/messages (invalid JWT)" "$s"
 echo ""
 echo "${BOLD}── Admin ──${NC}"
 
-# Send code (always succeeds to avoid enumeration)
+# The admin console uses the app unified session cookie, not a separate token.
+# Legacy admin auth endpoints are intentionally removed.
 s=$(api POST /api/admin/send-code "{\"email\":\"$TEST_EMAIL\"}")
-check_200 "POST /api/admin/send-code (valid)" "$s"
+check_404 "POST /api/admin/send-code (removed)" "$s"
 
-# Send code — bad JSON
-s=$(api POST /api/admin/send-code 'not-json')
-check_400 "POST /api/admin/send-code (bad JSON)" "$s"
-
-# Verify code — wrong code
 s=$(api POST /api/admin/verify-code "{\"email\":\"$TEST_EMAIL\",\"code\":\"000000\"}")
-check_403 "POST /api/admin/verify-code (wrong code)" "$s"
+check_404 "POST /api/admin/verify-code (removed)" "$s"
 
-# Verify code — missing fields
-s=$(api POST /api/admin/verify-code '{}')
-check_403 "POST /api/admin/verify-code (missing fields)" "$s"
+# Admin session — requires the unified app session cookie
+s=$(api GET /api/admin/session)
+check_403 "GET /api/admin/session (no session)" "$s"
 
-# Admin list orders — no JWT (should not reach handler, auth fails first)
+# Admin list orders — no unified session (should not reach handler, auth fails first)
 s=$(api GET "/api/admin/orders?email=$TEST_EMAIL")
 check_403 "GET /api/admin/orders (no JWT)" "$s"
 

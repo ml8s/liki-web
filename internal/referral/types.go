@@ -16,7 +16,8 @@ const (
 type PartnerRole string
 
 const (
-	RoleKOL PartnerRole = "kol"
+	RoleKOL            PartnerRole = "kol"
+	RoleChannelPartner PartnerRole = "channel_partner"
 )
 
 type CommissionStatus string
@@ -78,6 +79,38 @@ type Commission struct {
 	CreatedAt        time.Time        `json:"created_at"`
 	UpdatedAt        time.Time        `json:"updated_at"`
 	PaidAt           *time.Time       `json:"paid_at,omitempty"`
+}
+
+type ApplicationStatus string
+
+const (
+	ApplicationPending  ApplicationStatus = "pending"
+	ApplicationApproved ApplicationStatus = "approved"
+	ApplicationRejected ApplicationStatus = "rejected"
+)
+
+type PartnerApplication struct {
+	ID             string            `json:"id"`
+	UserID         string            `json:"user_id"`
+	Code           string            `json:"code"`
+	Status         ApplicationStatus `json:"status"`
+	Note           string            `json:"note"`
+	ReviewerID     string            `json:"reviewer_id,omitempty"`
+	DecisionReason string            `json:"decision_reason,omitempty"`
+	CreatedAt      time.Time         `json:"created_at"`
+	ReviewedAt     *time.Time        `json:"reviewed_at,omitempty"`
+}
+
+type PartnerAdminAction struct {
+	ID         string    `json:"id"`
+	Actor      string    `json:"actor"`
+	Action     string    `json:"action"`
+	TargetType string    `json:"target_type"`
+	TargetID   string    `json:"target_id"`
+	Before     string    `json:"before,omitempty"`
+	After      string    `json:"after,omitempty"`
+	Reason     string    `json:"reason,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type PartnerStats struct {

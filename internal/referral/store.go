@@ -126,6 +126,60 @@ CREATE INDEX IF NOT EXISTS idx_referral_payouts_referrer
 			return err
 		},
 	}, {
+		ID: "003_partner_admin",
+		Up: func(ctx context.Context, tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `
+CREATE TABLE referrers_admin_migrate (
+    user_id TEXT PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL CHECK (role IN ('kol','channel_partner')),
+    status TEXT NOT NULL CHECK (status IN ('active','frozen')),
+    recruiter_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+INSERT INTO referrers_admin_migrate
+    (user_id,code,role,status,recruiter_id,created_at,updated_at)
+SELECT user_id,code,role,status,recruiter_id,created_at,updated_at FROM referrers;
+DROP TABLE referrers;
+ALTER TABLE referrers_admin_migrate RENAME TO referrers;
+CREATE INDEX IF NOT EXISTS idx_referrers_recruiter
+    ON referrers(recruiter_id,status);
+
+CREATE TABLE IF NOT EXISTS referral_applications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type='channel_partner'),
+    status TEXT NOT NULL CHECK (status IN ('pending','approved','rejected')),
+    note TEXT NOT NULL DEFAULT '',
+    reviewer_id TEXT,
+    decision_reason TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    reviewed_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_referral_applications_pending_user
+    ON referral_applications(user_id) WHERE status='pending';
+CREATE INDEX IF NOT EXISTS idx_referral_applications_status
+    ON referral_applications(status,created_at);
+
+CREATE TABLE IF NOT EXISTS referral_admin_actions (
+    id TEXT PRIMARY KEY,
+    actor TEXT NOT NULL,
+    action TEXT NOT NULL,
+    target_type TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    before TEXT,
+    after TEXT,
+    reason TEXT,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_referral_admin_actions_created
+    ON referral_admin_actions(created_at);
+`)
+			return err
+		},
+	}, {
 		ID: "002_commission_intake",
 		Up: func(ctx context.Context, tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx, `

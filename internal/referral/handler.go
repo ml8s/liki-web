@@ -32,6 +32,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit RateLimiterFunc) {
 	mux.HandleFunc("GET /api/referral/me", h.requireUser(h.HandleMe))
 	mux.HandleFunc("POST /api/referral/register", h.requireUser(limit(h.HandleRegister)))
 	mux.HandleFunc("GET /api/referral/me/commissions", h.requireUser(h.HandleCommissions))
+	mux.HandleFunc("POST /api/referral/channel-partner/application", h.requireUser(h.HandleSubmitChannelApplication))
+	mux.HandleFunc("GET /api/referral/channel-partner/application", h.requireUser(h.HandleMyChannelApplication))
 	mux.HandleFunc("GET /r/{code}", h.HandleLink)
 }
 
@@ -105,6 +107,57 @@ func (h *Handler) HandleLink(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	http.Redirect(w, r, "/zh-Hans/", http.StatusFound)
+}
+
+type channelApplicationRequest struct {
+	Note string `json:"note"`
+}
+
+func (r channelApplicationRequest) Validate() error { return nil }
+
+func (h *Handler) HandleSubmitChannelApplication(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.RespondAppError(w, httputil.ErrUnauthorized)
+		return
+	}
+	req, ok := httputil.DecodeAndValidate[channelApplicationRequest](w, r)
+	if !ok {
+		return
+	}
+	item, err := h.store.SubmitChannelPartnerApplication(r.Context(), user.ID, req.Note)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrNotEligible):
+			httputil.RespondError(w, http.StatusForbidden, "referral_not_eligible", "需要先开通并保持推广资格")
+		case errors.Is(err, ErrApplicationPending):
+			httputil.RespondError(w, http.StatusConflict, "application_pending", "已有待审核申请")
+		default:
+			slog.Error("referral: submit channel application", "user_id", user.ID, "err", err)
+			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		}
+		return
+	}
+	httputil.RespondJSON(w, http.StatusCreated, map[string]any{"application": item})
+}
+
+func (h *Handler) HandleMyChannelApplication(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.RespondAppError(w, httputil.ErrUnauthorized)
+		return
+	}
+	item, err := h.store.PendingApplicationByUser(r.Context(), user.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		httputil.RespondJSON(w, http.StatusOK, map[string]any{"application": nil})
+		return
+	}
+	if err != nil {
+		slog.Error("referral: pending channel application", "user_id", user.ID, "err", err)
+		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		return
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"application": item})
 }
 
 func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {

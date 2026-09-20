@@ -689,3 +689,88 @@ if (ref) {
 | 裂变 | 不做 | 一层佣金（招商→KOL→用户），标准联盟营销 |
 | 命理师培训/证书 | 不做（远期） | 先验证转化率 |
 | 角色命名 | 待定 | 先不管，后续再定 |
+
+---
+
+## 十一、管理员后台扩展（已评审，进入实施）
+
+### 1. 结论
+
+复用现有 `internal/admin`、`/api/admin/*` 和 `web/admin.html`，不新建后台系统。
+
+管理员不保留单独 token。后台与 App 使用统一 `liki_session` 会话；`ADMIN_EMAIL` 只用于判断该统一账号是否有管理访问权。旧的管理员验证码端点和 `liki_token` 已移除。
+
+管理员后台新增“合作伙伴管理”：
+
+- 查看推广者 / 招商
+- 处理招商申请
+- 冻结 / 解冻合作伙伴
+- 记录管理动作
+- 只允许已登录管理员访问
+
+### 2. 内部角色
+
+| 内部角色 | 说明 |
+|---|---|
+| `kol` | 默认推广者；购买并通过 `/r/{token}` 归因后可注册 |
+| `channel_partner` | 招商 / 渠道合伙人；由 KOL 申请、管理员审核通过后升级 |
+
+内部名称不暴露给终端用户。用户页面不出现“招商码”“邀请码”“角色”等概念。
+
+### 3. 招商申请
+
+KOL 登录后可提交招商申请：
+
+```http
+POST /api/referral/channel-partner/application
+```
+
+规则：
+
+- 必须已经是 active KOL
+- 同一用户同时只能有一个 pending 申请
+- 申请进入管理员队列
+- 管理员通过后，`referrers.role` 从 `kol` 升级为 `channel_partner`
+- 管理员拒绝后，用户可再次提交
+
+### 4. 管理端 API
+
+```http
+GET  /api/admin/referral/partners
+GET  /api/admin/referral/applications
+POST /api/admin/referral/applications/{id}/decision
+POST /api/admin/referral/partners/{user_id}/status
+```
+
+所有管理 API 继续挂现有 `adminOnly` 中间件之后。中间件从 App 统一 `liki_session` 解析 active user，并要求 email 等于 `ADMIN_EMAIL`。
+
+### 5. 审计
+
+新增 `referral_admin_actions`：
+
+```text
+id
+actor
+action
+target_type
+target_id
+before
+after
+reason
+created_at
+```
+
+冻结、解冻、审批、拒绝都会写审计。
+
+### 6. 页面规范
+
+继续使用现有 `web/admin.html` 和 `/css/app.css` design token：
+
+- 不引入新样式体系
+- 不使用渐变、发光、大面积 blur
+- 表格数字使用 tabular-nums
+- 状态提示靠近操作区域
+- 操作失败不静默
+- 破坏性操作必须二次确认
+- 控件必须带可见文本或 `aria-label`
+- 移动端允许横向滚动表格

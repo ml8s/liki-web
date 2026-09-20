@@ -154,6 +154,20 @@ func (h *Handler) RequireUser(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// IdentityFromRequest resolves the current unified app session without
+// mounting authenticated routes. It returns only active sessions.
+func (h *Handler) IdentityFromRequest(r *http.Request) (User, bool) {
+	cookie, err := r.Cookie(h.config.CookieName)
+	if err != nil || cookie.Value == "" {
+		return User{}, false
+	}
+	user, _, err := h.store.GetSessionUser(r.Context(), cookie.Value)
+	if err != nil {
+		return User{}, false
+	}
+	return user, true
+}
+
 func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {

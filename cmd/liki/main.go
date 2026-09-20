@@ -379,7 +379,6 @@ func main() {
 	}
 	chatDuration := 30 * 24 * time.Hour
 	onPaid := namingOnPaid(namingStore, emailClient, cfg.ReturnURL)
-	onVerification := adminVerification(emailClient)
 
 	intents := payment.NewIntentStore(platformDB)
 	notifications := payment.NewNotificationStore(platformDB)
@@ -460,10 +459,10 @@ func main() {
 	mux := http.NewServeMux()
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
 		OnPaid:           onPaid, // admin-created orders only
-		OnVerification:   onVerification,
 		PaymentRuntime:   paymentRuntime,
 		AuthHandler:      authHandler,
 		ReferralHandler:  referralHandler,
+		ReferralStore:    referralStore,
 		LikiHandler:      liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser),
 		AipayHandler:     aipayHandler,
 		ProfileHandler:   profile.NewHandler(profileStore, authHandler.RequireUser),
@@ -475,6 +474,7 @@ func main() {
 		HepanGenerator:   hepanGenerator,
 		FeedbackStore:    feedbackStore,
 		FeedbackAPIKey:   cfg.FeedbackAPIKey,
+		AdminEmail:       os.Getenv("ADMIN_EMAIL"),
 		NamingAgent:      namingAgent,
 		Agent:            reportAgent,
 		Analytics:        apphttp.NewAnalytics(),
