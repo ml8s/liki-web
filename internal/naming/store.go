@@ -253,3 +253,39 @@ func (s *Store) CleanStale(ctx context.Context) (int, error) {
 	n, _ := res.RowsAffected() //nolint:errcheck
 	return int(n), nil
 }
+
+// AnonymizeEmail pseudonymizes transaction email and deletes generated chat
+// content. Paid order facts remain for accounting and tax retention.
+func (s *Store) AnonymizeEmail(ctx context.Context, oldEmail, tombstone string) (int64, error) {
+	if tombstone == "" {
+		return 0, fmt.Errorf("naming: anonymize requires tombstone")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `
+DELETE FROM chat_messages
+WHERE order_id IN (SELECT order_id FROM orders WHERE email=? OR (? != '' AND email=?))`,
+		oldEmail, oldEmail, oldEmail); err != nil {
+		return 0, err
+	}
+	res, err := tx.ExecContext(ctx, `
+UPDATE orders SET email=?
+WHERE email=? OR (? != '' AND email=?)`, tombstone, oldEmail, oldEmail, oldEmail)
+	if err != nil {
+		return 0, err
+	}
+	count, _ := res.RowsAffected()
+	if _, err := tx.ExecContext(ctx, `
+UPDATE verification_codes SET email=?
+WHERE email=? OR (? != '' AND email=?)`, tombstone, oldEmail, oldEmail, oldEmail); err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return count, nil
+}

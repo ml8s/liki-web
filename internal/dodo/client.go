@@ -82,6 +82,29 @@ func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.We
 	}
 
 	union := event.AsUnion()
+	if refundEvent, ok := union.(dodopayments.RefundSucceededWebhookEvent); ok {
+		metadata := refundEvent.Data.Metadata
+		orderID := metadata["payment_intent_id"]
+		if orderID == "" {
+			orderID = metadata["order_id"]
+		}
+		email := refundEvent.Data.Customer.Email
+		if email == "" {
+			email = metadata["email"]
+		}
+		return &payment.WebhookEvent{
+			Provider: payment.ProviderDodo,
+			Type:     payment.EventPaymentRefunded,
+			Data: payment.WebhookEventData{
+				OrderID:   orderID,
+				Amount:    refundEvent.Data.Amount,
+				Currency:  string(refundEvent.Data.Currency),
+				Email:     email,
+				PaymentID: refundEvent.Data.RefundID,
+				Metadata:  metadata,
+			},
+		}, nil
+	}
 	paymentEvent, ok := union.(dodopayments.PaymentSucceededWebhookEvent)
 	if !ok {
 		return &payment.WebhookEvent{Provider: payment.ProviderDodo, Type: string(event.Type)}, nil

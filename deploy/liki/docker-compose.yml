@@ -39,7 +39,7 @@ services:
     volumes:
       - liki_data:/var/lib/liki
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/ready"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -48,7 +48,7 @@ services:
       engine:
         condition: service_started
         # engine 为 scratch 镜像（无 shell/wget，无法运行探活命令）——保持 started；
-        # web 自身 /api/health 会暴露依赖问题
+        # web 自身 /api/ready 会暴露数据库连接问题
     deploy:
       resources:
         limits:

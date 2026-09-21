@@ -22,6 +22,7 @@ const (
 	IntentCreated         PaymentStatus = "created"
 	IntentCheckoutCreated PaymentStatus = "checkout_created"
 	IntentPaid            PaymentStatus = "paid"
+	PaymentStatusRefunded PaymentStatus = "refunded"
 	IntentFailed          PaymentStatus = "failed"
 	IntentExpired         PaymentStatus = "expired"
 )
@@ -38,27 +39,29 @@ type BusinessOrder struct {
 }
 
 type PaymentIntent struct {
-	ID                string
-	BusinessOrderID   string
-	UserID            string
-	Product           string
-	Provider          Provider
-	Status            PaymentStatus
-	AmountMinor       int64
-	Currency          string
-	Email             string
-	Locale            string
-	Metadata          map[string]string
-	ProviderSessionID string
-	ProviderPaymentID string
-	CheckoutURL       string
-	QRCodeURL         string
-	ReturnURL         string
-	SuccessURL        string
-	FailureURL        string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-	PaidAt            *time.Time
+	ID                  string
+	BusinessOrderID     string
+	UserID              string
+	Product             string
+	Provider            Provider
+	Status              PaymentStatus
+	AmountMinor         int64
+	Currency            string
+	Email               string
+	Locale              string
+	Metadata            map[string]string
+	ProviderSessionID   string
+	ProviderPaymentID   string
+	CheckoutURL         string
+	QRCodeURL           string
+	ReturnURL           string
+	SuccessURL          string
+	FailureURL          string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	PaidAt              *time.Time
+	RefundedAt          *time.Time
+	RefundedAmountMinor int64
 }
 
 type CheckoutRequest struct {
@@ -124,6 +127,7 @@ type Runtime struct {
 	adminEmail          string
 	baseURL             string
 	fulfillmentObserver FulfillmentObserver
+	refundObserver      func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error
 }
 
 func NewRuntime(
@@ -152,6 +156,10 @@ func NewRuntime(
 
 func (r *Runtime) SetFulfillmentObserver(observer FulfillmentObserver) {
 	r.fulfillmentObserver = observer
+}
+
+func (r *Runtime) SetRefundObserver(observer func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error) {
+	r.refundObserver = observer
 }
 
 func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (PaymentIntent, error) {
@@ -201,6 +209,7 @@ func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (Pa
 	if err := r.intents.CreateIntent(ctx, intent); err != nil {
 		return PaymentIntent{}, err
 	}
+	metrics.Default.Inc("payment_intent_created_total", map[string]string{"provider": string(intent.Provider)})
 	return intent, nil
 }
 
@@ -272,7 +281,7 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "verify_failed"})
 		return nil, err
 	}
-	if event.Type != EventPaymentSucceeded {
+	if event.Type != EventPaymentSucceeded && event.Type != EventPaymentRefunded {
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "ignored"})
 		slog.Info("payment: ignored webhook", "provider", event.Provider, "type", event.Type)
 		return r.webhookAck(event.Provider)
@@ -283,6 +292,15 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 	}
 	if _, err := r.events.Record(ctx, intent.ID, PaymentEventWebhook, *event); err != nil {
 		return nil, err
+	}
+	if event.Type == EventPaymentRefunded {
+		if err := r.captureRefund(ctx, event, intent); err != nil {
+			metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "refund_failed"})
+			return nil, err
+		}
+		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "refunded"})
+		metrics.Default.Inc("payment_refunded_total", map[string]string{"provider": string(intent.Provider)})
+		return r.webhookAck(event.Provider)
 	}
 	if err := r.capture(ctx, event, intent); err != nil {
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "capture_failed"})
@@ -340,6 +358,36 @@ func (r *Runtime) reconcileIntent(ctx context.Context, intent PaymentIntent) (Pa
 	}
 	updated, err := r.intents.GetIntent(ctx, intent.ID)
 	return updated, true, err
+}
+
+func (r *Runtime) captureRefund(ctx context.Context, event *WebhookEvent, intent PaymentIntent) error {
+	if intent.Provider != event.Provider {
+		return fmt.Errorf("payment: refund provider %q does not match intent %q", event.Provider, intent.Provider)
+	}
+	if intent.Status != IntentPaid && intent.Status != PaymentStatusRefunded {
+		return fmt.Errorf("payment: refund for intent %s in state %q", intent.ID, intent.Status)
+	}
+	if intent.Status == PaymentStatusRefunded && intent.RefundedAmountMinor >= intent.AmountMinor {
+		return nil
+	}
+	if event.Data.Amount != 0 && event.Data.Amount > intent.AmountMinor-intent.RefundedAmountMinor {
+		return fmt.Errorf("payment: refund exceeds remaining amount for intent %s: got %d remaining %d",
+			intent.ID, event.Data.Amount, intent.AmountMinor-intent.RefundedAmountMinor)
+	}
+	updated, record, err := r.intents.RecordRefund(ctx, intent, event.Data.PaymentID, event.Data.Amount, event.Data.Currency)
+	if err != nil {
+		return err
+	}
+	if (record.New || !record.Notified) && r.refundObserver != nil {
+		if err := r.refundObserver(context.WithoutCancel(ctx), *event, updated); err != nil {
+			return err
+		}
+		if err := r.intents.MarkRefundNotified(context.WithoutCancel(ctx), record.ID); err != nil {
+			return err
+		}
+	}
+	metrics.Default.Inc("payment_refund_total", map[string]string{"provider": string(updated.Provider)})
+	return nil
 }
 
 func (r *Runtime) capture(ctx context.Context, event *WebhookEvent, intent PaymentIntent) error {

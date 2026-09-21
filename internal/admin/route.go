@@ -4,52 +4,94 @@ import (
 	"context"
 	"net/http"
 
+	"liki-web/internal/adminauth"
+	"liki-web/internal/auth"
 	"liki-web/internal/httputil"
 	"liki-web/internal/naming"
 	"liki-web/internal/referral"
 )
 
-// IdentityFunc resolves the caller from the app's unified session.
-type IdentityFunc func(r *http.Request) (email string, ok bool)
+type IdentityFunc func(r *http.Request) (auth.User, bool)
 
-// RegisterRoutes mounts admin handler routes on the given mux.
+func capabilityGuard(authorizer *adminauth.Store, identity IdentityFunc) func(adminauth.Capability) func(http.HandlerFunc) http.HandlerFunc {
+	return func(capability adminauth.Capability) func(http.HandlerFunc) http.HandlerFunc {
+		return func(next http.HandlerFunc) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				user, ok := identity(r)
+				if !ok {
+					_ = authorizer.Audit(r.Context(), adminauth.AuditEntry{
+						ActorEmail: user.Email, Action: "admin.request", ObjectType: "route",
+						ObjectID: r.URL.Path, Reason: "missing unified session",
+					})
+					httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
+					return
+				}
+				allowed, err := authorizer.Authorize(r.Context(), user, capability)
+				if err != nil {
+					httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "权限检查失败")
+					return
+				}
+				if !allowed {
+					_ = authorizer.Audit(r.Context(), adminauth.AuditEntry{
+						ActorUserID: user.ID, ActorEmail: user.Email, Capability: string(capability),
+						Action: "admin.request", ObjectType: "route", ObjectID: r.URL.Path,
+						Reason: "capability denied",
+					})
+					httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
+					return
+				}
+				r = r.WithContext(auth.WithAuth(r.Context(), user, auth.AuthSession{}, ""))
+				next(w, r)
+			}
+		}
+	}
+}
+
 func RegisterRoutes(
 	mux *http.ServeMux,
 	svc *naming.AdminService,
 	onPaid func(ctx context.Context, orderID string),
 	referralStore *referral.Store,
+	authorizer *adminauth.Store,
 	identity IdentityFunc,
-	adminEmail string,
 ) {
 	h := NewHandler(svc, onPaid)
-	guard := adminOnly(identity, adminEmail)
+	guard := capabilityGuard(authorizer, identity)
+	identityFunc := func(r *http.Request) auth.User { user, _ := identity(r); return user }
+	adminAuthHandler := adminauth.NewHandler(authorizer)
 
-	mux.HandleFunc("GET /api/admin/session", guard(h.HandleSession(identity)))
-	mux.HandleFunc("GET /api/admin/orders", guard(h.HandleListOrders()))
-	mux.HandleFunc("POST /api/admin/orders", guard(h.HandleCreateOrder()))
-	mux.HandleFunc("PATCH /api/admin/orders/{id}/expire", guard(h.HandleUpdateExpire()))
-	mux.HandleFunc("POST /api/admin/verification-codes", guard(h.HandleGenerateCodes()))
-	mux.HandleFunc("GET /api/admin/verification-codes", guard(h.HandleListCodes()))
+	mux.HandleFunc("GET /api/admin/session", guard(adminauth.CapabilityPartnerRead)(func(w http.ResponseWriter, r *http.Request) {
+		h.HandleSession(identityFunc(r))(w, r)
+	}))
+
+	mux.HandleFunc("GET /api/admin/admins", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleListAdmins()))
+	mux.HandleFunc("POST /api/admin/admins", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleCreateAdmin()))
+	mux.HandleFunc("POST /api/admin/admins/{email}/capabilities", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleGrantCapability()))
+	mux.HandleFunc("POST /api/admin/admins/{email}/capabilities/revoke", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleRevokeCapability()))
+	mux.HandleFunc("POST /api/admin/admins/{email}/enable", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleEnableAdmin()))
+	mux.HandleFunc("POST /api/admin/admins/{email}/disable", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleDisableAdmin()))
+
+	mux.HandleFunc("GET /api/admin/orders", guard(adminauth.CapabilityAdminSuper)(h.HandleListOrders()))
+	mux.HandleFunc("POST /api/admin/orders", guard(adminauth.CapabilityAdminSuper)(h.HandleCreateOrder()))
+	mux.HandleFunc("PATCH /api/admin/orders/{id}/expire", guard(adminauth.CapabilityAdminSuper)(h.HandleUpdateExpire()))
+	mux.HandleFunc("POST /api/admin/verification-codes", guard(adminauth.CapabilityAdminSuper)(h.HandleGenerateCodes()))
+	mux.HandleFunc("GET /api/admin/verification-codes", guard(adminauth.CapabilityAdminSuper)(h.HandleListCodes()))
 
 	if referralStore != nil {
 		referralAdmin := referral.NewAdminHandler(referralStore)
-		mux.HandleFunc("GET /api/admin/referral/partners", guard(referralAdmin.HandleListPartners()))
-		mux.HandleFunc("GET /api/admin/referral/applications", guard(referralAdmin.HandleListApplications()))
-		mux.HandleFunc("POST /api/admin/referral/applications/{id}/decision", guard(referralAdmin.HandleApplicationDecision()))
-		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/status", guard(referralAdmin.HandlePartnerStatus()))
-		mux.HandleFunc("GET /api/admin/referral/actions", guard(referralAdmin.HandleAdminActions()))
-	}
-}
-
-func adminOnly(identity IdentityFunc, adminEmail string) func(http.HandlerFunc) http.HandlerFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			email, ok := identity(r)
-			if !ok || email == "" || email != adminEmail {
-				httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
-				return
-			}
-			next(w, r)
-		}
+		mux.HandleFunc("GET /api/admin/referral/partners", guard(adminauth.CapabilityPartnerRead)(referralAdmin.HandleListPartners()))
+		mux.HandleFunc("GET /api/admin/referral/applications", guard(adminauth.CapabilityPartnerRead)(referralAdmin.HandleListApplications()))
+		mux.HandleFunc("POST /api/admin/referral/applications/{id}/decision", guard(adminauth.CapabilityPartnerApprove)(referralAdmin.HandleApplicationDecision()))
+		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/promote", guard(adminauth.CapabilityPartnerApprove)(referralAdmin.HandlePromotePartner()))
+		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/freeze", guard(adminauth.CapabilityPartnerFreeze)(referralAdmin.HandlePartnerFreeze()))
+		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/unfreeze", guard(adminauth.CapabilityPartnerUnfreeze)(referralAdmin.HandlePartnerUnfreeze()))
+		mux.HandleFunc("GET /api/admin/referral/payouts", guard(adminauth.CapabilityPayoutRead)(referralAdmin.HandleListPayouts()))
+		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/approve", guard(adminauth.CapabilityPayoutApprove)(referralAdmin.HandlePayoutAction()))
+		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/reject", guard(adminauth.CapabilityPayoutReject)(referralAdmin.HandlePayoutAction()))
+		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/mark-paid", guard(adminauth.CapabilityPayoutMarkPaid)(referralAdmin.HandlePayoutAction()))
+		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/reveal-account", guard(adminauth.CapabilityPayoutMarkPaid)(referralAdmin.HandleRevealPayoutAccount()))
+		mux.HandleFunc("GET /api/admin/referral/actions", guard(adminauth.CapabilityAuditRead)(referralAdmin.HandleAdminActions()))
+		mux.HandleFunc("GET /api/admin/referral/finance-tasks", guard(adminauth.CapabilityCommissionRead)(referralAdmin.HandleListFinanceTasks()))
+		mux.HandleFunc("POST /api/admin/referral/finance-tasks/{id}/resolve", guard(adminauth.CapabilityCommissionVoid)(referralAdmin.HandleResolveFinanceTask()))
 	}
 }

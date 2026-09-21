@@ -71,8 +71,12 @@ func TestCommissionWorkerSettlesDodoAndXunhuExactlyOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stats.TotalEarnedMinor != 4900 || len(stats.Commissions) != 2 {
+	if len(stats.Balances) != 2 || len(stats.Commissions) != 2 {
 		t.Fatalf("stats=%+v", stats)
+	}
+	cny, usd := stats.Balances[0], stats.Balances[1]
+	if cny.Currency != "CNY" || cny.TotalMinor != 4400 || usd.Currency != "USD" || usd.TotalMinor != 500 {
+		t.Fatalf("currency balances=%+v", stats.Balances)
 	}
 	if !strings.Contains(xcom.PaymentProvider, "xunhu") {
 		t.Fatalf("provider=%q", xcom.PaymentProvider)
@@ -133,5 +137,38 @@ INSERT INTO fulfillment_tasks VALUES ('pi-reconcile','succeeded');`); err != nil
 	}
 	if commission.ReferrerAmount != 4400 {
 		t.Fatalf("commission=%+v", commission)
+	}
+}
+
+func TestVoidCommissionForIntent(t *testing.T) {
+	ctx := context.Background()
+	store := newStore(t)
+	kol, err := store.RegisterReferrer(ctx, "kol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
+		t.Fatal(err)
+	}
+	intent := paidIntent(payment.ProviderXunhu, "buyer", 8800)
+	intent.ID = "pi-refund"
+	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+		t.Fatalf("processed=%d err=%v", n, err)
+	}
+	if err := store.VoidCommissionForIntent(ctx, payment.ProviderXunhu, intent.ID, "payment.refunded"); err != nil {
+		t.Fatal(err)
+	}
+	got, err := store.commission(ctx, string(payment.ProviderXunhu), intent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != CommissionVoided {
+		t.Fatalf("status = %q, want voided", got.Status)
+	}
+	if err := store.VoidCommissionForIntent(ctx, payment.ProviderXunhu, intent.ID, "payment.refunded"); err != nil {
+		t.Fatalf("repeat void should be idempotent: %v", err)
 	}
 }

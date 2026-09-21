@@ -1,18 +1,20 @@
+@import "../../../css/tokens.css";
+
 :root {
   /* ── Liki 设计 token（docs/frontend/ux-design.md §5）── */
-  --liki-primary: #5f4bc2;
-  --liki-primary-hover: #4f3db0;
-  --liki-primary-tint: #eeeafc;
-  --liki-primary-border: #d9d2f5;
-  --liki-gold: #c9a45e;
-  --liki-gold-text: #8b6914;
-  --liki-gold-tint: #f6edd9;
-  --liki-ink: #1e2230;
-  --liki-paper: #f7f6f4;
-  --liki-surface: #ffffff;
-  --liki-text-2: #556070;
-  --liki-text-3: #697382;
-  --liki-line: #e6e4e0;
+  --liki-primary: var(--brand-primary);
+  --liki-primary-hover: var(--brand-primary-hover);
+  --liki-primary-tint: var(--brand-primary-soft);
+  --liki-primary-border: var(--brand-primary-border);
+  --liki-gold: var(--brand-gold);
+  --liki-gold-text: var(--brand-gold-text);
+  --liki-gold-tint: var(--brand-gold-tint);
+  --liki-ink: var(--brand-ink);
+  --liki-paper: var(--brand-paper);
+  --liki-surface: var(--brand-surface);
+  --liki-text-2: var(--brand-text-muted);
+  --liki-text-3: var(--brand-text-faint);
+  --liki-line: var(--brand-line);
 
   /* 排版 */
   --liki-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;

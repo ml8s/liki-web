@@ -71,7 +71,10 @@ do_up() {
   docker run --rm -v liki_data:/data alpine chown 1000:1000 /data 2>/dev/null || true
 
   # Write .env
-  /bin/grep -E '^(JWT_SECRET|DEEPSEEK|LLM_|DODO_|XUNHU_|RESEND_|TENCENT_|EMAIL_|RETURN_URL|PAYMENTS_WEBHOOK_URL|ADMIN_)' "$PROJECT_DIR/.env" > "$DEPLOY_DIR/.env"
+  /bin/grep -E '^(JWT_SECRET|REFERRAL_PAYOUT_SECRET|DEEPSEEK|LLM_|DODO_|XUNHU_|RESEND_|TENCENT_|EMAIL_|RETURN_URL|PAYMENTS_WEBHOOK_URL|ADMIN_)' "$PROJECT_DIR/.env" > "$DEPLOY_DIR/.env"
+  if ! grep -q '^REFERRAL_PAYOUT_SECRET=' "$DEPLOY_DIR/.env"; then
+    printf '\nREFERRAL_PAYOUT_SECRET=e2e-referral-payout-secret-0123456789abcdef\n' >> "$DEPLOY_DIR/.env"
+  fi
   cat >> "$DEPLOY_DIR/.env" << 'EOF'
 DOMAIN=localhost
 LISTEN_ADDR=:8081

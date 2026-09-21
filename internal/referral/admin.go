@@ -17,7 +17,7 @@ var (
 	ErrInvalidPartnerStatus  = errors.New("referral: invalid partner status")
 )
 
-func (s *Store) SubmitChannelPartnerApplication(ctx context.Context, userID, note string) (PartnerApplication, error) {
+func (s *Store) SubmitScoutApplication(ctx context.Context, userID, note string) (PartnerApplication, error) {
 	userID = strings.TrimSpace(userID)
 	note = strings.TrimSpace(note)
 	if note == "" {
@@ -44,7 +44,7 @@ func (s *Store) SubmitChannelPartnerApplication(ctx context.Context, userID, not
 	_, err = s.db.ExecContext(ctx, `
 INSERT INTO referral_applications
 (id,user_id,type,status,note,created_at,updated_at)
-VALUES (?,?, 'channel_partner',?,?,?,?)
+VALUES (?,?, 'scout',?,?,?,?)
 ON CONFLICT(user_id) WHERE status='pending' DO NOTHING`,
 		id, userID, string(ApplicationPending), note, now, now)
 	if err != nil {
@@ -195,6 +195,12 @@ UPDATE referrers SET status=?,updated_at=? WHERE user_id=?`,
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrPartnerNotFound
 	}
+	if _, err := s.db.ExecContext(ctx, `
+UPDATE partner_roles SET status=?,updated_at=?
+WHERE user_id=? AND status IN ('active','frozen')`,
+		string(status), now, userID); err != nil {
+		return err
+	}
 	return s.recordAdminAction(ctx, actor, "partner.status_changed", "partner", userID,
 		"", string(status), reason)
 }
@@ -228,12 +234,20 @@ SELECT user_id,status FROM referral_applications WHERE id=?`, applicationID).Sca
 		decision = ApplicationApproved
 		res, err := tx.ExecContext(ctx, `
 UPDATE referrers SET role=?,updated_at=? WHERE user_id=? AND status='active'`,
-			string(RoleChannelPartner), now, userID)
+			string(RoleScout), now, userID)
 		if err != nil {
 			return err
 		}
 		if n, _ := res.RowsAffected(); n == 0 {
 			return ErrNotEligible
+		}
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO partner_roles (user_id,role,status,started_at,created_at,updated_at)
+VALUES (?,?,'active',?,?,?)
+ON CONFLICT(user_id,role) DO UPDATE SET
+  status='active',ended_at=NULL,updated_at=excluded.updated_at`,
+			userID, string(RoleScout), now, now, now); err != nil {
+			return err
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `
@@ -293,3 +307,36 @@ FROM referral_admin_actions ORDER BY created_at DESC LIMIT ?`, limit)
 }
 
 var _ = time.Time{}
+
+func (s *Store) PromoteToScout(ctx context.Context, userID, actor, reason string) error {
+	if strings.TrimSpace(actor) == "" || strings.TrimSpace(reason) == "" {
+		return errors.New("referral: actor and reason are required")
+	}
+	now := formatTime(s.nowFunc())
+	res, err := s.db.ExecContext(ctx, `
+UPDATE referrers SET role=?,updated_at=?
+WHERE user_id=? AND role='kol' AND status='active'`,
+		string(RoleScout), now, userID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrPartnerNotFound
+	}
+	if _, err := s.db.ExecContext(ctx, `
+INSERT INTO partner_roles (user_id,role,status,started_at,created_at,updated_at)
+VALUES (?,?,'active',?,?,?)
+ON CONFLICT(user_id,role) DO UPDATE SET
+  status='active',ended_at=NULL,updated_at=excluded.updated_at`,
+		userID, string(RoleScout), now, now, now); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+UPDATE partner_roles SET status='retired',ended_at=?,updated_at=?
+WHERE user_id=? AND role=? AND status='active'`,
+		now, now, userID, string(RoleKOL)); err != nil {
+		return err
+	}
+	return s.recordAdminAction(ctx, actor, "partner.promoted", "partner", userID,
+		string(RoleKOL), string(RoleScout), reason)
+}

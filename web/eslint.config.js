@@ -14,6 +14,7 @@ export default [
       sourceType: "script",
       globals: {
         window: "readonly",
+        Blob: "readonly",
         document: "readonly",
         fetch: "readonly",
         console: "readonly",

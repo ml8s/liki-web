@@ -713,25 +713,14 @@ if (ref) {
 | 内部角色 | 说明 |
 |---|---|
 | `kol` | 默认推广者；购买并通过 `/r/{token}` 归因后可注册 |
-| `channel_partner` | 招商 / 渠道合伙人；由 KOL 申请、管理员审核通过后升级 |
+| `scout` | 招商 / Growth Partner；由管理员从 active KOL 中审核提升 |
 
 内部名称不暴露给终端用户。用户页面不出现“招商码”“邀请码”“角色”等概念。
 
-### 3. 招商申请
+### 3. Scout 生成
 
-KOL 登录后可提交招商申请：
-
-```http
-POST /api/referral/channel-partner/application
-```
-
-规则：
-
-- 必须已经是 active KOL
-- 同一用户同时只能有一个 pending 申请
-- 申请进入管理员队列
-- 管理员通过后，`referrers.role` 从 `kol` 升级为 `channel_partner`
-- 管理员拒绝后，用户可再次提交
+KOL 页面不提供 Scout 申请入口，避免 KOL 感知另一套体系。
+管理员在内部后台将 active KOL 提升为 scout。
 
 ### 4. 管理端 API
 
@@ -739,10 +728,40 @@ POST /api/referral/channel-partner/application
 GET  /api/admin/referral/partners
 GET  /api/admin/referral/applications
 POST /api/admin/referral/applications/{id}/decision
+POST /api/admin/referral/partners/{user_id}/promote
 POST /api/admin/referral/partners/{user_id}/status
 ```
 
-所有管理 API 继续挂现有 `adminOnly` 中间件之后。中间件从 App 统一 `liki_session` 解析 active user，并要求 email 等于 `ADMIN_EMAIL`。
+所有管理 API 继续挂在现有 admin capability guard 后。身份来自 App 统一 `liki_session`；`ADMIN_EMAIL` 只用于初始化第一个 super admin。
+
+### 3.1 KOL 状态
+
+`GET /api/kol/status` 返回：
+
+```json
+{
+  "registered": false,
+  "eligible": true,
+  "status": ""
+}
+```
+
+规则：
+
+- 未购买：`registered=false, eligible=false`
+- 已购买未开通：`registered=false, eligible=true`
+- active KOL：`registered=true, eligible=true`
+- frozen KOL：`registered=true, eligible=false`
+- Scout 访问 KOL 状态：不识别为 KOL，返回 `registered=false, eligible=false`
+
+### 4.1 独立前端入口
+
+```text
+/kol     KOL Console，只访问 /api/kol/*
+/scout   Scout Console，只访问 /api/scout/*
+```
+
+两个页面互不链接，也互不提及对方。KOL 页面必须不包含 `scout` / `channel` 字符串；Scout 页面必须不包含 `kol` 字符串。
 
 ### 5. 审计
 
@@ -764,10 +783,11 @@ created_at
 
 ### 6. 页面规范
 
-继续使用现有 `web/admin.html` 和 `/css/app.css` design token：
+所有 console 页面复用 `web/css/console.css` 和 `/css/app.css` design token：
 
 - 不引入新样式体系
 - 不使用渐变、发光、大面积 blur
+- 共享 console 卡片、表单、表格、按钮、状态样式
 - 表格数字使用 tabular-nums
 - 状态提示靠近操作区域
 - 操作失败不静默

@@ -17,7 +17,7 @@
 	header /img/og-image.png Cross-Origin-Resource-Policy "cross-origin"
 
 	# Cache static assets
-	header /js/* Cache-Control "public, max-age=31536000, immutable"
+	header /js/* Cache-Control "public, max-age=3600, must-revalidate"
 	header /css/* Cache-Control "public, max-age=31536000, immutable"
 	header /i18n/* Cache-Control "public, max-age=60"
 
@@ -29,6 +29,11 @@
 		output stdout
 		format json
 	}
+
+	# Console pages are fully externalized. Their tighter script CSP removes
+	# inline execution without weakening the marketing pages' existing policy.
+	@consolePaths path /kol /scout /admin.html
+	header @consolePaths Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://liki.hk; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 
 	# Protected routes — require same-origin
 	handle /api/agent/* {

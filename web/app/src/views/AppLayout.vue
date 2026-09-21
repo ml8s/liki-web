@@ -53,7 +53,11 @@ async function logout() {
 </script>
 
 <style scoped>
-.app-shell { min-height: 100vh; background: var(--liki-paper); }
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--liki-paper);
+}
 
 .skip-link {
   position: absolute; left: -9999px; top: 0; z-index: 100;

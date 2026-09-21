@@ -16,6 +16,7 @@ check() {
 }
 
 check "health" "$URL/api/health"
+check "ready" "$URL/api/ready"
 check "homepage" "$URL/zh-Hans/"
 
 if [ $FAILED -eq 0 ]; then

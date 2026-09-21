@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"liki-web/internal/auth"
 	"liki-web/internal/httputil"
 	"liki-web/internal/naming"
 	"liki-web/internal/product"
@@ -23,10 +24,9 @@ func NewHandler(svc *naming.AdminService, onPaid func(ctx context.Context, order
 
 // ── HandleListOrders ──
 
-func (h *AdminService) HandleSession(identity func(*http.Request) (string, bool)) http.HandlerFunc {
+func (h *AdminService) HandleSession(user auth.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		email, _ := identity(r)
-		httputil.RespondJSON(w, http.StatusOK, map[string]string{"email": email})
+		httputil.RespondJSON(w, http.StatusOK, map[string]string{"email": user.Email})
 	}
 }
 

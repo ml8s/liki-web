@@ -510,3 +510,118 @@ func TestFulfillmentObserverCannotFailProductFulfillment(t *testing.T) {
 		t.Fatalf("task = %+v, %v, %v", task, ok, err)
 	}
 }
+
+func TestRefundWebhookMarksIntentAndNotifiesObserver(t *testing.T) {
+	ctx := context.Background()
+	runtime, gateway, flow, _, _, _ := newTestRuntime(t)
+	refunds := 0
+	runtime.SetRefundObserver(func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error {
+		refunds++
+		if event.Type != EventPaymentRefunded || intent.Status != PaymentStatusRefunded {
+			t.Errorf("observer received event=%q status=%q", event.Type, intent.Status)
+		}
+		return nil
+	})
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := runtime.StartCheckout(ctx, intent.ID); err != nil {
+		t.Fatal(err)
+	}
+	gateway.event = checkoutEvent(intent)
+	if err := runtime.HandleWebhookEvent(ctx, []byte("paid"), nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runtime.ProcessFulfillmentTasks(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runtime.ProcessFulfillmentTasks(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+
+	refund := checkoutEvent(intent)
+	refund.Type = EventPaymentRefunded
+	gateway.event = refund
+	if err := runtime.HandleWebhookEvent(ctx, []byte("refund"), nil); err != nil {
+		t.Fatalf("refund webhook: %+v", err)
+	}
+	got, err := storeGetIntent(runtime, intent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != PaymentStatusRefunded {
+		t.Fatalf("status = %q, want refunded", got.Status)
+	}
+
+	// A duplicate refund webhook must remain idempotent and must not re-run the
+	// downstream observer.
+	if err := runtime.HandleWebhookEvent(ctx, []byte("refund"), nil); err != nil {
+		t.Fatal(err)
+	}
+	if refunds != 1 || flow.onPaid != 1 {
+		t.Fatalf("refunds=%d onPaid=%d, want 1/1", refunds, flow.onPaid)
+	}
+}
+
+func storeGetIntent(runtime *Runtime, id string) (PaymentIntent, error) {
+	return runtime.GetIntent(context.Background(), id)
+}
+
+func TestPartialRefundWebhookRecordsLedgerAndKeepsIntentPaid(t *testing.T) {
+	ctx := context.Background()
+	runtime, gateway, _, _, _, _ := newTestRuntime(t)
+	events := make([]PaymentIntent, 0, 2)
+	runtime.SetRefundObserver(func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error {
+		events = append(events, intent)
+		return nil
+	})
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := runtime.StartCheckout(ctx, intent.ID); err != nil {
+		t.Fatal(err)
+	}
+	gateway.event = checkoutEvent(intent)
+	if err := runtime.HandleWebhookEvent(ctx, []byte("paid"), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	refund := checkoutEvent(intent)
+	refund.Type = EventPaymentRefunded
+	refund.Data.PaymentID = "refund-partial"
+	refund.Data.Amount = 400
+	gateway.event = refund
+	if err := runtime.HandleWebhookEvent(ctx, []byte("partial"), nil); err != nil {
+		t.Fatal(err)
+	}
+	got, err := runtime.GetIntent(ctx, intent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != IntentPaid || got.RefundedAmountMinor != 400 || len(events) != 1 {
+		t.Fatalf("partial intent=%+v events=%d", got, len(events))
+	}
+
+	// The same provider refund ID is at-least-once by nature.
+	if err := runtime.HandleWebhookEvent(ctx, []byte("partial"), nil); err != nil {
+		t.Fatal(err)
+	}
+	refund.Data.PaymentID = "refund-final"
+	refund.Data.Amount = 590
+	gateway.event = refund
+	if err := runtime.HandleWebhookEvent(ctx, []byte("final"), nil); err != nil {
+		t.Fatal(err)
+	}
+	got, err = runtime.GetIntent(ctx, intent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != PaymentStatusRefunded || got.RefundedAmountMinor != 990 {
+		t.Fatalf("final intent=%+v", got)
+	}
+	if len(events) != 2 {
+		t.Fatalf("events=%d", len(events))
+	}
+}

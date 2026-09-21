@@ -29,11 +29,21 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit RateLimiterFunc) {
 	if limit == nil {
 		limit = func(next http.HandlerFunc) http.HandlerFunc { return next }
 	}
-	mux.HandleFunc("GET /api/referral/me", h.requireUser(h.HandleMe))
 	mux.HandleFunc("POST /api/referral/register", h.requireUser(limit(h.HandleRegister)))
-	mux.HandleFunc("GET /api/referral/me/commissions", h.requireUser(h.HandleCommissions))
-	mux.HandleFunc("POST /api/referral/channel-partner/application", h.requireUser(h.HandleSubmitChannelApplication))
-	mux.HandleFunc("GET /api/referral/channel-partner/application", h.requireUser(h.HandleMyChannelApplication))
+
+	mux.HandleFunc("GET /api/kol/status", h.requireUser(h.HandleKOLStatus))
+	mux.HandleFunc("GET /api/kol/session", h.requireUser(h.requireKOL(h.HandleKOLSession)))
+	mux.HandleFunc("GET /api/kol/overview", h.requireUser(h.requireKOL(h.HandleKOLSession)))
+	mux.HandleFunc("GET /api/kol/commissions", h.requireUser(h.requireKOL(h.HandleKOLCommissions)))
+	mux.HandleFunc("GET /api/kol/payouts", h.requireUser(h.requireKOL(h.HandleKOLPayouts)))
+	mux.HandleFunc("POST /api/kol/payouts", h.requireUser(h.requireKOL(h.HandleCreateKOLPayout)))
+
+	mux.HandleFunc("GET /api/scout/session", h.requireUser(h.requireScout(h.HandleScoutSession)))
+	mux.HandleFunc("GET /api/scout/overview", h.requireUser(h.requireScout(h.HandleScoutSession)))
+	mux.HandleFunc("GET /api/scout/recruits", h.requireUser(h.requireScout(h.HandleScoutRecruits)))
+	mux.HandleFunc("GET /api/scout/commissions", h.requireUser(h.requireScout(h.HandleScoutCommissions)))
+	mux.HandleFunc("GET /api/scout/payouts", h.requireUser(h.requireScout(h.HandleScoutPayouts)))
+	mux.HandleFunc("POST /api/scout/payouts", h.requireUser(h.requireScout(h.HandleCreateScoutPayout)))
 	mux.HandleFunc("GET /r/{code}", h.HandleLink)
 }
 
@@ -109,57 +119,6 @@ func (h *Handler) HandleLink(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/zh-Hans/", http.StatusFound)
 }
 
-type channelApplicationRequest struct {
-	Note string `json:"note"`
-}
-
-func (r channelApplicationRequest) Validate() error { return nil }
-
-func (h *Handler) HandleSubmitChannelApplication(w http.ResponseWriter, r *http.Request) {
-	user, ok := auth.UserFromContext(r.Context())
-	if !ok {
-		httputil.RespondAppError(w, httputil.ErrUnauthorized)
-		return
-	}
-	req, ok := httputil.DecodeAndValidate[channelApplicationRequest](w, r)
-	if !ok {
-		return
-	}
-	item, err := h.store.SubmitChannelPartnerApplication(r.Context(), user.ID, req.Note)
-	if err != nil {
-		switch {
-		case errors.Is(err, ErrNotEligible):
-			httputil.RespondError(w, http.StatusForbidden, "referral_not_eligible", "需要先开通并保持推广资格")
-		case errors.Is(err, ErrApplicationPending):
-			httputil.RespondError(w, http.StatusConflict, "application_pending", "已有待审核申请")
-		default:
-			slog.Error("referral: submit channel application", "user_id", user.ID, "err", err)
-			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
-		}
-		return
-	}
-	httputil.RespondJSON(w, http.StatusCreated, map[string]any{"application": item})
-}
-
-func (h *Handler) HandleMyChannelApplication(w http.ResponseWriter, r *http.Request) {
-	user, ok := auth.UserFromContext(r.Context())
-	if !ok {
-		httputil.RespondAppError(w, httputil.ErrUnauthorized)
-		return
-	}
-	item, err := h.store.PendingApplicationByUser(r.Context(), user.ID)
-	if errors.Is(err, sql.ErrNoRows) {
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{"application": nil})
-		return
-	}
-	if err != nil {
-		slog.Error("referral: pending channel application", "user_id", user.ID, "err", err)
-		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
-		return
-	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{"application": item})
-}
-
 func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
@@ -210,4 +169,67 @@ func (h *Handler) HandleCommissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{"partner": stats})
+}
+
+type payoutRequest struct {
+	Method  string `json:"method"`
+	Account string `json:"account"`
+}
+
+func (r payoutRequest) Validate() error { return nil }
+
+func maskPayoutAccount(account string) string {
+	if at := strings.Index(account, "@"); at > 0 {
+		return account[:1] + "***" + account[at:]
+	}
+	if len(account) > 7 {
+		return account[:2] + "****" + account[len(account)-4:]
+	}
+	return "****"
+}
+
+func (h *Handler) createPayout(w http.ResponseWriter, r *http.Request, user auth.User, role PartnerRole) {
+	req, ok := httputil.DecodeAndValidate[payoutRequest](w, r)
+	if !ok {
+		return
+	}
+	item, err := h.store.CreatePayoutForRole(r.Context(), user.ID, role, PayoutMethod(req.Method), req.Account)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidPayoutRequest):
+			httputil.RespondError(w, http.StatusUnprocessableEntity, "validation_error", "提现方式或账号无效")
+		case errors.Is(err, ErrPartnerNotFound):
+			httputil.RespondError(w, http.StatusForbidden, "role_required", "当前账号未开通该合作权限")
+		case errors.Is(err, ErrNoWithdrawableCommission):
+			httputil.RespondError(w, http.StatusConflict, "no_withdrawable_commission", "没有可提现佣金")
+		case errors.Is(err, ErrMixedPayoutCurrency):
+			httputil.RespondError(w, http.StatusConflict, "mixed_payout_currency", "待提现佣金包含多种币种，请联系运营处理")
+		case errors.Is(err, ErrPayoutMinimumNotMet):
+			httputil.RespondError(w, http.StatusUnprocessableEntity, "payout_minimum_not_met", "未达到最低提现金额")
+		default:
+			slog.Error("referral: create payout", "user_id", user.ID, "err", err)
+			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		}
+		return
+	}
+	item.Account = maskPayoutAccount(item.Account)
+	httputil.RespondJSON(w, http.StatusCreated, map[string]any{"payout": item})
+}
+
+func (h *Handler) HandleListPayouts(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.RespondAppError(w, httputil.ErrUnauthorized)
+		return
+	}
+	items, err := h.store.ListPayoutsForUser(r.Context(), user.ID, 100)
+	if err != nil {
+		slog.Error("referral: list payouts", "user_id", user.ID, "err", err)
+		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		return
+	}
+	for i := range items {
+		items[i].Account = maskPayoutAccount(items[i].Account)
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"payouts": items})
 }

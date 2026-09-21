@@ -2,168 +2,16 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f7f6f4">
 <meta name="robots" content="noindex, nofollow">
 <title>Liki 管理后台</title>
-<link rel="stylesheet" href="/css/app.css">
-<style>
-body {
-  background: var(--color-surface);
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: clamp(16px, 4vw, 40px) var(--space-4);
-}
-.admin-wrap {
-  width: 100%;
-  max-width: 1080px;
-  margin: 0 auto;
-}
-.page-title {
-  color: var(--color-text);
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0 0 var(--space-6);
-  text-wrap: balance;
-}
-.card {
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  margin-bottom: var(--space-5);
-}
-.card h2 {
-  color: var(--color-text);
-  font-size: var(--text-base);
-  font-weight: 650;
-  line-height: 1.35;
-  margin: 0 0 var(--space-4);
-  text-wrap: balance;
-}
-.toolbar {
-  display: flex;
-  align-items: end;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: min(240px, 100%);
-}
-.field > label {
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
-input, select, textarea {
-  font: inherit;
-  width: 100%;
-  min-height: 40px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  outline: none;
-  background: var(--color-paper);
-  color: var(--color-text);
-}
-textarea { min-height: 80px; resize: vertical; }
-input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out, opacity 150ms ease-out;
-}
-.btn-primary { background: var(--color-accent); color: #fff; }
-.btn-primary:hover { background: var(--color-accent-hover); }
-.btn-secondary {
-  background: var(--color-paper);
-  border-color: var(--color-border);
-  color: var(--color-text);
-}
-.btn-secondary:hover { border-color: var(--color-accent); color: var(--color-accent-hover); }
-.btn-danger { background: var(--color-error); color: #fff; }
-.btn-danger:hover { filter: brightness(.94); }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
-.table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-.table-wrap table {
-  width: 100%;
-  min-width: 720px;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-  font-variant-numeric: tabular-nums;
-}
-th, td {
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  text-align: left;
-  white-space: nowrap;
-}
-th {
-  position: sticky;
-  top: 0;
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  font-weight: 650;
-}
-tbody tr:last-child td { border-bottom: 0; }
-.tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--color-accent-soft);
-  color: var(--color-accent-hover);
-  font-size: var(--text-xs);
-  font-weight: 650;
-}
-.tag-muted, .tag-rejected { background: var(--color-border); color: var(--color-text-muted); }
-.tag-danger { background: rgba(220, 53, 69, .12); color: var(--color-error); }
-.status-msg, .empty-state {
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  margin-top: var(--space-2);
-  text-wrap: pretty;
-}
-.status-error { color: var(--color-error); }
-.empty-state {
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-5);
-}
-.hidden { display: none !important; }
-.muted { color: var(--color-text-muted); font-size: var(--text-sm); }
-.actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-.actions .btn { min-height: 32px; padding: var(--space-1) var(--space-3); }
-@media (max-width: 640px) {
-  .card { padding: var(--space-4); }
-  .toolbar, .actions { align-items: stretch; }
-  .toolbar .btn, .actions .btn { width: 100%; }
-}
-</style>
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/console.css">
 </head>
 <body>
-<div class="admin-wrap">
-  <h1 class="page-title">Liki 管理后台</h1>
+<div class="console-shell">
+  <h1 class="console-title">Liki 管理后台</h1>
 
   <section id="auth-section" class="card" aria-labelledby="auth-title">
     <h2 id="auth-title">统一账号登录</h2>
@@ -246,6 +94,30 @@ tbody tr:last-child td { border-bottom: 0; }
       </div>
     </section>
 
+    <section class="card" aria-labelledby="admins-title">
+      <h2 id="admins-title">管理员权限</h2>
+      <form id="admin-create-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="admin-email">管理员邮箱</label>
+          <input id="admin-email" type="email" required>
+        </div>
+        <button class="btn btn-primary" type="submit">新增管理员</button>
+      </form>
+      <form id="admin-capability-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="admin-target-email">目标邮箱</label>
+          <input id="admin-target-email" type="email" required>
+        </div>
+        <div class="field">
+          <label for="admin-capability">能力</label>
+          <select id="admin-capability" required></select>
+        </div>
+        <button class="btn btn-primary" type="submit">授权</button>
+      </form>
+      <p id="admin-status" class="status-msg" role="status"></p>
+      <div id="admins-container" class="table-wrap"></div>
+    </section>
+
     <section class="card" aria-labelledby="referral-applications-title">
       <h2 id="referral-applications-title">招商申请</h2>
       <form id="referral-application-form" class="toolbar" novalidate>
@@ -277,7 +149,7 @@ tbody tr:last-child td { border-bottom: 0; }
           <select id="referral-partner-role">
             <option value="">全部</option>
             <option value="kol">KOL</option>
-            <option value="channel_partner">Channel Partner</option>
+            <option value="scout">Scout</option>
           </select>
         </div>
         <div class="field">
@@ -303,6 +175,31 @@ tbody tr:last-child td { border-bottom: 0; }
       </div>
     </section>
 
+    <section class="card" aria-labelledby="referral-payouts-title">
+      <h2 id="referral-payouts-title">提现复核</h2>
+      <form id="referral-payout-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="referral-payout-status-filter">状态</label>
+          <select id="referral-payout-status-filter">
+            <option value="requested">待审核</option>
+            <option value="approved">已批准</option>
+            <option value="rejected">已拒绝</option>
+            <option value="paid">已打款</option>
+            <option value="failed">失败</option>
+            <option value="">全部</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary" type="submit">刷新</button>
+      </form>
+      <p id="referral-payout-status" class="status-msg" role="status"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>金额</th><th>推广码</th><th>方式 / 账号</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+          <tbody id="referral-payouts-body"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="card" aria-labelledby="referral-actions-title">
       <h2 id="referral-actions-title">管理记录</h2>
       <p id="referral-action-status" class="status-msg" role="status"></p>
@@ -313,358 +210,59 @@ tbody tr:last-child td { border-bottom: 0; }
         </table>
       </div>
     </section>
+
+    <section class="card" aria-labelledby="finance-tasks-title">
+      <h2 id="finance-tasks-title">财务处理</h2>
+      <form id="finance-task-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="finance-task-status-filter">状态</label>
+          <select id="finance-task-status-filter">
+            <option value="pending">待处理</option>
+            <option value="resolved">已追回</option>
+            <option value="rejected">已豁免</option>
+            <option value="">全部</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary" type="submit">刷新</button>
+      </form>
+      <p id="finance-task-status" class="status-msg" role="status"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>类型 / 金额</th><th>受益人</th><th>关联对象</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+          <tbody id="finance-tasks-body"></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 </div>
 
-<script>
-const API = '/api/admin';
-const AUTH_API = '/api/auth/email';
-const $ = id => document.getElementById(id);
-const h = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
-const show = (id, message, isError = false) => {
-  const el = $(id);
-  el.textContent = message;
-  el.classList.toggle('status-error', isError);
-};
-const busy = (button, loading, text) => {
-  if (!button) return;
-  button.disabled = loading;
-  if (loading) { button.dataset.label = button.textContent; button.textContent = text; }
-  else if (button.dataset.label) { button.textContent = button.dataset.label; }
-};
-const readBody = async res => {
-  try { return await res.json(); } catch { return {}; }
-};
-const requestJSON = async (path, options = {}) => {
-  const res = await fetch(path, options);
-  const body = await readBody(res);
-  if (!res.ok) {
-    const error = new Error(body.error?.message || `HTTP ${res.status}`);
-    error.status = res.status;
-    throw error;
-  }
-  return body.data || {};
-};
-const setAuthed = authed => {
-  $('auth-section').classList.toggle('hidden', authed);
-  $('main-section').classList.toggle('hidden', !authed);
-};
+<dialog id="action-dialog" class="console-dialog" aria-labelledby="action-dialog-title">
+  <form method="dialog" id="action-form">
+    <h2 id="action-dialog-title">确认操作</h2>
+    <p id="action-description" class="muted"></p>
+    <div class="field hidden" id="action-reason-field">
+      <label for="action-reason">原因 / 说明</label>
+      <textarea id="action-reason" required></textarea>
+    </div>
+    <div class="field hidden" id="action-reference-field">
+      <label for="action-reference">打款凭证号</label>
+      <input id="action-reference" required>
+    </div>
+    <div class="field hidden" id="action-status-field">
+      <label for="action-status">处理结果</label>
+      <select id="action-status">
+        <option value="resolved">已追回</option>
+        <option value="rejected">已豁免</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" value="cancel" type="submit">取消</button>
+      <button class="btn btn-primary" id="action-confirm" value="confirm" type="submit">确认</button>
+    </div>
+  </form>
+</dialog>
 
-$('send-code-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const email = $('login-email').value.trim();
-  show('login-status', '');
-  show('login-error', '');
-  if (!email) { show('login-error', '请输入邮箱', true); return; }
-  const button = $('send-code-btn');
-  busy(button, true, '发送中…');
-  try {
-    await requestJSON(`${AUTH_API}/code`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    show('login-status', '验证码已发送，请查收邮箱。');
-    $('verify-code-form').classList.remove('hidden');
-    $('login-code').focus();
-  } catch (error) {
-    show('login-error', error.message || '发送失败', true);
-  } finally { busy(button, false); }
-});
-
-$('verify-code-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const email = $('login-email').value.trim();
-  const code = $('login-code').value.trim();
-  show('login-status', '');
-  show('login-error', '');
-  if (!email || !code) { show('login-error', '请输入邮箱和验证码', true); return; }
-  const button = $('verify-code-btn');
-  busy(button, true, '验证中…');
-  try {
-    await requestJSON(`${AUTH_API}/verify`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code }),
-    });
-    await checkAdminSession();
-  } catch (error) {
-    show('login-error', error.message || '验证失败', true);
-  } finally { busy(button, false); }
-});
-
-async function checkAdminSession() {
-  try {
-    await requestJSON(`${API}/session`);
-    setAuthed(true);
-    loadVCList();
-    loadReferralAdmin();
-  } catch {
-    setAuthed(false);
-  }
-}
-
-$('create-order-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const email = $('co-email').value.trim();
-  const expire = $('co-expire').value;
-  show('co-status', '');
-  if (!email) { show('co-status', '请输入邮箱', true); return; }
-  let expiresAt = '2999-12-31 23:59:59';
-  if (expire === '7d') expiresAt = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
-  if (expire === '30d') expiresAt = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
-  const button = $('co-btn');
-  busy(button, true, '创建中…');
-  try {
-    const data = await requestJSON(`${API}/orders`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, expires_at: expiresAt }),
-    });
-    show('co-status', `已创建 ${data.order_id}`);
-    $('search-email').value = email;
-    doSearch();
-  } catch (error) {
-    show('co-status', error.message || '创建失败', true);
-  } finally { busy(button, false); }
-});
-
-$('search-form').addEventListener('submit', event => { event.preventDefault(); doSearch(); });
-async function doSearch() {
-  const email = $('search-email').value.trim();
-  if (!email) return;
-  try {
-    const data = await requestJSON(`${API}/orders?email=${encodeURIComponent(email)}`);
-    const orders = data.orders || [];
-    $('results-section').classList.remove('hidden');
-    const container = $('results-container');
-    if (!orders.length) {
-      container.innerHTML = '<div class="empty-state">未找到订单。请确认邮箱后重试。</div>';
-      return;
-    }
-    container.innerHTML = `
-      <table>
-        <thead><tr><th>订单 ID</th><th>状态</th><th>过期时间</th><th>创建时间</th><th>操作</th></tr></thead>
-        <tbody>
-          ${orders.map(o => `
-            <tr>
-              <td>${h(o.order_id)}</td><td>${statusTag(o.status)}</td>
-              <td>${h(o.expires_at)}</td><td>${h(o.created_at)}</td>
-              <td><button class="btn btn-secondary" data-expire="${h(o.order_id)}" data-current="${h(o.expires_at)}">改过期</button></td>
-            </tr>`).join('')}
-        </tbody>
-      </table>`;
-  } catch (error) {
-    $('results-section').classList.remove('hidden');
-    $('results-container').innerHTML = `<div class="empty-state status-error">${h(error.message)}</div>`;
-  }
-}
-
-$('results-container').addEventListener('click', async event => {
-  const button = event.target.closest('[data-expire]');
-  if (!button) return;
-  const value = window.prompt('修改过期时间（留空 = 永久）', button.dataset.current);
-  if (value === null) return;
-  await requestJSON(`${API}/orders/${encodeURIComponent(button.dataset.expire)}/expire`, {
-    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ expires_at: value.trim() || '2999-12-31 23:59:59' }),
-  });
-  doSearch();
-});
-
-const vcLimit = 20;
-let vcOffset = 0;
-
-$('vc-generate-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const count = Number($('vc-count').value) || 1;
-  const button = $('vc-generate-btn');
-  show('vc-status', '');
-  busy(button, true, '生成中…');
-  try {
-    const data = await requestJSON(`${API}/verification-codes`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count }),
-    });
-    $('vc-new-codes').innerHTML = (data.codes || []).map(item =>
-      `<button class="btn btn-secondary" data-code="${h(item.code)}">${h(formatCode(item.code))}</button>`).join('');
-    $('vc-generated').classList.remove('hidden');
-    show('vc-status', `已生成 ${data.codes?.length || 0} 个激活码`);
-    loadVCList();
-  } catch (error) {
-    show('vc-status', error.message || '生成失败', true);
-  } finally { busy(button, false); }
-});
-
-$('vc-new-codes').addEventListener('click', async event => {
-  const button = event.target.closest('[data-code]');
-  if (!button) return;
-  await navigator.clipboard.writeText(button.dataset.code);
-  show('vc-status', `已复制：${button.dataset.code}`);
-});
-
-$('vc-list-btn').addEventListener('click', () => { vcOffset = 0; loadVCList(); });
-$('vc-prev-btn').addEventListener('click', () => { vcOffset = Math.max(0, vcOffset - vcLimit); loadVCList(); });
-$('vc-next-btn').addEventListener('click', () => { vcOffset += vcLimit; loadVCList(); });
-
-async function loadVCList() {
-  try {
-    const data = await requestJSON(`${API}/verification-codes?limit=${vcLimit}&offset=${vcOffset}`);
-    const codes = data.codes || [];
-    $('vc-list').innerHTML = codes.length ? `
-      <table>
-        <thead><tr><th>激活码</th><th>状态</th><th>邮箱</th><th>创建时间</th><th>使用时间</th></tr></thead>
-        <tbody>${codes.map(c => `
-          <tr><td>${h(formatCode(c.code))}</td><td>${statusTag(c.status)}</td>
-          <td>${h(c.email || '-')}</td><td>${h(c.created_at)}</td><td>${h(c.used_at || '-')}</td></tr>`).join('')}
-        </tbody>
-      </table>` : '<div class="empty-state">暂无激活码。</div>';
-    const total = Number(data.total || 0);
-    $('vc-pager').classList.toggle('hidden', total <= vcLimit);
-    $('vc-page-info').textContent = `${vcOffset + 1} – ${Math.min(vcOffset + vcLimit, total)} / ${total}`;
-  } catch (error) {
-    show('vc-status', error.message, true);
-  }
-}
-
-function updatePager() {
-  const totalPages = Math.max(1, Math.ceil(vcTotal / vcLimit));
-  const page = Math.floor(vcOffset / vcLimit) + 1;
-  $('vc-page-info').textContent = `${page} / ${totalPages}`;
-  $('vc-prev-btn').disabled = page <= 1;
-  $('vc-next-btn').disabled = page >= totalPages;
-}
-
-$('vc-export-btn').addEventListener('click', async () => {
-  const data = await requestJSON(`${API}/verification-codes?limit=1000&offset=0`);
-  const codes = data.codes || [];
-  if (!codes.length) { show('vc-status', '暂无数据可导出', true); return; }
-  const csv = ['code,status,email,created_at,used_at'].concat(codes.map(c =>
-    [c.code, c.status, c.email || '', c.created_at || '', c.used_at || ''].join(','))).join('\n');
-  const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url; link.download = 'verification-codes.csv'; link.click();
-  URL.revokeObjectURL(url);
-});
-
-const referralApplicationsBody = $('referral-applications-body');
-const referralPartnersBody = $('referral-partners-body');
-const referralActionsBody = $('referral-actions-body');
-
-async function loadReferralAdmin() {
-  await Promise.all([loadReferralApplications(), loadReferralPartners(), loadReferralActions()]);
-}
-
-async function loadReferralApplications(status = 'pending') {
-  show('referral-application-status', '载入中…');
-  try {
-    const data = await requestJSON(`${API}/referral/applications?status=${encodeURIComponent(status)}&limit=100`);
-    const items = data.applications || [];
-    referralApplicationsBody.innerHTML = items.length ? items.map(item => `
-      <tr>
-        <td>${h(item.code || item.user_id)}</td><td>${h(item.note || '-')}</td>
-        <td>${statusTag(item.status)}</td><td>${h(item.created_at)}</td>
-        <td>${item.status === 'pending' ? `
-          <div class="actions">
-            <button class="btn btn-primary" data-application-approve="${h(item.id)}">通过</button>
-            <button class="btn btn-secondary" data-application-reject="${h(item.id)}">拒绝</button>
-          </div>` : '<span class="muted">已处理</span>'}</td>
-      </tr>`).join('') : '<tr><td colspan="5"><div class="empty-state">当前没有申请。<button class="btn btn-secondary" data-referral-refresh>刷新</button></div></td></tr>';
-    show('referral-application-status', items.length ? `共 ${items.length} 条` : '');
-  } catch (error) { show('referral-application-status', error.message, true); }
-}
-
-async function loadReferralPartners() {
-  show('referral-partner-status', '载入中…');
-  const params = new URLSearchParams({ limit: '100' });
-  if ($('referral-partner-role').value) params.set('role', $('referral-partner-role').value);
-  if ($('referral-partner-status-filter').value) params.set('status', $('referral-partner-status-filter').value);
-  if ($('referral-partner-query').value.trim()) params.set('q', $('referral-partner-query').value.trim());
-  try {
-    const data = await requestJSON(`${API}/referral/partners?${params}`);
-    const items = data.partners || [];
-    referralPartnersBody.innerHTML = items.length ? items.map(item => `
-      <tr>
-        <td>${h(item.code)}</td><td>${h(item.user_id)}</td>
-        <td>${statusTag(item.role)}</td><td>${statusTag(item.status)}</td><td>${h(item.created_at)}</td>
-        <td><div class="actions">
-          ${item.status === 'active'
-            ? `<button class="btn btn-danger" data-partner-freeze="${h(item.user_id)}">冻结</button>`
-            : `<button class="btn btn-secondary" data-partner-unfreeze="${h(item.user_id)}">解冻</button>`}
-        </div></td>
-      </tr>`).join('') : '<tr><td colspan="6"><div class="empty-state">没有匹配的合作伙伴。<button class="btn btn-secondary" data-referral-refresh>刷新</button></div></td></tr>';
-    show('referral-partner-status', items.length ? `共 ${items.length} 位` : '');
-  } catch (error) { show('referral-partner-status', error.message, true); }
-}
-
-async function loadReferralActions() {
-  try {
-    const data = await requestJSON(`${API}/referral/actions?limit=100`);
-    const items = data.actions || [];
-    referralActionsBody.innerHTML = items.length ? items.map(item => `
-      <tr><td>${h(item.created_at)}</td><td>${h(item.actor)}</td><td>${h(item.action)}</td>
-      <td>${h(item.target_id)}</td><td>${h(item.reason || '-')}</td></tr>`).join('')
-      : '<tr><td colspan="5"><span class="muted">暂无管理记录</span></td></tr>';
-  } catch (error) { show('referral-action-status', error.message, true); }
-}
-
-$('referral-application-form').addEventListener('submit', event => {
-  event.preventDefault();
-  loadReferralApplications($('referral-application-status-filter').value);
-});
-$('referral-partner-form').addEventListener('submit', event => {
-  event.preventDefault();
-  loadReferralPartners();
-});
-
-referralApplicationsBody.addEventListener('click', async event => {
-  const approve = event.target.closest('[data-application-approve]');
-  const reject = event.target.closest('[data-application-reject]');
-  if (!approve && !reject) return;
-  const id = approve?.dataset.applicationApprove || reject?.dataset.applicationReject;
-  const reason = window.prompt(approve ? '通过说明：' : '拒绝原因：');
-  if (!reason?.trim()) { show('referral-application-status', '必须填写审核说明', true); return; }
-  if (reject && !window.confirm('确认拒绝该申请？')) return;
-  try {
-    await requestJSON(`${API}/referral/applications/${encodeURIComponent(id)}/decision`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ approve: Boolean(approve), reason: reason.trim() }),
-    });
-    loadReferralApplications($('referral-application-status-filter').value);
-    loadReferralPartners();
-    loadReferralActions();
-  } catch (error) { show('referral-application-status', error.message, true); }
-});
-
-referralPartnersBody.addEventListener('click', async event => {
-  const freeze = event.target.closest('[data-partner-freeze]');
-  const unfreeze = event.target.closest('[data-partner-unfreeze]');
-  if (!freeze && !unfreeze) return;
-  const id = freeze?.dataset.partnerFreeze || unfreeze?.dataset.partnerUnfreeze;
-  const reason = window.prompt(freeze ? '冻结原因：' : '解冻原因：');
-  if (!reason?.trim()) { show('referral-partner-status', '必须填写原因', true); return; }
-  if (freeze && !window.confirm('确认冻结该合作伙伴？')) return;
-  try {
-    await requestJSON(`${API}/referral/partners/${encodeURIComponent(id)}/status`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: freeze ? 'frozen' : 'active', reason: reason.trim() }),
-    });
-    loadReferralPartners();
-    loadReferralActions();
-  } catch (error) { show('referral-partner-status', error.message, true); }
-});
-
-document.addEventListener('click', event => {
-  if (event.target.closest('[data-referral-refresh]')) loadReferralAdmin();
-});
-
-function statusTag(status) {
-  const value = (status || '-').toLowerCase();
-  const positive = ['active', 'approved', 'paid', 'succeeded'];
-  const negative = ['frozen', 'rejected', 'failed'];
-  const cls = positive.includes(value) ? 'tag' : negative.includes(value) ? 'tag tag-danger' : 'tag tag-muted';
-  return `<span class="${cls}">${h(status || '-')}</span>`;
-}
-function formatCode(code) { return code.slice(0, 4) + '-' + code.slice(4); }
-
-checkAdminSession();
-</script>
+<script defer src="/js/console-core.js"></script>
+<script defer src="/js/console-admin.js"></script>
 </body>
 </html>

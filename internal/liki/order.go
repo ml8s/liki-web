@@ -72,6 +72,22 @@ DROP INDEX IF EXISTS idx_chat_orders_user_pending_product;
 	return err
 }
 
+// AnonymizeUser replaces contact email on transactional commerce records. The
+// order and financial amount remain for accounting; the user becomes a
+// pseudonymous reference only.
+func (s *OrderStore) AnonymizeUser(ctx context.Context, userID, oldEmail, tombstone string) (int64, error) {
+	if userID == "" || tombstone == "" {
+		return 0, fmt.Errorf("liki: anonymize requires user and tombstone")
+	}
+	res, err := s.db.ExecContext(ctx, `
+UPDATE chat_orders SET email=?
+WHERE user_id=? OR (? != '' AND email=?)`, tombstone, userID, oldEmail, oldEmail)
+	if err != nil {
+		return 0, fmt.Errorf("liki: anonymize orders: %w", err)
+	}
+	return res.RowsAffected()
+}
+
 func (s *OrderStore) CreateOrder(ctx context.Context, userID, email string, productID Product, currency string) (Order, error) {
 	userID = strings.TrimSpace(userID)
 	email = strings.ToLower(strings.TrimSpace(email))

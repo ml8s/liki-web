@@ -11,7 +11,7 @@ import (
 
 func newStore(t *testing.T) *Store {
 	t.Helper()
-	store, err := Open(filepath.Join(t.TempDir(), "referral.db"), func(context.Context, string) (bool, error) {
+	store, err := Open(filepath.Join(t.TempDir(), "referral.db"), []byte("test-referral-payout-secret"), func(context.Context, string) (bool, error) {
 		return true, nil
 	})
 	if err != nil {

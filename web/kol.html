@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f7f6f4">
+<meta name="robots" content="noindex, nofollow">
+<title>合作创作者中心</title>
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/console.css">
+</head>
+<body>
+<main class="console-shell">
+  <div class="console-top">
+    <h1 class="console-title">合作创作者中心</h1>
+    <button id="logout" class="console-btn console-btn-secondary hidden" type="button">退出登录</button>
+  </div>
+
+  <section id="auth-section" class="console-card" aria-labelledby="auth-title">
+    <h2 id="auth-title">登录</h2>
+    <form id="code-form" class="console-toolbar" novalidate>
+      <div class="console-field">
+        <label for="email">邮箱</label>
+        <input id="email" type="email" autocomplete="email" required>
+      </div>
+      <button id="send" class="console-btn console-btn-primary" type="submit">发送验证码</button>
+    </form>
+    <form id="verify-form" class="console-toolbar hidden" novalidate>
+      <div class="console-field">
+        <label for="code">6 位验证码</label>
+        <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+      </div>
+      <button id="verify" class="console-btn console-btn-primary" type="submit">验证登录</button>
+    </form>
+    <p id="auth-status" class="console-status" role="status"></p>
+    <p id="auth-error" class="console-status console-status-error" role="alert"></p>
+  </section>
+
+  <section id="workspace" class="hidden" aria-labelledby="overview-title">
+    <h2 id="overview-title" class="sr-only">合作概览</h2>
+    <section class="console-card">
+      <h2>合作概览</h2>
+      <div id="metrics" class="console-metrics"></div>
+      <div class="console-link-row">
+        <input id="referral-link" readonly aria-label="你的专属合作链接">
+        <button id="copy" class="console-btn console-btn-secondary" type="button">复制链接</button>
+      </div>
+      <form id="activate-form" class="console-toolbar hidden" novalidate>
+        <button id="activate" class="console-btn console-btn-primary" type="submit">开通合作权限</button>
+      </form>
+      <p id="overview-status" class="console-status" role="status"></p>
+    </section>
+
+    <section class="console-card" aria-labelledby="earnings-title">
+      <h2 id="earnings-title">合作收益</h2>
+      <div class="console-table-wrap">
+        <table>
+          <thead><tr><th>订单</th><th>金额</th><th>你的收益</th><th>状态</th><th>时间</th></tr></thead>
+          <tbody id="commissions"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="console-card" aria-labelledby="payout-title">
+      <h2 id="payout-title">提现</h2>
+      <form id="payout-form" class="console-toolbar" novalidate>
+        <div class="console-field">
+          <label for="method">收款方式</label>
+          <select id="method">
+            <option value="alipay">支付宝</option>
+            <option value="paypal">PayPal</option>
+          </select>
+        </div>
+        <div class="console-field">
+          <label for="account">收款账号</label>
+          <input id="account" required>
+        </div>
+        <button id="payout" class="console-btn console-btn-primary" type="submit">申请提现</button>
+      </form>
+      <p id="payout-status" class="console-status" role="status"></p>
+      <p class="console-muted">最低提现：CNY ¥50 / USD $10。</p>
+      <div class="console-table-wrap">
+        <table>
+          <thead><tr><th>金额</th><th>方式</th><th>状态</th><th>时间</th></tr></thead>
+          <tbody id="payouts"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+</main>
+
+<script defer src="/js/console-core.js"></script>
+<script defer src="/js/console-kol.js"></script>
+</body>
+</html>

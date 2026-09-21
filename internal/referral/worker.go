@@ -277,7 +277,13 @@ func (s *Store) settleIntake(ctx context.Context, item CommissionIntake) error {
 		RecruiterRateBPS: recruiterRate, RecruiterAmount: recruiterAmount,
 		Status: CommissionPending, CreatedAt: parseTime(now), UpdatedAt: parseTime(now),
 	}
-	res, err := s.db.ExecContext(ctx, `
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	res, err := tx.ExecContext(ctx, `
 INSERT INTO referral_commissions
 (id,payment_provider,payment_intent_id,business_order_id,product,buyer_user_id,
  referrer_id,recruiter_id,amount_minor,currency,referrer_rate_bps,
@@ -295,11 +301,50 @@ ON CONFLICT(payment_provider,payment_intent_id) DO NOTHING`,
 		return err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		if _, err := s.commission(ctx, item.Provider, item.PaymentIntentID); err != nil {
+		if commission, err = s.commissionTx(ctx, tx, item.Provider, item.PaymentIntentID); err != nil {
 			return err
 		}
 	}
+	if err := ensureCommissionEntriesTx(ctx, tx, commission, now); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 	return s.markIntakeSucceeded(ctx, item.ID)
+}
+
+func ensureCommissionEntriesTx(ctx context.Context, tx *sql.Tx, commission Commission, now string) error {
+	entries := []CommissionEntry{{
+		ID: commission.ID + ":kol", CommissionID: commission.ID,
+		BeneficiaryID: commission.ReferrerID, BeneficiaryRole: RoleKOL,
+		AmountMinor: commission.ReferrerAmount, Currency: commission.Currency,
+		Status: commission.Status, CreatedAt: commission.CreatedAt, UpdatedAt: commission.UpdatedAt,
+	}}
+	if commission.RecruiterID != "" && commission.RecruiterAmount > 0 {
+		entries = append(entries, CommissionEntry{
+			ID: commission.ID + ":scout", CommissionID: commission.ID,
+			BeneficiaryID: commission.RecruiterID, BeneficiaryRole: RoleScout,
+			AmountMinor: commission.RecruiterAmount, Currency: commission.Currency,
+			Status: commission.Status, CreatedAt: commission.CreatedAt, UpdatedAt: commission.UpdatedAt,
+		})
+	}
+	for _, entry := range entries {
+		if entry.AmountMinor <= 0 || entry.BeneficiaryID == "" {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO referral_commission_entries
+(id,commission_id,beneficiary_id,beneficiary_role,amount_minor,refunded_minor,
+ currency,status,created_at,updated_at)
+VALUES (?,?,?,?,?,0,?,?,?,?)
+ON CONFLICT(commission_id,beneficiary_role) DO NOTHING`,
+			entry.ID, entry.CommissionID, entry.BeneficiaryID, string(entry.BeneficiaryRole),
+			entry.AmountMinor, entry.Currency, string(entry.Status), now, now); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) markIntakeSkipped(ctx context.Context, id, reason string) error {
@@ -338,6 +383,7 @@ func (s *Store) ProcessCommissionIntents(ctx context.Context, limit int) (int, e
 			continue
 		}
 		cancel()
+		metrics.Default.Inc("referral_commission_settled_total", nil)
 		metrics.Default.Inc("referral_commission_worker_total", map[string]string{"result": "succeeded"})
 		processed++
 	}
@@ -368,6 +414,11 @@ func (s *Store) StartCommissionWorker(ctx context.Context, platformDB *sql.DB, i
 		} else if n > 0 {
 			slog.Info("referral: commissions settled", "count", n)
 		}
+		if n, err := s.ProcessCommissionRefunds(ctx, 100); err != nil {
+			slog.Error("referral: process refunds", "err", err)
+		} else if n > 0 {
+			slog.Info("referral: commission refunds applied", "count", n)
+		}
 		if n, err := s.ReconcileSuccessfulPayments(ctx, platformDB, 200); err != nil {
 			slog.Error("referral: reconcile payments", "err", err)
 		} else if n > 0 {
@@ -379,4 +430,41 @@ func (s *Store) StartCommissionWorker(ctx context.Context, platformDB *sql.DB, i
 		case <-ticker.C:
 		}
 	}
+}
+
+// VoidCommissionForIntent makes an unpaid commission unusable after a refund.
+// Paid commissions are intentionally not mutated; finance must handle clawback.
+func (s *Store) VoidCommissionForIntent(ctx context.Context, provider payment.Provider, intentID, reason string) error {
+	providerName := string(provider)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	now := formatTime(s.nowFunc())
+	_, err = tx.ExecContext(ctx, `
+UPDATE referral_commission_entries
+SET status=?,updated_at=?
+WHERE commission_id=(SELECT id FROM referral_commissions WHERE payment_provider=? AND payment_intent_id=?)
+  AND status=? AND payout_id IS NULL`,
+		string(CommissionVoided), now, providerName, intentID, string(CommissionPending))
+	if err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `
+UPDATE referral_commissions
+SET status=?,updated_at=?
+WHERE payment_provider=? AND payment_intent_id=? AND status=?`,
+		string(CommissionVoided), now, providerName, intentID, string(CommissionPending)); err != nil {
+		return err
+	}
+	if err := recordReferralActionTx(ctx, tx, s.idFunc(), "system", "commission.voided", "commission",
+		providerName+":"+intentID, string(CommissionPending), string(CommissionVoided), reason); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	metrics.Default.Inc("referral_commission_void_total", map[string]string{"provider": providerName})
+	return nil
 }

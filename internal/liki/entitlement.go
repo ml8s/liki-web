@@ -285,3 +285,18 @@ WHERE status='active' AND expires_at<=?`, now, now)
 	}
 	return result.RowsAffected()
 }
+
+// AnonymizeUser removes contact email from entitlement records while retaining
+// the entitlement term and pseudonymous user id for support/audit.
+func (s *EntitlementStore) AnonymizeUser(ctx context.Context, userID, oldEmail, tombstone string) (int64, error) {
+	if userID == "" || tombstone == "" {
+		return 0, fmt.Errorf("liki: anonymize requires user and tombstone")
+	}
+	res, err := s.db.ExecContext(ctx, `
+UPDATE entitlements SET email=?
+WHERE user_id=? OR (? != '' AND email=?)`, tombstone, userID, oldEmail, oldEmail)
+	if err != nil {
+		return 0, fmt.Errorf("liki: anonymize entitlements: %w", err)
+	}
+	return res.RowsAffected()
+}

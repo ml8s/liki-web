@@ -114,8 +114,8 @@ func TestVerifyWebhook_NonPayment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("VerifyWebhook: %v", err)
 	}
-	if event.Type != "refund.succeeded" {
-		t.Errorf("type = %q, want refund.succeeded", event.Type)
+	if event.Type != payment.EventPaymentRefunded {
+		t.Errorf("type = %q, want normalized refund event", event.Type)
 	}
 }
 
@@ -322,4 +322,27 @@ func TestCreateCheckout_InvalidBaseURL(t *testing.T) {
 		t.Fatal("expected connection error for invalid URL")
 	}
 	t.Logf("expected error: %v", err)
+}
+
+func TestVerifyWebhook_RefundSucceeded(t *testing.T) {
+	t.Parallel()
+	payload := `{"type":"refund.succeeded","business_id":"bus_1","timestamp":"2026-01-01T00:00:00Z","data":{"refund_id":"refund_1","payment_id":"pay_1","amount":4400,"currency":"USD","status":"succeeded","is_partial":false,"customer":{"customer_id":"cus_1","email":"customer@test.com"},"metadata":{"payment_intent_id":"pi_1"}}}`
+	headers := helperSign(t, "msg_refund", payload)
+
+	event, err := newTestClient().VerifyWebhook([]byte(payload), headers)
+	if err != nil {
+		t.Fatalf("VerifyWebhook: %v", err)
+	}
+	if event.Type != payment.EventPaymentRefunded {
+		t.Fatalf("type = %q, want %q", event.Type, payment.EventPaymentRefunded)
+	}
+	if event.Data.OrderID != "pi_1" {
+		t.Errorf("order id = %q, want pi_1", event.Data.OrderID)
+	}
+	if event.Data.Amount != 4400 {
+		t.Errorf("amount = %d, want 4400", event.Data.Amount)
+	}
+	if event.Data.PaymentID != "refund_1" {
+		t.Errorf("payment id = %q, want refund_1", event.Data.PaymentID)
+	}
 }

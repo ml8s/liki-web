@@ -8,7 +8,7 @@ import (
 
 func newAdminStore(t *testing.T) *Store {
 	t.Helper()
-	store, err := Open(filepath.Join(t.TempDir(), "referral.db"), func(context.Context, string) (bool, error) {
+	store, err := Open(filepath.Join(t.TempDir(), "referral.db"), []byte("test-referral-payout-secret"), func(context.Context, string) (bool, error) {
 		return true, nil
 	})
 	if err != nil {
@@ -21,11 +21,11 @@ func newAdminStore(t *testing.T) *Store {
 	return store
 }
 
-func TestChannelPartnerApplicationLifecycle(t *testing.T) {
+func TestScoutApplicationLifecycle(t *testing.T) {
 	ctx := context.Background()
 	store := newAdminStore(t)
 
-	if _, err := store.SubmitChannelPartnerApplication(ctx, "missing", "test"); err == nil {
+	if _, err := store.SubmitScoutApplication(ctx, "missing", "test"); err == nil {
 		t.Fatal("expected error for non-referrer")
 	}
 
@@ -33,14 +33,14 @@ func TestChannelPartnerApplicationLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app, err := store.SubmitChannelPartnerApplication(ctx, kol.UserID, "content channels")
+	app, err := store.SubmitScoutApplication(ctx, kol.UserID, "creator network")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if app.Status != ApplicationPending {
 		t.Fatalf("status = %q, want pending", app.Status)
 	}
-	if _, err := store.SubmitChannelPartnerApplication(ctx, kol.UserID, "duplicate"); err != ErrApplicationPending {
+	if _, err := store.SubmitScoutApplication(ctx, kol.UserID, "duplicate"); err != ErrApplicationPending {
 		t.Fatalf("duplicate err = %v, want ErrApplicationPending", err)
 	}
 
@@ -59,8 +59,8 @@ func TestChannelPartnerApplicationLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if partner.Role != RoleChannelPartner {
-		t.Fatalf("role = %q, want channel_partner", partner.Role)
+	if partner.Role != RoleScout {
+		t.Fatalf("role = %q, want scout", partner.Role)
 	}
 	if err := store.DecideApplication(ctx, app.ID, "admin", false, "again"); err != ErrApplicationNotPending {
 		t.Fatalf("second decision err = %v", err)
@@ -89,5 +89,45 @@ func TestPartnerStatusAndList(t *testing.T) {
 	}
 	if _, err := store.ListPartners(ctx, "", PartnerFrozen, "", 20); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestScoutIsNotTreatedAsKOLStatus(t *testing.T) {
+	ctx := context.Background()
+	store := newAdminStore(t)
+	kol, err := store.RegisterReferrer(ctx, "kol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.PromoteToScout(ctx, kol.UserID, "admin", "approved"); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := store.KOLStatus(ctx, kol.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Registered || status.Eligible {
+		t.Fatalf("scout unexpectedly treated as KOL: %+v", status)
+	}
+}
+
+func TestScoutDoesNotReceiveKOLStatus(t *testing.T) {
+	ctx := context.Background()
+	store := newAdminStore(t)
+	kol, err := store.RegisterReferrer(ctx, "kol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.PromoteToScout(ctx, kol.UserID, "admin", "approved"); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := store.KOLStatus(ctx, kol.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Registered || status.Eligible || status.Status != "" {
+		t.Fatalf("scout received KOL status: %+v", status)
 	}
 }

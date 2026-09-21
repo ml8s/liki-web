@@ -91,3 +91,37 @@ func (s *Store) GetReport(ctx context.Context, orderID string) (string, error) {
 	}
 	return content, err
 }
+
+// AnonymizeEmail removes contact and birth-report PII, deletes generated report
+// content, and retains only anonymous financial order facts.
+func (s *Store) AnonymizeEmail(ctx context.Context, oldEmail, tombstone string) (int64, error) {
+	if tombstone == "" {
+		return 0, fmt.Errorf("hepan: anonymize requires tombstone")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `
+DELETE FROM reports
+WHERE order_id IN (SELECT id FROM orders WHERE email=? OR (? != '' AND email=?))`,
+		oldEmail, oldEmail, oldEmail); err != nil {
+		return 0, err
+	}
+	emptyPerson := `{"name":"","birth":"","city":"","gender":""}`
+	res, err := tx.ExecContext(ctx, `
+UPDATE orders
+SET email=?,person_a=?,person_b=?
+WHERE email=? OR (? != '' AND email=?)`,
+		tombstone, emptyPerson, emptyPerson, oldEmail, oldEmail, oldEmail)
+	if err != nil {
+		return 0, err
+	}
+	count, _ := res.RowsAffected()
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return count, nil
+}

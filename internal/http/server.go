@@ -10,6 +10,7 @@ import (
 
 	"liki-web/internal/account"
 	"liki-web/internal/admin"
+	"liki-web/internal/adminauth"
 	"liki-web/internal/agent"
 	"liki-web/internal/aipay"
 	"liki-web/internal/auth"
@@ -42,9 +43,11 @@ type ServerDeps struct {
 	Agent            *agent.Agent
 	Analytics        *Analytics
 	MetricsHandler   http.HandlerFunc
+	Readiness        ReadinessChecker
 	FeedbackStore    *feedback.Store
 	FeedbackAPIKey   string
 	AdminEmail       string
+	AdminAuthorizer  *adminauth.Store
 	DevMode          bool
 }
 
@@ -110,6 +113,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	}
 
 	mux.HandleFunc("GET /api/health", handleHealth())
+	mux.HandleFunc("GET /api/ready", handleReady(deps.Readiness))
 	mux.HandleFunc("POST /api/analytics/pageview", handlePageView(deps.Analytics))
 	mux.HandleFunc("GET /api/stats", handleStats(deps.Analytics))
 	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
@@ -131,14 +135,13 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	// ── admin routes (naming-specific — registered here to avoid import cycle) ──
 	if deps.NamingStore != nil {
 		if deps.AuthHandler != nil || deps.AdminEmail != "" {
-			adminIdentity := func(r *http.Request) (string, bool) {
+			adminIdentity := func(r *http.Request) (auth.User, bool) {
 				if deps.AuthHandler == nil {
-					return "", false
+					return auth.User{}, false
 				}
-				user, ok := deps.AuthHandler.IdentityFromRequest(r)
-				return user.Email, ok
+				return deps.AuthHandler.IdentityFromRequest(r)
 			}
-			admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid, deps.ReferralStore, adminIdentity, deps.AdminEmail)
+			admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid, deps.ReferralStore, deps.AdminAuthorizer, adminIdentity)
 		}
 	}
 	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3）──

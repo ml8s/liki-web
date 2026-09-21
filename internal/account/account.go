@@ -1,25 +1,69 @@
 package account
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 
 	"liki-web/internal/auth"
+	"liki-web/internal/hepan"
 	"liki-web/internal/liki"
+	"liki-web/internal/mingshu"
+	"liki-web/internal/naming"
+	"liki-web/internal/payment"
 	"liki-web/internal/profile"
+	"liki-web/internal/referral"
 )
+
+type AuthEraser interface {
+	EraseUser(ctx context.Context, userID, tombstone string) (auth.ErasureResult, error)
+}
+
+type ReferralEraser interface {
+	EraseUser(ctx context.Context, userID string) (referral.ErasureResult, error)
+}
 
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
-	profiles    *profile.Store
-	chat        *liki.ChatStore
-	requireUser RequireUserFunc
+	profiles      *profile.Store
+	chat          *liki.ChatStore
+	auth          AuthEraser
+	orders        *liki.OrderStore
+	entitlement   *liki.EntitlementStore
+	payments      *payment.IntentStore
+	notifications *payment.NotificationStore
+	naming        *naming.Store
+	mingshu       *mingshu.Store
+	hepan         *hepan.Store
+	referral      ReferralEraser
+	requireUser   RequireUserFunc
 }
 
-func NewHandler(profiles *profile.Store, chatStore *liki.ChatStore, requireUser RequireUserFunc) *Handler {
-	return &Handler{profiles: profiles, chat: chatStore, requireUser: requireUser}
+func NewHandler(
+	profiles *profile.Store,
+	chatStore *liki.ChatStore,
+	authStore AuthEraser,
+	orders *liki.OrderStore,
+	entitlement *liki.EntitlementStore,
+	payments *payment.IntentStore,
+	notifications *payment.NotificationStore,
+	naming *naming.Store,
+	mingshu *mingshu.Store,
+	hepan *hepan.Store,
+	referral ReferralEraser,
+	requireUser RequireUserFunc,
+) *Handler {
+	return &Handler{
+		profiles: profiles, chat: chatStore, auth: authStore,
+		orders: orders, entitlement: entitlement, payments: payments,
+		notifications: notifications, naming: naming, mingshu: mingshu, hepan: hepan,
+		referral:    referral,
+		requireUser: requireUser,
+	}
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
@@ -34,11 +78,62 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusUnauthorized, map[string]any{"error": map[string]string{"code": "unauthorized", "message": "请先登录"}})
 		return
 	}
+	referralResult, err := h.referral.EraseUser(r.Context(), user.ID)
+	if err != nil {
+		if errors.Is(err, referral.ErrReferralFinancialHold) {
+			writeJSON(w, http.StatusConflict, map[string]any{"error": map[string]string{
+				"code": "referral_financial_hold", "message": "存在待结算提现，请先完成资金结算",
+			}})
+			return
+		}
+		slog.Error("account: erase referral", "user_id", user.ID, "err", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
+		return
+	}
 	profilesCleared, err := h.profiles.AnonymizeUser(r.Context(), user.ID)
 	if err != nil {
 		slog.Error("account: erase profiles", "user_id", user.ID, "err", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
 		return
+	}
+	tombstone := "erased-" + uuid.NewString() + "@liki.invalid"
+	erased := map[string]int64{}
+	domains := []struct {
+		name  string
+		erase func(context.Context) (int64, error)
+	}{
+		{name: "commerce_orders", erase: func(ctx context.Context) (int64, error) {
+			return h.orders.AnonymizeUser(ctx, user.ID, user.Email, tombstone)
+		}},
+		{name: "entitlements", erase: func(ctx context.Context) (int64, error) {
+			return h.entitlement.AnonymizeUser(ctx, user.ID, user.Email, tombstone)
+		}},
+		{name: "payment_intents", erase: func(ctx context.Context) (int64, error) {
+			return h.payments.AnonymizeUser(ctx, user.ID, user.Email, tombstone)
+		}},
+		{name: "payment_notifications", erase: func(ctx context.Context) (int64, error) {
+			return h.notifications.AnonymizeUser(ctx, user.ID, user.Email, tombstone)
+		}},
+		{name: "naming", erase: func(ctx context.Context) (int64, error) {
+			return h.naming.AnonymizeEmail(ctx, user.Email, tombstone)
+		}},
+		{name: "mingshu", erase: func(ctx context.Context) (int64, error) {
+			return h.mingshu.AnonymizeEmail(ctx, user.Email, tombstone)
+		}},
+		{name: "hepan", erase: func(ctx context.Context) (int64, error) {
+			return h.hepan.AnonymizeEmail(ctx, user.Email, tombstone)
+		}},
+	}
+	for _, domain := range domains {
+		cleared, err := domain.erase(r.Context())
+		if err != nil {
+			slog.Error("account: erase domain", "user_id", user.ID, "domain", domain.name, "err", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
+			return
+		}
+		if cleared > 0 {
+			erased[domain.name] = cleared
+		}
 	}
 	messagesCleared, err := h.chat.AnonymizeUserMessages(r.Context(), user.ID)
 	if err != nil {
@@ -46,8 +141,21 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
 		return
 	}
+	authResult, err := h.auth.EraseUser(r.Context(), user.ID, tombstone)
+	if err != nil {
+		slog.Error("account: erase auth identity", "user_id", user.ID, "err", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data": map[string]any{"status": "erased", "profiles_cleared": profilesCleared, "messages_cleared": messagesCleared},
+		"data": map[string]any{
+			"status": "erased", "profiles_cleared": profilesCleared, "messages_cleared": messagesCleared,
+			"auth_identities_cleared": authResult.Identities,
+			"auth_sessions_cleared":   authResult.Sessions,
+			"auth_codes_cleared":      authResult.Codes,
+			"domains":                 erased,
+			"referral_finance_tasks":  referralResult.FinanceTasks,
+		},
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -48,11 +49,139 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_intents_provider_payment
 CREATE INDEX IF NOT EXISTS idx_payment_intents_business_order
     ON payment_intents(business_order_id, product);
 UPDATE payment_intents SET product='mingshu' WHERE product='lifebook';
+
+CREATE TABLE IF NOT EXISTS payment_refunds (
+    id TEXT PRIMARY KEY,
+    payment_intent_id TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    provider_refund_id TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL CHECK (amount_minor > 0),
+    currency TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    notified_at TEXT,
+    UNIQUE (provider, provider_refund_id)
+);
+CREATE INDEX IF NOT EXISTS idx_payment_refunds_intent
+    ON payment_refunds(payment_intent_id, created_at);
 `
 	if _, err := s.db.ExecContext(ctx, schema); err != nil {
 		return err
 	}
-	return s.ensureColumn(ctx, "payment_intents", "user_id", "TEXT NOT NULL DEFAULT ''")
+	if err := s.ensureColumn(ctx, "payment_intents", "user_id", "TEXT NOT NULL DEFAULT ''"); err != nil {
+		return err
+	}
+	// SQLite drivers differ in how PRAGMA rows surface newly-added columns;
+	// tolerate only the expected duplicate-column outcome.
+	if _, err := s.db.ExecContext(ctx, `ALTER TABLE payment_intents ADD COLUMN refunded_at TEXT`); err != nil &&
+		!strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `ALTER TABLE payment_intents ADD COLUMN refunded_amount_minor INTEGER NOT NULL DEFAULT 0`); err != nil &&
+		!strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+INSERT INTO payment_refunds
+    (id,payment_intent_id,provider,provider_refund_id,amount_minor,currency,created_at,updated_at)
+SELECT provider||':'||provider_payment_id,id,provider,provider_payment_id,amount_minor,currency,
+       COALESCE(refunded_at,updated_at),updated_at
+FROM payment_intents
+WHERE status=? AND provider_payment_id IS NOT NULL AND provider_payment_id != ''
+ON CONFLICT(provider,provider_refund_id) DO NOTHING`,
+		string(PaymentStatusRefunded)); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+UPDATE payment_intents SET refunded_amount_minor=amount_minor
+WHERE status=? AND refunded_amount_minor=0`, string(PaymentStatusRefunded)); err != nil {
+		return err
+	}
+	return nil
+}
+
+type RefundRecord struct {
+	ID       string
+	New      bool
+	Notified bool
+}
+
+// RecordRefund stores one provider refund fact and advances the intent to
+// refunded only when the cumulative refunded amount reaches the sale amount.
+// Notified stays false until the downstream observer confirms durable intake.
+func (s *IntentStore) RecordRefund(ctx context.Context, intent PaymentIntent, providerRefundID string, amountMinor int64, currency string) (PaymentIntent, RefundRecord, error) {
+	if intent.ID == "" {
+		return PaymentIntent{}, RefundRecord{}, ErrIntentNotFound
+	}
+	if providerRefundID == "" {
+		providerRefundID = "refund-" + intent.ID
+	}
+	if amountMinor <= 0 {
+		amountMinor = intent.AmountMinor
+	}
+	if amountMinor <= 0 || amountMinor > intent.AmountMinor {
+		return PaymentIntent{}, RefundRecord{}, fmt.Errorf("payment: invalid refund amount %d for intent %s", amountMinor, intent.ID)
+	}
+	if strings.TrimSpace(currency) == "" {
+		currency = intent.Currency
+	}
+	if intent.Currency != "" && !strings.EqualFold(currency, intent.Currency) {
+		return PaymentIntent{}, RefundRecord{}, fmt.Errorf("payment: refund currency mismatch for intent %s: got %s want %s",
+			intent.ID, currency, intent.Currency)
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return PaymentIntent{}, RefundRecord{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	now := time.Now().UTC().Format(time.RFC3339)
+	refundID := string(intent.Provider) + ":" + providerRefundID
+	res, err := tx.ExecContext(ctx, `
+INSERT INTO payment_refunds
+    (id,payment_intent_id,provider,provider_refund_id,amount_minor,currency,created_at,updated_at)
+VALUES (?,?,?,?,?,?,?,?)
+ON CONFLICT(provider,provider_refund_id) DO NOTHING`,
+		refundID, intent.ID, string(intent.Provider), providerRefundID, amountMinor,
+		strings.ToUpper(currency), now, now)
+	if err != nil {
+		return PaymentIntent{}, RefundRecord{}, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return PaymentIntent{}, RefundRecord{}, err
+	}
+	if n == 0 {
+		var notified sql.NullString
+		if err := tx.QueryRowContext(ctx, `SELECT notified_at FROM payment_refunds WHERE id=?`, refundID).Scan(&notified); err != nil {
+			return PaymentIntent{}, RefundRecord{}, err
+		}
+		intent, err = s.GetIntent(ctx, intent.ID)
+		return intent, RefundRecord{ID: refundID, Notified: notified.Valid}, err
+	}
+	if _, err := tx.ExecContext(ctx, `
+UPDATE payment_intents
+SET refunded_amount_minor=refunded_amount_minor+?,
+    status=CASE WHEN refunded_amount_minor+?>=amount_minor THEN ? ELSE ? END,
+    refunded_at=COALESCE(refunded_at,?),
+    updated_at=?
+WHERE id=?`,
+		amountMinor, amountMinor, string(PaymentStatusRefunded), string(IntentPaid), now, now, intent.ID); err != nil {
+		return PaymentIntent{}, RefundRecord{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return PaymentIntent{}, RefundRecord{}, err
+	}
+	intent, err = s.GetIntent(ctx, intent.ID)
+	return intent, RefundRecord{ID: refundID, New: true}, err
+}
+
+// MarkRefundNotified records successful hand-off. A crash before this point
+// makes the next webhook retry re-deliver the fact to the observer.
+func (s *IntentStore) MarkRefundNotified(ctx context.Context, refundID string) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.ExecContext(ctx, `
+UPDATE payment_refunds SET notified_at=?,updated_at=? WHERE id=?`, now, now, refundID)
+	return err
 }
 
 func (s *IntentStore) ensureColumn(ctx context.Context, table, column, definition string) error {
@@ -63,7 +192,7 @@ func (s *IntentStore) ensureColumn(ctx context.Context, table, column, definitio
 		return fmt.Errorf("unexpected table name: %q", table)
 	}
 	switch column {
-	case "user_id", "webhook_event":
+	case "user_id", "webhook_event", "refunded_amount_minor":
 	default:
 		return fmt.Errorf("unexpected column name: %q", column)
 	}
@@ -120,7 +249,7 @@ func (s *IntentStore) GetIntent(ctx context.Context, id string) (PaymentIntent, 
 	row := s.db.QueryRowContext(ctx, `
 SELECT id, business_order_id, user_id, product, provider, status, amount_minor, currency, email,
        locale, metadata, provider_session_id, provider_payment_id, checkout_url, qr_code_url,
-       return_url, success_url, failure_url, created_at, updated_at, paid_at
+       return_url, success_url, failure_url, created_at, updated_at, paid_at, refunded_at, refunded_amount_minor
 FROM payment_intents WHERE id=?`, id)
 	return scanIntent(row.Scan)
 }
@@ -129,7 +258,7 @@ func (s *IntentStore) ListIntentsForReconciliation(ctx context.Context, limit in
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, business_order_id, user_id, product, provider, status, amount_minor, currency, email,
        locale, metadata, provider_session_id, provider_payment_id, checkout_url, qr_code_url,
-       return_url, success_url, failure_url, created_at, updated_at, paid_at
+       return_url, success_url, failure_url, created_at, updated_at, paid_at, refunded_at, refunded_amount_minor
 FROM payment_intents
 WHERE status IN (?,?)
 ORDER BY updated_at
@@ -175,7 +304,11 @@ WHERE id=? AND status IN (?,?)`,
 	if err != nil {
 		return PaymentIntent{}, err
 	}
-	if n, _ := res.RowsAffected(); n == 0 {
+	n, err := res.RowsAffected()
+	if err != nil {
+		return PaymentIntent{}, err
+	}
+	if n == 0 {
 		return PaymentIntent{}, ErrIntentNotFound
 	}
 	return s.GetIntent(ctx, id)
@@ -211,13 +344,13 @@ func scanIntent(scan func(dest ...any) error) (PaymentIntent, error) {
 	var intent PaymentIntent
 	var productKey, provider, status, metadata string
 	var userID string
-	var providerSessionID, providerPaymentID, checkoutURL, qrCodeURL, returnURL, successURL, failureURL, paidAt sql.NullString
+	var providerSessionID, providerPaymentID, checkoutURL, qrCodeURL, returnURL, successURL, failureURL, paidAt, refundedAt sql.NullString
 	var createdAt, updatedAt string
 	err := scan(
 		&intent.ID, &intent.BusinessOrderID, &userID, &productKey, &provider, &status,
 		&intent.AmountMinor, &intent.Currency, &intent.Email, &intent.Locale, &metadata,
 		&providerSessionID, &providerPaymentID, &checkoutURL, &qrCodeURL,
-		&returnURL, &successURL, &failureURL, &createdAt, &updatedAt, &paidAt,
+		&returnURL, &successURL, &failureURL, &createdAt, &updatedAt, &paidAt, &refundedAt, &intent.RefundedAmountMinor,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PaymentIntent{}, ErrIntentNotFound
@@ -249,6 +382,11 @@ func scanIntent(scan func(dest ...any) error) (PaymentIntent, error) {
 	if paidAt.Valid {
 		if parsed, parseErr := time.Parse(time.RFC3339, paidAt.String); parseErr == nil {
 			intent.PaidAt = &parsed
+		}
+	}
+	if refundedAt.Valid {
+		if parsed, parseErr := time.Parse(time.RFC3339, refundedAt.String); parseErr == nil {
+			intent.RefundedAt = &parsed
 		}
 	}
 	return intent, nil

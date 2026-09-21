@@ -28,6 +28,7 @@ type CheckoutResult struct {
 // Webhook event types from payment providers.
 const (
 	EventPaymentSucceeded = "payment.succeeded"
+	EventPaymentRefunded  = "payment.refunded"
 )
 
 // Provider identifies a payment provider.

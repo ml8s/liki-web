@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"liki-web/internal/product"
 	"log/slog"
 	"net"
@@ -19,6 +20,7 @@ import (
 	"liki-web/internal/sqliteutil"
 
 	"liki-web/internal/account"
+	"liki-web/internal/adminauth"
 	"liki-web/internal/agent"
 	"liki-web/internal/aipay"
 	"liki-web/internal/auth"
@@ -303,6 +305,25 @@ func main() {
 		os.Exit(1)
 	}
 
+	adminAuthorizer, err := adminauth.Open(filepath.Join(dataDir, "platform.db"))
+	if err != nil {
+		slog.Error("init admin auth", "err", err)
+		os.Exit(1)
+	}
+	defer func() { _ = adminAuthorizer.Close() }()
+	if err := adminAuthorizer.Migrate(ctx); err != nil {
+		slog.Error("init admin auth schema", "err", err)
+		os.Exit(1)
+	}
+	if adminEmail := os.Getenv("ADMIN_EMAIL"); adminEmail != "" {
+		if err := adminAuthorizer.BootstrapAdminByEmail(ctx, adminEmail); err != nil {
+			slog.Error("bootstrap admin", "err", err)
+			os.Exit(1)
+		}
+	} else {
+		slog.Warn("ADMIN_EMAIL is empty; admin console capabilities are disabled")
+	}
+
 	// ── Callbacks ──
 	authMailer := auth.MailerFunc(func(ctx context.Context, email, code string) error {
 		subject := "Liki 登录验证码"
@@ -331,7 +352,12 @@ func main() {
 	if _, err := entitlements.ExpireDue(ctx); err != nil {
 		slog.Warn("expire entitlements", "err", err)
 	}
-	referralStore, err := referral.Open(filepath.Join(dataDir, "referral.db"), func(ctx context.Context, userID string) (bool, error) {
+	payoutSecret := os.Getenv("REFERRAL_PAYOUT_SECRET")
+	if len(payoutSecret) < 32 {
+		slog.Error("REFERRAL_PAYOUT_SECRET must contain at least 32 bytes")
+		os.Exit(1)
+	}
+	referralStore, err := referral.Open(filepath.Join(dataDir, "referral.db"), []byte(payoutSecret), func(ctx context.Context, userID string) (bool, error) {
 		return entitlements.HasSkill(ctx, userID, liki.SkillLiki)
 	})
 	if err != nil {
@@ -443,6 +469,9 @@ func main() {
 			slog.Error("referral: enqueue fulfilled payment", "intent_id", intent.ID, "err", err)
 		}
 	})
+	paymentRuntime.SetRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
+		return referralStore.EnqueueCommissionRefund(ctx, event, intent)
+	})
 	go referralStore.StartCommissionWorker(ctx, platformDB, 5*time.Second)
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
@@ -456,17 +485,43 @@ func main() {
 	verifyLimiter := apphttp.NewRateLimiter()
 	defer rateLimiter.Stop()
 
+	readiness := func(ctx context.Context) error {
+		for name, db := range map[string]*sql.DB{
+			"platform": platformDB, "profiles": profilesDB, "feedback": feedbackDB,
+			"liki": likiDB, "naming": namingDB, "mingshu": mingshuDB,
+			"hepan": hepanDB, "aipay": aipayDB,
+		} {
+			if err := db.PingContext(ctx); err != nil {
+				return fmt.Errorf("database %s: %w", name, err)
+			}
+		}
+		return nil
+	}
+
 	mux := http.NewServeMux()
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
-		OnPaid:           onPaid, // admin-created orders only
-		PaymentRuntime:   paymentRuntime,
-		AuthHandler:      authHandler,
-		ReferralHandler:  referralHandler,
-		ReferralStore:    referralStore,
-		LikiHandler:      liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser),
-		AipayHandler:     aipayHandler,
-		ProfileHandler:   profile.NewHandler(profileStore, authHandler.RequireUser),
-		AccountHandler:   account.NewHandler(profileStore, chatStore, authHandler.RequireUser),
+		OnPaid:          onPaid, // admin-created orders only
+		PaymentRuntime:  paymentRuntime,
+		AuthHandler:     authHandler,
+		ReferralHandler: referralHandler,
+		ReferralStore:   referralStore,
+		LikiHandler:     liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser),
+		AipayHandler:    aipayHandler,
+		ProfileHandler:  profile.NewHandler(profileStore, authHandler.RequireUser),
+		AccountHandler: account.NewHandler(
+			profileStore,
+			chatStore,
+			authStore,
+			commerceOrders,
+			entitlements,
+			intents,
+			notifications,
+			namingStore,
+			mingshuStore,
+			hepanStore,
+			referralStore,
+			authHandler.RequireUser,
+		),
 		NamingStore:      namingStore,
 		MingShuStore:     mingshuStore,
 		MingShuGenerator: mingshuGenerator,
@@ -475,10 +530,12 @@ func main() {
 		FeedbackStore:    feedbackStore,
 		FeedbackAPIKey:   cfg.FeedbackAPIKey,
 		AdminEmail:       os.Getenv("ADMIN_EMAIL"),
+		AdminAuthorizer:  adminAuthorizer,
 		NamingAgent:      namingAgent,
 		Agent:            reportAgent,
 		Analytics:        apphttp.NewAnalytics(),
 		MetricsHandler:   metrics.Handler(os.Getenv("METRICS_TOKEN")),
+		Readiness:        readiness,
 		DevMode:          cfg.DevMode,
 	}, BuildTime, Version, rateLimiter, verifyLimiter)
 

@@ -1,0 +1,89 @@
+/* Liki canonical brand tokens.
+ * These are the single source of truth for product, marketing, legal, and
+ * console surfaces. app.css may expose compatibility aliases, but new code
+ * should consume --brand-* only. */
+
+:root {
+  /* brand palette */
+  --brand-primary: #5f4bc2;
+  --brand-primary-hover: #4f3db0;
+  --brand-primary-soft: #eeeafc;
+  --brand-primary-border: #d9d2f5;
+  --brand-on-primary: #ffffff;
+
+  --brand-gold: #c9a45e;
+  --brand-gold-hover: #d8b877;
+  --brand-gold-text: #8b6914;
+  --brand-gold-tint: #f6edd9;
+
+  --brand-ink: #1e2230;
+  --brand-text: #1e2230;
+  --brand-text-muted: #556070;
+  --brand-text-faint: #697382;
+
+  --brand-paper: #f7f6f4;
+  --brand-surface: #ffffff;
+  --brand-line: #e6e4e0;
+  --brand-line-strong: #d6d3cd;
+
+  /* semantic aliases shared by every surface */
+  --color-accent: var(--brand-primary);
+  --color-accent-hover: var(--brand-primary-hover);
+  --color-accent-soft: var(--brand-primary-soft);
+  --color-accent-focus: rgba(95, 75, 194, 0.16);
+  --color-fire: #c5302c;
+  --color-fire-hover: #ab2825;
+  --color-paper: var(--brand-paper);
+  --color-surface: var(--brand-surface);
+  --color-text: var(--brand-text);
+  --color-text-muted: var(--brand-text-muted);
+  --color-border: var(--brand-line);
+  --color-border-hover: var(--brand-line-strong);
+  --color-gold: var(--brand-gold);
+  --color-gold-light: var(--brand-gold-hover);
+  --color-error: #c5302c;
+  --color-success: #36701e;
+
+  /* shared radius contract */
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-small: 6px;
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* shared elevation contract */
+  --shadow-card: 0 1px 2px rgba(30, 34, 48, 0.04),
+    0 3px 10px rgba(30, 34, 48, 0.05);
+  --shadow-card-hover: 0 4px 10px rgba(30, 34, 48, 0.07),
+    0 3px 10px rgba(30, 34, 48, 0.05);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07),
+    0 2px 4px -2px rgba(0, 0, 0, 0.05);
+
+  /* shared type, spacing, and motion contracts */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --duration-xs: 100ms;
+  --duration-sm: 150ms;
+  --duration-md: 250ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --color-white: #ffffff;
+  --color-error-soft: #fef2f2;
+}
