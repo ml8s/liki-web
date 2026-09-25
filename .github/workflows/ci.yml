@@ -131,6 +131,8 @@ jobs:
         env:
           JWT_SECRET: liki-ci-e2e-secret-0123456789abcdef
           REFERRAL_PAYOUT_SECRET: liki-ci-e2e-referral-payout-secret-0123456789abcdef
+          LISTEN_ADDR: :8081
+          RETURN_URL: http://localhost:8080
           LIKI_LLM_API_KEY: ci-test-dummy
           LIKI_LLM_MODEL: ci-test-dummy
           XUNHU_APPID: ci-test-dummy
@@ -140,7 +142,7 @@ jobs:
           LIKI_ENGINE_HOST: localhost
         run: |
           mkdir -p /tmp/liki-e2e && chmod 777 /tmp/liki-e2e
-          LIKI_DATA_DIR=/tmp/liki-e2e ./bin/liki-web -addr :8081 &
+          LIKI_DATA_DIR=/tmp/liki-e2e ./bin/liki-web &
           for i in $(seq 1 10); do
             curl -sf http://localhost:8081/api/health 2>/dev/null | grep -q '"ok"' && echo "Go ready" && break
             sleep 1

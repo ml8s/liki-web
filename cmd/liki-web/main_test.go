@@ -70,3 +70,22 @@ func TestEnvOrBool(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadConfigUsesRuntimeEnvironment(t *testing.T) {
+	t.Setenv("LISTEN_ADDR", ":18081")
+	t.Setenv("LIKI_LLM_API_KEY", "ci-test-dummy")
+	t.Setenv("LIKI_LLM_MODEL", "ci-test-model")
+	t.Setenv("LIKI_LLM_BASE_URL", "https://llm.example.test/v1")
+
+	config := LoadConfig()
+
+	if config.ListenAddr != ":18081" {
+		t.Fatalf("ListenAddr = %q, want :18081", config.ListenAddr)
+	}
+	if config.LLMAPIKey != "ci-test-dummy" || config.LLMModel != "ci-test-model" {
+		t.Fatalf("LLM credentials = %q/%q, want CI test values", config.LLMAPIKey, config.LLMModel)
+	}
+	if config.LLMBaseURL != "https://llm.example.test/v1" {
+		t.Fatalf("LLMBaseURL = %q", config.LLMBaseURL)
+	}
+}
