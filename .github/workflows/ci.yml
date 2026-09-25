@@ -130,6 +130,7 @@ jobs:
       - name: Start servers
         env:
           JWT_SECRET: liki-ci-e2e-secret-0123456789abcdef
+          REFERRAL_PAYOUT_SECRET: liki-ci-e2e-referral-payout-secret-0123456789abcdef
           LIKI_LLM_API_KEY: ci-test-dummy
           LIKI_LLM_MODEL: ci-test-dummy
           XUNHU_APPID: ci-test-dummy
