@@ -1,15 +1,29 @@
 <template>
   <section>
-    <AppPageHeader title="档案" subtitle="管理你关心的人的出生信息。">
+    <AppPageHeader :title="$t('router.profiles')" :subtitle="$t('profiles.list.subtitle')">
       <template #actions>
-        <el-button type="primary" @click="router.push('/profiles/new')">新建档案</el-button>
+        <el-button type="primary" @click="router.push('/profiles/new')">{{ $t('profiles.create') }}</el-button>
       </template>
     </AppPageHeader>
 
-    <AppErrorState v-if="error && !profiles.list.length" title="档案加载失败" :description="error" @retry="load" />
-    <AppSkeleton v-if="profiles.loading && !profiles.list.length" :rows="5" />
+    <el-result
+      v-if="error && !profiles.list.length"
+      icon="warning"
+      :title="$t('profiles.detail.loadFailed')"
+      :sub-title="error"
+    >
+      <template #extra>
+        <el-button type="primary" @click="load">{{ $t('common.retry') }}</el-button>
+      </template>
+    </el-result>
+    <el-skeleton v-else-if="profiles.loading && !profiles.list.length" :rows="5" animated aria-busy="true"/>
 
-    <AppEmpty v-else-if="!profiles.loading && !profiles.list.length" description="还没有档案，先创建一个吧" />
+    <el-empty
+      v-else-if="!profiles.loading && !profiles.list.length"
+      :description="$t('profiles.list.empty')"
+    >
+      <el-button type="primary" tag="a" to="/profiles/new">{{ $t('profiles.create') }}</el-button>
+    </el-empty>
 
     <ProfileList
       v-else
@@ -25,15 +39,14 @@
 import { toUserMessage } from '@/utils/errors'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useProfilesStore } from '@/stores/profiles'
 import type { Profile } from '@/api/profiles'
-import AppEmpty from '@/components/app/AppEmpty.vue'
-import AppErrorState from '@/components/app/AppErrorState.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
-import AppSkeleton from '@/components/app/AppSkeleton.vue'
 import ProfileList from '@/components/profiles/ProfileList.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const profiles = useProfilesStore()
 
 const error = profiles.error
@@ -48,14 +61,18 @@ function open(profile: Profile) {
 
 async function confirmRemove(profile: Profile) {
   try {
-    await ElMessageBox.confirm(`删除档案「${profile.nickname}」？30 天内可恢复。`, '删除档案', { type: 'warning' })
+    await ElMessageBox.confirm(
+      t('profiles.list.deleteConfirm', { nickname: profile.nickname }),
+      t('profiles.list.deleteTitle'),
+      { type: 'warning', confirmButtonText: t('common.submit'), cancelButtonText: t('common.cancel') },
+    )
   } catch {
     return
   }
   try {
     await profiles.remove(profile.id)
   } catch (err) {
-    profiles.error = toUserMessage(err, '删除失败')
+    profiles.error = toUserMessage(err, t('profiles.deleteFailed'))
   }
 }
 

@@ -43,6 +43,9 @@ const sorted = [
   function getLang() {
     return (location.pathname.match(/^\/(zh-Hans|zh-Hant|en)\//) || [])[1] || 'zh-Hant';
   }
+  function rememberLang(loc) {
+    document.cookie = 'liki_locale=' + encodeURIComponent(loc) + '; Path=/; Max-Age=31536000; SameSite=Lax';
+  }
   window.Liki = window.Liki || {};
   window.Liki.localeFromPath = getLang;
 
@@ -55,6 +58,7 @@ const sorted = [
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       var loc = this.getAttribute('data-lang');
+      rememberLang(loc);
       var path = location.pathname.replace(/^\/(zh-Hans|zh-Hant|en)\/?/, '/');
       location.href = '/' + loc + (path === '/' ? '/' : path);
     });

@@ -34,10 +34,8 @@ web/e2e/
 web/test-results/
 web/scripts/
 
-# Deploy dev
-deploy/liki/Caddyfile.local
-deploy/liki/docker-compose*.yml
-deploy/liki/env.example
+# Local dev orchestration
+dev/
 
 # Env / secrets
 .env

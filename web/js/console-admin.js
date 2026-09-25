@@ -353,18 +353,21 @@ async function loadReferralAdmin() {
 async function loadReferralApplications(status = 'pending') {
   show('referral-application-status', '载入中…');
   try {
-    const data = await request(`${API}/referral/applications?status=${encodeURIComponent(status)}&limit=100`);
+    const role = $('referral-application-role').value;
+    const params = new URLSearchParams({ status, limit: '100' });
+    if (role) params.set('role', role);
+    const data = await request(`${API}/referral/applications?${params}`);
     const items = data.applications || [];
     referralApplicationsBody.innerHTML = items.length ? items.map(item => `
       <tr>
-        <td>${h(item.code || item.user_id)}</td><td>${h(item.note || '-')}</td>
+        <td>${h(item.code || item.user_id)}</td><td>${h((item.type || '').toUpperCase())}</td><td>${h(item.note || '-')}</td>
         <td>${statusTag(item.status)}</td><td>${h(item.created_at)}</td>
         <td>${item.status === 'pending' ? `
           <div class="actions">
             <button class="btn btn-primary" data-application-approve="${h(item.id)}">通过</button>
             <button class="btn btn-secondary" data-application-reject="${h(item.id)}">拒绝</button>
           </div>` : '<span class="muted">已处理</span>'}</td>
-      </tr>`).join('') : '<tr><td colspan="5"><div class="empty-state">当前没有申请。<button class="btn btn-secondary" data-referral-refresh>刷新</button></div></td></tr>';
+      </tr>`).join('') : '<tr><td colspan="6"><div class="empty-state">当前没有申请。<button class="btn btn-secondary" data-referral-refresh>刷新</button></div></td></tr>';
     show('referral-application-status', items.length ? `共 ${items.length} 条` : '');
   } catch (error) { show('referral-application-status', error.message, true); }
 }
@@ -436,26 +439,6 @@ referralApplicationsBody.addEventListener('click', async event => {
 });
 
 referralPartnersBody.addEventListener('click', async event => {
-  const promote = event.target.closest('[data-partner-promote]');
-  if (promote) {
-    const id = promote.dataset.partnerPromote;
-    const action = await actionDialog({ title: '升级为 Scout', reason: true, confirmText: '升级' });
-    if (!action?.reason) return;
-    try {
-      await request(`${API}/referral/partners/${encodeURIComponent(id)}/promote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: action.reason }),
-      });
-      show('referral-partner-status', '已升级为 Scout');
-      loadReferralPartners();
-      loadReferralActions();
-    } catch (error) {
-      show('referral-partner-status', error.message, true);
-    }
-    return;
-  }
-
   const freeze = event.target.closest('[data-partner-freeze]');
   const unfreeze = event.target.closest('[data-partner-unfreeze]');
   if (!freeze && !unfreeze) return;

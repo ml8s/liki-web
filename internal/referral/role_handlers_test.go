@@ -8,25 +8,22 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/auth"
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 func newPartnerJourneyStore(t *testing.T) (*Store, Referrer, Referrer) {
 	t.Helper()
 	ctx := context.Background()
 	store := newAdminStore(t)
-	scout, err := store.RegisterReferrer(ctx, "scout")
+	scout, err := store.CreateScoutPartner(ctx, "scout", "admin", "standalone scout")
 	if err != nil {
-		t.Fatal(err)
-	}
-	if err := store.PromoteToScout(ctx, scout.UserID, "admin", "approved"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.Attribute(ctx, "kol", scout.Code); err != nil {
 		t.Fatal(err)
 	}
-	kol, err := store.RegisterReferrer(ctx, "kol")
+	kol, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +117,7 @@ func TestPartnerHTTPJourneysStayRoleScoped(t *testing.T) {
 func TestRoleScopedHandlerRejectsOtherRole(t *testing.T) {
 	ctx := context.Background()
 	store := newAdminStore(t)
-	kol, err := store.RegisterReferrer(ctx, "kol")
+	kol, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}

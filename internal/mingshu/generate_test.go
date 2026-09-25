@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	_ "modernc.org/sqlite"
 
-	"liki-web/internal/agent"
-	"liki-web/internal/llm"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 func newTestStore(t *testing.T) *Store {

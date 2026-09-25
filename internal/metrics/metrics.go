@@ -122,15 +122,15 @@ func escapePrometheusLabelValue(value string) string {
 	return strings.ReplaceAll(value, `"`, `\"`)
 }
 
-// Handler rejects all requests when no token is configured. Production should
-// expose this through an internal-only network path or an authenticated proxy.
+// Handler rejects all requests when no token is configured. Authentication uses
+// a bearer token only, keeping the secret out of URLs and access logs.
 func Handler(token string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if token == "" {
 			http.NotFound(w, r)
 			return
 		}
-		if r.Header.Get("Authorization") != "Bearer "+token && r.URL.Query().Get("token") != token {
+		if r.Header.Get("Authorization") != "Bearer "+token {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}

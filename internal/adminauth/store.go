@@ -12,9 +12,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"liki-web/internal/auth"
-	"liki-web/internal/migrate"
-	"liki-web/internal/sqliteutil"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/migrate"
+	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
 type Capability string

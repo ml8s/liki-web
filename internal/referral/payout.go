@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/metrics"
+	"github.com/ml8s/liki-web/internal/metrics"
 )
 
 var (
@@ -161,6 +161,32 @@ SELECT id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,curre
        method,account,status,COALESCE(payment_reference,''),COALESCE(rejection_reason,''),
        created_at,updated_at,paid_at
 FROM referral_payouts WHERE referrer_id=? ORDER BY created_at DESC LIMIT ?`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	items := make([]Payout, 0)
+	for rows.Next() {
+		item, err := s.scanPayout(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (s *Store) ListPayoutsForRole(ctx context.Context, userID string, role PartnerRole, limit int) ([]Payout, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	rows, err := s.db.QueryContext(ctx, `
+SELECT id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,
+       method,account,status,COALESCE(payment_reference,''),COALESCE(rejection_reason,''),
+       created_at,updated_at,paid_at
+FROM referral_payouts
+WHERE referrer_id=? AND beneficiary_role=?
+ORDER BY created_at DESC LIMIT ?`, userID, string(normalizeRole(role)), limit)
 	if err != nil {
 		return nil, err
 	}

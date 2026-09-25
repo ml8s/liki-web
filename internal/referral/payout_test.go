@@ -5,14 +5,14 @@ import (
 	"errors"
 	"testing"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 func newPendingCommissionPayout(t *testing.T) (*Store, Commission) {
 	t.Helper()
 	ctx := context.Background()
 	store := newStore(t)
-	kol, err := store.RegisterReferrer(ctx, "kol")
+	kol, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,6 +46,59 @@ func TestCreatePayoutLocksPendingCommissions(t *testing.T) {
 	}
 	if _, err := store.CreatePayout(ctx, commission.ReferrerID, PayoutMethodAlipay, "again@example.com"); !errors.Is(err, ErrNoWithdrawableCommission) {
 		t.Fatalf("second payout err = %v", err)
+	}
+}
+
+func TestRetiredRoleCanSettleOnlyItsOwnHistory(t *testing.T) {
+	ctx := context.Background()
+	store := newStore(t)
+	kol, err := store.createKOLPartner(ctx, "kol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
+		t.Fatal(err)
+	}
+	intent := paidIntent(payment.ProviderXunhu, "buyer", 50000)
+	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+		t.Fatalf("processed=%d err=%v", n, err)
+	}
+	if _, err := store.db.ExecContext(ctx,
+		`UPDATE partner_roles SET status='retired' WHERE user_id=? AND role='kol'`, kol.UserID); err != nil {
+		t.Fatal(err)
+	}
+
+	states, err := store.PartnerStates(ctx, kol.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if states.KOL.Status != RoleRetired || states.KOL.CanSubmit {
+		t.Fatalf("states = %+v", states)
+	}
+	settlement, err := store.SettlementForRole(ctx, kol.UserID, RoleKOL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settlement.Status != RoleRetired || len(settlement.Balances) != 1 || settlement.Balances[0].TotalMinor != 25000 {
+		t.Fatalf("settlement = %+v", settlement)
+	}
+
+	payout, err := store.CreatePayoutForRole(ctx, kol.UserID, RoleKOL, PayoutMethodAlipay, "me@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if payout.AmountMinor != 25000 {
+		t.Fatalf("payout = %+v", payout)
+	}
+	payouts, err := store.ListPayoutsForRole(ctx, kol.UserID, RoleKOL, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(payouts) != 1 || payouts[0].Role != RoleKOL {
+		t.Fatalf("payouts = %+v", payouts)
 	}
 }
 
@@ -141,22 +194,19 @@ func TestMarkPayoutPaidRequiresApproval(t *testing.T) {
 func TestKOLAndScoutPayoutsAreIndependent(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
-	scout, err := store.RegisterReferrer(ctx, "scout")
+	scout, err := store.CreateScoutPartner(ctx, "scout", "admin", "standalone scout")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.Attribute(ctx, "kol", scout.Code); err != nil {
 		t.Fatal(err)
 	}
-	kol, err := store.RegisterReferrer(ctx, "kol")
+	kol, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if kol.RecruiterID != "scout" {
 		t.Fatalf("recruiter = %q, want scout", kol.RecruiterID)
-	}
-	if err := store.PromoteToScout(ctx, "scout", "admin", "approved partner"); err != nil {
-		t.Fatal(err)
 	}
 	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
 		t.Fatal(err)
@@ -198,5 +248,48 @@ func TestKOLAndScoutPayoutsAreIndependent(t *testing.T) {
 	}
 	if kolStatus != string(CommissionPending) || scoutStatus != string(CommissionPaid) {
 		t.Fatalf("statuses kol/scout = %q/%q", kolStatus, scoutStatus)
+	}
+}
+
+func TestPayoutAccessAllowsRetiredButNotFrozenRole(t *testing.T) {
+	ctx := context.Background()
+	store := newStore(t)
+	kol, err := store.createKOLPartner(ctx, "kol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
+		t.Fatal(err)
+	}
+	intent := paidIntent(payment.ProviderDodo, "buyer", 50000)
+	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+		t.Fatalf("processed=%d err=%v", n, err)
+	}
+
+	if _, err := store.db.ExecContext(ctx, `UPDATE partner_roles SET status='retired' WHERE user_id=? AND role='kol'`, kol.UserID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.KOLByID(ctx, kol.UserID); err == nil {
+		t.Fatal("retired role unexpectedly grants console access")
+	}
+	if _, err := store.PartnerForPayout(ctx, kol.UserID, RoleKOL); err != nil {
+		t.Fatalf("retired role cannot request payout: %v", err)
+	}
+	payout, err := store.CreatePayoutForRole(ctx, kol.UserID, RoleKOL, PayoutMethodAlipay, "payout@example.com")
+	if err != nil {
+		t.Fatalf("retired role payout = %v", err)
+	}
+	if payout.AmountMinor != 25000 {
+		t.Fatalf("payout = %+v", payout)
+	}
+
+	if err := store.SetPartnerStatus(ctx, kol.UserID, PartnerFrozen, "admin", "freeze"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PartnerForPayout(ctx, kol.UserID, RoleKOL); err == nil {
+		t.Fatal("frozen partner can request payout")
 	}
 }

@@ -5,6 +5,11 @@ import { useEntitlementsStore } from '@/stores/entitlements'
 import { useProfilesStore } from '@/stores/profiles'
 import { toUserMessage } from '@/utils/errors'
 import { toFirstQueryString } from '@/utils/format'
+import { i18n } from '@/i18n'
+
+function t(key: string): string {
+  return i18n.global.t(key)
+}
 
 type PaymentState = 'idle' | 'verifying' | 'confirmed' | 'unpaid'
 
@@ -55,7 +60,7 @@ export const useCommerceStore = defineStore('commerce', {
       try {
         this.products = await fetchChatProducts()
       } catch (error) {
-        this.productsError = toUserMessage(error, '加载产品失败')
+        this.productsError = toUserMessage(error, t('commerce.productsFailed'))
       } finally {
         this.loadingProducts = false
       }
@@ -66,10 +71,10 @@ export const useCommerceStore = defineStore('commerce', {
       this.buying = true
       this.actionError = ''
       try {
-        const checkout = await checkoutChatProduct(product.id)
+        const checkout = await checkoutChatProduct(product.id, i18n.global.locale.value)
         window.location.href = checkout.checkout_url
       } catch (error) {
-        this.actionError = toUserMessage(error, '发起支付失败')
+        this.actionError = toUserMessage(error, t('commerce.checkoutFailed'))
         await this.refresh()
       } finally {
         this.buying = false
@@ -100,13 +105,13 @@ export const useCommerceStore = defineStore('commerce', {
 
       if (status === 'paid') {
         this.paymentState = 'verifying'
-        this.paymentMessage = '支付已确认，正在开通 Liki Chat…'
+        this.paymentMessage = t('commerce.payment.confirmed')
         // Webhook 与 durable fulfillment 可能晚于浏览器返回，短暂轮询而非误报未开通。
         for (let attempt = 0; attempt < 12; attempt += 1) {
           await this.refresh()
           if (this.chatPurchased) {
             this.paymentState = 'confirmed'
-            this.paymentMessage = '支付成功，Liki Chat 已开通。'
+            this.paymentMessage = t('commerce.payment.active')
             // 轮询成功后由调用方 enterInterpretation
             return { action: 'enter_chat' }
           }
@@ -114,13 +119,13 @@ export const useCommerceStore = defineStore('commerce', {
           await this.wait(delay)
         }
         this.paymentState = 'verifying'
-        this.paymentMessage = '支付已收到，权益开通仍在处理。请稍后刷新本页。'
+        this.paymentMessage = t('commerce.payment.processing')
         return { action: 'show_message', message: this.paymentMessage, state: 'verifying' }
       }
 
       if (status === 'unpaid') {
         this.paymentState = 'unpaid'
-        this.paymentMessage = '支付尚未完成。如已完成付款，请稍后刷新订单状态。'
+        this.paymentMessage = t('commerce.payment.pending')
       }
       return { action: 'show_message', message: this.paymentMessage, state: this.paymentState }
     },
@@ -136,7 +141,7 @@ export const useCommerceStore = defineStore('commerce', {
         const session = await useChatStore().createSession(profileId, 'liki')
         return session.id
       } catch (error) {
-        this.actionError = toUserMessage(error, '创建会话失败')
+        this.actionError = toUserMessage(error, t('chat.createFailed'))
         return null
       }
     },

@@ -1,88 +1,12 @@
 package payment
 
 import (
-	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
-
-type createIntentRequest struct {
-	Product         string `json:"product"`
-	BusinessOrderID string `json:"business_order_id"`
-	Provider        string `json:"provider"`
-	Locale          string `json:"locale"`
-}
-
-func (r createIntentRequest) Validate() error {
-	if r.Product == "" || r.BusinessOrderID == "" {
-		return errors.New("product and business_order_id are required")
-	}
-	return nil
-}
-
-func (runtime *Runtime) HandleCreateIntent(w http.ResponseWriter, r *http.Request) {
-	{
-		req, ok := httputil.DecodeAndValidate[createIntentRequest](w, r)
-		if !ok {
-			return
-		}
-		if req.BusinessOrderID == "" {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "business_order_id is required")
-			return
-		}
-		intent, err := runtime.CreateIntent(r.Context(), CreateIntentInput{
-			Product:         string(req.Product),
-			BusinessOrderID: req.BusinessOrderID,
-			Provider:        Provider(req.Provider),
-			Locale:          req.Locale,
-		})
-		if err != nil {
-			slog.Error("payment: create intent", "err", err)
-			httputil.RespondError(w, http.StatusBadRequest, "payment_intent_failed", err.Error())
-			return
-		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{
-			"id":                intent.ID,
-			"business_order_id": intent.BusinessOrderID,
-			"product":           intent.Product,
-			"provider":          intent.Provider,
-			"status":            intent.Status,
-			"amount_minor":      intent.AmountMinor,
-			"currency":          intent.Currency,
-			"success_url":       intent.SuccessURL,
-			"cancel_url":        intent.FailureURL,
-		})
-	}
-}
-
-func (runtime *Runtime) HandleStartCheckout(w http.ResponseWriter, r *http.Request) {
-	{
-		id := r.PathValue("id")
-		if id == "" {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "missing payment intent id")
-			return
-		}
-		result, intent, err := runtime.StartCheckout(r.Context(), id)
-		if err != nil {
-			slog.Error("payment: start checkout", "intent_id", id, "err", err)
-			httputil.RespondError(w, http.StatusBadRequest, "checkout_failed", err.Error())
-			return
-		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{
-			"payment_intent_id": intent.ID,
-			"provider":          intent.Provider,
-			"status":            intent.Status,
-			"checkout_url":      result.CheckoutURL,
-			"qr_url":            result.QRCodeURL,
-			"status_token":      result.StatusToken,
-			"success_url":       intent.SuccessURL,
-			"cancel_url":        intent.FailureURL,
-		})
-	}
-}
 
 func (runtime *Runtime) HandleIntentStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")

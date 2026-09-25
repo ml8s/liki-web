@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"liki-web/internal/migrate"
+	"github.com/ml8s/liki-web/internal/migrate"
 )
 
 // EntitlementStatus is the lifecycle state of a capability grant.

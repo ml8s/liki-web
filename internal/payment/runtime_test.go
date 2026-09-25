@@ -54,6 +54,13 @@ type fakeFlow struct {
 
 func (f *fakeFlow) Product() string { return f.product }
 
+func (f *fakeFlow) DisplayName(locale string) string {
+	if locale == "en" {
+		return "Custom Naming"
+	}
+	return "定制化起名"
+}
+
 func (f *fakeFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (BusinessOrder, error) {
 	if businessOrderID != f.order.ID {
 		return BusinessOrder{}, errors.New("order not found")
@@ -128,7 +135,7 @@ func newTestRuntime(t *testing.T) (*Runtime, *fakeGateway, *fakeFlow, *fakeSende
 	intents := NewIntentStore(db)
 	notifications := NewNotificationStore(db)
 	runtime := NewRuntime(
-		map[Provider]Gateway{ProviderXunhu: gateway},
+		map[Provider]Gateway{ProviderXunhu: gateway, ProviderDodo: gateway},
 		map[string]ProductFlow{"naming": flow},
 		intents,
 		notifications,
@@ -150,6 +157,147 @@ func checkoutEvent(intent PaymentIntent) WebhookEvent {
 			Email:     intent.Email,
 			PaymentID: "pay-1",
 		},
+	}
+}
+
+func TestRuntimeRoutesUSDToDodoDespiteHint(t *testing.T) {
+	ctx := context.Background()
+	runtime, _, flow, _, _, _ := newTestRuntime(t)
+	flow.order.Currency = "USD"
+
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
+		Product:         "naming",
+		BusinessOrderID: "biz-1",
+		Provider:        ProviderXunhu,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if intent.Provider != ProviderDodo {
+		t.Fatalf("provider = %q, want dodo", intent.Provider)
+	}
+}
+
+func TestQueuePaidNotificationsUsesUnifiedTemplateData(t *testing.T) {
+	ctx := context.Background()
+	runtime, gateway, flow, _, intents, notifications := newTestRuntime(t)
+	flow.order = BusinessOrder{
+		ID: "order-<1>", AmountMinor: 100, Currency: "USD",
+		Email: "user@example.com", Locale: "zh-Hant",
+	}
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
+		Product: "naming", BusinessOrderID: "order-<1>",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err = runtime.StartCheckout(ctx, intent.ID); err != nil {
+		t.Fatal(err)
+	}
+	gateway.event = WebhookEvent{
+		Provider: ProviderDodo,
+		Type:     EventPaymentSucceeded,
+		Data: WebhookEventData{
+			OrderID: intent.ID, Amount: 100, Currency: "USD",
+			PaymentID: "pay-1",
+		},
+	}
+	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := intents.GetIntent(ctx, intent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	queued, err := notifications.Pending(ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(queued) != 2 {
+		t.Fatalf("queued notifications = %d, want two", len(queued))
+	}
+
+	customer := queued[0]
+	if customer.Kind != NotificationCustomerReceipt || customer.To != "user@example.com" {
+		t.Fatalf("customer notification = %+v", customer)
+	}
+	for _, want := range []string{
+		"定制化起名", "order-&lt;1&gt;", "$1.00", "https://liki.hk/zh-Hant/naming/chat",
+	} {
+		if !strings.Contains(customer.Body, want) {
+			t.Fatalf("customer body %q missing %q", customer.Body, want)
+		}
+	}
+	if strings.Contains(customer.Body, "服务已开通") || strings.Contains(customer.Body, "990 CNY") {
+		t.Fatalf("customer body contains invalid fulfillment/raw amount text: %q", customer.Body)
+	}
+
+	admin := queued[1]
+	if admin.Kind != NotificationAdminNewOrder || admin.To != "admin@example.com" {
+		t.Fatalf("admin notification = %+v", admin)
+	}
+	for _, want := range []string{
+		"定制化起名", intent.ID, "user@example.com", "$1.00", "Dodo",
+		updated.PaidAt.UTC().Format("2006-01-02 15:04:05 MST"),
+	} {
+		if !strings.Contains(admin.Body, want) {
+			t.Fatalf("admin body %q missing %q", admin.Body, want)
+		}
+	}
+}
+
+func TestQueuePaidNotificationsLocalizesCustomerReceipt(t *testing.T) {
+	ctx := context.Background()
+	runtime, gateway, flow, _, _, notifications := newTestRuntime(t)
+	flow.order = BusinessOrder{
+		ID: "order-en", AmountMinor: 100, Currency: "USD",
+		Email: "user@example.com", Locale: "en",
+	}
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
+		Product: "naming", BusinessOrderID: "order-en",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err = runtime.StartCheckout(ctx, intent.ID); err != nil {
+		t.Fatal(err)
+	}
+	gateway.event = WebhookEvent{
+		Provider: ProviderDodo,
+		Type:     EventPaymentSucceeded,
+		Data: WebhookEventData{
+			OrderID: intent.ID, Amount: 100, Currency: "USD",
+			PaymentID: "pay-en",
+		},
+	}
+	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	queued, err := notifications.Pending(ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(queued) != 2 {
+		t.Fatalf("queued notifications = %d, want two", len(queued))
+	}
+
+	customer := queued[0]
+	for _, want := range []string{
+		"Payment received", "Custom Naming", "Order: order-en", "$1.00", "Continue",
+	} {
+		if !strings.Contains(customer.Body, want) {
+			t.Fatalf("English customer body %q missing %q", customer.Body, want)
+		}
+	}
+
+	admin := queued[1]
+	for _, want := range []string{
+		"新订单", "Custom Naming", "user@example.com", "$1.00", "Dodo",
+	} {
+		if !strings.Contains(admin.Body, want) {
+			t.Fatalf("Chinese admin body %q missing %q", admin.Body, want)
+		}
 	}
 }
 

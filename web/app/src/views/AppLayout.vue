@@ -1,15 +1,22 @@
 <template>
   <div class="app-shell">
-    <a href="#app-main" class="skip-link">跳到主要内容</a>
+    <a href="#app-main" class="skip-link">{{ $t('a11y.skipToContent') }}</a>
     <AppSidebar :email="auth.user?.email ?? ''" @logout="logout" />
 
     <header class="app-topbar">
-      <div class="brand font-serif">Liki<em>·</em>命理</div>
-      <el-button size="small" @click="logout">退出</el-button>
+      <div class="brand font-serif">Liki<em>·</em>{{ $t('auth.brandTail') }}</div>
+      <div class="topbar-meta">
+        <span class="page-title">{{ pageTitle }}</span>
+        <el-button size="small" text @click="logout">{{ $t('nav.logout') }}</el-button>
+      </div>
     </header>
 
     <main id="app-main" ref="mainEl" class="app-main" tabindex="-1">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <transition name="page-fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
 
     <AppTabbar />
@@ -17,7 +24,8 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
@@ -28,7 +36,9 @@ import AppTabbar from '@/components/app/AppTabbar.vue'
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const mainEl = ref<HTMLElement | null>(null)
+const pageTitle = computed(() => route.meta.titleKey ? t(String(route.meta.titleKey)) : t('router.dashboard'))
 
 onMounted(async () => {
   try {
@@ -72,7 +82,25 @@ async function logout() {
   position: sticky; top: 0; z-index: 40;
 }
 .app-topbar .brand { font-size: 16px; font-weight: 700; letter-spacing: 2px; }
-.app-topbar .brand em { color: var(--liki-gold); font-style: normal; }
+.app-topbar .brand em { color: var(--liki-primary); font-style: normal; }
+.topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.page-title {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar-meta .el-button {
+  color: #fff;
+  --el-button-text-color: #fff;
+  --el-button-hover-text-color: #fff;
+}
 
 .app-main { padding: 24px 16px 88px; }
 .app-main:focus { outline: none; }
@@ -80,5 +108,10 @@ async function logout() {
 @media (min-width: 1024px) {
   .app-topbar { display: none; }
   .app-main { margin-left: 240px; padding: 32px 40px 48px; max-width: 1200px; }
+}
+
+@media (max-width: 640px) {
+  .app-main { padding: 18px 14px 88px; }
+  .page-title { display: none; }
 }
 </style>

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/llm"
 )
 
 func TestNamingChat_EmptyMessages(t *testing.T) {

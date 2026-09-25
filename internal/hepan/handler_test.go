@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"liki-web/internal/httputil"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 func newTestHandlerStore(t *testing.T) *Store {
@@ -130,27 +130,8 @@ func TestHandleGetReport_EmptyID(t *testing.T) {
 	}
 }
 
-// HandleCheckout is covered through the shared payment runtime HTTP flow.
-// These are covered by internal/http/payment_test.go for the generic flow.
-
-func TestDetectCurrency(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		cf, geo, want string
-	}{
-		{"CN", "", "CNY"},
-		{"", "CN", "CNY"},
-		{"US", "", "USD"},
-		{"", "US", "USD"},
-		{"", "", "CNY"},
-	}
-	for _, tc := range tests {
-		got := string(product.DetectCurrency(tc.cf, tc.geo))
-		if got != tc.want {
-			t.Errorf("DetectCurrency(%q, %q) = %q, want %q", tc.cf, tc.geo, got, tc.want)
-		}
-	}
-}
+// HandleCheckout and shared currency detection are covered by payment runtime
+// and product package tests for the generic flow.
 
 func TestNewOrderID_IsUnique(t *testing.T) {
 	t.Parallel()

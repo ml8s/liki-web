@@ -1,8 +1,9 @@
 <template>
   <header class="app-page-header">
     <div class="copy">
+      <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
       <h1>{{ title }}</h1>
-      <p v-if="subtitle">{{ subtitle }}</p>
+      <p v-if="subtitle" class="subtitle">{{ subtitle }}</p>
     </div>
     <div v-if="$slots.actions" class="actions">
       <slot name="actions" />
@@ -14,6 +15,7 @@
 defineProps<{
   title: string
   subtitle?: string
+  eyebrow?: string
 }>()
 </script>
 
@@ -27,13 +29,18 @@ defineProps<{
 }
 h1 {
   margin: 0 0 6px;
-  font-family: var(--liki-font-serif);
-  font-size: 30px;
-  font-weight: 700;
+  font-size: clamp(26px, 3vw, 32px);
+  font-weight: 650;
   line-height: 1.15;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.03em;
 }
-p {
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--liki-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.subtitle {
   margin: 0;
   font-size: 15px;
   color: var(--liki-text-2);

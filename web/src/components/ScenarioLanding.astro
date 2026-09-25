@@ -1,0 +1,121 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LikiChatCta from './LikiChatCta.astro';
+import { t } from '../i18n.js';
+
+export interface Props {
+  locale: string;
+  page: string;
+  scenario: string;
+  titleKey: string;
+  subtitleKey: string;
+  benefitsTitleKey: string;
+  benefitKeys: string[];
+  exampleTitleKey: string;
+  stepsTitleKey: string;
+  stepKeys: string[];
+  questionsTitleKey: string;
+  questionKeys: string[];
+  faqTitleKey: string;
+  faqs: Array<{ questionKey: string; answerKey: string }>;
+}
+
+const {
+  locale,
+  page,
+  scenario,
+  titleKey,
+  subtitleKey,
+  benefitsTitleKey,
+  benefitKeys,
+  exampleTitleKey,
+  stepsTitleKey,
+  stepKeys,
+  questionsTitleKey,
+  questionKeys,
+  faqTitleKey,
+  faqs,
+} = Astro.props;
+
+const faqSchema = faqs.map(item => ({
+  '@type': 'Question',
+  name: t(locale, item.questionKey),
+  acceptedAnswer: { '@type': 'Answer', text: t(locale, item.answerKey) },
+}));
+---
+
+<BaseLayout locale={locale} page={page} heading={t(locale, 'site.brand')} type="brand" twitterCard="summary_large_image">
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: t(locale, titleKey),
+      description: t(locale, subtitleKey),
+      provider: { '@type': 'Organization', name: 'Liki', url: 'https://liki.hk' },
+      serviceType: 'AI metaphysics consultation',
+    })} />
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqSchema,
+    })} />
+  </Fragment>
+
+  <section class="landing-hero scenario-hero">
+    <p class="landing-kicker">{t(locale, 'scenario.brand')}</p>
+    <h1 class="landing-h1">{t(locale, titleKey)}</h1>
+    <p class="landing-sub">{t(locale, subtitleKey)}</p>
+    <div class="landing-actions">
+      <LikiChatCta locale={locale} scenario={scenario} />
+      <a href="#how-it-works" class="btn-ghost">{t(locale, 'scenario.cta.secondary')}</a>
+    </div>
+  </section>
+
+  <section class="landing-services scenario-section">
+    <h2>{t(locale, benefitsTitleKey)}</h2>
+    <div class="service-grid">
+      {benefitKeys.map(key => (
+        <div class="card">
+          <h3 class="font-serif">{t(locale, `${key}.title`)}</h3>
+          <p>{t(locale, `${key}.body`)}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="scenario-example">
+    <h2 class="font-serif">{t(locale, exampleTitleKey)}</h2>
+    <slot />
+  </section>
+
+  <section class="landing-steps" id="how-it-works">
+    <h2 class="font-serif">{t(locale, stepsTitleKey)}</h2>
+    <div class="steps-grid">
+      {stepKeys.map((key, index) => (
+        <div class="card step"><span class="step-n">{index + 1}</span><p>{t(locale, key)}</p></div>
+      ))}
+    </div>
+  </section>
+
+  <section class="landing-services scenario-section">
+    <h2>{t(locale, questionsTitleKey)}</h2>
+    <div class="scenario-questions">
+      {questionKeys.map(key => <blockquote>{t(locale, key)}</blockquote>)}
+    </div>
+  </section>
+
+  <section class="scenario-faq">
+    <h2 class="font-serif">{t(locale, faqTitleKey)}</h2>
+    {faqs.map(item => (
+      <details>
+        <summary>{t(locale, item.questionKey)}</summary>
+        <p>{t(locale, item.answerKey)}</p>
+      </details>
+    ))}
+  </section>
+
+  <section class="landing-cta">
+    <p class="font-serif">{t(locale, 'scenario.cta.bottom')}</p>
+    <LikiChatCta locale={locale} scenario={scenario} />
+  </section>
+</BaseLayout>

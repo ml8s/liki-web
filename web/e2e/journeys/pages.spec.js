@@ -11,7 +11,7 @@ const PAGES = [
   { path: '/zh-Hans/naming', name: 'naming (vanilla)',
     checks: [
       { selector: '.font-brand', text: 'Liki' },
-      { selector: '.cta-section h2', text: '找到你的名字' },
+      { selector: 'h1', text: 'AI 起名与姓名解读' },
     ] },
   { path: '/zh-Hans/naming/chat', marker: '.chat-shell',     name: 'chat (vanilla)' },
   { path: '/zh-Hans/disclaimer', name: 'disclaimer (vanilla)',
@@ -21,20 +21,20 @@ const PAGES = [
   { path: '/en/naming', name: 'naming EN',
     checks: [
       { selector: '.font-brand', text: 'Liki' },
-      { selector: '.cta-section h2', text: 'Find Your Name' },
+      { selector: 'h1', text: 'AI naming and name interpretation' },
     ] },
   { path: '/en/naming/chat',     marker: '.chat-shell',     name: 'chat EN (vanilla)' },
   { path: '/zh-Hant/naming', name: 'naming ZH-Hant',
     checks: [
       { selector: '.font-brand', text: 'Liki' },
-      { selector: '.cta-section h2', text: '找到你的名字' },
+      { selector: 'h1', text: 'AI 起名與姓名解讀' },
     ] },
   { path: '/zh-Hant/naming/chat',     marker: '.chat-shell',     name: 'chat ZH-Hant' },
   // 着陆页（C 端）：slogan + 免费排盘 + 服务 + 信任
   { path: '/zh-Hans/',        name: 'index (C-end landing)',
     checks: [
       { selector: '.landing-paipan', text: '免费排盘' },
-      { selector: '.landing-services', text: '五大命理服务' },
+      { selector: '.landing-services', text: '六大命理场景' },
       { selector: '.landing-trust', text: '为什么可信' },
     ] },
   // 开发者 skill 页（原品牌门面迁址）
@@ -52,15 +52,15 @@ const PAGES = [
   { path: '/skills/liki/SKILL.md', marker: null,          name: 'skills',   resource: true },
   { path: '/zh-Hans/mingshu',   name: 'mingshu (vanilla)',
     checks: [
-      { selector: 'h1', text: 'Liki 命书' },
+      { selector: 'h1', text: '个人命书与终身运势解读' },
     ] },
   { path: '/zh-Hans/hepan',    name: 'hepan (vanilla)',
     checks: [
-      { selector: 'h1', text: 'Liki 合盘' },
+      { selector: 'h1', text: '八字合盘与感情关系解读' },
     ] },
   { path: '/en/hepan',       name: 'hepan EN',
     checks: [
-      { selector: 'h1', text: 'BaZi & ZiWei Compatibility' },
+      { selector: 'h1', text: 'BaZi compatibility and relationship reading' },
     ] },
   { path: '/llms.txt',         marker: null,             name: 'llms.txt', resource: true },
   { path: '/zh-Hans/hepan/report?order_id=demo',  marker: '#report-container',  name: 'hepan report', resource: true },
@@ -183,6 +183,6 @@ test.describe('Mobile viewport', () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/zh-Hans/naming');
     await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
-    await expect(page.locator('#purchase-form')).toBeVisible();
+    await expect(page.locator('[data-scenario-cta="naming"]').first()).toBeVisible();
   });
 });

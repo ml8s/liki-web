@@ -1,16 +1,16 @@
 <template>
   <!-- 桌面：表格 -->
   <el-table v-if="!isMobile" :data="sessions" @row-click="$emit('open', $event)">
-    <el-table-column prop="title" label="主题" min-width="180" />
-    <el-table-column label="领域" width="140">
+    <el-table-column prop="title" :label="$t('chat.sessions.title')" min-width="180" />
+    <el-table-column :label="$t('chat.sessions.domain')" width="140">
       <template #default="{ row }">{{ row.skillLabel }}</template>
     </el-table-column>
-    <el-table-column label="更新时间" width="190">
+    <el-table-column :label="$t('chat.sessions.updated')" width="190">
       <template #default="{ row }">{{ formatDateTime(row.updated_at) }}</template>
     </el-table-column>
     <el-table-column width="100" align="right">
       <template #default="{ row }">
-        <router-link :to="`/chat/${row.id}`" class="open-link">打开</router-link>
+        <router-link :to="`/chat/${row.id}`" class="open-link">{{ $t('chat.sessions.open') }}</router-link>
       </template>
     </el-table-column>
   </el-table>

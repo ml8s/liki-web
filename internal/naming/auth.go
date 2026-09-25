@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 func HandleLogin(store *Store) http.HandlerFunc {

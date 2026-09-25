@@ -1,10 +1,10 @@
 <template>
   <div class="profile-picker">
-    <label class="label">咨询对象</label>
-    <el-select v-model="selectedId" placeholder="选择一个档案" aria-label="咨询对象" style="width: 240px">
+    <label class="label">{{ $t('chat.profilePicker.label') }}</label>
+    <el-select v-model="selectedId" :placeholder="$t('chat.profilePicker.placeholder')" :aria-label="$t('chat.profilePicker.label')" style="width: 240px">
       <el-option v-for="p in profiles" :key="p.id" :value="p.id" :label="p.nickname" />
     </el-select>
-    <router-link to="/profiles/new" class="new-link">＋ 新建档案</router-link>
+    <router-link to="/profiles/new" class="new-link">＋ {{ $t('profiles.create') }}</router-link>
   </div>
 </template>
 

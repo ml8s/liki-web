@@ -1,0 +1,26 @@
+---
+import { t } from '../i18n.js';
+
+export interface Props {
+  locale: string;
+  scenario: string;
+  labelKey?: string;
+  secondaryKey?: string;
+  class?: string;
+}
+
+const {
+  locale,
+  scenario,
+  labelKey = 'scenario.cta.primary',
+  secondaryKey = '',
+  class: className = 'btn-purple',
+} = Astro.props;
+
+const target = `/app?scenario=${encodeURIComponent(scenario)}&locale=${encodeURIComponent(locale)}`;
+---
+
+<a href={target} class={className} data-scenario-cta={scenario}>
+  {t(locale, labelKey)}
+</a>
+{secondaryKey && <a href="#how-it-works" class="btn-ghost">{t(locale, secondaryKey)}</a>}

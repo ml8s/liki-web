@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/llm"
 )
 
 // MockLLM implements LLMClient with predefined response sequences.

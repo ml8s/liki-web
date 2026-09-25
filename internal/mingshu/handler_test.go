@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"liki-web/internal/httputil"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 func lbSeedOrder(t *testing.T, s *Store) string {

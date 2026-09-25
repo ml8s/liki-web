@@ -259,14 +259,7 @@ check_422 "POST /api/naming/auth/login (missing email)" "$s"
 echo ""
 echo "${BOLD}── Payment ──${NC}"
 if [ -n "$ORDER_ID" ]; then
-  s=$(api POST /api/payments/intents "{\"product\":\"naming\",\"business_order_id\":\"$ORDER_ID\",\"provider\":\"dodo\"}")
-  check_200 "POST /api/payments/intents (create)" "$s"
-  PAYMENT_INTENT_ID=$(json_val "$b" '.data.id // empty')
-fi
-
-if [ -n "${PAYMENT_INTENT_ID:-}" ]; then
-  s=$(api GET "/api/payments/intents/$PAYMENT_INTENT_ID/status")
-  check_200 "GET /api/payments/intents/{id}/status" "$s"
+  :
 fi
 
 s=$(api POST /api/payments/webhook '{"type":"order.paid","data":{"order_id":"test"}}')
@@ -383,12 +376,6 @@ b=$(body)
 check_range "  has build_time" ".+" "$(json_val "$b" '.data.build_time // ""')"
 check_range "  has version" ".+" "$(json_val "$b" '.data.version // ""')"
 
-s=$(api GET /api/location)
-check_200 "GET /api/location" "$s"
-
-s=$(api GET /api/stats)
-check_200 "GET /api/stats" "$s"
-
 s=$(api POST /api/analytics/pageview '{"path":"/zh-Hans/"}')
 check_204 "POST /api/analytics/pageview" "$s"
 
@@ -419,9 +406,9 @@ check_405 "GET /api/naming/orders (method not allowed)" "$s"
 if [ -z "${SKIP_EXTERNAL:-}" ]; then
   echo ""
   echo "${BOLD}── Rate Limiting ──${NC}"
-  # Fire burst + 1 requests quickly to trigger rate limit on checkout
-  for i in $(seq 1 5); do
-    s=$(api POST /api/payments/intents "{\"product\":\"naming\",\"business_order_id\":\"rate-test-$i\",\"provider\":\"dodo\"}")
+  # Fire burst + 1 requests quickly to trigger the public analytics limit
+  for i in $(seq 1 31); do
+    s=$(api POST /api/analytics/pageview '{"path":"/rate-limit-check/"}')
     if [ "$s" = "429" ]; then
       echo -e "  ${GREEN}\xe2\x9c\x93${NC} Rate limit triggered at request #$i"
       PASS=$((PASS + 1))

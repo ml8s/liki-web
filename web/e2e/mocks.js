@@ -44,16 +44,6 @@ export async function setupAuthenticatedMocks(page, orderID = 'e2e-order-123') {
   await mockChatHistory(page, orderID);
 }
 
-export async function mockLocation(page, currency = 'CNY') {
-  await page.route('**/api/location', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ data: { currency } }),
-    });
-  });
-}
-
 export async function mockNamingSSE(page, events) {
   await page.route('**/api/naming/agent/chat', async (route) => {
     await route.fulfill({

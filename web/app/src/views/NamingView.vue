@@ -1,37 +1,40 @@
 <template>
   <section class="service-view">
-    <AppPageHeader title="起名" subtitle="依八字用神选字——先看喜用五行与候选字，定制化起名进对话。" />
+    <AppPageHeader :title="$t('services.naming.title')" :subtitle="$t('services.naming.subtitle')" />
 
-    <AppAlert v-if="error" :title="error" type="error" />
+    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
 
-    <el-card class="block" shadow="never">
-      <template #header><span class="card-title">选择档案（起名对象）</span></template>
-      <el-select v-model="profileId" aria-label="选择档案" placeholder="选择档案" style="width: 100%" @change="profileId && loadPreview()">
+    <el-card class="app-card" shadow="never">
+      <template #header><h2 class="app-card__title">{{ $t('services.naming.selectProfile') }}</h2></template>
+      <el-select v-model="profileId" :aria-label="$t('chat.selectProfile')" :placeholder="$t('chat.selectProfile')" style="width: 100%" @change="profileId && loadPreview()">
         <el-option v-for="p in profiles.list" :key="p.id" :value="p.id" :label="p.nickname" />
       </el-select>
-      <p v-if="!profiles.list.length" class="hint">还没有档案，先<a href="/app/profiles/new">建立档案</a>再起名。</p>
+      <p v-if="!profiles.list.length" class="hint">{{ $t('services.naming.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.naming.noProfileSuffix') }}</p>
     </el-card>
 
-    <el-card v-if="loading" class="block" shadow="never"><template #header><span class="card-title">喜用五行</span></template>排盘中…</el-card>
+    <el-card v-if="loading" class="app-card" shadow="never">
+      <template #header><h2 class="app-card__title">{{ $t('services.naming.favorableElements') }}</h2></template>
+      {{ $t('profiles.chart.compute') }}…
+    </el-card>
 
     <template v-if="preview">
-      <el-card class="block pan" shadow="never">
-        <template #header><span class="card-title">喜用五行</span></template>
+      <el-card class="app-card app-card--highlight" shadow="never">
+        <template #header><h2 class="app-card__title">{{ $t('services.naming.favorableElements') }}</h2></template>
         <div class="ys">{{ preview.yongText }}</div>
         <div class="bazi-info">
-          <div v-if="preview.wangShuai" class="info-row"><span class="info-label">日主强弱</span><span>{{ preview.wangShuai }}</span></div>
-          <div v-if="preview.zodiac" class="info-row"><span class="info-label">生肖</span><span>{{ preview.zodiac }}</span></div>
-          <div v-if="preview.jiText" class="info-row"><span class="info-label">忌神</span><span class="warn-text">{{ preview.jiText }}</span></div>
-          <div v-if="preview.wuxingStats" class="info-row"><span class="info-label">五行统计</span><span>{{ preview.wuxingStats }}</span></div>
+          <div v-if="preview.wangShuai" class="info-row"><span class="info-label">{{ $t('services.naming.dayMaster') }}</span><span>{{ preview.wangShuai }}</span></div>
+          <div v-if="preview.zodiac" class="info-row"><span class="info-label">{{ $t('services.naming.zodiac') }}</span><span>{{ preview.zodiac }}</span></div>
+          <div v-if="preview.jiText" class="info-row"><span class="info-label">{{ $t('services.naming.unfavorable') }}</span><span class="warn-text">{{ preview.jiText }}</span></div>
+          <div v-if="preview.wuxingStats" class="info-row"><span class="info-label">{{ $t('services.naming.elementStats') }}</span><span>{{ preview.wuxingStats }}</span></div>
         </div>
-        <div v-if="singlePool.length" class="sec-title">单字候选</div>
+        <div v-if="singlePool.length" class="sec-title">{{ $t('services.naming.singleCharacters') }}</div>
         <div v-if="singlePool.length" class="chars">
           <span v-for="c in singlePool" :key="c.char" class="char-item">
             <span class="char">{{ c.char }}</span>
             <span v-if="c.frequency" class="char-freq">{{ c.frequency }}</span>
           </span>
         </div>
-        <div v-if="doublePool.length" class="sec-title">双字候选</div>
+        <div v-if="doublePool.length" class="sec-title">{{ $t('services.naming.doubleCharacters') }}</div>
         <div v-if="doublePool.length" class="chars">
           <span v-for="c in doublePool" :key="c.char" class="char-item">
             <span class="char">{{ c.char }}</span>
@@ -40,13 +43,14 @@
         </div>
       </el-card>
 
-      <el-card class="block" shadow="never">
-        <template #header><span class="card-title">定制化起名</span></template>
-        <p v-if="entitlements.purchased" class="hint">进入对话，命理顾问结合八字为你定制名字。</p>
-        <p v-else class="hint">解锁 Liki Chat 后可获得定制化起名。</p>
-        <el-button v-if="entitlements.purchased" type="primary" size="large" @click="startChat">定制化起名</el-button>
-        <el-button v-else type="primary" size="large" @click="router.push('/chat')">解锁 Chat</el-button>
-      </el-card>
+      <AppConsultationCard
+        :title="$t('services.naming.consultationTitle')"
+        :description="$t('services.naming.consultationBody')"
+        :locked-description="$t('services.naming.lockedBody')"
+        :purchased="entitlements.purchased"
+        :action-label="$t('services.naming.cta')"
+        @action="startChat"
+      />
     </template>
   </section>
 </template>
@@ -54,14 +58,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineBaziFullChart, engineQimingPick, type BaziYongShen } from '@/api/engine'
 import { baziChartFor } from '@/utils/paipan'
 import { toUserMessage } from '@/utils/errors'
-import AppAlert from '@/components/app/AppAlert.vue'
+import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const { profiles, entitlements, chat } = useServiceView()
 
 const profileId = ref('')
@@ -107,11 +113,15 @@ async function loadPreview() {
     const chart = await baziChartFor(p)
     const full = await engineBaziFullChart(chart)
     const { yong, xi } = yongXi(full.yong_shen)
-    if (!yong) throw new Error('未评估出喜用神，暂无法取字')
+    if (!yong) throw new Error(t('services.naming.noUsefulGod'))
     const qiangruo = full.yong_shen?.fu_yi?.qiangruo ?? ''
-    const yongText = `${qiangruo}${qiangruo ? ' · ' : ''}喜用 ${yong}${xi && xi !== yong ? `/${xi}` : ''}`
+    const yongText = t('services.naming.favorableValue', {
+      strength: qiangruo,
+      primary: yong,
+      secondary: xi && xi !== yong ? `/${xi}` : '',
+    })
     const ji = full.yong_shen?.fu_yi?.ji ?? full.yong_shen?.ge_ju?.ji ?? ''
-    const jiText = ji ? `忌 ${ji}` : ''
+    const jiText = ji ? t('services.naming.unfavorableValue', { value: ji }) : ''
     const wangShuai = qiangruo
     const zodiac = full.zodiac ?? ''
     const wuxingStats = formatWuxingStats(full.element_states)
@@ -125,7 +135,7 @@ async function loadPreview() {
       singlePool: poolChars(single), doublePool: poolChars(double)
     }
   } catch (err) {
-    error.value = toUserMessage(err, '起名预览失败')
+    error.value = toUserMessage(err, t('services.naming.previewFailed'))
   } finally {
     loading.value = false
   }
@@ -134,8 +144,8 @@ async function loadPreview() {
 function startChat() {
   const p = profile.value
   if (!p) return
-  chat.pendingIntent = '我想咨询起名。'
-  void chat.ensureSession(p.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
+  chat.pendingIntent = t('services.naming.intent')
+  void chat.ensureSession(p.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, t('chat.createFailed')) })
 }
 </script>
 

@@ -18,7 +18,9 @@ LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
 export LIKI_WEB_HOST="${LIKI_WEB_HOST:-localhost}"
 export LIKI_ENGINE_HOST="${LIKI_ENGINE_HOST:-localhost}"
 
-export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-}"
+export LIKI_LLM_API_KEY="${LIKI_LLM_API_KEY:-}"
+export LIKI_LLM_MODEL="${LIKI_LLM_MODEL:-}"
+export LIKI_LLM_THINKING="${LIKI_LLM_THINKING:-}"
 export DODO_API_KEY="${DODO_API_KEY:-}"
 export DODO_WEBHOOK_KEY="${DODO_WEBHOOK_KEY:-}"
 export DODO_TEST_MODE="${DODO_TEST_MODE:-true}"
@@ -31,6 +33,7 @@ export LIKI_DATA_DIR="${LIKI_DATA_DIR:-$(pwd)/data}"
 mkdir -p "$LIKI_DATA_DIR"
 export LISTEN_ADDR="${LISTEN_ADDR:-:8081}"
 export LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
+export TRUSTED_PROXY_HOPS="${TRUSTED_PROXY_HOPS:-1}"
 export JWT_SECRET="${JWT_SECRET:-dev-secret-do-not-use-in-production}"
 export DEV_MODE="${DEV_MODE:-true}"
 
@@ -65,7 +68,7 @@ fi
 
 echo "==> Building Liki engine..."
 ENGINE_BIN="/tmp/liki-engine"
-(cd "$ENGINE_DIR" && go build -ldflags="-s -w" -o "$ENGINE_BIN" ./cmd/liki/)
+(cd "$ENGINE_DIR" && go build -ldflags="-s -w" -o "$ENGINE_BIN" ./cmd/liki)
 
 # Web binary (pre-built by 'make build-go')
 WEB_BIN="${WEB_BIN:-bin/liki-web}"
@@ -103,7 +106,7 @@ for i in $(seq 1 30); do
 done
 
 echo "==> Starting Caddy on :8080"
-"$CADDY_BIN" run --config deploy/liki/Caddyfile.local --adapter caddyfile &
+"$CADDY_BIN" run --config "$PROJECT_DIR/dev/Caddyfile.local" --adapter caddyfile &
 CADDY_PID=$!
 
 trap "kill $ENGINE_PID $API_PID $CADDY_PID 2>/dev/null; exit" INT TERM EXIT

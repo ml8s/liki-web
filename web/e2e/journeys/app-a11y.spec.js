@@ -2,6 +2,8 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
+test.use({ locale: 'zh-Hant' })
+
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 
 const user = { id: 'usr_test', email: 'user@example.com', status: 'active', locale: 'zh-Hant' }
@@ -21,7 +23,8 @@ const message = {
 }
 const product = {
   id: 'liki-chat', name: 'Liki Chat', description: 'Unified metaphysics chat.',
-  skills: ['liki'], prices: { CNY: 2990, USD: 2990 }, purchased: true,
+  skills: ['liki'], prices: { CNY: 100, USD: 100 },
+  display_currency: 'CNY', display_amount_minor: 100, purchased: true,
 }
 const order = {
   id: 'order_1', user_id: 'usr_test', email: 'user@example.com', product_id: 'liki-chat',
@@ -36,13 +39,13 @@ const pages = [
   { path: '/app/profiles/p_1', name: 'profile-detail', marker: '.paipan-preview' },
   { path: '/app/synastry', name: 'synastry', marker: '.b-form' },
   { path: '/app/naming', name: 'naming', marker: '.el-select' },
-  { path: '/app/divination', name: 'divination', marker: 'input[placeholder*="项目"]' },
+  { path: '/app/divination', name: 'divination', marker: '.el-input' },
   { path: '/app/fengshui', name: 'fengshui', marker: '.el-select' },
   { path: '/app/huangli', name: 'huangli', marker: '.el-select' },
   { path: '/app/chat', name: 'chat-list', marker: '.skill-grid' },
   { path: '/app/chat/chat_1', name: 'chat-session', marker: '.thread' },
   { path: '/app/orders', name: 'orders', marker: '.orders-table, .order-cards' },
-  { path: '/app/account', name: 'account', marker: '.danger-zone' },
+  { path: '/app/account', name: 'account', marker: '.app-card--danger' },
 ]
 
 test.describe('App accessibility audit', () => {

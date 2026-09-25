@@ -1,13 +1,15 @@
-module liki-web
+module github.com/ml8s/liki-web
 
 go 1.26.6
 
 require (
+	github.com/ag-ui-protocol/ag-ui/sdks/community/go v0.0.0-20260921233645-db790c3d4832
 	github.com/dodopayments/dodopayments-go v1.98.0
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/resend/resend-go/v3 v3.7.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.1
 	golang.org/x/crypto v0.57.0
 	golang.org/x/time v0.15.0

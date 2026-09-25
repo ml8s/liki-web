@@ -6,12 +6,12 @@ import (
 	"net/url"
 	"time"
 
-	"liki-web/internal/hepan"
-	"liki-web/internal/httputil"
-	"liki-web/internal/mingshu"
-	"liki-web/internal/naming"
-	"liki-web/internal/payment"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/hepan"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/mingshu"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 type NamingFlow struct {
@@ -31,6 +31,13 @@ func defaultLocale(locale string) string {
 }
 
 func (f *NamingFlow) Product() string { return string(product.ProductNaming) }
+
+func (f *NamingFlow) DisplayName(locale string) string {
+	if payment.NotificationLocale(locale) == "en" {
+		return "Custom Naming"
+	}
+	return "定制化起名"
+}
 
 func (f *NamingFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
 	order, err := f.store.GetOrder(ctx, businessOrderID)
@@ -79,6 +86,17 @@ func NewMingShuFlow(store *mingshu.Store, generator *mingshu.Generator, notifica
 }
 
 func (f *MingShuFlow) Product() string { return string(product.ProductMingShu) }
+
+func (f *MingShuFlow) DisplayName(locale string) string {
+	switch payment.NotificationLocale(locale) {
+	case "en":
+		return "Lifebook Report"
+	case "zh-Hans":
+		return "生命书报告"
+	default:
+		return "生命書報告"
+	}
+}
 
 func (f *MingShuFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
 	order, err := f.store.GetOrder(ctx, businessOrderID)
@@ -137,6 +155,17 @@ func NewHepanFlow(store *hepan.Store, generator *hepan.Generator, notifications 
 }
 
 func (f *HepanFlow) Product() string { return string(product.ProductHePan) }
+
+func (f *HepanFlow) DisplayName(locale string) string {
+	switch payment.NotificationLocale(locale) {
+	case "en":
+		return "Synastry Report"
+	case "zh-Hans":
+		return "合盘报告"
+	default:
+		return "合盤報告"
+	}
+}
 
 func (f *HepanFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
 	order, err := f.store.GetOrder(ctx, businessOrderID)

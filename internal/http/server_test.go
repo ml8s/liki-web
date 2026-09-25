@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/feedback"
+	"github.com/ml8s/liki-web/internal/feedback"
+	"github.com/ml8s/liki-web/internal/referral"
 
 	_ "modernc.org/sqlite"
 )
@@ -20,7 +21,6 @@ func TestRegisterRoutes_DoesNotPanic(t *testing.T) {
 	defer rl.Stop()
 	deps := ServerDeps{
 		NamingStore: nil,
-		Analytics:   &Analytics{},
 	}
 	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
 
@@ -44,7 +44,6 @@ func TestRegisterRoutes_Feedback(t *testing.T) {
 	}
 	deps := ServerDeps{
 		NamingStore:    nil,
-		Analytics:      &Analytics{},
 		FeedbackStore:  fstore,
 		FeedbackAPIKey: "test-key",
 	}
@@ -77,6 +76,27 @@ func TestRegisterRoutes_Feedback(t *testing.T) {
 	}
 }
 
+func TestRegisterRoutes_Referral(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	rl := NewRateLimiter()
+	defer rl.Stop()
+	handler := referral.NewHandler(nil, func(next http.HandlerFunc) http.HandlerFunc { return next }, false)
+	deps := ServerDeps{
+		ReferralHandler: handler,
+	}
+	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
+
+	// The handler reads auth context and returns unauthorized for a test
+	// request. A 404 would mean the public partner routes were never mounted.
+	r := httptest.NewRequest(http.MethodGet, "/api/scout/application", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, r)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("GET /api/scout/application: status = %d, want 401", w.Code)
+	}
+}
+
 func openFeedbackDB(t *testing.T) *sql.DB {
 	t.Helper()
 	f, err := os.CreateTemp("", "feedback-srv-test-*.db")
@@ -99,7 +119,6 @@ func TestRegisterRoutes_JSONRPC(t *testing.T) {
 	defer rl.Stop()
 	deps := ServerDeps{
 		NamingStore: nil,
-		Analytics:   &Analytics{},
 	}
 	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
 

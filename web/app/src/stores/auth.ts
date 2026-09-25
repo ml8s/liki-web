@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { fetchMe } from '@/api/me'
 import * as authApi from '@/api/auth'
 import type { Me } from '@/api/me'
+import { normalizeUnknownLocale, requestedLocale, savedLocalePreference, setAppLocale } from '@/i18n'
 
 type AuthStatus = 'unknown' | 'authenticated' | 'unauthenticated'
 
@@ -23,6 +24,13 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         this.user = await fetchMe()
+        if (requestedLocale) {
+          // An explicit locale handoff wins for this browser tab.
+        } else {
+          const savedLocale = savedLocalePreference()
+          const userLocale = savedLocale ?? normalizeUnknownLocale(this.user.locale)
+          if (userLocale) await setAppLocale(userLocale)
+        }
         this.status = 'authenticated'
         return this.user
       } catch (error) {

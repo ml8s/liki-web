@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"liki-web/internal/agent"
-	"liki-web/internal/httputil"
-	"liki-web/internal/llm"
-	"liki-web/internal/sse"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/sse"
 )
 
 func HandleChat(chat *agent.Agent, store *Store) http.HandlerFunc {

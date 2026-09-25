@@ -1,24 +1,38 @@
 <template>
-  <div v-if="fatal.crashed" class="fatal" role="alert">
-    <h1>页面出了点问题</h1>
-    <p class="msg">{{ fatal.message || '发生了意外错误。' }}</p>
-    <div class="actions">
-      <el-button @click="retry">返回首页</el-button>
-      <el-button type="primary" @click="reload">重新加载</el-button>
+  <el-provider :locale="elementLocale">
+    <div v-if="fatal.crashed" class="fatal" role="alert">
+      <h1>{{ $t('fatal.title') }}</h1>
+      <p class="msg">{{ fatal.message || $t('fatal.defaultMessage') }}</p>
+      <div class="actions">
+        <el-button @click="retry">{{ $t('fatal.backHome') }}</el-button>
+        <el-button type="primary" @click="reload">{{ $t('fatal.reload') }}</el-button>
+      </div>
     </div>
-  </div>
-  <router-view v-else v-slot="{ Component }">
-    <transition name="page-fade">
-      <component :is="Component" />
-    </transition>
-  </router-view>
+    <router-view v-else v-slot="{ Component }">
+      <transition name="page-fade">
+        <component :is="Component" />
+      </transition>
+    </router-view>
+  </el-provider>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { ElConfigProvider as ElProvider } from 'element-plus'
+import en from 'element-plus/es/locale/lang/en'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import zhTw from 'element-plus/es/locale/lang/zh-tw'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { fatal } from '@/errors'
 
 const router = useRouter()
+const { locale } = useI18n()
+const elementLocale = computed(() => {
+  if (locale.value === 'zh-Hans') return zhCn
+  if (locale.value === 'en') return en
+  return zhTw
+})
 
 function reload() {
   window.location.reload()

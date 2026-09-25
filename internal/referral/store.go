@@ -6,19 +6,16 @@ import (
 	"database/sql"
 	"encoding/base32"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
-	"liki-web/internal/migrate"
-	"liki-web/internal/sqliteutil"
+	"github.com/ml8s/liki-web/internal/migrate"
+	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
 var (
-	ErrNotEligible         = errors.New("referral: active liki-chat entitlement required")
-	ErrAlreadyReferrer     = errors.New("referral: user is already a referrer")
 	ErrInvalidCode         = errors.New("referral: invalid referral code")
 	ErrSelfReferral        = errors.New("referral: self referral is not allowed")
 	ErrUnsupportedProvider = errors.New("referral: payment provider is not supported")
@@ -29,22 +26,15 @@ var (
 // fulfillment succeeds.
 const referralCommissionProduct = "liki-chat"
 
-// PaidAccessChecker keeps this package decoupled from liki entitlement storage.
-type PaidAccessChecker func(ctx context.Context, userID string) (bool, error)
-
 type Store struct {
-	db        *sql.DB
-	nowFunc   func() time.Time
-	idFunc    func() string
-	codeFunc  func() (string, error)
-	paidCheck PaidAccessChecker
-	accounts  *fieldSealer
+	db       *sql.DB
+	nowFunc  func() time.Time
+	idFunc   func() string
+	codeFunc func() (string, error)
+	accounts *fieldSealer
 }
 
-func Open(path string, payoutSecret []byte, paidCheck PaidAccessChecker) (*Store, error) {
-	if paidCheck == nil {
-		return nil, errors.New("referral: paid access checker is required")
-	}
+func Open(path string, payoutSecret []byte) (*Store, error) {
 	accounts, err := newFieldSealer(payoutSecret)
 	if err != nil {
 		return nil, err
@@ -54,7 +44,7 @@ func Open(path string, payoutSecret []byte, paidCheck PaidAccessChecker) (*Store
 		return nil, err
 	}
 	return &Store{
-		db: db, paidCheck: paidCheck, accounts: accounts,
+		db: db, accounts: accounts,
 		nowFunc:  func() time.Time { return time.Now().UTC() },
 		idFunc:   uuid.NewString,
 		codeFunc: newPartnerCode,
@@ -630,9 +620,41 @@ DROP TABLE finance_tasks_erasure_migrate;
 `)
 			return err
 		},
+	}, {
+		ID: "012_application_roles",
+		Up: func(ctx context.Context, tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `
+ALTER TABLE referral_applications RENAME TO referral_applications_roles_migrate;
+DROP INDEX IF EXISTS idx_referral_applications_pending_user;
+DROP INDEX IF EXISTS idx_referral_applications_status;
+CREATE TABLE referral_applications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('kol','scout')),
+    status TEXT NOT NULL CHECK (status IN ('pending','approved','rejected')),
+    note TEXT NOT NULL DEFAULT '',
+    reviewer_id TEXT,
+    decision_reason TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    reviewed_at TEXT
+);
+INSERT INTO referral_applications
+    (id,user_id,type,status,note,reviewer_id,decision_reason,created_at,updated_at,reviewed_at)
+SELECT id,user_id,'scout',status,note,reviewer_id,decision_reason,created_at,updated_at,reviewed_at
+FROM referral_applications_roles_migrate;
+DROP TABLE referral_applications_roles_migrate;
+CREATE UNIQUE INDEX idx_referral_applications_pending_user
+    ON referral_applications(user_id) WHERE status='pending';
+CREATE INDEX idx_referral_applications_status
+    ON referral_applications(status,created_at);
+CREATE INDEX idx_referral_applications_type_status
+    ON referral_applications(type,status,created_at);
+`)
+			return err
+		},
 	}}
 }
-
 func newPartnerCode() (string, error) {
 	raw := make([]byte, 8)
 	if _, err := rand.Read(raw); err != nil {
@@ -677,60 +699,23 @@ func scanReferrer(scan func(dest ...any) error) (Referrer, error) {
 	return item, nil
 }
 
-func (s *Store) RegisterReferrer(ctx context.Context, userID string) (Referrer, error) {
-	userID = strings.TrimSpace(userID)
-	if userID == "" {
-		return Referrer{}, ErrNotEligible
-	}
-	eligible, err := s.paidCheck(ctx, userID)
+// CreateKOLPartner creates the KOL role directly. Production applications use
+// SubmitApplication and admin approval; this helper is available for migrations
+// and trusted seed flows that must bypass an application decision.
+func (s *Store) createKOLPartner(ctx context.Context, userID string) (Referrer, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return Referrer{}, fmt.Errorf("referral: check paid access: %w", err)
-	}
-	if !eligible {
-		return Referrer{}, ErrNotEligible
-	}
-
-	// The recruiter relationship is derived from the referral link that created
-	// this account. Users never type a promotion or recruiter code.
-	var recruiterID string
-	if attribution, attributed, err := s.AttributionForUser(ctx, userID); err != nil {
 		return Referrer{}, err
-	} else if attributed && attribution.ReferrerID != userID {
-		recruiterID = attribution.ReferrerID
 	}
-
-	now := formatTime(s.nowFunc())
-	for range 5 {
-		code, err := s.codeFunc()
-		if err != nil {
-			return Referrer{}, err
-		}
-		_, err = s.db.ExecContext(ctx, `
-INSERT INTO referrers (user_id,code,role,status,recruiter_id,created_at,updated_at)
-VALUES (?,?,'kol','active',?,?,?)
-ON CONFLICT(user_id) DO NOTHING`,
-			userID, code, recruiterID, now, now)
-		if err != nil {
-			return Referrer{}, err
-		}
-		if _, err := s.db.ExecContext(ctx, `
-INSERT INTO partner_roles (user_id,role,status,started_at,created_at,updated_at)
-VALUES (?,'kol','active',?,?,?)
-ON CONFLICT(user_id,role) DO UPDATE SET
-  updated_at=excluded.updated_at`, userID, now, now, now); err != nil {
-			return Referrer{}, err
-		}
-		item, err := s.ReferrerByUser(ctx, userID)
-		if err == nil {
-			return item, nil
-		}
-		if !errors.Is(err, sql.ErrNoRows) {
-			return Referrer{}, err
-		}
+	defer func() { _ = tx.Rollback() }()
+	if err := ensurePartnerTx(ctx, tx, s, strings.TrimSpace(userID), RoleKOL); err != nil {
+		return Referrer{}, err
 	}
-	return Referrer{}, errors.New("referral: could not allocate unique code")
+	if err := tx.Commit(); err != nil {
+		return Referrer{}, err
+	}
+	return s.ReferrerByUser(ctx, strings.TrimSpace(userID))
 }
-
 func (s *Store) ReferrerByUser(ctx context.Context, userID string) (Referrer, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT user_id,code,role,status,recruiter_id,created_at,updated_at

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.09.21 —— Liki Chat runtime hardening
+
+- Renamed the Go service identity to `liki-web` and moved deployment ownership to `liki-deploy`.
+- Added the Element Plus authenticated workspace, three-locale app i18n, scenario landing handoff, and unified Liki Chat checkout.
+- Added KOL/Scout role applications, independent workspaces, encrypted payout accounts, commission reconciliation, and refund clawback.
+- Integrated the optional `liki-agents` AG-UI runner while keeping auth, entitlement, persistence, and profile writes in `liki-web`.
+- Added lazy-loaded app locales, stable API error-code localization, locale-aware formatting, and an operator feedback decoder.
+- Hardened trusted client IP resolution, public beacon limits, payment route boundaries, locale propagation, agent timeout, readiness checks, and public accessibility.
+
 ## 2026.09.19.3 —— Alipay A2M 沙箱联调通过
 
 - 修复 OpenAPI 同步响应 key：`alipay.aipay.agent.payment.verify` → `alipay_aipay_agent_payment_verify_response`（点→下划线）。

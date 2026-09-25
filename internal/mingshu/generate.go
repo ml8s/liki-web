@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"liki-web/internal/agent"
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/llm"
 )
 
 // Generator runs the dual-agent mingshu generation loop.

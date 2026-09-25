@@ -92,13 +92,21 @@ func NewOrderID() string {
 }
 
 // DetectCurrency derives billing currency from trusted edge/geo headers.
-// Absence of geo information defaults to CNY, matching the primary market.
+// Cloudflare's country is authoritative; the fallback is set by the trusted
+// reverse proxy. Absence of geo information defaults to CNY.
 func DetectCurrency(cfCountry, geoCountry string) Currency {
-	if cfCountry == "CN" || geoCountry == "CN" {
+	switch {
+	case cfCountry != "":
+		if cfCountry == "CN" {
+			return CNY
+		}
+		return USD
+	case geoCountry != "":
+		if geoCountry == "CN" {
+			return CNY
+		}
+		return USD
+	default:
 		return CNY
 	}
-	if cfCountry != "" || geoCountry != "" {
-		return USD
-	}
-	return CNY
 }

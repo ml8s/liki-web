@@ -10,7 +10,7 @@ import (
 
 func TestAdminApplicationDecisionRequiresReason(t *testing.T) {
 	store := newAdminStore(t)
-	handler := NewAdminHandler(store)
+	handler := NewAdminHandler(store, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/referral/applications/app/decision", strings.NewReader(`{"approve":true}`))
 	request.SetPathValue("id", "app")
 	recorder := httptest.NewRecorder()
@@ -20,9 +20,32 @@ func TestAdminApplicationDecisionRequiresReason(t *testing.T) {
 	}
 }
 
+func TestAdminApplicationDecisionNotifiesAfterCommit(t *testing.T) {
+	ctx := context.Background()
+	store := newAdminStore(t)
+	app, err := store.SubmitApplication(ctx, RoleScout, "applicant", "channel partner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	called := false
+	handler := NewAdminHandler(store, func(_ context.Context, item PartnerApplication, approved bool, reason string) {
+		called = true
+		if item.ID != app.ID || item.Type != RoleScout || !approved || reason != "qualified" {
+			t.Fatalf("notification = %+v %v %q", item, approved, reason)
+		}
+	})
+	request := httptest.NewRequest(http.MethodPost, "/decision", strings.NewReader(`{"approve":true,"reason":"qualified"}`))
+	request.SetPathValue("id", app.ID)
+	recorder := httptest.NewRecorder()
+	handler.HandleApplicationDecision()(recorder, request)
+	if recorder.Code != http.StatusOK || !called {
+		t.Fatalf("status=%d called=%t body=%s", recorder.Code, called, recorder.Body.String())
+	}
+}
+
 func TestAdminPartnerStatusRequiresReason(t *testing.T) {
 	store := newAdminStore(t)
-	handler := NewAdminHandler(store)
+	handler := NewAdminHandler(store, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/referral/partners/kol/freeze", strings.NewReader(`{}`))
 	request.SetPathValue("userId", "kol")
 	recorder := httptest.NewRecorder()
@@ -35,11 +58,11 @@ func TestAdminPartnerStatusRequiresReason(t *testing.T) {
 func TestAdminPartnerStatusFreezeAndUnfreeze(t *testing.T) {
 	ctx := context.Background()
 	store := newAdminStore(t)
-	kol, err := store.RegisterReferrer(ctx, "kol")
+	kol, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := NewAdminHandler(store)
+	handler := NewAdminHandler(store, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/referral/partners/kol/freeze", strings.NewReader(`{"reason":"manual review"}`))
 	request.SetPathValue("userId", kol.UserID)
 	recorder := httptest.NewRecorder()
@@ -60,17 +83,5 @@ func TestAdminPartnerStatusFreezeAndUnfreeze(t *testing.T) {
 	handler.HandlePartnerUnfreeze()(recorder, unfreeze)
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("unfreeze status = %d, body = %s", recorder.Code, recorder.Body.String())
-	}
-}
-
-func TestPromotePartnerRequiresReason(t *testing.T) {
-	store := newAdminStore(t)
-	handler := NewAdminHandler(store)
-	request := httptest.NewRequest(http.MethodPost, "/api/admin/referral/partners/kol/promote", strings.NewReader(`{}`))
-	request.SetPathValue("userId", "kol")
-	recorder := httptest.NewRecorder()
-	handler.HandlePromotePartner()(recorder, request)
-	if recorder.Code != http.StatusUnprocessableEntity {
-		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
 }

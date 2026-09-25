@@ -7,8 +7,10 @@ if ! command -v caddy >/dev/null 2>&1; then
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 FAILED=0
-for f in deploy/liki/Caddyfile deploy/liki/Caddyfile.local; do
+for f in "$PROJECT_DIR/dev/Caddyfile.local"; do
   if ! caddy fmt "$f" --diff >/dev/null 2>&1; then
     echo "❌ $f: format check failed"
     caddy fmt "$f" --diff 2>&1 || true

@@ -1,5 +1,6 @@
 // 免费排盘预览：前端 TS 直连引擎 RPC（只读消费，不落库）。
 // 引擎 RPC 契约归 liki/engine，方法名/入参以引擎现状为准，绝不修改。
+import { ApiError } from './http'
 
 let rpcId = 0
 
@@ -29,20 +30,30 @@ export const RPC_METHODS = {
 } as const
 
 export async function engineRpc<T = unknown>(method: string, params: unknown): Promise<T> {
-  const response = await fetch('/jsonrpc', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method, params, id: (rpcId = (rpcId + 1) % 1_000_000) }),
-  })
-  if (!response.ok) {
-    throw new Error(`引擎服务不可用（HTTP ${response.status}）`)
+  let response: Response
+  try {
+    response = await fetch('/jsonrpc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', method, params, id: (rpcId = (rpcId + 1) % 1_000_000) }),
+    })
+  } catch {
+    throw new ApiError(0, 'network_error', 'Network request failed')
   }
-  const envelope = await response.json() as RpcEnvelope<RpcResult<T>>
+  if (!response.ok) {
+    throw new ApiError(response.status, 'engine_unavailable', `Engine HTTP ${response.status}`)
+  }
+  let envelope: RpcEnvelope<RpcResult<T>>
+  try {
+    envelope = await response.json() as RpcEnvelope<RpcResult<T>>
+  } catch {
+    throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
+  }
   if (envelope.error) {
-    throw new Error(`排盘失败：${envelope.error.message}`)
+    throw new ApiError(response.status, 'engine_rpc_failed', envelope.error.message)
   }
   if (!envelope.result || !('data' in envelope.result)) {
-    throw new Error('排盘响应缺少 data')
+    throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
   }
   return envelope.result.data
 }

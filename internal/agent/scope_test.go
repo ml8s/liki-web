@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/llm"
 )
 
 type fakeScopedRegistry struct {
@@ -89,4 +89,23 @@ func mkdirAllAndWrite(root, relative, content string) error {
 		return err
 	}
 	return os.WriteFile(path, []byte(content), 0o600)
+}
+
+func TestUnifiedLikiScopeAllowsEngineDomainTools(t *testing.T) {
+	scope := SkillToolScopes["liki"]
+	base := &fakeScopedRegistry{}
+	scoped := NewScopedToolRegistry(base, scope)
+
+	for _, name := range []string{
+		"bazi.chart", "ziwei.fullchart", "liuyao.snapshot", "qimen.ask",
+		"huangli.days", "tianwen.time", "bazhai.layout",
+	} {
+		if _, err := scoped.Execute(context.Background(), name, json.RawMessage(`{}`)); err != nil {
+			t.Fatalf("engine tool %q rejected: %v", name, err)
+		}
+	}
+
+	if _, err := scoped.Execute(context.Background(), "full_paipan", json.RawMessage(`{}`)); err == nil {
+		t.Fatal("legacy full_paipan should no longer be registered/allowed")
+	}
 }

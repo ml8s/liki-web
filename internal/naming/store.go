@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 type Store struct {

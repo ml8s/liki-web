@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/llm"
 )
 
 // LLMClient is the subset of *llm.Client used by the agent. Mock in tests.

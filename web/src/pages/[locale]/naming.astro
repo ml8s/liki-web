@@ -1,9 +1,6 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import PaymentRow from '../../components/PaymentRow.astro';
-import I18nData from '../../components/I18nData.astro';
+import ScenarioLanding from '../../components/ScenarioLanding.astro';
 import { t, locales } from '../../i18n.js';
-import { v } from '../../version.js';
 
 export function getStaticPaths() {
   return locales.map(locale => ({ params: { locale } }));
@@ -11,75 +8,49 @@ export function getStaticPaths() {
 
 const { locale } = Astro.params;
 const ns = 'naming.example';
+const benefits = ['birth', 'elements', 'meaning', 'review'].map(key => `scenario.naming.benefit.${key}`);
+const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
+const questions = ['q1', 'q2', 'q3'].map(key => `scenario.naming.${key}`);
+const faqs = ['paid', 'data', 'accuracy'].map(key => ({
+  questionKey: `scenario.faq.${key}.q`,
+  answerKey: `scenario.faq.${key}.a`,
+}));
 ---
 
-<BaseLayout
+<ScenarioLanding
   locale={locale}
   page="naming"
-  heading={t(locale, 'site.brand')}
-  type="brand"
-  twitterCard="summary_large_image"
+  scenario="naming"
+  titleKey="scenario.naming.title"
+  subtitleKey="scenario.naming.subtitle"
+  benefitsTitleKey="scenario.naming.benefitsTitle"
+  benefitKeys={benefits}
+  exampleTitleKey="scenario.naming.exampleTitle"
+  stepsTitleKey="scenario.stepsTitle"
+  stepKeys={steps}
+  questionsTitleKey="scenario.naming.questionsTitle"
+  questionKeys={questions}
+  faqTitleKey="scenario.faqTitle"
+  faqs={faqs}
 >
-  <Fragment slot="head">
-    <meta name="keywords" content="起名,取名,宝宝起名,八字起名,改名,名字评测,起名">
-    <script>
-(function() {
-  var lang = document.querySelector('html').getAttribute('lang') || 'zh-Hans';
-  var names = {}; var descs = {};
-  names.zhHans = 'Liki 起名';
-  names.zhHant = 'Liki 起名';
-  names.en = 'Liki Naming';
-  descs.zhHans = '根据出生信息匹配五行，筛选三才五格吉数';
-  descs.zhHant = '根據出生資訊匹配五行，篩選三才五格吉數';
-  descs.en = 'Names tailored to your birth profile';
-  var name = names[lang] || names.zhHans;
-  var desc = descs[lang] || descs.zhHans;
-  var sd = document.createElement('script');
-  sd.type = 'application/ld+json';
-  sd.textContent = JSON.stringify({"@context":"https://schema.org","@type":"Product","name":name,"description":desc,"image":"https://liki.hk/img/og-image.png","brand":{"@type":"Brand","name":"Liki"},"offers":{"@type":"Offer","price":"29.90","priceCurrency":"USD","availability":"https://schema.org/InStock"}});
-  document.head.appendChild(sd);
-})();
-</script>
-    <I18nData locale={locale} />
-    <script defer src={`/js/api.js?v=${v}`}></script>
-    <script defer src={`/js/payment-poller.js?v=${v}`}></script>
-    <script defer src={`/js/payment.js?v=${v}`}></script>
-    <script defer src={`/js/purchase.js?v=${v}`}></script>
-  </Fragment>
-
-  <section class="hero-brand">
-    <h1 class="text-center text-4xl md:text-5xl font-serif font-bold text-stone-800 mb-2 tracking-tight">{t(locale, 'naming.hero.title')}</h1>
-    <p class="text-center text-base font-serif text-stone-600 mb-3">{t(locale, 'naming.hero.subtitle')}</p>
-  </section>
-
-  <section class="py-8 md:py-12 overflow-hidden">
-    <div class="name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')}>
-      {Array.from({length:36}, (_,i) => {
-        const n = i + 1;
-        return (
-          <div class="name-preview-card" role="listitem">
-            <div class="name-preview-title">{t(locale, `${ns}.name${n}`)}</div>
-            <div class="name-preview-gender">{t(locale, `${ns}.gender${n}`)}</div>
-            <div class="name-preview-quote">{t(locale, `${ns}.quote${n}`)}</div>
-            <div class="text-xs text-stone-600 mb-1">{t(locale, `${ns}.source${n}`)}</div>
-            <div class="name-preview-detail">
-              <span>{t(locale, `${ns}.tag${n}a`)}</span><span>{t(locale, `${ns}.tag${n}b`)}</span><span>{t(locale, `${ns}.tag${n}c`)}</span><span>{t(locale, `${ns}.tag${n}d`)}</span>
-            </div>
-            <p class="text-xs text-stone-600 mt-2">{t(locale, `${ns}.footer${n}`)}</p>
+  <div class="name-scroll scenario-name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')}>
+    {Array.from({length: 36}, (_, i) => {
+      const n = i + 1;
+      return (
+        <div class="name-preview-card" role="listitem">
+          <div class="name-preview-title">{t(locale, `${ns}.name${n}`)}</div>
+          <div class="name-preview-gender">{t(locale, `${ns}.gender${n}`)}</div>
+          <div class="name-preview-quote">{t(locale, `${ns}.quote${n}`)}</div>
+          <div class="text-xs text-stone-600 mb-1">{t(locale, `${ns}.source${n}`)}</div>
+          <div class="name-preview-detail">
+            <span>{t(locale, `${ns}.tag${n}a`)}</span>
+            <span>{t(locale, `${ns}.tag${n}b`)}</span>
+            <span>{t(locale, `${ns}.tag${n}c`)}</span>
+            <span>{t(locale, `${ns}.tag${n}d`)}</span>
           </div>
-        );
-      })}
-    </div>
-  </section>
-
-  <section class="cta-section py-8 md:py-12">
-    <p class="text-center font-serif text-lg text-stone-700 mb-2">{t(locale, 'site.slogan')}</p>
-    <h2>{t(locale, 'naming.cta.title')}</h2>
-    <p>{t(locale, 'naming.cta.body')}</p>
-    <form id="purchase-form" class="max-w-sm mx-auto mt-6" onsubmit="return false;">
-      <label for="purchase-email" class="sr-only">{t(locale, 'naming.cta.emailLabel')}</label>
-      <PaymentRow locale={locale} emailId="purchase-email" errId="purchase-error" btnId="purchase-btn" emailKey="naming.cta.emailPlaceholder" emailLabelKey="naming.cta.emailLabel" btnKey="naming.cta.button" product="naming" />
-      <a href={`/${locale}/naming/chat`} class="block w-full py-2.5 border border-stone-300 hover:border-stone-400 text-stone-800 font-medium rounded-lg transition-colors text-sm text-center">{t(locale, 'naming.cta.returningUser')}</a>
-    </form>
-  </section>
-</BaseLayout>
+          <p class="text-xs text-stone-600 mt-2">{t(locale, `${ns}.footer${n}`)}</p>
+        </div>
+      );
+    })}
+  </div>
+</ScenarioLanding>

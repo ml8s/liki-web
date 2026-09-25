@@ -44,8 +44,10 @@ func TestClientIP_XForwardedFor(t *testing.T) {
 	t.Parallel()
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("X-Forwarded-For", "1.2.3.4, 5.6.7.8")
-	if got := clientIP(r); got != "1.2.3.4" {
-		t.Errorf("clientIP = %q, want 1.2.3.4", got)
+	// The rightmost entry is appended by the single trusted edge proxy; the
+	// leftmost entry is attacker-controlled and must not be selected.
+	if got := clientIP(r); got != "5.6.7.8" {
+		t.Errorf("clientIP = %q, want 5.6.7.8", got)
 	}
 }
 
@@ -64,50 +66,6 @@ func TestClientIP_RemoteAddrNoPort(t *testing.T) {
 	r.RemoteAddr = "10.0.0.1"
 	if got := clientIP(r); got != "10.0.0.1" {
 		t.Errorf("clientIP = %q, want 10.0.0.1", got)
-	}
-}
-
-func TestIsPrivateIP_Loopback(t *testing.T) {
-	t.Parallel()
-	if !isPrivateIP("127.0.0.1") {
-		t.Error("127.0.0.1 should be private")
-	}
-	if !isPrivateIP("::1") {
-		t.Error("::1 should be private")
-	}
-}
-
-func TestIsPrivateIP_Private(t *testing.T) {
-	t.Parallel()
-	if !isPrivateIP("192.168.1.1") {
-		t.Error("192.168.1.1 should be private")
-	}
-	if !isPrivateIP("10.0.0.1") {
-		t.Error("10.0.0.1 should be private")
-	}
-	if !isPrivateIP("172.16.0.1") {
-		t.Error("172.16.0.1 should be private")
-	}
-}
-
-func TestIsPrivateIP_Public(t *testing.T) {
-	t.Parallel()
-	if isPrivateIP("8.8.8.8") {
-		t.Error("8.8.8.8 should not be private")
-	}
-}
-
-func TestIsPrivateIP_Invalid(t *testing.T) {
-	t.Parallel()
-	if !isPrivateIP("not-an-ip") {
-		t.Error("invalid IP should be treated as private")
-	}
-}
-
-func TestIsPrivateIP_Unspecified(t *testing.T) {
-	t.Parallel()
-	if !isPrivateIP("0.0.0.0") {
-		t.Error("0.0.0.0 should be private")
 	}
 }
 

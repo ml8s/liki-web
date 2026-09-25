@@ -1,22 +1,28 @@
 package referral
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"liki-web/internal/auth"
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 type AdminHandler struct {
-	store *Store
+	store  *Store
+	notify DecisionNotifier
 }
 
-func NewAdminHandler(store *Store) *AdminHandler {
-	return &AdminHandler{store: store}
+// DecisionNotifier is injected at the composition root so the bounded referral
+// domain does not depend on identity storage or an email SDK.
+type DecisionNotifier func(ctx context.Context, application PartnerApplication, approved bool, reason string)
+
+func NewAdminHandler(store *Store, notify DecisionNotifier) *AdminHandler {
+	return &AdminHandler{store: store, notify: notify}
 }
 
 func (h *AdminHandler) HandleListPartners() http.HandlerFunc {
@@ -44,6 +50,7 @@ func (h *AdminHandler) HandleListApplications() http.HandlerFunc {
 		items, err := h.store.ListApplications(
 			r.Context(),
 			ApplicationStatus(r.URL.Query().Get("status")),
+			PartnerRole(r.URL.Query().Get("role")),
 			limit,
 		)
 		if err != nil {
@@ -95,13 +102,23 @@ func (h *AdminHandler) HandleApplicationDecision() http.HandlerFunc {
 				httputil.RespondError(w, http.StatusNotFound, "application_not_found", "申请不存在")
 			case errors.Is(err, ErrApplicationNotPending):
 				httputil.RespondError(w, http.StatusConflict, "application_not_pending", "申请已被处理")
-			case errors.Is(err, ErrNotEligible):
-				httputil.RespondError(w, http.StatusConflict, "partner_inactive", "推广者已冻结，不能通过")
+			case errors.Is(err, ErrAlreadyScout):
+				httputil.RespondError(w, http.StatusConflict, "already_scout", "该账号已是 Scout")
+			case errors.Is(err, ErrRoleConflict):
+				httputil.RespondError(w, http.StatusConflict, "role_conflict", "KOL 和 Scout 是不同角色，不能互相转换")
+			case errors.Is(err, ErrAlreadyKOL):
+				httputil.RespondError(w, http.StatusConflict, "already_kol", "该账号已是 KOL")
 			default:
 				slog.Error("admin referral: decide application", "id", id, "err", err)
 				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "处理申请失败")
 			}
 			return
+		}
+		application, err := h.store.ApplicationByID(r.Context(), id)
+		if err == nil && h.notify != nil {
+			// Notification is advisory and must not make a committed decision
+			// appear to have failed.
+			h.notify(r.Context(), application, req.Approve, req.Reason)
 		}
 		httputil.RespondJSON(w, http.StatusOK, map[string]string{"result": "ok"})
 	}
@@ -223,38 +240,6 @@ func (h *AdminHandler) HandlePayoutAction() http.HandlerFunc {
 			default:
 				slog.Error("admin referral: payout action", "id", id, "action", action, "err", err)
 				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "处理提现失败")
-			}
-			return
-		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]string{"result": "ok"})
-	}
-}
-
-type promotePartnerRequest struct {
-	Reason string `json:"reason"`
-}
-
-func (r promotePartnerRequest) Validate() error {
-	if strings.TrimSpace(r.Reason) == "" {
-		return errors.New("reason is required")
-	}
-	return nil
-}
-
-func (h *AdminHandler) HandlePromotePartner() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		userID := r.PathValue("userId")
-		req, ok := httputil.DecodeAndValidate[promotePartnerRequest](w, r)
-		if !ok {
-			return
-		}
-		if err := h.store.PromoteToScout(r.Context(), userID, actorFromRequest(r), req.Reason); err != nil {
-			switch {
-			case errors.Is(err, ErrPartnerNotFound):
-				httputil.RespondError(w, http.StatusNotFound, "partner_not_found", "合作伙伴不存在")
-			default:
-				slog.Error("admin referral: promote partner", "user_id", userID, "err", err)
-				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "升级合作伙伴失败")
 			}
 			return
 		}

@@ -1,0 +1,32 @@
+{
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": {
+      "siblings_only": true
+    },
+    "MD026": {
+      "punctuation": ".,;:!。，；：！"
+    },
+    "MD033": {
+      "allowed_elements": ["h1", "p", "br", "a", "img"]
+    },
+    "MD041": false
+  },
+  "globs": [
+    "README.md",
+    "ARCHITECTURE.md",
+    "DOMAIN_MODEL.md",
+    "API.md",
+    "FRONTEND.md",
+    "LEGACY_PRODUCTS.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "docs/**/*.md"
+  ],
+  "ignorePatterns": [
+    "node_modules",
+    "web/node_modules",
+    "web/app/node_modules"
+  ]
+}

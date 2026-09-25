@@ -244,6 +244,40 @@ function addKnownCompoundKeys(used) {
     for (let i=1;i<=5;i++) used.add(`mingshu.example.${section}.p${i}`);
   }
   used.add('mingshu.cta.title');
+  for (const key of [
+    'brand', 'cta.primary', 'cta.secondary', 'cta.bottom', 'stepsTitle', 'faqTitle', 'demoNote',
+    'steps.s1', 'steps.s2', 'steps.s3', 'steps.s4',
+  ]) used.add(`scenario.${key}`);
+  for (const faq of ['free', 'paid', 'data', 'accuracy']) {
+    used.add(`scenario.faq.${faq}.q`);
+    used.add(`scenario.faq.${faq}.a`);
+  }
+  for (const scenario of ['naming', 'mingshu', 'hepan']) {
+    for (const key of ['title', 'subtitle', 'benefitsTitle', 'exampleTitle', 'questionsTitle']) {
+      used.add(`scenario.${scenario}.${key}`);
+    }
+    for (let n = 1; n <= 3; n++) used.add(`scenario.${scenario}.q${n}`);
+  }
+  for (const benefit of ['birth', 'elements', 'meaning', 'review']) {
+    used.add(`scenario.naming.benefit.${benefit}.title`);
+    used.add(`scenario.naming.benefit.${benefit}.body`);
+  }
+  for (const benefit of ['personality', 'career', 'relationship', 'timing']) {
+    used.add(`scenario.mingshu.benefit.${benefit}.title`);
+    used.add(`scenario.mingshu.benefit.${benefit}.body`);
+  }
+  for (const section of ['personality', 'career', 'love', 'health', 'fortune', 'milestones']) {
+    used.add(`scenario.mingshu.static.${section}.title`);
+    used.add(`scenario.mingshu.static.${section}.body`);
+  }
+  for (const benefit of ['chemistry', 'friction', 'communication', 'timing']) {
+    used.add(`scenario.hepan.benefit.${benefit}.title`);
+    used.add(`scenario.hepan.benefit.${benefit}.body`);
+  }
+  for (const section of ['overview', 'wuxing', 'dayMaster', 'branches', 'rating']) {
+    used.add(`scenario.hepan.static.${section}.title`);
+    used.add(`scenario.hepan.static.${section}.body`);
+  }
   for (const f of ['name','gender','quote','source','footer']) {
     for (let n=1;n<=36;n++) used.add(`naming.example.${f}${n}`);
   }

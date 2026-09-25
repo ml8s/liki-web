@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/auth"
 )
 
 func newStore(t *testing.T) *Store {

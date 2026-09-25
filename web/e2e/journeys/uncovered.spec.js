@@ -4,7 +4,6 @@
 
 import { test, expect } from '../fixtures.js';
 import { I18N_KEY_RE } from '../helpers.js';
-import { mockLocation } from '../mocks.js';
 
 test.describe('404 page', () => {
   test('renders with heading text', async ({ page }) => {
@@ -122,4 +121,3 @@ test.describe('Report pages — mingshu', () => {
     });
   }
 });
-

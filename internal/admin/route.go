@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/http"
 
-	"liki-web/internal/adminauth"
-	"liki-web/internal/auth"
-	"liki-web/internal/httputil"
-	"liki-web/internal/naming"
-	"liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/adminauth"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/referral"
 )
 
 type IdentityFunc func(r *http.Request) (auth.User, bool)
@@ -54,6 +54,7 @@ func RegisterRoutes(
 	referralStore *referral.Store,
 	authorizer *adminauth.Store,
 	identity IdentityFunc,
+	partnerDecisionNotifier referral.DecisionNotifier,
 ) {
 	h := NewHandler(svc, onPaid)
 	guard := capabilityGuard(authorizer, identity)
@@ -78,11 +79,10 @@ func RegisterRoutes(
 	mux.HandleFunc("GET /api/admin/verification-codes", guard(adminauth.CapabilityAdminSuper)(h.HandleListCodes()))
 
 	if referralStore != nil {
-		referralAdmin := referral.NewAdminHandler(referralStore)
+		referralAdmin := referral.NewAdminHandler(referralStore, partnerDecisionNotifier)
 		mux.HandleFunc("GET /api/admin/referral/partners", guard(adminauth.CapabilityPartnerRead)(referralAdmin.HandleListPartners()))
 		mux.HandleFunc("GET /api/admin/referral/applications", guard(adminauth.CapabilityPartnerRead)(referralAdmin.HandleListApplications()))
 		mux.HandleFunc("POST /api/admin/referral/applications/{id}/decision", guard(adminauth.CapabilityPartnerApprove)(referralAdmin.HandleApplicationDecision()))
-		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/promote", guard(adminauth.CapabilityPartnerApprove)(referralAdmin.HandlePromotePartner()))
 		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/freeze", guard(adminauth.CapabilityPartnerFreeze)(referralAdmin.HandlePartnerFreeze()))
 		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/unfreeze", guard(adminauth.CapabilityPartnerUnfreeze)(referralAdmin.HandlePartnerUnfreeze()))
 		mux.HandleFunc("GET /api/admin/referral/payouts", guard(adminauth.CapabilityPayoutRead)(referralAdmin.HandleListPayouts()))

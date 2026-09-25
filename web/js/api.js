@@ -87,61 +87,8 @@ function showToast(msg, type = 'error') {
   return el;
 }
 
-async function createOrderAndCheckout(apiPath, body, product, _extra) {
-  const resp = await fetch(apiPath, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(data.error?.message || 'Request failed');
-  const businessOrderID = data.data?.order_id;
-  if (!businessOrderID) throw new Error('Order creation failed');
-
-  // The server owns provider routing; client geo/currency is display-only.
-  const intent = await apiPost('/payments/intents', {
-    product,
-    business_order_id: businessOrderID,
-    locale: body.lang || (i18next.language || 'zh-Hant'),
-  });
-  const checkout = await apiPost('/payments/intents/' + encodeURIComponent(intent.id) + '/checkout', {});
-  if (checkout.qr_url) {
-    window.Liki.startIntentCheckout(intent.id, checkout, checkout.success_url);
-    return checkout;
-  }
-  if (!checkout.checkout_url) throw new Error(i18next.t('error.noCheckoutUrl'));
-  location.href = checkout.checkout_url;
-  return checkout;
-}
-
-(function() {
-  var PRICE = {
-    naming:   { CNY: '¥9.90', USD: '$9.90' },
-    hepan:    { CNY: '¥9.90', USD: '$9.90' },
-    mingshu: { CNY: '¥9.90', USD: '$9.90' }
-  };
-  window.Liki = window.Liki || {};
-  window.Liki.currency = 'CNY';
-
-  function update() {
-    var cur = window.Liki.currency;
-    document.querySelectorAll('[data-price]').forEach(function(el) {
-      var p = PRICE[el.getAttribute('data-price')];
-      if (p) el.textContent = p[cur];
-    });
-  }
-
-  update();
-  fetch('/api/location').then(function(r) { return r.json(); }).then(function(d) {
-    if (d.data && d.data.currency === 'USD') {
-      window.Liki.currency = 'USD';
-      update();
-    }
-  }).catch(function() {});
-})();
-
 const t = (key) => i18next.t(key);
 window.Liki = window.Liki || {};
-Object.assign(window.Liki, { apiPost, createOrderAndCheckout, escapeHTML, renderMD, t,
+Object.assign(window.Liki, { apiPost, escapeHTML, renderMD, t,
   showErr: function(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
 });

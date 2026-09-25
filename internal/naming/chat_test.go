@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"liki-web/internal/agent"
-	"liki-web/internal/httputil"
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/llm"
 
 	"github.com/google/uuid"
 )

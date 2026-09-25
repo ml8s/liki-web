@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/auth"
 )
 
 func TestAdminManagementLifecycle(t *testing.T) {

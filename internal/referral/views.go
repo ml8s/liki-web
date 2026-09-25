@@ -42,11 +42,11 @@ ORDER BY currency`, userID)
 
 func (s *Store) ScoutRecruits(ctx context.Context, scoutID string) ([]ScoutRecruit, error) {
 	rows, err := s.db.QueryContext(ctx, `
-SELECT r.user_id,r.code,r.created_at,c.currency,
-       COALESCE(SUM(e.amount_minor-e.refunded_minor),0),COUNT(c.id)
+SELECT r.user_id,r.code,r.created_at,COALESCE(c.currency,''),
+       COALESCE(SUM(e.amount_minor-e.refunded_minor),0),COUNT(DISTINCT c.id)
 FROM referrers r
-JOIN referral_commissions c ON c.referrer_id=r.user_id
-JOIN referral_commission_entries e
+LEFT JOIN referral_commissions c ON c.referrer_id=r.user_id
+LEFT JOIN referral_commission_entries e
   ON e.commission_id=c.id AND e.beneficiary_role='scout'
 WHERE r.recruiter_id=? AND r.role='kol'
 GROUP BY r.user_id,r.code,r.created_at,c.currency
@@ -70,6 +70,9 @@ ORDER BY r.created_at DESC,c.currency`, scoutID)
 			byUser[userID] = item
 			order = append(order, userID)
 		}
+		if currency == "" {
+			continue
+		}
 		item.CommissionBalances = append(item.CommissionBalances, CurrencyAmount{Currency: currency, AmountMinor: amount})
 		item.OrderCount += orderCount
 	}
@@ -81,6 +84,16 @@ ORDER BY r.created_at DESC,c.currency`, scoutID)
 		items = append(items, *byUser[userID])
 	}
 	return items, nil
+}
+
+func (s *Store) countScoutLeads(ctx context.Context, scoutID string) (int64, error) {
+	var count int64
+	err := s.db.QueryRowContext(ctx, `
+SELECT COUNT(1)
+FROM referral_attributions a
+LEFT JOIN referrers r ON r.user_id=a.user_id
+WHERE a.referrer_id=? AND (r.user_id IS NULL OR r.role<>'kol' OR r.status<>'active')`, scoutID).Scan(&count)
+	return count, err
 }
 
 func (s *Store) ScoutOverview(ctx context.Context, userID string) (ScoutOverview, error) {
@@ -119,12 +132,16 @@ ORDER BY c.currency`, partner.UserID)
 	if err := rows.Err(); err != nil {
 		return ScoutOverview{}, err
 	}
+	leadCount, err := s.countScoutLeads(ctx, partner.UserID)
+	if err != nil {
+		return ScoutOverview{}, err
+	}
 	var orderCount int64
 	for _, recruit := range recruits {
 		orderCount += recruit.OrderCount
 	}
 	return ScoutOverview{
-		Partner: partner.Role, Recruits: recruits, RecruitCount: int64(len(recruits)),
+		Partner: partner, LeadCount: leadCount, Recruits: recruits, RecruitCount: int64(len(recruits)),
 		OrderCount: orderCount, Balances: balances,
 	}, nil
 }

@@ -1,52 +1,52 @@
 <template>
   <section class="service-view">
-    <AppPageHeader title="问卦" subtitle="输入一个问题摇卦，先看卦象；深入断卦解读进对话。" />
+    <AppPageHeader :title="$t('services.divination.pageTitle')" :subtitle="$t('services.divination.subtitle')" />
 
-    <AppAlert v-if="error" :title="error" type="error" />
+    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
 
-    <el-card class="block" shadow="never">
-      <template #header><span class="card-title">摇卦</span></template>
+    <el-card class="app-card" shadow="never">
+      <template #header><h2 class="app-card__title">{{ $t('services.divination.cast') }}</h2></template>
       <el-form label-position="top" @submit.prevent="cast">
-        <el-form-item label="你想问的一件事">
-          <el-input v-model="question" maxlength="200" placeholder="如：这个项目能不能成 / 何时有结果" show-word-limit />
+        <el-form-item :label="$t('services.divination.questionLabel')">
+          <el-input v-model="question" maxlength="200" :placeholder="$t('services.divination.questionPlaceholder')" show-word-limit />
         </el-form-item>
-        <el-button type="primary" :loading="loading" :disabled="!question.trim()" @click="cast">摇卦</el-button>
+        <el-button type="primary" native-type="submit" :loading="loading" :disabled="!question.trim()">{{ $t('services.divination.cast') }}</el-button>
       </el-form>
     </el-card>
 
     <template v-if="snapshot">
-      <el-card class="block pan" shadow="never">
-        <template #header><span class="card-title">卦象</span></template>
+      <el-card class="app-card app-card--highlight" shadow="never">
+        <template #header><h2 class="app-card__title">{{ $t('services.divination.hexagram') }}</h2></template>
         <div class="gua-row">
           <div class="gua-name font-serif">{{ board.name ?? '—' }}</div>
           <div class="gua-sub">
-            <span v-if="board.ben_gua">本卦 {{ board.ben_gua }}</span>
-            <span v-if="board.bian_gua"> · 变卦 {{ board.bian_gua }}</span>
+            <span v-if="board.ben_gua">{{ $t('services.divination.original') }} {{ board.ben_gua }}</span>
+            <span v-if="board.bian_gua"> · {{ $t('services.divination.changed') }} {{ board.bian_gua }}</span>
           </div>
         </div>
         <div class="gua-info">
-          <span v-if="board.gong">{{ board.gong }}宫</span>
+          <span v-if="board.gong">{{ $t('services.divination.palace', { palace: board.gong }) }}</span>
           <span v-if="board.gong_wuxing"> · {{ board.gong_wuxing }}</span>
-          <span v-if="board.ri_chen_gan"> · 日辰 {{ board.ri_chen_gan }}{{ board.ri_chen_zhi }}</span>
-          <span v-if="board.yue_jian_zhi"> · 月建 {{ board.yue_jian_gan }}{{ board.yue_jian_zhi }}</span>
-          <span v-if="xunKongText"> · 旬空 {{ xunKongText }}</span>
+          <span v-if="board.ri_chen_gan"> · {{ $t('services.divination.dayPillar') }} {{ board.ri_chen_gan }}{{ board.ri_chen_zhi }}</span>
+          <span v-if="board.yue_jian_zhi"> · {{ $t('services.divination.monthBranch') }} {{ board.yue_jian_gan }}{{ board.yue_jian_zhi }}</span>
+          <span v-if="xunKongText"> · {{ $t('profiles.chart.void') }} {{ xunKongText }}</span>
         </div>
 
         <div v-if="lines.length" class="lines-sec">
-          <div class="sec-title">六爻</div>
+          <div class="sec-title">{{ $t('services.divination.lines') }}</div>
           <div class="lines-table-wrap">
             <div class="lines-table">
               <div class="line-row line-header">
-                <span class="lc">爻位</span>
-                <span class="lc">六亲</span>
-                <span class="lc">地支</span>
-                <span class="lc">五行</span>
-                <span class="lc">天干</span>
-                <span class="lc">旺衰</span>
-                <span class="lc">日辰</span>
+                <span class="lc">{{ $t('services.divination.position') }}</span>
+                <span class="lc">{{ $t('services.divination.relation') }}</span>
+                <span class="lc">{{ $t('services.divination.branch') }}</span>
+                <span class="lc">{{ $t('services.divination.element') }}</span>
+                <span class="lc">{{ $t('services.divination.stem') }}</span>
+                <span class="lc">{{ $t('services.divination.strength') }}</span>
+                <span class="lc">{{ $t('services.divination.dayRelation') }}</span>
               </div>
               <div v-for="(line, idx) in lines" :key="idx" :class="['line-row', { dong: isDong(idx) }]">
-                <span class="lc">{{ 6 - idx }}爻</span>
+                <span class="lc">{{ $t('services.divination.lineNumber', { number: 6 - idx }) }}</span>
                 <span class="lc">{{ line.liu_qin ?? '—' }}</span>
                 <span class="lc">{{ line.di_zhi ?? '—' }}</span>
                 <span class="lc">{{ line.xing ?? '—' }}</span>
@@ -59,10 +59,10 @@
         </div>
 
         <div v-if="bianLines.length" class="lines-sec">
-          <div class="sec-title">变爻</div>
+          <div class="sec-title">{{ $t('services.divination.changingLines') }}</div>
           <div class="lines-table">
             <div v-for="(line, idx) in bianLines" :key="idx" class="line-row">
-              <span class="lc">{{ 6 - idx }}爻</span>
+              <span class="lc">{{ $t('services.divination.lineNumber', { number: 6 - idx }) }}</span>
               <span class="lc">{{ line.liu_qin ?? '—' }}</span>
               <span class="lc">{{ line.di_zhi ?? '—' }}</span>
               <span class="lc">{{ line.tian_gan ?? '—' }}</span>
@@ -71,18 +71,18 @@
         </div>
 
         <div v-if="focusText" class="rel-sec">
-          <div class="sec-title">用神</div>
+          <div class="sec-title">{{ $t('services.divination.usefulGod') }}</div>
           <div class="rel-text">{{ focusText }}</div>
           <div v-if="yongShenDetail" class="rel-sub">{{ yongShenDetail }}</div>
         </div>
 
         <div v-if="guaCi" class="rel-sec">
-          <div class="sec-title">卦辞</div>
+          <div class="sec-title">{{ $t('services.divination.hexagramText') }}</div>
           <div class="rel-text">{{ guaCi }}</div>
         </div>
 
         <div v-if="patterns.length" class="rel-sec">
-          <div class="sec-title">格局</div>
+          <div class="sec-title">{{ $t('services.divination.patterns') }}</div>
           <div v-for="p in patterns" :key="p.name" class="pattern-item">
             <span class="pattern-name">{{ p.name }}</span>
             <span class="pattern-desc">{{ p.description }}</span>
@@ -90,25 +90,25 @@
         </div>
 
         <div v-if="timingText" class="rel-sec">
-          <div class="sec-title">应期</div>
+          <div class="sec-title">{{ $t('services.divination.timing') }}</div>
           <div class="rel-text">{{ timingText }}</div>
         </div>
 
         <div v-if="snapshot.safety_advisory" class="safety-box">
-          <AppAlert :title="snapshot.safety_advisory" type="warning" />
+          <el-alert :title="snapshot.safety_advisory" type="warning" :closable="false" show-icon/>
         </div>
       </el-card>
 
-      <el-card class="block" shadow="never">
-        <template #header><span class="card-title">深入解读</span></template>
-        <p v-if="entitlements.purchased" class="hint">进入对话，由命理顾问结合卦象为你深入断卦。</p>
-        <p v-else class="hint">解锁 Liki Chat 后可获得深入断卦解读。</p>
-        <p v-if="!profiles.list.length" class="hint">问卦解读需要一个档案，先<a href="/app/profiles/new">建立档案</a>。</p>
-        <el-button v-if="entitlements.purchased && profiles.list.length" type="primary" size="large" @click="startChat">深入解读</el-button>
-        <el-button v-else type="primary" size="large" @click="router.push(profiles.list.length ? '/chat' : '/profiles/new')">
-          {{ entitlements.purchased ? (profiles.list.length ? '' : '建立档案') : '解锁 Chat' }}
-        </el-button>
-      </el-card>
+      <AppConsultationCard
+        :title="$t('services.divination.consultationTitle')"
+        :description="$t('services.divination.consultationBody')"
+        :locked-description="$t('services.divination.lockedBody')"
+        :purchased="entitlements.purchased && profiles.list.length > 0"
+        :action-label="$t('services.divination.consultationTitle')"
+        :locked-action-label="profiles.list.length ? $t('commerce.activateNow') : $t('profiles.create')"
+        :to="profiles.list.length ? '/chat' : '/profiles/new'"
+        @action="startChat"
+      />
     </template>
   </section>
 </template>
@@ -117,12 +117,14 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineLiuyaoQigua, engineLiuyaoChart, engineSolarTime, type LiuyaoChartResult } from '@/api/engine'
-import AppAlert from '@/components/app/AppAlert.vue'
+import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const { profiles, entitlements, chat } = useServiceView()
 
 const question = ref('')
@@ -151,9 +153,9 @@ const focusText = computed(() => {
   const f = snapshot.value?.focus
   if (!f) return ''
   const parts: string[] = []
-  if (f.yong_shen) parts.push(`用神 ${f.yong_shen}`)
-  if (f.world) parts.push(`世 ${f.world}`)
-  if (f.other) parts.push(`应 ${f.other}`)
+  if (f.yong_shen) parts.push(t('services.divination.usefulGodValue', { value: f.yong_shen }))
+  if (f.world) parts.push(t('services.divination.worldValue', { value: f.world }))
+  if (f.other) parts.push(t('services.divination.otherValue', { value: f.other }))
   return parts.join(' · ')
 })
 
@@ -162,8 +164,8 @@ const yongShenDetail = computed(() => {
   if (!ys) return ''
   const parts: string[] = []
   if (ys.name) parts.push(ys.name)
-  if (ys.position) parts.push(`第${ys.position}爻`)
-  return parts.length ? `用神为${parts.join('，')}` : ''
+  if (ys.position) parts.push(t('services.divination.positionValue', { value: ys.position }))
+  return parts.length ? t('services.divination.usefulGodDetail', { value: parts.join(t('common.listSeparator')) }) : ''
 })
 
 const guaCi = computed(() => {
@@ -191,7 +193,7 @@ async function cast() {
     const t = await engineSolarTime(solarTime, 120)
     snapshot.value = await engineLiuyaoChart(t.solar, casting)
   } catch (err) {
-    error.value = toUserMessage(err, '摇卦失败')
+    error.value = toUserMessage(err, t('services.divination.failed'))
   } finally {
     loading.value = false
   }
@@ -200,8 +202,8 @@ async function cast() {
 function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
-  chat.pendingIntent = `我想问卦。问题：${question.value.trim()}`
-  void chat.ensureSession(profile.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
+  chat.pendingIntent = t('services.divination.intent', { question: question.value.trim() })
+  void chat.ensureSession(profile.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, t('chat.createFailed')) })
 }
 </script>
 
@@ -217,12 +219,12 @@ function startChat() {
 .line-row + .line-row { border-top: 1px solid var(--liki-line); }
 .line-header { background: var(--liki-surface); font-weight: 600; }
 .line-row .lc { flex: 1; padding: 6px 4px; text-align: center; }
-.line-row.dong { background: var(--liki-gold-tint); }
+.line-row.dong { background: var(--liki-primary-tint); }
 .rel-sec { margin-top: 14px; }
 .rel-text { font-size: 14px; color: var(--liki-ink); }
 .rel-sub { font-size: 13px; color: var(--liki-text-2); margin-top: 4px; }
 .pattern-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
-.pattern-name { font-weight: 600; color: var(--liki-gold); }
+.pattern-name { font-weight: 600; color: var(--liki-primary); }
 .pattern-desc { font-size: 12px; color: var(--liki-text-3); }
 .safety-box { margin-top: 14px; }
 </style>

@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"liki-web/internal/httputil"
-	"liki-web/internal/metrics"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/metrics"
 )
 
 type PaymentStatus string
@@ -90,6 +90,8 @@ type Gateway interface {
 
 type ProductFlow interface {
 	Product() string
+	// DisplayName is the human-facing product name used in payment receipts.
+	DisplayName(locale string) string
 	PrepareCheckout(ctx context.Context, businessOrderID string) (BusinessOrder, error)
 	OnPaid(ctx context.Context, intent PaymentIntent) error
 	SuccessRedirect(intent PaymentIntent) string
@@ -619,11 +621,13 @@ func (r *Runtime) ProcessPendingNotifications(ctx context.Context, limit int) er
 	}
 	for _, message := range messages {
 		if err := r.sender.Send(ctx, EmailMessage{To: message.To, Subject: message.Subject, Body: message.Body}); err != nil {
+			metrics.Default.Inc("payment_notification_total", map[string]string{"result": "failed"})
 			if markErr := r.notifications.MarkFailed(ctx, message.ID, err.Error()); markErr != nil {
 				slog.Error("payment: mark notification failed", "notification_id", message.ID, "err", markErr)
 			}
 			continue
 		}
+		metrics.Default.Inc("payment_notification_total", map[string]string{"result": "sent"})
 		if err := r.notifications.MarkSent(ctx, message.ID); err != nil {
 			slog.Error("payment: mark notification sent", "notification_id", message.ID, "err", err)
 		}
@@ -636,10 +640,10 @@ func (r *Runtime) queuePaidNotifications(ctx context.Context, intent PaymentInte
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrUnknownProduct, intent.Product)
 	}
-	customer := EmailMessage{
-		To:      intent.Email,
-		Subject: "订单确认 — liki.hk",
-		Body:    `<p>付款已完成，正在为你开通服务。</p><p>开通后可从下面的链接继续：</p><p><a href="` + flow.SuccessRedirect(intent) + `">继续使用服务</a></p>`,
+	notice := newPaidOrderNotice(intent, flow, r.baseURL)
+	customer, err := buildCustomerReceipt(notice)
+	if err != nil {
+		return fmt.Errorf("payment: build customer receipt: %w", err)
 	}
 	if err := r.notifications.EnqueueOnce(ctx, intent.ID, NotificationCustomerReceipt, customer); err != nil {
 		return err
@@ -647,10 +651,9 @@ func (r *Runtime) queuePaidNotifications(ctx context.Context, intent PaymentInte
 	if r.adminEmail == "" {
 		return nil
 	}
-	admin := EmailMessage{
-		To:      r.adminEmail,
-		Subject: "新订单 — " + string(intent.Product),
-		Body:    `<p>新订单已支付。</p><p>Intent: ` + intent.ID + `</p><p>金额: ` + fmt.Sprintf("%d", intent.AmountMinor) + ` ` + intent.Currency + `</p>`,
+	admin, err := buildAdminNewOrder(notice, r.adminEmail)
+	if err != nil {
+		return fmt.Errorf("payment: build admin order notification: %w", err)
 	}
 	return r.notifications.EnqueueOnce(ctx, intent.ID, NotificationAdminNewOrder, admin)
 }

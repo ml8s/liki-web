@@ -22,7 +22,7 @@
   --color-fire-raw: #b85450;
   --color-fire-hover-raw: #8c3b39;
   --color-gold-raw: var(--brand-gold);
-  --color-gold-light-raw: var(--brand-gold-hover);
+  --color-gold-light-raw: var(--brand-gold-on-dark);
   --color-error-raw: var(--color-error);
   --color-error-soft-raw: #fef6f2;
   --color-success-raw: var(--color-success);
@@ -167,8 +167,8 @@ a { color: inherit; text-decoration: none; }
   border-radius: .5rem;
   font-size: .75rem; line-height: 1;
   background: transparent;
-  border: 2px solid var(--color-gold);
-  color: var(--color-gold);
+  border: 2px solid var(--color-gold-light);
+  color: var(--color-gold-light);
   cursor: pointer;
   transition: background .15s, border-color .15s, color .15s;
 }
@@ -185,12 +185,13 @@ a { color: inherit; text-decoration: none; }
 }
 
 .header-dark h1 { color: var(--color-gold-light); }
+.header-dark .text-xl { color: #f7f6f4; }
 
 .header-dark .back-link {
   color: #f7f6f4;
 }
 .header-dark .back-link:hover {
-  color: var(--color-gold-hover);
+  color: var(--color-gold-light);
 }
 .header-dark .back-link:focus-visible {
   outline: 2px solid var(--color-fire);
@@ -303,7 +304,7 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 .font-semibold { font-weight: 600; }
 .font-bold { font-weight: 700; }
 .font-brand { font-family: var(--font-serif); font-weight: 700; letter-spacing: 0; }
-.brand-link { color: var(--color-gold); text-decoration: none; }
+.brand-link { color: var(--color-gold-light); text-decoration: none; }
 .brand-slogan { display: none; font-size: .875rem; font-weight: 500; color: #c0c5cc; }
 @media (min-width: 768px) { .brand-slogan { display: inline; } }
 .dev-link { font-size: .8125rem; color: #f7f6f4; text-decoration: none; margin-left: 4px; }
@@ -404,19 +405,6 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 
 /* ── Tables ── */
 .striped tbody tr:nth-child(even) { background: var(--color-stone-50-raw); }
-
-
-/* ── Cards (unified) ── */
-.card {
-  background: var(--color-paper);
-  border: 1px solid var(--color-border);
-  border-radius: .75rem;
-  transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out);
-}
-@media (hover: hover) and (pointer: fine) {
-  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-}
-.card:active { transform: scale(.98); }
 
 
 /* ── Forms ── */
@@ -1161,33 +1149,33 @@ th {
 .space-y-6 > * + * { margin-top: 1.5rem; }
 
 /* ── C 端着陆页（redesign M2）── */
-.btn-purple { display:inline-block; background:var(--brand-primary); color:#fff; padding:.75rem 1.75rem; border-radius:.5rem; font-weight:600; transition:background .15s ease; }
+.btn-purple { display:inline-flex; align-items:center; justify-content:center; min-height:44px; background:var(--brand-primary); color:#fff; padding:.75rem 1.75rem; border-radius:999px; font-weight:600; text-decoration:none; transition:background .15s ease, transform .15s ease; }
 .btn-purple:hover { background:var(--brand-primary-hover); }
-.btn-ghost { display:inline-block; border:1px solid var(--color-border); color:var(--brand-text-muted); padding:.75rem 1.75rem; border-radius:.5rem; transition:border-color .15s ease; }
+.btn-ghost { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border:1px solid var(--color-border); color:var(--brand-text-muted); padding:.75rem 1.75rem; border-radius:999px; transition:border-color .15s ease, color .15s ease; }
 .btn-ghost:hover { border-color:var(--brand-primary); color:var(--brand-primary); }
 .landing-hero { text-align:center; padding:72px 24px 48px; }
-.landing-h1 { font-family:var(--font-serif); font-size:clamp(2rem,6vw,3.25rem); font-weight:700; letter-spacing:.02em; }
+.landing-h1 { font-size:clamp(2rem,6vw,3.25rem); font-weight:650; letter-spacing:-.04em; }
 .landing-sub { color:var(--brand-text-muted); margin-top:14px; font-size:1.125rem; }
 .landing-actions { display:flex; gap:14px; justify-content:center; margin-top:32px; flex-wrap:wrap; }
 .landing-paipan { background:var(--brand-primary); color:#fff; text-align:center; padding:56px 24px; }
 .landing-paipan h2 { font-family:var(--font-serif); font-size:1.75rem; margin-bottom:10px; }
 .landing-paipan p { opacity:.9; margin-bottom:22px; }
-.landing-paipan .btn-purple { background:#fff; color:var(--brand-primary); }
+.landing-paipan .btn-purple { background:#fff; color:var(--brand-primary); transform:none; }
 .landing-paipan .btn-purple:hover { background:var(--brand-primary-soft); }
 .landing-services,
 .landing-steps,
 .landing-cta { max-width:1200px; margin:0 auto; padding:64px 24px; }
 .landing-services h2, .landing-steps h2 { text-align:center; font-family:var(--font-serif); margin-bottom:32px; }
-.landing-trust { background:#232733; color:#fff; text-align:center; padding:56px 24px; }
-.landing-trust h2 { color:var(--color-gold-light); margin-bottom:28px; }
+.landing-trust { background:var(--brand-ink); color:#fff; text-align:center; padding:56px 24px; }
+.landing-trust h2 { color:#fff; margin-bottom:28px; }
 .service-grid,
 .trust-grid,
 .steps-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
-.card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:12px; padding:24px; }
+.card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-card); padding:24px; box-shadow:var(--shadow-card); }
 .card h3 { font-size:1.25rem; margin-bottom:8px; }
 .card p { color:var(--brand-text-muted); font-size:.9375rem; }
 .trust-item { padding:20px; }
-.trust-item strong { color:var(--color-gold-light); font-size:1.0625rem; line-height:1.5; }
+.trust-item strong { color:var(--brand-primary-soft); font-size:1.0625rem; line-height:1.5; }
 .step-n { display:inline-grid; place-items:center; width:32px; height:32px; border-radius:50%; background:var(--brand-primary); color:#fff; font-weight:700; margin-bottom:10px; }
 .step p { color:var(--brand-text-muted); }
 .landing-cta { text-align:center; }
@@ -1204,3 +1192,75 @@ th {
 .paipan-hint { opacity:.8; font-size:.8125rem; margin-top:14px; }
 .card-link { display:inline-block; margin-top:10px; color:var(--brand-primary); font-size:.875rem; text-decoration:none; }
 .card-link:hover { text-decoration:underline; }
+
+/* ── Liki Chat 场景引流页 ── */
+.scenario-hero { text-align:center; }
+.landing-kicker { color:var(--brand-primary); font-size:.8125rem; font-weight:600; letter-spacing:.12em; margin-bottom:10px; }
+.scenario-section { text-align:start; }
+.scenario-example {
+  padding:48px 20px;
+  background:var(--color-surface);
+  border-block:1px solid var(--color-border);
+}
+.scenario-example h2 { margin-bottom:20px; text-align:center; }
+.scenario-questions {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;
+}
+.scenario-questions blockquote {
+  margin:0;
+  padding:16px;
+  border-left:3px solid var(--brand-primary);
+  border-radius:0 10px 10px 0;
+  background:var(--color-surface);
+  color:var(--brand-text-muted);
+}
+.scenario-faq {
+  max-width:760px;
+  margin:0 auto;
+  padding:48px 20px;
+}
+.scenario-faq details { padding:14px 0; border-bottom:1px solid var(--color-border); }
+.scenario-faq summary { cursor:pointer; color:var(--color-text); font-weight:600; }
+.scenario-faq p { margin:10px 0 0; color:var(--brand-text-muted); line-height:1.7; }
+.scenario-report-frame {
+  max-width:960px;
+  max-height:640px;
+  margin:0 auto;
+  overflow-y:auto;
+  padding:16px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-card);
+  background:var(--color-surface);
+}
+.scenario-static-index {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;
+  max-width:960px;
+  margin:0 auto 20px;
+}
+.scenario-static-index details {
+  padding:14px;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-card);
+  background:var(--color-surface);
+}
+.scenario-static-index summary { cursor:pointer; font-weight:650; }
+.scenario-static-index p {
+  margin:10px 0 0;
+  color:var(--brand-text-muted);
+  line-height:1.7;
+}
+.scenario-demo-note {
+  margin-bottom:10px;
+  color:var(--brand-text-muted);
+  font-size:.75rem;
+  font-style:italic;
+  text-align:center;
+}
+.scenario-name-scroll {
+  max-width:1200px;
+  margin:0 auto;
+}

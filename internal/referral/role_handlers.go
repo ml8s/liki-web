@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"liki-web/internal/auth"
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 func (h *Handler) requireKOL(next http.HandlerFunc) http.HandlerFunc {
@@ -55,17 +55,6 @@ func (h *Handler) requireScout(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (h *Handler) HandleKOLStatus(w http.ResponseWriter, r *http.Request) {
-	user, _ := auth.UserFromContext(r.Context())
-	status, err := h.store.KOLStatus(r.Context(), user.ID)
-	if err != nil {
-		slog.Error("referral: kol status", "user_id", user.ID, "err", err)
-		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
-		return
-	}
-	httputil.RespondJSON(w, http.StatusOK, status)
-}
-
 func (h *Handler) HandleKOLSession(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
 	partner, err := h.store.KOLByID(r.Context(), user.ID)
@@ -103,7 +92,7 @@ func (h *Handler) HandleKOLCommissions(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) HandleKOLPayouts(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
-	if _, err := h.store.RequireKOL(r.Context(), user.ID); err != nil {
+	if _, err := h.store.PartnerForPayout(r.Context(), user.ID, RoleKOL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			httputil.RespondError(w, http.StatusForbidden, "role_required", "当前账号未开通该合作权限")
 			return
@@ -112,7 +101,7 @@ func (h *Handler) HandleKOLPayouts(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
-	items, err := h.store.ListPayoutsForUser(r.Context(), user.ID, 100)
+	items, err := h.store.ListPayoutsForRole(r.Context(), user.ID, RoleKOL, 100)
 	if err != nil {
 		slog.Error("referral: kol payout list", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
@@ -121,9 +110,13 @@ func (h *Handler) HandleKOLPayouts(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{"payouts": items})
 }
 
+func (h *Handler) HandleKOLSettlement(w http.ResponseWriter, r *http.Request) {
+	h.settlement(w, r, RoleKOL)
+}
+
 func (h *Handler) HandleCreateKOLPayout(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
-	if _, err := h.store.RequireKOL(r.Context(), user.ID); err != nil {
+	if _, err := h.store.PartnerForPayout(r.Context(), user.ID, RoleKOL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			httputil.RespondError(w, http.StatusForbidden, "role_required", "当前账号未开通该合作权限")
 			return
@@ -177,7 +170,7 @@ func (h *Handler) HandleScoutCommissions(w http.ResponseWriter, r *http.Request)
 
 func (h *Handler) HandleScoutPayouts(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
-	if _, err := h.store.RequireScout(r.Context(), user.ID); err != nil {
+	if _, err := h.store.PartnerForPayout(r.Context(), user.ID, RoleScout); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			httputil.RespondError(w, http.StatusNotFound, "not_found", "页面不存在")
 			return
@@ -186,7 +179,7 @@ func (h *Handler) HandleScoutPayouts(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
-	items, err := h.store.ListPayoutsForUser(r.Context(), user.ID, 100)
+	items, err := h.store.ListPayoutsForRole(r.Context(), user.ID, RoleScout, 100)
 	if err != nil {
 		slog.Error("referral: scout payout list", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
@@ -195,9 +188,32 @@ func (h *Handler) HandleScoutPayouts(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{"payouts": items})
 }
 
+func (h *Handler) HandleScoutSettlement(w http.ResponseWriter, r *http.Request) {
+	h.settlement(w, r, RoleScout)
+}
+
+func (h *Handler) settlement(w http.ResponseWriter, r *http.Request, role PartnerRole) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.RespondAppError(w, httputil.ErrUnauthorized)
+		return
+	}
+	item, err := h.store.SettlementForRole(r.Context(), user.ID, role)
+	if errors.Is(err, sql.ErrNoRows) {
+		httputil.RespondError(w, http.StatusForbidden, "role_required", "当前账号没有该角色结算权限")
+		return
+	}
+	if err != nil {
+		slog.Error("referral: settlement", "user_id", user.ID, "role", role, "err", err)
+		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		return
+	}
+	httputil.RespondJSON(w, http.StatusOK, item)
+}
+
 func (h *Handler) HandleCreateScoutPayout(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
-	if _, err := h.store.RequireScout(r.Context(), user.ID); err != nil {
+	if _, err := h.store.PartnerForPayout(r.Context(), user.ID, RoleScout); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			httputil.RespondError(w, http.StatusNotFound, "not_found", "页面不存在")
 			return
@@ -207,6 +223,54 @@ func (h *Handler) HandleCreateScoutPayout(w http.ResponseWriter, r *http.Request
 		return
 	}
 	h.createPayout(w, r, user, RoleScout)
+}
+
+func (h *Handler) createPayout(w http.ResponseWriter, r *http.Request, user auth.User, role PartnerRole) {
+	req, ok := httputil.DecodeAndValidate[payoutRequest](w, r)
+	if !ok {
+		return
+	}
+	payout, err := h.store.CreatePayoutForRole(r.Context(), user.ID, role, req.Method, req.Account)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidPayoutRequest):
+			httputil.RespondError(w, http.StatusUnprocessableEntity, "validation_error", "提现方式或账号无效")
+		case errors.Is(err, ErrNoWithdrawableCommission):
+			httputil.RespondError(w, http.StatusConflict, "no_withdrawable_commission", "没有可提现佣金")
+		case errors.Is(err, ErrMixedPayoutCurrency):
+			httputil.RespondError(w, http.StatusConflict, "mixed_currency", "待提现佣金包含多种货币，请联系客服")
+		case errors.Is(err, ErrPayoutMinimumNotMet):
+			httputil.RespondError(w, http.StatusUnprocessableEntity, "payout_minimum_not_met", "未达到最低提现金额")
+		default:
+			slog.Error("referral: create payout", "user_id", user.ID, "role", role, "err", err)
+			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建提现失败")
+		}
+		return
+	}
+	payout.Account = maskPayoutAccount(payout.Account)
+	httputil.RespondJSON(w, http.StatusCreated, map[string]any{"payout": payout})
+}
+
+type payoutRequest struct {
+	Method  PayoutMethod `json:"method"`
+	Account string       `json:"account"`
+}
+
+func (r payoutRequest) Validate() error {
+	if strings.TrimSpace(r.Account) == "" {
+		return errors.New("account is required")
+	}
+	return nil
+}
+
+func maskPayoutAccount(account string) string {
+	if at := strings.Index(account, "@"); at > 0 {
+		return account[:1] + "***" + account[at:]
+	}
+	if len(account) > 7 {
+		return account[:2] + "****" + account[len(account)-4:]
+	}
+	return "****"
 }
 
 func parseIntQuery(r *http.Request, name string, fallback int) (int, error) {

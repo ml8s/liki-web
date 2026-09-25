@@ -11,15 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"liki-web/internal/auth"
-	"liki-web/internal/hepan"
-	"liki-web/internal/liki"
-	"liki-web/internal/mingshu"
-	"liki-web/internal/naming"
-	"liki-web/internal/payment"
-	"liki-web/internal/profile"
-	"liki-web/internal/referral"
-	"liki-web/internal/sqliteutil"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/hepan"
+	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/mingshu"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/profile"
+	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/sqliteutil"
 
 	_ "modernc.org/sqlite"
 )
@@ -70,7 +70,7 @@ func TestHandleErasure(t *testing.T) {
 	if err := referralDB.Close(); err != nil {
 		t.Fatal(err)
 	}
-	referralStore, err := referral.Open(referralDBPath, []byte("test-referral-payout-secret"), func(context.Context, string) (bool, error) { return true, nil })
+	referralStore, err := referral.Open(referralDBPath, []byte("test-referral-payout-secret"))
 	if err != nil {
 		t.Fatal(err)
 	}

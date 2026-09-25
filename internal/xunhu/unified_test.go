@@ -3,12 +3,12 @@ package xunhu
 import (
 	"context"
 	"encoding/json"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 func encodeUnifiedResponse(w http.ResponseWriter, value map[string]any) {

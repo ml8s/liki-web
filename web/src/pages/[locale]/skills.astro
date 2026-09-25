@@ -8,6 +8,44 @@ export function getStaticPaths() {
 }
 
 const { locale } = Astro.params;
+const skillKeywords = [...new Set(['liki.hk', 'skill', 'agent', ...keywords[locale]])];
+const skillSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Liki',
+  alternateName: t(locale, 'skills.hero.title'),
+  url: 'https://liki.hk',
+  applicationCategory: 'UtilityApplication',
+  description: t(locale, 'skills.metaDesc'),
+  keywords: skillKeywords.join(', '),
+  offers: [
+    { '@type': 'Offer', name: t(locale, 'scenario.naming.title'), description: t(locale, 'scenario.naming.subtitle') },
+    { '@type': 'Offer', name: t(locale, 'scenario.mingshu.title'), description: t(locale, 'scenario.mingshu.subtitle') },
+    { '@type': 'Offer', name: t(locale, 'scenario.hepan.title'), description: t(locale, 'scenario.hepan.subtitle') },
+  ],
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'hi@liki.hk',
+    contactType: t(locale, 'skills.schema.contactType'),
+  },
+  knowsAbout: skillKeywords,
+  sameAs: [
+    'https://www.wikidata.org/wiki/Q140329242',
+    'https://github.com/ml8s/liki',
+    'https://x.com/liki_hk',
+    'https://t.me/liki_naming',
+    'https://zhihu.com/people/liki.hk',
+    'https://www.xiaohongshu.com/user/profile/liki_hk',
+  ],
+};
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Liki',
+  url: 'https://liki.hk',
+  inLanguage: locale,
+  about: t(locale, 'skills.metaDesc'),
+};
 ---
 
 <BaseLayout
@@ -18,48 +56,9 @@ const { locale } = Astro.params;
   twitterCard="summary_large_image"
 >
   <Fragment slot="head">
-    <meta name="keywords" content="liki.hk,命理,八字,紫微,起名,风水,奇门遁甲,六爻,黄历,skill,agent">
-    <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Liki",
-  "alternateName": "Liki 命理",
-  "url": "https://liki.hk",
-  "applicationCategory": "UtilityApplication",
-  "description": "命理 Skill — 八字、紫微、起名、问卦、风水",
-  "keywords": "命理,八字,紫微,起名,风水,奇门遁甲,六爻,黄历",
-  "offers": [
-    { "@type": "Offer", "name": "Liki 起名", "description": "按出生信息五行配字，对话选名" },
-    { "@type": "Offer", "name": "Liki 命书", "description": "八字·紫微综合命理报告" },
-    { "@type": "Offer", "name": "Liki 合盘", "description": "双人八字·紫微合盘报告" }
-  ],
-  "contactPoint": { "@type": "ContactPoint", "email": "hi@liki.hk", "contactType": "客服" },
-  "knowsAbout": [
-    {"@type": "Thing", "name": "BaZi", "alternateName": "八字", "description": "Four Pillars of Destiny"},
-    {"@type": "Thing", "name": "ZiWei", "alternateName": "紫微斗数", "description": "Purple Star Astrology"},
-    {"@type": "Thing", "name": "QiMen", "alternateName": "奇门遁甲", "description": "Mysterious Door Escaping Technique"},
-    {"@type": "Thing", "name": "LiuYao", "alternateName": "六爻", "description": "Six Lines Divination"},
-    {"@type": "Thing", "name": "FengShui", "alternateName": "风水", "description": "Chinese Geomancy"},
-    {"@type": "Thing", "name": "HuangLi", "alternateName": "黄历", "description": "Chinese Almanac"}
-  ],
-  "sameAs": [
-    "https://www.wikidata.org/wiki/Q140329242",
-    "https://github.com/ml8s/liki",
-    "https://x.com/liki_hk",
-    "https://t.me/liki_naming",
-    "https://zhihu.com/people/liki.hk",
-    "https://www.xiaohongshu.com/user/profile/liki_hk"
-  ]
-}</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Liki",
-  "url": "https://liki.hk",
-  "about": "Liki — 专业命理 Skill，八字、紫微、起名、问卦、风水"
-}</script>
+    <meta name="keywords" content={skillKeywords.join(', ')}>
+    <script type="application/ld+json" set:html={JSON.stringify(skillSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
   </Fragment>
 
   <section class="hero-brand mt-8">
@@ -72,14 +71,14 @@ const { locale } = Astro.params;
     <p class="text-xs text-stone-400 mb-2">{t(locale, 'skills.install.method1')}</p>
     <div class="install-block">
       <pre class="install-cmd">npx skills add ml8s/liki</pre>
-      <button class="copy-btn" data-cmd="npx skills add ml8s/liki" aria-label="复制命令">
+      <button class="copy-btn" data-cmd="npx skills add ml8s/liki" aria-label={t(locale, 'skills.install.copy')}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button>
     </div>
     <p class="text-xs text-stone-400 mb-2">{t(locale, 'skills.install.method2')}</p>
     <div class="install-block">
       <pre class="install-cmd">npx skills add https://liki.hk/</pre>
-      <button class="copy-btn" data-cmd="npx skills add https://liki.hk/" aria-label="复制命令">
+      <button class="copy-btn" data-cmd="npx skills add https://liki.hk/" aria-label={t(locale, 'skills.install.copy')}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button>
     </div>

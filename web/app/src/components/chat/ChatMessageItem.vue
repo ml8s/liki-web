@@ -3,24 +3,27 @@
     <SystemProfileCard :content="message.content" />
   </article>
   <article v-else :class="['message', message.role]" :data-role="message.role">
-    <div class="role">{{ message.role === 'user' ? '我' : '顾问' }}</div>
+    <div class="role">{{ $t(message.role === 'user' ? 'chat.roles.user' : 'chat.roles.assistant') }}</div>
     <details
       v-if="message.role === 'assistant' && message.thinking"
       class="thinking"
       :open="!message.content"
     >
-      <summary>推理过程</summary>
+      <summary>{{ $t('chat.thinking') }}</summary>
       <div class="thinking-body">{{ message.thinking }}</div>
     </details>
-    <div class="content">{{ message.content }}</div>
+    <div v-if="message.role === 'assistant'" class="content">
+      <AppMarkdown :source="message.content" />
+    </div>
+    <div v-else class="content">{{ message.content }}</div>
     <button
       v-if="message.role === 'assistant' && message.content"
       class="copy"
       type="button"
-      :aria-label="copied ? '已复制' : '复制回答'"
+      :aria-label="$t(copied ? 'chat.copied' : 'chat.copyAnswer')"
       @click="handleCopy"
     >
-      {{ copied ? '✓ 已复制' : '复制' }}
+      {{ copied ? `✓ ${$t('chat.copied')}` : $t('common.copy') }}
     </button>
   </article>
 </template>
@@ -30,6 +33,7 @@ import { ref, onBeforeUnmount } from 'vue'
 import type { ChatMessage } from '@/api/chat'
 import { useClipboard } from '@/composables/useClipboard'
 import SystemProfileCard from '@/components/chat/SystemProfileCard.vue'
+import AppMarkdown from '@/components/common/AppMarkdown.vue'
 
 const props = defineProps<{ message: ChatMessage }>()
 const copied = ref(false)
@@ -68,8 +72,9 @@ async function handleCopy() {
   color: var(--liki-text-2);
 }
 .message.user .role { text-align: right; }
-.message.assistant .role { font-family: var(--liki-font-serif); font-weight: 700; color: #8a6a2f; }
-.content { line-height: 1.65; white-space: pre-wrap; color: var(--liki-ink); }
+.message.assistant .role { font-family: var(--liki-font-serif); font-weight: 700; color: var(--liki-primary); }
+.content { line-height: 1.65; color: var(--liki-ink); }
+.message.user .content { white-space: pre-wrap; }
 .thinking {
   margin-bottom: 10px;
   padding: 8px 12px;

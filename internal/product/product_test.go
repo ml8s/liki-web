@@ -47,6 +47,30 @@ func TestNormalizeProduct(t *testing.T) {
 	}
 }
 
+func TestDetectCurrencyPrefersCloudflareCountry(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name            string
+		cfCountry       string
+		fallbackCountry string
+		want            Currency
+	}{
+		{name: "Cloudflare CN", cfCountry: "CN", fallbackCountry: "US", want: CNY},
+		{name: "Cloudflare US", cfCountry: "US", fallbackCountry: "CN", want: USD},
+		{name: "fallback CN", cfCountry: "", fallbackCountry: "CN", want: CNY},
+		{name: "fallback US", cfCountry: "", fallbackCountry: "US", want: USD},
+		{name: "default CNY", cfCountry: "", fallbackCountry: "", want: CNY},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := DetectCurrency(tt.cfCountry, tt.fallbackCountry); got != tt.want {
+				t.Fatalf("DetectCurrency(%q, %q) = %q, want %q",
+					tt.cfCountry, tt.fallbackCountry, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNewOrderID(t *testing.T) {
 	t.Parallel()
 	ids := make(map[string]bool, 100)

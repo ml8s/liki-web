@@ -1,21 +1,37 @@
 <template>
   <section>
-    <AppPageHeader :title="detail?.nickname ?? '档案详情'" subtitle="查看信息、免费预览排盘或开启解读。" />
+    <el-page-header class="profile-page-header" @back="router.push('/profiles')">
+      <template #content>
+        <div class="page-heading">
+          <h1>{{ detail?.nickname ?? $t('router.profileDetail') }}</h1>
+          <p>{{ $t('profiles.detail.subtitle') }}</p>
+        </div>
+      </template>
+    </el-page-header>
 
-    <AppSkeleton v-if="profiles.detailLoading" :rows="6" />
-    <AppErrorState v-else-if="error && !detail" title="档案加载失败" :description="error" @retry="load" />
+    <el-skeleton v-if="profiles.detailLoading" :rows="6" animated aria-busy="true"/>
+    <el-result
+      v-else-if="error && !detail"
+      icon="warning"
+      :title="$t('profiles.detail.loadFailed')"
+      :sub-title="error"
+    >
+      <template #extra>
+        <el-button type="primary" @click="load">{{ $t('common.retry') }}</el-button>
+      </template>
+    </el-result>
 
     <template v-else-if="detail">
       <ProfileInfo ref="infoRef" :profile="detail" :submitting="updating" @update="update" />
 
       <PaipanPreview :profile="detail" auto />
 
-      <el-card class="cta" shadow="never">
-        <template #header><span class="card-title">解读</span></template>
-
+      <el-card class="cta" :title="$t('profiles.detail.interpretation')">
         <template v-if="entitlements.loaded && entitlements.purchased">
           <p class="hint">
-            {{ preselectedService ? `已为你选择「${preselectedService.label}」，也可以换一项：` : '想了解什么？选择一项进入专业解读。' }}
+            {{ preselectedService
+              ? $t('profiles.detail.serviceSelected', { service: $t(preselectedService.labelKey) })
+              : $t('profiles.detail.servicePrompt') }}
           </p>
           <div class="service-chips">
             <el-button
@@ -23,13 +39,13 @@
               :key="s.key"
               :type="s.key === preselectedKey ? 'primary' : 'default'"
               @click="startService(s.key)"
-            >{{ s.label }}</el-button>
+            >{{ $t(s.labelKey) }}</el-button>
           </div>
         </template>
 
         <template v-else>
-          <p class="hint">解锁 Liki Chat 后可围绕此人的出生信息进行专业解读。</p>
-          <el-button type="primary" size="large" :loading="entitlements.loading" @click="goChat">解锁 Chat</el-button>
+          <p class="hint">{{ $t('profiles.detail.unlockHint') }}</p>
+          <el-button type="primary" size="large" :loading="entitlements.loading" @click="goChat">{{ $t('profiles.detail.unlock') }}</el-button>
         </template>
       </el-card>
     </template>
@@ -39,19 +55,18 @@
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useProfilesStore } from '@/stores/profiles'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import type { ProfileInput } from '@/api/profiles'
 import { chatServices, serviceByKey } from '@/config/chat'
-import AppErrorState from '@/components/app/AppErrorState.vue'
-import AppPageHeader from '@/components/app/AppPageHeader.vue'
-import AppSkeleton from '@/components/app/AppSkeleton.vue'
 import PaipanPreview from '@/components/profiles/PaipanPreview.vue'
 import ProfileInfo from '@/components/profiles/ProfileInfo.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const profiles = useProfilesStore()
 const entitlements = useEntitlementsStore()
 
@@ -74,7 +89,7 @@ async function update(input: ProfileInput) {
     await profiles.update(detail.value.id, detail.value.version, input)
     infoRef.value?.closeEdit()
   } catch (err) {
-    profiles.error = toUserMessage(err, '保存失败')
+    profiles.error = toUserMessage(err, t('profiles.saveFailed'))
   } finally {
     updating.value = false
   }
@@ -102,11 +117,36 @@ onMounted(async () => {
     console.error('[ProfileDetail] 初始化失败:', error)
   }
 })
+
+onBeforeRouteLeave(async () => {
+  if (!infoRef.value?.isEditing || !infoRef.value?.isDirty) return true
+  try {
+    await ElMessageBox.confirm(
+      t('profiles.detail.unsavedBody'),
+      t('profiles.detail.unsavedTitle'),
+      { type: 'warning', confirmButtonText: t('profiles.detail.leave'), cancelButtonText: t('profiles.detail.keepEditing') },
+    )
+    return true
+  } catch {
+    return false
+  }
+})
 </script>
 
 <style scoped>
-.cta { border-radius: 12px; margin-top: 8px; }
-.card-title { font-weight: 600; }
+.cta { margin-top: 8px; }
+.profile-page-header { margin-bottom: 20px; }
+.page-heading h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+.page-heading p {
+  margin: 4px 0 0;
+  color: var(--liki-text-2);
+  font-size: 14px;
+}
 .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .service-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 </style>

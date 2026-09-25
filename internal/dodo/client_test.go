@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,7 +16,7 @@ import (
 	"github.com/dodopayments/dodopayments-go/option"
 	standardwebhooks "github.com/standard-webhooks/standard-webhooks/libraries/go"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 // helperKey is a 32-byte raw key whose base64 is in helperSecret.

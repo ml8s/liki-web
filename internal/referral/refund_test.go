@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 func newPendingCommissionForRefund(t *testing.T) (*Store, Commission) {
 	t.Helper()
 	store := newStore(t)
-	kol, err := store.RegisterReferrer(context.Background(), "kol")
+	kol, err := store.createKOLPartner(context.Background(), "kol")
 	if err != nil {
 		t.Fatal(err)
 	}

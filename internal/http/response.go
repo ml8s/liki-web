@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 type envelope struct {

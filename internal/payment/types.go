@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"liki-web/internal/sqliteutil"
+	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
 // ---------------------------------------------------------------------------

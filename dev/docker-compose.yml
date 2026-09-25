@@ -1,0 +1,65 @@
+# Local/development full-stack environment used by liki-web/scripts/docker-test.sh.
+
+services:
+  engine:
+    image: liki-engine:latest
+    build:
+      context: ../../liki/engine
+      dockerfile: dev/Dockerfile
+    expose: ["8082"]
+    restart: "no"
+    environment:
+      - LISTEN_ADDR=:8082
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "1"
+
+  web:
+    image: liki-web:latest
+    build:
+      context: ../../liki-web
+      dockerfile: Dockerfile
+    expose: ["8081"]
+    restart: "no"
+    env_file:
+      - path: ${LIKI_TEST_ENV_FILE:-/tmp/liki-web-e2e.env}
+        required: false
+    environment:
+      - LISTEN_ADDR=:8081
+      - LIKI_DATA_DIR=/var/lib/liki
+      - LIKI_ENGINE_URL=http://engine:8082/jsonrpc
+      - LIKI_SELF_URL=http://127.0.0.1:8081
+      - LIKI_SKILLS_DIR=/web/skills
+    tmpfs:
+      - /var/lib/liki:uid=1000,gid=1000,mode=0700
+    depends_on:
+      engine:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "2"
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "8080:80"
+    environment:
+      - DOMAIN=localhost
+      - CADDY_LISTEN_ADDR=:80
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+    tmpfs:
+      - /data
+    depends_on:
+      web:
+        condition: service_started
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"

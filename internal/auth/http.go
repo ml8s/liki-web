@@ -2,11 +2,12 @@ package auth
 
 import (
 	"errors"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 type RateLimiterFunc func(http.HandlerFunc) http.HandlerFunc
@@ -347,32 +348,7 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 }
 
 func clientIP(r *http.Request) string {
-	if value := r.Header.Get("CF-Connecting-IP"); value != "" {
-		return normalizeIP(value)
-	}
-	if value := r.Header.Get("X-Forwarded-For"); value != "" {
-		parts := strings.Split(value, ",")
-		return normalizeIP(strings.TrimSpace(parts[0]))
-	}
-	if value := r.Header.Get("X-Real-IP"); value != "" {
-		return normalizeIP(value)
-	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
-}
-
-func normalizeIP(value string) string {
-	value = strings.TrimSpace(value)
-	if host, _, err := net.SplitHostPort(value); err == nil {
-		return host
-	}
-	if parsed := net.ParseIP(value); parsed != nil {
-		return parsed.String()
-	}
-	return ""
+	return httputil.ClientIP(r)
 }
 
 func userAgent(r *http.Request) string { return r.UserAgent() }

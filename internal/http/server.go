@@ -8,20 +8,20 @@ import (
 	"path/filepath"
 	"strings"
 
-	"liki-web/internal/account"
-	"liki-web/internal/admin"
-	"liki-web/internal/adminauth"
-	"liki-web/internal/agent"
-	"liki-web/internal/aipay"
-	"liki-web/internal/auth"
-	"liki-web/internal/feedback"
-	"liki-web/internal/hepan"
-	"liki-web/internal/liki"
-	"liki-web/internal/mingshu"
-	"liki-web/internal/naming"
-	"liki-web/internal/payment"
-	"liki-web/internal/profile"
-	"liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/account"
+	"github.com/ml8s/liki-web/internal/admin"
+	"github.com/ml8s/liki-web/internal/adminauth"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/aipay"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/feedback"
+	"github.com/ml8s/liki-web/internal/hepan"
+	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/mingshu"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/profile"
+	"github.com/ml8s/liki-web/internal/referral"
 )
 
 type ServerDeps struct {
@@ -41,13 +41,13 @@ type ServerDeps struct {
 	HepanGenerator   *hepan.Generator
 	NamingAgent      *agent.Agent
 	Agent            *agent.Agent
-	Analytics        *Analytics
 	MetricsHandler   http.HandlerFunc
 	Readiness        ReadinessChecker
 	FeedbackStore    *feedback.Store
 	FeedbackAPIKey   string
 	AdminEmail       string
 	AdminAuthorizer  *adminauth.Store
+	PartnerNotifier  referral.DecisionNotifier
 	DevMode          bool
 }
 
@@ -59,8 +59,6 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 
 	// ── unified payment runtime ──
 	if deps.PaymentRuntime != nil {
-		mux.HandleFunc("POST /api/payments/intents", rateLimit(deps.PaymentRuntime.HandleCreateIntent))
-		mux.HandleFunc("POST /api/payments/intents/{id}/checkout", rateLimit(deps.PaymentRuntime.HandleStartCheckout))
 		mux.HandleFunc("GET /api/payments/intents/{id}/status", deps.PaymentRuntime.HandleIntentStatus)
 		mux.HandleFunc("GET /api/payments/intents/{id}/fulfillment-status", deps.PaymentRuntime.HandleFulfillmentStatus)
 		mux.HandleFunc("GET /api/payments/return/{id}", deps.PaymentRuntime.HandlePaymentReturn)
@@ -102,9 +100,19 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		deps.ProfileHandler.RegisterRoutes(mux, profileLimit)
 	}
 
+	// ── partner roles（KOL / Scout 独立角色）──
+	if deps.ReferralHandler != nil {
+		deps.ReferralHandler.RegisterRoutes(mux, rateLimit)
+	}
+
 	// ── platform account（合规强删）──
 	if deps.AccountHandler != nil {
-		deps.AccountHandler.RegisterRoutes(mux)
+		// Erasure spans every bounded context. Keep this expensive, destructive
+		// operation on a much tighter budget than ordinary authenticated reads.
+		erasureLimit := func(next http.HandlerFunc) http.HandlerFunc {
+			return verifyRL.Wrap(1.0/600, 2, next)
+		}
+		deps.AccountHandler.RegisterRoutes(mux, erasureLimit)
 	}
 
 	// ── naming product routes ──
@@ -114,10 +122,11 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 
 	mux.HandleFunc("GET /api/health", handleHealth())
 	mux.HandleFunc("GET /api/ready", handleReady(deps.Readiness))
-	mux.HandleFunc("POST /api/analytics/pageview", handlePageView(deps.Analytics))
-	mux.HandleFunc("GET /api/stats", handleStats(deps.Analytics))
+	analyticsLimit := func(next http.HandlerFunc) http.HandlerFunc {
+		return rl.Wrap(30.0/60, 30, next)
+	}
+	mux.HandleFunc("POST /api/analytics/pageview", analyticsLimit(handlePageView()))
 	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
-	mux.HandleFunc("GET /api/location", handleLocation)
 	if deps.MetricsHandler != nil {
 		mux.HandleFunc("GET /api/internal/metrics", deps.MetricsHandler)
 	}
@@ -141,7 +150,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 				}
 				return deps.AuthHandler.IdentityFromRequest(r)
 			}
-			admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid, deps.ReferralStore, deps.AdminAuthorizer, adminIdentity)
+			admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid, deps.ReferralStore, deps.AdminAuthorizer, adminIdentity, deps.PartnerNotifier)
 		}
 	}
 	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3）──
@@ -231,6 +240,7 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 		if strings.HasPrefix(clean, "/app/assets/") {
 			assetPath := filepath.Join(distDir, "app", strings.TrimPrefix(clean, "/app/"))
 			if info, err := os.Stat(assetPath); err == nil && !info.IsDir() {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 				http.ServeFile(w, r, assetPath)
 				return
 			}

@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strings"
 
-	"liki-web/internal/auth"
-	"liki-web/internal/httputil"
-	"liki-web/internal/naming"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 type AdminService struct {

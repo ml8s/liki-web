@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	"liki-web/internal/metrics"
+	"github.com/ml8s/liki-web/internal/metrics"
 )
 
 var (

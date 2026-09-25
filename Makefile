@@ -1,14 +1,14 @@
 .DEFAULT_GOAL := help
-.PHONY: help check test gate deploy-us deploy-cn smoke e2e \
-        lint-go lint-js typecheck test-go test-js test-python test-skills \
+.PHONY: help check test gate smoke e2e \
+        lint-go lint-js lint-docs typecheck test-go test-js test-python test-skills \
         check-html check-security \
-        build build-skills build-sitemap build-web build-go build-docker \
+        build build-skills build-sitemap build-web build-go \
         dev clean hooks version version-minor version-major
 
 # ── 环境 ──
 NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
 SKILLS_DIR := $(if $(wildcard ../liki/scripts/build-archive.sh),../liki,skills-repo)
-VERSION_FILE := cmd/liki/VERSION
+VERSION_FILE := cmd/liki-web/VERSION
 SKILLS := liki
 export PATH := $(HOME)/app/go/bin:$(HOME)/app/go-tools/bin:$(HOME)/go/bin:$(PATH)
 export GOCACHE ?= /tmp/gocache
@@ -35,19 +35,11 @@ help: ## 列出所有 target
 
 # ── 质量门槛 ──
 
-check: lint-go lint-js typecheck check-html check-security check-caddy check-skills check-version ## 静态检查 + 安全扫描（~3min）
+check: lint-go lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version ## 静态检查 + 安全扫描（~3min）
 
 test: test-go test-js test-python e2e build check-packaging ## 全量测试（~15min，含 E2E）
 
 gate: check test ## 部署门槛：check + test 全过才能部署
-
-# ── 部署 ──
-
-deploy-us: ## 部署 US（需先 make gate）
-	scripts/deploy.sh us
-
-deploy-cn: ## 部署 CN（需先 make gate）
-	scripts/deploy.sh cn
 
 smoke: ## 部署后冒烟验证（make smoke 或 make smoke to=us）
 	scripts/smoke.sh $(URL)
@@ -60,6 +52,9 @@ lint-go: ## Go lint + vet
 
 lint-js: ## JS lint
 	cd web && PATH="$(NODE_BIN):$$PATH" npx eslint js/
+
+lint-docs: ## Markdown lint
+	PATH="$(NODE_BIN):$$PATH" npx --yes markdownlint-cli2
 
 typecheck: ## vue-tsc
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npx vue-tsc --noEmit
@@ -147,8 +142,3 @@ build-go:
 
 check-packaging:
 	scripts/check-packaging.sh
-
-
-build-docker:
-	scripts/build-docker.sh --compose-file deploy/liki/docker-compose.yml \
-		--export /tmp/liki_images.tar.gz --services web engine

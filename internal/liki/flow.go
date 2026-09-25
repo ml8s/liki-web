@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 // Fulfiller adapts a Liki Chat order to the generic payment runtime and
@@ -24,6 +24,15 @@ func NewFulfiller(orders *OrderStore, entitlements *EntitlementStore, productID 
 }
 
 func (f *Fulfiller) Product() string { return string(f.productID) }
+
+func (f *Fulfiller) DisplayName(locale string) string {
+	_ = locale
+	definition, err := ProductDefinitionFor(f.productID)
+	if err != nil {
+		return string(f.productID)
+	}
+	return definition.Name
+}
 
 func (f *Fulfiller) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
 	order, err := f.orders.getOrder(ctx, businessOrderID)

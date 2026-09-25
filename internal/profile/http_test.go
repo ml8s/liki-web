@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/auth"
 )
 
 func newHandlerFixture(t *testing.T) *Handler {

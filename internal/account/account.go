@@ -8,14 +8,14 @@ import (
 	"log/slog"
 	"net/http"
 
-	"liki-web/internal/auth"
-	"liki-web/internal/hepan"
-	"liki-web/internal/liki"
-	"liki-web/internal/mingshu"
-	"liki-web/internal/naming"
-	"liki-web/internal/payment"
-	"liki-web/internal/profile"
-	"liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/hepan"
+	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/mingshu"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/profile"
+	"github.com/ml8s/liki-web/internal/referral"
 )
 
 type AuthEraser interface {
@@ -66,8 +66,8 @@ func NewHandler(
 	}
 }
 
-func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/account/erasure", h.requireUser(h.HandleErasure))
+func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit func(http.HandlerFunc) http.HandlerFunc) {
+	mux.HandleFunc("POST /api/account/erasure", limit(h.requireUser(h.HandleErasure)))
 }
 
 // HandleErasure 合规强删（个保法删除权）：匿名化该用户全部档案（清除出生信息等

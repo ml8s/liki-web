@@ -6,24 +6,24 @@
       :autosize="{ minRows: 1, maxRows: 5 }"
       resize="none"
       :disabled="sending"
-      aria-label="咨询输入框"
-      placeholder="输入问题，Enter 发送，Shift + Enter 换行"
+      :aria-label="$t('chat.composer.label')"
+      :placeholder="$t('chat.composer.placeholder')"
       @update:model-value="$emit('update:modelValue', $event)"
       @keydown="onKeydown"
     />
     <div class="actions">
-      <span>由 AI 生成，命理内容仅供参考。</span>
+      <span>{{ $t('commerce.aiDisclaimer') }}</span>
       <el-button
         v-if="sending"
         native-type="button"
         @click="$emit('stop')"
-      >停止</el-button>
+      >{{ $t('chat.composer.stop') }}</el-button>
       <el-button
         v-else
         native-type="submit"
         type="primary"
         :disabled="!modelValue.trim()"
-      >发送</el-button>
+      >{{ $t('chat.composer.send') }}</el-button>
     </div>
   </form>
 </template>

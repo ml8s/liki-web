@@ -129,9 +129,9 @@ jobs:
 
       - name: Start servers
         env:
-          JWT_SECRET: liki-ci-e2e
-          DEEPSEEK_API_KEY: ci-test-dummy
-          LLM_MODEL: ci-test-dummy
+          JWT_SECRET: liki-ci-e2e-secret-0123456789abcdef
+          LIKI_LLM_API_KEY: ci-test-dummy
+          LIKI_LLM_MODEL: ci-test-dummy
           XUNHU_APPID: ci-test-dummy
           XUNHU_APPSECRET: ci-test-dummy
           PAYMENTS_WEBHOOK_URL: http://localhost:8081/api/payments/webhook
@@ -145,7 +145,7 @@ jobs:
             sleep 1
           done
           if [ "$i" = "10" ]; then echo "Go server failed" >&2; exit 1; fi
-          ./caddy run --config deploy/liki/Caddyfile.local &
+          ./caddy run --config dev/Caddyfile.local &
           for i in $(seq 1 30); do
             curl -sf http://localhost:8080/zh-Hans/ 2>/dev/null | grep -q '<html' && \
             curl -sf http://localhost:8080/api/health 2>/dev/null | grep -q '"ok"' && \

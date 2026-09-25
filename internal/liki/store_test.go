@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"liki-web/internal/sqliteutil"
+	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
 func TestLikiStoresMigrateAndPreserveData(t *testing.T) {

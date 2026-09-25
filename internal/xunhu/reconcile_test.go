@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/ml8s/liki-web/internal/product"
 	"io"
-	"liki-web/internal/product"
 	"net/http"
 	"net/url"
 	"testing"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)

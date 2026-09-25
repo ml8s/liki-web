@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,11 +10,11 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"liki-web/internal/naming"
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/payment"
 
-	"liki-web/internal/paymentflow"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/paymentflow"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 type fakeGateway struct {
@@ -104,43 +103,24 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 
-	rec := postJSON(t, mux, "/api/payments/intents", `{"product":"naming","business_order_id":"biz-1","provider":"xunhu"}`)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("create intent = %d %s", rec.Code, rec.Body.String())
-	}
-	var envelope struct {
-		Data payment.PaymentIntent `json:"data"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &envelope); err != nil {
+	intent, err := runtime.CreateIntent(context.Background(), payment.CreateIntentInput{
+		Product: "naming", BusinessOrderID: "biz-1", Provider: payment.ProviderXunhu,
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	intentID := envelope.Data.ID
-
-	rec = postJSON(t, mux, "/api/payments/intents/"+intentID+"/checkout", `{}`)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("checkout = %d %s", rec.Code, rec.Body.String())
-	}
-
-	var checkoutEnvelope struct {
-		Data struct {
-			CheckoutURL string `json:"checkout_url"`
-			QRURL       string `json:"qr_url"`
-			StatusToken string `json:"status_token"`
-			SuccessURL  string `json:"success_url"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &checkoutEnvelope); err != nil {
+	intentID := intent.ID
+	checkout, _, err := runtime.StartCheckout(context.Background(), intentID)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if checkoutEnvelope.Data.CheckoutURL != "https://pay.example/checkout" ||
-		checkoutEnvelope.Data.SuccessURL != "/zh-Hant/naming/chat?order_id=biz-1" {
-		t.Fatalf("checkout response = %+v", checkoutEnvelope.Data)
+	if checkout.CheckoutURL != "https://pay.example/checkout" {
+		t.Fatalf("checkout URL = %q", checkout.CheckoutURL)
 	}
-
-	if checkoutEnvelope.Data.StatusToken == "" {
-		t.Fatal("checkout response did not include status token")
+	if checkout.StatusToken == "" {
+		t.Fatal("checkout did not include status token")
 	}
-	statusReq := httptest.NewRequest(http.MethodGet, "/api/payments/intents/"+intentID+"/status?status_token="+checkoutEnvelope.Data.StatusToken, nil)
+	statusReq := httptest.NewRequest(http.MethodGet, "/api/payments/intents/"+intentID+"/status?status_token="+checkout.StatusToken, nil)
 	statusReq.SetPathValue("id", intentID)
 	statusRec := httptest.NewRecorder()
 	mux.ServeHTTP(statusRec, statusReq)
@@ -155,7 +135,7 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 			OrderID: intentID, Amount: 990, Currency: "CNY", PaymentID: "pay-1",
 		},
 	}
-	rec = postJSON(t, mux, "/api/payments/webhook", `signature-body`)
+	rec := postJSON(t, mux, "/api/payments/webhook", `signature-body`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("webhook = %d %s", rec.Code, rec.Body.String())
 	}
@@ -185,20 +165,17 @@ func TestSharedPaymentWebhookReturnsProviderAck(t *testing.T) {
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 
-	rec := postJSON(t, mux, "/api/payments/intents", `{"product":"naming","business_order_id":"biz-1","provider":"xunhu"}`)
-	var envelope struct {
-		Data struct {
-			ID string `json:"id"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &envelope); err != nil {
+	intent, err := runtime.CreateIntent(context.Background(), payment.CreateIntentInput{
+		Product: "naming", BusinessOrderID: "biz-1", Provider: payment.ProviderXunhu,
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 	gateway.event = payment.WebhookEvent{
 		Provider: payment.ProviderXunhu,
 		Type:     payment.EventPaymentSucceeded,
 		Data: payment.WebhookEventData{
-			OrderID: envelope.Data.ID, Amount: 990, PaymentID: "pay-ack",
+			OrderID: intent.ID, Amount: 990, PaymentID: "pay-ack",
 		},
 	}
 
@@ -216,6 +193,7 @@ func TestSharedPaymentWebhookRouteOnly(t *testing.T) {
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 	for _, path := range []string{
 		"/api/naming/webhook", "/api/mingshu/webhook", "/api/hepan/webhook",
+		"/api/payments/intents", "/api/payments/intents/id/checkout",
 	} {
 		rec := postJSON(t, mux, path, `{}`)
 		if rec.Code != http.StatusNotFound {

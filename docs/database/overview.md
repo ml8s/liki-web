@@ -5,7 +5,7 @@
 All SQLite files live in `${LIKI_DATA_DIR}`.
 
 | File | Owner | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | platform.db | auth / payment / admin | users, auth sessions, payment intents/refunds, fulfillment tasks, payment events, admin users/capabilities/audit |
 | profiles.db | profile | customer profiles |
 | referral.db | referral/partnership | partners, attribution, applications, commission ledger, payouts, commission/refund intake, admin actions |

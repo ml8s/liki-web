@@ -1,20 +1,22 @@
 <template>
-  <el-card class="paipan-preview" shadow="never">
+  <el-card class="app-card paipan-preview" shadow="never">
     <template #header>
-      <div class="preview-head">
-        <span class="card-title">免费排盘</span>
-        <el-button size="small" type="primary" :loading="loading" @click="compute">排盘</el-button>
+      <div class="app-card__header">
+        <h2 class="app-card__title">{{ $t('profiles.chart.title') }}</h2>
+        <div class="app-card__actions">
+          <el-button size="small" type="primary" :loading="loading" @click="compute">{{ $t('profiles.chart.compute') }}</el-button>
+        </div>
       </div>
     </template>
 
     <p v-if="profile.calendar === 'lunar'" class="hint">
-      免费预览暂支持公历出生时间；农历可在付费对话中获得完整排盘与解读。
+      {{ $t('profiles.chart.lunarHint') }}
     </p>
 
     <template v-else>
-      <AppAlert v-if="error" :title="error" type="error" />
+      <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
       <p v-if="!anyResult && !loading" class="hint">
-        输入公历出生时间后点"排盘"，免费查看八字、紫微、八宅三盘（临时展示，不保存）。
+        {{ $t('profiles.chart.empty') }}
       </p>
 
       <div v-if="loading" class="pan-skeleton">
@@ -23,7 +25,7 @@
 
       <template v-if="anyResult">
         <el-tabs v-model="tab">
-          <el-tab-pane label="八字" name="bazi">
+          <el-tab-pane :label="$t('profiles.chart.bazi')" name="bazi">
             <div class="pillars">
               <div v-for="item in baziPillars" :key="item.label" :class="['pillar', { self: item.self }]">
                 <div class="label">{{ item.label }}</div>
@@ -31,19 +33,19 @@
                 <div class="sub">{{ item.shiShen }}</div>
                 <div class="sub nayin">{{ item.naYin }}</div>
                 <div v-if="item.cangGan" class="sub cang">{{ item.cangGan }}</div>
-                <span v-if="item.isVoid" class="void-tag">旬空</span>
+                <span v-if="item.isVoid" class="void-tag">{{ $t('profiles.chart.void') }}</span>
               </div>
             </div>
             <div v-if="sanYuanText" class="san-yuan">
-              <span class="sy-label">三元</span>
+              <span class="sy-label">{{ $t('profiles.chart.threeYuan') }}</span>
               <span class="sy-body">{{ sanYuanText }}</span>
             </div>
             <div v-if="shenShaList.length" class="shensha">
-              <span class="sy-label">神煞</span>
+              <span class="sy-label">{{ $t('profiles.chart.shenSha') }}</span>
               <span v-for="s in shenShaList" :key="s" class="ss-chip">{{ s }}</span>
             </div>
             <template v-if="daYunSteps.length">
-              <div class="sec-title">大运</div>
+              <div class="sec-title">{{ $t('profiles.chart.daYun') }}</div>
               <div class="dayun">
                 <div
                   v-for="(s, i) in daYunSteps"
@@ -57,7 +59,7 @@
               </div>
             </template>
             <template v-if="yongShenSummary.length">
-              <div class="sec-title">用神简览</div>
+              <div class="sec-title">{{ $t('profiles.chart.yongShen') }}</div>
               <div class="ys">
                 <div v-for="row in yongShenSummary" :key="row.label" class="ys-row">
                   <span class="ys-label">{{ row.label }}</span>
@@ -67,7 +69,7 @@
             </template>
           </el-tab-pane>
 
-          <el-tab-pane label="紫微" name="ziwei">
+          <el-tab-pane :label="$t('profiles.chart.ziwei')" name="ziwei">
             <div class="palaces">
               <div v-for="g in ziweiGongs" :key="g.name" :class="['palace', { ming: g.name === '命宫', shen: g.is_shen_gong }]">
                 <div class="pname">{{ g.name }}</div>
@@ -77,23 +79,23 @@
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="八宅" name="bazhai">
+          <el-tab-pane :label="$t('profiles.chart.bazhai')" name="bazhai">
             <div v-if="bazhai" class="mingua-row">
               <div class="mingua font-serif">{{ bazhai.ming_gua.gua.name }}</div>
               <div>
                 <div class="mg-name">{{ bazhai.ming_gua.group }}</div>
-                <div class="mg-sub">四吉四凶方</div>
+                <div class="mg-sub">{{ $t('profiles.chart.directions') }}</div>
               </div>
             </div>
             <div v-if="bazhai" class="dirs">
-              <div v-for="d in bazhaiDirs" :key="d.name" :class="['dir', { good: d.good }]">
+              <div v-for="d in bazhaiDirs" :key="d.key" :class="['dir', { good: d.good }]">
                 <div class="dg font-serif">{{ d.gua }}</div>
-                <div class="dname">{{ d.name }}</div>
+                <div class="dname">{{ $t(`profiles.chart.direction.${d.key}`) }}</div>
               </div>
             </div>
             <template v-if="liuNianXing">
-              <div class="sec-title">流年飞星（{{ liuNianXing.year }}）</div>
-              <div class="ln-row">入中星：<strong>{{ liuNianXing.ru_zhong }}</strong></div>
+              <div class="sec-title">{{ $t('profiles.chart.annualStars', { year: liuNianXing.year }) }}</div>
+              <div class="ln-row">{{ $t('profiles.chart.centerStar') }}<strong>{{ liuNianXing.ru_zhong }}</strong></div>
               <div class="fly-grid">
                 <div
                   v-for="f in flyStars"
@@ -116,6 +118,7 @@
 import { toUserMessage } from '@/utils/errors'
 import { BaziFullChartData } from '@/api/engine'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   engineBazhaiChart,
   engineBaziChart,
@@ -130,9 +133,9 @@ import {
 } from '@/api/engine'
 import { resolvePaipanContext } from '@/utils/paipan'
 import type { Profile } from '@/api/profiles'
-import AppAlert from '@/components/app/AppAlert.vue'
 
 const props = defineProps<{ profile: Profile; auto?: boolean }>()
+const { t } = useI18n()
 
 const loading = ref(false)
 const error = ref('')
@@ -153,31 +156,35 @@ function zhuText(p?: { gan: string; zhi: string }): string {
 const baziPillars = computed(() => {
   const src = baziFull.value ?? (baziChart.value as unknown as { nian: BaziZhuFull; yue: BaziZhuFull; ri: BaziZhuFull; shi: BaziZhuFull } | null)
   if (!src) return []
-  const map = (label: string, p: BaziZhuFull) => {
+  const map = (key: 'year' | 'month' | 'day' | 'hour', p: BaziZhuFull) => {
     const cang = p.cang_gan ? [p.cang_gan.main, p.cang_gan.mid, p.cang_gan.minor].filter(Boolean).join(' ') : ''
     return {
-      label,
-      self: label === '日柱',
+      label: t(`profiles.chart.pillar.${key}`),
+      self: key === 'day',
       gan: p.gan,
       zhi: p.zhi,
       naYin: p.na_yin ?? '',
       shiShen: p.shi_shens?.[0]?.shi_shen ?? '',
-      cangGan: cang ? `藏干 ${cang}` : '',
+      cangGan: cang ? t('profiles.chart.hiddenStems', { stems: cang }) : '',
       isVoid: !!p.is_void,
     }
   }
   return [
-    map('年柱', src.nian),
-    map('月柱', src.yue),
-    map('日柱', src.ri),
-    map('时柱', src.shi),
+    map('year', src.nian),
+    map('month', src.yue),
+    map('day', src.ri),
+    map('hour', src.shi),
   ]
 })
 
 const sanYuanText = computed(() => {
   const sy = baziFull.value?.san_yuan
   if (!sy) return ''
-  return `胎元 ${zhuText(sy.tai_yuan)} · 命宫 ${zhuText(sy.ming_gong)} · 身宫 ${zhuText(sy.shen_gong)}`
+  return t('profiles.chart.sanYuanValue', {
+    taiYuan: zhuText(sy.tai_yuan),
+    mingGong: zhuText(sy.ming_gong),
+    shenGong: zhuText(sy.shen_gong),
+  })
 })
 
 const shenShaList = computed(() => {
@@ -205,19 +212,23 @@ const yongShenSummary = computed(() => {
   // 扶抑
   if (fu_yi?.qiangruo) {
     rows.push({
-      label: '扶抑',
-      text: `${fu_yi.qiangruo} · 喜 ${fu_yi.xi ?? '—'} 忌 ${fu_yi.ji ?? '—'}`
+      label: t('profiles.chart.fuYi'),
+      text: t('profiles.chart.favorAvoid', { value: fu_yi.qiangruo, favorable: fu_yi.xi ?? '—', unfavorable: fu_yi.ji ?? '—' })
     })
   }
   // 调候
   if (tiao_hou?.yong) {
-    rows.push({ label: '调候', text: `用 ${tiao_hou.yong} · 喜 ${tiao_hou.xi ?? '—'}` })
+    rows.push({ label: t('profiles.chart.tiaoHou'), text: t('profiles.chart.useFavor', { value: tiao_hou.yong, favorable: tiao_hou.xi ?? '—' }) })
   }
   // 格局
   if (ge_ju?.ge_ju) {
     rows.push({
-      label: '格局',
-      text: `${ge_ju.ge_ju}${ge_ju.yong_fa ? ` · ${ge_ju.yong_fa}` : ''} · 喜 ${ge_ju.xi ?? '—'} 忌 ${ge_ju.ji ?? '—'}`
+      label: t('profiles.chart.geJu'),
+      text: t('profiles.chart.patternValue', {
+        value: `${ge_ju.ge_ju}${ge_ju.yong_fa ? ` · ${ge_ju.yong_fa}` : ''}`,
+        favorable: ge_ju.xi ?? '—',
+        unfavorable: ge_ju.ji ?? '—',
+      })
     })
   }
   return rows
@@ -236,7 +247,7 @@ const bazhaiDirs = computed(() => {
   if (!bazhai.value) return []
   const dirs = bazhai.value.ba_zhai_dirs
   return Object.entries(dirs).map(([key, values]) => ({
-    name: key, gua: (values ?? [''])[0], good: BAZHAI_AUS.includes(key),
+    key, gua: (values ?? [''])[0], good: BAZHAI_AUS.includes(key),
   }))
 })
 
@@ -260,20 +271,20 @@ async function compute() {
   bazhai.value = null
   if (p.calendar === 'lunar') return
   if (p.birth_time_known === 'unknown') {
-    error.value = '出生时间不确定，暂无法预览排盘；可在付费对话中定盘。'
+    error.value = t('profiles.chart.errors.unknownTime')
     return
   }
   if (!p.birth_time) {
-    error.value = '缺少出生时间'
+    error.value = t('profiles.chart.errors.missingTime')
     return
   }
   loading.value = true
   try {
     const ctx = await resolvePaipanContext(p)
-    if (ctx.corrected) correction.value = '已做真太阳时修正'
-    else if (p.birth_time_known === 'known' && !p.birth_place) correction.value = '未做真太阳时修正（未填出生地）'
-    else if (p.birth_place) correction.value = '按已定时辰排盘（出生地仅用于精确时间校正，此时不生效）'
-    else correction.value = '按已定时辰排盘，未做校正'
+    if (ctx.corrected) correction.value = t('profiles.chart.corrected')
+    else if (p.birth_time_known === 'known' && !p.birth_place) correction.value = t('profiles.chart.notCorrectedNoPlace')
+    else if (p.birth_place) correction.value = t('profiles.chart.approximateWithPlace')
+    else correction.value = t('profiles.chart.approximate')
 
     baziChart.value = await engineBaziChart(ctx.solar, p.gender)
     const full = await engineBaziFullChart(baziChart.value)
@@ -284,7 +295,7 @@ async function compute() {
     const birthYear = baziChart.value.birth_year ?? parseInt(p.birth_date.slice(0, 4), 10)
     bazhai.value = await engineBazhaiChart(birthYear, p.gender)
   } catch (err) {
-    error.value = toUserMessage(err, '排盘失败')
+    error.value = toUserMessage(err, t('profiles.chart.failed'))
   } finally {
     loading.value = false
   }
@@ -300,10 +311,8 @@ watch(() => props.profile?.id, () => {
 .paipan-preview {
   border-radius: 12px; margin-bottom: 20px;
   position: relative;
-  border-top: 2px solid var(--liki-gold);
+  border-top: 2px solid var(--liki-primary);
 }
-.preview-head { display: flex; align-items: center; justify-content: space-between; }
-.card-title { font-weight: 600; }
 .hint { color: var(--liki-text-2); font-size: 13px; margin: 4px 0 12px; }
 .pan-skeleton .skel { height: 14px; border-radius: 6px; background: linear-gradient(90deg,#f0efeb 25%,#e7e4de 50%,#f0efeb 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; margin-bottom: 10px; }
 @keyframes shimmer { to { background-position: -200% 0; } }
@@ -314,28 +323,28 @@ watch(() => props.profile?.id, () => {
   border-radius: 8px; overflow: hidden;
 }
 .pillar { background: var(--liki-surface); padding: 16px 8px; text-align: center; }
-.pillar.self { background: linear-gradient(180deg, var(--liki-gold-tint), #fdfaf3); }
+.pillar.self { background: linear-gradient(180deg, var(--liki-primary-tint), #fdfaf3); }
 .pillar .label { font-size: 12px; color: var(--liki-text-3); margin-bottom: 8px; letter-spacing: 0.08em; }
 .pillar .gl { font-size: 25px; font-weight: 700; letter-spacing: 0.02em; }
-.pillar.self .gl { color: #8a6a2f; }
+.pillar.self .gl { color: var(--liki-primary); }
 .pillar .sub { font-size: 12px; color: var(--liki-text-2); margin-top: 4px; }
 .pillar .nayin { color: var(--liki-text-3); }
 .pillar .cang { color: var(--liki-text-3); font-size: 11px; }
-.void-tag { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 999px; background: var(--liki-gold-tint); color: #8a6a2f; font-size: 11px; }
+.void-tag { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 999px; background: var(--liki-primary-tint); color: var(--liki-primary); font-size: 11px; }
 
 .san-yuan, .shensha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: 13px; }
 .sy-label { color: var(--liki-text-3); flex: 0 0 2em; }
-.sy-body { color: var(--liki-text-1); }
+.sy-body { color: var(--liki-ink); }
 .shensha { gap: 6px; }
 .ss-chip { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--liki-line); background: var(--liki-surface); color: var(--liki-text-2); font-size: 12px; }
 
 .ln-row { font-size: 13px; color: var(--liki-text-2); margin-bottom: 10px; }
 .fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; width: min(320px, 100%); }
 .fly-cell { background: var(--liki-surface); padding: 10px 4px; text-align: center; }
-.fly-cell.center { background: var(--liki-gold-tint); }
+.fly-cell.center { background: var(--liki-primary-tint); }
 .fly-name { font-size: 12px; color: var(--liki-text-2); }
 
-.sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; color: var(--liki-text-1); }
+.sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; color: var(--liki-ink); }
 .dayun { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
 .dy { border: 1px solid var(--liki-line); border-radius: 6px; padding: 8px 4px; text-align: center; }
 .dy.cur { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
@@ -346,7 +355,7 @@ watch(() => props.profile?.id, () => {
 .ys-row { display: flex; gap: 10px; padding: 8px 12px; font-size: 13px; }
 .ys-row + .ys-row { border-top: 1px solid var(--liki-line); }
 .ys-label { color: var(--liki-text-3); flex: 0 0 3em; }
-.ys-body { color: var(--liki-text-1); }
+.ys-body { color: var(--liki-ink); }
 
 .palaces {
   display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px;
@@ -354,25 +363,25 @@ watch(() => props.profile?.id, () => {
   border-radius: 6px; overflow: hidden;
 }
 .palace { background: var(--liki-surface); padding: 10px 4px; text-align: center; min-height: 68px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.palace.ming { background: linear-gradient(180deg, var(--liki-gold-tint), #fdfaf3); }
+.palace.ming { background: linear-gradient(180deg, var(--liki-primary-tint), #fdfaf3); }
 .palace.shen { background: var(--liki-primary-tint); }
 .palace .pname { font-size: 13px; font-weight: 600; }
-.palace.ming .pname, .palace.ming .pstar { color: #8a6a2f; }
+.palace.ming .pname, .palace.ming .pstar { color: var(--liki-primary); }
 .palace .pstar { font-size: 12px; color: var(--liki-primary); margin-top: 3px; }
 .palace .pminor { font-size: 11px; color: var(--liki-text-3); margin-top: 2px; }
 
 .mingua-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
-.mingua { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--liki-gold); font-size: 26px; color: #8a6a2f; background: var(--liki-gold-tint); }
+.mingua { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--liki-primary); font-size: 26px; color: var(--liki-primary); background: var(--liki-primary-tint); }
 .mg-name { font-size: 15px; font-weight: 600; }
 .mg-sub { color: var(--liki-text-2); font-size: 12px; margin-top: 2px; }
 .dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .dir { border: 1px solid var(--liki-line); border-radius: 6px; padding: 10px; text-align: center; }
-.dir .dg { font-size: 18px; color: var(--liki-gold); }
+.dir .dg { font-size: 18px; color: var(--liki-primary); }
 .dir.good { border-color: #bfe6bf; background: #f4faf4; }
 .dir.good .dg { color: var(--el-color-success); }
 .dir .dname { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
 
-.correction { margin-top: 12px; font-size: 12px; color: var(--liki-gold); }
+.correction { margin-top: 12px; font-size: 12px; color: var(--liki-primary); }
 @media (max-width: 640px) {
   .pillars { grid-template-columns: repeat(2, 1fr); }
   .palaces { grid-template-columns: repeat(3, 1fr); }

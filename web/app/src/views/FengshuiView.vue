@@ -1,38 +1,41 @@
 <template>
   <section class="service-view">
-    <AppPageHeader title="风水" subtitle="先看命卦与八宅吉凶方位、流年飞星；布局解读进对话。" />
+    <AppPageHeader :title="$t('services.fengshui.pageTitle')" :subtitle="$t('services.fengshui.subtitle')" />
 
-    <AppAlert v-if="error" :title="error" type="error" />
+    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
 
-    <el-card class="block" shadow="never">
-      <template #header><span class="card-title">选择档案（本命）</span></template>
-      <el-select v-model="profileId" aria-label="选择档案" placeholder="选择档案" style="width: 100%" @change="profileId && loadPreview()">
+    <el-card class="app-card" shadow="never">
+      <template #header><h2 class="app-card__title">{{ $t('services.fengshui.selectProfile') }}</h2></template>
+      <el-select v-model="profileId" :aria-label="$t('chat.selectProfile')" :placeholder="$t('chat.selectProfile')" style="width: 100%" @change="profileId && loadPreview()">
         <el-option v-for="p in profiles.list" :key="p.id" :value="p.id" :label="p.nickname" />
       </el-select>
-      <p v-if="!profiles.list.length" class="hint">还没有档案，先<a href="/app/profiles/new">建立档案</a>再看风水。</p>
+      <p v-if="!profiles.list.length" class="hint">{{ $t('services.fengshui.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.fengshui.noProfileSuffix') }}</p>
     </el-card>
 
-    <el-card v-if="loading" class="block" shadow="never"><template #header><span class="card-title">命卦</span></template>排盘中…</el-card>
+    <el-card v-if="loading" class="app-card" shadow="never">
+      <template #header><h2 class="app-card__title">{{ $t('services.fengshui.lifeGua') }}</h2></template>
+      {{ $t('profiles.chart.compute') }}…
+    </el-card>
 
     <template v-if="bazhai">
-      <el-card class="block pan" shadow="never">
-        <template #header><span class="card-title">命卦与吉凶方</span></template>
+      <el-card class="app-card app-card--highlight" shadow="never">
+        <template #header><h2 class="app-card__title">{{ $t('services.fengshui.lifeGuaDirections') }}</h2></template>
         <div class="mingua-row">
           <div class="mingua font-serif">{{ bazhai.ming_gua.gua.name }}</div>
           <div>
             <div class="mg-name">{{ bazhai.ming_gua.group }}</div>
-            <div v-if="bazhai.ming_gua.gua.wuxing" class="mg-wuxing">五行：{{ bazhai.ming_gua.gua.wuxing }}</div>
+            <div v-if="bazhai.ming_gua.gua.wuxing" class="mg-wuxing">{{ $t('services.fengshui.element') }}{{ bazhai.ming_gua.gua.wuxing }}</div>
           </div>
         </div>
         <div class="dirs">
-          <div v-for="d in bazhaiDirs" :key="d.name" :class="['dir', { good: d.good }]">
+          <div v-for="d in bazhaiDirs" :key="d.key" :class="['dir', { good: d.good }]">
             <div class="dg font-serif">{{ d.gua }}</div>
-            <div class="dname">{{ d.name }}</div>
+            <div class="dname">{{ $t(`profiles.chart.direction.${d.key}`) }}</div>
           </div>
         </div>
         <template v-if="liuNianXing">
-          <div class="sec-title">流年飞星（{{ liuNianXing.year }}）</div>
-          <div class="ln-row">入中星：<strong>{{ liuNianXing.ru_zhong }}</strong></div>
+          <div class="sec-title">{{ $t('profiles.chart.annualStars', { year: liuNianXing.year }) }}</div>
+          <div class="ln-row">{{ $t('profiles.chart.centerStar') }}<strong>{{ liuNianXing.ru_zhong }}</strong></div>
           <div class="fly-grid">
             <div v-for="f in flyStars" :key="f.gong_num" :class="['fly-cell', { center: f.gong_num === 5, ru_zhong: f.ru_zhong }]">
               <div class="fly-name">{{ f.xing_name }}</div>
@@ -42,13 +45,14 @@
         </template>
       </el-card>
 
-      <el-card class="block" shadow="never">
-        <template #header><span class="card-title">布局解读</span></template>
-        <p v-if="entitlements.purchased" class="hint">进入对话，命理顾问结合命卦与飞星为你做布局解读。</p>
-        <p v-else class="hint">解锁 Liki Chat 后可获得专业布局解读。</p>
-        <el-button v-if="entitlements.purchased" type="primary" size="large" @click="startChat">布局解读</el-button>
-        <el-button v-else type="primary" size="large" @click="router.push('/chat')">解锁 Chat</el-button>
-      </el-card>
+      <AppConsultationCard
+        :title="$t('services.fengshui.consultationTitle')"
+        :description="$t('services.fengshui.consultationBody')"
+        :locked-description="$t('services.fengshui.lockedBody')"
+        :purchased="entitlements.purchased"
+        :action-label="$t('services.fengshui.consultationTitle')"
+        @action="startChat"
+      />
     </template>
   </section>
 </template>
@@ -57,13 +61,15 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineBazhaiChart, type BazhaiChart } from '@/api/engine'
 import { BAZHAI_AUS, LUOSHU_ORDER } from '@/utils/bazhai'
-import AppAlert from '@/components/app/AppAlert.vue'
+import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const { profiles, entitlements, chat } = useServiceView()
 
 const profileId = ref('')
@@ -76,7 +82,7 @@ const profile = computed(() => profiles.list.find(p => p.id === profileId.value)
 const bazhaiDirs = computed(() => {
   if (!bazhai.value) return []
   return Object.entries(bazhai.value.ba_zhai_dirs).map(([key, values]) => ({
-    name: key, gua: (values ?? [''])[0], good: BAZHAI_AUS.includes(key),
+    key, gua: (values ?? [''])[0], good: BAZHAI_AUS.includes(key),
   }))
 })
 const liuNianXing = computed(() => bazhai.value?.liu_nian_xing ?? null)
@@ -93,12 +99,12 @@ async function loadPreview() {
   error.value = ''
   bazhai.value = null
   try {
-    if (p.calendar === 'lunar') throw new Error('免费预览暂支持公历出生时间')
+    if (p.calendar === 'lunar') throw new Error(t('profiles.chart.lunarHint'))
     const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
-    if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2100) throw new Error('出生日期无效')
+    if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2100) throw new Error(t('services.fengshui.invalidBirthYear'))
     bazhai.value = await engineBazhaiChart(birthYear, p.gender)
   } catch (err) {
-    error.value = toUserMessage(err, '风水预览失败')
+    error.value = toUserMessage(err, t('services.fengshui.failed'))
   } finally {
     loading.value = false
   }
@@ -107,27 +113,27 @@ async function loadPreview() {
 function startChat() {
   const p = profile.value
   if (!p) return
-  chat.pendingIntent = '我想咨询风水。'
-  void chat.ensureSession(p.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
+  chat.pendingIntent = t('services.fengshui.intent')
+  void chat.ensureSession(p.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, t('chat.createFailed')) })
 }
 </script>
 
 <style scoped>
 .mingua-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.mingua { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--liki-gold); font-size: 24px; color: var(--liki-gold); background: var(--liki-gold-tint); }
+.mingua { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--liki-primary); font-size: 24px; color: var(--liki-primary); background: var(--liki-primary-tint); }
 .mg-name { font-size: 15px; font-weight: 600; }
 .mg-wuxing { font-size: 13px; color: var(--liki-text-2); margin-top: 2px; }
 .dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .dir { border: 1px solid var(--liki-line); border-radius: 6px; padding: 10px; text-align: center; }
-.dir .dg { font-size: 16px; color: var(--liki-gold); }
+.dir .dg { font-size: 16px; color: var(--liki-primary); }
 .dir.good { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
 .dir.good .dg { color: var(--liki-primary); }
 .dir .dname { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
 .ln-row { font-size: 13px; color: var(--liki-text-2); margin-bottom: 10px; }
 .fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; width: min(240px, 100%); }
 .fly-cell { background: var(--liki-surface); padding: 8px 4px; text-align: center; }
-.fly-cell.center { background: var(--liki-gold-tint); }
-.fly-cell.ru_zhong { border: 2px solid var(--liki-gold); background: var(--liki-gold-tint); }
+.fly-cell.center { background: var(--liki-primary-tint); }
+.fly-cell.ru_zhong { border: 2px solid var(--liki-primary); background: var(--liki-primary-tint); }
 .fly-name { font-size: 12px; color: var(--liki-text-2); }
 .fly-wuxing { font-size: 11px; color: var(--liki-text-3); margin-top: 2px; }
 @media (max-width: 640px) { .dirs { grid-template-columns: repeat(2, 1fr); } }

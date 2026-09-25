@@ -22,7 +22,7 @@ defineProps<{ phase: string }>()
   height: 6px;
   margin-right: 6px;
   border-radius: 50%;
-  background: var(--liki-gold);
+  background: var(--liki-primary);
   animation: pulse 1.2s var(--liki-ease) infinite;
 }
 @keyframes pulse {

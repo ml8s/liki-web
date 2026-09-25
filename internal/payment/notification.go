@@ -1,10 +1,14 @@
 package payment
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"html/template"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,6 +50,173 @@ var ErrNotificationNotFound = errors.New("payment: notification not found")
 
 type NotificationStore struct {
 	db *sql.DB
+}
+
+type paidOrderNotice struct {
+	Locale          string
+	ProductName     string
+	OrderID         string
+	PaymentIntentID string
+	CustomerEmail   string
+	Amount          string
+	Provider        string
+	PaidAt          string
+	ContinueURL     string
+}
+
+var customerReceiptTemplate = template.Must(template.New("customer_receipt").Parse(
+	`<p>付款已完成，正在为你开通 {{.ProductName}}。</p>
+<p>订单号：{{.OrderID}}<br>
+金额：{{.Amount}}<br>
+支付时间：{{.PaidAt}}</p>
+<p><a href="{{.ContinueURL}}">继续使用服务</a></p>`))
+
+var customerReceiptTemplateHant = template.Must(template.New("customer_receipt_hant").Parse(
+	`<p>付款已完成，正在為你開通 {{.ProductName}}。</p>
+<p>訂單號：{{.OrderID}}<br>
+金額：{{.Amount}}<br>
+支付時間：{{.PaidAt}}</p>
+<p><a href="{{.ContinueURL}}">繼續使用服務</a></p>`))
+
+var customerReceiptTemplateEn = template.Must(template.New("customer_receipt_en").Parse(
+	`<p>Payment received. We are preparing access to {{.ProductName}}.</p>
+<p>Order: {{.OrderID}}<br>
+Amount: {{.Amount}}<br>
+Paid at: {{.PaidAt}}</p>
+<p><a href="{{.ContinueURL}}">Continue</a></p>`))
+
+var customerReceiptSubjects = map[string]string{
+	"zh-Hans": "订单确认 — ",
+	"zh-Hant": "訂單確認 — ",
+	"en":      "Order confirmation — ",
+}
+
+var adminNewOrderTemplate = template.Must(template.New("admin_new_order").Parse(
+	`<p>新订单已支付。</p>
+<p>产品：{{.ProductName}}<br>
+订单号：{{.OrderID}}<br>
+Payment Intent：{{.PaymentIntentID}}<br>
+用户邮箱：{{.CustomerEmail}}<br>
+金额：{{.Amount}}<br>
+支付方式：{{.Provider}}<br>
+支付时间：{{.PaidAt}}</p>`))
+
+func newPaidOrderNotice(intent PaymentIntent, flow ProductFlow, baseURL string) paidOrderNotice {
+	paidAt := time.Now().UTC()
+	if intent.PaidAt != nil {
+		paidAt = intent.PaidAt.UTC()
+	}
+	return paidOrderNotice{
+		ProductName:     flow.DisplayName(notificationLocale(intent.Locale)),
+		OrderID:         intent.BusinessOrderID,
+		PaymentIntentID: intent.ID,
+		CustomerEmail:   intent.Email,
+		Amount:          formatMinorAmount(intent.AmountMinor, intent.Currency),
+		Provider:        providerDisplayName(intent.Provider),
+		PaidAt:          paidAt.Format("2006-01-02 15:04:05 MST"),
+		ContinueURL:     absoluteNotificationURL(baseURL, flow.SuccessRedirect(intent)),
+		Locale:          notificationLocale(intent.Locale),
+	}
+}
+
+// absoluteNotificationURL turns a product flow's HTTP redirect into an email-
+// safe absolute URL. SuccessRedirect intentionally remains relative for HTTP.
+func absoluteNotificationURL(baseURL, location string) string {
+	if location == "" {
+		return strings.TrimSpace(baseURL)
+	}
+	reference, err := url.Parse(location)
+	if err != nil {
+		return location
+	}
+	if reference.IsAbs() {
+		return reference.String()
+	}
+	base, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || base.String() == "" {
+		return location
+	}
+	return base.ResolveReference(reference).String()
+}
+
+func formatMinorAmount(amountMinor int64, currency string) string {
+	units := amountMinor / 100
+	cents := amountMinor % 100
+	switch currency {
+	case "CNY":
+		return fmt.Sprintf("¥%d.%02d", units, cents)
+	case "USD":
+		return fmt.Sprintf("$%d.%02d", units, cents)
+	default:
+		return fmt.Sprintf("%s %d.%02d", currency, units, cents)
+	}
+}
+
+func providerDisplayName(provider Provider) string {
+	switch provider {
+	case ProviderDodo:
+		return "Dodo"
+	case ProviderXunhu:
+		return "XunHuPay"
+	default:
+		return string(provider)
+	}
+}
+
+func notificationLocale(locale string) string {
+	switch strings.ToLower(strings.TrimSpace(locale)) {
+	case "en", "en-us", "en-gb":
+		return "en"
+	case "zh-hans", "zh-cn", "zh-sg":
+		return "zh-Hans"
+	default:
+		return "zh-Hant"
+	}
+}
+
+// NotificationLocale normalizes a payment locale for localized receipts.
+// Exported so product flows can render product names with the same rule.
+func NotificationLocale(locale string) string {
+	return notificationLocale(locale)
+}
+
+func customerReceiptTemplateFor(locale string) *template.Template {
+	switch locale {
+	case "en":
+		return customerReceiptTemplateEn
+	case "zh-Hans":
+		return customerReceiptTemplate
+	default:
+		return customerReceiptTemplateHant
+	}
+}
+
+func buildCustomerReceipt(notice paidOrderNotice) (EmailMessage, error) {
+	var body bytes.Buffer
+	if err := customerReceiptTemplateFor(notice.Locale).Execute(&body, notice); err != nil {
+		return EmailMessage{}, err
+	}
+	subjectPrefix := customerReceiptSubjects[notice.Locale]
+	if subjectPrefix == "" {
+		subjectPrefix = customerReceiptSubjects["zh-Hant"]
+	}
+	return EmailMessage{
+		To:      notice.CustomerEmail,
+		Subject: subjectPrefix + notice.ProductName + " | liki.hk",
+		Body:    body.String(),
+	}, nil
+}
+
+func buildAdminNewOrder(notice paidOrderNotice, to string) (EmailMessage, error) {
+	var body bytes.Buffer
+	if err := adminNewOrderTemplate.Execute(&body, notice); err != nil {
+		return EmailMessage{}, err
+	}
+	return EmailMessage{
+		To:      to,
+		Subject: "新订单 — " + notice.ProductName,
+		Body:    body.String(),
+	}, nil
 }
 
 func NewNotificationStore(db *sql.DB) *NotificationStore { return &NotificationStore{db: db} }

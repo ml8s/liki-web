@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ml8s/liki-web/internal/httputil"
+
 	"golang.org/x/time/rate"
 )
 
@@ -85,6 +87,8 @@ type RateLimiter struct {
 	done     chan struct{}
 	stopOnce sync.Once
 }
+
+func clientIP(r *http.Request) string { return httputil.ClientIP(r) }
 
 func NewRateLimiter() *RateLimiter {
 	rl := &RateLimiter{

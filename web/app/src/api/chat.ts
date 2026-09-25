@@ -1,5 +1,11 @@
-import { get, post } from './http'
-import { streamRequest, type SSEError } from './sse'
+import { HttpAgent, type AgentSubscriber } from '@ag-ui/client'
+import { get, post, redirectToLogin } from './http'
+import { i18n } from '../i18n'
+
+export interface SSEError extends Error {
+  status?: number
+  code?: string
+}
 
 export type ChatStreamEventType = 'thinking' | 'phase' | 'thinking-delta' | 'text-delta' | 'error' | 'done'
 
@@ -65,26 +71,81 @@ export async function streamChatMessage(
   onEvent: (event: ChatStreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<SendMessageResult> {
-  let result: SendMessageResult | null = null
-  await streamRequest(
-    `/api/chat/sessions/${sessionId}/messages`,
-    { content },
-    (rawEvent: { type: string; content?: string; data?: unknown }) => {
-      const event = rawEvent as ChatStreamEvent
-      if (event.type === 'error') {
-        const error = new Error(event.content || '生成失败') as SSEError
-        error.code = 'generation_failed'
-        throw error
-      }
-      if (event.type === 'done') {
-        result = event.data as SendMessageResult
-      }
-      onEvent(event)
+  const messageId = `web-${crypto.randomUUID()}`
+  const agent = new HttpAgent({
+    url: `/api/chat/sessions/${sessionId}/ag-ui`,
+    threadId: sessionId,
+    initialMessages: [{ id: messageId, role: 'user', content }],
+    fetch: agentFetch,
+  })
+  const abort = () => agent.abortRun()
+  signal?.addEventListener('abort', abort, { once: true })
+
+  let failure: SSEError | null = null
+  let completed: SendMessageResult | null = null
+  const subscriber: AgentSubscriber = {
+    onCustomEvent({ event }) {
+      const type = event.name === 'liki.thinking' ? 'thinking-delta' : 'phase'
+      onEvent({ type, content: typeof event.value === 'string' ? event.value : undefined })
     },
-    signal,
-  )
-  if (!result) {
-    throw new Error('流式响应缺少完成事件')
+    onTextMessageContentEvent({ event }) {
+      onEvent({ type: 'text-delta', content: event.delta })
+    },
+    onRunErrorEvent({ event }) {
+      failure = makeStreamError(event.message || 'Generation failed', 'generation_failed')
+    },
+    onRunFinishedEvent(params) {
+      if (params.outcome !== 'success') {
+        failure = makeStreamError('Generation canceled', 'generation_cancelled')
+        return
+      }
+      completed = params.result as SendMessageResult
+    },
   }
-  return result
+
+  try {
+    const run = await agent.runAgent({
+      runId: crypto.randomUUID(),
+      forwardedProps: { locale: i18n.global.locale.value },
+    }, subscriber)
+    if (failure) throw failure
+    const payload = (completed ?? run.result) as SendMessageResult | undefined
+    if (!payload?.session || !payload.user_message || !payload.assistant_message) {
+      throw makeStreamError('Generation stream ended without a final result', 'missing_result')
+    }
+    return payload
+  } catch (cause) {
+    if (cause instanceof Error && cause.name === 'AbortError') throw cause
+    if (failure) throw failure
+    if (cause instanceof TypeError) {
+      throw makeStreamError('Network request failed', 'network_error', 0)
+    }
+    throw cause instanceof Error ? cause : makeStreamError('Generation failed', 'generation_failed')
+  } finally {
+    signal?.removeEventListener('abort', abort)
+  }
+}
+
+async function agentFetch(url: string, init: RequestInit): Promise<Response> {
+  let response: Response
+  try {
+    response = await fetch(url, { ...init, credentials: 'same-origin' })
+  } catch {
+    throw makeStreamError('Network request failed', 'network_error', 0)
+  }
+  if (response.ok) return response
+  if (response.status === 401) redirectToLogin()
+  const envelope = await response.json().catch(() => null) as { error?: { message?: string; code?: string } } | null
+  throw makeStreamError(
+    envelope?.error?.message ?? `HTTP ${response.status}`,
+    envelope?.error?.code ?? 'request_failed',
+    response.status,
+  )
+}
+
+function makeStreamError(message: string, code?: string, status?: number): SSEError {
+  const error = new Error(message) as SSEError
+  error.code = code
+  error.status = status
+  return error
 }

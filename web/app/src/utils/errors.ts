@@ -1,17 +1,23 @@
-// 统一的用户可见错误消息层：
-//  - 中文消息（后端 ApiError、自定义错误、引擎错误）直接展示
-//  - 网络异常（Failed to fetch / NetworkError）→ 友好提示
-//  - 其他技术性错误（Unexpected token 等）→ 不回显原始 message，降级回退
-const CJK = /[\u4e00-\u9fff]/
+// 统一的用户可见错误消息层。用户提示只来自 locale 资源；
+// 后端/引擎 message 是诊断信息，不直接回显，避免语言漂移。
+import { i18n } from '@/i18n'
+
+function t(key: string): string {
+  return i18n.global.t(key)
+}
 
 export function toUserMessage(error: unknown, fallback: string): string {
+  const code = error instanceof Error && 'code' in error ?
+    String((error as Error & { code?: unknown }).code ?? '') : ''
+  if (code) {
+    const key = `errors.code.${code}`
+    const translated = i18n.global.te(key) ? i18n.global.t(key) : ''
+    if (translated) return translated
+  }
   if (error instanceof Error) {
     const message = error.message?.trim()
-    if (message) {
-      if (CJK.test(message)) return message
-      if (error.name === 'TypeError' || error.name === 'NetworkError') {
-        return '网络连接失败，请检查网络后重试'
-      }
+    if (message && (error.name === 'TypeError' || error.name === 'NetworkError')) {
+      return t('errors.network')
     }
   }
   return fallback
@@ -19,5 +25,5 @@ export function toUserMessage(error: unknown, fallback: string): string {
 
 /** 统一的 store 错误消息函数，内部委托 toUserMessage。 */
 export function errorMessage(error: unknown): string {
-  return toUserMessage(error, '请求失败')
+  return toUserMessage(error, t('errors.requestFailed'))
 }

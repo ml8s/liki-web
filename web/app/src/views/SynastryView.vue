@@ -1,44 +1,44 @@
 <template>
   <section class="service-view">
-    <AppPageHeader title="合盘" subtitle="用你的档案与对方信息，查看两人的八字合盘。" />
+    <AppPageHeader :title="$t('services.bond.title')" :subtitle="$t('services.bond.subtitle')" />
 
-    <AppAlert v-if="error" :title="error" type="error" />
+    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
 
-    <el-card class="block" shadow="never">
-      <template #header><span class="card-title">第一步 · 选择档案（你或对方）</span></template>
-      <el-select v-model="profileAId" aria-label="选择档案" placeholder="选择档案" style="width: 100%" @change="profileAId && loadA()">
+    <el-card class="app-card" shadow="never">
+      <template #header><h2 class="app-card__title">{{ $t('services.bond.step1') }}</h2></template>
+      <el-select v-model="profileAId" :aria-label="$t('chat.selectProfile')" :placeholder="$t('chat.selectProfile')" style="width: 100%" @change="profileAId && loadA()">
         <el-option v-for="p in profiles.list" :key="p.id" :value="p.id" :label="p.nickname" />
       </el-select>
-      <p v-if="!profiles.list.length" class="hint">还没有档案，先<a href="/app/profiles/new">建立档案</a>再合盘。</p>
+      <p v-if="!profiles.list.length" class="hint">{{ $t('services.bond.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.bond.noProfileSuffix') }}</p>
     </el-card>
 
-    <el-card class="block" shadow="never">
-      <template #header><span class="card-title">第二步 · 输入对方信息</span></template>
-      <el-form label-position="top" class="b-form">
+    <el-card class="app-card" shadow="never">
+      <template #header><h2 class="app-card__title">{{ $t('services.bond.step2') }}</h2></template>
+      <el-form label-position="top" class="b-form" @submit.prevent="compute">
         <div class="row">
-          <el-form-item label="性别">
+          <el-form-item :label="$t('profiles.form.gender')">
             <el-radio-group v-model="b.gender">
-              <el-radio-button value="female">女</el-radio-button>
-              <el-radio-button value="male">男</el-radio-button>
+              <el-radio-button value="female">{{ $t('profiles.female') }}</el-radio-button>
+              <el-radio-button value="male">{{ $t('profiles.male') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
-          <el-form-item label="出生日期">
-            <el-date-picker v-model="b.birth_date" type="date" value-format="YYYY-MM-DD" placeholder="选择日期" style="width: 100%" />
+          <el-form-item :label="$t('profiles.form.birthDate')">
+            <el-date-picker v-model="b.birth_date" type="date" value-format="YYYY-MM-DD" :placeholder="$t('profiles.form.selectDate')" style="width: 100%" />
           </el-form-item>
-          <el-form-item label="出生时间">
-            <el-time-picker v-model="b.birth_time" format="HH:mm" value-format="HH:mm" placeholder="如 06:00" style="width: 100%" />
+          <el-form-item :label="$t('profiles.form.birthTime')">
+            <el-time-picker v-model="b.birth_time" format="HH:mm" value-format="HH:mm" :placeholder="$t('profiles.form.timePlaceholder')" style="width: 100%" />
           </el-form-item>
-          <el-form-item label="出生地（可选）">
-            <el-input v-model="b.birth_place" placeholder="用于真太阳时修正，如：上海" />
+          <el-form-item :label="$t('services.bond.birthPlaceOptional')">
+            <el-input v-model="b.birth_place" :placeholder="$t('services.bond.birthPlacePlaceholder')" />
           </el-form-item>
         </div>
+        <el-button type="primary" native-type="submit" :loading="loading" :disabled="!profileAId || !b.birth_date || !b.birth_time">{{ $t('services.bond.compute') }}</el-button>
       </el-form>
-      <el-button type="primary" :loading="loading" :disabled="!profileAId || !b.birth_date || !b.birth_time" @click="compute">合盘</el-button>
     </el-card>
 
     <template v-if="result">
-      <el-card class="block pan" shadow="never">
-        <template #header><span class="card-title">合盘结果</span></template>
+      <el-card class="app-card app-card--highlight" shadow="never">
+        <template #header><h2 class="app-card__title">{{ $t('services.bond.result') }}</h2></template>
 
         <div class="charts">
           <div class="chart-row">
@@ -52,7 +52,7 @@
             </div>
           </div>
           <div class="chart-row">
-            <div class="person">对方</div>
+            <div class="person">{{ $t('services.bond.otherPerson') }}</div>
             <div class="pillars">
               <div v-for="p in pillarsB" :key="p.label" class="pillar">
                 <div class="pl">{{ p.label }}</div>
@@ -64,46 +64,49 @@
         </div>
 
         <div v-if="dayMasterRel" class="rel-sec">
-          <div class="sec-title">日主关系</div>
+          <div class="sec-title">{{ $t('services.bond.dayMasterRelation') }}</div>
           <div class="rel-text">{{ dayMasterRel }}</div>
         </div>
 
         <div v-if="keyRels.length" class="rel-sec">
-          <div class="sec-title">关键地支关系</div>
+          <div class="sec-title">{{ $t('services.bond.keyEarthlyBranches') }}</div>
           <div class="rels">
             <span v-for="r in keyRels" :key="r" class="rel-chip">{{ r }}</span>
           </div>
         </div>
 
         <div v-if="nayinRels.length" class="rel-sec">
-          <div class="sec-title">纳音关系</div>
+          <div class="sec-title">{{ $t('services.bond.nayinRelation') }}</div>
           <div class="rels">
             <span v-for="r in nayinRels" :key="r" class="rel-chip nayin">{{ r }}</span>
           </div>
         </div>
 
         <div v-if="shenshaRels.length" class="rel-sec">
-          <div class="sec-title">神煞互看</div>
+          <div class="sec-title">{{ $t('services.bond.shenShaCross') }}</div>
           <div class="rels">
             <span v-for="r in shenshaRels" :key="r" class="rel-chip shensha">{{ r }}</span>
           </div>
         </div>
 
         <div v-if="shiShenRows.length" class="rel-sec">
-          <div class="sec-title">十神互看</div>
+          <div class="sec-title">{{ $t('services.bond.shiShenCross') }}</div>
           <div class="rels">
             <span v-for="r in shiShenRows" :key="r" class="rel-chip">{{ r }}</span>
           </div>
         </div>
       </el-card>
 
-      <el-card class="block" shadow="never">
-        <template #header><span class="card-title">合盘解读</span></template>
-        <p v-if="purchased" class="hint">开启对话，由命理顾问为你解读两人的合盘。</p>
-        <p v-else class="hint">解锁 Liki Chat 后可获得专业合盘解读。</p>
-        <el-button v-if="purchased" type="primary" size="large" @click="startInterpretation">开始合盘解读</el-button>
-        <el-button v-else type="primary" size="large" @click="router.push('/chat')">解锁 Chat</el-button>
-      </el-card>
+      <AppConsultationCard
+        :title="$t('services.bond.consultationTitle')"
+        :description="$t('services.bond.consultationBody')"
+        :locked-description="$t('services.bond.lockedBody')"
+        :purchased="purchased"
+        :action-label="$t('services.bond.cta')"
+        :locked-action-label="$t('commerce.activateNow')"
+        to="/chat"
+        @action="startInterpretation"
+      />
     </template>
   </section>
 </template>
@@ -112,6 +115,7 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import {
   engineBaziBond,
@@ -119,10 +123,11 @@ import {
   type BaziChartData,
 } from '@/api/engine'
 import { baziChartFor } from '@/utils/paipan'
-import AppAlert from '@/components/app/AppAlert.vue'
+import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const { profiles, entitlements, chat } = useServiceView()
 
 interface SynastryInput { gender: string; birth_date: string; birth_time: string; birth_place: string }
@@ -137,13 +142,18 @@ const error = ref('')
 
 const purchased = computed(() => entitlements.allowedSkills.length > 0)
 const profileA = computed(() => profiles.list.find(p => p.id === profileAId.value) ?? null)
-const aName = computed(() => profileA.value?.nickname ?? '档案 A')
+const aName = computed(() => profileA.value?.nickname ?? t('services.bond.profileA'))
 
-const PILLAR_LABELS = ['年柱', '月柱', '日柱', '时柱']
+const PILLAR_LABELS = computed(() => [
+  t('profiles.chart.pillar.year'),
+  t('profiles.chart.pillar.month'),
+  t('profiles.chart.pillar.day'),
+  t('profiles.chart.pillar.hour'),
+])
 function pillarsOf(chart: BaziChartData | null) {
   if (!chart) return []
   const list = [chart.nian, chart.yue, chart.ri, chart.shi]
-  return PILLAR_LABELS.map((label, i) => ({
+    return PILLAR_LABELS.value.map((label, i) => ({
     label,
     gan: list[i]?.gan ?? '',
     zhi: list[i]?.zhi ?? '',
@@ -161,7 +171,7 @@ async function loadA() {
     if (!p) return
     chartA.value = await baziChartFor(p)
   } catch (err) {
-    error.value = toUserMessage(err, '读取档案失败')
+    error.value = toUserMessage(err, t('profiles.detail.loadFailed'))
   }
 }
 
@@ -171,7 +181,7 @@ async function compute() {
   bChart.value = null
   if (!profileAId.value) return
   if (!b.value.birth_date || !b.value.birth_time) {
-    error.value = '请填写对方的出生日期与时间'
+    error.value = t('services.bond.birthRequired')
     return
   }
   loading.value = true
@@ -181,13 +191,18 @@ async function compute() {
     bChart.value = await baziChartFor({ gender: b.value.gender, birth_date: b.value.birth_date, birth_time: b.value.birth_time, birth_time_known: 'known', birth_place: b.value.birth_place })
     result.value = await engineBaziBond(chartA.value, bChart.value)
   } catch (err) {
-    error.value = toUserMessage(err, '合盘失败')
+    error.value = toUserMessage(err, t('services.bond.failed'))
   } finally {
     loading.value = false
   }
 }
 
-const ZHU_LABELS: Record<string, string> = { nian: '年柱', yue: '月柱', ri: '日柱', shi: '时柱' }
+const ZHU_LABELS = computed<Record<string, string>>(() => ({
+  nian: t('profiles.chart.pillar.year'),
+  yue: t('profiles.chart.pillar.month'),
+  ri: t('profiles.chart.pillar.day'),
+  shi: t('profiles.chart.pillar.hour'),
+}))
 
 function relText(rel: { relation?: string; detail?: string; type?: string }): string {
   return rel.relation || rel.detail || rel.type || ''
@@ -197,7 +212,13 @@ const dayMasterRel = computed(() => {
   const pairs = result.value?.zhu_cross?.pairs ?? []
   const pair = pairs.find(p => p.jia_zhu === 'ri' && p.yi_zhu === 'ri')
   if (!pair) return ''
-  return `${aName.value} 日主 ${pair.jia_gan}${pair.jia_zhi} ↔ 对方日主 ${pair.yi_gan}${pair.yi_zhi} · 天干 ${relText(pair.gan_guan_xi)} · 地支 ${relText(pair.zhi_guan_xi)}`
+  return t('services.bond.dayMasterValue', {
+    a: aName.value,
+    aPillar: `${pair.jia_gan}${pair.jia_zhi}`,
+    bPillar: `${pair.yi_gan}${pair.yi_zhi}`,
+    gan: relText(pair.gan_guan_xi),
+    zhi: relText(pair.zhi_guan_xi),
+  })
 })
 
 const keyRels = computed(() => {
@@ -206,7 +227,7 @@ const keyRels = computed(() => {
   for (const p of pairs) {
     const t = relText(p.zhi_guan_xi)
     if (/六合|三合|六冲|六害|相刑/.test(t)) {
-      set.add(`${ZHU_LABELS[p.jia_zhu] ?? p.jia_zhu}·${p.jia_gan}${p.jia_zhi} — ${ZHU_LABELS[p.yi_zhu] ?? p.yi_zhu}·${p.yi_gan}${p.yi_zhi}：${t}`)
+      set.add(`${ZHU_LABELS.value[p.jia_zhu] ?? p.jia_zhu}·${p.jia_gan}${p.jia_zhi} — ${ZHU_LABELS.value[p.yi_zhu] ?? p.yi_zhu}·${p.yi_gan}${p.yi_zhi}：${t}`)
     }
   }
   return [...set].slice(0, 8)
@@ -215,7 +236,7 @@ const keyRels = computed(() => {
 const nayinRels = computed(() => {
   const pairs = result.value?.nayin_cross?.pairs ?? []
   return pairs.filter(p => p.relation && p.relation !== '无').map(p =>
-    `${ZHU_LABELS[p.jia_zhu] ?? p.jia_zhu}·${p.jia_na_yin} ↔ ${ZHU_LABELS[p.yi_zhu] ?? p.yi_zhu}·${p.yi_na_yin}：${p.relation}`
+    `${ZHU_LABELS.value[p.jia_zhu] ?? p.jia_zhu}·${p.jia_na_yin} ↔ ${ZHU_LABELS.value[p.yi_zhu] ?? p.yi_zhu}·${p.yi_na_yin}：${p.relation}`
   )
 })
 
@@ -224,8 +245,8 @@ const shenshaRels = computed(() => {
   if (!cross) return []
   const rows: string[] = []
   for (const [name, info] of Object.entries(cross)) {
-    if (info.jia_ru_yi) rows.push(`${aName.value}的${name}入对方命盘`)
-    if (info.yi_ru_jia) rows.push(`对方的${name}入${aName.value}命盘`)
+    if (info.jia_ru_yi) rows.push(t('services.bond.aStarIntoB', { name, a: aName.value }))
+    if (info.yi_ru_jia) rows.push(t('services.bond.bStarIntoA', { name, a: aName.value }))
   }
   return rows.slice(0, 10)
 })
@@ -234,13 +255,18 @@ const shiShenRows = computed(() => {
   const cross = result.value?.shi_shen_cross
   if (!cross) return []
   const rows: string[] = []
-  const short: Record<string, string> = { nian: '年', yue: '月', ri: '日', shi: '时' }
+  const short: Record<string, string> = {
+    nian: t('services.bond.pillarShort.year'),
+    yue: t('services.bond.pillarShort.month'),
+    ri: t('services.bond.pillarShort.day'),
+    shi: t('services.bond.pillarShort.hour'),
+  }
   for (const k of ['nian_gan', 'yue_gan', 'ri_gan', 'shi_gan']) {
     const a = cross.jia_dui_yi?.[k]
     const bb = cross.yi_dui_jia?.[k]
     const label = short[k.replace('_gan', '')] ?? k.replace('_gan', '')
-    if (a) rows.push(`${aName.value}${label}柱看对方：${a}`)
-    if (bb) rows.push(`对方${label}柱看${aName.value}：${bb}`)
+    if (a) rows.push(t('services.bond.aViewB', { a: aName.value, pillar: label, value: a }))
+    if (bb) rows.push(t('services.bond.bViewA', { a: aName.value, pillar: label, value: bb }))
   }
   return rows
 })
@@ -249,13 +275,18 @@ async function startInterpretation() {
   const p = profileA.value
   if (!p) return
   const bProfile = b.value
-  const bInfo = `${bProfile.gender === 'male' ? '男' : '女'}，公历 ${bProfile.birth_date} ${bProfile.birth_time}${bProfile.birth_place ? `，出生地 ${bProfile.birth_place}` : ''}`
-  chat.pendingIntent = `请为我（${p.nickname}）与对方做合盘解读。对方信息：${bInfo}。`
+  const bInfo = t('services.bond.otherProfileSummary', {
+    gender: bProfile.gender === 'male' ? t('profiles.male') : t('profiles.female'),
+    date: bProfile.birth_date,
+    time: bProfile.birth_time,
+    place: bProfile.birth_place ? t('services.bond.otherPlace', { place: bProfile.birth_place }) : '',
+  })
+  chat.pendingIntent = t('services.bond.intent', { a: p.nickname, info: bInfo })
   try {
     const session = await chat.ensureSession(p.id)
     if (session) void router.push(`/chat/${session.id}`)
   } catch (err) {
-    error.value = toUserMessage(err, '创建会话失败')
+    error.value = toUserMessage(err, t('chat.createFailed'))
   }
 }
 </script>
@@ -275,8 +306,8 @@ async function startInterpretation() {
 .rel-text { font-size: 14px; color: var(--liki-ink); }
 .rels { display: flex; flex-wrap: wrap; gap: 8px; }
 .rel-chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--liki-line); background: var(--liki-surface); font-size: 12px; color: var(--liki-text-2); }
-.rel-chip.nayin { border-color: var(--liki-gold-border, #c9a45e33); background: var(--liki-gold-tint); }
-.rel-chip.shensha { border-color: var(--liki-primary-border, #5f4bc222); background: var(--liki-primary-tint); }
+.rel-chip.nayin { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
+.rel-chip.shensha { border-color: var(--liki-primary-border, var(--liki-primary-border)); background: var(--liki-primary-tint); }
 @media (max-width: 640px) {
   .pillars { grid-template-columns: repeat(2, 1fr); }
   .chart-row { flex-direction: column; align-items: flex-start; gap: 6px; }

@@ -54,6 +54,12 @@ func TestFileServerServesAppSPAAndAssets(t *testing.T) {
 			if !strings.Contains(rec.Header().Get("Content-Type"), tt.contentype) {
 				t.Fatalf("content-type=%q", rec.Header().Get("Content-Type"))
 			}
+			if tt.path == "/app/assets/app.js" {
+				cache := rec.Header().Get("Cache-Control")
+				if cache != "public, max-age=31536000, immutable" {
+					t.Fatalf("asset cache-control = %q, want immutable one-year cache", cache)
+				}
+			}
 		})
 	}
 }

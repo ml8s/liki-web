@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 // OrderData is the order row returned by GetOrder.

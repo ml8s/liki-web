@@ -11,7 +11,7 @@ Migration owner: `internal/referral`
 A partner able to share `/r/{code}`.
 
 | Field | Meaning |
-|---|---|
+| --- | --- |
 | user_id | Unified `platform.db.users.id`; soft reference |
 | code | Public link token |
 | role | `kol` or `scout` |
@@ -20,28 +20,34 @@ A partner able to share `/r/{code}`.
 
 ### partner_roles
 
-Role capabilities are separate from the primary display role. A promoted KOL
-keeps a retired KOL capability for pending historical earnings, but cannot open
-the KOL console.
+Role capabilities are separate from the primary display role. KOL and Scout are
+independent roles, not levels; one role is never upgraded into the other. A
+historical role can be retired and then keeps only settlement capability for
+earnings that already exist.
 
 | Field | Meaning |
-|---|---|
+| --- | --- |
 | user_id | Unified `platform.db.users.id`; soft reference |
 | role | `kol` / `scout` |
 | status | `active` / `frozen` / `retired` |
 | started_at / ended_at | Role capability lifetime |
 
-Payout creation accepts `active` or `retired`; console access accepts only
-`active`.
+Payout creation and payout history accept `active` or `retired`. Partner
+dashboard access accepts only `active`, and a frozen partner cannot withdraw.
+Role applications require review and do not require product purchase.
+Settlement is a money-only view: balances and role-scoped payouts, without
+dashboard or recruiting data.
+
 ### referral_attributions
 
-First-touch attribution from a valid `/r/{code}` visit to a newly created account.
+Attribution from the latest valid `/r/{code}` visit before a newly created
+account is authenticated.
 
 One row per attributed user.
 
 ### referral_applications
 
-Scout applications.  
+KOL and Scout applications.
 Status: `pending`, `approved`, `rejected`.
 
 One pending application per user.
@@ -66,7 +72,7 @@ Scout entry; either can be refunded, locked into a payout, rejected, or marked
 paid without changing the other.
 
 | Status | Meaning |
-|---|---|
+| --- | --- |
 | pending | fulfillment succeeded, not withdrawn |
 | paid | included in a marked-paid payout |
 | voided | payment refunded or manually voided |
@@ -84,7 +90,7 @@ Status: `queued`, `running`, `succeeded`, `skipped`, `failed`.
 Partner withdrawal request.
 
 | Status | Meaning |
-|---|---|
+| --- | --- |
 | requested | created by partner; pending finance review |
 | approved | approved for manual payment |
 | rejected | rejected; commissions released |
@@ -113,7 +119,7 @@ Per-entry refund allocation ledger. `(entry_id, provider_refund_id)` is unique.
 Human finance queue for refunds against paid commission entries.
 
 | Field | Meaning |
-|---|---|
+| --- | --- |
 | provider_refund_id | Provider refund that caused the task |
 | entry_id | Commission entry requiring clawback |
 | amount_minor | Amount assigned for finance review |
@@ -124,7 +130,6 @@ Human finance queue for refunds against paid commission entries.
 
 `user_id`, `referrer_id`, `recruiter_id`, and `buyer_user_id` are soft references  
 to `platform.db.users.id`; no cross-database foreign keys are allowed.
-
 
 ## Migration notes
 
@@ -140,3 +145,4 @@ to `platform.db.users.id`; no cross-database foreign keys are allowed.
   payout adjustments, refund allocations and encrypted payout accounts.
 - `010_finance_tasks` creates an explicit queue for paid-entry refund clawback.
 - `011_finance_task_erasure` permits `user_erasure_review`; account erasure freezes partners, redacts payout accounts after settlement, and queues unpaid obligations for finance.
+- `012_application_roles` permits KOL and Scout applications and preserves all historical applications as Scout applications.

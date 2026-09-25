@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/metrics"
+	"github.com/ml8s/liki-web/internal/metrics"
 )
 
 func TestHandlerRequiresToken(t *testing.T) {
@@ -23,7 +23,8 @@ func TestHandlerRequiresToken(t *testing.T) {
 func TestHandlerReturnsCounters(t *testing.T) {
 	metrics.Default.Inc("test_total", map[string]string{"result": "ok"})
 	handler := metrics.Handler("secret")
-	req := httptest.NewRequest(http.MethodGet, "/metrics?token=secret", nil)
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req.Header.Set("Authorization", "Bearer secret")
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 	if rec.Code != http.StatusOK {
@@ -59,7 +60,8 @@ func TestRenderPrometheus(t *testing.T) {
 func TestHandlerPrometheusFormat(t *testing.T) {
 	metrics.Default.Inc("test_prom_total", map[string]string{"result": "ok"})
 	handler := metrics.Handler("secret")
-	req := httptest.NewRequest(http.MethodGet, "/metrics?token=secret&format=prometheus", nil)
+	req := httptest.NewRequest(http.MethodGet, "/metrics?format=prometheus", nil)
+	req.Header.Set("Authorization", "Bearer secret")
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 	if got := rec.Header().Get("Content-Type"); !strings.Contains(got, "text/plain") {

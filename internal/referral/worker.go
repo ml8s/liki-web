@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/metrics"
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/metrics"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 type IntakeStatus string
@@ -260,19 +260,34 @@ func (s *Store) settleIntake(ctx context.Context, item CommissionIntake) error {
 	if referrer.Status != PartnerActive || referrer.UserID == item.BuyerUserID {
 		return s.markIntakeSkipped(ctx, item.ID, "referrer_not_eligible")
 	}
+	if referrer.Role != RoleKOL && referrer.Role != RoleScout {
+		return s.markIntakeSkipped(ctx, item.ID, "referrer_role_not_eligible")
+	}
 
+	beneficiaryRole := RoleKOL
+	if referrer.Role == RoleScout {
+		beneficiaryRole = RoleScout
+	}
 	recruiterID, recruiterRate, recruiterAmount := "", 0, int64(0)
-	if referrer.RecruiterID != "" && referrer.RecruiterID != referrer.UserID {
-		recruiterID = referrer.RecruiterID
-		recruiterRate = RecruiterRateBPS
-		recruiterAmount = commission_parts(item.AmountMinor, recruiterRate)
+	if referrer.Role == RoleKOL && referrer.RecruiterID != "" &&
+		referrer.RecruiterID != referrer.UserID && referrer.RecruiterID != item.BuyerUserID {
+		scout, scoutErr := s.ScoutByID(ctx, referrer.RecruiterID)
+		if scoutErr != nil && !errors.Is(scoutErr, sql.ErrNoRows) {
+			return scoutErr
+		}
+		if scoutErr == nil && scout.Status == PartnerActive {
+			recruiterID = scout.UserID
+			recruiterRate = RecruiterRateBPS
+			recruiterAmount = commission_parts(item.AmountMinor, recruiterRate)
+		}
 	}
 	now := formatTime(s.nowFunc())
 	commission := Commission{
 		ID: s.idFunc(), PaymentProvider: item.Provider, PaymentIntentID: item.PaymentIntentID,
 		BusinessOrderID: item.BusinessOrderID, Product: item.Product, BuyerUserID: item.BuyerUserID,
 		ReferrerID: referrer.UserID, RecruiterID: recruiterID,
-		AmountMinor: item.AmountMinor, Currency: item.Currency,
+		BeneficiaryRole: beneficiaryRole,
+		AmountMinor:     item.AmountMinor, Currency: item.Currency,
 		ReferrerRateBPS: ReferrerRateBPS, ReferrerAmount: commission_parts(item.AmountMinor, ReferrerRateBPS),
 		RecruiterRateBPS: recruiterRate, RecruiterAmount: recruiterAmount,
 		Status: CommissionPending, CreatedAt: parseTime(now), UpdatedAt: parseTime(now),
@@ -316,8 +331,8 @@ ON CONFLICT(payment_provider,payment_intent_id) DO NOTHING`,
 
 func ensureCommissionEntriesTx(ctx context.Context, tx *sql.Tx, commission Commission, now string) error {
 	entries := []CommissionEntry{{
-		ID: commission.ID + ":kol", CommissionID: commission.ID,
-		BeneficiaryID: commission.ReferrerID, BeneficiaryRole: RoleKOL,
+		ID: commission.ID + ":" + string(commission.BeneficiaryRole), CommissionID: commission.ID,
+		BeneficiaryID: commission.ReferrerID, BeneficiaryRole: commission.BeneficiaryRole,
 		AmountMinor: commission.ReferrerAmount, Currency: commission.Currency,
 		Status: commission.Status, CreatedAt: commission.CreatedAt, UpdatedAt: commission.UpdatedAt,
 	}}

@@ -4,7 +4,7 @@ package naming
 import (
 	"net/http"
 
-	"liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/agent"
 )
 
 func RegisterRoutes(mux *http.ServeMux, store *Store, a *agent.Agent, rateLimitFn func(http.HandlerFunc) http.HandlerFunc) {

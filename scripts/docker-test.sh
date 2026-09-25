@@ -7,13 +7,15 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENGINE_DIR="${ENGINE_DIR:-$PROJECT_DIR/../liki/engine}"
-COMPOSE_FILE="$PROJECT_DIR/deploy/liki/docker-compose.test.yml"
-DEPLOY_DIR="$PROJECT_DIR/deploy/liki"
+DEV_DIR="$PROJECT_DIR/dev"
+COMPOSE_FILE="$DEV_DIR/docker-compose.yml"
+TEST_ENV_FILE="${LIKI_TEST_ENV_FILE:-/tmp/liki-web-e2e.env}"
+export LIKI_TEST_ENV_FILE="$TEST_ENV_FILE"
 
 CMD="${1:-up}"
 
 do_up() {
-  trap 'rm -f "$DEPLOY_DIR/.env"' EXIT
+  trap 'rm -f "$TEST_ENV_FILE"' EXIT
 
   # ── Build ──
   echo "==> 构建..."
@@ -46,36 +48,20 @@ do_up() {
   wait $PID_SKILLS $PID_ENGINE $PID_WEB
 
   echo "  → Docker images"
-  "$SCRIPT_DIR/build-docker.sh" --compose-file "$COMPOSE_FILE" 2>&1 | sed 's/^/    /'
+  docker compose -f "$COMPOSE_FILE" build engine web 2>&1 | sed 's/^/    /'
 
   # ── Start ──
   echo "==> 启动容器..."
 
-  # Populate web volume
-  TMP_WEB=$(mktemp -d)
-  cp -rL "$PROJECT_DIR/web/." "$TMP_WEB/"
-  BUILD_TS=$(date '+%s')
-  find "$TMP_WEB" -name '*.html' \
-    -exec sed -Ei "s|(src=\"[/]?js/[^\"?]*)(\?v=[^\"]*)?|\1?v=$BUILD_TS|g; s|(href=\"[/]?css/[^\"?]*)(\?v=[^\"]*)?|\1?v=$BUILD_TS|g" {} + \
-    -exec sed -i "s/BUILD_TIME_PLACEHOLDER/$BUILD_TIME/g" {} +
-  (cd "$TMP_WEB" && tar czf /tmp/liki-web-test.tar.gz .)
-  rm -rf "$TMP_WEB"
-
-  docker volume create liki-web_data 2>/dev/null || true
-  docker run --rm -i -v liki-web_data:/dest alpine sh -c \
-    "find /dest -mindepth 1 -delete 2>/dev/null; tar xzf - -C /dest" < /tmp/liki-web-test.tar.gz
-  rm -f /tmp/liki-web-test.tar.gz
-
-  # Ensure DB volume writable
-  docker volume create liki_data 2>/dev/null || true
-  docker run --rm -v liki_data:/data alpine chown 1000:1000 /data 2>/dev/null || true
-
-  # Write .env
-  /bin/grep -E '^(JWT_SECRET|REFERRAL_PAYOUT_SECRET|DEEPSEEK|LLM_|DODO_|XUNHU_|RESEND_|TENCENT_|EMAIL_|RETURN_URL|PAYMENTS_WEBHOOK_URL|ADMIN_)' "$PROJECT_DIR/.env" > "$DEPLOY_DIR/.env"
-  if ! grep -q '^REFERRAL_PAYOUT_SECRET=' "$DEPLOY_DIR/.env"; then
-    printf '\nREFERRAL_PAYOUT_SECRET=e2e-referral-payout-secret-0123456789abcdef\n' >> "$DEPLOY_DIR/.env"
-  fi
-  cat >> "$DEPLOY_DIR/.env" << 'EOF'
+  # E2E uses a self-contained environment. It must not inherit production
+  # provider credentials or depend on optional services on the developer host.
+  cat > "$TEST_ENV_FILE" << 'EOF'
+JWT_SECRET=e2e-jwt-secret-0123456789abcdefghijklmnop
+LIKI_LLM_API_KEY=e2e-dummy
+LIKI_LLM_MODEL=e2e-dummy
+XUNHU_APPID=e2e
+XUNHU_APPSECRET=e2e
+REFERRAL_PAYOUT_SECRET=e2e-referral-payout-secret-0123456789abcdef
 DOMAIN=localhost
 LISTEN_ADDR=:8081
 EOF
@@ -100,8 +86,8 @@ EOF
 do_down() {
   echo "==> 停止并清理..."
   cd "$PROJECT_DIR"
-  docker compose -f "$COMPOSE_FILE" down --volumes --timeout 5 2>/dev/null || true
-  rm -f "$DEPLOY_DIR/.env"
+  docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans --timeout 5 2>/dev/null || true
+  rm -f "$TEST_ENV_FILE"
 }
 
 case "$CMD" in

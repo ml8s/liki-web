@@ -11,6 +11,11 @@ import {
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useProfilesStore } from '@/stores/profiles'
 import { errorMessage } from '@/utils/errors'
+import { i18n } from '@/i18n'
+
+function t(key: string, values?: Record<string, unknown>): string {
+  return i18n.global.t(key, values ?? {})
+}
 
 let streamController: AbortController | null = null
 
@@ -60,10 +65,12 @@ export const useChatStore = defineStore('chat', {
       const entitlements = useEntitlementsStore()
       await entitlements.load()
       if (!entitlements.hasSkill(skill)) {
-        throw new Error('当前订单未开通该 skill')
+        throw new Error(t('chat.skillNotIncluded'))
       }
       const nickname = useProfilesStore().list.find(p => p.id === profileId)?.nickname ?? ''
-      const title = nickname ? `${nickname} · ${skillLabel(skill)}解读` : `${skillLabel(skill)}解读`
+      const title = nickname
+        ? t('chat.sessionTitleWithProfile', { nickname, skill: skillLabel(skill) })
+        : t('chat.sessionTitle', { skill: skillLabel(skill) })
       const session = await createChatSession(profileId, skill, title)
       this.sessions.unshift(session)
       return session
@@ -97,7 +104,7 @@ export const useChatStore = defineStore('chat', {
       if (!session || !message || this.sending) return
       this.sending = true
       this.error = ''
-      this.phase = '思考中'
+      this.phase = t('chat.phase.thinking')
       streamController = new AbortController()
 
       const userId = localId()
@@ -136,7 +143,7 @@ export const useChatStore = defineStore('chat', {
       try {
         const result = await streamChatMessage(session.id, message, event => {
           if (event.type === 'thinking') {
-            this.phase = this.phase || '思考中'
+            this.phase = this.phase || t('chat.phase.thinking')
             return
           }
           if (event.type === 'phase') {
@@ -182,7 +189,7 @@ export const useChatStore = defineStore('chat', {
           this.messages = await fetchChatMessages(session.id)
         } catch {
           // 保留本地消息，标记为失败状态
-          assistant.error = this.error || '发送失败'
+          assistant.error = this.error || t('chat.sendFailed')
         }
         if (aborted) return
       } finally {
@@ -211,9 +218,6 @@ export const useChatStore = defineStore('chat', {
 })
 
 export function skillLabel(skill: string): string {
-  const labels: Record<string, string> = {
-    // 会话标题为 `${label}解读`，故用「命理」而非「命理解读」。
-    'liki': '命理',
-  }
-  return labels[skill] ?? skill
+  // Session titles append “reading”; keep the skill label compact.
+  return skill === 'liki' ? i18n.global.t('services.skill.compact') : skill
 }

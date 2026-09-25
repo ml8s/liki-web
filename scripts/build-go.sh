@@ -27,7 +27,7 @@ cd "$PROJECT_DIR"
 
 # Defaults
 if [ -z "$VERSION" ]; then
-  VERSION=$(cat cmd/liki/VERSION 2>/dev/null || echo "dev")
+  VERSION=$(cat cmd/liki-web/VERSION 2>/dev/null || echo "dev")
 fi
 if [ -z "$BUILD_TIME" ]; then
   BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
@@ -38,4 +38,4 @@ export CGO_ENABLED=0
 [ -n "$GOARCH" ] && export GOARCH
 
 echo "[build-go] $OUTPUT (version=$VERSION, build=$BUILD_TIME)"
-go build -ldflags="-s -w -X main.BuildTime=$BUILD_TIME -X main.Version=$VERSION" -o "$OUTPUT" ./cmd/liki/
+go build -ldflags="-s -w -X main.BuildTime=$BUILD_TIME -X main.Version=$VERSION" -o "$OUTPUT" ./cmd/liki-web/

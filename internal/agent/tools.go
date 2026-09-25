@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/llm"
 )
 
 const rpcDiscover = "rpc.discover"

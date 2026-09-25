@@ -3,7 +3,7 @@ package xunhu
 import (
 	"context"
 	"encoding/json"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 func TestSign(t *testing.T) {

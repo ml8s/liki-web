@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 func TestCommissionIntakeSkipsIneligiblePayments(t *testing.T) {
@@ -24,19 +24,19 @@ func TestCommissionIntakeSkipsIneligiblePayments(t *testing.T) {
 func TestCommissionWorkerSettlesDodoAndXunhuExactlyOnce(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
-	kol, err := store.RegisterReferrer(ctx, "kol")
+	recruiter, err := store.CreateScoutPartner(ctx, "recruiter", "admin", "standalone scout")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.RegisterReferrer(ctx, "recruiter"); err != nil {
+	if _, err := store.Attribute(ctx, "kol", recruiter.Code); err != nil {
 		t.Fatal(err)
 	}
-	recruiter, err := store.ReferrerByUser(ctx, "recruiter")
+	kol, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.db.Exec(`UPDATE referrers SET recruiter_id=? WHERE user_id=?`, recruiter.UserID, "kol"); err != nil {
-		t.Fatal(err)
+	if kol.RecruiterID != recruiter.UserID {
+		t.Fatalf("recruiter = %q, want %q", kol.RecruiterID, recruiter.UserID)
 	}
 	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
 		t.Fatal(err)
@@ -86,7 +86,7 @@ func TestCommissionWorkerSettlesDodoAndXunhuExactlyOnce(t *testing.T) {
 func TestReconcileSuccessfulPaymentsCompensatesAttributionRace(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
-	kol, err := store.RegisterReferrer(ctx, "kol")
+	kol, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ INSERT INTO fulfillment_tasks VALUES ('pi-reconcile','succeeded');`); err != nil
 func TestVoidCommissionForIntent(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
-	kol, err := store.RegisterReferrer(ctx, "kol")
+	kol, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}

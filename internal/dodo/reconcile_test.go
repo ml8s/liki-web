@@ -3,7 +3,7 @@ package dodo
 import (
 	"context"
 	"encoding/json"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,7 +12,7 @@ import (
 	dodopayments "github.com/dodopayments/dodopayments-go"
 	"github.com/dodopayments/dodopayments-go/option"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 func writeJSON(t *testing.T, w http.ResponseWriter, value any) {

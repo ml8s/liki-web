@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/agent"
-	"liki-web/internal/httputil"
-	"liki-web/internal/llm"
-	"liki-web/internal/naming"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 func setupNamingHandler(t *testing.T, store *naming.Store) http.HandlerFunc {

@@ -1,24 +1,28 @@
 <template>
   <aside class="app-sidebar">
-    <router-link to="/" class="side-brand font-serif">Liki<em>·</em>命理</router-link>
-    <div class="side-slogan font-serif">懂命理，用 Liki</div>
+    <router-link to="/" class="side-brand font-serif">Liki<em>·</em>{{ $t('auth.brandTail') }}</router-link>
+    <div class="side-slogan font-serif">{{ $t('auth.slogan') }}</div>
 
     <nav class="side-nav">
       <div class="nav-group">
-        <router-link to="/" exact-active-class="on">工作台</router-link>
-        <router-link to="/profiles" active-class="on">档案</router-link>
-        <router-link to="/chat" active-class="on">Chat</router-link>
+        <router-link to="/" exact-active-class="on">{{ $t('nav.workspace') }}</router-link>
+        <router-link to="/profiles" active-class="on">{{ $t('nav.profiles') }}</router-link>
+        <router-link to="/chat" active-class="on">{{ $t('nav.chat') }}</router-link>
       </div>
       <div class="nav-group nav-group-secondary">
-        <div class="nav-label">账户</div>
-        <router-link to="/orders" active-class="on">订单</router-link>
-        <router-link to="/account" active-class="on">账户设置</router-link>
+        <div class="nav-label">{{ $t('nav.account') }}</div>
+        <router-link to="/orders" active-class="on">{{ $t('nav.orders') }}</router-link>
+        <router-link to="/account" active-class="on">{{ $t('nav.account') }}</router-link>
+      </div>
+      <div class="nav-group nav-group-secondary">
+        <div class="nav-label">{{ $t('nav.partner') }}</div>
+        <router-link to="/partners" exact-active-class="on">{{ $t('nav.partner') }}</router-link>
       </div>
     </nav>
 
     <div class="side-user">
       <span class="email">{{ email }}</span>
-      <el-button size="small" plain @click="$emit('logout')">退出</el-button>
+      <el-button size="small" plain @click="$emit('logout')">{{ $t('nav.logout') }}</el-button>
     </div>
   </aside>
 </template>
@@ -41,7 +45,7 @@ defineEmits<{ logout: [] }>()
   z-index: 50;
 }
 .side-brand { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #fff; text-decoration: none; }
-.side-brand em { color: var(--liki-gold); font-style: normal; }
+.side-brand em { color: var(--liki-primary); font-style: normal; }
 .side-slogan { font-size: 12px; color: #c0c5cc; margin: 6px 0 24px; }
 .side-nav { display: flex; flex-direction: column; gap: 20px; flex: 1; }
 .nav-group { display: flex; flex-direction: column; gap: 4px; }
@@ -61,7 +65,7 @@ defineEmits<{ logout: [] }>()
   left: 0; top: 8px; bottom: 8px;
   width: 2px;
   border-radius: 2px;
-  background: var(--liki-gold);
+  background: var(--liki-primary);
 }
 .side-user { border-top: 1px solid rgba(255,255,255,.12); padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .email { font-size: 13px; opacity: .85; word-break: break-all; }

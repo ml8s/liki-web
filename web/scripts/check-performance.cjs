@@ -43,7 +43,7 @@ function checkFile(file) {
   }
 }
 
-['kol.html', 'scout.html', 'admin.html'].forEach(checkFile);
+['admin.html'].forEach(checkFile);
 
 const budgets = [
   ['tokens.css', 5 * 1024],

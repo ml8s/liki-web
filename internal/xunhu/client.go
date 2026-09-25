@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 const (

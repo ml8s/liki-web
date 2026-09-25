@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/llm"
 )
 
 // ToolScope is the explicit authority granted to one chat skill. Exact names
-// cover built-in and Python tools; prefixes cover engine domain methods.
+// cover built-in tools; prefixes cover engine domain methods.
 type ToolScope struct {
 	Exact    []string
 	Prefixes []string
@@ -18,21 +18,15 @@ type ToolScope struct {
 
 // SkillToolScopes are the backend security boundary for unified chat. The LLM
 // neither chooses its authority nor sees schemas outside the active skill. The
-// unified "liki" scope is the union of the four domains (八字/起名/问卦/风水);
+// unified "liki" scope is the union of the four domains (本命/起名/问卦/风水);
 // domain routing happens in the prompt, not by widening authority per turn.
 var SkillToolScopes = map[string]ToolScope{
 	"liki": {
 		Exact: []string{
 			"read_file", "update_profile_birth_time",
-			// naming (direct RPC)
-			"bazi.chart", "bazi.fullchart", "city.coords", "tianwen.time",
+			// naming RPC methods without a domain prefix
+			"city.coords",
 			"qiming.surname", "qiming.pick", "qiming.compose", "qiming.check", "qiming.char",
-			// bazi (python tool layer)
-			"city_coords", "full_paipan", "query", "yearly_range", "calibrate", "bond",
-			// divination (python tool layer)
-			"liuyao_snapshot", "liuyao_ask", "qimen_snapshot", "qimen_ask", "huangli_days",
-			// fengshui (direct RPC)
-			"time.now",
 		},
 		Prefixes: []string{
 			"bazi.", "ziwei.", "liuyao.", "qimen.", "huangli.", "tianwen.", "bazhai.", "xuankong.",

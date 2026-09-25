@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 )
 
 var (
@@ -15,25 +14,36 @@ var (
 	ErrApplicationNotFound   = errors.New("referral: application not found")
 	ErrPartnerNotFound       = errors.New("referral: partner not found")
 	ErrInvalidPartnerStatus  = errors.New("referral: invalid partner status")
+	ErrInvalidApplication    = errors.New("referral: invalid partner application")
+	ErrAlreadyKOL            = errors.New("referral: user is already a KOL")
+	ErrAlreadyScout          = errors.New("referral: user is already a scout")
+	ErrRoleConflict          = errors.New("referral: KOL and Scout roles are separate")
 )
 
-func (s *Store) SubmitScoutApplication(ctx context.Context, userID, note string) (PartnerApplication, error) {
+// SubmitApplication records one of the two independent partner applications.
+// Product consumption is never a paid entry ticket: eligibility is assessed by
+// programme review, not by whether the applicant has purchased Liki Chat.
+func (s *Store) SubmitApplication(ctx context.Context, role PartnerRole, userID, note string) (PartnerApplication, error) {
 	userID = strings.TrimSpace(userID)
 	note = strings.TrimSpace(note)
-	if note == "" {
-		note = "no note"
+	role = normalizeRole(role)
+	if userID == "" || (role != RoleKOL && role != RoleScout) {
+		return PartnerApplication{}, ErrInvalidApplication
 	}
-	referrer, err := s.ReferrerByUser(ctx, userID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return PartnerApplication{}, ErrNotEligible
+	primary, err := s.ReferrerByUser(ctx, userID)
+	if err == nil {
+		if primary.Role == role {
+			if role == RoleKOL {
+				return PartnerApplication{}, ErrAlreadyKOL
+			}
+			return PartnerApplication{}, ErrAlreadyScout
 		}
+		return PartnerApplication{}, ErrRoleConflict
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
 		return PartnerApplication{}, err
 	}
-	if referrer.Status != PartnerActive {
-		return PartnerApplication{}, ErrNotEligible
-	}
-	if _, err := s.PendingApplicationByUser(ctx, userID); err == nil {
+	if _, err = s.PendingApplicationByUser(ctx, userID); err == nil {
 		return PartnerApplication{}, ErrApplicationPending
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return PartnerApplication{}, err
@@ -41,26 +51,24 @@ func (s *Store) SubmitScoutApplication(ctx context.Context, userID, note string)
 
 	now := formatTime(s.nowFunc())
 	id := s.idFunc()
-	_, err = s.db.ExecContext(ctx, `
+	if _, err := s.db.ExecContext(ctx, `
 INSERT INTO referral_applications
 (id,user_id,type,status,note,created_at,updated_at)
-VALUES (?,?, 'scout',?,?,?,?)
+VALUES (?,?,?,?,?,?,?)
 ON CONFLICT(user_id) WHERE status='pending' DO NOTHING`,
-		id, userID, string(ApplicationPending), note, now, now)
+		id, userID, string(role), string(ApplicationPending), note, now, now); err != nil {
+		return PartnerApplication{}, err
+	}
+	item, err := s.ApplicationByID(ctx, id)
 	if err != nil {
 		return PartnerApplication{}, err
 	}
-	if item, err := s.PendingApplicationByUser(ctx, userID); err == nil {
-		return item, nil
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return PartnerApplication{}, err
-	}
-	return s.ApplicationByID(ctx, id)
+	return item, nil
 }
 
 func (s *Store) PendingApplicationByUser(ctx context.Context, userID string) (PartnerApplication, error) {
 	row := s.db.QueryRowContext(ctx, `
-SELECT a.id,a.user_id,COALESCE(r.code,''),a.status,a.note,
+SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
        COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
        a.created_at,a.reviewed_at
 FROM referral_applications a
@@ -69,9 +77,28 @@ WHERE a.user_id=? AND a.status=?`, userID, string(ApplicationPending))
 	return scanApplication(row.Scan)
 }
 
+func (s *Store) LatestApplicationByUser(ctx context.Context, userID string, role PartnerRole) (PartnerApplication, bool, error) {
+	row := s.db.QueryRowContext(ctx, `
+SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
+       COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
+       a.created_at,a.reviewed_at
+FROM referral_applications a
+LEFT JOIN referrers r ON r.user_id=a.user_id
+WHERE a.user_id=? AND a.type=?
+ORDER BY a.created_at DESC LIMIT 1`, userID, string(normalizeRole(role)))
+	item, err := scanApplication(row.Scan)
+	if errors.Is(err, sql.ErrNoRows) {
+		return PartnerApplication{}, false, nil
+	}
+	if err != nil {
+		return PartnerApplication{}, false, err
+	}
+	return item, true, nil
+}
+
 func (s *Store) ApplicationByID(ctx context.Context, id string) (PartnerApplication, error) {
 	row := s.db.QueryRowContext(ctx, `
-SELECT a.id,a.user_id,COALESCE(r.code,''),a.status,a.note,
+SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
        COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
        a.created_at,a.reviewed_at
 FROM referral_applications a
@@ -85,7 +112,7 @@ func scanApplication(scan func(dest ...any) error) (PartnerApplication, error) {
 	var status, createdAt string
 	var reviewer, decision sql.NullString
 	var reviewed sql.NullString
-	if err := scan(&item.ID, &item.UserID, &item.Code, &status, &item.Note,
+	if err := scan(&item.ID, &item.UserID, &item.Type, &item.Code, &status, &item.Note,
 		&reviewer, &decision, &createdAt, &reviewed); err != nil {
 		return PartnerApplication{}, err
 	}
@@ -100,20 +127,28 @@ func scanApplication(scan func(dest ...any) error) (PartnerApplication, error) {
 	return item, nil
 }
 
-func (s *Store) ListApplications(ctx context.Context, status ApplicationStatus, limit int) ([]PartnerApplication, error) {
+func (s *Store) ListApplications(ctx context.Context, status ApplicationStatus, role PartnerRole, limit int) ([]PartnerApplication, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 100
 	}
 	query := `
-SELECT a.id,a.user_id,COALESCE(r.code,''),a.status,a.note,
+SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
        COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
        a.created_at,a.reviewed_at
 FROM referral_applications a
 LEFT JOIN referrers r ON r.user_id=a.user_id`
 	args := []any{}
+	clauses := make([]string, 0, 2)
 	if status != "" {
-		query += ` WHERE a.status=?`
+		clauses = append(clauses, `a.status=?`)
 		args = append(args, string(status))
+	}
+	if role = normalizeRole(role); role != "" {
+		clauses = append(clauses, `a.type=?`)
+		args = append(args, string(role))
+	}
+	if len(clauses) > 0 {
+		query += ` WHERE ` + strings.Join(clauses, ` AND `)
 	}
 	query += ` ORDER BY a.created_at DESC LIMIT ?`
 	args = append(args, limit)
@@ -215,9 +250,10 @@ func (s *Store) DecideApplication(ctx context.Context, applicationID, actor stri
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var userID, status string
+	var userID, applicationType, status string
 	err = tx.QueryRowContext(ctx, `
-SELECT user_id,status FROM referral_applications WHERE id=?`, applicationID).Scan(&userID, &status)
+SELECT user_id,type,status FROM referral_applications WHERE id=?`, applicationID).
+		Scan(&userID, &applicationType, &status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrApplicationNotFound
 	}
@@ -227,26 +263,16 @@ SELECT user_id,status FROM referral_applications WHERE id=?`, applicationID).Sca
 	if status != string(ApplicationPending) {
 		return ErrApplicationNotPending
 	}
+	role := normalizeRole(PartnerRole(applicationType))
+	if role != RoleKOL && role != RoleScout {
+		return ErrInvalidApplication
+	}
 
 	now := formatTime(s.nowFunc())
 	decision := ApplicationRejected
 	if approved {
 		decision = ApplicationApproved
-		res, err := tx.ExecContext(ctx, `
-UPDATE referrers SET role=?,updated_at=? WHERE user_id=? AND status='active'`,
-			string(RoleScout), now, userID)
-		if err != nil {
-			return err
-		}
-		if n, _ := res.RowsAffected(); n == 0 {
-			return ErrNotEligible
-		}
-		if _, err := tx.ExecContext(ctx, `
-INSERT INTO partner_roles (user_id,role,status,started_at,created_at,updated_at)
-VALUES (?,?,'active',?,?,?)
-ON CONFLICT(user_id,role) DO UPDATE SET
-  status='active',ended_at=NULL,updated_at=excluded.updated_at`,
-			userID, string(RoleScout), now, now, now); err != nil {
+		if err := ensurePartnerTx(ctx, tx, s, userID, role); err != nil {
 			return err
 		}
 	}
@@ -266,6 +292,75 @@ VALUES (?,?,?,?,?,?,?,?,?)`,
 		return err
 	}
 	return tx.Commit()
+}
+
+// ensurePartnerTx assigns one independent programme role. It never converts
+// the other role. A KOL approved through a Scout's public link keeps that
+// attribution so channel commission remains based on real recruitment.
+func ensurePartnerTx(ctx context.Context, tx *sql.Tx, s *Store, userID string, role PartnerRole) error {
+	var currentRole, currentStatus string
+	err := tx.QueryRowContext(ctx,
+		`SELECT role,status FROM referrers WHERE user_id=?`, userID,
+	).Scan(&currentRole, &currentStatus)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		recruiterID := ""
+		if role == RoleKOL {
+			var candidate string
+			err := tx.QueryRowContext(ctx, `
+SELECT r.user_id
+FROM referral_attributions a
+JOIN referrers r ON r.user_id=a.referrer_id
+JOIN partner_roles pr ON pr.user_id=r.user_id AND pr.role='scout' AND pr.status='active'
+WHERE a.user_id=? AND a.referrer_id<>?`, userID, userID).Scan(&candidate)
+			if err == nil {
+				recruiterID = candidate
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+		}
+		for range 5 {
+			code, codeErr := s.codeFunc()
+			if codeErr != nil {
+				return codeErr
+			}
+			now := formatTime(s.nowFunc())
+			res, insertErr := tx.ExecContext(ctx, `
+INSERT INTO referrers (user_id,code,role,status,recruiter_id,created_at,updated_at)
+VALUES (?,?,?,?,?,?,?)
+ON CONFLICT(user_id) DO NOTHING`,
+				userID, code, string(role), string(PartnerActive), recruiterID, now, now)
+			if insertErr != nil {
+				return insertErr
+			}
+			if n, _ := res.RowsAffected(); n == 1 {
+				break
+			}
+		}
+		if err := tx.QueryRowContext(ctx,
+			`SELECT role FROM referrers WHERE user_id=?`, userID,
+		).Scan(&currentRole); err != nil {
+			return err
+		}
+		if currentRole != string(role) {
+			return ErrRoleConflict
+		}
+	case err != nil:
+		return err
+	case currentRole != string(role) || currentStatus != string(PartnerActive):
+		return ErrRoleConflict
+	}
+
+	now := formatTime(s.nowFunc())
+	if _, err := tx.ExecContext(ctx, `
+INSERT INTO partner_roles (user_id,role,status,started_at,created_at,updated_at)
+VALUES (?,?,'active',?,?,?)
+ON CONFLICT(user_id,role) DO UPDATE SET
+  status='active',ended_at=NULL,updated_at=excluded.updated_at`,
+		userID, string(role), now, now, now); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Store) recordAdminAction(ctx context.Context, actor, action, targetType, targetID, before, after, reason string) error {
@@ -306,37 +401,31 @@ FROM referral_admin_actions ORDER BY created_at DESC LIMIT ?`, limit)
 	return items, rows.Err()
 }
 
-var _ = time.Time{}
-
-func (s *Store) PromoteToScout(ctx context.Context, userID, actor, reason string) error {
-	if strings.TrimSpace(actor) == "" || strings.TrimSpace(reason) == "" {
-		return errors.New("referral: actor and reason are required")
+// CreateScoutPartner assigns the standalone Scout role. KOL and Scout are
+// separate role assignments; this method never converts a KOL.
+func (s *Store) CreateScoutPartner(ctx context.Context, userID, actor, reason string) (Referrer, error) {
+	if strings.TrimSpace(userID) == "" || strings.TrimSpace(actor) == "" || strings.TrimSpace(reason) == "" {
+		return Referrer{}, errors.New("referral: user, actor, and reason are required")
 	}
-	now := formatTime(s.nowFunc())
-	res, err := s.db.ExecContext(ctx, `
-UPDATE referrers SET role=?,updated_at=?
-WHERE user_id=? AND role='kol' AND status='active'`,
-		string(RoleScout), now, userID)
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return Referrer{}, err
 	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return ErrPartnerNotFound
+	defer func() { _ = tx.Rollback() }()
+
+	if err := ensurePartnerTx(ctx, tx, s, userID, RoleScout); err != nil {
+		return Referrer{}, err
 	}
-	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO partner_roles (user_id,role,status,started_at,created_at,updated_at)
-VALUES (?,?,'active',?,?,?)
-ON CONFLICT(user_id,role) DO UPDATE SET
-  status='active',ended_at=NULL,updated_at=excluded.updated_at`,
-		userID, string(RoleScout), now, now, now); err != nil {
-		return err
+	if _, err := tx.ExecContext(ctx, `
+INSERT INTO referral_admin_actions
+(id,actor,action,target_type,target_id,before,after,reason,created_at)
+VALUES (?,?,?,?,?,?,?,?,?)`,
+		s.idFunc(), actor, "partner.scout_assigned", "partner", userID,
+		"", string(RoleScout), reason, formatTime(s.nowFunc())); err != nil {
+		return Referrer{}, err
 	}
-	if _, err := s.db.ExecContext(ctx, `
-UPDATE partner_roles SET status='retired',ended_at=?,updated_at=?
-WHERE user_id=? AND role=? AND status='active'`,
-		now, now, userID, string(RoleKOL)); err != nil {
-		return err
+	if err := tx.Commit(); err != nil {
+		return Referrer{}, err
 	}
-	return s.recordAdminAction(ctx, actor, "partner.promoted", "partner", userID,
-		string(RoleKOL), string(RoleScout), reason)
+	return s.ReferrerByUser(ctx, userID)
 }

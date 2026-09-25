@@ -9,7 +9,9 @@ const product: ChatProduct = {
   name: 'Liki Chat',
   description: 'Unified metaphysics chat.',
   skills: ['liki'],
-  prices: { CNY: 2990, USD: 2990 },
+  prices: { CNY: 100, USD: 100 },
+  display_currency: 'CNY',
+  display_amount_minor: 100,
   purchased: false,
 }
 
@@ -19,8 +21,8 @@ describe('ProductPurchaseCard', () => {
     const wrapper = mount(ProductPurchaseCard, { props: { product, buying: false } })
     expect(wrapper.text()).toContain('Liki Chat')
     const text = wrapper.text()
-    const hasCny = text.includes('¥29.90')
-    const hasUsd = text.includes('$29.90')
+    const hasCny = text.includes('¥1.00')
+    const hasUsd = text.includes('$1.00')
     expect(hasCny || hasUsd).toBe(true)
 
     await wrapper.find('button').trigger('click')

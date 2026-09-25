@@ -1,16 +1,16 @@
 <template>
   <nav class="app-tabbar">
     <router-link to="/" exact-active-class="on">
-      <span class="t-label">工作台</span>
+      <span class="t-label">{{ $t('nav.workspace') }}</span>
     </router-link>
     <router-link to="/profiles" active-class="on">
-      <span class="t-label">档案</span>
+      <span class="t-label">{{ $t('nav.profiles') }}</span>
     </router-link>
     <router-link to="/chat" active-class="on">
-      <span class="t-label">Chat</span>
+      <span class="t-label">{{ $t('nav.chat') }}</span>
     </router-link>
     <router-link to="/account" active-class="on">
-      <span class="t-label">我的</span>
+      <span class="t-label">{{ $t('nav.mine') }}</span>
     </router-link>
   </nav>
 </template>
@@ -42,7 +42,7 @@
   top: 0; left: 28%; right: 28%;
   height: 2px;
   border-radius: 2px;
-  background: var(--liki-gold);
+  background: var(--liki-primary);
 }
 @media (min-width: 1024px) { .app-tabbar { display: none; } }
 </style>

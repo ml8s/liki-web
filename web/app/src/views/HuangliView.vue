@@ -1,72 +1,76 @@
 <template>
   <section class="service-view">
-    <AppPageHeader title="择日" subtitle="选事项与日期范围，先看黄历推荐；择日解读进对话。" />
+    <AppPageHeader :title="$t('services.huangli.pageTitle')" :subtitle="$t('services.huangli.subtitle')" />
 
-    <AppAlert v-if="error" :title="error" type="error" />
+    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
 
-    <el-card class="block" shadow="never">
-      <template #header><span class="card-title">择日</span></template>
+    <el-card class="app-card" shadow="never">
+      <template #header><h2 class="app-card__title">{{ $t('services.huangli.pageTitle') }}</h2></template>
       <el-form label-position="top" @submit.prevent="calc">
         <div class="row">
-          <el-form-item label="事项">
-            <el-select v-model="event" aria-label="择日事项" style="width: 100%">
-              <el-option v-for="(label, key) in EVENTS" :key="key" :value="key" :label="label" />
+          <el-form-item :label="$t('services.huangli.event')">
+            <el-select v-model="event" :aria-label="$t('services.huangli.event')" style="width: 100%">
+              <el-option v-for="key in EVENT_KEYS" :key="key" :value="key" :label="$t(`services.huangli.events.${key}`)" />
             </el-select>
           </el-form-item>
-          <el-form-item label="起始日期">
-            <el-date-picker v-model="startDate" type="date" value-format="YYYY-MM-DD" placeholder="起始" style="width: 100%" />
+          <el-form-item :label="$t('services.huangli.startDate')">
+            <el-date-picker v-model="startDate" type="date" value-format="YYYY-MM-DD" :placeholder="$t('services.huangli.startDate')" style="width: 100%" />
           </el-form-item>
-          <el-form-item label="结束日期">
-            <el-date-picker v-model="endDate" type="date" value-format="YYYY-MM-DD" placeholder="结束" style="width: 100%" />
+          <el-form-item :label="$t('services.huangli.endDate')">
+            <el-date-picker v-model="endDate" type="date" value-format="YYYY-MM-DD" :placeholder="$t('services.huangli.endDate')" style="width: 100%" />
           </el-form-item>
         </div>
-        <el-button type="primary" :loading="loading" :disabled="!event || !startDate || !endDate" @click="calc">择日</el-button>
+        <el-button type="primary" native-type="submit" :loading="loading" :disabled="!event || !startDate || !endDate">{{ $t('services.huangli.calculate') }}</el-button>
       </el-form>
     </el-card>
 
     <template v-if="result">
-      <el-card class="block pan" shadow="never">
-        <template #header><span class="card-title">黄历推荐（{{ result.event_label || EVENTS[result.event || event] }}）</span></template>
+      <el-card class="app-card app-card--highlight" shadow="never">
+        <template #header>
+          <h2 class="app-card__title">{{ $t('services.huangli.resultTitle', { event: eventLabel(result.event || event) }) }}</h2>
+        </template>
         <div v-if="result.range" class="range-info">
-          查询范围：{{ result.range.start_date }} 至 {{ result.range.end_date }}（共 {{ result.range.days }} 天）
+          {{ $t('services.huangli.range', { start: result.range.start_date, end: result.range.end_date, days: result.range.days }) }}
         </div>
         <div v-if="recommended.length" class="days">
           <div v-for="d in recommended" :key="d.date" class="day good">
             <div class="d-date">{{ d.date }}</div>
             <div class="d-sub">{{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}</div>
-            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join('；') }}</div>
+            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join($t('common.listSeparator')) }}</div>
           </div>
         </div>
-        <p v-if="!recommended.length" class="hint">该范围内没有推荐吉日。</p>
-        <div v-if="possible.length" class="sec-title">可选</div>
+        <p v-if="!recommended.length" class="hint">{{ $t('services.huangli.noRecommended') }}</p>
+        <div v-if="possible.length" class="sec-title">{{ $t('services.huangli.possible') }}</div>
         <div v-if="possible.length" class="days">
           <div v-for="d in possible" :key="d.date" class="day possible">
             <div class="d-date">{{ d.date }}</div>
             <div class="d-sub">{{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}</div>
-            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join('；') }}</div>
+            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join($t('common.listSeparator')) }}</div>
           </div>
         </div>
-        <div v-if="unsuitable.length" class="sec-title">不宜</div>
+        <div v-if="unsuitable.length" class="sec-title">{{ $t('services.huangli.unsuitable') }}</div>
         <div v-if="unsuitable.length" class="days">
           <div v-for="d in unsuitable" :key="d.date" class="day bad">
             <div class="d-date">{{ d.date }}</div>
-            <div class="d-sub">{{ d.reason || '不宜' }}</div>
-            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join('；') }}</div>
+            <div class="d-sub">{{ d.reason || $t('services.huangli.unsuitable') }}</div>
+            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join($t('common.listSeparator')) }}</div>
           </div>
         </div>
         <div v-if="result.safety_advisory" class="safety-box">
-          <AppAlert :title="result.safety_advisory" type="warning" />
+          <el-alert :title="result.safety_advisory" type="warning" :closable="false" show-icon/>
         </div>
       </el-card>
 
-      <el-card class="block" shadow="never">
-        <template #header><span class="card-title">择日解读</span></template>
-        <p v-if="entitlements.purchased" class="hint">进入对话，命理顾问结合黄历为你做择日解读。</p>
-        <p v-else class="hint">解锁 Liki Chat 后可获得专业择日解读。</p>
-        <p v-if="!profiles.list.length" class="hint">择日解读需要一个档案，先<a href="/app/profiles/new">建立档案</a>。</p>
-        <el-button v-if="entitlements.purchased && profiles.list.length" type="primary" size="large" @click="startChat">择日解读</el-button>
-        <el-button v-else type="primary" size="large" @click="router.push(profiles.list.length ? '/chat' : '/profiles/new')">{{ entitlements.purchased ? '建立档案' : '解锁 Chat' }}</el-button>
-      </el-card>
+      <AppConsultationCard
+        :title="$t('services.huangli.consultationTitle')"
+        :description="$t('services.huangli.consultationBody')"
+        :locked-description="$t('services.huangli.lockedBody')"
+        :purchased="entitlements.purchased && profiles.list.length > 0"
+        :action-label="$t('services.huangli.consultationTitle')"
+        :locked-action-label="profiles.list.length ? $t('commerce.activateNow') : $t('profiles.create')"
+        :to="profiles.list.length ? '/chat' : '/profiles/new'"
+        @action="startChat"
+      />
     </template>
   </section>
 </template>
@@ -75,18 +79,20 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineHuangliDays, type HuangliDaysResult } from '@/api/engine'
-import AppAlert from '@/components/app/AppAlert.vue'
+import { huangliApiEventLabel } from '@/utils/huangliEvents'
+import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
-const EVENTS: Record<string, string> = {
-  wedding: '结婚', engage: '订婚', opening: '开业', sign: '签约', move: '搬家',
-  travel: '出行', build: '动土', exam: '考试', medical: '就医', sacrifice: '祭祀',
-  cleaning: '扫除', renovation: '装修', bed_install: '安床', income: '纳财', funeral: '丧葬',
-}
+const EVENT_KEYS = [
+  'wedding', 'engage', 'opening', 'sign', 'move', 'travel', 'build', 'exam',
+  'medical', 'sacrifice', 'cleaning', 'renovation', 'bed_install', 'income', 'funeral',
+] as const
 
 const router = useRouter()
+const { t } = useI18n()
 const { profiles, entitlements, chat } = useServiceView()
 
 const event = ref('wedding')
@@ -100,24 +106,29 @@ const recommended = computed(() => result.value?.recommended ?? [])
 const possible = computed(() => result.value?.candidates?.filter(d => d.suitability === 'possible') ?? [])
 const unsuitable = computed(() => result.value?.unsuitable ?? [])
 
+function eventLabel(key: string): string {
+  return t(`services.huangli.events.${key}`)
+}
+
+
 async function calc() {
   if (!event.value || !startDate.value || !endDate.value) return
   if (startDate.value > endDate.value) {
-    error.value = '结束日期不能早于起始日期'
+    error.value = t('services.huangli.endBeforeStart')
     return
   }
   const spanDays = Math.round((new Date(endDate.value).getTime() - new Date(startDate.value).getTime()) / 86400000) + 1
   if (spanDays > 120) {
-    error.value = `择日范围最长 120 天（当前 ${spanDays} 天），请缩短日期范围`
+    error.value = t('services.huangli.rangeTooLong', { days: spanDays })
     return
   }
   loading.value = true
   error.value = ''
   result.value = null
   try {
-    result.value = await engineHuangliDays(EVENTS[event.value], event.value, startDate.value, endDate.value)
+    result.value = await engineHuangliDays(huangliApiEventLabel(event.value), event.value, startDate.value, endDate.value)
   } catch (err) {
-    error.value = toUserMessage(err, '择日失败')
+    error.value = toUserMessage(err, t('services.huangli.failed'))
   } finally {
     loading.value = false
   }
@@ -126,8 +137,8 @@ async function calc() {
 function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
-  chat.pendingIntent = `我想咨询择日（${EVENTS[event.value]}）。`
-  void chat.ensureSession(profile.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, '创建会话失败') })
+  chat.pendingIntent = t('services.huangli.intent', { event: eventLabel(event.value) })
+  void chat.ensureSession(profile.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, t('chat.createFailed')) })
 }
 
 </script>

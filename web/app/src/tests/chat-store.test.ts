@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import type { ChatMessage, ChatSession } from '@/api/chat'
+import { i18n } from '@/i18n'
 
 const session = {
   id: 'chat_1',
@@ -99,7 +100,8 @@ describe('chat streaming failure states', () => {
     vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_sessionId, _content, onEvent) => {
       onEvent({ type: 'text-delta', content: '半个' })
       onEvent({ type: 'error', content: '生成失败' })
-      throw new Error('生成失败')
+      const { ApiError } = await import('@/api/http')
+      throw new ApiError(500, 'generation_failed', 'Generation failed')
     })
     const history = [userMessage]
     vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue(history)
@@ -107,7 +109,7 @@ describe('chat streaming failure states', () => {
     chat.activeSession = session
     await chat.send('你好')
 
-    expect(chat.error).toBe('生成失败')
+    expect(chat.error).toBe(i18n.global.t('errors.code.generation_failed'))
     expect(chat.messages).toEqual(history)
     expect(chat.sending).toBe(false)
   })

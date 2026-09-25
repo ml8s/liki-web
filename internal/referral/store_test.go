@@ -6,14 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 func newStore(t *testing.T) *Store {
 	t.Helper()
-	store, err := Open(filepath.Join(t.TempDir(), "referral.db"), []byte("test-referral-payout-secret"), func(context.Context, string) (bool, error) {
-		return true, nil
-	})
+	store, err := Open(filepath.Join(t.TempDir(), "referral.db"), []byte("test-referral-payout-secret"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,56 +31,48 @@ func paidIntent(provider payment.Provider, buyer string, amount int64) payment.P
 	}
 }
 
-func TestRegisterRequiresPaidAccess(t *testing.T) {
-	store := newStore(t)
-	store.paidCheck = func(context.Context, string) (bool, error) { return false, nil }
-	if _, err := store.RegisterReferrer(context.Background(), "u1"); err != ErrNotEligible {
-		t.Fatalf("err = %v, want ErrNotEligible", err)
-	}
-}
-
-func TestRegisterRecruitAndAttribute(t *testing.T) {
+func TestCreateKOLPartnerRecruitAndAttribute(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
 
-	kol, err := store.RegisterReferrer(ctx, "u1")
+	scout, err := store.CreateScoutPartner(ctx, "scout", "admin", "seed scout")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(kol.Code) != 10 || kol.Status != PartnerActive {
-		t.Fatalf("kol = %+v", kol)
+	if len(scout.Code) != 10 || scout.Status != PartnerActive {
+		t.Fatalf("scout = %+v", scout)
 	}
 
-	again, err := store.RegisterReferrer(ctx, "u1")
+	again, err := store.CreateScoutPartner(ctx, "scout", "admin", "seed scout again")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if again.Code != kol.Code {
-		t.Fatalf("registration was not idempotent: %+v != %+v", again, kol)
+	if again.Code != scout.Code {
+		t.Fatalf("registration was not idempotent: %+v != %+v", again, scout)
 	}
 
-	if _, err := store.Attribute(ctx, "u2", kol.Code); err != nil {
+	if _, err := store.Attribute(ctx, "kol", scout.Code); err != nil {
 		t.Fatal(err)
 	}
-	partner, err := store.RegisterReferrer(ctx, "u2")
+	partner, err := store.createKOLPartner(ctx, "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if partner.RecruiterID != kol.UserID {
-		t.Fatalf("recruiter = %q, want %q", partner.RecruiterID, kol.UserID)
+	if partner.RecruiterID != scout.UserID {
+		t.Fatalf("recruiter = %q, want %q", partner.RecruiterID, scout.UserID)
 	}
 
-	if _, err := store.Attribute(ctx, "u1", kol.Code); err != ErrSelfReferral {
+	if _, err := store.Attribute(ctx, "scout", scout.Code); err != ErrSelfReferral {
 		t.Fatalf("self attribution err = %v", err)
 	}
-	attribution, err := store.Attribute(ctx, "u3", strings.ToLower(kol.Code))
+	attribution, err := store.Attribute(ctx, "buyer", strings.ToLower(scout.Code))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if attribution.ReferrerID != kol.UserID || attribution.Code != kol.Code {
+	if attribution.ReferrerID != scout.UserID || attribution.Code != scout.Code {
 		t.Fatalf("attribution = %+v", attribution)
 	}
-	repeated, err := store.Attribute(ctx, "u3", kol.Code)
+	repeated, err := store.Attribute(ctx, "buyer", scout.Code)
 	if err != nil || repeated != attribution {
 		t.Fatalf("attribute was not idempotent: %+v, %v", repeated, err)
 	}

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"liki-web/internal/migrate"
-	"liki-web/internal/sqliteutil"
+	"github.com/ml8s/liki-web/internal/migrate"
+	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
 func TestFinancialMigrationsPreserveLegacyPayoutsAndRestoreRole(t *testing.T) {
@@ -19,7 +19,7 @@ func TestFinancialMigrationsPreserveLegacyPayoutsAndRestoreRole(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	store, err := Open(dbPath, []byte("test-referral-payout-secret"), func(context.Context, string) (bool, error) { return true, nil })
+	store, err := Open(dbPath, []byte("test-referral-payout-secret"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,6 +45,9 @@ func TestFinancialMigrationsPreserveLegacyPayoutsAndRestoreRole(t *testing.T) {
 		`INSERT INTO referral_payouts
 		 (id,referrer_id,amount_minor,currency,method,account,status,created_at,updated_at)
 		 VALUES ('p-scout','scout',10000,'CNY','paypal','payer@example.com','approved','2026-01-03T00:00:00Z','2026-01-03T00:00:00Z')`,
+		`INSERT INTO referral_applications
+		 (id,user_id,type,status,note,created_at,updated_at)
+		 VALUES ('app-legacy','applicant','scout','pending','legacy scout','2026-01-04T00:00:00Z','2026-01-04T00:00:00Z')`,
 	}
 	for _, query := range legacy {
 		if _, err := db.ExecContext(ctx, query); err != nil {
@@ -79,6 +82,13 @@ func TestFinancialMigrationsPreserveLegacyPayoutsAndRestoreRole(t *testing.T) {
 	}
 	if _, err := store.KOLByID(ctx, "scout"); err == nil {
 		t.Fatal("retired historical KOL capability must not access KOL console")
+	}
+	application, err := store.ApplicationByID(ctx, "app-legacy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if application.Type != RoleScout || application.Status != ApplicationPending || application.Note != "legacy scout" {
+		t.Fatalf("legacy application changed: %+v", application)
 	}
 
 	var requested int64

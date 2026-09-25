@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/auth"
 )
 
 func testUser(id string) auth.User {
@@ -19,15 +19,13 @@ func testUser(id string) auth.User {
 }
 
 func authedRequest(user auth.User) *http.Request {
-	r := httptest.NewRequest(http.MethodPost, "/api/referral/register", strings.NewReader(`{}`))
+	r := httptest.NewRequest(http.MethodPost, "/api/kol/application", strings.NewReader(`{"note":"metaphysics creator"}`))
 	return r.WithContext(auth.WithAuth(r.Context(), user, auth.AuthSession{ID: "session"}, "token"))
 }
 
 func newHandlerStore(t *testing.T) *Store {
 	t.Helper()
-	store, err := Open(filepath.Join(t.TempDir(), "referral.db"), []byte("test-referral-payout-secret"), func(context.Context, string) (bool, error) {
-		return true, nil
-	})
+	store, err := Open(filepath.Join(t.TempDir(), "referral.db"), []byte("test-referral-payout-secret"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,30 +36,43 @@ func newHandlerStore(t *testing.T) *Store {
 	return store
 }
 
-func TestRegisterRouteReturnsPartner(t *testing.T) {
+func TestKOLApplicationRequiresReview(t *testing.T) {
 	store := newHandlerStore(t)
 	handler := NewHandler(store, func(next http.HandlerFunc) http.HandlerFunc { return next }, false)
 	rec := httptest.NewRecorder()
-	handler.HandleRegister(rec, authedRequest(testUser("u1")))
-	if rec.Code != http.StatusOK {
+	handler.HandleSubmitKOLApplication(rec, authedRequest(testUser("u1")))
+	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
 	}
 	var response struct {
 		Data struct {
-			Partner PartnerStats `json:"partner"`
+			Application PartnerApplication `json:"application"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(response.Data.Partner.Referrer.Code, "") || len(response.Data.Partner.Referrer.Code) != 10 {
-		t.Fatalf("partner = %+v", response.Data.Partner)
+	if response.Data.Application.Type != RoleKOL || response.Data.Application.Status != ApplicationPending {
+		t.Fatalf("application = %+v", response.Data.Application)
+	}
+	if _, err := store.ReferrerByUser(context.Background(), "u1"); err == nil {
+		t.Fatal("application immediately created a partner role")
+	}
+	if err := store.DecideApplication(context.Background(), response.Data.Application.ID, "admin", true, "approved"); err != nil {
+		t.Fatal(err)
+	}
+	partner, err := store.ReferrerByUser(context.Background(), "u1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if partner.Role != RoleKOL || partner.Status != PartnerActive {
+		t.Fatalf("partner = %+v", partner)
 	}
 }
 
 func TestReferralLinkSetsThirtyDayCookie(t *testing.T) {
 	store := newHandlerStore(t)
-	kol, err := store.RegisterReferrer(context.Background(), "kol")
+	kol, err := store.createKOLPartner(context.Background(), "kol")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,9 +90,41 @@ func TestReferralLinkSetsThirtyDayCookie(t *testing.T) {
 	}
 }
 
+func TestScoutApplicationStateAllowsReapplicationAfterRejection(t *testing.T) {
+	ctx := context.Background()
+	store := newHandlerStore(t)
+	handler := NewHandler(store, func(next http.HandlerFunc) http.HandlerFunc { return next }, false)
+	app, err := store.SubmitApplication(ctx, RoleScout, "applicant", "first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.DecideApplication(ctx, app.ID, "admin", false, "not a fit"); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/scout/application", nil)
+	req = req.WithContext(auth.WithAuth(req.Context(), testUser("applicant"), auth.AuthSession{ID: "session"}, "token"))
+	rec := httptest.NewRecorder()
+	handler.HandleGetScoutApplication(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	var response struct {
+		Data struct {
+			CanSubmit bool `json:"can_submit"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if !response.Data.CanSubmit {
+		t.Fatalf("rejected application blocks reapplication: %s", rec.Body.String())
+	}
+}
+
 func TestPostLoginHookAttributesNewAccountAndClearsCookie(t *testing.T) {
 	store := newHandlerStore(t)
-	kol, err := store.RegisterReferrer(context.Background(), "kol")
+	kol, err := store.createKOLPartner(context.Background(), "kol")
 	if err != nil {
 		t.Fatal(err)
 	}

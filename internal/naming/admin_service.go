@@ -3,7 +3,7 @@ package naming
 import (
 	"context"
 
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 // AdminService provides naming-domain operations for the admin panel.

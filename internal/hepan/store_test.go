@@ -9,8 +9,8 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"liki-web/internal/httputil"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 func newTestStore(t *testing.T) *Store {

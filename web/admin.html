@@ -119,8 +119,16 @@
     </section>
 
     <section class="card" aria-labelledby="referral-applications-title">
-      <h2 id="referral-applications-title">招商申请</h2>
+      <h2 id="referral-applications-title">合作申请</h2>
       <form id="referral-application-form" class="toolbar" novalidate>
+        <div class="field">
+          <label for="referral-application-role">角色</label>
+          <select id="referral-application-role">
+            <option value="">全部</option>
+            <option value="kol">KOL</option>
+            <option value="scout">Scout</option>
+          </select>
+        </div>
         <div class="field">
           <label for="referral-application-status-filter">状态</label>
           <select id="referral-application-status-filter">
@@ -135,7 +143,7 @@
       <p id="referral-application-status" class="status-msg" role="status"></p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>推广码</th><th>说明</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+          <thead><tr><th>推广码</th><th>角色</th><th>说明</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
           <tbody id="referral-applications-body"></tbody>
         </table>
       </div>

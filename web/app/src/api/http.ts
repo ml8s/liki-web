@@ -33,8 +33,8 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
       ...init,
     })
   } catch {
-    // 断网/网络异常：避免把英文技术错误（Failed to fetch）暴露给用户。
-    throw new ApiError(0, 'network_error', '网络连接失败，请检查网络后重试')
+    // 网络异常只保留稳定 code；用户提示由 errors.code.network_error 本地化。
+    throw new ApiError(0, 'network_error', 'Network request failed')
   }
 
   let envelope: Envelope<T> | null = null

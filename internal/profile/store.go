@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"liki-web/internal/migrate"
+	"github.com/ml8s/liki-web/internal/migrate"
 )
 
 const MaxProfilesPerUser = 20

@@ -20,6 +20,9 @@ const (
 	RoleScout PartnerRole = "scout"
 )
 
+// PartnerRole is also the application type. Keeping one vocabulary avoids a
+// separate, drifting "application type" model.
+
 type CommissionStatus string
 
 const (
@@ -87,6 +90,7 @@ type Commission struct {
 	BuyerUserID      string           `json:"buyer_user_id"`
 	ReferrerID       string           `json:"referrer_id"`
 	RecruiterID      string           `json:"recruiter_id,omitempty"`
+	BeneficiaryRole  PartnerRole      `json:"beneficiary_role,omitempty"`
 	AmountMinor      int64            `json:"amount_minor"`
 	Currency         string           `json:"currency"`
 	ReferrerRateBPS  int              `json:"referrer_rate_bps"`
@@ -128,6 +132,7 @@ const (
 type PartnerApplication struct {
 	ID             string            `json:"id"`
 	UserID         string            `json:"user_id"`
+	Type           PartnerRole       `json:"type"`
 	Code           string            `json:"code"`
 	Status         ApplicationStatus `json:"status"`
 	Note           string            `json:"note"`
@@ -220,6 +225,15 @@ type ScoutBalanceSummary struct {
 	PaidMinor       int64  `json:"paid_minor"`
 }
 
+// Settlement is the money-only view available to active and retired role
+// capabilities. It deliberately excludes recruiting/dashboard data.
+type Settlement struct {
+	Role     PartnerRole      `json:"role"`
+	Status   RoleStatus       `json:"status"`
+	Balances []BalanceSummary `json:"balances"`
+	Payouts  []Payout         `json:"payouts"`
+}
+
 type KOLOverview struct {
 	Referrer        Referrer         `json:"referrer"`
 	AttributedUsers int              `json:"attributed_users"`
@@ -235,7 +249,8 @@ type ScoutRecruit struct {
 }
 
 type ScoutOverview struct {
-	Partner      PartnerRole           `json:"partner"`
+	Partner      Referrer              `json:"partner"`
+	LeadCount    int64                 `json:"lead_count"`
 	RecruitCount int64                 `json:"recruit_count"`
 	OrderCount   int64                 `json:"order_count"`
 	Balances     []ScoutBalanceSummary `json:"balances"`

@@ -1,14 +1,14 @@
 <template>
   <section class="chat-page">
     <div class="chat-main">
-      <header class="session-header">
-        <div class="header-nav">
-          <router-link v-if="chat.activeSession?.profile_id" :to="`/profiles/${chat.activeSession.profile_id}`">← 返回档案</router-link>
-          <router-link v-else to="/chat">← 会话列表</router-link>
-        </div>
-        <h1>{{ chat.activeSession?.title || '加载中' }}</h1>
-        <p v-if="chat.activeSession" class="skill-badge">{{ skillLabel(chat.activeSession.skill) }}</p>
-      </header>
+      <el-page-header class="session-header" @back="goBack">
+        <template #content>
+          <div class="page-heading">
+            <h1>{{ chat.activeSession?.title || $t('common.loading') }}</h1>
+            <el-tag v-if="chat.activeSession" size="small">{{ skillLabel(chat.activeSession.skill) }}</el-tag>
+          </div>
+        </template>
+      </el-page-header>
 
       <div
         ref="threadElement"
@@ -16,13 +16,17 @@
         class="thread"
         @scroll="onThreadScroll"
       >
-        <ChatThread :messages="chat.messages" :loading="chat.loadingMessages" />
+        <ChatThread
+          :messages="chat.messages"
+          :loading="chat.loadingMessages"
+          @select="draft = $event"
+        />
       </div>
 
       <ChatStreamStatus :phase="chat.phase" />
       <div v-if="chat.error" class="error-row">
-        <AppAlert :title="chat.error" type="error" class="composer-alert" />
-        <el-button size="small" @click="retry">重试</el-button>
+        <el-alert :title="chat.error" type="error" class="composer-alert" :closable="false" show-icon/>
+        <el-button size="small" @click="retry">{{ $t('common.retry') }}</el-button>
       </div>
 
       <ChatComposer
@@ -37,15 +41,15 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useChatStore, skillLabel } from '@/stores/chat'
-import AppAlert from '@/components/app/AppAlert.vue'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
 import ChatThread from '@/components/chat/ChatThread.vue'
 
 const route = useRoute()
 const chat = useChatStore()
+const router = useRouter()
 const draft = ref('')
 const threadElement = ref<HTMLElement | null>(null)
 const nearBottom = ref(true)
@@ -69,6 +73,11 @@ function restoreDraft() {
   } catch {
     // ignore
   }
+}
+
+function goBack() {
+  const profileId = chat.activeSession?.profile_id
+  void router.push(profileId ? `/profiles/${profileId}` : '/chat')
 }
 
 function onThreadScroll() {
@@ -162,32 +171,22 @@ onBeforeUnmount(() => {
   height: calc(100dvh - 130px);
 }
 .session-header {
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--liki-line);
+  margin-bottom: 16px;
 }
-.header-nav { margin-bottom: 4px; }
-.session-header a {
-  display: inline-block;
-  padding: 4px 0;
-  color: var(--liki-primary);
-  text-decoration: none;
-  font-size: 13px;
+.page-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
-.session-header h1 {
-  margin: 6px 0 6px;
-  font-family: var(--liki-font-serif);
-  font-size: 22px;
-  line-height: 1.3;
-}
-.skill-badge {
-  display: inline-block;
+.page-heading h1 {
   margin: 0;
-  padding: 2px 10px;
-  font-size: 12px;
-  color: var(--liki-gold-text);
-  border: 1px solid var(--liki-gold);
-  border-radius: 4px;
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .thread { flex: 1; overflow: auto; padding-right: 8px; }
 .composer-alert { margin: 12px 0 0; }

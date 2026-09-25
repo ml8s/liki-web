@@ -14,4 +14,20 @@ describe('ChatMessageItem', () => {
     expect(wrapper.text()).toContain('你好')
     expect(wrapper.find('[data-role="user"]').exists()).toBe(true)
   })
+
+  it('renders assistant markdown safely', () => {
+    const message: ChatMessage = {
+      id: 'msg_2', session_id: 'session_1', user_id: 'usr_1',
+      role: 'assistant', kind: 'text',
+      content: '## 结论\n\n**重要**\n\n<script>alert(1)</script>',
+      created_at: '2026-01-01T00:00:00Z',
+    }
+    const wrapper = mount(ChatMessageItem, { props: { message } })
+    const html = wrapper.html()
+    expect(wrapper.text()).toContain('AI 顾问')
+    expect(wrapper.text()).toContain('结论')
+    expect(wrapper.find('h2').exists()).toBe(true)
+    expect(wrapper.find('strong').text()).toBe('重要')
+    expect(html).not.toContain('<script>alert(1)</script>')
+  })
 })

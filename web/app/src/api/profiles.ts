@@ -1,4 +1,5 @@
 import { get, post, request } from './http'
+import { i18n } from '@/i18n'
 
 export interface Profile {
   id: string
@@ -61,9 +62,21 @@ export function deleteProfile(id: string): Promise<{ status: string }> {
 }
 
 export function birthSummary(profile: Profile): string {
-  const gender = profile.gender === 'male' ? '男' : '女'
-  const calendar = profile.calendar === 'lunar' ? '农历' : '公历'
-  const known = { known: '已知', approximate: '时辰', unknown: '不确定' }[profile.birth_time_known]
+  const t = i18n.global.t
+  const gender = profile.gender === 'male' ? t('profiles.male') : t('profiles.female')
+  const calendar = profile.calendar === 'lunar' ? t('profiles.form.lunar') : t('profiles.form.solar')
+  const known = {
+    known: t('chat.systemProfile.known'),
+    approximate: t('chat.systemProfile.approximate'),
+    unknown: t('chat.systemProfile.unknown'),
+  }[profile.birth_time_known]
   const place = profile.birth_place ? ` · ${profile.birth_place}` : ''
-  return `${calendar} ${profile.birth_date}${profile.birth_time ? ` ${profile.birth_time}` : ''} · ${gender} · ${known}${place}`
+  return i18n.global.t('profiles.summary', {
+    calendar,
+    date: profile.birth_date,
+    time: profile.birth_time || '',
+    gender,
+    known,
+    place,
+  })
 }

@@ -6,6 +6,8 @@ export interface ChatProduct {
   description: string
   skills: string[]
   prices: Record<string, number>
+  display_currency: string
+  display_amount_minor: number
   purchased: boolean
 }
 
@@ -23,6 +25,9 @@ export async function fetchChatProducts(): Promise<ChatProduct[]> {
   return payload.products ?? []
 }
 
-export function checkoutChatProduct(productId: string): Promise<CheckoutResult> {
-  return post<CheckoutResult>(`/api/chat/products/${productId}/checkout`, {})
+export function checkoutChatProduct(
+  productId: string,
+  locale = typeof navigator === 'undefined' ? 'zh-Hant' : navigator.language,
+): Promise<CheckoutResult> {
+  return post<CheckoutResult>(`/api/chat/products/${productId}/checkout`, { locale })
 }

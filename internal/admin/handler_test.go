@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/naming"
 
 	_ "modernc.org/sqlite"
 )

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/auth"
 )
 
 type sessionBindingKey struct{}

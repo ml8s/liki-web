@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/auth"
 )
 
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc

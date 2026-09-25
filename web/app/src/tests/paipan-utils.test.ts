@@ -58,7 +58,7 @@ describe('resolvePaipanContext', () => {
 
   it('throws descriptive error when city lookup fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network error')))
-    await expect(resolvePaipanContext(birth())).rejects.toThrow('无法识别出生地「上海」')
+    await expect(resolvePaipanContext(birth())).rejects.toMatchObject({ code: 'city_not_found' })
   })
 })
 
@@ -66,11 +66,11 @@ describe('baziChartFor', () => {
   beforeEach(() => { vi.restoreAllMocks() })
 
   it('throws for lunar calendar', async () => {
-    await expect(baziChartFor(birth({ calendar: 'lunar' }))).rejects.toThrow('公历')
+    await expect(baziChartFor(birth({ calendar: 'lunar' }))).rejects.toMatchObject({ code: 'lunar_preview_unsupported' })
   })
 
   it('throws when time is unknown', async () => {
-    await expect(baziChartFor(birth({ birth_time_known: 'unknown' }))).rejects.toThrow('需要出生时间')
+    await expect(baziChartFor(birth({ birth_time_known: 'unknown' }))).rejects.toMatchObject({ code: 'birth_time_required' })
   })
 
   it('calls engine with corrected solar time', async () => {

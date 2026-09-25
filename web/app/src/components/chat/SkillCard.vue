@@ -1,22 +1,28 @@
 <template>
-  <el-card class="skill-card" shadow="hover">
+  <el-card class="skill-card" shadow="never">
     <template #header>
-      <div class="header">
-        <strong>{{ label }}</strong>
+      <div class="app-card__header">
+        <h2 class="app-card__title">{{ label }}</h2>
         <el-tag :type="enabled ? 'success' : 'info'" size="small">
-          {{ enabled ? '可用' : '待开通' }}
+          {{ enabled ? $t('chat.status.available') : (statusLabel || $t('chat.status.inactive')) }}
         </el-tag>
       </div>
     </template>
 
     <p>{{ description }}</p>
+
+    <p v-if="blockedReason" class="blocked-reason">{{ blockedReason }}</p>
+
+    <router-link v-if="!enabled && actionTo" :to="actionTo">
+      <el-button type="primary" plain>{{ actionLabel || $t('chat.action.resolve') }}</el-button>
+    </router-link>
     <el-button
       type="primary"
       :disabled="!enabled || starting"
       :loading="starting"
       @click="$emit('start')"
     >
-      开始解读
+      {{ actionLabel || $t('chat.action.start') }}
     </el-button>
   </el-card>
 </template>
@@ -27,12 +33,21 @@ defineProps<{
   description: string
   enabled: boolean
   starting?: boolean
+  blockedReason?: string
+  statusLabel?: string
+  actionLabel?: string
+  actionTo?: string
 }>()
 
-defineEmits<{ start: [] }>()
+defineEmits<{ start: []; blockedAction: [] }>()
 </script>
 
 <style scoped>
-.header { display: flex; align-items: center; justify-content: space-between; }
-p { min-height: 44px; color: #555; }
+p { min-height: 44px; color: var(--liki-text-2); }
+.blocked-reason {
+  min-height: 0;
+  margin: -6px 0 12px;
+  color: var(--liki-text-3);
+  font-size: 13px;
+}
 </style>

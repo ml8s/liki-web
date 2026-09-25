@@ -18,6 +18,9 @@ func ValidateJWTSecret(secret string) error {
 	if secret == "" {
 		return fmt.Errorf("JWT_SECRET environment variable is required")
 	}
+	if len(secret) < 32 {
+		return fmt.Errorf("JWT_SECRET must contain at least 32 bytes")
+	}
 	return nil
 }
 

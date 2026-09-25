@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"liki-web/internal/adminauth"
-	"liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/adminauth"
+	"github.com/ml8s/liki-web/internal/auth"
 )
 
 func TestCapabilityGuard_RequiresUnifiedSession(t *testing.T) {
@@ -77,7 +77,7 @@ func TestAdminManagementRoutes(t *testing.T) {
 	identity := func(*http.Request) (auth.User, bool) { return owner, true }
 
 	mux := http.NewServeMux()
-	RegisterRoutes(mux, nil, nil, nil, authorizer, identity)
+	RegisterRoutes(mux, nil, nil, nil, authorizer, identity, nil)
 
 	execute := func(method, target, body string) *httptest.ResponseRecorder {
 		t.Helper()

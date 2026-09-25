@@ -7,7 +7,7 @@ Migration owner: `internal/adminauth`
 ## admin_users
 
 | Field | Meaning |
-|---|---|
+| --- | --- |
 | id | Internal admin record ID |
 | email | Unified app login email; immutable business key |
 | user_id | Bound `platform.db.users.id`; bound on first authorized session |

@@ -3,7 +3,7 @@
 # VACUUM INTO is an online, read-only backup operation and includes a
 # checkpointed view of the database, so WAL files are not needed in the copy.
 #
-# Database names match cmd/liki/main.go:
+# Database names match cmd/liki-web/main.go:
 #   platform, profiles, feedback, liki, naming, mingshu, hepan, aipay, referral
 # Missing files are skipped (for example, referral.db may not exist yet).
 #

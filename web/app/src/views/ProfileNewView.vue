@@ -1,8 +1,15 @@
 <template>
   <section class="new-profile">
-    <AppPageHeader title="新建档案" subtitle="保存一个人的出生信息，之后可免费预览排盘或付费解读。" />
-    <AppAlert v-if="draftLoaded" title="已带入主页的出生信息，可继续排盘" type="info" />
-    <AppAlert v-if="error" :title="error" type="error" />
+    <el-page-header class="new-profile-header" @back="router.push('/profiles')">
+      <template #content>
+        <div class="page-heading">
+          <h1>{{ $t('router.profileNew') }}</h1>
+          <p>{{ $t('profiles.new.subtitle') }}</p>
+        </div>
+      </template>
+    </el-page-header>
+    <el-alert v-if="draftLoaded" :title="$t('profiles.new.draftLoaded')" type="info" :closable="false" show-icon/>
+    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
     <BirthForm :submitting="submitting" :initial="draft ?? undefined" @submit="submit" />
   </section>
 </template>
@@ -11,13 +18,13 @@
 import { toUserMessage } from '@/utils/errors'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useProfilesStore } from '@/stores/profiles'
 import type { ProfileInput } from '@/api/profiles'
-import AppAlert from '@/components/app/AppAlert.vue'
-import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import BirthForm from '@/components/profiles/BirthForm.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const profiles = useProfilesStore()
 const submitting = ref(false)
 const error = ref('')
@@ -55,7 +62,7 @@ async function submit(input: ProfileInput) {
     const profile = await profiles.create(input)
     await router.push(`/profiles/${profile.id}`)
   } catch (err) {
-    error.value = toUserMessage(err, '保存失败')
+    error.value = toUserMessage(err, t('profiles.saveFailed'))
   } finally {
     submitting.value = false
   }
@@ -63,5 +70,17 @@ async function submit(input: ProfileInput) {
 </script>
 
 <style scoped>
-.new-profile { max-width: 560px; }
+.new-profile { max-width: 640px; }
+.new-profile-header { margin-bottom: 20px; }
+.page-heading h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+.page-heading p {
+  margin: 4px 0 0;
+  color: var(--liki-text-2);
+  font-size: 14px;
+}
 </style>

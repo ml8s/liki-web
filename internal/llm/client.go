@@ -50,15 +50,22 @@ type StreamEvent struct {
 	FinishReason     string     // "stop" | "tool_calls" | "length" | ""
 }
 
-// New creates a new LLM client.
-func New(apiKey, model string, enableThinking bool) *Client {
+// New creates a new LLM client. An empty baseURL selects the current Liki
+// provider default; callers should normally pass LIKI_LLM_BASE_URL explicitly.
+func New(apiKey, baseURL, model string, enableThinking bool) *Client {
 	tp := &thinkingParam{Type: "disabled"}
 	if enableThinking {
 		tp = &thinkingParam{Type: "enabled"}
 	}
+	baseURL = strings.TrimSpace(baseURL)
+	if baseURL == "" {
+		baseURL = defaultBaseURL
+	} else {
+		baseURL = strings.TrimRight(baseURL, "/")
+	}
 	return &Client{
 		apiKey:   apiKey,
-		baseURL:  defaultBaseURL,
+		baseURL:  baseURL,
 		model:    model,
 		thinking: tp,
 		streamClient: &http.Client{

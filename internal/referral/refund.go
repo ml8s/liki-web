@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"liki-web/internal/metrics"
-	"liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/metrics"
+	"github.com/ml8s/liki-web/internal/payment"
 )
 
 // CommissionRefundIntake is the durable hand-off from the payment domain to

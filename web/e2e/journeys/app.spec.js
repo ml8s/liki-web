@@ -1,17 +1,19 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
+test.use({ locale: 'zh-Hant' });
+
 const protectedPages = [
   { path: '/app/', heading: '工作台' },
-  { path: '/app/profiles', heading: '档案' },
-  { path: '/app/synastry', heading: '合盘' },
+  { path: '/app/profiles', heading: '檔案' },
+  { path: '/app/synastry', heading: '合盤' },
   { path: '/app/naming', heading: '起名' },
-  { path: '/app/divination', heading: '问卦' },
-  { path: '/app/fengshui', heading: '风水' },
-  { path: '/app/huangli', heading: '择日' },
+  { path: '/app/divination', heading: '問卦' },
+  { path: '/app/fengshui', heading: '風水' },
+  { path: '/app/huangli', heading: '擇日' },
   { path: '/app/chat', heading: 'Liki Chat' },
-  { path: '/app/orders', heading: '订单' },
-  { path: '/app/account', heading: '账户' },
+  { path: '/app/orders', heading: '訂單' },
+  { path: '/app/account', heading: '帳戶設定' },
 ];
 
 const json = data => ({
@@ -61,7 +63,7 @@ test.describe('Authenticated app shell', () => {
 
     for (const { path, heading } of protectedPages) {
       await page.goto(path);
-      await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+      await expect(page.getByRole('heading', { name: heading, exact: true, level: 1 })).toBeVisible();
     }
   });
 
@@ -118,7 +120,9 @@ test('paid return confirms entitlement and jumps straight into a session', async
       name: 'Liki Chat',
       description: 'Unified metaphysics chat.',
       skills: ['liki'],
-      prices: { CNY: 2990, USD: 2990 },
+      prices: { CNY: 100, USD: 100 },
+      display_currency: 'CNY',
+      display_amount_minor: 100,
       purchased: entitlementRequest > 1,
     }] }));
   });
@@ -148,6 +152,6 @@ test('profile create form mounts and validates', async ({ page }) => {
   await page.route('**/api/me/entitlements', route => route.fulfill(json({ entitlements: [], allowed_skills: [] })));
 
   await page.goto('/app/profiles/new');
-  await expect(page.getByRole('heading', { name: '新建档案' })).toBeVisible();
-  await expect(page.getByPlaceholder('如：妈妈 / 我本人')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '新建檔案' })).toBeVisible();
+  await expect(page.getByPlaceholder('如：媽媽 / 我本人')).toBeVisible();
 });

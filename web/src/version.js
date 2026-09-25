@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-const versionPath = resolve(process.cwd(), '../cmd/liki/VERSION');
+const versionPath = resolve(process.cwd(), '../cmd/liki-web/VERSION');
 const calver = readFileSync(versionPath, 'utf-8').trim();
 
 // 强缓存失效：CalVer 仅日期，同日多次改动版本不变；而 /css/*、/js/* 是 immutable 长缓存，

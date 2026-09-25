@@ -7,11 +7,11 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"liki-web/internal/hepan"
-	"liki-web/internal/mingshu"
-	"liki-web/internal/naming"
-	"liki-web/internal/payment"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/hepan"
+	"github.com/ml8s/liki-web/internal/mingshu"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 func newDB(t *testing.T) *sql.DB {
@@ -120,5 +120,24 @@ func TestHepanFlowPreparesAndMarksPaid(t *testing.T) {
 	}
 	if got.Status != "paid" {
 		t.Fatalf("hepan order = %+v", got)
+	}
+}
+
+func TestProductFlowDisplayNames(t *testing.T) {
+	t.Parallel()
+	flows := []struct {
+		flow   payment.ProductFlow
+		locale string
+		want   string
+	}{
+		{NewNamingFlow(nil, 15), "zh-Hans", "定制化起名"},
+		{NewMingShuFlow(nil, nil, nil, ""), "zh-Hans", "生命书报告"},
+		{NewHepanFlow(nil, nil, nil, ""), "zh-Hans", "合盘报告"},
+		{NewMingShuFlow(nil, nil, nil, ""), "en", "Lifebook Report"},
+	}
+	for _, item := range flows {
+		if got := item.flow.DisplayName(item.locale); got != item.want {
+			t.Fatalf("DisplayName(%q) = %q, want %q", item.locale, got, item.want)
+		}
 	}
 }

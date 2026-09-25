@@ -36,10 +36,10 @@ const ogImage = 'https://liki.hk/img/og-image.png';
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
 <link rel="canonical" href={canonical}>
-<link rel="alternate" hreflang="zh-Hant" href={`https://liki.hk/zh-Hant/${pagePath}`}>
-<link rel="alternate" hreflang="zh-Hans" href={`https://liki.hk/zh-Hans/${pagePath}`}>
-<link rel="alternate" hreflang="en" href={`https://liki.hk/en/${pagePath}`}>
-<link rel="alternate" hreflang="x-default" href={`https://liki.hk/zh-Hant/${pagePath}`}>
+<link rel="alternate" hreflang="zh-Hant" href={`https://liki.hk/zh-Hant/${pagePath ? pagePath + '/' : ''}`}>
+<link rel="alternate" hreflang="zh-Hans" href={`https://liki.hk/zh-Hans/${pagePath ? pagePath + '/' : ''}`}>
+<link rel="alternate" hreflang="en" href={`https://liki.hk/en/${pagePath ? pagePath + '/' : ''}`}>
+<link rel="alternate" hreflang="x-default" href={`https://liki.hk/zh-Hant/${pagePath ? pagePath + '/' : ''}`}>
 
 <meta name="description" content={metaDesc || t(locale, `${page}.metaDesc`)}>
 <meta name="viewport" content={`width=device-width, initial-scale=1.0${viewportFit ? ', viewport-fit=cover' : ''}`}>
@@ -89,7 +89,7 @@ const ogImage = 'https://liki.hk/img/og-image.png';
   <header class="header-dark page-header">
     <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
       <a href={`/${locale}/`} class="back-link">{t(locale, 'site.backHome')}</a>
-      <h1 class="text-xl font-bold">{heading}</h1>
+      <div class="text-xl font-bold">{heading}</div>
       <div class="flex items-center gap-3">
         <LangSwitcher locale={locale} />
       </div>

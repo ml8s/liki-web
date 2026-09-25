@@ -6,36 +6,66 @@ import (
 	"errors"
 )
 
-type KOLStatus struct {
-	Registered bool          `json:"registered"`
-	Eligible   bool          `json:"eligible"`
-	Status     PartnerStatus `json:"status,omitempty"`
+// PartnerProgramState is the user-facing state for one independent programme.
+// Status is present only when the user's assigned programme role is this role.
+type PartnerProgramState struct {
+	Role        PartnerRole         `json:"role"`
+	Status      RoleStatus          `json:"status,omitempty"`
+	Application *PartnerApplication `json:"application"`
+	CanSubmit   bool                `json:"can_submit"`
 }
 
-func (s *Store) KOLStatus(ctx context.Context, userID string) (KOLStatus, error) {
-	primary, err := s.ReferrerByUser(ctx, userID)
-	if err == nil && primary.Role == RoleScout {
-		// A Scout is never shown KOL onboarding merely because no historical
-		// KOL capability exists. The two programs stay isolated.
-		return KOLStatus{}, nil
+// PartnerStates is the stable aggregate for the partner onboarding surface.
+type PartnerStates struct {
+	KOL   PartnerProgramState `json:"kol"`
+	Scout PartnerProgramState `json:"scout"`
+}
+
+func (s *Store) PartnerStates(ctx context.Context, userID string) (PartnerStates, error) {
+	states := PartnerStates{
+		KOL:   PartnerProgramState{Role: RoleKOL},
+		Scout: PartnerProgramState{Role: RoleScout},
 	}
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return KOLStatus{}, err
+
+	// Programme participation is intentionally exclusive. This prevents a
+	// person from occupying both roles and recreating a hierarchy.
+	_, err := s.ReferrerByUser(ctx, userID)
+	hasPrimary := err == nil
+	switch {
+	case err == nil:
+	case errors.Is(err, sql.ErrNoRows):
+	default:
+		return PartnerStates{}, err
 	}
-	partner, err := s.KOLByID(ctx, userID)
-	if err == nil {
-		return KOLStatus{
-			Registered: true,
-			Eligible:   partner.Status == PartnerActive,
-			Status:     partner.Status,
-		}, nil
+
+	for _, role := range []PartnerRole{RoleKOL, RoleScout} {
+		state := &states.KOL
+		if role == RoleScout {
+			state = &states.Scout
+		}
+		application, found, err := s.LatestApplicationByUser(ctx, userID, role)
+		if err != nil {
+			return PartnerStates{}, err
+		}
+		if found {
+			item := application
+			state.Application = &item
+		}
+		status, assigned, err := s.ProgrammeRoleStatus(ctx, userID, role)
+		if err != nil {
+			return PartnerStates{}, err
+		}
+		if assigned {
+			state.Status = status
+		}
+		state.CanSubmit = !hasPrimary &&
+			(!found || state.Application.Status != ApplicationPending)
 	}
-	if err != sql.ErrNoRows {
-		return KOLStatus{}, err
+	if _, err := s.PendingApplicationByUser(ctx, userID); err == nil {
+		states.KOL.CanSubmit = false
+		states.Scout.CanSubmit = false
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return PartnerStates{}, err
 	}
-	eligible, err := s.paidCheck(ctx, userID)
-	if err != nil {
-		return KOLStatus{}, err
-	}
-	return KOLStatus{Registered: false, Eligible: eligible}, nil
+	return states, nil
 }

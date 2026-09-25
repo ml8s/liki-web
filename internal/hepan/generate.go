@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"liki-web/internal/agent"
-	"liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/llm"
 )
 
 const userTemplate = "请为以下两人进行八紫合盘分析：\n\n第一人：%s\n出生时间：%s\n出生地点：%s\n性别：%s\n\n第二人：%s\n出生时间：%s\n出生地点：%s\n性别：%s\n\n请使用命理工具获取排盘和合盘数据，然后生成综合报告。"

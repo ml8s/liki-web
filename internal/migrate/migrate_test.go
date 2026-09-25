@@ -7,7 +7,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"liki-web/internal/migrate"
+	"github.com/ml8s/liki-web/internal/migrate"
 )
 
 func TestRunIsIdempotent(t *testing.T) {

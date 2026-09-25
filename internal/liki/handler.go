@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"strings"
 
-	"liki-web/internal/agent"
-	"liki-web/internal/auth"
-	"liki-web/internal/payment"
-	"liki-web/internal/profile"
-	"liki-web/internal/sse"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/profile"
+	"github.com/ml8s/liki-web/internal/sse"
 )
 
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
@@ -48,6 +49,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 	mux.HandleFunc("GET /api/chat/sessions/{id}", h.requireUser(h.HandleSession))
 	mux.HandleFunc("GET /api/chat/sessions/{id}/messages", h.requireUser(h.HandleMessages))
 	mux.HandleFunc("POST /api/chat/sessions/{id}/messages", h.requireUser(limit(h.HandleSendMessage)))
+	mux.HandleFunc("POST /api/chat/sessions/{id}/ag-ui", h.requireUser(limit(h.HandleAGUIMessage)))
 }
 
 // ── Entitlement ──
@@ -115,6 +117,8 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 		for currency, amount := range commercial.AmountMinor {
 			prices[currency] = amount
 		}
+		displayCurrency := product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
+		displayAmount := commercial.AmountMinor[string(displayCurrency)]
 		purchased := len(skills) > 0
 		for _, skill := range skills {
 			if !allowedSet[skill] {
@@ -123,12 +127,14 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		items = append(items, map[string]any{
-			"id":          string(commercial.ID),
-			"name":        commercial.Name,
-			"description": commercial.Description,
-			"skills":      skills,
-			"prices":      prices,
-			"purchased":   purchased,
+			"id":                   string(commercial.ID),
+			"name":                 commercial.Name,
+			"description":          commercial.Description,
+			"skills":               skills,
+			"prices":               prices,
+			"display_currency":     string(displayCurrency),
+			"display_amount_minor": displayAmount,
+			"purchased":            purchased,
 		})
 	}
 	responseOK(w, map[string]any{"products": items})
@@ -154,7 +160,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "product_not_found", "产品不存在")
 		return
 	}
-	currency := DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("Geo-Country"))
+	currency := string(product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country")))
 	order, err := h.orders.CreateOrder(r.Context(), user.ID, user.Email, productID, currency)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "order_failed", "创建订单失败")
@@ -204,10 +210,24 @@ func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func localeOrDefault(locale string) string {
-	if strings.HasPrefix(strings.TrimSpace(locale), "en") {
+	normalized := strings.ToLower(strings.TrimSpace(locale))
+	switch {
+	case strings.HasPrefix(normalized, "en"):
 		return "en"
+	case strings.HasPrefix(normalized, "zh-cn"), strings.HasPrefix(normalized, "zh-sg"), strings.HasPrefix(normalized, "zh-hans"):
+		return "zh-Hans"
+	default:
+		return "zh-Hant"
 	}
-	return "zh-Hant"
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 // ── Chat ──
@@ -227,6 +247,7 @@ func (r createSessionRequest) Validate() error {
 
 type sendMessageRequest struct {
 	Content string `json:"content"`
+	Locale  string `json:"locale"`
 }
 
 func (r sendMessageRequest) Validate() error {
@@ -331,6 +352,7 @@ func (h *Handler) HandleSendMessage(w http.ResponseWriter, r *http.Request) {
 
 	streamCtx, cancelStream := context.WithCancel(r.Context())
 	defer cancelStream()
+	streamCtx = withChatLocale(streamCtx, localeOrDefault(firstNonEmpty(req.Locale, user.Locale)))
 	var writeErr error
 	userMessage, assistantMessage, session, err := h.service.SendMessage(
 		streamCtx, user.ID, sessionID, req.Content,

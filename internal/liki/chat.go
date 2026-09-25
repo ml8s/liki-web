@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"liki-web/internal/migrate"
+	"github.com/ml8s/liki-web/internal/migrate"
 )
 
 var ErrSessionNotFound = errors.New("liki: session not found")
@@ -47,6 +47,16 @@ type Message struct {
 	Kind      MessageKind `json:"kind"`
 	Content   string      `json:"content"`
 	CreatedAt time.Time   `json:"created_at"`
+}
+
+// SendMessageResult is the canonical completion payload for unified chat. The
+// legacy SSE endpoint places it in `done.data`; the AG-UI gateway places it in
+// `RUN_FINISHED.result`.
+type SendMessageResult struct {
+	Session          Session `json:"session"`
+	ActiveSkill      string  `json:"active_skill"`
+	UserMessage      Message `json:"user_message"`
+	AssistantMessage Message `json:"assistant_message"`
 }
 
 // ChatStore manages the unified_chat_sessions and unified_chat_messages tables.

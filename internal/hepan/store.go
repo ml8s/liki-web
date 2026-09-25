@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 // PersonInfo holds one person's birth data.

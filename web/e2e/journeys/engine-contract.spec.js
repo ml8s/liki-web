@@ -4,6 +4,8 @@
 import { test, expect } from '@playwright/test'
 import { RPC_METHODS } from '../../app/src/api/engine'
 
+test.use({ locale: 'zh-Hant' })
+
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const rpc = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ result: { data } }) })
 
@@ -182,15 +184,15 @@ test('合盘按真实引擎契约渲染（bazi.bond）', async ({ page }) => {
   await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
   await page.waitForTimeout(300)
   await page.locator('.b-form .el-radio-button:has-text("男")').click()
-  await page.locator('.b-form input[placeholder="选择日期"]').click()
+  await page.getByRole('combobox', { name: '出生日期' }).click()
   await page.locator('.el-picker-panel .el-date-table td.available').first().click()
-  await page.fill('.b-form input[placeholder="如 06:00"]', '08:00')
-  await page.click('button:has-text("合盘")')
+  await page.getByRole('combobox', { name: '出生時間' }).fill('08:00')
+  await page.locator('.b-form button[type="submit"]').click()
   await page.waitForSelector('.rel-sec', { timeout: 12000 })
   await expect(page.locator('.rel-text')).toContainText('壬申') // 日主
   await expect(page.locator('.rel-text')).toContainText('三合') // 地支关系（对象 detail）
   await expect(page.locator('.rel-chip')).toContainText(['六合', '六冲'])
-  await expect(page.locator('.rel-chip')).toContainText(['妈妈年柱看对方：偏财'])
+  await expect(page.locator('.rel-chip')).toContainText(['妈妈年柱看對方：偏财'])
 })
 
 test('起名按真实契约渲染（qiming.pick）', async ({ page }) => {
@@ -219,9 +221,9 @@ test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
   await routeEngine(page)
 
   await page.goto('/app/divination')
-  await page.waitForSelector('input[placeholder*="项目"]', { timeout: 10000 })
-  await page.locator('input[placeholder*="项目"]').fill('这个项目能成吗')
-  await page.click('button:has-text("摇卦")')
+  await page.waitForSelector('input[placeholder*="項目"]', { timeout: 10000 })
+  await page.locator('input[placeholder*="項目"]').fill('這個項目能成嗎')
+  await page.click('button:has-text("搖卦")')
   await page.waitForSelector('.gua-name', { timeout: 12000 })
   await expect(page.locator('.gua-name')).toHaveText('水火既济') // board.name
   await expect(page.locator('.gua-info')).toContainText('坎') // board.gong
@@ -237,14 +239,14 @@ test('择日按真实契约渲染（huangli_days）', async ({ page }) => {
   await routeEngine(page)
 
   await page.goto('/app/huangli')
-  await page.waitForSelector('input[placeholder="起始"]', { timeout: 10000 })
+  await page.waitForSelector('.el-date-editor', { timeout: 10000 })
   await page.locator('.el-select').first().click()
-  await page.locator('.el-select-dropdown__item:has-text("结婚")').first().click()
-  await page.locator('input[placeholder="起始"]').fill('2026-10-01')
+  await page.locator('.el-select-dropdown__item:has-text("結婚")').first().click()
+  await page.getByRole('combobox', { name: '起始日期' }).fill('2026-10-01')
   await page.keyboard.press('Enter')
-  await page.locator('input[placeholder="结束"]').fill('2026-10-31')
+  await page.getByRole('combobox', { name: '結束日期' }).fill('2026-10-31')
   await page.keyboard.press('Enter')
-  await page.click('button:has-text("择日")')
+  await page.locator('button[type="submit"]').click()
   await page.waitForSelector('.day.good', { timeout: 12000 })
   await expect(page.locator('.day.good .d-date').first()).toHaveText('2026-10-06') // recommended[].date
   await expect(page.locator('.day.bad')).toHaveCount(1) // unsuitable

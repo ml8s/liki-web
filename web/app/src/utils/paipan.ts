@@ -6,6 +6,7 @@ import {
   engineCityCoords,
   engineSolarTime,
 } from '@/api/engine'
+import { ApiError } from '@/api/http'
 
 export interface BirthInfo {
   gender: string
@@ -28,9 +29,9 @@ export interface PaipanContext {
 }
 
 const ERR_CITY_NOT_FOUND =
-  (place: string) => `无法识别出生地「${place}」，无法做真太阳时修正；请改用常见城市名，或移除此出生地后重试`
+  () => new ApiError(0, 'city_not_found', 'Unknown birth place')
 const ERR_CITY_INVALID =
-  (place: string) => `未找到出生地「${place}」；请改用常见城市名，或移除此出生地后重试`
+  () => new ApiError(0, 'city_invalid', 'Birth place has no coordinates')
 
 /** birth info → coords → 真太阳时校正 → 排盘上下文。 */
 export async function resolvePaipanContext(birth: BirthInfo): Promise<PaipanContext> {
@@ -44,10 +45,10 @@ export async function resolvePaipanContext(birth: BirthInfo): Promise<PaipanCont
     try {
       coords = await engineCityCoords(birth.birth_place)
     } catch {
-      throw new Error(ERR_CITY_NOT_FOUND(birth.birth_place))
+      throw ERR_CITY_NOT_FOUND()
     }
     if (!coords || typeof coords.longitude !== 'number') {
-      throw new Error(ERR_CITY_INVALID(birth.birth_place))
+      throw ERR_CITY_INVALID()
     }
     longitude = coords.longitude
   }
@@ -63,9 +64,9 @@ export async function resolvePaipanContext(birth: BirthInfo): Promise<PaipanCont
 
 /** birth info → bazi.chart 最小命盘（便捷方法）。 */
 export async function baziChartFor(birth: BirthInfo): Promise<BaziChartData> {
-  if (birth.calendar === 'lunar') throw new Error('免费预览暂支持公历出生时间')
+  if (birth.calendar === 'lunar') throw new ApiError(0, 'lunar_preview_unsupported', 'Lunar birth input is unsupported')
   const known = birth.birth_time_known ?? 'known'
-  if (known === 'unknown' || !birth.birth_time) throw new Error('需要出生时间')
+  if (known === 'unknown' || !birth.birth_time) throw new ApiError(0, 'birth_time_required', 'Birth time is required')
   const ctx = await resolvePaipanContext(birth)
   return engineBaziChart(ctx.solar, birth.gender)
 }

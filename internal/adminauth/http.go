@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"liki-web/internal/auth"
-	"liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 type Handler struct {

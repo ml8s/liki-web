@@ -1,6 +1,6 @@
 package http
 
-import "liki-web/internal/i18n"
+import "github.com/ml8s/liki-web/internal/i18n"
 
 // langToLocale maps frontend language code to BCP 47 locale.
 // Short "zh" is a legacy alias for zh-Hant (Traditional Chinese).

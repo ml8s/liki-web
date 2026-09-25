@@ -1,6 +1,8 @@
 package liki
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Definition describes the commerce-facing product card (name, description,
 // pricing). It shares the Product identifier with the entitlement definition.
@@ -17,7 +19,8 @@ func commerceCatalog() map[Product]Definition {
 			ID:          ProductChat,
 			Name:        "Liki Chat",
 			Description: "Naming, BaZi, divination, and Feng Shui in one Chat.",
-			AmountMinor: map[string]int64{"CNY": 2990, "USD": 2990},
+			// Temporary test price: CNY 1.00 / USD 1.00.
+			AmountMinor: map[string]int64{"CNY": 100, "USD": 100},
 		},
 	}
 }
@@ -48,16 +51,4 @@ func AmountMinor(id Product, currency string) (int64, error) {
 		return 0, fmt.Errorf("liki: product %s does not support currency %s", id, currency)
 	}
 	return amount, nil
-}
-
-// DetectCurrency derives billing currency from trusted edge/geo headers.
-func DetectCurrency(cfCountry, geoCountry string) string {
-	switch {
-	case cfCountry == "CN" || geoCountry == "CN":
-		return "CNY"
-	case cfCountry != "" || geoCountry != "":
-		return "USD"
-	default:
-		return "CNY"
-	}
 }

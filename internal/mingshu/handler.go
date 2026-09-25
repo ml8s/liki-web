@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"liki-web/internal/httputil"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/product"
 
 	"github.com/google/uuid"
 )

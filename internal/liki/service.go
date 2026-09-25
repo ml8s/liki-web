@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"liki-web/internal/agent"
-	"liki-web/internal/llm"
-	"liki-web/internal/profile"
+	"github.com/ml8s/liki-web/internal/agent"
+	"github.com/ml8s/liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/profile"
 )
 
 var (
@@ -19,6 +19,10 @@ var (
 	ErrMessageEmpty      = errors.New("liki: message empty")
 	ErrRunnerUnavailable = errors.New("liki: runner unavailable for skill")
 )
+
+// chatExecutionTimeout must remain below the HTTP server WriteTimeout. The
+// service timeout covers local tool loops and remote AG-UI runs alike.
+const chatExecutionTimeout = 140 * time.Second
 
 // Runner abstracts the LLM execution engine for one skill.
 type Runner interface {
@@ -32,6 +36,7 @@ type Service struct {
 	entitlements *EntitlementStore
 	profiles     *profile.Store
 	runners      map[Skill]Runner
+	agentRunner  Runner
 	locks        sync.Mutex
 	sessionLocks sync.Map // sessionID -> *sync.Mutex
 }
@@ -43,11 +48,25 @@ func NewService(store *ChatStore, entitlements *EntitlementStore, profiles *prof
 	return &Service{store: store, entitlements: entitlements, profiles: profiles, runners: runners, sessionLocks: sync.Map{}}
 }
 
+// SetAgentRunner enables AG-UI routing for sessions that are not bound to a
+// profile. Profile-bound sessions continue to use the local runner because
+// profile writes and calibration are still product-owned capabilities.
+func (s *Service) SetAgentRunner(runner Runner) {
+	s.agentRunner = runner
+}
+
 func (s *Service) runnerFor(skill Skill) (Runner, error) {
 	if runner, ok := s.runners[skill]; ok && runner != nil {
 		return runner, nil
 	}
 	return nil, ErrRunnerUnavailable
+}
+
+func (s *Service) runnerForSession(skill Skill, profileID string) (Runner, error) {
+	if profileID == "" && s.agentRunner != nil {
+		return s.agentRunner, nil
+	}
+	return s.runnerFor(skill)
 }
 
 // Session loads a session only while its entitlement remains active. Expired
@@ -67,7 +86,7 @@ func (s *Service) Session(ctx context.Context, userID, sessionID string) (Sessio
 	if !ok {
 		return Session{}, ErrSkillForbidden
 	}
-	if _, err := s.runnerFor(Skill(session.Skill)); err != nil {
+	if _, err := s.runnerForSession(Skill(session.Skill), session.ProfileID); err != nil {
 		return Session{}, err
 	}
 	return session, nil
@@ -142,7 +161,7 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if !ok {
 		return Message{}, Message{}, Session{}, ErrSkillForbidden
 	}
-	chatRunner, err := s.runnerFor(Skill(session.Skill))
+	chatRunner, err := s.runnerForSession(Skill(session.Skill), session.ProfileID)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
@@ -179,7 +198,7 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 		onEvent(agent.ChatEvent{Type: agent.EventThinking})
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, chatExecutionTimeout)
 	defer cancel()
 	result, err := chatRunner.Execute(ctx, msgs, onEvent, func() string {
 		return "正在计算命理数据…"

@@ -1,8 +1,5 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import PersonFields from '../../components/PersonFields.astro';
-import PaymentRow from '../../components/PaymentRow.astro';
-import I18nData from '../../components/I18nData.astro';
+import ScenarioLanding from '../../components/ScenarioLanding.astro';
 import { t, locales } from '../../i18n.js';
 import { v } from '../../version.js';
 import { readFileSync } from 'node:fs';
@@ -13,72 +10,67 @@ export function getStaticPaths() {
 }
 
 const { locale } = Astro.params;
-const mingshuDemo = JSON.parse(readFileSync(join(process.cwd(), 'js/mingshu-report-demo.json'), 'utf-8'));
+const demo = locale === 'en' ? null : JSON.parse(readFileSync(join(process.cwd(), 'js/mingshu-report-demo.json'), 'utf-8'));
+const benefits = ['personality', 'career', 'relationship', 'timing'].map(key => `scenario.mingshu.benefit.${key}`);
+const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
+const questions = ['q1', 'q2', 'q3'].map(key => `scenario.mingshu.${key}`);
+const faqs = ['paid', 'data', 'accuracy'].map(key => ({
+  questionKey: `scenario.faq.${key}.q`,
+  answerKey: `scenario.faq.${key}.a`,
+}));
+const staticSections = ['personality', 'career', 'love', 'health', 'fortune', 'milestones']
+  .map(key => ({
+    title: t(locale, `scenario.mingshu.static.${key}.title`),
+    body: t(locale, `scenario.mingshu.static.${key}.body`),
+  }));
 ---
 
-<BaseLayout
+<ScenarioLanding
   locale={locale}
   page="mingshu"
-  heading={t(locale, 'site.brand')}
-  type="brand"
-  twitterCard="summary_large_image"
+  scenario="mingshu"
+  titleKey="scenario.mingshu.title"
+  subtitleKey="scenario.mingshu.subtitle"
+  benefitsTitleKey="scenario.mingshu.benefitsTitle"
+  benefitKeys={benefits}
+  exampleTitleKey="scenario.mingshu.exampleTitle"
+  stepsTitleKey="scenario.stepsTitle"
+  stepKeys={steps}
+  questionsTitleKey="scenario.mingshu.questionsTitle"
+  questionKeys={questions}
+  faqTitleKey="scenario.faqTitle"
+  faqs={faqs}
 >
-  <Fragment slot="head">
-    <meta name="keywords" content="命理,八字,紫微,Liki 命书,命运分析,流年,大运">
-        <script>
-(function() {
-  var lang = document.querySelector('html').getAttribute('lang') || 'zh-Hans';
-  var names = {}; var descs = {};
-  names.zhHans = 'Liki 命书';
-  names.zhHant = '生命之書';
-  names.en = 'Life Reading';
-  descs.zhHans = '八字与紫微斗数综合命理分析报告';
-  descs.zhHant = '八字與紫微斗數綜合命理分析報告';
-  descs.en = 'Comprehensive Bazi and ZiWei life analysis report';
-  var name = names[lang] || names.zhHans;
-  var desc = descs[lang] || descs.zhHans;
-  var sd = document.createElement('script');
-  sd.type = 'application/ld+json';
-  sd.textContent = JSON.stringify({"@context":"https://schema.org","@type":"Product","name":name,"description":desc,"image":"https://liki.hk/img/og-image.png","brand":{"@type":"Brand","name":"Liki"},"offers":{"@type":"Offer","price":"129","priceCurrency":"USD","availability":"https://schema.org/InStock"}});
-  document.head.appendChild(sd);
-})();
-</script>
-    <I18nData locale={locale} />
-    <script defer src={`/js/api.js?v=${v}`}></script>
-    <script defer src={`/js/payment-poller.js?v=${v}`}></script>
-    <script defer src={`/js/payment.js?v=${v}`}></script>
-    <script defer src={`/js/marked.min.js?v=${v}`}></script>
-    <script defer src={`/js/purify.min.js?v=${v}`}></script>
-    <script defer src={`/js/render-report.js?v=${v}`}></script>
-    <script defer src={`/js/mingshu.js?v=${v}`}></script>
-    <script type="application/json" id="mingshu-demo-data" set:html={JSON.stringify(mingshuDemo)}></script>
-    <script>document.addEventListener('DOMContentLoaded',function(){var e=document.getElementById('mingshu-report-example'),d=document.getElementById('mingshu-demo-data');if(e&&d){try{var data=JSON.parse(d.textContent);e.innerHTML=window.renderReport(data)}catch(ex){e.innerHTML='<p>渲染异常</p>'}}});</script>
-  </Fragment>
-
-  <section class="hero-brand">
-    <h1 class="text-center text-4xl md:text-5xl font-serif font-bold text-stone-800 mb-2 tracking-tight">{t(locale, 'mingshu.hero.title')}</h1>
-    <p class="text-center text-base font-serif text-stone-600 mb-3">{t(locale, 'mingshu.hero.subtitle')}</p>
-  </section>
-
-  <section class="py-8 md:py-12 px-4">
-    <div class="bg-white border border-stone-200 rounded-lg overflow-hidden" tabindex="0" style="max-height:640px;overflow-y:auto">
-      <div class="p-4">
-        <p class="text-xs text-stone-600 text-center mb-2 italic">示例内容为虚构，仅用于展示内容结构</p>
+  <div class="scenario-static-index">
+    {staticSections.map(section => (
+      <details>
+        <summary>{section.title}</summary>
+        <p>{section.body}</p>
+      </details>
+    ))}
+  </div>
+  {demo && (
+    <>
+      <div class="scenario-report-frame" tabindex="0">
+        <p class="scenario-demo-note">{t(locale, 'scenario.demoNote')}</p>
         <div id="mingshu-report-example"></div>
       </div>
-    </div>
-  </section>
-
-  <section class="cta-section py-8 md:py-12 lb-form-section">
-    <div class="max-w-sm mx-auto">
-    <p class="text-center font-serif text-lg text-stone-700 mb-2">{t(locale, 'site.slogan')}</p>
-    <h2 class="text-center text-xl font-bold text-stone-800 mb-6">{t(locale, 'mingshu.cta.title')}</h2>
-    <form id="mingshu-form">
-      <PersonFields prefix="lb" locale={locale} ns="mingshu.form" birth="1990-05-20T12:00" />
-      <PaymentRow locale={locale} emailId="lb-email" errId="form-error" btnId="form-submit" emailKey="mingshu.form.email.placeholder" emailLabelKey="mingshu.form.email" btnKey="mingshu.form.submit" product="mingshu" />
-    </form>
-    </div>
-  </section>
-
-  <div id="report-container" class="hidden"></div>
-</BaseLayout>
+      <script is:inline defer src={`/js/marked.min.js?v=${v}`}></script>
+      <script is:inline defer src={`/js/purify.min.js?v=${v}`}></script>
+      <script is:inline defer src={`/js/render-report.js?v=${v}`}></script>
+      <script is:inline type="application/json" id="mingshu-demo-data" set:html={JSON.stringify(demo)}></script>
+      <script is:inline>
+        document.addEventListener('DOMContentLoaded', function() {
+          var target = document.getElementById('mingshu-report-example');
+          var source = document.getElementById('mingshu-demo-data');
+          if (!target || !source || !window.renderReport) return;
+          try {
+            target.innerHTML = window.renderReport(JSON.parse(source.textContent));
+          } catch (error) {
+            target.textContent = target.getAttribute('data-error') || 'Render error';
+          }
+        });
+      </script>
+    </>
+  )}
+</ScenarioLanding>

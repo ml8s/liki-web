@@ -12,9 +12,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"liki-web/internal/httputil"
-	"liki-web/internal/naming"
-	"liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/product"
 
 	_ "modernc.org/sqlite"
 )

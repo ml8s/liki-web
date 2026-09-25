@@ -24,7 +24,7 @@ const PAGES = [
 
 const SPECIAL = [
   { loc: 'https://liki.hk/llms.txt',        src: 'web/llms.txt',           freq: 'weekly',  priority: '0.7' },
-  { loc: 'https://liki.hk/skills/SKILL.md',  src: 'web/skills/SKILL.md',           freq: 'monthly', priority: '0.5' },
+  { loc: 'https://liki.hk/skills/SKILL.md',  src: 'web/skills/liki/SKILL.md',      freq: 'monthly', priority: '0.5' },
 ];
 
 function gitLastmod(file) {
@@ -32,7 +32,8 @@ function gitLastmod(file) {
     const full = path.resolve(PROJECT, file);
     const dir = path.dirname(full);
     const rel = path.relative(dir, full);
-    return execSync(`git -C "${dir}" log -1 --format="%cI" -- "${rel}"`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const lastmod = execSync(`git -C "${dir}" log -1 --format="%cI" -- "${rel}"`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    return lastmod || new Date().toISOString().split('T')[0];
   } catch {
     return new Date().toISOString().split('T')[0];
   }
