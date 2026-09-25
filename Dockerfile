@@ -6,4 +6,4 @@ COPY web/ /web/
 ENV LIKI_SKILLS_DIR=/web/skills
 USER liki
 EXPOSE 8081
-ENTRYPOINT ["/usr/local/bin/liki-web", "--addr", ":8081"]
+ENTRYPOINT ["/usr/local/bin/liki-web"]

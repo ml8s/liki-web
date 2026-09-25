@@ -33,8 +33,10 @@ export LIKI_DATA_DIR="${LIKI_DATA_DIR:-$(pwd)/data}"
 mkdir -p "$LIKI_DATA_DIR"
 export LISTEN_ADDR="${LISTEN_ADDR:-:8081}"
 export LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
+export LIKI_SELF_URL="${LIKI_SELF_URL:-http://127.0.0.1:8081}"
 export TRUSTED_PROXY_HOPS="${TRUSTED_PROXY_HOPS:-1}"
 export JWT_SECRET="${JWT_SECRET:-dev-secret-do-not-use-in-production}"
+export REFERRAL_PAYOUT_SECRET="${REFERRAL_PAYOUT_SECRET:-dev-referral-payout-secret-do-not-use-in-production}"
 export DEV_MODE="${DEV_MODE:-true}"
 
 # Caddy binary

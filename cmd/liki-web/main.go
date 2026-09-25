@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/ml8s/liki-web/internal/product"
 	"html"
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -30,6 +31,7 @@ import (
 	"github.com/ml8s/liki-web/internal/mingshu"
 	"github.com/ml8s/liki-web/internal/naming"
 	"github.com/ml8s/liki-web/internal/paymentflow"
+	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/profile"
 	"github.com/ml8s/liki-web/internal/referral"
 	"github.com/ml8s/liki-web/internal/xunhu"
@@ -114,7 +116,7 @@ func LoadConfig() Config {
 		SkillsDir:           envOr("LIKI_SKILLS_DIR", "web/skills"),
 		PromptFile:          envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
 		EngineURL:           envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
-		SelfURL:             envOr("LIKI_SELF_URL", "http://127.0.0.1:8080"),
+		SelfURL:             envOr("LIKI_SELF_URL", "http://127.0.0.1:8081"),
 		AgentMode:           strings.ToLower(envOr("LIKI_AGENTS_MODE", "local")),
 		AgentURL:            strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
 		AgentInternalToken:  os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
@@ -162,6 +164,10 @@ func main() {
 
 	// Validate required config
 	requireEnv("JWT_SECRET", cfg.JWTSecret, "LIKI_LLM_API_KEY", cfg.LLMAPIKey, "LIKI_LLM_MODEL", cfg.LLMModel)
+	if err := validateRuntimeURLs(cfg); err != nil {
+		slog.Error("invalid runtime URL configuration", "err", err)
+		os.Exit(1)
+	}
 
 	// ── open databases ──
 	dataDir := cfg.DataDir
@@ -509,6 +515,12 @@ func main() {
 		slog.Warn("dodo product is not configured for liki-chat; USD chat checkout will fail")
 	}
 	xunhuConfigured := cfg.XunhuAppID != "" && cfg.XunhuAppSecret != "" && cfg.PaymentWebhookURL != ""
+	if dodoConfigured || xunhuConfigured {
+		if err := validateHTTPURL("RETURN_URL", cfg.ReturnURL); err != nil {
+			slog.Error("payment runtime requires an absolute public RETURN_URL", "err", err)
+			os.Exit(1)
+		}
+	}
 	if !dodoConfigured && !xunhuConfigured {
 		slog.Error("no payment provider is fully configured")
 		os.Exit(1)
@@ -734,6 +746,45 @@ func requireEnv(pairs ...string) {
 			os.Exit(1)
 		}
 	}
+}
+
+func validateHTTPURL(name, value string) error {
+	if value == "" {
+		return nil
+	}
+	parsed, err := url.ParseRequestURI(value)
+	if err != nil {
+		return fmt.Errorf("%s %q: %w", name, value, err)
+	}
+	if (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+		return fmt.Errorf("%s %q must be an absolute http(s) URL", name, value)
+	}
+	return nil
+}
+
+func validateRuntimeURLs(cfg Config) error {
+	var errs []error
+	if err := validateHTTPURL("LIKI_ENGINE_URL", cfg.EngineURL); err != nil {
+		errs = append(errs, err)
+	}
+	if err := validateHTTPURL("LIKI_SELF_URL", cfg.SelfURL); err != nil {
+		errs = append(errs, err)
+	}
+	if err := validateHTTPURL("LIKI_LLM_BASE_URL", cfg.LLMBaseURL); err != nil {
+		errs = append(errs, err)
+	}
+	if err := validateHTTPURL("RETURN_URL", cfg.ReturnURL); err != nil {
+		errs = append(errs, err)
+	}
+	if err := validateHTTPURL("PAYMENTS_WEBHOOK_URL", cfg.PaymentWebhookURL); err != nil {
+		errs = append(errs, err)
+	}
+	if cfg.AgentMode == "agent" {
+		if err := validateHTTPURL("LIKI_AGENTS_URL", cfg.AgentURL); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func envOr(key, def string) string {

@@ -121,7 +121,10 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	}
 
 	mux.HandleFunc("GET /api/health", handleHealth())
-	mux.HandleFunc("GET /api/ready", handleReady(deps.Readiness))
+	readinessLimit := func(next http.HandlerFunc) http.HandlerFunc {
+		return rl.Wrap(10.0/60, 10, next)
+	}
+	mux.HandleFunc("GET /api/ready", readinessLimit(handleReady(deps.Readiness)))
 	analyticsLimit := func(next http.HandlerFunc) http.HandlerFunc {
 		return rl.Wrap(30.0/60, 30, next)
 	}

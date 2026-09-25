@@ -59,6 +59,8 @@ In development, the login page shows a local verification code when the email se
 | Variable | Purpose |
 | --- | --- |
 | `JWT_SECRET` | Platform session signing secret |
+| `REFERRAL_PAYOUT_SECRET` | Encrypts partner payout accounts; must be at least 32 bytes |
+| `LISTEN_ADDR` | Internal HTTP listen address |
 | `LIKI_DATA_DIR` | SQLite data directory |
 | `RETURN_URL` | Public site base URL used for payment returns |
 | `PAYMENTS_WEBHOOK_URL` | Provider webhook URL |

@@ -41,6 +41,17 @@ func TestHandlerReturnsCounters(t *testing.T) {
 	}
 }
 
+func TestHandlerRejectsIncorrectBearerToken(t *testing.T) {
+	handler := metrics.Handler("secret")
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req.Header.Set("Authorization", "Bearer not-secret")
+	rec := httptest.NewRecorder()
+	handler(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403", rec.Code)
+	}
+}
+
 func TestRenderPrometheus(t *testing.T) {
 	rendered := metrics.RenderPrometheus(map[string]uint64{
 		"payment_refunded_total|provider=dodo":      2,

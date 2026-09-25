@@ -110,6 +110,26 @@ func TestHandleList_WithAuth(t *testing.T) {
 	}
 }
 
+func TestAuthAPIKeyAcceptsRawAndBearerWithoutEquatingDifferentKeys(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/feedback", nil)
+	req.Header.Set("Authorization", "Bearer my-key")
+	if !authAPIKey(req, "my-key") {
+		t.Fatal("bearer key should authenticate")
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/feedback", nil)
+	req.Header.Set("Authorization", "my-key")
+	if !authAPIKey(req, "my-key") {
+		t.Fatal("raw key should authenticate")
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/api/feedback", nil)
+	req.Header.Set("Authorization", "Bearer not-my-key")
+	if authAPIKey(req, "my-key") {
+		t.Fatal("different key must not authenticate")
+	}
+}
+
 // 空结果应序列化为 [] 而非 null（客户端不需判空）
 func TestHandleList_EmptyReturnsEmptyArray(t *testing.T) {
 	s := setup(t)

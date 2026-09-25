@@ -2,6 +2,7 @@ package feedback
 
 import (
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -128,9 +129,9 @@ func authAPIKey(r *http.Request, key string) bool {
 	}
 	val := r.Header.Get("Authorization")
 	if strings.HasPrefix(val, "Bearer ") {
-		return val[7:] == key
+		return subtle.ConstantTimeCompare([]byte(val[7:]), []byte(key)) == 1
 	}
-	return val == key
+	return subtle.ConstantTimeCompare([]byte(val), []byte(key)) == 1
 }
 
 func parseInt(s string) (int, error) {

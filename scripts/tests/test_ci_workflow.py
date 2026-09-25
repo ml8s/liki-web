@@ -3,7 +3,8 @@ import unittest
 from pathlib import Path
 
 
-WORKFLOW = Path(__file__).parents[2] / ".github" / "workflows" / "ci.yml"
+PROJECT = Path(__file__).parents[2]
+WORKFLOW = PROJECT / ".github" / "workflows" / "ci.yml"
 
 
 class CIWorkflowTest(unittest.TestCase):
@@ -34,6 +35,11 @@ class CIWorkflowTest(unittest.TestCase):
 
         self.assertIn("LISTEN_ADDR: :8081", env)
         self.assertNotIn("-addr :8081", text, "liki-web listens through LISTEN_ADDR, not a CLI flag")
+
+    def test_docker_entrypoint_does_not_add_removed_addr_flag(self):
+        dockerfile = (PROJECT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn('ENTRYPOINT ["/usr/local/bin/liki-web"]', dockerfile)
+        self.assertNotIn("--addr", dockerfile)
 
 
 if __name__ == "__main__":

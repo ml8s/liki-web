@@ -179,7 +179,7 @@ Liki Chat product and payment APIs above.
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/health` | public | Liveness |
-| GET | `/api/ready` | public | Readiness |
+| GET | `/api/ready` | public, rate limited | Readiness |
 | POST | `/api/analytics/pageview` | public, rate limited | Increment aggregate page-view counter |
 | GET | `/api/version` | public | Build time and version |
 | GET | `/api/internal/metrics` | token | JSON or Prometheus counters |

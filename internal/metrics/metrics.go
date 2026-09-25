@@ -3,6 +3,7 @@
 package metrics
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -130,7 +131,8 @@ func Handler(token string) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		if r.Header.Get("Authorization") != "Bearer "+token {
+		expected := "Bearer " + token
+		if subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte(expected)) != 1 {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}

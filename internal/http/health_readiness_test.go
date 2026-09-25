@@ -47,3 +47,25 @@ func TestReadyFailsClosedWhenNotConfigured(t *testing.T) {
 		t.Fatalf("status = %d, want 503", rec.Code)
 	}
 }
+
+func TestReadyRouteIsRateLimited(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	limiter := NewRateLimiter()
+	defer limiter.Stop()
+	RegisterRoutes(mux, ServerDeps{
+		Readiness: func(context.Context) error { return nil },
+	}, "test", "test", limiter, limiter)
+
+	var lastStatus int
+	for i := 0; i < 11; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/api/ready", nil)
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		lastStatus = rec.Code
+	}
+	if lastStatus != http.StatusTooManyRequests {
+		t.Fatalf("11th readiness status = %d, want 429", lastStatus)
+	}
+}

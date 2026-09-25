@@ -7,7 +7,8 @@
 - Added KOL/Scout role applications, independent workspaces, encrypted payout accounts, commission reconciliation, and refund clawback.
 - Integrated the optional `liki-agents` AG-UI runner while keeping auth, entitlement, persistence, and profile writes in `liki-web`.
 - Added lazy-loaded app locales, stable API error-code localization, locale-aware formatting, and an operator feedback decoder.
-- Hardened trusted client IP resolution, public beacon limits, payment route boundaries, locale propagation, agent timeout, readiness checks, and public accessibility.
+- Centralized runtime URL validation, completed the environment template, and hardened internal API-key comparison.
+- Hardened trusted client IP resolution, public beacon/readiness limits, payment route boundaries, locale propagation, agent timeout, readiness checks, and public accessibility.
 
 ## 2026.09.19.3 —— Alipay A2M 沙箱联调通过
 
