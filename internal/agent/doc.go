@@ -13,7 +13,7 @@
 //
 // Products
 //
-//	ProductNaming    — the only active product
+//	Liki Chat        — the only active product
 //
 // Events (SSE streaming)
 //

@@ -1,4 +1,4 @@
-// RegisterRoutes mounts naming product routes on the given mux.
+// RegisterRoutes mounts retired naming compatibility routes on the given mux.
 package naming
 
 import (

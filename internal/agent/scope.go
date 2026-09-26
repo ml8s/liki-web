@@ -16,9 +16,9 @@ type ToolScope struct {
 	Prefixes []string
 }
 
-// SkillToolScopes are the backend security boundary for unified chat. The LLM
+// SkillToolScopes are the backend security boundary for Liki Chat. The LLM
 // neither chooses its authority nor sees schemas outside the active skill. The
-// unified "liki" scope is the union of the four domains (本命/起名/问卦/风水);
+// Liki Chat "liki" scope is the union of the four domains (本命/起名/问卦/风水);
 // domain routing happens in the prompt, not by widening authority per turn.
 var SkillToolScopes = map[string]ToolScope{
 	"liki": {

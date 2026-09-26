@@ -35,7 +35,7 @@ func lbSeedPaidOrder(t *testing.T, s *Store) string {
 
 // ── HandleCreateOrder ──
 
-func TestHandleCreateOrder_Success(t *testing.T) {
+func TestHandleCreateOrderIsRetired(t *testing.T) {
 	t.Parallel()
 	s := newLBTestStore(t)
 	h := HandleCreateOrder(s)
@@ -46,31 +46,8 @@ func TestHandleCreateOrder_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	h(w, r)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200", w.Code)
-	}
-	var resp struct {
-		Data struct {
-			OrderID string `json:"order_id"`
-		} `json:"data"`
-	}
-	json.NewDecoder(w.Body).Decode(&resp) //nolint:errcheck
-	if resp.Data.OrderID == "" {
-		t.Error("empty order_id")
-	}
-}
-
-func TestHandleCreateOrder_InvalidJSON(t *testing.T) {
-	t.Parallel()
-	s := newLBTestStore(t)
-	h := HandleCreateOrder(s)
-
-	r := httptest.NewRequest("POST", "/api/mingshu/orders", strings.NewReader(`{invalid`))
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
+	if w.Code != http.StatusGone {
+		t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusGone, w.Body.String())
 	}
 }
 

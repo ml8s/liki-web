@@ -1,4 +1,4 @@
-// RegisterRoutes mounts mingshu product routes on the given mux.
+// RegisterRoutes mounts retired mingshu compatibility routes on the given mux.
 package mingshu
 
 import (

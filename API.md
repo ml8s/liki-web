@@ -167,12 +167,15 @@ Operators can decode records for triage with:
 FEEDBACK_API_KEY=... python3 scripts/feedback-read.py --status pending
 ```
 
-## Legacy product compatibility
+## Retired product compatibility
 
-The naming, Ming Shu, and He Pan pages retain their historical order/report and
-naming chat routes under `/api/naming`, `/api/mingshu`, and `/api/hepan`.
-They are frozen compatibility surfaces; new commerce flows use the unified
-Liki Chat product and payment APIs above.
+The naming, Ming Shu, and He Pan public pages are Liki Chat CTA surfaces, not
+separate products. Historical order/report and naming-chat routes remain under
+`/api/naming`, `/api/mingshu`, and `/api/hepan` only so previously paid records
+can be read. New order, activation, and checkout creation is retired and fails
+closed; all new commerce uses the Liki Chat APIs above.
+The historical email-only naming login and order-selection routes also return
+`410 product_retired`; they never establish a session.
 
 ## Internal
 

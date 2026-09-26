@@ -577,7 +577,7 @@ func TestRuntimeReconcileIgnoresUnpaidProviderState(t *testing.T) {
 	}
 }
 
-func TestRuntimeWebhookDoesNotGrantUnifiedChatEntitlement(t *testing.T) {
+func TestRuntimeWebhookDoesNotGrantRetiredProductEntitlement(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, _, _, _, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{

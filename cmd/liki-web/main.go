@@ -57,17 +57,13 @@ var (
 const maxAgentRunTimeout = 140 * time.Second
 
 type Config struct {
-	DataDir            string
-	FeedbackAPIKey     string
-	ResendAPIKey       string
-	ResendFrom         string
-	DodoAPIKey         string
-	DodoWebhookKey     string
-	DodoTestMode       bool
-	DodoProductNaming  string
-	DodoProductMingShu string
-	DodoProductHepan   string
-
+	DataDir             string
+	FeedbackAPIKey      string
+	ResendAPIKey        string
+	ResendFrom          string
+	DodoAPIKey          string
+	DodoWebhookKey      string
+	DodoTestMode        bool
 	DodoProductLikiChat string
 	XunhuAppID          string
 	XunhuAppSecret      string
@@ -93,17 +89,13 @@ type Config struct {
 
 func LoadConfig() Config {
 	return Config{
-		DataDir:            envOr("LIKI_DATA_DIR", "/var/lib/liki"),
-		FeedbackAPIKey:     os.Getenv("FEEDBACK_API_KEY"),
-		ResendAPIKey:       os.Getenv("RESEND_API_KEY"),
-		ResendFrom:         envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
-		DodoAPIKey:         envOr("DODO_API_KEY", ""),
-		DodoWebhookKey:     envOr("DODO_WEBHOOK_KEY", ""),
-		DodoTestMode:       envOrBool("DODO_TEST_MODE", false),
-		DodoProductNaming:  os.Getenv("DODO_PRODUCT_NAMING"),
-		DodoProductMingShu: os.Getenv("DODO_PRODUCT_MINGSHU"),
-		DodoProductHepan:   os.Getenv("DODO_PRODUCT_HEPAN"),
-
+		DataDir:             envOr("LIKI_DATA_DIR", "/var/lib/liki"),
+		FeedbackAPIKey:      os.Getenv("FEEDBACK_API_KEY"),
+		ResendAPIKey:        os.Getenv("RESEND_API_KEY"),
+		ResendFrom:          envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
+		DodoAPIKey:          envOr("DODO_API_KEY", ""),
+		DodoWebhookKey:      envOr("DODO_WEBHOOK_KEY", ""),
+		DodoTestMode:        envOrBool("DODO_TEST_MODE", false),
 		DodoProductLikiChat: os.Getenv("DODO_PRODUCT_LIKI_CHAT"),
 		XunhuAppID:          envOr("XUNHU_APPID", ""),
 		XunhuAppSecret:      envOr("XUNHU_APPSECRET", ""),
@@ -218,10 +210,7 @@ func main() {
 	emailClient := email.New(cfg.ResendAPIKey, cfg.ResendFrom)
 
 	dodoProducts := map[string]string{
-		string(product.ProductNaming):  cfg.DodoProductNaming,
-		string(product.ProductMingShu): cfg.DodoProductMingShu,
-		string(product.ProductHePan):   cfg.DodoProductHepan,
-		string(liki.ProductChat):       cfg.DodoProductLikiChat,
+		string(liki.ProductChat): cfg.DodoProductLikiChat,
 	}
 	dodoClient := dodo.New(cfg.DodoAPIKey, cfg.DodoWebhookKey, cfg.DodoTestMode, dodoProducts)
 
@@ -269,18 +258,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Unified chat owns exactly the one installable skill.
+	// Liki Chat owns exactly the one installable skill.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Deny-by-default tool scope so an active session can reach only the
-	// deterministic engine domains exposed by the unified Liki skill.
+	// deterministic engine domains exposed by the Liki Chat skill.
 	if err := profileStore.Migrate(ctx); err != nil {
 		slog.Error("init profile schema", "err", err)
 		os.Exit(1)
 	}
-	chatRunners := make(map[liki.Skill]liki.Runner, len(agent.UnifiedChatSkills))
-	for _, skillID := range agent.UnifiedChatSkills {
+	chatRunners := make(map[liki.Skill]liki.Runner, len(agent.LikiChatSkills))
+	for _, skillID := range agent.LikiChatSkills {
 		tools := agent.NewToolRegistry(cfg.EngineURL)
 		tools.Register("read_file",
 			"Read an instruction or domain reference from the active skill directory.",
@@ -504,13 +493,12 @@ func main() {
 		slog.Error("init payment events", "err", err)
 		os.Exit(1)
 	}
+	// Retired flows remain registered only to fulfill and reconcile intents
+	// created before the single-product cutover.
 	namingFlow := paymentflow.NewNamingFlow(namingStore, 15)
 	mingshuFlow := paymentflow.NewMingShuFlow(mingshuStore, mingshuGenerator, notifications, cfg.ReturnURL)
 	hepanFlow := paymentflow.NewHepanFlow(hepanStore, hepanGenerator, notifications, cfg.ReturnURL)
 	dodoConfigured := cfg.DodoAPIKey != "" && cfg.DodoWebhookKey != ""
-	if dodoConfigured && (cfg.DodoProductNaming == "" || cfg.DodoProductMingShu == "" || cfg.DodoProductHepan == "") {
-		slog.Warn("legacy dodo products are not fully configured; legacy report checkout will fail")
-	}
 	if dodoConfigured && cfg.DodoProductLikiChat == "" {
 		slog.Warn("dodo product is not configured for liki-chat; USD chat checkout will fail")
 	}

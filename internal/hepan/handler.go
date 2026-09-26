@@ -7,41 +7,12 @@ import (
 	"time"
 
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/product"
 )
 
 // HandleCreateOrder creates a hepan order.
 func HandleCreateOrder(store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			PersonA PersonInfo `json:"person_a"`
-			PersonB PersonInfo `json:"person_b"`
-			Email   string     `json:"email"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
-			return
-		}
-
-		locale := httputil.LocaleFromAccept(r)
-		orderID := product.NewOrderID()
-		pA, _ := json.Marshal(req.PersonA) //nolint:errcheck
-		pB, _ := json.Marshal(req.PersonB) //nolint:errcheck
-		currency := product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
-		amount, priceErr := product.AmountMinor(product.ProductHePan, currency)
-		if priceErr != nil {
-			slog.Error("hepan: resolve price", "err", priceErr)
-			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
-			return
-		}
-
-		if err := store.CreateOrder(r.Context(), orderID, string(ProductHepan), amount, string(currency), req.Email, string(pA), string(pB), locale); err != nil {
-			slog.Error("hepan: create order", "err", err)
-			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
-			return
-		}
-
-		httputil.RespondJSON(w, http.StatusOK, map[string]string{"order_id": orderID})
+		httputil.RespondError(w, http.StatusGone, "product_retired", "合盘产品已下线，请使用 Liki Chat")
 	}
 }
 

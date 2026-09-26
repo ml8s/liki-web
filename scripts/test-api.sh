@@ -96,6 +96,7 @@ check_400()  { check "$1 HTTP" "400" "${2:-}"; }
 check_401()  { check "$1 HTTP" "401" "${2:-}"; }
 check_403()  { check "$1 HTTP" "403" "${2:-}"; }
 check_404()  { check "$1 HTTP" "404" "${2:-}"; }
+check_410()  { check "$1 HTTP" "410" "${2:-}"; }
 check_422()  { check "$1 HTTP" "422" "${2:-}"; }
 check_405()  { check "$1 HTTP" "405" "${2:-}"; }
 check_any()  { check_range "$1 HTTP" "${2:-}" "${3:-}"; }
@@ -186,44 +187,12 @@ fi
 echo ""
 echo "${BOLD}── Orders ──${NC}"
 
-# Create order
+# Retired product creation fails closed.
 s=$(api POST /api/naming/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"naming\",\"currency\":\"USD\",\"lang\":\"zh-Hans\"}")
-check_200 "POST /api/naming/orders (create)" "$s"
-save_order_id
+check_410 "POST /api/naming/orders (retired)" "$s"
 
-# Create order with unsupported currency → falls back to CNY (no validation)
-s=$(api POST /api/naming/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"naming\",\"currency\":\"XYZ\"}")
-check_200 "POST /api/naming/orders (unsupported currency)" "$s"
-
-# Create order without email → accepted (handler ignores unknown fields)
-s=$(api POST /api/naming/orders '{"product":"naming","currency":"USD"}')
-check_200 "POST /api/naming/orders (no email field)" "$s"
-
-# Create order with unsupported product → falls back to naming (no validation)
-s=$(api POST /api/naming/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"unknown\",\"currency\":\"USD\"}")
-check_200 "POST /api/naming/orders (unknown product)" "$s"
-
-# Select order (chained from created order)
-if [ -n "$ORDER_ID" ]; then
-  s=$(api POST /api/naming/orders/select "{\"order_id\":\"$ORDER_ID\",\"email\":\"$TEST_EMAIL\"}")
-  check_any "POST /api/naming/orders/select (valid)" "^(200|403)$" "$s"
-fi
-
-# Select order — non-existent
 s=$(api POST /api/naming/orders/select '{"order_id":"no-such-id","email":"test@example.com"}')
-check_404 "POST /api/naming/orders/select (not found)" "$s"
-
-# Select order — email mismatch
-if [ -n "$ORDER_ID" ]; then
-  s=$(api POST /api/naming/orders/select "{\"order_id\":\"$ORDER_ID\",\"email\":\"wrong@example.com\"}")
-  check_403 "POST /api/naming/orders/select (email mismatch)" "$s"
-fi
-
-# Order status — existing
-if [ -n "$ORDER_ID" ]; then
-  s=$(api GET "/api/naming/orders/$ORDER_ID/status")
-  check_200 "GET /api/naming/orders/{id}/status (existing)" "$s"
-fi
+check_410 "POST /api/naming/orders/select (retired)" "$s"
 
 # Order status — non-existent
 s=$(api GET /api/naming/orders/nonexistent/status)
@@ -239,19 +208,9 @@ check_404 "POST /api/naming/orders/{id}/retry (not found)" "$s"
 echo ""
 echo "${BOLD}── Auth ──${NC}"
 
-# Login with email that has an order (unpaid → 401)
-if [ -n "$ORDER_ID" ]; then
-  s=$(api POST /api/naming/auth/login "{\"email\":\"$TEST_EMAIL\"}")
-  check_401 "POST /api/naming/auth/login (unpaid order)" "$s"
-fi
-
-# Login with non-existent email
+# Email-only login is retired and can never establish an order session.
 s=$(api POST /api/naming/auth/login '{"email":"no-such@example.com"}')
-check_401 "POST /api/naming/auth/login (no orders)" "$s"
-
-# Login with missing email
-s=$(api POST /api/naming/auth/login '{}')
-check_422 "POST /api/naming/auth/login (missing email)" "$s"
+check_410 "POST /api/naming/auth/login (retired)" "$s"
 
 # ============================================================================
 # Payment
@@ -345,25 +304,9 @@ check_403 "POST /api/admin/verification-codes (no JWT)" "$s"
 echo ""
 echo "${BOLD}── Verification Codes ──${NC}"
 
-# Redeem non-existent code
+# Retired product activation fails closed.
 s=$(api POST /api/naming/verification-codes/redeem '{"code":"XXXXXXXX","email":"test@example.com"}')
-check_400 "POST /api/naming/verification-codes/redeem (not found)" "$s"
-
-# Redeem code too short (normalized length != 8)
-s=$(api POST /api/naming/verification-codes/redeem '{"code":"ABC","email":"test@example.com"}')
-check_400 "POST /api/naming/verification-codes/redeem (invalid format)" "$s"
-
-# Redeem missing fields
-s=$(api POST /api/naming/verification-codes/redeem '{}')
-check_any "POST /api/naming/verification-codes/redeem (missing fields)" "^(400|429)$" "$s"
-
-# Redeem missing email
-s=$(api POST /api/naming/verification-codes/redeem '{"code":"XXXXXXXX"}')
-check_any "POST /api/naming/verification-codes/redeem (missing email)" "^(400|429)$" "$s"
-
-# Redeem missing code
-s=$(api POST /api/naming/verification-codes/redeem '{"email":"test@example.com"}')
-check_any "POST /api/naming/verification-codes/redeem (missing code)" "^(400|429)$" "$s"
+check_410 "POST /api/naming/verification-codes/redeem (retired)" "$s"
 
 # ============================================================================
 # Misc
@@ -387,7 +330,7 @@ echo "${BOLD}── Edge Cases ──${NC}"
 
 # Malformed JSON (1 representative — L4 Go unit covers all endpoints in detail)
 s=$(api POST /api/naming/orders '{broken}')
-check_400 "POST /api/naming/orders (broken JSON)" "$s"
+check_410 "POST /api/naming/orders (retired)" "$s"
 
 # Unknown endpoints
 s=$(api GET /api/unknown)

@@ -1,7 +1,7 @@
 // Smoke test — visits every page and asserts no console errors/warnings + framework renders.
 // Catches: source map 404s, i18n load failures,
 //          unresolved i18n keys (raw key text leaked to page).
-// Render markers: .chat-shell (vanilla JS chat page), null (static resources). Framework check uses FOUC guard.
+// Render markers are null for static resources. Framework check uses FOUC guard.
 
 import { test, expect } from '../fixtures.js';
 import { I18N_KEY_RE } from '../helpers.js';
@@ -13,7 +13,6 @@ const PAGES = [
       { selector: '.font-brand', text: 'Liki' },
       { selector: 'h1', text: 'AI 起名与姓名解读' },
     ] },
-  { path: '/zh-Hans/naming/chat', marker: '.chat-shell',     name: 'chat (vanilla)' },
   { path: '/zh-Hans/disclaimer', name: 'disclaimer (vanilla)',
     checks: [
       { selector: 'h1', text: '免责声明' },
@@ -23,13 +22,11 @@ const PAGES = [
       { selector: '.font-brand', text: 'Liki' },
       { selector: 'h1', text: 'AI naming and name interpretation' },
     ] },
-  { path: '/en/naming/chat',     marker: '.chat-shell',     name: 'chat EN (vanilla)' },
   { path: '/zh-Hant/naming', name: 'naming ZH-Hant',
     checks: [
       { selector: '.font-brand', text: 'Liki' },
       { selector: 'h1', text: 'AI 起名與姓名解讀' },
     ] },
-  { path: '/zh-Hant/naming/chat',     marker: '.chat-shell',     name: 'chat ZH-Hant' },
   // 着陆页（C 端）：slogan + 免费排盘 + 服务 + 信任
   { path: '/zh-Hans/',        name: 'index (C-end landing)',
     checks: [

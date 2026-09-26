@@ -106,7 +106,7 @@ This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static HTML
 | [`DOMAIN_MODEL.md`](./DOMAIN_MODEL.md) | Stable entities, relationships, and invariants |
 | [`API.md`](./API.md) | Stable HTTP API contract |
 | [`FRONTEND.md`](./FRONTEND.md) | Astro, Vue App, legacy JS, and frontend state |
-| [`LEGACY_PRODUCTS.md`](./LEGACY_PRODUCTS.md) | compatibility boundary for legacy products |
+| [`LEGACY_PRODUCTS.md`](./LEGACY_PRODUCTS.md) | retired-product compatibility boundary |
 | [`docs/database/overview.md`](./docs/database/overview.md) | SQLite bounded-context inventory |
 | [`docs/mcp.md`](./docs/mcp.md) | Engine/Counsel MCP compatibility boundary |
 

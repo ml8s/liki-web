@@ -1,4 +1,4 @@
-// RegisterRoutes mounts hepan product routes on the given mux.
+// RegisterRoutes mounts retired hepan compatibility routes on the given mux.
 package hepan
 
 import (

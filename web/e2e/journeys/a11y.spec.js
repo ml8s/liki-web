@@ -8,7 +8,6 @@ import AxeBuilder from '@axe-core/playwright';
 // Pages to audit with their framework render marker.
 const PAGES = [
   { path: '/zh-Hans/naming', marker: 'main',    name: 'naming' },
-  { path: '/zh-Hans/naming/chat',     marker: '#view-login',   name: 'chat (login)' },
   { path: '/zh-Hans/mingshu', marker: 'main',  name: 'mingshu' },
   { path: '/zh-Hans/hepan',    marker: 'main',  name: 'hepan' },
   // Legal pages: sr-only heading rendered via compile-time i18n, wait for any visible element

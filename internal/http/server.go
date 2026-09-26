@@ -115,7 +115,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		deps.AccountHandler.RegisterRoutes(mux, erasureLimit)
 	}
 
-	// ── naming product routes ──
+	// ── retired naming compatibility routes ──
 	if deps.NamingStore != nil {
 		naming.RegisterRoutes(mux, deps.NamingStore, deps.NamingAgent, rateLimit)
 	}
@@ -134,12 +134,12 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		mux.HandleFunc("GET /api/internal/metrics", deps.MetricsHandler)
 	}
 
-	// ── mingshu product routes ──
+	// ── retired mingshu compatibility routes ──
 	if deps.MingShuStore != nil {
 		mingshu.RegisterRoutes(mux, deps.MingShuStore, rateLimit)
 	}
 
-	// ── hepan product routes ──
+	// ── retired hepan compatibility routes ──
 	if deps.HepanStore != nil {
 		hepan.RegisterRoutes(mux, deps.HepanStore, rateLimit)
 	}

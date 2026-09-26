@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/naming"
-	"github.com/ml8s/liki-web/internal/product"
 )
 
 type AdminService struct {
@@ -51,61 +49,9 @@ func (h *AdminService) HandleListOrders() http.HandlerFunc {
 
 // ── HandleCreateOrder ──
 
-type createOrderRequest struct {
-	Email     string `json:"email"`
-	Product   string `json:"product"`
-	Currency  string `json:"currency"`
-	ExpiresAt string `json:"expires_at"`
-	Lang      string `json:"lang,omitempty"`
-}
-
 func (h *AdminService) HandleCreateOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req createOrderRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
-			return
-		}
-		if req.Email == "" || req.ExpiresAt == "" {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "email 和 expires_at 不能为空")
-			return
-		}
-
-		productID := product.NormalizeProduct(product.Product(req.Product))
-		if productID == "" {
-			productID = product.ProductNaming
-		}
-		if !product.IsValidProduct(productID) {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "invalid product")
-			return
-		}
-		currency := product.Currency(strings.ToUpper(req.Currency))
-		if currency == "" {
-			currency = product.CNY
-		}
-		amount, err := product.AmountMinor(productID, currency)
-		if err != nil {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "unsupported currency")
-			return
-		}
-
-		locale := req.Lang
-		if locale == "" {
-			locale = "zh-Hans"
-		}
-
-		orderID, orderErr := h.svc.CreatePaidOrder(r.Context(), req.Email, string(productID), amount, string(currency), req.ExpiresAt, locale)
-		if orderErr != nil {
-			slog.Error("admin: create order", "err", orderErr)
-			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
-			return
-		}
-
-		if h.onPaid != nil {
-			go h.onPaid(context.WithoutCancel(r.Context()), orderID)
-		}
-
-		httputil.RespondJSON(w, http.StatusOK, map[string]string{"order_id": orderID})
+		httputil.RespondError(w, http.StatusGone, "product_retired", "独立起名订单已下线，请使用 Liki Chat")
 	}
 }
 
@@ -145,41 +91,9 @@ func (h *AdminService) HandleUpdateExpire() http.HandlerFunc {
 
 // ── HandleGenerateCodes ──
 
-type generateCodesRequest struct {
-	Count int `json:"count"`
-}
-
 func (h *AdminService) HandleGenerateCodes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req generateCodesRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
-			return
-		}
-		if req.Count <= 0 {
-			req.Count = 1
-		}
-		if req.Count > 100 {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "count 不能超过 100")
-			return
-		}
-
-		createdBy := "admin"
-		codes, err := h.svc.BatchGenerateVerificationCodes(r.Context(), req.Count, createdBy)
-		if err != nil {
-			slog.Error("admin: generate codes", "err", err)
-			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "生成激活码失败")
-			return
-		}
-
-		type codeItem struct {
-			Code string `json:"code"`
-		}
-		items := make([]codeItem, len(codes))
-		for i, c := range codes {
-			items[i] = codeItem{Code: c}
-		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{"codes": items})
+		httputil.RespondError(w, http.StatusGone, "product_retired", "独立起名激活码已下线，请使用 Liki Chat")
 	}
 }
 

@@ -34,28 +34,8 @@
   </section>
 
   <main id="main-section" class="hidden">
-    <section class="card" aria-labelledby="orders-title">
-      <h2 id="orders-title">创建订单</h2>
-      <form id="create-order-form" class="toolbar" novalidate>
-        <div class="field">
-          <label for="co-email">用户邮箱</label>
-          <input id="co-email" name="email" type="email" required>
-        </div>
-        <div class="field">
-          <label for="co-expire">有效期</label>
-          <select id="co-expire">
-            <option value="7d">7天</option>
-            <option value="30d">30天</option>
-            <option value="permanent">永久</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" id="co-btn" type="submit">创建已付款订单</button>
-      </form>
-      <p id="co-status" class="status-msg" role="status"></p>
-    </section>
-
     <section class="card" aria-labelledby="search-title">
-      <h2 id="search-title">订单查询</h2>
+      <h2 id="search-title">历史起名订单查询</h2>
       <form id="search-form" class="toolbar" novalidate>
         <div class="field">
           <label for="search-email">用户邮箱</label>
@@ -68,30 +48,6 @@
     <section id="results-section" class="card hidden" aria-labelledby="results-title">
       <h2 id="results-title">搜索结果</h2>
       <div id="results-container" class="table-wrap"></div>
-    </section>
-
-    <section class="card" aria-labelledby="codes-title">
-      <h2 id="codes-title">验证码管理</h2>
-      <form id="vc-generate-form" class="toolbar" novalidate>
-        <div class="field">
-          <label for="vc-count">生成数量</label>
-          <input id="vc-count" type="number" min="1" max="100" value="1">
-        </div>
-        <button class="btn btn-primary" id="vc-generate-btn" type="submit">生成激活码</button>
-        <button class="btn btn-secondary" id="vc-list-btn" type="button">刷新列表</button>
-        <button class="btn btn-secondary" id="vc-export-btn" type="button">导出 CSV</button>
-      </form>
-      <div id="vc-generated" class="hidden">
-        <p class="muted">新生成的激活码（点击复制）：</p>
-        <div id="vc-new-codes" class="actions"></div>
-      </div>
-      <p id="vc-status" class="status-msg" role="status"></p>
-      <div id="vc-list" class="table-wrap"></div>
-      <div id="vc-pager" class="toolbar hidden">
-        <button class="btn btn-secondary" id="vc-prev-btn" type="button">上一页</button>
-        <span id="vc-page-info" class="muted"></span>
-        <button class="btn btn-secondary" id="vc-next-btn" type="button">下一页</button>
-      </div>
     </section>
 
     <section class="card" aria-labelledby="admins-title">

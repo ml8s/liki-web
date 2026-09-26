@@ -1,14 +1,12 @@
 package admin
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/ml8s/liki-web/internal/naming"
 
@@ -73,88 +71,14 @@ func TestHandleListOrders_NoOrders(t *testing.T) {
 
 // ── HandleCreateOrder ──
 
-func TestHandleCreateOrder_BadJSON(t *testing.T) {
+func TestHandleCreateOrderIsRetired(t *testing.T) {
 	t.Parallel()
-	svc := newTestAdminService(t)
-	h := NewHandler(svc, nil)
-	r := requestWithJWT(t, "POST", "/api/admin/orders", "{bad}", "")
-	w := httptest.NewRecorder()
-	h.HandleCreateOrder()(w, r)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("HandleCreateOrder bad JSON: status=%d, want 400", w.Code)
-	}
-}
-
-func TestHandleCreateOrder_MissingFields(t *testing.T) {
-	t.Parallel()
-	svc := newTestAdminService(t)
-	h := NewHandler(svc, nil)
+	h := NewHandler(newTestAdminService(t), nil)
 	r := requestWithJWT(t, "POST", "/api/admin/orders", `{"product":"naming"}`, "")
 	w := httptest.NewRecorder()
 	h.HandleCreateOrder()(w, r)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("HandleCreateOrder missing fields: status=%d, want 400", w.Code)
-	}
-}
-
-func TestHandleCreateOrder_Success(t *testing.T) {
-	t.Parallel()
-	svc := newTestAdminService(t)
-	done := make(chan string, 1)
-	h := NewHandler(svc, func(_ context.Context, orderID string) {
-		done <- orderID
-	})
-	body := `{"email":"test@example.com","product":"naming","expires_at":"2099-12-31 00:00:00"}`
-	r := requestWithJWT(t, "POST", "/api/admin/orders", body, "")
-	w := httptest.NewRecorder()
-	h.HandleCreateOrder()(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("HandleCreateOrder: status=%d, want 200, body=%s", w.Code, w.Body.String())
-	}
-	var resp struct {
-		Data struct {
-			OrderID string `json:"order_id"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if resp.Data.OrderID == "" {
-		t.Error("HandleCreateOrder: expected order_id in response")
-	}
-	select {
-	case calledOrderID := <-done:
-		if calledOrderID != resp.Data.OrderID {
-			t.Errorf("HandleCreateOrder: onPaid called with %q, want %q", calledOrderID, resp.Data.OrderID)
-		}
-	case <-time.After(time.Second):
-		t.Error("HandleCreateOrder: onPaid was not called")
-	}
-}
-
-func TestHandleCreateOrder_Defaults(t *testing.T) {
-	t.Parallel()
-	svc := newTestAdminService(t)
-	h := NewHandler(svc, nil)
-	body := `{"email":"test@example.com","expires_at":"2099-12-31 00:00:00"}`
-	r := requestWithJWT(t, "POST", "/api/admin/orders", body, "")
-	w := httptest.NewRecorder()
-	h.HandleCreateOrder()(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("HandleCreateOrder defaults: status=%d, want 200, body=%s", w.Code, w.Body.String())
-	}
-}
-
-func TestHandleCreateOrder_USD(t *testing.T) {
-	t.Parallel()
-	svc := newTestAdminService(t)
-	h := NewHandler(svc, nil)
-	body := `{"email":"test@example.com","product":"naming","currency":"USD","expires_at":"2099-12-31 00:00:00"}`
-	r := requestWithJWT(t, "POST", "/api/admin/orders", body, "")
-	w := httptest.NewRecorder()
-	h.HandleCreateOrder()(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("HandleCreateOrder USD: status=%d, want 200", w.Code)
+	if w.Code != http.StatusGone {
+		t.Fatalf("HandleCreateOrder status = %d, want %d, body=%s", w.Code, http.StatusGone, w.Body.String())
 	}
 }
 
@@ -200,75 +124,14 @@ func TestHandleUpdateExpire_BadJSON(t *testing.T) {
 
 // ── HandleGenerateCodes ──
 
-func TestHandleGenerateCodes_BadJSON(t *testing.T) {
+func TestHandleGenerateCodesIsRetired(t *testing.T) {
 	t.Parallel()
-	svc := newTestAdminService(t)
-	h := NewHandler(svc, nil)
-	r := requestWithJWT(t, "POST", "/api/admin/verification-codes", `not-json`, "")
-	w := httptest.NewRecorder()
-	h.HandleGenerateCodes()(w, r)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("HandleGenerateCodes bad JSON: status=%d, want 400", w.Code)
-	}
-}
-
-func TestHandleGenerateCodes_TooMany(t *testing.T) {
-	t.Parallel()
-	svc := newTestAdminService(t)
-	h := NewHandler(svc, nil)
-	r := requestWithJWT(t, "POST", "/api/admin/verification-codes", `{"count":200}`, "")
-	w := httptest.NewRecorder()
-	h.HandleGenerateCodes()(w, r)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("HandleGenerateCodes count>100: status=%d, want 400", w.Code)
-	}
-}
-
-func TestHandleGenerateCodes_DefaultCount(t *testing.T) {
-	t.Parallel()
-	svc := newTestAdminService(t)
-	h := NewHandler(svc, nil)
-	r := requestWithJWT(t, "POST", "/api/admin/verification-codes", `{"count":0}`, "")
-	w := httptest.NewRecorder()
-	h.HandleGenerateCodes()(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("HandleGenerateCodes count=0: status=%d, want 200, body=%s", w.Code, w.Body.String())
-	}
-	var resp struct {
-		Data struct {
-			Codes []struct {
-				Code string `json:"code"`
-			} `json:"codes"`
-		} `json:"data"`
-	}
-	json.NewDecoder(w.Body).Decode(&resp) //nolint:errcheck
-	if len(resp.Data.Codes) != 1 {
-		t.Errorf("expected 1 code (default), got %d", len(resp.Data.Codes))
-	}
-}
-
-func TestHandleGenerateCodes_Success(t *testing.T) {
-	t.Parallel()
-	svc := newTestAdminService(t)
-	h := NewHandler(svc, nil)
+	h := NewHandler(newTestAdminService(t), nil)
 	r := requestWithJWT(t, "POST", "/api/admin/verification-codes", `{"count":3}`, "")
 	w := httptest.NewRecorder()
 	h.HandleGenerateCodes()(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("HandleGenerateCodes: status=%d, want 200, body=%s", w.Code, w.Body.String())
-	}
-	var resp struct {
-		Data struct {
-			Codes []struct {
-				Code string `json:"code"`
-			} `json:"codes"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if len(resp.Data.Codes) != 3 {
-		t.Errorf("HandleGenerateCodes: got %d codes, want 3", len(resp.Data.Codes))
+	if w.Code != http.StatusGone {
+		t.Fatalf("HandleGenerateCodes status = %d, want %d, body=%s", w.Code, http.StatusGone, w.Body.String())
 	}
 }
 

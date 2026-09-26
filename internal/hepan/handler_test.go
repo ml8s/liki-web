@@ -20,7 +20,7 @@ func newTestHandlerStore(t *testing.T) *Store {
 
 // ── HandleCreateOrder ──
 
-func TestHandleCreateOrder_Success(t *testing.T) {
+func TestHandleCreateOrderIsRetired(t *testing.T) {
 	t.Parallel()
 	store := newTestHandlerStore(t)
 	h := HandleCreateOrder(store)
@@ -31,35 +31,8 @@ func TestHandleCreateOrder_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 	h(w, r)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
-	}
-
-	var resp struct {
-		Data struct {
-			OrderID string `json:"order_id"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if resp.Data.OrderID == "" {
-		t.Fatal("empty order_id")
-	}
-}
-
-func TestHandleCreateOrder_InvalidJSON(t *testing.T) {
-	t.Parallel()
-	store := newTestHandlerStore(t)
-	h := HandleCreateOrder(store)
-
-	r := httptest.NewRequest("POST", "/api/hepan/orders", strings.NewReader(`{invalid`))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	h(w, r)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
+	if w.Code != http.StatusGone {
+		t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusGone, w.Body.String())
 	}
 }
 

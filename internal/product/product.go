@@ -1,5 +1,6 @@
-// Package product defines the canonical catalog shared by product handlers and
-// payment. Product IDs, currencies, and prices must not be invented by callers.
+// Package product preserves the former catalog shared by retired product
+// handlers and historical payment reconciliation. These IDs must not be used
+// for new commerce; Liki Chat owns the active catalog in internal/liki.
 package product
 
 import (
@@ -12,7 +13,7 @@ import (
 // OnPaid is a small callback for legacy admin-created orders.
 type OnPaid func(ctx context.Context, orderID string)
 
-// Product identifies a paid product.
+// Product identifies a retired product.
 type Product string
 
 const (

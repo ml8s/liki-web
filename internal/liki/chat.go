@@ -49,7 +49,7 @@ type Message struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
-// SendMessageResult is the canonical completion payload for unified chat. The
+// SendMessageResult is the canonical completion payload for Liki Chat. The
 // legacy SSE endpoint places it in `done.data`; the AG-UI gateway places it in
 // `RUN_FINISHED.result`.
 type SendMessageResult struct {
@@ -59,7 +59,9 @@ type SendMessageResult struct {
 	AssistantMessage Message `json:"assistant_message"`
 }
 
-// ChatStore manages the unified_chat_sessions and unified_chat_messages tables.
+// ChatStore manages the historical unified_chat_sessions and
+// unified_chat_messages tables. The table names are retained for schema
+// compatibility; the product is named Liki Chat.
 type ChatStore struct {
 	db      *sql.DB
 	nowFunc func() time.Time

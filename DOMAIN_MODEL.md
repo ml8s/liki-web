@@ -19,7 +19,7 @@ This document defines the stable domain model and invariants behind Liki Web.
 | FulfillmentTask | Durable post-payment work |
 | Notification | Durable email work |
 
-`liki-chat` is the current unified product. `naming`, `mingshu`, and `hepan` are legacy compatibility products.
+`liki-chat` is the only commercial product. `naming`, `mingshu`, and `hepan` are retired product identifiers retained for historical records and for Liki Chat scenario landing pages.
 
 ## Identity
 
@@ -73,13 +73,13 @@ Invariants:
 
 Products are defined by the service, not by the browser.
 
-Current product:
+Only purchasable product:
 
 ```text
 liki-chat
 ```
 
-Legacy products:
+Retired identifiers:
 
 ```text
 naming
@@ -92,6 +92,7 @@ Invariants:
 - Amount is selected from the product catalog using currency.
 - Provider SKU configuration is separate from the product price.
 - Unsupported product/currency combinations fail closed.
+- Retired identifiers cannot create a new order, checkout, activation code, or entitlement.
 - Client-supplied provider is only a hint.
 
 ## Order and payment
@@ -174,7 +175,7 @@ Invariants:
 
 ### Scenario
 
-A scenario is an entry intent for Liki Chat, not a separately purchasable product.
+A scenario is an entry intent for Liki Chat, not a product. Its public page is a CTA surface into the app, comparable to the home page.
 Current public scenarios are `naming`, `mingshu`, and `hepan`.
 
 ## Notification

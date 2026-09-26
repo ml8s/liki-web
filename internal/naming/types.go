@@ -18,41 +18,6 @@ func (r chatRequest) Validate() error {
 	)
 }
 
-type loginRequest struct {
-	Email string `json:"email"`
-}
-
-func (r loginRequest) Validate() error {
-	return validation.ValidateStruct(&r,
-		validation.Field(&r.Email, validation.Required),
-	)
-}
-
-type selectOrderRequest struct {
-	OrderID string `json:"order_id"`
-	Email   string `json:"email"`
-}
-
-func (r selectOrderRequest) Validate() error {
-	return validation.ValidateStruct(&r,
-		validation.Field(&r.OrderID, validation.Required),
-		validation.Field(&r.Email, validation.Required),
-	)
-}
-
-// ── response types ──
-
-type LoginResponse struct {
-	OrderID string              `json:"order_id,omitempty"`
-	Orders  []LoginOrderSummary `json:"orders,omitempty"`
-}
-
-type LoginOrderSummary struct {
-	OrderID   string `json:"order_id"`
-	Summary   string `json:"summary"`
-	ExpiresAt string `json:"expires_at"`
-}
-
 // ── data types ──
 
 type OrderData struct {

@@ -2,65 +2,18 @@ package mingshu
 
 import (
 	"encoding/json"
-	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/product"
-
-	"github.com/google/uuid"
 )
 
 // ── HandleCreateOrder ──
 
 func HandleCreateOrder(store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Birth struct {
-				Name   string `json:"name"`
-				Year   int    `json:"year"`
-				Month  int    `json:"month"`
-				Day    int    `json:"day"`
-				Hour   int    `json:"hour"`
-				Minute int    `json:"minute"`
-				City   string `json:"city"`
-				Gender string `json:"gender"`
-			} `json:"birth"`
-			Email string `json:"email"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
-			return
-		}
-
-		b := &req.Birth
-		if b.Name == "" || b.Year == 0 {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "missing birth fields")
-			return
-		}
-
-		locale := httputil.LocaleFromAccept(r)
-		orderID := uuid.New().String()
-		birthStr := fmt.Sprintf("%s | %d-%02d-%02d %02d:%02d | %s | %s",
-			b.Name, b.Year, b.Month, b.Day, b.Hour, b.Minute, b.City, b.Gender)
-
-		currency := product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
-		amount, priceErr := product.AmountMinor(product.ProductMingShu, currency)
-		if priceErr != nil {
-			slog.Error("mingshu: resolve price", "err", priceErr)
-			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
-			return
-		}
-
-		if err := store.CreateOrder(r.Context(), orderID, string(product.ProductMingShu), amount, string(currency), req.Email, birthStr, locale); err != nil {
-			slog.Error("mingshu: create order", "err", err)
-			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建订单失败")
-			return
-		}
-
-		httputil.RespondJSON(w, http.StatusOK, map[string]string{"order_id": orderID})
+		httputil.RespondError(w, http.StatusGone, "product_retired", "命书产品已下线，请使用 Liki Chat")
 	}
 }
 

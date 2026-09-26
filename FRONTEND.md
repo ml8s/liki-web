@@ -173,8 +173,12 @@ Scout dashboard routes are intentionally role-specific; applications, review
 states, role conflicts, frozen states, and CTAs are first represented in the
 partner center. There is no separate vanilla-JS partner console.
 
-## Legacy
+## Retired product pages
 
-`web/js` supports legacy naming, mingshu, and hepan compatibility pages.
+The public `/naming`, `/mingshu`, and `/hepan` pages are Liki Chat CTA pages.
+They explain a scenario and send the visitor to `/app?scenario=…`, just as the
+home page sends visitors to the app.
 
-Legacy pages do not receive new product features and do not implicitly interact with unified chat entitlements.
+`web/js` retains historical report readers. The public naming activation and
+chat URLs redirect to the Liki Chat scenario; backend compatibility endpoints
+never create or modify a Liki Chat entitlement.

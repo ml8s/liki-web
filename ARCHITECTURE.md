@@ -10,10 +10,10 @@
 | `internal/http` | HTTP route composition, middleware, security headers, rate limiting |
 | `internal/auth` | email-code identity, sessions, verification codes |
 | `internal/profile` | birth profile aggregate |
-| `internal/product` | canonical product IDs and prices |
+| `internal/product` | retired legacy product IDs and historical prices |
 | `internal/payment` | provider-neutral payment runtime |
-| `internal/paymentflow` | legacy product fulfillment flows |
-| `internal/liki` | unified consultation domain: product, order, entitlement, chat |
+| `internal/paymentflow` | retired-product fulfillment compatibility |
+| `internal/liki` | Liki Chat product, order, entitlement, and chat domain |
 | `internal/account` | account erasure orchestration |
 | `internal/referral` | KOL/Scout applications, attribution, commission, and payout domain |
 | `internal/admin` | admin operations and audit |

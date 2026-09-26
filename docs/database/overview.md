@@ -10,9 +10,9 @@ All SQLite files live in `${LIKI_DATA_DIR}`.
 | profiles.db | profile | customer profiles |
 | referral.db | referral/partnership | partners, attribution, applications, commission ledger, payouts, commission/refund intake, admin actions |
 | liki.db | liki product | products, entitlements, orders, chat sessions/messages |
-| naming.db | naming product | naming orders/messages/codes |
-| mingshu.db | mingshu product | orders/reports |
-| hepan.db | hepan product | orders/reports |
+| naming.db | retired naming identifier | historical naming orders/messages/codes |
+| mingshu.db | retired mingshu identifier | historical orders/reports |
+| hepan.db | retired hepan identifier | historical orders/reports |
 | aipay.db | aipay product | voluntary AI-pay orders |
 | feedback.db | feedback | customer feedback |
 

@@ -14,7 +14,7 @@ const ProductChat Product = "liki-chat"
 // Skill identifies a consultable domain inside the Liki agent.
 type Skill string
 
-// SkillLiki is the single unified skill (the engine routes 八字/起名/问卦/风水
+// SkillLiki is the single Liki Chat skill (the engine routes 八字/起名/问卦/风水
 // internally). 未发布，无历史 skill 兼容负担。
 const SkillLiki Skill = "liki"
 
@@ -29,7 +29,7 @@ var productCatalog = map[Product]ProductDefinition{
 	ProductChat: {
 		ID:   ProductChat,
 		Name: "Liki Chat",
-		// One unified skill (the engine routes 八字/起名/问卦/风水 internally).
+		// One Liki Chat skill (the engine routes 八字/起名/问卦/风水 internally).
 		Skills: []Skill{SkillLiki},
 	},
 }

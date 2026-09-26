@@ -7,7 +7,7 @@ import type { ChatProduct } from '@/api/commerce'
 const product: ChatProduct = {
   id: 'liki-chat',
   name: 'Liki Chat',
-  description: 'Unified metaphysics chat.',
+  description: 'Liki Chat.',
   skills: ['liki'],
   prices: { CNY: 100, USD: 100 },
   display_currency: 'CNY',

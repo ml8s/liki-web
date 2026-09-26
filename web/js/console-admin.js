@@ -53,36 +53,11 @@ async function checkAdminSession() {
       .map(([value, label]) => `<option value="${h(value)}">${h(label)}</option>`).join('');
     setAuthed(true);
     loadAdmins();
-    loadVCList();
     loadReferralAdmin();
   } catch {
     setAuthed(false);
   }
 }
-
-$('create-order-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const email = $('co-email').value.trim();
-  const expire = $('co-expire').value;
-  show('co-status', '');
-  if (!email) { show('co-status', '请输入邮箱', true); return; }
-  let expiresAt = '2999-12-31 23:59:59';
-  if (expire === '7d') expiresAt = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
-  if (expire === '30d') expiresAt = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
-  const button = $('co-btn');
-  busy(button, true, '创建中…');
-  try {
-    const data = await request(`${API}/orders`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, expires_at: expiresAt }),
-    });
-    show('co-status', `已创建 ${data.order_id}`);
-    $('search-email').value = email;
-    doSearch();
-  } catch (error) {
-    show('co-status', error.message || '创建失败', true);
-  } finally { busy(button, false); }
-});
 
 $('search-form').addEventListener('submit', event => { event.preventDefault(); doSearch(); });
 async function doSearch() {
@@ -125,73 +100,6 @@ $('results-container').addEventListener('click', async event => {
     body: JSON.stringify({ expires_at: value.trim() || '2999-12-31 23:59:59' }),
   });
   doSearch();
-});
-
-const vcLimit = 20;
-let vcOffset = 0;
-
-$('vc-generate-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const count = Number($('vc-count').value) || 1;
-  const button = $('vc-generate-btn');
-  show('vc-status', '');
-  busy(button, true, '生成中…');
-  try {
-    const data = await request(`${API}/verification-codes`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count }),
-    });
-    $('vc-new-codes').innerHTML = (data.codes || []).map(item =>
-      `<button class="btn btn-secondary" data-code="${h(item.code)}">${h(formatCode(item.code))}</button>`).join('');
-    $('vc-generated').classList.remove('hidden');
-    show('vc-status', `已生成 ${data.codes?.length || 0} 个激活码`);
-    loadVCList();
-  } catch (error) {
-    show('vc-status', error.message || '生成失败', true);
-  } finally { busy(button, false); }
-});
-
-$('vc-new-codes').addEventListener('click', async event => {
-  const button = event.target.closest('[data-code]');
-  if (!button) return;
-  await navigator.clipboard.writeText(button.dataset.code);
-  show('vc-status', `已复制：${button.dataset.code}`);
-});
-
-$('vc-list-btn').addEventListener('click', () => { vcOffset = 0; loadVCList(); });
-$('vc-prev-btn').addEventListener('click', () => { vcOffset = Math.max(0, vcOffset - vcLimit); loadVCList(); });
-$('vc-next-btn').addEventListener('click', () => { vcOffset += vcLimit; loadVCList(); });
-
-async function loadVCList() {
-  try {
-    const data = await request(`${API}/verification-codes?limit=${vcLimit}&offset=${vcOffset}`);
-    const codes = data.codes || [];
-    $('vc-list').innerHTML = codes.length ? `
-      <table>
-        <thead><tr><th>激活码</th><th>状态</th><th>邮箱</th><th>创建时间</th><th>使用时间</th></tr></thead>
-        <tbody>${codes.map(c => `
-          <tr><td>${h(formatCode(c.code))}</td><td>${statusTag(c.status)}</td>
-          <td>${h(c.email || '-')}</td><td>${h(c.created_at)}</td><td>${h(c.used_at || '-')}</td></tr>`).join('')}
-        </tbody>
-      </table>` : '<div class="empty-state">暂无激活码。</div>';
-    const total = Number(data.total || 0);
-    $('vc-pager').classList.toggle('hidden', total <= vcLimit);
-    $('vc-page-info').textContent = `${vcOffset + 1} – ${Math.min(vcOffset + vcLimit, total)} / ${total}`;
-  } catch (error) {
-    show('vc-status', error.message, true);
-  }
-}
-
-$('vc-export-btn').addEventListener('click', async () => {
-  const data = await request(`${API}/verification-codes?limit=1000&offset=0`);
-  const codes = data.codes || [];
-  if (!codes.length) { show('vc-status', '暂无数据可导出', true); return; }
-  const csv = ['code,status,email,created_at,used_at'].concat(codes.map(c =>
-    [c.code, c.status, c.email || '', c.created_at || '', c.used_at || ''].join(','))).join('\n');
-  const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url; link.download = 'verification-codes.csv'; link.click();
-  URL.revokeObjectURL(url);
 });
 
 const referralApplicationsBody = $('referral-applications-body');
@@ -634,8 +542,6 @@ function statusTag(status) {
   const cls = positive.includes(value) ? 'tag' : negative.includes(value) ? 'tag tag-danger' : 'tag tag-muted';
   return `<span class="${cls}">${h(status || '-')}</span>`;
 }
-function formatCode(code) { return code.slice(0, 4) + '-' + code.slice(4); }
-
 checkAdminSession();
 
 })();

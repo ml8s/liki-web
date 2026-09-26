@@ -72,8 +72,8 @@ func TestBuildScopedChatPromptIsIsolated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(prompt, "统一命理 skill") {
-		t.Fatalf("prompt missing unified wording: %q", prompt)
+	if !strings.Contains(prompt, "Liki Chat") {
+		t.Fatalf("prompt missing Liki Chat wording: %q", prompt)
 	}
 	if _, err := BuildScopedChatPrompt(dir, "unknown-skill"); err == nil {
 		t.Fatal("expected legacy skill id to fail")
@@ -91,7 +91,7 @@ func mkdirAllAndWrite(root, relative, content string) error {
 	return os.WriteFile(path, []byte(content), 0o600)
 }
 
-func TestUnifiedLikiScopeAllowsEngineDomainTools(t *testing.T) {
+func TestLikiChatScopeAllowsEngineDomainTools(t *testing.T) {
 	scope := SkillToolScopes["liki"]
 	base := &fakeScopedRegistry{}
 	scoped := NewScopedToolRegistry(base, scope)
