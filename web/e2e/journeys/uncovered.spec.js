@@ -29,11 +29,14 @@ test.describe('404 page', () => {
 test.describe('Retired naming entry points', () => {
   for (const path of ['/zh-Hans/naming/activate', '/zh-Hans/naming/chat']) {
     test(`${path} redirects to Liki Chat`, async ({ page }) => {
-      await page.route('**/api/me', async route => {
+      // The redirect is a static meta refresh. Fulfill the app document so the
+      // Vue router cannot race this assertion by sending an unauthenticated
+      // visitor from /app to /app/login.
+      await page.route('**/app**', async route => {
         await route.fulfill({
           status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ data: { id: 'user-1', email: 'user@example.com', status: 'active', locale: 'zh-Hans' } }),
+          contentType: 'text/html',
+          body: '<main id="app"></main>',
         });
       });
       await page.goto(path);
