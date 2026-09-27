@@ -72,6 +72,14 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	ctx := withSessionBinding(context.Background(), sessionBinding{
 		UserID:    "user-1",
 		SessionID: "session-1",
+		Profile: &AgentProfileContext{
+			Calendar:       "solar",
+			Gender:         "male",
+			BirthDate:      "1990-05-20",
+			BirthTime:      "12:00",
+			BirthTimeKnown: "known",
+			BirthPlace:     "Beijing",
+		},
 	})
 	input := []llm.Message{
 		{Role: llm.RoleSystem, Content: "secret product prompt"},
@@ -97,6 +105,12 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	props, ok := request.ForwardedProps.(map[string]any)
 	if !ok || props["product"] != "liki-chat" || props["locale"] != "zh-Hant" {
 		t.Fatalf("ForwardedProps = %#v", request.ForwardedProps)
+	}
+	profile, ok := props["profile"].(map[string]any)
+	if !ok || profile["calendar"] != "solar" || profile["gender"] != "male" ||
+		profile["birth_date"] != "1990-05-20" || profile["birth_time"] != "12:00" ||
+		profile["birth_time_known"] != "known" || profile["birth_place"] != "Beijing" {
+		t.Fatalf("profile ForwardedProps = %#v", props["profile"])
 	}
 	if len(request.Messages) != 3 {
 		t.Fatalf("request message count = %d, want user/assistant/user only", len(request.Messages))
@@ -163,7 +177,11 @@ func TestAgentRunnerUsesRequestLocale(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	input, err := runner.newRunInput([]llm.Message{{Role: llm.RoleUser, Content: "hello"}}, "session-1", "en")
+	input, err := runner.newRunInput(
+		[]llm.Message{{Role: llm.RoleUser, Content: "hello"}},
+		sessionBinding{SessionID: "session-1"},
+		"en",
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +199,11 @@ func TestAgentRunnerDefaultsToProductFallbackLocale(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	input, err := runner.newRunInput([]llm.Message{{Role: llm.RoleUser, Content: "hello"}}, "session-1", runner.config.Locale)
+	input, err := runner.newRunInput(
+		[]llm.Message{{Role: llm.RoleUser, Content: "hello"}},
+		sessionBinding{SessionID: "session-1"},
+		runner.config.Locale,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,17 +222,23 @@ func (r selectedRunner) Execute(context.Context, []llm.Message, func(agent.ChatE
 }
 func (r selectedRunner) Prompt() string { return r.name }
 
-func TestServiceSelectsAgentOnlyForUnboundProfileSessions(t *testing.T) {
-	local := selectedRunner{name: "local"}
+func TestServiceRoutesAllSessionsToAgentRunner(t *testing.T) {
 	remote := selectedRunner{name: "remote"}
-	service := NewService(nil, nil, nil, map[Skill]Runner{SkillLiki: local})
+	service := NewService(nil, nil, nil)
 	service.SetAgentRunner(remote)
 
 	if got, err := service.runnerForSession(SkillLiki, ""); err != nil || got != remote {
 		t.Fatalf("runnerForSession(unbound) = %#v, %v", got, err)
 	}
-	if got, err := service.runnerForSession(SkillLiki, "profile-1"); err != nil || got != local {
+	if got, err := service.runnerForSession(SkillLiki, "profile-1"); err != nil || got != remote {
 		t.Fatalf("runnerForSession(profile) = %#v, %v", got, err)
+	}
+}
+
+func TestServiceRejectsWhenNoAgentRunnerConfigured(t *testing.T) {
+	service := NewService(nil, nil, nil)
+	if _, err := service.runnerForSession(SkillLiki, ""); err == nil {
+		t.Fatal("expected ErrRunnerUnavailable when agent runner is not configured")
 	}
 }
 

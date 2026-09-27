@@ -35,7 +35,7 @@ func (r *scriptedChatRunner) Execute(_ context.Context, msgs []llm.Message, onEv
 	return r.result, nil
 }
 
-func newAgentModeTestService(t *testing.T) (*Service, *ChatStore, *scriptedChatRunner, *scriptedChatRunner) {
+func newAgentModeTestService(t *testing.T) (*Service, *ChatStore, *scriptedChatRunner) {
 	t.Helper()
 	ctx := context.Background()
 	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))
@@ -60,15 +60,14 @@ func newAgentModeTestService(t *testing.T) (*Service, *ChatStore, *scriptedChatR
 		t.Fatalf("migrate chats: %v", err)
 	}
 
-	local := &scriptedChatRunner{result: []llm.Message{{Role: llm.RoleAssistant, Content: "local answer"}}}
-	service := NewService(chats, entitlements, profiles, map[Skill]Runner{SkillLiki: local})
+	service := NewService(chats, entitlements, profiles)
 	remote := &scriptedChatRunner{result: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}}}
 	service.SetAgentRunner(remote)
-	return service, chats, local, remote
+	return service, chats, remote
 }
 
 func TestServiceAgentModePersistsAuthoritativeAgentResult(t *testing.T) {
-	service, chats, local, remote := newAgentModeTestService(t)
+	service, chats, remote := newAgentModeTestService(t)
 	ctx := context.Background()
 	session, err := service.CreateSession(ctx, "user-1", string(SkillLiki), "test", "")
 	if err != nil {
@@ -85,11 +84,11 @@ func TestServiceAgentModePersistsAuthoritativeAgentResult(t *testing.T) {
 	if assistant.Content != "agent answer" {
 		t.Fatalf("assistant = %+v", assistant)
 	}
-	if local.calls != 0 || remote.calls != 1 {
-		t.Fatalf("runner calls local=%d remote=%d", local.calls, remote.calls)
+	if remote.calls != 1 {
+		t.Fatalf("runner calls remote=%d", remote.calls)
 	}
-	if remote.lastMsgs[0].Role == llm.RoleSystem && remote.lastMsgs[0].Content != "" {
-		t.Fatalf("agent runner received prompt: %+v", remote.lastMsgs[0])
+	if len(remote.lastMsgs) == 0 || remote.lastMsgs[0].Role != llm.RoleUser {
+		t.Fatalf("agent runner first message = %+v", remote.lastMsgs)
 	}
 	messages, err := chats.ListMessages(ctx, "user-1", session.ID)
 	if err != nil {
@@ -104,7 +103,7 @@ func TestServiceAgentModePersistsAuthoritativeAgentResult(t *testing.T) {
 }
 
 func TestServiceAgentModeLeavesUserMessageWithoutAssistantOnRunError(t *testing.T) {
-	service, chats, local, remote := newAgentModeTestService(t)
+	service, chats, remote := newAgentModeTestService(t)
 	remote.err = errors.New("engine unavailable")
 	ctx := context.Background()
 	session, err := service.CreateSession(ctx, "user-1", string(SkillLiki), "test", "")
@@ -116,8 +115,8 @@ func TestServiceAgentModeLeavesUserMessageWithoutAssistantOnRunError(t *testing.
 	if err == nil || err.Error() != "engine unavailable" {
 		t.Fatalf("SendMessage error = %v", err)
 	}
-	if local.calls != 0 || remote.calls != 1 {
-		t.Fatalf("runner calls local=%d remote=%d", local.calls, remote.calls)
+	if remote.calls != 1 {
+		t.Fatalf("runner calls remote=%d", remote.calls)
 	}
 	messages, err := chats.ListMessages(ctx, "user-1", session.ID)
 	if err != nil {
@@ -128,8 +127,8 @@ func TestServiceAgentModeLeavesUserMessageWithoutAssistantOnRunError(t *testing.
 	}
 }
 
-func TestServiceAgentModeRoutesProfileBoundSessionToLocalRunner(t *testing.T) {
-	service, chats, local, remote := newAgentModeTestService(t)
+func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
+	service, chats, remote := newAgentModeTestService(t)
 	ctx := context.Background()
 	profileStore := service.profiles
 	created, err := profileStore.Create(ctx, "user-1", profile.Input{
@@ -151,11 +150,11 @@ func TestServiceAgentModeRoutesProfileBoundSessionToLocalRunner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SendMessage: %v", err)
 	}
-	if assistant.Content != "local answer" {
+	if assistant.Content != "agent answer" {
 		t.Fatalf("assistant = %+v", assistant)
 	}
-	if local.calls != 1 || remote.calls != 0 {
-		t.Fatalf("runner calls local=%d remote=%d", local.calls, remote.calls)
+	if remote.calls != 1 {
+		t.Fatalf("runner calls remote=%d", remote.calls)
 	}
 	messages, err := chats.ListMessages(ctx, "user-1", session.ID)
 	if err != nil {

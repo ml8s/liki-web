@@ -70,10 +70,6 @@ func NewAgentRunner(config AgentRunnerConfig) (*AgentRunner, error) {
 	}, nil
 }
 
-// Prompt is empty because prompt ownership belongs to liki-agent. This method
-// exists only to satisfy liki-web's current Runner abstraction.
-func (r *AgentRunner) Prompt() string { return "" }
-
 // Execute sends the persisted conversation to liki-agent and translates only
 // the AG-UI events used by the existing product SSE contract.
 func (r *AgentRunner) Execute(
@@ -87,7 +83,7 @@ func (r *AgentRunner) Execute(
 	if locale == "" {
 		locale = r.config.Locale
 	}
-	input, err := r.newRunInput(msgs, binding.SessionID, locale)
+	input, err := r.newRunInput(msgs, binding, locale)
 	if err != nil {
 		return nil, err
 	}
@@ -143,18 +139,27 @@ func (r *AgentRunner) Execute(
 	return []llm.Message{{Role: llm.RoleAssistant, Content: answer}}, nil
 }
 
-func (r *AgentRunner) newRunInput(msgs []llm.Message, threadID, locale string) (aguitypes.RunAgentInput, error) {
+func (r *AgentRunner) newRunInput(
+	msgs []llm.Message,
+	binding sessionBinding,
+	locale string,
+) (aguitypes.RunAgentInput, error) {
+	threadID := binding.SessionID
 	if threadID == "" {
 		threadID = uuid.NewString()
 	}
+	forwardedProps := map[string]any{
+		"product": r.config.Product,
+		"locale":  locale,
+	}
+	if binding.Profile != nil {
+		forwardedProps["profile"] = binding.Profile
+	}
 	input := aguitypes.RunAgentInput{
-		ThreadID: threadID,
-		RunID:    uuid.NewString(),
-		Messages: make([]aguitypes.Message, 0, len(msgs)),
-		ForwardedProps: map[string]any{
-			"product": r.config.Product,
-			"locale":  locale,
-		},
+		ThreadID:       threadID,
+		RunID:          uuid.NewString(),
+		Messages:       make([]aguitypes.Message, 0, len(msgs)),
+		ForwardedProps: forwardedProps,
 	}
 
 	for index, item := range msgs {
@@ -185,10 +190,9 @@ func endpointFor(baseURL string) string {
 // streamed text is only forwarded to the browser; RUN_FINISHED.result.answer
 // remains the authoritative value that liki-web persists.
 type agentRunState struct {
-	done            bool
-	answer          string
-	runError        error
-	streamingAnswer strings.Builder
+	done     bool
+	answer   string
+	runError error
 }
 
 func (s *agentRunState) observe(event aguievents.Event, onEvent func(agent.ChatEvent), phaseMsg func() string) error {
@@ -196,7 +200,6 @@ func (s *agentRunState) observe(event aguievents.Event, onEvent func(agent.ChatE
 	case *aguievents.RunStartedEvent:
 		emitChatEvent(onEvent, agent.ChatEvent{Type: agent.EventThinking})
 	case *aguievents.TextMessageContentEvent:
-		s.streamingAnswer.WriteString(ev.Delta)
 		emitChatEvent(onEvent, agent.ChatEvent{Type: agent.EventTextDelta, Content: ev.Delta})
 	case *aguievents.ToolCallStartEvent, *aguievents.ToolCallEndEvent:
 		emitPhase(onEvent, phaseMsg)

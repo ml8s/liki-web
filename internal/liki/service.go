@@ -22,12 +22,11 @@ var (
 
 // chatExecutionTimeout must remain below the HTTP server WriteTimeout. The
 // service timeout covers local tool loops and remote AG-UI runs alike.
-const chatExecutionTimeout = 140 * time.Second
+const chatExecutionTimeout = 600 * time.Second
 
 // Runner abstracts the LLM execution engine for one skill.
 type Runner interface {
 	Execute(ctx context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent), phaseMsg func() string) ([]llm.Message, error)
-	Prompt() string
 }
 
 // Service orchestrates chat sessions with entitlement checks.
@@ -35,38 +34,27 @@ type Service struct {
 	store        *ChatStore
 	entitlements *EntitlementStore
 	profiles     *profile.Store
-	runners      map[Skill]Runner
 	agentRunner  Runner
 	locks        sync.Mutex
 	sessionLocks sync.Map // sessionID -> *sync.Mutex
 }
 
-func NewService(store *ChatStore, entitlements *EntitlementStore, profiles *profile.Store, runners map[Skill]Runner) *Service {
-	if runners == nil {
-		runners = make(map[Skill]Runner)
-	}
-	return &Service{store: store, entitlements: entitlements, profiles: profiles, runners: runners, sessionLocks: sync.Map{}}
+func NewService(store *ChatStore, entitlements *EntitlementStore, profiles *profile.Store) *Service {
+	return &Service{store: store, entitlements: entitlements, profiles: profiles, sessionLocks: sync.Map{}}
 }
 
-// SetAgentRunner enables AG-UI routing for sessions that are not bound to a
-// profile. Profile-bound sessions continue to use the local runner because
-// profile writes and calibration are still product-owned capabilities.
+// SetAgentRunner enables AG-UI routing for all chat sessions. The in-process
+// local runner has been retired; every session (profile-bound or not) is
+// executed by the remote liki-agents runtime.
 func (s *Service) SetAgentRunner(runner Runner) {
 	s.agentRunner = runner
 }
 
-func (s *Service) runnerFor(skill Skill) (Runner, error) {
-	if runner, ok := s.runners[skill]; ok && runner != nil {
-		return runner, nil
-	}
-	return nil, ErrRunnerUnavailable
-}
-
 func (s *Service) runnerForSession(skill Skill, profileID string) (Runner, error) {
-	if profileID == "" && s.agentRunner != nil {
+	if s.agentRunner != nil {
 		return s.agentRunner, nil
 	}
-	return s.runnerFor(skill)
+	return nil, ErrRunnerUnavailable
 }
 
 // Session loads a session only while its entitlement remains active. Expired
@@ -92,16 +80,53 @@ func (s *Service) Session(ctx context.Context, userID, sessionID string) (Sessio
 	return session, nil
 }
 
+// refcountedMutex pairs a sync.Mutex with a reference count so a session lock
+// can be safely removed from the map once no goroutine holds or waits on it.
+// Removing a lock after Unlock would let two goroutines observe different
+// mutexes for the same session; refcounting avoids both that race and an
+// unbounded map.
+type refcountedMutex struct {
+	mu      sync.Mutex
+	refs    int
+	removed bool
+}
+
 func (s *Service) lockSession(sessionID string) func() {
 	s.locks.Lock()
-	lock, _ := s.sessionLocks.LoadOrStore(sessionID, &sync.Mutex{})
-	m := lock.(*sync.Mutex)
+	entry := s.acquireRef(sessionID)
 	s.locks.Unlock()
-	m.Lock()
+
+	entry.mu.Lock()
 	return func() {
-		m.Unlock()
-		s.sessionLocks.Delete(sessionID)
+		entry.mu.Unlock()
+
+		s.locks.Lock()
+		entry.refs--
+		if entry.refs == 0 && !entry.removed {
+			entry.removed = true
+			s.sessionLocks.Delete(sessionID)
+		}
+		s.locks.Unlock()
 	}
+}
+
+// acquireRef returns the refcounted mutex for sessionID with refs incremented.
+// Caller must hold s.locks. It is safe to reuse an entry that is being torn
+// down only while refs > 0; a new goroutine arriving after Delete observes a
+// fresh entry, which serializes against the old one because the old one has
+// refs == 0 (no holder, no waiter) at that point.
+func (s *Service) acquireRef(sessionID string) *refcountedMutex {
+	raw, ok := s.sessionLocks.Load(sessionID)
+	if ok {
+		entry := raw.(*refcountedMutex)
+		entry.refs++
+		return entry
+	}
+	entry := &refcountedMutex{}
+	loaded, _ := s.sessionLocks.LoadOrStore(sessionID, entry)
+	loadedEntry := loaded.(*refcountedMutex)
+	loadedEntry.refs++
+	return loadedEntry
 }
 
 func (s *Service) CreateSession(ctx context.Context, userID, skill, title, profileID string) (Session, error) {
@@ -166,7 +191,26 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 		return Message{}, Message{}, Session{}, err
 	}
 
-	ctx = withSessionBinding(ctx, sessionBinding{UserID: userID, SessionID: session.ID, ProfileID: session.ProfileID})
+	binding := sessionBinding{
+		UserID:    userID,
+		SessionID: session.ID,
+		ProfileID: session.ProfileID,
+	}
+	if session.ProfileID != "" && s.profiles != nil {
+		p, err := s.profiles.Get(ctx, userID, session.ProfileID)
+		if err != nil {
+			return Message{}, Message{}, Session{}, err
+		}
+		binding.Profile = &AgentProfileContext{
+			Calendar:       p.Calendar,
+			Gender:         p.Gender,
+			BirthDate:      p.BirthDate,
+			BirthTime:      p.BirthTime,
+			BirthTimeKnown: p.BirthTimeKnown,
+			BirthPlace:     p.BirthPlace,
+		}
+	}
+	ctx = withSessionBinding(ctx, binding)
 
 	_, err = s.store.AppendMessage(ctx, userID, sessionID, "user", KindText, content)
 	if err != nil {
@@ -178,15 +222,7 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	}
 	userMessage := history[len(history)-1]
 
-	systemPrompt := chatRunner.Prompt()
-	if session.ProfileID != "" && s.profiles != nil {
-		if p, err := s.profiles.Get(ctx, userID, session.ProfileID); err == nil {
-			systemPrompt = profileContext(p) + "\n\n" + systemPrompt
-		}
-	}
-
 	msgs := make([]llm.Message, 0, len(history)+1)
-	msgs = append(msgs, llm.Message{Role: llm.RoleSystem, Content: systemPrompt})
 	for _, item := range history {
 		if item.Kind == KindSystemProfile {
 			continue
@@ -256,31 +292,4 @@ func systemProfileContent(p profile.Profile) (string, error) {
 		return "", err
 	}
 	return string(raw), nil
-}
-
-// profileContext is the user-info block injected into the system prompt so the
-// agent computes charts itself. Deliberately no chart/pan payload.
-func profileContext(p profile.Profile) string {
-	var b strings.Builder
-	b.WriteString("系统已载入档案信息（用户信息，供排盘与解读使用）：\n")
-	b.WriteString("称呼：" + p.Nickname + "\n")
-	if p.Name != "" {
-		b.WriteString("姓名：" + p.Name + "\n")
-	}
-	genderLabel := map[string]string{"male": "男", "female": "女"}[p.Gender]
-	if genderLabel == "" {
-		genderLabel = "未知"
-	}
-	b.WriteString("性别：" + genderLabel + "\n")
-	b.WriteString("历法：" + p.Calendar + "\n")
-	b.WriteString("出生日期：" + p.BirthDate + "\n")
-	b.WriteString("出生时间：" + p.BirthTime + "（" + p.BirthTimeKnown + "）\n")
-	if p.BirthPlace != "" {
-		b.WriteString("出生地：" + p.BirthPlace + "\n")
-	}
-	if p.Note != "" {
-		b.WriteString("用户备注：" + p.Note + "\n")
-	}
-	b.WriteString("请基于以上出生信息，使用排盘工具计算命盘后再进行解读。")
-	return b.String()
 }

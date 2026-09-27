@@ -244,12 +244,15 @@ func (s *ChatStore) TouchSession(ctx context.Context, sessionID string, now time
 	return err
 }
 
-// AnonymizeUserMessages clears the PII-bearing system_profile payloads (they
-// embed birth info) for a user's chat history during compliance erasure.
+// AnonymizeUserMessages clears the PII-bearing message content for a user's
+// chat history during compliance erasure. Every message kind (user text,
+// assistant text, and system_profile payloads) may embed personal data such as
+// birth info or personal questions, so content is cleared across all kinds;
+// message structure and metadata are preserved for audit continuity.
 func (s *ChatStore) AnonymizeUserMessages(ctx context.Context, userID string) (int64, error) {
 	result, err := s.db.ExecContext(ctx, `
 UPDATE unified_chat_messages SET content=''
-WHERE user_id=? AND kind=?`, userID, string(KindSystemProfile))
+WHERE user_id=?`, userID)
 	if err != nil {
 		return 0, err
 	}

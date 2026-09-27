@@ -104,7 +104,6 @@ func TestValidateRuntimeURLs(t *testing.T) {
 		EngineURL: "http://engine:8082/jsonrpc",
 		SelfURL:   "http://web:8081",
 		ReturnURL: "https://liki.hk",
-		AgentMode: "agent",
 		AgentURL:  "http://agent:8083",
 	}
 	if err := validateRuntimeURLs(valid); err != nil {
@@ -117,7 +116,6 @@ func TestValidateRuntimeURLs(t *testing.T) {
 		LLMBaseURL:        "https://",
 		ReturnURL:         "/liki.hk",
 		PaymentWebhookURL: "liki.hk/api/payments/webhook",
-		AgentMode:         "agent",
 		AgentURL:          "agent:8083",
 	}
 	err := validateRuntimeURLs(invalid)

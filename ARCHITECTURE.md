@@ -17,7 +17,7 @@
 | `internal/account` | account erasure orchestration |
 | `internal/referral` | KOL/Scout applications, attribution, commission, and payout domain |
 | `internal/admin` | admin operations and audit |
-| `internal/agent` | in-process local runner and tool scoping |
+| `internal/agent` | LLM client and tool registry (shared by naming/report and AG-UI product adapters) |
 
 ## Frontend modules
 
@@ -74,7 +74,8 @@ Provider callbacks are verified and idempotent.
 Vue App sends AG-UI to /api/chat/sessions/{id}/ag-ui
 → liki-web checks identity, entitlement, session ownership, and rate limits
 → liki-web loads trusted persisted history
-→ unprofiled sessions may use liki-agents; profile-bound sessions use the local runner
+→ liki-web routes every session (profile-bound or not) to the liki-agents runtime
+→ profile birth facts travel in trusted AG-UI forwardedProps, not system prompts
 → liki-web persists the authoritative final answer
 ```
 
@@ -100,3 +101,14 @@ Cross-context writes are orchestrated in application code. There is no ad hoc fo
 | domain rules and deterministic tools | `liki` |
 | generic agent runtime and protocol adapters | `liki-agents` |
 | images, Compose, Caddy, rollback | `liki-deploy` |
+| rate limiting state | in-memory, per-instance; scale-out requires a shared limiter |
+
+## Security header ownership
+
+| Layer | Headers |
+| --- | --- |
+| Edge Caddy (`liki-deploy/caddy/Caddyfile`, `dev/Caddyfile.local`) | CSP, HSTS, Referrer-Policy, Permissions-Policy, COOP, CORP, `-Server` |
+| App (`internal/http` `SecurityHeaders`) | `X-Content-Type-Options`, `X-Frame-Options` — fallback if the edge is bypassed |
+
+CSP is owned by the edge. Never duplicate it in the Go service — two
+sources will drift.

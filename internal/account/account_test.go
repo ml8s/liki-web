@@ -127,6 +127,9 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "assistant", liki.KindSystemProfile, `{"birth_date":"1958-闰5-12"}`); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "user", liki.KindText, "我出生于 1958 年闰五月十二，想问婚姻"); err != nil {
+		t.Fatal(err)
+	}
 
 	handler := NewHandler(profileStore, chatStore, authStore,
 		orderStore, entitlementStore, paymentStore, notificationStore,
@@ -162,7 +165,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatal(err)
 	}
-	if resp.Data.Status != "erased" || resp.Data.ProfilesCleared != 1 || resp.Data.MessagesCleared != 1 ||
+	if resp.Data.Status != "erased" || resp.Data.ProfilesCleared != 1 || resp.Data.MessagesCleared != 2 ||
 		resp.Data.AuthIdentitiesCleared != 1 || resp.Data.AuthSessionsCleared != 1 || resp.Data.AuthCodesCleared != 1 ||
 		resp.Data.ReferralFinanceTasks != 0 {
 		t.Fatalf("bad erasure result: %+v", resp.Data)
@@ -176,7 +179,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(msgs) != 1 || strings.TrimSpace(msgs[0].Content) != "" {
+	if len(msgs) != 2 || strings.TrimSpace(msgs[0].Content) != "" || strings.TrimSpace(msgs[1].Content) != "" {
 		t.Fatalf("message PII not cleared: %+v", msgs)
 	}
 

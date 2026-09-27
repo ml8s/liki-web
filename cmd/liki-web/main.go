@@ -52,9 +52,9 @@ var (
 	Version   = "dev"
 )
 
-// maxAgentRunTimeout leaves a 10-second margin below the HTTP WriteTimeout so
-// a completed agent response can still be flushed and persisted.
-const maxAgentRunTimeout = 140 * time.Second
+// maxAgentRunTimeout matches the bounded AG-UI product run deadline. The HTTP
+// writer keeps an additional margin so a completed response can be flushed.
+const maxAgentRunTimeout = 600 * time.Second
 
 type Config struct {
 	DataDir             string
@@ -77,7 +77,6 @@ type Config struct {
 	PromptFile          string
 	EngineURL           string
 	SelfURL             string
-	AgentMode           string
 	AgentURL            string
 	AgentInternalToken  string
 	AgentTimeoutSeconds int
@@ -109,7 +108,6 @@ func LoadConfig() Config {
 		PromptFile:          envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
 		EngineURL:           envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
 		SelfURL:             envOr("LIKI_SELF_URL", "http://127.0.0.1:8081"),
-		AgentMode:           strings.ToLower(envOr("LIKI_AGENTS_MODE", "local")),
 		AgentURL:            strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
 		AgentInternalToken:  os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
 		AgentTimeoutSeconds: envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
@@ -268,31 +266,6 @@ func main() {
 		slog.Error("init profile schema", "err", err)
 		os.Exit(1)
 	}
-	chatRunners := make(map[liki.Skill]liki.Runner, len(agent.LikiChatSkills))
-	for _, skillID := range agent.LikiChatSkills {
-		tools := agent.NewToolRegistry(cfg.EngineURL)
-		tools.Register("read_file",
-			"Read an instruction or domain reference from the active skill directory.",
-			json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within the active skill directory"}},"required":["path"]}`),
-			agent.ReadFileHandler(filepath.Join(cfg.SkillsDir, skillID)))
-		// 统一 skill 含八字领域 → 定盘后可写回档案。
-		tools.Register("update_profile_birth_time",
-			"将定盘校验得到的出生时间写回当前会话绑定的档案。仅在你通过 calibrate 确定准确的出生时辰后调用，且只能更新 birth_time 与 birth_time_known。",
-			json.RawMessage(`{"type":"object","properties":{"profile_id":{"type":"string","description":"当前会话绑定的档案 id"},"birth_time":{"type":"string","description":"定盘后的出生时间 HH:mm"},"birth_time_known":{"type":"string","enum":["known","approximate"]}},"required":["profile_id","birth_time","birth_time_known"]}`),
-			liki.UpdateProfileBirthTimeHandler(cfg.SelfURL, auth.DefaultConfig().CookieName, nil))
-		scope, ok := agent.SkillToolScopes[skillID]
-		if !ok {
-			slog.Error("chat skill has no tool scope", "skill", skillID)
-			os.Exit(1)
-		}
-		scopedPrompt, err := agent.BuildScopedChatPrompt(cfg.SkillsDir, skillID)
-		if err != nil {
-			slog.Error("build scoped chat prompt", "skill", skillID, "err", err)
-			os.Exit(1)
-		}
-		scopedTools := agent.NewScopedToolRegistry(tools, scope)
-		chatRunners[liki.Skill(skillID)] = agent.NewAgent(llmClient, scopedTools, scopedPrompt)
-	}
 
 	if cfg.ReturnURL == "" {
 		slog.Warn("RETURN_URL not set — post-payment redirect will fail")
@@ -412,38 +385,30 @@ func main() {
 		slog.Error("init chat schema", "err", err)
 		os.Exit(1)
 	}
-	chatService := liki.NewService(chatStore, entitlements, profileStore, chatRunners)
-	switch cfg.AgentMode {
-	case "local":
-		// Migration rollback path: keep the current in-process runner.
-	case "agent":
-		if cfg.AgentURL == "" {
-			slog.Error("LIKI_AGENTS_URL is required when LIKI_AGENTS_MODE=agent")
-			os.Exit(1)
-		}
-		if cfg.AgentInternalToken == "" {
-			slog.Error("LIKI_AGENTS_INTERNAL_TOKEN is required when LIKI_AGENTS_MODE=agent")
-			os.Exit(1)
-		}
-		agentTimeout := time.Duration(cfg.AgentTimeoutSeconds) * time.Second
-		if agentTimeout <= 0 || agentTimeout > maxAgentRunTimeout {
-			agentTimeout = maxAgentRunTimeout
-		}
-		agentRunner, err := liki.NewAgentRunner(liki.AgentRunnerConfig{
-			BaseURL: cfg.AgentURL,
-			Token:   cfg.AgentInternalToken,
-			Timeout: agentTimeout,
-			Product: "liki",
-		})
-		if err != nil {
-			slog.Error("init liki agent runner", "err", err)
-			os.Exit(1)
-		}
-		chatService.SetAgentRunner(agentRunner)
-	default:
-		slog.Error("invalid LIKI_AGENTS_MODE", "value", cfg.AgentMode)
+	chatService := liki.NewService(chatStore, entitlements, profileStore)
+	if cfg.AgentURL == "" {
+		slog.Error("LIKI_AGENTS_URL is required")
 		os.Exit(1)
 	}
+	if cfg.AgentInternalToken == "" {
+		slog.Error("LIKI_AGENTS_INTERNAL_TOKEN is required")
+		os.Exit(1)
+	}
+	agentTimeout := time.Duration(cfg.AgentTimeoutSeconds) * time.Second
+	if agentTimeout <= 0 || agentTimeout > maxAgentRunTimeout {
+		agentTimeout = maxAgentRunTimeout
+	}
+	agentRunner, err := liki.NewAgentRunner(liki.AgentRunnerConfig{
+		BaseURL: cfg.AgentURL,
+		Token:   cfg.AgentInternalToken,
+		Timeout: agentTimeout,
+		Product: "liki",
+	})
+	if err != nil {
+		slog.Error("init liki agent runner", "err", err)
+		os.Exit(1)
+	}
+	chatService.SetAgentRunner(agentRunner)
 	commerceOrders := liki.NewOrderStore(likiDB)
 	if err := commerceOrders.Migrate(ctx); err != nil {
 		slog.Error("init commerce schema", "err", err)
@@ -570,10 +535,8 @@ func main() {
 		if err := checkEngineReadiness(ctx, cfg.EngineURL); err != nil {
 			return err
 		}
-		if cfg.AgentMode == "agent" {
-			if err := checkAgentReadiness(ctx, cfg.AgentURL); err != nil {
-				return err
-			}
+		if err := checkAgentReadiness(ctx, cfg.AgentURL); err != nil {
+			return err
 		}
 		return nil
 	}
@@ -629,7 +592,7 @@ func main() {
 		Handler:      h,
 		BaseContext:  func(_ net.Listener) context.Context { return ctx },
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 150 * time.Second,
+		WriteTimeout: 610 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
@@ -767,10 +730,8 @@ func validateRuntimeURLs(cfg Config) error {
 	if err := validateHTTPURL("PAYMENTS_WEBHOOK_URL", cfg.PaymentWebhookURL); err != nil {
 		errs = append(errs, err)
 	}
-	if cfg.AgentMode == "agent" {
-		if err := validateHTTPURL("LIKI_AGENTS_URL", cfg.AgentURL); err != nil {
-			errs = append(errs, err)
-		}
+	if err := validateHTTPURL("LIKI_AGENTS_URL", cfg.AgentURL); err != nil {
+		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
 }
