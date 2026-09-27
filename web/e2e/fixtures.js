@@ -2,8 +2,9 @@ import { test as base, expect, chromium } from '@playwright/test';
 
 const test = base.extend({
   browser: async ({}, use) => {
+    // 使用 Playwright 管理的 chromium（CI 已 `playwright install chromium`）。
+    // 不用 google-chrome-stable 硬编码路径，避免与 config/CI 的 chromium 不一致。
     const browser = await chromium.launch({
-      executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome-stable',
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
