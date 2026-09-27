@@ -31,13 +31,18 @@ Requirements are documented by:
 
 - `.nvmrc` for Node.js;
 - `go.mod` for Go;
-- `../liki` for local skill assets.
+- a prepared immutable `liki-web-skill-bundle.tar.gz` under `web/skills`.
 
 ```bash
 make hooks
 make build
 make dev
 ```
+
+The Docker E2E uses `LIKI_ENGINE_IMAGE` and does not build the sibling liki
+repository. The non-Docker `make dev` path accepts a pre-extracted engine
+binary through `ENGINE_BIN`, or an already-running Engine through
+`LIKI_ENGINE_URL`.
 
 In development, the login page shows a local verification code when the email service is unavailable. Production does not expose this code.
 
@@ -46,7 +51,7 @@ In development, the login page shows a local verification code when the email se
 | Command | Purpose |
 | --- | --- |
 | `make dev` | Build and start the local stack |
-| `make build` | Build skills, static assets, and Go service |
+| `make build` | Verify the prepared skill artifact, then build static assets and Go service |
 | `make check` | Static checks and project validation |
 | `make test` | Full tests, build, and packaging |
 | `make gate` | `check` + `test`; pre-release gate |
@@ -66,14 +71,24 @@ In development, the login page shows a local verification code when the email se
 | `PAYMENTS_WEBHOOK_URL` | Provider webhook URL |
 | `DODO_API_KEY`, `DODO_WEBHOOK_KEY`, `DODO_PRODUCT_LIKI_CHAT` | Dodo configuration |
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
-| `LIKI_LLM_BASE_URL`, `LIKI_LLM_API_KEY`, `LIKI_LLM_MODEL` | In-process LLM runner |
+| `LIKI_LLM_BASE_URL`, `LIKI_LLM_API_KEY`, `LIKI_LLM_MODEL` | Naming/report LLM runner |
+| `LIKI_AGENTS_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | Mandatory AG-UI runtime integration |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
-| `LIKI_AGENTS_MODE` | `local` or `agent` |
-| `LIKI_AGENTS_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | Agent integration |
 | `METRICS_TOKEN` | Protects the internal metrics endpoint |
 | `FEEDBACK_API_KEY` | Reads and updates feedback records |
 
 Never commit real environment files or secrets.
+
+CI consumes an exact liki release through repository variables:
+
+```text
+LIKI_SKILLS_RELEASE_TAG
+LIKI_SKILLS_BUNDLE_SHA256
+```
+
+The composite action downloads that release asset, verifies SHA256 and the
+embedded archive digest, and prepares `web/skills`. It never checks out or
+rebuilds the liki source repository.
 
 ## Payment
 
