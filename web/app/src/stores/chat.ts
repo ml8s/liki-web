@@ -178,7 +178,7 @@ export const useChatStore = defineStore('chat', {
         this.activeSession = result.session
         this.phase = ''
       } catch (error) {
-        const aborted = error instanceof DOMException && error.name === 'AbortError'
+        const aborted = (error as { name?: string } | null)?.name === 'AbortError'
         if (!aborted) this.error = errorMessage(error)
         this.phase = ''
         streamController = null
