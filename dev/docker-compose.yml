@@ -2,10 +2,7 @@
 
 services:
   engine:
-    image: liki-engine:latest
-    build:
-      context: ../../liki/engine
-      dockerfile: dev/Dockerfile
+    image: ${LIKI_ENGINE_IMAGE:?LIKI_ENGINE_IMAGE is required}
     expose: ["8082"]
     restart: "no"
     environment:
@@ -32,6 +29,8 @@ services:
       - LIKI_ENGINE_URL=http://engine:8082/jsonrpc
       - LIKI_SELF_URL=http://127.0.0.1:8081
       - LIKI_SKILLS_DIR=/web/skills
+      - LIKI_AGENTS_URL=${LIKI_AGENTS_URL:-http://127.0.0.1:18083}
+      - LIKI_AGENTS_INTERNAL_TOKEN=${LIKI_AGENTS_INTERNAL_TOKEN:?LIKI_AGENTS_INTERNAL_TOKEN is required}
     tmpfs:
       - /var/lib/liki:uid=1000,gid=1000,mode=0700
     depends_on:

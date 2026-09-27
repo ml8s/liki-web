@@ -57,12 +57,18 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		return rl.Wrap(5.0/60, 6, h)
 	}
 
+	// 支付回调限流档：webhook 来自固定签名方但可能集中到达，且需抑制
+	// 未签名伪造请求的滥用；60/min burst 30 宽松到不误伤正常回调。
+	webhookLimit := func(h http.HandlerFunc) http.HandlerFunc {
+		return rl.Wrap(60.0/60, 30, h)
+	}
+
 	// ── unified payment runtime ──
 	if deps.PaymentRuntime != nil {
 		mux.HandleFunc("GET /api/payments/intents/{id}/status", deps.PaymentRuntime.HandleIntentStatus)
 		mux.HandleFunc("GET /api/payments/intents/{id}/fulfillment-status", deps.PaymentRuntime.HandleFulfillmentStatus)
 		mux.HandleFunc("GET /api/payments/return/{id}", deps.PaymentRuntime.HandlePaymentReturn)
-		mux.HandleFunc("POST /api/payments/webhook", deps.PaymentRuntime.HandleWebhook)
+		mux.HandleFunc("POST /api/payments/webhook", webhookLimit(deps.PaymentRuntime.HandleWebhook))
 	}
 
 	// ── platform user auth ──

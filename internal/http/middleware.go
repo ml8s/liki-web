@@ -46,6 +46,9 @@ func CORSMiddleware(devMode bool, next http.Handler) http.Handler {
 	})
 }
 
+// SecurityHeaders sets app-layer fallback headers. CSP, HSTS, and the
+// privacy headers are owned by the edge Caddy (liki-deploy) — do not
+// duplicate them here, a second source will drift.
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")

@@ -13,7 +13,6 @@ if [ -f .env ]; then
   set -a; source .env; set +a
 fi
 
-ENGINE_DIR="${ENGINE_DIR:-$PROJECT_DIR/../liki/engine}"
 LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
 export LIKI_WEB_HOST="${LIKI_WEB_HOST:-localhost}"
 export LIKI_ENGINE_HOST="${LIKI_ENGINE_HOST:-localhost}"
@@ -34,6 +33,8 @@ mkdir -p "$LIKI_DATA_DIR"
 export LISTEN_ADDR="${LISTEN_ADDR:-:8081}"
 export LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
 export LIKI_SELF_URL="${LIKI_SELF_URL:-http://127.0.0.1:8081}"
+export LIKI_AGENTS_URL="${LIKI_AGENTS_URL:-http://127.0.0.1:18083}"
+export LIKI_AGENTS_INTERNAL_TOKEN="${LIKI_AGENTS_INTERNAL_TOKEN:-dev-agent-secret}"
 export TRUSTED_PROXY_HOPS="${TRUSTED_PROXY_HOPS:-1}"
 export JWT_SECRET="${JWT_SECRET:-dev-secret-do-not-use-in-production}"
 export REFERRAL_PAYOUT_SECRET="${REFERRAL_PAYOUT_SECRET:-dev-referral-payout-secret-do-not-use-in-production}"
@@ -68,9 +69,11 @@ if [ -z "${CADDY_BIN:-}" ]; then
   fi
 fi
 
-echo "==> Building Liki engine..."
-ENGINE_BIN="/tmp/liki-engine"
-(cd "$ENGINE_DIR" && go build -ldflags="-s -w" -o "$ENGINE_BIN" ./cmd/liki)
+ENGINE_BIN="${ENGINE_BIN:-}"
+if [ -z "$ENGINE_BIN" ] && [[ "$LIKI_ENGINE_URL" == http://localhost:* ]]; then
+  echo "ERROR: set ENGINE_BIN to an extracted engine-rpc artifact when using localhost Engine" >&2
+  exit 1
+fi
 
 # Web binary (pre-built by 'make build-go')
 WEB_BIN="${WEB_BIN:-bin/liki-web}"
@@ -91,9 +94,12 @@ for i in $(seq 1 30); do
   sleep 0.5
 done
 
-echo "==> Starting engine on :8082"
-LISTEN_ADDR=:8082 "$ENGINE_BIN" &
-ENGINE_PID=$!
+ENGINE_PID=""
+if [ -n "$ENGINE_BIN" ]; then
+  echo "==> Starting engine on :8082"
+  LISTEN_ADDR=:8082 "$ENGINE_BIN" &
+  ENGINE_PID=$!
+fi
 for i in $(seq 1 30); do
   curl -sf "$LIKI_ENGINE_URL" -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"health","id":1}' >/dev/null 2>&1 && break
   sleep 0.5

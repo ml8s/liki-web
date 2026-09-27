@@ -1,46 +1,94 @@
 name: 'Prepare skills'
-description: 'Checkout ml8s/liki（锁定版本）并同步统一 liki skill + webapp 到 web/skills，含结构校验与指纹防假同步'
+description: 'Download and verify an exact liki web-skill release bundle'
+inputs:
+  liki-release-tag:
+    description: 'Exact ml8s/liki release tag'
+    required: true
+  liki-bundle-sha256:
+    description: 'SHA256 of liki-web-skill-bundle.tar.gz'
+    required: true
+  github-token:
+    description: 'Token used to query the public GitHub release API'
+    required: false
+    default: ''
 runs:
   using: 'composite'
   steps:
-    - name: Ensure skills dir
+    - name: Resolve exact liki release asset
       shell: bash
-      run: rm -rf web/skills && mkdir -p web/skills
-    - name: Checkout skills repo
-      uses: actions/checkout@v7
-      with:
-        repository: ml8s/liki
-        path: skills-repo
-    - name: Record liki version
+      id: resolve
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        LIKI_RELEASE_TAG: ${{ inputs.liki-release-tag }}
+      run: |
+        set -euo pipefail
+        : "${LIKI_RELEASE_TAG:?liki-release-tag is required}"
+        api="https://api.github.com/repos/ml8s/liki/releases/tags/${LIKI_RELEASE_TAG}"
+        auth=()
+        if [ -n "$GITHUB_TOKEN" ]; then auth=(-H "Authorization: Bearer $GITHUB_TOKEN"); fi
+        asset_url="$(
+          curl -fsSL "${auth[@]}" -H 'Accept: application/vnd.github+json' "$api" |
+            python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(a["browser_download_url"] for a in d.get("assets",[]) if a["name"]=="liki-web-skill-bundle.tar.gz"))'
+        )"
+        echo "asset_url=${asset_url}" >> "$GITHUB_OUTPUT"
+    - name: Download and verify bundle
+      shell: bash
+      env:
+        ASSET_URL: ${{ steps.resolve.outputs.asset_url }}
+        WANT_SHA256: ${{ inputs.liki-bundle-sha256 }}
+      run: |
+        set -euo pipefail
+        : "${WANT_SHA256:?liki-bundle-sha256 is required}"
+        bundle="$(mktemp /tmp/liki-skills.XXXXXX.tar.gz)"
+        extract="$(mktemp -d /tmp/liki-skills.XXXXXX)"
+        skill_source="$(mktemp -d /tmp/liki-skill-source.XXXXXX)"
+        trap 'rm -f "$bundle"; rm -rf "$extract" "$skill_source"' EXIT
+        curl -fsSL "$ASSET_URL" -o "$bundle"
+        echo "$WANT_SHA256  $bundle" | sha256sum -c -
+        tar -xzf "$bundle" -C "$extract" --no-same-owner
+        tar -xzf "$extract/liki.tar.gz" -C "$skill_source" --no-same-owner
+
+        python3 - "$extract" "$WANT_SHA256" <<'PY'
+        import hashlib
+        import json
+        import pathlib
+        import sys
+
+        root = pathlib.Path(sys.argv[1])
+        expected_bundle = sys.argv[2]
+        archive = root / "liki.tar.gz"
+        if not archive.is_file():
+            raise SystemExit("bundle is missing liki.tar.gz")
+        archive_digest = "sha256:" + hashlib.sha256(archive.read_bytes()).hexdigest()
+        discovery = json.loads((root / "index.json").read_text(encoding="utf-8"))
+        skills = discovery.get("skills", [])
+        if not skills or any(item.get("digest") != archive_digest for item in skills):
+            raise SystemExit("index.json digest does not match liki.tar.gz")
+        manifest_path = root / "manifest.json"
+        if manifest_path.is_file():
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if manifest.get("archive_sha256") != archive_digest:
+                raise SystemExit("manifest archive digest mismatch")
+        PY
+
+        rm -rf web/skills web/.well-known/agent-skills
+        mkdir -p web/skills web/.well-known/agent-skills
+        mkdir -p web/skills/liki
+        cp -a "$skill_source"/. web/skills/liki/
+        cp -a "$extract/webapp" web/skills/liki/webapp
+        cp "$extract/liki.tar.gz" web/skills/liki.tar.gz
+        cp "$extract/index.json" web/.well-known/agent-skills/index.json
+        if [ -f "$extract/manifest.json" ]; then
+          cp "$extract/manifest.json" web/.well-known/agent-skills/liki-manifest.json
+        fi
+    - name: Validate prepared skill artifact
       shell: bash
       run: |
-        echo "liki commit: $(git -C skills-repo rev-parse --short HEAD)"
-        echo "liki VERSION: $(cat skills-repo/skills/liki/VERSION.txt)"
-    - name: Build skill archive (dist/ 不入库，CI 现场构建)
-      shell: bash
-      run: |
-        cd skills-repo
-        bash scripts/build-archive.sh
-        cd ..
-    - name: Prepare unified skill + webapp
-      shell: bash
-      run: |
-        rsync -a --exclude .git --exclude .github --exclude .githooks --exclude __pycache__ \
-          --exclude .pytest_cache --exclude dist --exclude tests --exclude scripts \
-          --exclude CHANGELOG.md --exclude README.md --exclude Makefile --exclude LICENSE \
-          --exclude CONTRIBUTING.md --exclude '*.tar.gz' \
-          "skills-repo/skills/liki/" "web/skills/liki/"
-        rsync -a "skills-repo/webapp/" "web/skills/liki/webapp/"
-        test -f "skills-repo/dist/liki.tar.gz" && cp "skills-repo/dist/liki.tar.gz" "web/skills/liki.tar.gz"
-        mkdir -p web/.well-known/agent-skills
-        test -f "skills-repo/dist/index.json" && cp "skills-repo/dist/index.json" "web/.well-known/agent-skills/index.json"
-    - name: Validate skills structure
-      shell: bash
-      run: |
-        test -f "web/skills/liki/SKILL.md" || { echo "❌ Missing web/skills/liki/SKILL.md"; exit 1; }
-        test -f "web/skills/liki/VERSION.txt" || { echo "❌ Missing web/skills/liki/VERSION.txt"; exit 1; }
-        test -f "web/skills/liki/natal/tools/skill-tools.json" || { echo "❌ Missing tools/skill-tools.json"; exit 1; }
-        test -f "web/skills/liki/natal/tools/agent_cli.py" || { echo "❌ Missing tools/agent_cli.py"; exit 1; }
-        test -f "web/skills/liki/webapp/mingshu/generate.md" || { echo "❌ Missing webapp/mingshu"; exit 1; }
-        test -f "web/skills/liki.tar.gz" || { echo "❌ Missing skills/liki.tar.gz"; exit 1; }
-        echo "✓ 统一 liki skill 结构完整（SKILL.md + VERSION.txt + natal 工具链/webapp + 归档）"
+        set -euo pipefail
+        test -f web/skills/liki/SKILL.md
+        test -f web/skills/liki/VERSION.txt
+        test -f web/skills/liki/natal/app/mingshu.md
+        test -f web/skills/liki/webapp/mingshu/generate.md
+        test -f web/skills/liki.tar.gz
+        test -f web/.well-known/agent-skills/index.json
+        echo "liki VERSION: $(cat web/skills/liki/VERSION.txt)"

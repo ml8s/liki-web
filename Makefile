@@ -1,15 +1,22 @@
 .DEFAULT_GOAL := help
+# 统一语义（四仓一致）：
+#   make lint   静态检查聚合
+#   make check  纯静态契约检查（lint+格式+类型+安全+skills；不跑测试、不构建）
+#   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
+#   make gate   check + test ＝ 推送门槛
+#   make build  本仓产物（前端+二进制；镜像由 CI release 构建）
+#   make image  本地镜像（调试用，非发布路径）
+#   make e2e    浏览器 E2E（本仓视角）
+#   make smoke  部署后 HTTP 冒烟
 .PHONY: help check test gate smoke e2e \
-        lint-go lint-js lint-docs typecheck test-go test-js test-python test-skills \
+        lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
         check-html check-security \
-        build build-skills build-sitemap build-web build-go \
+        build build-skills build-sitemap build-web build-go image \
         dev clean hooks version version-minor version-major
 
 # ── 环境 ──
 NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
-SKILLS_DIR := $(if $(wildcard ../liki/scripts/build-archive.sh),../liki,skills-repo)
 VERSION_FILE := cmd/liki-web/VERSION
-SKILLS := liki
 export PATH := $(HOME)/app/go/bin:$(HOME)/app/go-tools/bin:$(HOME)/go/bin:$(PATH)
 export GOCACHE ?= /tmp/gocache
 export GOLANGCI_LINT_CACHE ?= /tmp/golangci-lint-cache
@@ -35,9 +42,9 @@ help: ## 列出所有 target
 
 # ── 质量门槛 ──
 
-check: lint-go lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version ## 静态检查 + 安全扫描（~3min）
+check: lint-go fmt-check lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version ## 静态检查（纯静态，不跑测试、不构建）
 
-test: test-go test-js test-python e2e build check-packaging ## 全量测试（~15min，含 E2E）
+test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
 
 gate: check test ## 部署门槛：check + test 全过才能部署
 
@@ -49,6 +56,9 @@ smoke: ## 部署后冒烟验证（make smoke 或 make smoke to=us）
 lint-go: ## Go lint + vet
 	golangci-lint run --timeout=3m
 	go vet ./...
+
+fmt-check: ## Reject unformatted Go sources
+	@test -z "$$(gofmt -l .)" || { gofmt -l .; exit 1; }
 
 lint-js: ## JS lint
 	cd web && PATH="$(NODE_BIN):$$PATH" npx eslint js/
@@ -71,12 +81,20 @@ test-python: ## Python helper tests
 	python3 -m unittest discover -s scripts/tests -p 'test_*.py' -q
 
 test-skills: ## Python skill 测试
-	cd $(SKILLS_DIR) && python3 -m pytest tests/ -q --ignore=tests/test_integration.py
+	scripts/verify-prepared-skills.sh
 
 e2e: ## Docker 全栈 E2E（不跑 lint / unit）
 	scripts/e2e.sh
 
-build: build-skills build-sitemap build-web build-go ## 完整构建
+build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）。镜像由 CI release 构建，非本地。
+
+# ── 镜像（本地调试用，非发布路径）──
+# 生产镜像由 CI release 构建并推送 GHCR；此目标仅用于本地构建/调试。
+IMAGE_REGISTRY ?= ghcr.io/ml8s
+IMAGE_TAG ?= dev
+
+image: build ## Build liki-web image locally (debug; production uses CI release)
+	docker build -t $(IMAGE_REGISTRY)/liki-web:$(IMAGE_TAG) .
 
 # ── 工具 ──
 
@@ -127,9 +145,7 @@ check-caddy:
 	scripts/check-caddy.sh
 
 build-skills:
-	test -f "$(SKILLS_DIR)/scripts/build-archive.sh" || { echo "❌ skills source not found: $(SKILLS_DIR)" >&2; exit 1; }
-	cd $(SKILLS_DIR) && scripts/build-archive.sh
-	SKILLS_REPO_ROOT=$(SKILLS_DIR) scripts/sync-skills.sh
+	scripts/verify-prepared-skills.sh
 
 build-sitemap:
 	node web/scripts/build-sitemap.cjs

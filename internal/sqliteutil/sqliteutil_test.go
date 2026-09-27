@@ -1,6 +1,7 @@
 package sqliteutil
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -31,5 +32,18 @@ func TestOpenCreatesDirectoryAndAppliesPragmas(t *testing.T) {
 	}
 	if db.Stats().MaxOpenConnections != 1 {
 		t.Fatalf("MaxOpenConnections = %d, want 1", db.Stats().MaxOpenConnections)
+	}
+
+	for _, sidecar := range []string{"test.db", "test.db-wal", "test.db-shm"} {
+		info, err := os.Stat(filepath.Join(dir, sidecar))
+		if err != nil && os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if perm := info.Mode().Perm(); perm&0o077 != 0 {
+			t.Fatalf("%s mode = %04o, want group/other bits clear", sidecar, perm)
+		}
 	}
 }
