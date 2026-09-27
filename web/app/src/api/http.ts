@@ -37,7 +37,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     throw new ApiError(0, 'network_error', 'Network request failed')
   }
 
-  let envelope: Envelope<T> | null = null
+  let envelope: Envelope<T> | null
   try {
     envelope = await response.json()
   } catch {

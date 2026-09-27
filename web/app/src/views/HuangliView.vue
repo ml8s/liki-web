@@ -1,63 +1,189 @@
 <template>
   <section class="service-view">
-    <AppPageHeader :title="$t('services.huangli.pageTitle')" :subtitle="$t('services.huangli.subtitle')" />
+    <AppPageHeader
+      :title="$t('services.huangli.pageTitle')"
+      :subtitle="$t('services.huangli.subtitle')"
+    />
 
-    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-    <el-card class="app-card" shadow="never">
-      <template #header><h2 class="app-card__title">{{ $t('services.huangli.pageTitle') }}</h2></template>
-      <el-form label-position="top" @submit.prevent="calc">
+    <el-card
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('services.huangli.pageTitle') }}
+        </h2>
+      </template>
+      <el-form
+        label-position="top"
+        @submit.prevent="calc"
+      >
         <div class="row">
           <el-form-item :label="$t('services.huangli.event')">
-            <el-select v-model="event" :aria-label="$t('services.huangli.event')" style="width: 100%">
-              <el-option v-for="key in EVENT_KEYS" :key="key" :value="key" :label="$t(`services.huangli.events.${key}`)" />
+            <el-select
+              v-model="event"
+              :aria-label="$t('services.huangli.event')"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="key in EVENT_KEYS"
+                :key="key"
+                :value="key"
+                :label="$t(`services.huangli.events.${key}`)"
+              />
             </el-select>
           </el-form-item>
           <el-form-item :label="$t('services.huangli.startDate')">
-            <el-date-picker v-model="startDate" type="date" value-format="YYYY-MM-DD" :placeholder="$t('services.huangli.startDate')" style="width: 100%" />
+            <el-date-picker
+              v-model="startDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              :placeholder="$t('services.huangli.startDate')"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item :label="$t('services.huangli.endDate')">
-            <el-date-picker v-model="endDate" type="date" value-format="YYYY-MM-DD" :placeholder="$t('services.huangli.endDate')" style="width: 100%" />
+            <el-date-picker
+              v-model="endDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              :placeholder="$t('services.huangli.endDate')"
+              style="width: 100%"
+            />
           </el-form-item>
         </div>
-        <el-button type="primary" native-type="submit" :loading="loading" :disabled="!event || !startDate || !endDate">{{ $t('services.huangli.calculate') }}</el-button>
+        <el-button
+          type="primary"
+          native-type="submit"
+          :loading="loading"
+          :disabled="!event || !startDate || !endDate"
+        >
+          {{ $t('services.huangli.calculate') }}
+        </el-button>
       </el-form>
     </el-card>
 
     <template v-if="result">
-      <el-card class="app-card app-card--highlight" shadow="never">
+      <el-card
+        class="app-card app-card--highlight"
+        shadow="never"
+      >
         <template #header>
-          <h2 class="app-card__title">{{ $t('services.huangli.resultTitle', { event: eventLabel(result.event || event) }) }}</h2>
+          <h2 class="app-card__title">
+            {{ $t('services.huangli.resultTitle', { event: eventLabel(result.event || event) }) }}
+          </h2>
         </template>
-        <div v-if="result.range" class="range-info">
+        <div
+          v-if="result.range"
+          class="range-info"
+        >
           {{ $t('services.huangli.range', { start: result.range.start_date, end: result.range.end_date, days: result.range.days }) }}
         </div>
-        <div v-if="recommended.length" class="days">
-          <div v-for="d in recommended" :key="d.date" class="day good">
-            <div class="d-date">{{ d.date }}</div>
-            <div class="d-sub">{{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}</div>
-            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join($t('common.listSeparator')) }}</div>
+        <div
+          v-if="recommended.length"
+          class="days"
+        >
+          <div
+            v-for="d in recommended"
+            :key="d.date"
+            class="day good"
+          >
+            <div class="d-date">
+              {{ d.date }}
+            </div>
+            <div class="d-sub">
+              {{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}
+            </div>
+            <div
+              v-if="d.warnings?.length"
+              class="d-warn"
+            >
+              {{ d.warnings.join($t('common.listSeparator')) }}
+            </div>
           </div>
         </div>
-        <p v-if="!recommended.length" class="hint">{{ $t('services.huangli.noRecommended') }}</p>
-        <div v-if="possible.length" class="sec-title">{{ $t('services.huangli.possible') }}</div>
-        <div v-if="possible.length" class="days">
-          <div v-for="d in possible" :key="d.date" class="day possible">
-            <div class="d-date">{{ d.date }}</div>
-            <div class="d-sub">{{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}</div>
-            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join($t('common.listSeparator')) }}</div>
+        <p
+          v-if="!recommended.length"
+          class="hint"
+        >
+          {{ $t('services.huangli.noRecommended') }}
+        </p>
+        <div
+          v-if="possible.length"
+          class="sec-title"
+        >
+          {{ $t('services.huangli.possible') }}
+        </div>
+        <div
+          v-if="possible.length"
+          class="days"
+        >
+          <div
+            v-for="d in possible"
+            :key="d.date"
+            class="day possible"
+          >
+            <div class="d-date">
+              {{ d.date }}
+            </div>
+            <div class="d-sub">
+              {{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}
+            </div>
+            <div
+              v-if="d.warnings?.length"
+              class="d-warn"
+            >
+              {{ d.warnings.join($t('common.listSeparator')) }}
+            </div>
           </div>
         </div>
-        <div v-if="unsuitable.length" class="sec-title">{{ $t('services.huangli.unsuitable') }}</div>
-        <div v-if="unsuitable.length" class="days">
-          <div v-for="d in unsuitable" :key="d.date" class="day bad">
-            <div class="d-date">{{ d.date }}</div>
-            <div class="d-sub">{{ d.reason || $t('services.huangli.unsuitable') }}</div>
-            <div v-if="d.warnings?.length" class="d-warn">{{ d.warnings.join($t('common.listSeparator')) }}</div>
+        <div
+          v-if="unsuitable.length"
+          class="sec-title"
+        >
+          {{ $t('services.huangli.unsuitable') }}
+        </div>
+        <div
+          v-if="unsuitable.length"
+          class="days"
+        >
+          <div
+            v-for="d in unsuitable"
+            :key="d.date"
+            class="day bad"
+          >
+            <div class="d-date">
+              {{ d.date }}
+            </div>
+            <div class="d-sub">
+              {{ d.reason || $t('services.huangli.unsuitable') }}
+            </div>
+            <div
+              v-if="d.warnings?.length"
+              class="d-warn"
+            >
+              {{ d.warnings.join($t('common.listSeparator')) }}
+            </div>
           </div>
         </div>
-        <div v-if="result.safety_advisory" class="safety-box">
-          <el-alert :title="result.safety_advisory" type="warning" :closable="false" show-icon/>
+        <div
+          v-if="result.safety_advisory"
+          class="safety-box"
+        >
+          <el-alert
+            :title="result.safety_advisory"
+            type="warning"
+            :closable="false"
+            show-icon
+          />
         </div>
       </el-card>
 

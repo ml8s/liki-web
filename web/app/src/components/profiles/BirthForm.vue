@@ -7,9 +7,14 @@
     class="birth-form"
     @submit.prevent="submit"
   >
-    <div class="step-label">{{ $t('profiles.form.basic') }}</div>
+    <div class="step-label">
+      {{ $t('profiles.form.basic') }}
+    </div>
 
-    <el-form-item :label="$t('profiles.form.nickname')" prop="nickname">
+    <el-form-item
+      :label="$t('profiles.form.nickname')"
+      prop="nickname"
+    >
       <el-input
         v-model="form.nickname"
         name="nickname"
@@ -18,18 +23,35 @@
       />
     </el-form-item>
 
-    <el-form-item :label="$t('profiles.form.gender')" prop="gender">
+    <el-form-item
+      :label="$t('profiles.form.gender')"
+      prop="gender"
+    >
       <el-radio-group v-model="form.gender">
-        <el-radio-button value="female">{{ $t('profiles.female') }}</el-radio-button>
-        <el-radio-button value="male">{{ $t('profiles.male') }}</el-radio-button>
+        <el-radio-button value="female">
+          {{ $t('profiles.female') }}
+        </el-radio-button>
+        <el-radio-button value="male">
+          {{ $t('profiles.male') }}
+        </el-radio-button>
       </el-radio-group>
     </el-form-item>
 
-    <el-form-item :label="$t('profiles.form.birthDate')" prop="birth_date">
+    <el-form-item
+      :label="$t('profiles.form.birthDate')"
+      prop="birth_date"
+    >
       <div class="date-row">
-        <el-radio-group v-model="form.calendar" size="small">
-          <el-radio-button value="solar">{{ $t('profiles.form.solar') }}</el-radio-button>
-          <el-radio-button value="lunar">{{ $t('profiles.form.lunar') }}</el-radio-button>
+        <el-radio-group
+          v-model="form.calendar"
+          size="small"
+        >
+          <el-radio-button value="solar">
+            {{ $t('profiles.form.solar') }}
+          </el-radio-button>
+          <el-radio-button value="lunar">
+            {{ $t('profiles.form.lunar') }}
+          </el-radio-button>
         </el-radio-group>
 
         <el-date-picker
@@ -50,18 +72,32 @@
       </div>
     </el-form-item>
 
-    <div class="step-label">{{ $t('profiles.form.birthTime') }}</div>
+    <div class="step-label">
+      {{ $t('profiles.form.birthTime') }}
+    </div>
 
-    <el-form-item :label="$t('profiles.form.timeKnown')" prop="birth_time_known">
+    <el-form-item
+      :label="$t('profiles.form.timeKnown')"
+      prop="birth_time_known"
+    >
       <el-radio-group v-model="form.birth_time_known">
-        <el-radio-button value="known">{{ $t('profiles.form.known') }}</el-radio-button>
-        <el-radio-button value="approximate">{{ $t('profiles.form.approximate') }}</el-radio-button>
-        <el-radio-button value="unknown">{{ $t('profiles.form.unknown') }}</el-radio-button>
+        <el-radio-button value="known">
+          {{ $t('profiles.form.known') }}
+        </el-radio-button>
+        <el-radio-button value="approximate">
+          {{ $t('profiles.form.approximate') }}
+        </el-radio-button>
+        <el-radio-button value="unknown">
+          {{ $t('profiles.form.unknown') }}
+        </el-radio-button>
       </el-radio-group>
     </el-form-item>
 
     <template v-if="form.birth_time_known === 'known'">
-      <el-form-item :label="$t('profiles.form.exactTime')" prop="birth_time">
+      <el-form-item
+        :label="$t('profiles.form.exactTime')"
+        prop="birth_time"
+      >
         <el-time-picker
           v-model="form.birth_time"
           format="HH:mm"
@@ -72,11 +108,18 @@
       </el-form-item>
 
       <el-form-item :label="$t('profiles.form.birthPlace')">
-        <el-input v-model="form.birth_place" name="birth-place" :placeholder="$t('profiles.form.birthPlacePlaceholder')" />
+        <el-input
+          v-model="form.birth_place"
+          name="birth-place"
+          :placeholder="$t('profiles.form.birthPlacePlaceholder')"
+        />
       </el-form-item>
     </template>
 
-    <el-form-item v-else-if="form.birth_time_known === 'approximate'" :label="$t('profiles.form.shichenLabel')">
+    <el-form-item
+      v-else-if="form.birth_time_known === 'approximate'"
+      :label="$t('profiles.form.shichenLabel')"
+    >
       <div class="shichen">
         <el-button
           v-for="item in shichen"
@@ -91,21 +134,39 @@
     </el-form-item>
 
     <el-form-item v-else>
-      <p class="hint">{{ $t('profiles.form.unknownHint') }}</p>
+      <p class="hint">
+        {{ $t('profiles.form.unknownHint') }}
+      </p>
     </el-form-item>
 
-    <div class="step-label">{{ $t('profiles.form.more') }}</div>
+    <div class="step-label">
+      {{ $t('profiles.form.more') }}
+    </div>
 
     <el-form-item :label="$t('profiles.form.note')">
-      <el-input v-model="form.note" type="textarea" :rows="2" name="note" :placeholder="$t('profiles.form.notePlaceholder')" />
+      <el-input
+        v-model="form.note"
+        type="textarea"
+        :rows="2"
+        name="note"
+        :placeholder="$t('profiles.form.notePlaceholder')"
+      />
     </el-form-item>
 
     <el-form-item prop="third_party_consent">
-      <el-checkbox v-model="form.third_party_consent">{{ $t('profiles.form.consent') }}</el-checkbox>
+      <el-checkbox v-model="form.third_party_consent">
+        {{ $t('profiles.form.consent') }}
+      </el-checkbox>
     </el-form-item>
 
     <el-form-item>
-      <el-button type="primary" size="large" :loading="submitting" native-type="submit" class="submit">
+      <el-button
+        type="primary"
+        size="large"
+        :loading="submitting"
+        native-type="submit"
+        class="submit"
+      >
         {{ $t('profiles.form.save') }}
       </el-button>
     </el-form-item>

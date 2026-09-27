@@ -1,5 +1,9 @@
 <template>
-  <div class="app-markdown" v-html="html" />
+  <!-- 全项目唯一 v-html 注入点：html 经 markdown.ts 的 DOMPurify 白名单消毒。 -->
+  <div
+    class="app-markdown"
+    v-html="html"
+  />
 </template>
 
 <script setup lang="ts">

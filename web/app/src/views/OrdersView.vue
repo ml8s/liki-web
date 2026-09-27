@@ -1,8 +1,16 @@
 <template>
   <section>
-    <AppPageHeader :title="$t('router.orders')" :subtitle="$t('orders.subtitle')">
+    <AppPageHeader
+      :title="$t('router.orders')"
+      :subtitle="$t('orders.subtitle')"
+    >
       <template #actions>
-        <el-button :loading="loading" @click="load">{{ $t('common.refresh') }}</el-button>
+        <el-button
+          :loading="loading"
+          @click="load"
+        >
+          {{ $t('common.refresh') }}
+        </el-button>
       </template>
     </AppPageHeader>
 
@@ -13,53 +21,137 @@
       :sub-title="error"
     >
       <template #extra>
-        <el-button type="primary" @click="load">{{ $t('common.retry') }}</el-button>
+        <el-button
+          type="primary"
+          @click="load"
+        >
+          {{ $t('common.retry') }}
+        </el-button>
       </template>
     </el-result>
-    <el-alert v-else-if="error && orders.length" :title="error" type="error" :closable="false" show-icon/>
+    <el-alert
+      v-else-if="error && orders.length"
+      :title="error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-    <el-skeleton v-else-if="loading && !orders.length" :rows="6" animated aria-busy="true"/>
+    <el-skeleton
+      v-else-if="loading && !orders.length"
+      :rows="6"
+      animated
+      aria-busy="true"
+    />
 
     <el-empty
       v-else-if="!loading && !orders.length"
       :description="$t('orders.empty')"
     >
-      <el-button type="primary" tag="a" to="/chat">{{ $t('orders.unlock') }}</el-button>
+      <el-button
+        type="primary"
+        tag="a"
+        to="/chat"
+      >
+        {{ $t('orders.unlock') }}
+      </el-button>
     </el-empty>
 
     <!-- 桌面：表格 -->
-    <el-table v-else-if="!isMobile" :data="orders" v-loading="loading" class="orders-table">
-      <el-table-column prop="id" :label="$t('orders.id')" min-width="180" show-overflow-tooltip />
-      <el-table-column :label="$t('orders.product')" min-width="160">
-        <template #default="{ row }">{{ productName(row.product_id) }}</template>
-      </el-table-column>
-      <el-table-column :label="$t('orders.amount')" width="130">
-        <template #default="{ row }">{{ formatAmount(row) }}</template>
-      </el-table-column>
-      <el-table-column :label="$t('orders.status')" width="120">
+    <el-table
+      v-else-if="!isMobile"
+      v-loading="loading"
+      :data="orders"
+      class="orders-table"
+    >
+      <el-table-column
+        prop="id"
+        :label="$t('orders.id')"
+        min-width="180"
+        show-overflow-tooltip
+      />
+      <el-table-column
+        :label="$t('orders.product')"
+        min-width="160"
+      >
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+          {{ productName(row.product_id) }}
         </template>
       </el-table-column>
-      <el-table-column :label="$t('orders.createdAt')" width="190">
-        <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+      <el-table-column
+        :label="$t('orders.amount')"
+        width="130"
+      >
+        <template #default="{ row }">
+          {{ formatAmount(row) }}
+        </template>
       </el-table-column>
-      <el-table-column :label="$t('orders.paidAt')" width="190">
-        <template #default="{ row }">{{ formatDateTime(row.paid_at) }}</template>
+      <el-table-column
+        :label="$t('orders.status')"
+        width="120"
+      >
+        <template #default="{ row }">
+          <el-tag
+            :type="statusType(row.status)"
+            size="small"
+          >
+            {{ statusLabel(row.status) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="$t('orders.createdAt')"
+        width="190"
+      >
+        <template #default="{ row }">
+          {{ formatDateTime(row.created_at) }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="$t('orders.paidAt')"
+        width="190"
+      >
+        <template #default="{ row }">
+          {{ formatDateTime(row.paid_at) }}
+        </template>
       </el-table-column>
     </el-table>
 
     <!-- 移动端：卡片降级 -->
-    <div v-else class="order-cards" v-loading="loading">
-      <div v-for="order in orders" :key="order.id" class="order-card">
+    <div
+      v-else
+      v-loading="loading"
+      class="order-cards"
+    >
+      <div
+        v-for="order in orders"
+        :key="order.id"
+        class="order-card"
+      >
         <div class="order-top">
           <span class="order-id">{{ order.id }}</span>
-          <el-tag :type="statusType(order.status)" size="small">{{ statusLabel(order.status) }}</el-tag>
+          <el-tag
+            :type="statusType(order.status)"
+            size="small"
+          >
+            {{ statusLabel(order.status) }}
+          </el-tag>
         </div>
-        <div class="order-row"><span class="k">{{ $t('orders.product') }}</span><span>{{ productName(order.product_id) }}</span></div>
-        <div class="order-row"><span class="k">{{ $t('orders.amount') }}</span><span>{{ formatAmount(order) }}</span></div>
-        <div class="order-row"><span class="k">{{ $t('orders.createdShort') }}</span><span>{{ formatDateTime(order.created_at) }}</span></div>
-        <div v-if="order.paid_at" class="order-row"><span class="k">{{ $t('orders.paidShort') }}</span><span>{{ formatDateTime(order.paid_at) }}</span></div>
+        <div class="order-row">
+          <span class="k">{{ $t('orders.product') }}</span><span>{{ productName(order.product_id) }}</span>
+        </div>
+        <div class="order-row">
+          <span class="k">{{ $t('orders.amount') }}</span><span>{{ formatAmount(order) }}</span>
+        </div>
+        <div class="order-row">
+          <span class="k">{{ $t('orders.createdShort') }}</span><span>{{ formatDateTime(order.created_at) }}</span>
+        </div>
+        <div
+          v-if="order.paid_at"
+          class="order-row"
+        >
+          <span class="k">{{ $t('orders.paidShort') }}</span><span>{{ formatDateTime(order.paid_at) }}</span>
+        </div>
       </div>
     </div>
     <el-alert
@@ -71,7 +163,6 @@
       :closable="false"
       class="pending-alert"
     />
-
   </section>
 </template>
 

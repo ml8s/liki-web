@@ -4,8 +4,12 @@
       <span class="title font-serif">{{ $t('chat.systemProfile.title') }}</span>
       <span class="pill">{{ nickname }}</span>
     </div>
-    <div class="meta">{{ summary }}</div>
-    <p class="note">{{ $t('chat.systemProfile.note') }}</p>
+    <div class="meta">
+      {{ summary }}
+    </div>
+    <p class="note">
+      {{ $t('chat.systemProfile.note') }}
+    </p>
   </div>
 </template>
 

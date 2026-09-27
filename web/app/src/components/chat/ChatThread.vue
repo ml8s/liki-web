@@ -1,6 +1,14 @@
 <template>
-  <div class="thread" role="log" aria-live="polite" :aria-label="$t('chat.threadLabel')">
-    <div v-if="!loading && !messages.length" class="empty-with-suggestions">
+  <div
+    class="thread"
+    role="log"
+    aria-live="polite"
+    :aria-label="$t('chat.threadLabel')"
+  >
+    <div
+      v-if="!loading && !messages.length"
+      class="empty-with-suggestions"
+    >
       <el-empty
         :description="$t('chat.emptyThread')"
       >
@@ -16,7 +24,11 @@
           </button>
         </div>
       </el-empty>
-      <div class="suggestions" role="group" :aria-label="$t('chat.suggestionsLabel')">
+      <div
+        class="suggestions"
+        role="group"
+        :aria-label="$t('chat.suggestionsLabel')"
+      >
         <button
           v-for="suggestion in suggestions"
           :key="suggestion"
@@ -28,7 +40,11 @@
         </button>
       </div>
     </div>
-    <ChatMessageItem v-for="message in messages" :key="message.id" :message="message" />
+    <ChatMessageItem
+      v-for="message in messages"
+      :key="message.id"
+      :message="message"
+    />
   </div>
 </template>
 

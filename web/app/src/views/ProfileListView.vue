@@ -1,8 +1,16 @@
 <template>
   <section>
-    <AppPageHeader :title="$t('router.profiles')" :subtitle="$t('profiles.list.subtitle')">
+    <AppPageHeader
+      :title="$t('router.profiles')"
+      :subtitle="$t('profiles.list.subtitle')"
+    >
       <template #actions>
-        <el-button type="primary" @click="router.push('/profiles/new')">{{ $t('profiles.create') }}</el-button>
+        <el-button
+          type="primary"
+          @click="router.push('/profiles/new')"
+        >
+          {{ $t('profiles.create') }}
+        </el-button>
       </template>
     </AppPageHeader>
 
@@ -13,16 +21,32 @@
       :sub-title="error"
     >
       <template #extra>
-        <el-button type="primary" @click="load">{{ $t('common.retry') }}</el-button>
+        <el-button
+          type="primary"
+          @click="load"
+        >
+          {{ $t('common.retry') }}
+        </el-button>
       </template>
     </el-result>
-    <el-skeleton v-else-if="profiles.loading && !profiles.list.length" :rows="5" animated aria-busy="true"/>
+    <el-skeleton
+      v-else-if="profiles.loading && !profiles.list.length"
+      :rows="5"
+      animated
+      aria-busy="true"
+    />
 
     <el-empty
       v-else-if="!profiles.loading && !profiles.list.length"
       :description="$t('profiles.list.empty')"
     >
-      <el-button type="primary" tag="a" to="/profiles/new">{{ $t('profiles.create') }}</el-button>
+      <el-button
+        type="primary"
+        tag="a"
+        to="/profiles/new"
+      >
+        {{ $t('profiles.create') }}
+      </el-button>
     </el-empty>
 
     <ProfileList

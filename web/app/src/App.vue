@@ -1,14 +1,30 @@
 <template>
   <el-provider :locale="elementLocale">
-    <div v-if="fatal.crashed" class="fatal" role="alert">
+    <div
+      v-if="fatal.crashed"
+      class="fatal"
+      role="alert"
+    >
       <h1>{{ $t('fatal.title') }}</h1>
-      <p class="msg">{{ fatal.message || $t('fatal.defaultMessage') }}</p>
+      <p class="msg">
+        {{ fatal.message || $t('fatal.defaultMessage') }}
+      </p>
       <div class="actions">
-        <el-button @click="retry">{{ $t('fatal.backHome') }}</el-button>
-        <el-button type="primary" @click="reload">{{ $t('fatal.reload') }}</el-button>
+        <el-button @click="retry">
+          {{ $t('fatal.backHome') }}
+        </el-button>
+        <el-button
+          type="primary"
+          @click="reload"
+        >
+          {{ $t('fatal.reload') }}
+        </el-button>
       </div>
     </div>
-    <router-view v-else v-slot="{ Component }">
+    <router-view
+      v-else
+      v-slot="{ Component }"
+    >
       <transition name="page-fade">
         <component :is="Component" />
       </transition>

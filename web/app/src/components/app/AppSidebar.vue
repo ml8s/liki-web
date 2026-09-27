@@ -1,28 +1,75 @@
 <template>
   <aside class="app-sidebar">
-    <router-link to="/" class="side-brand font-serif">Liki<em>·</em>{{ $t('auth.brandTail') }}</router-link>
-    <div class="side-slogan font-serif">{{ $t('auth.slogan') }}</div>
+    <router-link
+      to="/"
+      class="side-brand font-serif"
+    >
+      Liki<em>·</em>{{ $t('auth.brandTail') }}
+    </router-link>
+    <div class="side-slogan font-serif">
+      {{ $t('auth.slogan') }}
+    </div>
 
     <nav class="side-nav">
       <div class="nav-group">
-        <router-link to="/" exact-active-class="on">{{ $t('nav.workspace') }}</router-link>
-        <router-link to="/profiles" active-class="on">{{ $t('nav.profiles') }}</router-link>
-        <router-link to="/chat" active-class="on">{{ $t('nav.chat') }}</router-link>
+        <router-link
+          to="/"
+          exact-active-class="on"
+        >
+          {{ $t('nav.workspace') }}
+        </router-link>
+        <router-link
+          to="/profiles"
+          active-class="on"
+        >
+          {{ $t('nav.profiles') }}
+        </router-link>
+        <router-link
+          to="/chat"
+          active-class="on"
+        >
+          {{ $t('nav.chat') }}
+        </router-link>
       </div>
       <div class="nav-group nav-group-secondary">
-        <div class="nav-label">{{ $t('nav.account') }}</div>
-        <router-link to="/orders" active-class="on">{{ $t('nav.orders') }}</router-link>
-        <router-link to="/account" active-class="on">{{ $t('nav.account') }}</router-link>
+        <div class="nav-label">
+          {{ $t('nav.account') }}
+        </div>
+        <router-link
+          to="/orders"
+          active-class="on"
+        >
+          {{ $t('nav.orders') }}
+        </router-link>
+        <router-link
+          to="/account"
+          active-class="on"
+        >
+          {{ $t('nav.account') }}
+        </router-link>
       </div>
       <div class="nav-group nav-group-secondary">
-        <div class="nav-label">{{ $t('nav.partner') }}</div>
-        <router-link to="/partners" exact-active-class="on">{{ $t('nav.partner') }}</router-link>
+        <div class="nav-label">
+          {{ $t('nav.partner') }}
+        </div>
+        <router-link
+          to="/partners"
+          exact-active-class="on"
+        >
+          {{ $t('nav.partner') }}
+        </router-link>
       </div>
     </nav>
 
     <div class="side-user">
       <span class="email">{{ email }}</span>
-      <el-button size="small" plain @click="$emit('logout')">{{ $t('nav.logout') }}</el-button>
+      <el-button
+        size="small"
+        plain
+        @click="$emit('logout')"
+      >
+        {{ $t('nav.logout') }}
+      </el-button>
     </div>
   </aside>
 </template>

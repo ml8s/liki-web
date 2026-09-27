@@ -1,5 +1,10 @@
 <template>
-  <div v-if="phase" class="phase" role="status" aria-live="polite">
+  <div
+    v-if="phase"
+    class="phase"
+    role="status"
+    aria-live="polite"
+  >
     <span class="dot" />
     {{ phase }}
   </div>

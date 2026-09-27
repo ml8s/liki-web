@@ -1,28 +1,69 @@
 <template>
   <!-- 桌面：表格 -->
-  <el-table v-if="!isMobile" :data="sessions" @row-click="$emit('open', $event)">
-    <el-table-column prop="title" :label="$t('chat.sessions.title')" min-width="180" />
-    <el-table-column :label="$t('chat.sessions.domain')" width="140">
-      <template #default="{ row }">{{ row.skillLabel }}</template>
-    </el-table-column>
-    <el-table-column :label="$t('chat.sessions.updated')" width="190">
-      <template #default="{ row }">{{ formatDateTime(row.updated_at) }}</template>
-    </el-table-column>
-    <el-table-column width="100" align="right">
+  <el-table
+    v-if="!isMobile"
+    :data="sessions"
+    @row-click="$emit('open', $event)"
+  >
+    <el-table-column
+      prop="title"
+      :label="$t('chat.sessions.title')"
+      min-width="180"
+    />
+    <el-table-column
+      :label="$t('chat.sessions.domain')"
+      width="140"
+    >
       <template #default="{ row }">
-        <router-link :to="`/chat/${row.id}`" class="open-link">{{ $t('chat.sessions.open') }}</router-link>
+        {{ row.skillLabel }}
+      </template>
+    </el-table-column>
+    <el-table-column
+      :label="$t('chat.sessions.updated')"
+      width="190"
+    >
+      <template #default="{ row }">
+        {{ formatDateTime(row.updated_at) }}
+      </template>
+    </el-table-column>
+    <el-table-column
+      width="100"
+      align="right"
+    >
+      <template #default="{ row }">
+        <router-link
+          :to="`/chat/${row.id}`"
+          class="open-link"
+        >
+          {{ $t('chat.sessions.open') }}
+        </router-link>
       </template>
     </el-table-column>
   </el-table>
 
   <!-- 移动端：卡片降级 -->
-  <div v-else class="session-cards">
-    <router-link v-for="s in sessions" :key="s.id" :to="`/chat/${s.id}`" class="session-card">
+  <div
+    v-else
+    class="session-cards"
+  >
+    <router-link
+      v-for="s in sessions"
+      :key="s.id"
+      :to="`/chat/${s.id}`"
+      class="session-card"
+    >
       <div class="sc-top">
         <span class="sc-title">{{ s.title }}</span>
-        <el-tag size="small" effect="light">{{ s.skillLabel }}</el-tag>
+        <el-tag
+          size="small"
+          effect="light"
+        >
+          {{ s.skillLabel }}
+        </el-tag>
       </div>
-      <div class="sc-time">{{ formatDateTime(s.updated_at) }}</div>
+      <div class="sc-time">
+        {{ formatDateTime(s.updated_at) }}
+      </div>
     </router-link>
   </div>
 </template>

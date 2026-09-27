@@ -1,6 +1,9 @@
 <template>
   <section>
-    <el-page-header class="profile-page-header" @back="router.push('/profiles')">
+    <el-page-header
+      class="profile-page-header"
+      @back="router.push('/profiles')"
+    >
       <template #content>
         <div class="page-heading">
           <h1>{{ detail?.nickname ?? $t('router.profileDetail') }}</h1>
@@ -9,7 +12,12 @@
       </template>
     </el-page-header>
 
-    <el-skeleton v-if="profiles.detailLoading" :rows="6" animated aria-busy="true"/>
+    <el-skeleton
+      v-if="profiles.detailLoading"
+      :rows="6"
+      animated
+      aria-busy="true"
+    />
     <el-result
       v-else-if="error && !detail"
       icon="warning"
@@ -17,16 +25,32 @@
       :sub-title="error"
     >
       <template #extra>
-        <el-button type="primary" @click="load">{{ $t('common.retry') }}</el-button>
+        <el-button
+          type="primary"
+          @click="load"
+        >
+          {{ $t('common.retry') }}
+        </el-button>
       </template>
     </el-result>
 
     <template v-else-if="detail">
-      <ProfileInfo ref="infoRef" :profile="detail" :submitting="updating" @update="update" />
+      <ProfileInfo
+        ref="infoRef"
+        :profile="detail"
+        :submitting="updating"
+        @update="update"
+      />
 
-      <PaipanPreview :profile="detail" auto />
+      <PaipanPreview
+        :profile="detail"
+        auto
+      />
 
-      <el-card class="cta" :title="$t('profiles.detail.interpretation')">
+      <el-card
+        class="cta"
+        :title="$t('profiles.detail.interpretation')"
+      >
         <template v-if="entitlements.loaded && entitlements.purchased">
           <p class="hint">
             {{ preselectedService
@@ -39,13 +63,24 @@
               :key="s.key"
               :type="s.key === preselectedKey ? 'primary' : 'default'"
               @click="startService(s.key)"
-            >{{ $t(s.labelKey) }}</el-button>
+            >
+              {{ $t(s.labelKey) }}
+            </el-button>
           </div>
         </template>
 
         <template v-else>
-          <p class="hint">{{ $t('profiles.detail.unlockHint') }}</p>
-          <el-button type="primary" size="large" :loading="entitlements.loading" @click="goChat">{{ $t('profiles.detail.unlock') }}</el-button>
+          <p class="hint">
+            {{ $t('profiles.detail.unlockHint') }}
+          </p>
+          <el-button
+            type="primary"
+            size="large"
+            :loading="entitlements.loading"
+            @click="goChat"
+          >
+            {{ $t('profiles.detail.unlock') }}
+          </el-button>
         </template>
       </el-card>
     </template>

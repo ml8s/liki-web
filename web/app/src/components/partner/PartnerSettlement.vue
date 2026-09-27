@@ -3,7 +3,13 @@
     <template #header>
       <div class="head">
         <span>{{ $t('partner.settlement.title', { role: title }) }}</span>
-        <el-button type="primary" size="small" @click="payoutVisible = true">{{ $t('partner.settlement.requestPayout') }}</el-button>
+        <el-button
+          type="primary"
+          size="small"
+          @click="payoutVisible = true"
+        >
+          {{ $t('partner.settlement.requestPayout') }}
+        </el-button>
       </div>
     </template>
 
@@ -22,50 +28,118 @@
       class="rules"
     />
 
-    <el-skeleton v-if="loading" :rows="4" animated aria-busy="true" />
-    <el-alert v-else-if="error" type="error" :title="error" show-icon :closable="false" />
+    <el-skeleton
+      v-if="loading"
+      :rows="4"
+      animated
+      aria-busy="true"
+    />
+    <el-alert
+      v-else-if="error"
+      type="error"
+      :title="error"
+      show-icon
+      :closable="false"
+    />
     <template v-else>
       <div class="stat-grid">
-        <div v-for="balance in settlement?.balances ?? []" :key="balance.currency" class="stat">
+        <div
+          v-for="balance in settlement?.balances ?? []"
+          :key="balance.currency"
+          class="stat"
+        >
           <span class="label">{{ $t('partner.settlement.balance', { currency: balance.currency }) }}</span>
           <strong>{{ formatMinorUnit(balance.total_minor, balance.currency) }}</strong>
         </div>
       </div>
 
-      <el-table :data="settlement?.payouts ?? []" :empty-text="$t('partner.noPayouts')" class="payouts">
-        <el-table-column :label="$t('partner.amount')" width="130">
-          <template #default="{ row }">{{ formatMinorUnit(row.amount_minor, row.currency) }}</template>
-        </el-table-column>
-        <el-table-column prop="method" :label="$t('partner.method')" width="130" />
-        <el-table-column :label="$t('partner.account')" min-width="180">
-          <template #default="{ row }">{{ row.account }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('partner.status')" width="120">
+      <el-table
+        :data="settlement?.payouts ?? []"
+        :empty-text="$t('partner.noPayouts')"
+        class="payouts"
+      >
+        <el-table-column
+          :label="$t('partner.amount')"
+          width="130"
+        >
           <template #default="{ row }">
-            <el-tag size="small" :type="payoutTagType(row.status)">{{ payoutLabel(row.status) }}</el-tag>
+            {{ formatMinorUnit(row.amount_minor, row.currency) }}
           </template>
         </el-table-column>
-        <el-table-column :label="$t('partner.requestedAt')" width="180">
-          <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+        <el-table-column
+          prop="method"
+          :label="$t('partner.method')"
+          width="130"
+        />
+        <el-table-column
+          :label="$t('partner.account')"
+          min-width="180"
+        >
+          <template #default="{ row }">
+            {{ row.account }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('partner.status')"
+          width="120"
+        >
+          <template #default="{ row }">
+            <el-tag
+              size="small"
+              :type="payoutTagType(row.status)"
+            >
+              {{ payoutLabel(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('partner.requestedAt')"
+          width="180"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime(row.created_at) }}
+          </template>
         </el-table-column>
       </el-table>
     </template>
 
-    <el-dialog v-model="payoutVisible" :title="$t('partner.settlement.dialogTitle', { role: title })" width="420px">
+    <el-dialog
+      v-model="payoutVisible"
+      :title="$t('partner.settlement.dialogTitle', { role: title })"
+      width="420px"
+    >
       <el-form label-position="top">
         <el-form-item :label="$t('partner.method')">
           <el-radio-group v-model="method">
-            <el-radio-button value="alipay">{{ $t('partner.alipay') }}</el-radio-button>
-            <el-radio-button value="paypal">PayPal</el-radio-button>
+            <el-radio-button value="alipay">
+              {{ $t('partner.alipay') }}
+            </el-radio-button>
+            <el-radio-button value="paypal">
+              PayPal
+            </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item :label="$t('partner.account')" required>
-          <el-input v-model="account" autocomplete="off" />
+        <el-form-item
+          :label="$t('partner.account')"
+          required
+        >
+          <el-input
+            v-model="account"
+            autocomplete="off"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="payoutVisible = false">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="submit">{{ $t('common.submit') }}</el-button>
+        <el-button @click="payoutVisible = false">
+          {{ $t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="submitting"
+          @click="submit"
+        >
+          {{ $t('common.submit') }}
+        </el-button>
       </template>
     </el-dialog>
   </el-card>

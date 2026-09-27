@@ -1,98 +1,241 @@
 <template>
   <section class="service-view">
-    <AppPageHeader :title="$t('services.bond.title')" :subtitle="$t('services.bond.subtitle')" />
+    <AppPageHeader
+      :title="$t('services.bond.title')"
+      :subtitle="$t('services.bond.subtitle')"
+    />
 
-    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-    <el-card class="app-card" shadow="never">
-      <template #header><h2 class="app-card__title">{{ $t('services.bond.step1') }}</h2></template>
-      <el-select v-model="profileAId" :aria-label="$t('chat.selectProfile')" :placeholder="$t('chat.selectProfile')" style="width: 100%" @change="profileAId && loadA()">
-        <el-option v-for="p in profiles.list" :key="p.id" :value="p.id" :label="p.nickname" />
+    <el-card
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('services.bond.step1') }}
+        </h2>
+      </template>
+      <el-select
+        v-model="profileAId"
+        :aria-label="$t('chat.selectProfile')"
+        :placeholder="$t('chat.selectProfile')"
+        style="width: 100%"
+        @change="profileAId && loadA()"
+      >
+        <el-option
+          v-for="p in profiles.list"
+          :key="p.id"
+          :value="p.id"
+          :label="p.nickname"
+        />
       </el-select>
-      <p v-if="!profiles.list.length" class="hint">{{ $t('services.bond.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.bond.noProfileSuffix') }}</p>
+      <p
+        v-if="!profiles.list.length"
+        class="hint"
+      >
+        {{ $t('services.bond.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.bond.noProfileSuffix') }}
+      </p>
     </el-card>
 
-    <el-card class="app-card" shadow="never">
-      <template #header><h2 class="app-card__title">{{ $t('services.bond.step2') }}</h2></template>
-      <el-form label-position="top" class="b-form" @submit.prevent="compute">
+    <el-card
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('services.bond.step2') }}
+        </h2>
+      </template>
+      <el-form
+        label-position="top"
+        class="b-form"
+        @submit.prevent="compute"
+      >
         <div class="row">
           <el-form-item :label="$t('profiles.form.gender')">
             <el-radio-group v-model="b.gender">
-              <el-radio-button value="female">{{ $t('profiles.female') }}</el-radio-button>
-              <el-radio-button value="male">{{ $t('profiles.male') }}</el-radio-button>
+              <el-radio-button value="female">
+                {{ $t('profiles.female') }}
+              </el-radio-button>
+              <el-radio-button value="male">
+                {{ $t('profiles.male') }}
+              </el-radio-button>
             </el-radio-group>
           </el-form-item>
           <el-form-item :label="$t('profiles.form.birthDate')">
-            <el-date-picker v-model="b.birth_date" type="date" value-format="YYYY-MM-DD" :placeholder="$t('profiles.form.selectDate')" style="width: 100%" />
+            <el-date-picker
+              v-model="b.birth_date"
+              type="date"
+              value-format="YYYY-MM-DD"
+              :placeholder="$t('profiles.form.selectDate')"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item :label="$t('profiles.form.birthTime')">
-            <el-time-picker v-model="b.birth_time" format="HH:mm" value-format="HH:mm" :placeholder="$t('profiles.form.timePlaceholder')" style="width: 100%" />
+            <el-time-picker
+              v-model="b.birth_time"
+              format="HH:mm"
+              value-format="HH:mm"
+              :placeholder="$t('profiles.form.timePlaceholder')"
+              style="width: 100%"
+            />
           </el-form-item>
           <el-form-item :label="$t('services.bond.birthPlaceOptional')">
-            <el-input v-model="b.birth_place" :placeholder="$t('services.bond.birthPlacePlaceholder')" />
+            <el-input
+              v-model="b.birth_place"
+              :placeholder="$t('services.bond.birthPlacePlaceholder')"
+            />
           </el-form-item>
         </div>
-        <el-button type="primary" native-type="submit" :loading="loading" :disabled="!profileAId || !b.birth_date || !b.birth_time">{{ $t('services.bond.compute') }}</el-button>
+        <el-button
+          type="primary"
+          native-type="submit"
+          :loading="loading"
+          :disabled="!profileAId || !b.birth_date || !b.birth_time"
+        >
+          {{ $t('services.bond.compute') }}
+        </el-button>
       </el-form>
     </el-card>
 
     <template v-if="result">
-      <el-card class="app-card app-card--highlight" shadow="never">
-        <template #header><h2 class="app-card__title">{{ $t('services.bond.result') }}</h2></template>
+      <el-card
+        class="app-card app-card--highlight"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('services.bond.result') }}
+          </h2>
+        </template>
 
         <div class="charts">
           <div class="chart-row">
-            <div class="person">{{ aName }}</div>
+            <div class="person">
+              {{ aName }}
+            </div>
             <div class="pillars">
-              <div v-for="p in pillarsA" :key="p.label" class="pillar">
-                <div class="pl">{{ p.label }}</div>
-                <div class="gl font-serif">{{ p.gan }}{{ p.zhi }}</div>
-                <div class="sub">{{ p.naYin }}</div>
+              <div
+                v-for="p in pillarsA"
+                :key="p.label"
+                class="pillar"
+              >
+                <div class="pl">
+                  {{ p.label }}
+                </div>
+                <div class="gl font-serif">
+                  {{ p.gan }}{{ p.zhi }}
+                </div>
+                <div class="sub">
+                  {{ p.naYin }}
+                </div>
               </div>
             </div>
           </div>
           <div class="chart-row">
-            <div class="person">{{ $t('services.bond.otherPerson') }}</div>
+            <div class="person">
+              {{ $t('services.bond.otherPerson') }}
+            </div>
             <div class="pillars">
-              <div v-for="p in pillarsB" :key="p.label" class="pillar">
-                <div class="pl">{{ p.label }}</div>
-                <div class="gl font-serif">{{ p.gan }}{{ p.zhi }}</div>
-                <div class="sub">{{ p.naYin }}</div>
+              <div
+                v-for="p in pillarsB"
+                :key="p.label"
+                class="pillar"
+              >
+                <div class="pl">
+                  {{ p.label }}
+                </div>
+                <div class="gl font-serif">
+                  {{ p.gan }}{{ p.zhi }}
+                </div>
+                <div class="sub">
+                  {{ p.naYin }}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div v-if="dayMasterRel" class="rel-sec">
-          <div class="sec-title">{{ $t('services.bond.dayMasterRelation') }}</div>
-          <div class="rel-text">{{ dayMasterRel }}</div>
-        </div>
-
-        <div v-if="keyRels.length" class="rel-sec">
-          <div class="sec-title">{{ $t('services.bond.keyEarthlyBranches') }}</div>
-          <div class="rels">
-            <span v-for="r in keyRels" :key="r" class="rel-chip">{{ r }}</span>
+        <div
+          v-if="dayMasterRel"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.bond.dayMasterRelation') }}
+          </div>
+          <div class="rel-text">
+            {{ dayMasterRel }}
           </div>
         </div>
 
-        <div v-if="nayinRels.length" class="rel-sec">
-          <div class="sec-title">{{ $t('services.bond.nayinRelation') }}</div>
+        <div
+          v-if="keyRels.length"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.bond.keyEarthlyBranches') }}
+          </div>
           <div class="rels">
-            <span v-for="r in nayinRels" :key="r" class="rel-chip nayin">{{ r }}</span>
+            <span
+              v-for="r in keyRels"
+              :key="r"
+              class="rel-chip"
+            >{{ r }}</span>
           </div>
         </div>
 
-        <div v-if="shenshaRels.length" class="rel-sec">
-          <div class="sec-title">{{ $t('services.bond.shenShaCross') }}</div>
+        <div
+          v-if="nayinRels.length"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.bond.nayinRelation') }}
+          </div>
           <div class="rels">
-            <span v-for="r in shenshaRels" :key="r" class="rel-chip shensha">{{ r }}</span>
+            <span
+              v-for="r in nayinRels"
+              :key="r"
+              class="rel-chip nayin"
+            >{{ r }}</span>
           </div>
         </div>
 
-        <div v-if="shiShenRows.length" class="rel-sec">
-          <div class="sec-title">{{ $t('services.bond.shiShenCross') }}</div>
+        <div
+          v-if="shenshaRels.length"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.bond.shenShaCross') }}
+          </div>
           <div class="rels">
-            <span v-for="r in shiShenRows" :key="r" class="rel-chip">{{ r }}</span>
+            <span
+              v-for="r in shenshaRels"
+              :key="r"
+              class="rel-chip shensha"
+            >{{ r }}</span>
+          </div>
+        </div>
+
+        <div
+          v-if="shiShenRows.length"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.bond.shiShenCross') }}
+          </div>
+          <div class="rels">
+            <span
+              v-for="r in shiShenRows"
+              :key="r"
+              class="rel-chip"
+            >{{ r }}</span>
           </div>
         </div>
       </el-card>

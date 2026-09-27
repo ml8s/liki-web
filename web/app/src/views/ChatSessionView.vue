@@ -1,11 +1,19 @@
 <template>
   <section class="chat-page">
     <div class="chat-main">
-      <el-page-header class="session-header" @back="goBack">
+      <el-page-header
+        class="session-header"
+        @back="goBack"
+      >
         <template #content>
           <div class="page-heading">
             <h1>{{ chat.activeSession?.title || $t('common.loading') }}</h1>
-            <el-tag v-if="chat.activeSession" size="small">{{ skillLabel(chat.activeSession.skill) }}</el-tag>
+            <el-tag
+              v-if="chat.activeSession"
+              size="small"
+            >
+              {{ skillLabel(chat.activeSession.skill) }}
+            </el-tag>
           </div>
         </template>
       </el-page-header>
@@ -24,9 +32,23 @@
       </div>
 
       <ChatStreamStatus :phase="chat.phase" />
-      <div v-if="chat.error" class="error-row">
-        <el-alert :title="chat.error" type="error" class="composer-alert" :closable="false" show-icon/>
-        <el-button size="small" @click="retry">{{ $t('common.retry') }}</el-button>
+      <div
+        v-if="chat.error"
+        class="error-row"
+      >
+        <el-alert
+          :title="chat.error"
+          type="error"
+          class="composer-alert"
+          :closable="false"
+          show-icon
+        />
+        <el-button
+          size="small"
+          @click="retry"
+        >
+          {{ $t('common.retry') }}
+        </el-button>
       </div>
 
       <ChatComposer

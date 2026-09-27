@@ -5,8 +5,13 @@
   >
     <template #header>
       <div class="app-card__header">
-        <h2 class="app-card__title">{{ product.name }}</h2>
-        <el-tag :type="product.purchased ? 'success' : 'warning'" size="small">
+        <h2 class="app-card__title">
+          {{ product.name }}
+        </h2>
+        <el-tag
+          :type="product.purchased ? 'success' : 'warning'"
+          size="small"
+        >
           {{ $t(product.purchased ? 'commerce.activated' : 'commerce.inactive') }}
         </el-tag>
       </div>
@@ -14,11 +19,18 @@
 
     <p>{{ product.description }}</p>
     <ul class="skills">
-      <li v-for="s in chatServices" :key="s.key">{{ $t(s.labelKey) }} · {{ $t(s.descKey) }}</li>
+      <li
+        v-for="s in chatServices"
+        :key="s.key"
+      >
+        {{ $t(s.labelKey) }} · {{ $t(s.descKey) }}
+      </li>
     </ul>
 
     <div class="actions">
-      <div class="price">{{ priceLabel }}</div>
+      <div class="price">
+        {{ priceLabel }}
+      </div>
       <el-button
         type="primary"
         size="large"
@@ -29,7 +41,9 @@
         {{ $t(product.purchased ? 'commerce.activated' : 'commerce.activateNow') }}
       </el-button>
     </div>
-    <p class="disclaimer">{{ $t('commerce.aiDisclaimer') }}</p>
+    <p class="disclaimer">
+      {{ $t('commerce.aiDisclaimer') }}
+    </p>
   </el-card>
 </template>
 

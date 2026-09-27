@@ -1,12 +1,26 @@
 <template>
   <main class="not-found">
-    <el-card class="panel" shadow="never">
-      <p class="code">404</p>
+    <el-card
+      class="panel"
+      shadow="never"
+    >
+      <p class="code">
+        404
+      </p>
       <h1>{{ $t('notFound.title') }}</h1>
-      <p class="description">{{ $t('notFound.description') }}</p>
+      <p class="description">
+        {{ $t('notFound.description') }}
+      </p>
       <div class="actions">
-        <el-button type="primary" @click="router.push('/')">{{ $t('notFound.backHome') }}</el-button>
-        <el-button @click="router.back()">{{ $t('notFound.back') }}</el-button>
+        <el-button
+          type="primary"
+          @click="router.push('/')"
+        >
+          {{ $t('notFound.backHome') }}
+        </el-button>
+        <el-button @click="router.back()">
+          {{ $t('notFound.back') }}
+        </el-button>
       </div>
     </el-card>
   </main>

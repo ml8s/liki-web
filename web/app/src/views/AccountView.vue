@@ -1,51 +1,110 @@
 <template>
   <section>
-    <AppPageHeader :title="$t('router.account')" :subtitle="$t('account.subtitle')">
+    <AppPageHeader
+      :title="$t('router.account')"
+      :subtitle="$t('account.subtitle')"
+    >
       <template #actions>
-        <router-link to="/orders"><el-button>{{ $t('nav.orders') }}</el-button></router-link>
-        <router-link to="/partners"><el-button>{{ $t('nav.partner') }}</el-button></router-link>
-        <el-button :loading="revoking" type="danger" plain @click="logout">{{ $t('account.logoutAll') }}</el-button>
+        <router-link to="/orders">
+          <el-button>{{ $t('nav.orders') }}</el-button>
+        </router-link>
+        <router-link to="/partners">
+          <el-button>{{ $t('nav.partner') }}</el-button>
+        </router-link>
+        <el-button
+          :loading="revoking"
+          type="danger"
+          plain
+          @click="logout"
+        >
+          {{ $t('account.logoutAll') }}
+        </el-button>
       </template>
     </AppPageHeader>
 
-    <el-card class="app-card" shadow="never">
+    <el-card
+      class="app-card"
+      shadow="never"
+    >
       <template #header>
-        <h2 class="app-card__title">{{ $t('account.info.title') }}</h2>
+        <h2 class="app-card__title">
+          {{ $t('account.info.title') }}
+        </h2>
       </template>
-      <el-descriptions :column="1" border>
-        <el-descriptions-item :label="$t('auth.email')">{{ auth.user?.email ?? '—' }}</el-descriptions-item>
+      <el-descriptions
+        :column="1"
+        border
+      >
+        <el-descriptions-item :label="$t('auth.email')">
+          {{ auth.user?.email ?? '—' }}
+        </el-descriptions-item>
         <el-descriptions-item :label="$t('account.info.status')">
-          <el-tag :type="auth.user?.status === 'active' ? 'success' : 'warning'" size="small">
+          <el-tag
+            :type="auth.user?.status === 'active' ? 'success' : 'warning'"
+            size="small"
+          >
             {{ statusLabel(auth.user?.status) }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item v-if="auth.user?.last_login_at" :label="$t('account.info.lastLogin')">
+        <el-descriptions-item
+          v-if="auth.user?.last_login_at"
+          :label="$t('account.info.lastLogin')"
+        >
           {{ formatDateTime(auth.user.last_login_at) }}
         </el-descriptions-item>
       </el-descriptions>
       <div class="language-row">
         <span>{{ $t('account.info.language') }}</span>
-        <el-select :model-value="locale" class="language-select" :aria-label="$t('account.info.language')" @change="changeLocale">
-          <el-option value="zh-Hans" label="简体中文" />
-          <el-option value="zh-Hant" label="繁體中文" />
-          <el-option value="en" label="English" />
+        <el-select
+          :model-value="locale"
+          class="language-select"
+          :aria-label="$t('account.info.language')"
+          @change="changeLocale"
+        >
+          <el-option
+            value="zh-Hans"
+            label="简体中文"
+          />
+          <el-option
+            value="zh-Hant"
+            label="繁體中文"
+          />
+          <el-option
+            value="en"
+            label="English"
+          />
         </el-select>
       </div>
     </el-card>
 
-    <el-card class="app-card app-card--danger" shadow="never">
+    <el-card
+      class="app-card app-card--danger"
+      shadow="never"
+    >
       <template #header>
         <div class="app-card__header">
           <div>
-            <h2 class="app-card__title">{{ $t('account.erase.title') }}</h2>
-            <p class="app-card__subtitle">{{ $t('account.erase.subtitle') }}</p>
+            <h2 class="app-card__title">
+              {{ $t('account.erase.title') }}
+            </h2>
+            <p class="app-card__subtitle">
+              {{ $t('account.erase.subtitle') }}
+            </p>
           </div>
         </div>
       </template>
-      <el-button type="danger" :loading="erasing" @click="eraseAccount">{{ $t('account.erase.title') }}</el-button>
+      <el-button
+        type="danger"
+        :loading="erasing"
+        @click="eraseAccount"
+      >
+        {{ $t('account.erase.title') }}
+      </el-button>
     </el-card>
 
-    <h2 class="section-title">{{ $t('account.devices') }}</h2>
+    <h2 class="section-title">
+      {{ $t('account.devices') }}
+    </h2>
 
     <el-result
       v-if="error && !sessions.length"
@@ -54,19 +113,44 @@
       :sub-title="error"
     >
       <template #extra>
-        <el-button type="primary" @click="load">{{ $t('common.retry') }}</el-button>
+        <el-button
+          type="primary"
+          @click="load"
+        >
+          {{ $t('common.retry') }}
+        </el-button>
       </template>
     </el-result>
-    <el-alert v-else-if="error && sessions.length" :title="error" type="error" :closable="false" show-icon/>
+    <el-alert
+      v-else-if="error && sessions.length"
+      :title="error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-    <el-skeleton v-else-if="loading && !sessions.length" :rows="4" animated aria-busy="true"/>
+    <el-skeleton
+      v-else-if="loading && !sessions.length"
+      :rows="4"
+      animated
+      aria-busy="true"
+    />
 
-    <el-empty v-else-if="!loading && !sessions.length" :description="$t('account.sessions.empty')" />
+    <el-empty
+      v-else-if="!loading && !sessions.length"
+      :description="$t('account.sessions.empty')"
+    />
 
-    <el-card v-else class="app-card" shadow="never">
+    <el-card
+      v-else
+      class="app-card"
+      shadow="never"
+    >
       <template #header>
         <div class="app-card__header">
-          <h2 class="app-card__title">{{ $t('account.sessions.title') }}</h2>
+          <h2 class="app-card__title">
+            {{ $t('account.sessions.title') }}
+          </h2>
           <div class="app-card__actions">
             <el-button
               size="small"
@@ -80,11 +164,22 @@
         </div>
       </template>
       <ul class="session-list">
-        <li v-for="item in sessions" :key="item.id" class="session-item">
+        <li
+          v-for="item in sessions"
+          :key="item.id"
+          class="session-item"
+        >
           <div class="session-info">
             <div class="session-device">
               {{ deviceLabel(item.user_agent) }}
-              <el-tag v-if="item.is_current" type="success" size="small" effect="light">{{ $t('account.sessions.current') }}</el-tag>
+              <el-tag
+                v-if="item.is_current"
+                type="success"
+                size="small"
+                effect="light"
+              >
+                {{ $t('account.sessions.current') }}
+              </el-tag>
             </div>
             <div class="session-meta">
               {{ $t('account.sessions.meta', { lastSeen: formatDateTime(item.last_seen_at), created: formatDateTime(item.created_at) }) }}
@@ -115,9 +210,21 @@
     </el-card>
 
     <div class="legal-links">
-      <a :href="`/${locale}/privacy/`" target="_blank" rel="noopener">{{ $t('account.legal.privacy') }}</a>
-      <a :href="`/${locale}/terms/`" target="_blank" rel="noopener">{{ $t('account.legal.terms') }}</a>
-      <a :href="`/${locale}/disclaimer/`" target="_blank" rel="noopener">{{ $t('account.legal.disclaimer') }}</a>
+      <a
+        :href="`/${locale}/privacy/`"
+        target="_blank"
+        rel="noopener"
+      >{{ $t('account.legal.privacy') }}</a>
+      <a
+        :href="`/${locale}/terms/`"
+        target="_blank"
+        rel="noopener"
+      >{{ $t('account.legal.terms') }}</a>
+      <a
+        :href="`/${locale}/disclaimer/`"
+        target="_blank"
+        rel="noopener"
+      >{{ $t('account.legal.disclaimer') }}</a>
     </div>
   </section>
 </template>

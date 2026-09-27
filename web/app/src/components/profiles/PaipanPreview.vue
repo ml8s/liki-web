@@ -1,67 +1,145 @@
 <template>
-  <el-card class="app-card paipan-preview" shadow="never">
+  <el-card
+    class="app-card paipan-preview"
+    shadow="never"
+  >
     <template #header>
       <div class="app-card__header">
-        <h2 class="app-card__title">{{ $t('profiles.chart.title') }}</h2>
+        <h2 class="app-card__title">
+          {{ $t('profiles.chart.title') }}
+        </h2>
         <div class="app-card__actions">
-          <el-button size="small" type="primary" :loading="loading" @click="compute">{{ $t('profiles.chart.compute') }}</el-button>
+          <el-button
+            size="small"
+            type="primary"
+            :loading="loading"
+            @click="compute"
+          >
+            {{ $t('profiles.chart.compute') }}
+          </el-button>
         </div>
       </div>
     </template>
 
-    <p v-if="profile.calendar === 'lunar'" class="hint">
+    <p
+      v-if="profile.calendar === 'lunar'"
+      class="hint"
+    >
       {{ $t('profiles.chart.lunarHint') }}
     </p>
 
     <template v-else>
-      <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
-      <p v-if="!anyResult && !loading" class="hint">
+      <el-alert
+        v-if="error"
+        :title="error"
+        type="error"
+        :closable="false"
+        show-icon
+      />
+      <p
+        v-if="!anyResult && !loading"
+        class="hint"
+      >
         {{ $t('profiles.chart.empty') }}
       </p>
 
-      <div v-if="loading" class="pan-skeleton">
-        <div v-for="i in 6" :key="i" class="skel" />
+      <div
+        v-if="loading"
+        class="pan-skeleton"
+      >
+        <div
+          v-for="i in 6"
+          :key="i"
+          class="skel"
+        />
       </div>
 
       <template v-if="anyResult">
         <el-tabs v-model="tab">
-          <el-tab-pane :label="$t('profiles.chart.bazi')" name="bazi">
+          <el-tab-pane
+            :label="$t('profiles.chart.bazi')"
+            name="bazi"
+          >
             <div class="pillars">
-              <div v-for="item in baziPillars" :key="item.label" :class="['pillar', { self: item.self }]">
-                <div class="label">{{ item.label }}</div>
-                <div class="gl font-serif">{{ item.gan }}{{ item.zhi }}</div>
-                <div class="sub">{{ item.shiShen }}</div>
-                <div class="sub nayin">{{ item.naYin }}</div>
-                <div v-if="item.cangGan" class="sub cang">{{ item.cangGan }}</div>
-                <span v-if="item.isVoid" class="void-tag">{{ $t('profiles.chart.void') }}</span>
+              <div
+                v-for="item in baziPillars"
+                :key="item.label"
+                :class="['pillar', { self: item.self }]"
+              >
+                <div class="label">
+                  {{ item.label }}
+                </div>
+                <div class="gl font-serif">
+                  {{ item.gan }}{{ item.zhi }}
+                </div>
+                <div class="sub">
+                  {{ item.shiShen }}
+                </div>
+                <div class="sub nayin">
+                  {{ item.naYin }}
+                </div>
+                <div
+                  v-if="item.cangGan"
+                  class="sub cang"
+                >
+                  {{ item.cangGan }}
+                </div>
+                <span
+                  v-if="item.isVoid"
+                  class="void-tag"
+                >{{ $t('profiles.chart.void') }}</span>
               </div>
             </div>
-            <div v-if="sanYuanText" class="san-yuan">
+            <div
+              v-if="sanYuanText"
+              class="san-yuan"
+            >
               <span class="sy-label">{{ $t('profiles.chart.threeYuan') }}</span>
               <span class="sy-body">{{ sanYuanText }}</span>
             </div>
-            <div v-if="shenShaList.length" class="shensha">
+            <div
+              v-if="shenShaList.length"
+              class="shensha"
+            >
               <span class="sy-label">{{ $t('profiles.chart.shenSha') }}</span>
-              <span v-for="s in shenShaList" :key="s" class="ss-chip">{{ s }}</span>
+              <span
+                v-for="s in shenShaList"
+                :key="s"
+                class="ss-chip"
+              >{{ s }}</span>
             </div>
             <template v-if="daYunSteps.length">
-              <div class="sec-title">{{ $t('profiles.chart.daYun') }}</div>
+              <div class="sec-title">
+                {{ $t('profiles.chart.daYun') }}
+              </div>
               <div class="dayun">
                 <div
                   v-for="(s, i) in daYunSteps"
                   :key="`${s.name}-${i}`"
                   :class="['dy', { cur: i === currentStepIndex }]"
                 >
-                  <div class="dy-name font-serif">{{ s.name }}</div>
-                  <div class="dy-shen">{{ s.shi_shen }}</div>
-                  <div class="dy-year">{{ s.start_year }}–{{ s.end_year }}</div>
+                  <div class="dy-name font-serif">
+                    {{ s.name }}
+                  </div>
+                  <div class="dy-shen">
+                    {{ s.shi_shen }}
+                  </div>
+                  <div class="dy-year">
+                    {{ s.start_year }}–{{ s.end_year }}
+                  </div>
                 </div>
               </div>
             </template>
             <template v-if="yongShenSummary.length">
-              <div class="sec-title">{{ $t('profiles.chart.yongShen') }}</div>
+              <div class="sec-title">
+                {{ $t('profiles.chart.yongShen') }}
+              </div>
               <div class="ys">
-                <div v-for="row in yongShenSummary" :key="row.label" class="ys-row">
+                <div
+                  v-for="row in yongShenSummary"
+                  :key="row.label"
+                  class="ys-row"
+                >
                   <span class="ys-label">{{ row.label }}</span>
                   <span class="ys-body">{{ row.text }}</span>
                 </div>
@@ -69,46 +147,90 @@
             </template>
           </el-tab-pane>
 
-          <el-tab-pane :label="$t('profiles.chart.ziwei')" name="ziwei">
+          <el-tab-pane
+            :label="$t('profiles.chart.ziwei')"
+            name="ziwei"
+          >
             <div class="palaces">
-              <div v-for="g in ziweiGongs" :key="g.name" :class="['palace', { ming: g.name === '命宫', shen: g.is_shen_gong }]">
-                <div class="pname">{{ g.name }}</div>
-                <div class="pstar">{{ mainStars(g) }}</div>
-                <div class="pminor">{{ minorStars(g) }}</div>
+              <div
+                v-for="g in ziweiGongs"
+                :key="g.name"
+                :class="['palace', { ming: g.name === '命宫', shen: g.is_shen_gong }]"
+              >
+                <div class="pname">
+                  {{ g.name }}
+                </div>
+                <div class="pstar">
+                  {{ mainStars(g) }}
+                </div>
+                <div class="pminor">
+                  {{ minorStars(g) }}
+                </div>
               </div>
             </div>
           </el-tab-pane>
 
-          <el-tab-pane :label="$t('profiles.chart.bazhai')" name="bazhai">
-            <div v-if="bazhai" class="mingua-row">
-              <div class="mingua font-serif">{{ bazhai.ming_gua.gua.name }}</div>
+          <el-tab-pane
+            :label="$t('profiles.chart.bazhai')"
+            name="bazhai"
+          >
+            <div
+              v-if="bazhai"
+              class="mingua-row"
+            >
+              <div class="mingua font-serif">
+                {{ bazhai.ming_gua.gua.name }}
+              </div>
               <div>
-                <div class="mg-name">{{ bazhai.ming_gua.group }}</div>
-                <div class="mg-sub">{{ $t('profiles.chart.directions') }}</div>
+                <div class="mg-name">
+                  {{ bazhai.ming_gua.group }}
+                </div>
+                <div class="mg-sub">
+                  {{ $t('profiles.chart.directions') }}
+                </div>
               </div>
             </div>
-            <div v-if="bazhai" class="dirs">
-              <div v-for="d in bazhaiDirs" :key="d.key" :class="['dir', { good: d.good }]">
-                <div class="dg font-serif">{{ d.gua }}</div>
-                <div class="dname">{{ $t(`profiles.chart.direction.${d.key}`) }}</div>
+            <div
+              v-if="bazhai"
+              class="dirs"
+            >
+              <div
+                v-for="d in bazhaiDirs"
+                :key="d.key"
+                :class="['dir', { good: d.good }]"
+              >
+                <div class="dg font-serif">
+                  {{ d.gua }}
+                </div>
+                <div class="dname">
+                  {{ $t(`profiles.chart.direction.${d.key}`) }}
+                </div>
               </div>
             </div>
             <template v-if="liuNianXing">
-              <div class="sec-title">{{ $t('profiles.chart.annualStars', { year: liuNianXing.year }) }}</div>
-              <div class="ln-row">{{ $t('profiles.chart.centerStar') }}<strong>{{ liuNianXing.ru_zhong }}</strong></div>
+              <div class="sec-title">
+                {{ $t('profiles.chart.annualStars', { year: liuNianXing.year }) }}
+              </div>
+              <div class="ln-row">
+                {{ $t('profiles.chart.centerStar') }}<strong>{{ liuNianXing.ru_zhong }}</strong>
+              </div>
               <div class="fly-grid">
                 <div
                   v-for="f in flyStars"
                   :key="f.gong_num"
                   :class="['fly-cell', { center: f.gong_num === 5 }]"
                 >
-                  <div class="fly-name">{{ f.xing_name }}</div>
+                  <div class="fly-name">
+                    {{ f.xing_name }}
+                  </div>
                 </div>
               </div>
             </template>
           </el-tab-pane>
         </el-tabs>
-        <div class="correction">{{ correction }}</div>
+        <div class="correction">
+          {{ correction }}
+        </div>
       </template>
     </template>
   </el-card>

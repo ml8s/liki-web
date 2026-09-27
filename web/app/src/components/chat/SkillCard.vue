@@ -1,9 +1,17 @@
 <template>
-  <el-card class="skill-card" shadow="never">
+  <el-card
+    class="skill-card"
+    shadow="never"
+  >
     <template #header>
       <div class="app-card__header">
-        <h2 class="app-card__title">{{ label }}</h2>
-        <el-tag :type="enabled ? 'success' : 'info'" size="small">
+        <h2 class="app-card__title">
+          {{ label }}
+        </h2>
+        <el-tag
+          :type="enabled ? 'success' : 'info'"
+          size="small"
+        >
           {{ enabled ? $t('chat.status.available') : (statusLabel || $t('chat.status.inactive')) }}
         </el-tag>
       </div>
@@ -11,10 +19,23 @@
 
     <p>{{ description }}</p>
 
-    <p v-if="blockedReason" class="blocked-reason">{{ blockedReason }}</p>
+    <p
+      v-if="blockedReason"
+      class="blocked-reason"
+    >
+      {{ blockedReason }}
+    </p>
 
-    <router-link v-if="!enabled && actionTo" :to="actionTo">
-      <el-button type="primary" plain>{{ actionLabel || $t('chat.action.resolve') }}</el-button>
+    <router-link
+      v-if="!enabled && actionTo"
+      :to="actionTo"
+    >
+      <el-button
+        type="primary"
+        plain
+      >
+        {{ actionLabel || $t('chat.action.resolve') }}
+      </el-button>
     </router-link>
     <el-button
       type="primary"

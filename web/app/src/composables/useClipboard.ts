@@ -9,7 +9,9 @@ export function useClipboard() {
         await navigator.clipboard.writeText(text)
         done()
         return
-      } catch {}
+      } catch {
+        // Clipboard API 被拒绝（权限/非安全上下文）→ 落到 execCommand 兜底。
+      }
     }
 
     // fallback: execCommand

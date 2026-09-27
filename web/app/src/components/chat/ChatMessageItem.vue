@@ -1,21 +1,40 @@
 <template>
-  <article v-if="message.kind === 'system_profile'" class="message system">
+  <article
+    v-if="message.kind === 'system_profile'"
+    class="message system"
+  >
     <SystemProfileCard :content="message.content" />
   </article>
-  <article v-else :class="['message', message.role]" :data-role="message.role">
-    <div class="role">{{ $t(message.role === 'user' ? 'chat.roles.user' : 'chat.roles.assistant') }}</div>
+  <article
+    v-else
+    :class="['message', message.role]"
+    :data-role="message.role"
+  >
+    <div class="role">
+      {{ $t(message.role === 'user' ? 'chat.roles.user' : 'chat.roles.assistant') }}
+    </div>
     <details
       v-if="message.role === 'assistant' && message.thinking"
       class="thinking"
       :open="!message.content"
     >
       <summary>{{ $t('chat.thinking') }}</summary>
-      <div class="thinking-body">{{ message.thinking }}</div>
+      <div class="thinking-body">
+        {{ message.thinking }}
+      </div>
     </details>
-    <div v-if="message.role === 'assistant'" class="content">
+    <div
+      v-if="message.role === 'assistant'"
+      class="content"
+    >
       <AppMarkdown :source="message.content" />
     </div>
-    <div v-else class="content">{{ message.content }}</div>
+    <div
+      v-else
+      class="content"
+    >
+      {{ message.content }}
+    </div>
     <button
       v-if="message.role === 'assistant' && message.content"
       class="copy"

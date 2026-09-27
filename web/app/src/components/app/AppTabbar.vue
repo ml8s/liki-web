@@ -1,15 +1,27 @@
 <template>
   <nav class="app-tabbar">
-    <router-link to="/" exact-active-class="on">
+    <router-link
+      to="/"
+      exact-active-class="on"
+    >
       <span class="t-label">{{ $t('nav.workspace') }}</span>
     </router-link>
-    <router-link to="/profiles" active-class="on">
+    <router-link
+      to="/profiles"
+      active-class="on"
+    >
       <span class="t-label">{{ $t('nav.profiles') }}</span>
     </router-link>
-    <router-link to="/chat" active-class="on">
+    <router-link
+      to="/chat"
+      active-class="on"
+    >
       <span class="t-label">{{ $t('nav.chat') }}</span>
     </router-link>
-    <router-link to="/account" active-class="on">
+    <router-link
+      to="/account"
+      active-class="on"
+    >
       <span class="t-label">{{ $t('nav.mine') }}</span>
     </router-link>
   </nav>

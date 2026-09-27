@@ -1,5 +1,8 @@
 <template>
-  <form class="composer" @submit.prevent="submit">
+  <form
+    class="composer"
+    @submit.prevent="submit"
+  >
     <el-input
       :model-value="modelValue"
       type="textarea"
@@ -17,13 +20,17 @@
         v-if="sending"
         native-type="button"
         @click="$emit('stop')"
-      >{{ $t('chat.composer.stop') }}</el-button>
+      >
+        {{ $t('chat.composer.stop') }}
+      </el-button>
       <el-button
         v-else
         native-type="submit"
         type="primary"
         :disabled="!modelValue.trim()"
-      >{{ $t('chat.composer.send') }}</el-button>
+      >
+        {{ $t('chat.composer.send') }}
+      </el-button>
     </div>
   </form>
 </template>

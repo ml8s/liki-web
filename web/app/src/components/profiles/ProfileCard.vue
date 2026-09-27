@@ -1,18 +1,45 @@
 <template>
   <div class="profile-card">
-    <router-link class="profile-main" :to="`/profiles/${profile.id}`">
-      <div class="avatar font-serif">{{ initial }}</div>
+    <router-link
+      class="profile-main"
+      :to="`/profiles/${profile.id}`"
+    >
+      <div class="avatar font-serif">
+        {{ initial }}
+      </div>
       <div class="info">
         <div class="name-row">
           <span class="name font-serif">{{ profile.nickname }}</span>
         </div>
-        <div class="meta">{{ birthSummary(profile) }}</div>
+        <div class="meta">
+          {{ birthSummary(profile) }}
+        </div>
       </div>
     </router-link>
     <div class="actions">
-      <el-button size="small" text type="primary" @click="$emit('open', profile)">{{ $t('profiles.card.view') }}</el-button>
-      <el-button size="small" text @click="$emit('edit', profile)">{{ $t('profiles.info.edit') }}</el-button>
-      <el-button size="small" text type="danger" @click="$emit('remove', profile)">{{ $t('profiles.card.remove') }}</el-button>
+      <el-button
+        size="small"
+        text
+        type="primary"
+        @click="$emit('open', profile)"
+      >
+        {{ $t('profiles.card.view') }}
+      </el-button>
+      <el-button
+        size="small"
+        text
+        @click="$emit('edit', profile)"
+      >
+        {{ $t('profiles.info.edit') }}
+      </el-button>
+      <el-button
+        size="small"
+        text
+        type="danger"
+        @click="$emit('remove', profile)"
+      >
+        {{ $t('profiles.card.remove') }}
+      </el-button>
     </div>
   </div>
 </template>

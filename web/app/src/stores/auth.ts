@@ -33,7 +33,7 @@ export const useAuthStore = defineStore('auth', {
         }
         this.status = 'authenticated'
         return this.user
-      } catch (error) {
+      } catch {
         // 与其他 store 统一：内部 catch，不 re-throw。
         // 路由守卫通过 user=null → 重定向 login；AppLayout 无需额外 catch。
         this.status = 'unauthenticated'

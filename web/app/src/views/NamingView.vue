@@ -1,44 +1,143 @@
 <template>
   <section class="service-view">
-    <AppPageHeader :title="$t('services.naming.title')" :subtitle="$t('services.naming.subtitle')" />
+    <AppPageHeader
+      :title="$t('services.naming.title')"
+      :subtitle="$t('services.naming.subtitle')"
+    />
 
-    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-    <el-card class="app-card" shadow="never">
-      <template #header><h2 class="app-card__title">{{ $t('services.naming.selectProfile') }}</h2></template>
-      <el-select v-model="profileId" :aria-label="$t('chat.selectProfile')" :placeholder="$t('chat.selectProfile')" style="width: 100%" @change="profileId && loadPreview()">
-        <el-option v-for="p in profiles.list" :key="p.id" :value="p.id" :label="p.nickname" />
+    <el-card
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('services.naming.selectProfile') }}
+        </h2>
+      </template>
+      <el-select
+        v-model="profileId"
+        :aria-label="$t('chat.selectProfile')"
+        :placeholder="$t('chat.selectProfile')"
+        style="width: 100%"
+        @change="profileId && loadPreview()"
+      >
+        <el-option
+          v-for="p in profiles.list"
+          :key="p.id"
+          :value="p.id"
+          :label="p.nickname"
+        />
       </el-select>
-      <p v-if="!profiles.list.length" class="hint">{{ $t('services.naming.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.naming.noProfileSuffix') }}</p>
+      <p
+        v-if="!profiles.list.length"
+        class="hint"
+      >
+        {{ $t('services.naming.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.naming.noProfileSuffix') }}
+      </p>
     </el-card>
 
-    <el-card v-if="loading" class="app-card" shadow="never">
-      <template #header><h2 class="app-card__title">{{ $t('services.naming.favorableElements') }}</h2></template>
+    <el-card
+      v-if="loading"
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('services.naming.favorableElements') }}
+        </h2>
+      </template>
       {{ $t('profiles.chart.compute') }}…
     </el-card>
 
     <template v-if="preview">
-      <el-card class="app-card app-card--highlight" shadow="never">
-        <template #header><h2 class="app-card__title">{{ $t('services.naming.favorableElements') }}</h2></template>
-        <div class="ys">{{ preview.yongText }}</div>
-        <div class="bazi-info">
-          <div v-if="preview.wangShuai" class="info-row"><span class="info-label">{{ $t('services.naming.dayMaster') }}</span><span>{{ preview.wangShuai }}</span></div>
-          <div v-if="preview.zodiac" class="info-row"><span class="info-label">{{ $t('services.naming.zodiac') }}</span><span>{{ preview.zodiac }}</span></div>
-          <div v-if="preview.jiText" class="info-row"><span class="info-label">{{ $t('services.naming.unfavorable') }}</span><span class="warn-text">{{ preview.jiText }}</span></div>
-          <div v-if="preview.wuxingStats" class="info-row"><span class="info-label">{{ $t('services.naming.elementStats') }}</span><span>{{ preview.wuxingStats }}</span></div>
+      <el-card
+        class="app-card app-card--highlight"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('services.naming.favorableElements') }}
+          </h2>
+        </template>
+        <div class="ys">
+          {{ preview.yongText }}
         </div>
-        <div v-if="singlePool.length" class="sec-title">{{ $t('services.naming.singleCharacters') }}</div>
-        <div v-if="singlePool.length" class="chars">
-          <span v-for="c in singlePool" :key="c.char" class="char-item">
+        <div class="bazi-info">
+          <div
+            v-if="preview.wangShuai"
+            class="info-row"
+          >
+            <span class="info-label">{{ $t('services.naming.dayMaster') }}</span><span>{{ preview.wangShuai }}</span>
+          </div>
+          <div
+            v-if="preview.zodiac"
+            class="info-row"
+          >
+            <span class="info-label">{{ $t('services.naming.zodiac') }}</span><span>{{ preview.zodiac }}</span>
+          </div>
+          <div
+            v-if="preview.jiText"
+            class="info-row"
+          >
+            <span class="info-label">{{ $t('services.naming.unfavorable') }}</span><span class="warn-text">{{ preview.jiText }}</span>
+          </div>
+          <div
+            v-if="preview.wuxingStats"
+            class="info-row"
+          >
+            <span class="info-label">{{ $t('services.naming.elementStats') }}</span><span>{{ preview.wuxingStats }}</span>
+          </div>
+        </div>
+        <div
+          v-if="singlePool.length"
+          class="sec-title"
+        >
+          {{ $t('services.naming.singleCharacters') }}
+        </div>
+        <div
+          v-if="singlePool.length"
+          class="chars"
+        >
+          <span
+            v-for="c in singlePool"
+            :key="c.char"
+            class="char-item"
+          >
             <span class="char">{{ c.char }}</span>
-            <span v-if="c.frequency" class="char-freq">{{ c.frequency }}</span>
+            <span
+              v-if="c.frequency"
+              class="char-freq"
+            >{{ c.frequency }}</span>
           </span>
         </div>
-        <div v-if="doublePool.length" class="sec-title">{{ $t('services.naming.doubleCharacters') }}</div>
-        <div v-if="doublePool.length" class="chars">
-          <span v-for="c in doublePool" :key="c.char" class="char-item">
+        <div
+          v-if="doublePool.length"
+          class="sec-title"
+        >
+          {{ $t('services.naming.doubleCharacters') }}
+        </div>
+        <div
+          v-if="doublePool.length"
+          class="chars"
+        >
+          <span
+            v-for="c in doublePool"
+            :key="c.char"
+            class="char-item"
+          >
             <span class="char">{{ c.char }}</span>
-            <span v-if="c.frequency" class="char-freq">{{ c.frequency }}</span>
+            <span
+              v-if="c.frequency"
+              class="char-freq"
+            >{{ c.frequency }}</span>
           </span>
         </div>
       </el-card>

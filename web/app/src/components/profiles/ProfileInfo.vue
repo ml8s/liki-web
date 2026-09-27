@@ -1,11 +1,31 @@
 <template>
-  <el-card class="app-card profile-info" shadow="never">
+  <el-card
+    class="app-card profile-info"
+    shadow="never"
+  >
     <template #header>
       <div class="app-card__header">
-        <h2 class="app-card__title">{{ $t('profiles.info.title') }}</h2>
+        <h2 class="app-card__title">
+          {{ $t('profiles.info.title') }}
+        </h2>
         <div class="app-card__actions">
-          <el-button v-if="!editing" size="small" text type="primary" @click="editing = true">{{ $t('profiles.info.edit') }}</el-button>
-          <el-button v-else size="small" text @click="cancelEdit">{{ $t('common.cancel') }}</el-button>
+          <el-button
+            v-if="!editing"
+            size="small"
+            text
+            type="primary"
+            @click="editing = true"
+          >
+            {{ $t('profiles.info.edit') }}
+          </el-button>
+          <el-button
+            v-else
+            size="small"
+            text
+            @click="cancelEdit"
+          >
+            {{ $t('common.cancel') }}
+          </el-button>
         </div>
       </div>
     </template>
@@ -18,13 +38,35 @@
       @submit="$emit('update', $event)"
     />
 
-    <el-descriptions v-else :column="1" border>
-      <el-descriptions-item :label="$t('profiles.form.nickname')">{{ profile.nickname }}</el-descriptions-item>
-      <el-descriptions-item v-if="profile.name" :label="$t('profiles.info.name')">{{ profile.name }}</el-descriptions-item>
-      <el-descriptions-item :label="$t('profiles.form.gender')">{{ $t(profile.gender === 'male' ? 'profiles.male' : 'profiles.female') }}</el-descriptions-item>
-      <el-descriptions-item :label="$t('profiles.info.birth')">{{ birthSummary(profile) }}</el-descriptions-item>
-      <el-descriptions-item v-if="profile.note" :label="$t('profiles.form.note')">{{ profile.note }}</el-descriptions-item>
-      <el-descriptions-item :label="$t('profiles.info.version')">v{{ profile.version }}</el-descriptions-item>
+    <el-descriptions
+      v-else
+      :column="1"
+      border
+    >
+      <el-descriptions-item :label="$t('profiles.form.nickname')">
+        {{ profile.nickname }}
+      </el-descriptions-item>
+      <el-descriptions-item
+        v-if="profile.name"
+        :label="$t('profiles.info.name')"
+      >
+        {{ profile.name }}
+      </el-descriptions-item>
+      <el-descriptions-item :label="$t('profiles.form.gender')">
+        {{ $t(profile.gender === 'male' ? 'profiles.male' : 'profiles.female') }}
+      </el-descriptions-item>
+      <el-descriptions-item :label="$t('profiles.info.birth')">
+        {{ birthSummary(profile) }}
+      </el-descriptions-item>
+      <el-descriptions-item
+        v-if="profile.note"
+        :label="$t('profiles.form.note')"
+      >
+        {{ profile.note }}
+      </el-descriptions-item>
+      <el-descriptions-item :label="$t('profiles.info.version')">
+        v{{ profile.version }}
+      </el-descriptions-item>
     </el-descriptions>
   </el-card>
 </template>

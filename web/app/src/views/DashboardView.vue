@@ -25,12 +25,21 @@
     <template v-else>
       <div class="hero">
         <div class="hero-accent" />
-        <p class="hero-kicker">{{ $t('auth.slogan') }}</p>
-        <h1 class="hero-title">{{ $t('router.dashboard') }}</h1>
-        <p class="hero-sub">{{ heroSubtitle }}</p>
+        <p class="hero-kicker">
+          {{ $t('auth.slogan') }}
+        </p>
+        <h1 class="hero-title">
+          {{ $t('router.dashboard') }}
+        </h1>
+        <p class="hero-sub">
+          {{ heroSubtitle }}
+        </p>
       </div>
 
-      <div v-if="dashboardState === 'no-profile'" class="primary-card guide">
+      <div
+        v-if="dashboardState === 'no-profile'"
+        class="primary-card guide"
+      >
         <div class="primary-copy">
           <h2>{{ $t('dashboard.noProfile.title') }}</h2>
           <p>{{ $t('dashboard.noProfile.body') }}</p>
@@ -52,7 +61,9 @@
               <p v-if="primaryProfile">
                 {{ primaryProfile.nickname }} · {{ birthSummary(primaryProfile) }}
               </p>
-              <p class="primary-note">{{ $t('dashboard.freeProfile.note') }}</p>
+              <p class="primary-note">
+                {{ $t('dashboard.freeProfile.note') }}
+              </p>
             </template>
 
             <template v-else-if="dashboardState === 'paid-no-session'">
@@ -109,7 +120,12 @@
 
         <div class="section-head">
           <h2>{{ $t('dashboard.recentProfiles') }}</h2>
-          <router-link to="/profiles" class="more-link">{{ $t('dashboard.allProfiles') }}</router-link>
+          <router-link
+            to="/profiles"
+            class="more-link"
+          >
+            {{ $t('dashboard.allProfiles') }}
+          </router-link>
         </div>
         <div class="recent-profiles">
           <router-link
@@ -122,14 +138,30 @@
             <span class="rp-name">{{ profile.nickname }}</span>
             <span class="rp-meta">{{ $t(profile.gender === 'male' ? 'profiles.male' : 'profiles.female') }}</span>
           </router-link>
-          <router-link class="recent-profile add" to="/profiles/new">＋ {{ $t('profiles.create') }}</router-link>
+          <router-link
+            class="recent-profile add"
+            to="/profiles/new"
+          >
+            ＋ {{ $t('profiles.create') }}
+          </router-link>
         </div>
 
-        <div v-if="recentSessions.length" class="section-head">
+        <div
+          v-if="recentSessions.length"
+          class="section-head"
+        >
           <h2>{{ $t('dashboard.recentSessions') }}</h2>
-          <router-link to="/chat" class="more-link">{{ $t('dashboard.allSessions') }}</router-link>
+          <router-link
+            to="/chat"
+            class="more-link"
+          >
+            {{ $t('dashboard.allSessions') }}
+          </router-link>
         </div>
-        <div v-if="recentSessions.length" class="recent-sessions">
+        <div
+          v-if="recentSessions.length"
+          class="recent-sessions"
+        >
           <router-link
             v-for="session in recentSessions"
             :key="session.id"
@@ -155,8 +187,12 @@
           >
             <span class="sv-glyph font-serif">{{ $t(service.labelKey).slice(0, 1) }}</span>
             <div class="sv-copy">
-              <div class="sv-name font-serif">{{ $t(service.labelKey) }}</div>
-              <div class="sv-desc">{{ $t(service.descKey) }}</div>
+              <div class="sv-name font-serif">
+                {{ $t(service.labelKey) }}
+              </div>
+              <div class="sv-desc">
+                {{ $t(service.descKey) }}
+              </div>
             </div>
             <el-button
               type="primary"
@@ -219,18 +255,16 @@ const dashboardState = computed<DashboardState>(() => resolveDashboardState({
   hasSession: Boolean(latestSession.value),
 }))
 
-const heroSubtitle = computed(() => {
-  switch (dashboardState.value) {
-    case 'no-profile':
-      return t('dashboard.state.noProfile')
-    case 'free-profile':
-      return t('dashboard.state.freeProfile')
-    case 'paid-no-session':
-      return t('dashboard.state.paidNoSession')
-    case 'paid-continue':
-      return t('dashboard.state.paidContinue')
-  }
-})
+// Record 查找天然穷尽 DashboardState 四态，无漏 default 分支的隐患。
+const heroSubtitle = computed(
+  () =>
+    ({
+      'no-profile': t('dashboard.state.noProfile'),
+      'free-profile': t('dashboard.state.freeProfile'),
+      'paid-no-session': t('dashboard.state.paidNoSession'),
+      'paid-continue': t('dashboard.state.paidContinue'),
+    })[dashboardState.value],
+)
 
 function viewChart() {
   if (!primaryProfile.value) return

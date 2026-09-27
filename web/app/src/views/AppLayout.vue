@@ -1,19 +1,41 @@
 <template>
   <div class="app-shell">
-    <a href="#app-main" class="skip-link">{{ $t('a11y.skipToContent') }}</a>
-    <AppSidebar :email="auth.user?.email ?? ''" @logout="logout" />
+    <a
+      href="#app-main"
+      class="skip-link"
+    >{{ $t('a11y.skipToContent') }}</a>
+    <AppSidebar
+      :email="auth.user?.email ?? ''"
+      @logout="logout"
+    />
 
     <header class="app-topbar">
-      <div class="brand font-serif">Liki<em>·</em>{{ $t('auth.brandTail') }}</div>
+      <div class="brand font-serif">
+        Liki<em>·</em>{{ $t('auth.brandTail') }}
+      </div>
       <div class="topbar-meta">
         <span class="page-title">{{ pageTitle }}</span>
-        <el-button size="small" text @click="logout">{{ $t('nav.logout') }}</el-button>
+        <el-button
+          size="small"
+          text
+          @click="logout"
+        >
+          {{ $t('nav.logout') }}
+        </el-button>
       </div>
     </header>
 
-    <main id="app-main" ref="mainEl" class="app-main" tabindex="-1">
+    <main
+      id="app-main"
+      ref="mainEl"
+      class="app-main"
+      tabindex="-1"
+    >
       <router-view v-slot="{ Component }">
-        <transition name="page-fade" mode="out-in">
+        <transition
+          name="page-fade"
+          mode="out-in"
+        >
           <component :is="Component" />
         </transition>
       </router-view>

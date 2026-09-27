@@ -1,24 +1,64 @@
 <template>
   <section class="service-view">
-    <AppPageHeader :title="$t('services.divination.pageTitle')" :subtitle="$t('services.divination.subtitle')" />
+    <AppPageHeader
+      :title="$t('services.divination.pageTitle')"
+      :subtitle="$t('services.divination.subtitle')"
+    />
 
-    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-    <el-card class="app-card" shadow="never">
-      <template #header><h2 class="app-card__title">{{ $t('services.divination.cast') }}</h2></template>
-      <el-form label-position="top" @submit.prevent="cast">
+    <el-card
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('services.divination.cast') }}
+        </h2>
+      </template>
+      <el-form
+        label-position="top"
+        @submit.prevent="cast"
+      >
         <el-form-item :label="$t('services.divination.questionLabel')">
-          <el-input v-model="question" maxlength="200" :placeholder="$t('services.divination.questionPlaceholder')" show-word-limit />
+          <el-input
+            v-model="question"
+            maxlength="200"
+            :placeholder="$t('services.divination.questionPlaceholder')"
+            show-word-limit
+          />
         </el-form-item>
-        <el-button type="primary" native-type="submit" :loading="loading" :disabled="!question.trim()">{{ $t('services.divination.cast') }}</el-button>
+        <el-button
+          type="primary"
+          native-type="submit"
+          :loading="loading"
+          :disabled="!question.trim()"
+        >
+          {{ $t('services.divination.cast') }}
+        </el-button>
       </el-form>
     </el-card>
 
     <template v-if="snapshot">
-      <el-card class="app-card app-card--highlight" shadow="never">
-        <template #header><h2 class="app-card__title">{{ $t('services.divination.hexagram') }}</h2></template>
+      <el-card
+        class="app-card app-card--highlight"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('services.divination.hexagram') }}
+          </h2>
+        </template>
         <div class="gua-row">
-          <div class="gua-name font-serif">{{ board.name ?? '—' }}</div>
+          <div class="gua-name font-serif">
+            {{ board.name ?? '—' }}
+          </div>
           <div class="gua-sub">
             <span v-if="board.ben_gua">{{ $t('services.divination.original') }} {{ board.ben_gua }}</span>
             <span v-if="board.bian_gua"> · {{ $t('services.divination.changed') }} {{ board.bian_gua }}</span>
@@ -32,8 +72,13 @@
           <span v-if="xunKongText"> · {{ $t('profiles.chart.void') }} {{ xunKongText }}</span>
         </div>
 
-        <div v-if="lines.length" class="lines-sec">
-          <div class="sec-title">{{ $t('services.divination.lines') }}</div>
+        <div
+          v-if="lines.length"
+          class="lines-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.divination.lines') }}
+          </div>
           <div class="lines-table-wrap">
             <div class="lines-table">
               <div class="line-row line-header">
@@ -45,7 +90,11 @@
                 <span class="lc">{{ $t('services.divination.strength') }}</span>
                 <span class="lc">{{ $t('services.divination.dayRelation') }}</span>
               </div>
-              <div v-for="(line, idx) in lines" :key="idx" :class="['line-row', { dong: isDong(idx) }]">
+              <div
+                v-for="(line, idx) in lines"
+                :key="idx"
+                :class="['line-row', { dong: isDong(idx) }]"
+              >
                 <span class="lc">{{ $t('services.divination.lineNumber', { number: 6 - idx }) }}</span>
                 <span class="lc">{{ line.liu_qin ?? '—' }}</span>
                 <span class="lc">{{ line.di_zhi ?? '—' }}</span>
@@ -58,10 +107,19 @@
           </div>
         </div>
 
-        <div v-if="bianLines.length" class="lines-sec">
-          <div class="sec-title">{{ $t('services.divination.changingLines') }}</div>
+        <div
+          v-if="bianLines.length"
+          class="lines-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.divination.changingLines') }}
+          </div>
           <div class="lines-table">
-            <div v-for="(line, idx) in bianLines" :key="idx" class="line-row">
+            <div
+              v-for="(line, idx) in bianLines"
+              :key="idx"
+              class="line-row"
+            >
               <span class="lc">{{ $t('services.divination.lineNumber', { number: 6 - idx }) }}</span>
               <span class="lc">{{ line.liu_qin ?? '—' }}</span>
               <span class="lc">{{ line.di_zhi ?? '—' }}</span>
@@ -70,32 +128,75 @@
           </div>
         </div>
 
-        <div v-if="focusText" class="rel-sec">
-          <div class="sec-title">{{ $t('services.divination.usefulGod') }}</div>
-          <div class="rel-text">{{ focusText }}</div>
-          <div v-if="yongShenDetail" class="rel-sub">{{ yongShenDetail }}</div>
+        <div
+          v-if="focusText"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.divination.usefulGod') }}
+          </div>
+          <div class="rel-text">
+            {{ focusText }}
+          </div>
+          <div
+            v-if="yongShenDetail"
+            class="rel-sub"
+          >
+            {{ yongShenDetail }}
+          </div>
         </div>
 
-        <div v-if="guaCi" class="rel-sec">
-          <div class="sec-title">{{ $t('services.divination.hexagramText') }}</div>
-          <div class="rel-text">{{ guaCi }}</div>
+        <div
+          v-if="guaCi"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.divination.hexagramText') }}
+          </div>
+          <div class="rel-text">
+            {{ guaCi }}
+          </div>
         </div>
 
-        <div v-if="patterns.length" class="rel-sec">
-          <div class="sec-title">{{ $t('services.divination.patterns') }}</div>
-          <div v-for="p in patterns" :key="p.name" class="pattern-item">
+        <div
+          v-if="patterns.length"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.divination.patterns') }}
+          </div>
+          <div
+            v-for="p in patterns"
+            :key="p.name"
+            class="pattern-item"
+          >
             <span class="pattern-name">{{ p.name }}</span>
             <span class="pattern-desc">{{ p.description }}</span>
           </div>
         </div>
 
-        <div v-if="timingText" class="rel-sec">
-          <div class="sec-title">{{ $t('services.divination.timing') }}</div>
-          <div class="rel-text">{{ timingText }}</div>
+        <div
+          v-if="timingText"
+          class="rel-sec"
+        >
+          <div class="sec-title">
+            {{ $t('services.divination.timing') }}
+          </div>
+          <div class="rel-text">
+            {{ timingText }}
+          </div>
         </div>
 
-        <div v-if="snapshot.safety_advisory" class="safety-box">
-          <el-alert :title="snapshot.safety_advisory" type="warning" :closable="false" show-icon/>
+        <div
+          v-if="snapshot.safety_advisory"
+          class="safety-box"
+        >
+          <el-alert
+            :title="snapshot.safety_advisory"
+            type="warning"
+            :closable="false"
+            show-icon
+          />
         </div>
       </el-card>
 

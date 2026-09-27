@@ -5,23 +5,53 @@
       :subtitle="$t('partner.scout.subtitle')"
     >
       <template #actions>
-        <el-button v-if="roleStatus === 'active'" :loading="loading" @click="load">{{ $t('common.refresh') }}</el-button>
+        <el-button
+          v-if="roleStatus === 'active'"
+          :loading="loading"
+          @click="load"
+        >
+          {{ $t('common.refresh') }}
+        </el-button>
       </template>
     </AppPageHeader>
 
-    <el-skeleton v-if="loading" :rows="6" animated aria-busy="true" />
-    <el-alert v-else-if="error" type="error" :title="error" show-icon :closable="false" />
+    <el-skeleton
+      v-if="loading"
+      :rows="6"
+      animated
+      aria-busy="true"
+    />
+    <el-alert
+      v-else-if="error"
+      type="error"
+      :title="error"
+      show-icon
+      :closable="false"
+    />
 
     <template v-else-if="roleStatus === 'active'">
-      <el-card class="section-card" shadow="never">
+      <el-card
+        class="section-card"
+        shadow="never"
+      >
         <template #header>
           <div class="card-head">
             <span>{{ $t('partner.scout.inviteLink') }}</span>
-            <el-button size="small" @click="copy(referralLink)">{{ $t('common.copy') }}</el-button>
+            <el-button
+              size="small"
+              @click="copy(referralLink)"
+            >
+              {{ $t('common.copy') }}
+            </el-button>
           </div>
         </template>
-        <el-input :model-value="referralLink" readonly />
-        <p class="share-hint">{{ $t('partner.scout.shareHint') }}</p>
+        <el-input
+          :model-value="referralLink"
+          readonly
+        />
+        <p class="share-hint">
+          {{ $t('partner.scout.shareHint') }}
+        </p>
         <div class="stat-grid">
           <div class="stat">
             <span class="label">{{ $t('partner.scout.leads') }}</span>
@@ -35,74 +65,174 @@
             <span class="label">{{ $t('partner.scout.channelOrders') }}</span>
             <strong>{{ overview?.order_count ?? 0 }}</strong>
           </div>
-          <div v-for="balance in overview?.balances ?? []" :key="balance.currency" class="stat">
+          <div
+            v-for="balance in overview?.balances ?? []"
+            :key="balance.currency"
+            class="stat"
+          >
             <span class="label">{{ $t('partner.commissionBalance', { currency: balance.currency }) }}</span>
             <strong>{{ formatMinorUnit(balance.commission_minor, balance.currency) }}</strong>
           </div>
         </div>
       </el-card>
 
-      <el-card class="section-card" shadow="never">
-        <template #header><span>{{ $t('partner.scout.activeKols') }}</span></template>
-        <el-table :data="recruits" :empty-text="$t('partner.scout.noRecruits')">
-          <el-table-column :label="$t('partner.scout.kolCode')" min-width="150">
-            <template #default="{ row }">{{ row.code }}</template>
-          </el-table-column>
-          <el-table-column :label="$t('partner.scout.orderCount')" width="120" prop="order_count" />
-          <el-table-column :label="$t('partner.scout.joinedAt')" width="190">
-            <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
-          </el-table-column>
-        </el-table>
-      </el-card>
-
-      <el-card class="section-card" shadow="never">
-        <template #header><span>{{ $t('partner.scout.channelCommissions') }}</span></template>
-        <el-table :data="sales" :empty-text="$t('partner.noCommissions')">
-          <el-table-column prop="order_ref" :label="$t('partner.order')" min-width="170" />
-          <el-table-column prop="product" :label="$t('partner.product')" width="140" />
-          <el-table-column :label="$t('partner.salesAmount')" width="130">
-            <template #default="{ row }">{{ formatMinorUnit(row.amount_minor, row.currency) }}</template>
-          </el-table-column>
-          <el-table-column :label="$t('partner.scout.commission')" width="130">
-            <template #default="{ row }">{{ formatMinorUnit(row.scout_commission_minor, row.currency) }}</template>
-          </el-table-column>
-          <el-table-column :label="$t('partner.status')" width="120">
+      <el-card
+        class="section-card"
+        shadow="never"
+      >
+        <template #header>
+          <span>{{ $t('partner.scout.activeKols') }}</span>
+        </template>
+        <el-table
+          :data="recruits"
+          :empty-text="$t('partner.scout.noRecruits')"
+        >
+          <el-table-column
+            :label="$t('partner.scout.kolCode')"
+            min-width="150"
+          >
             <template #default="{ row }">
-              <el-tag size="small" :type="commissionTagType(row.status)">{{ commissionLabel(row.status) }}</el-tag>
+              {{ row.code }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="$t('partner.scout.orderCount')"
+            width="120"
+            prop="order_count"
+          />
+          <el-table-column
+            :label="$t('partner.scout.joinedAt')"
+            width="190"
+          >
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
             </template>
           </el-table-column>
         </el-table>
       </el-card>
 
-      <el-card class="section-card" shadow="never">
+      <el-card
+        class="section-card"
+        shadow="never"
+      >
+        <template #header>
+          <span>{{ $t('partner.scout.channelCommissions') }}</span>
+        </template>
+        <el-table
+          :data="sales"
+          :empty-text="$t('partner.noCommissions')"
+        >
+          <el-table-column
+            prop="order_ref"
+            :label="$t('partner.order')"
+            min-width="170"
+          />
+          <el-table-column
+            prop="product"
+            :label="$t('partner.product')"
+            width="140"
+          />
+          <el-table-column
+            :label="$t('partner.salesAmount')"
+            width="130"
+          >
+            <template #default="{ row }">
+              {{ formatMinorUnit(row.amount_minor, row.currency) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="$t('partner.scout.commission')"
+            width="130"
+          >
+            <template #default="{ row }">
+              {{ formatMinorUnit(row.scout_commission_minor, row.currency) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="$t('partner.status')"
+            width="120"
+          >
+            <template #default="{ row }">
+              <el-tag
+                size="small"
+                :type="commissionTagType(row.status)"
+              >
+                {{ commissionLabel(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
+      <el-card
+        class="section-card"
+        shadow="never"
+      >
         <template #header>
           <div class="card-head">
             <span>{{ $t('partner.payouts') }}</span>
-            <el-button type="primary" size="small" @click="payoutVisible = true">{{ $t('partner.settlement.requestPayout') }}</el-button>
+            <el-button
+              type="primary"
+              size="small"
+              @click="payoutVisible = true"
+            >
+              {{ $t('partner.settlement.requestPayout') }}
+            </el-button>
           </div>
         </template>
         <el-alert
           :title="$t('partner.payoutRules')"
-          type="info" :closable="false" show-icon class="rules"
+          type="info"
+          :closable="false"
+          show-icon
+          class="rules"
         />
-        <el-table :data="payouts" :empty-text="$t('partner.noPayouts')">
-          <el-table-column :label="$t('partner.amount')" width="130">
-            <template #default="{ row }">{{ formatMinorUnit(row.amount_minor, row.currency) }}</template>
-          </el-table-column>
-          <el-table-column prop="method" :label="$t('partner.method')" width="130" />
-          <el-table-column :label="$t('partner.status')" width="120">
+        <el-table
+          :data="payouts"
+          :empty-text="$t('partner.noPayouts')"
+        >
+          <el-table-column
+            :label="$t('partner.amount')"
+            width="130"
+          >
             <template #default="{ row }">
-              <el-tag size="small" :type="payoutTagType(row.status)">{{ payoutLabel(row.status) }}</el-tag>
+              {{ formatMinorUnit(row.amount_minor, row.currency) }}
             </template>
           </el-table-column>
-          <el-table-column :label="$t('partner.requestedAt')" width="190">
-            <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+          <el-table-column
+            prop="method"
+            :label="$t('partner.method')"
+            width="130"
+          />
+          <el-table-column
+            :label="$t('partner.status')"
+            width="120"
+          >
+            <template #default="{ row }">
+              <el-tag
+                size="small"
+                :type="payoutTagType(row.status)"
+              >
+                {{ payoutLabel(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="$t('partner.requestedAt')"
+            width="190"
+          >
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
           </el-table-column>
         </el-table>
       </el-card>
     </template>
 
-    <PartnerSettlement v-else-if="roleStatus === 'retired'" role="scout" />
+    <PartnerSettlement
+      v-else-if="roleStatus === 'retired'"
+      role="scout"
+    />
 
     <el-result
       v-else-if="roleStatus === 'frozen'"
@@ -125,40 +255,86 @@
       :description="$t('partner.scout.pendingDescription')"
     />
 
-    <el-card v-else class="apply-card" shadow="never">
+    <el-card
+      v-else
+      class="apply-card"
+      shadow="never"
+    >
       <el-alert
         v-if="application?.status === 'rejected'"
         :title="$t('partner.rejectedTitle', { reason: application.decision_reason || $t('partner.defaultRejectionReason') })"
-        type="warning" :closable="false" show-icon class="rules"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="rules"
       />
       <h2>{{ $t('partner.scout.applyTitle') }}</h2>
       <p>{{ $t('partner.scout.applyDescription') }}</p>
-      <el-form label-position="top" @submit.prevent="submit">
-        <el-form-item :label="$t('partner.scout.noteLabel')" required>
+      <el-form
+        label-position="top"
+        @submit.prevent="submit"
+      >
+        <el-form-item
+          :label="$t('partner.scout.noteLabel')"
+          required
+        >
           <el-input
-            v-model="note" type="textarea" :rows="5" maxlength="500" show-word-limit
+            v-model="note"
+            type="textarea"
+            :rows="5"
+            maxlength="500"
+            show-word-limit
             :placeholder="$t('partner.scout.notePlaceholder')"
           />
         </el-form-item>
-        <el-button type="primary" size="large" :loading="submitting" @click="submit">{{ $t('partner.submitApplication') }}</el-button>
+        <el-button
+          type="primary"
+          size="large"
+          :loading="submitting"
+          @click="submit"
+        >
+          {{ $t('partner.submitApplication') }}
+        </el-button>
       </el-form>
     </el-card>
 
-    <el-dialog v-model="payoutVisible" :title="$t('partner.payoutTitle', { role: $t('partner.scout.roleName') })" width="420px">
+    <el-dialog
+      v-model="payoutVisible"
+      :title="$t('partner.payoutTitle', { role: $t('partner.scout.roleName') })"
+      width="420px"
+    >
       <el-form label-position="top">
         <el-form-item :label="$t('partner.method')">
           <el-radio-group v-model="payoutForm.method">
-            <el-radio-button value="alipay">{{ $t('partner.alipay') }}</el-radio-button>
-            <el-radio-button value="paypal">PayPal</el-radio-button>
+            <el-radio-button value="alipay">
+              {{ $t('partner.alipay') }}
+            </el-radio-button>
+            <el-radio-button value="paypal">
+              PayPal
+            </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item :label="$t('partner.account')" required>
-          <el-input v-model="payoutForm.account" autocomplete="off" />
+        <el-form-item
+          :label="$t('partner.account')"
+          required
+        >
+          <el-input
+            v-model="payoutForm.account"
+            autocomplete="off"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="payoutVisible = false">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitPayout">{{ $t('common.submit') }}</el-button>
+        <el-button @click="payoutVisible = false">
+          {{ $t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="submitting"
+          @click="submitPayout"
+        >
+          {{ $t('common.submit') }}
+        </el-button>
       </template>
     </el-dialog>
   </section>

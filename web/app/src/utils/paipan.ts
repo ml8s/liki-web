@@ -41,7 +41,7 @@ export async function resolvePaipanContext(birth: BirthInfo): Promise<PaipanCont
 
   let longitude = 120
   if (useCorrection && birth.birth_place) {
-    let coords: { longitude?: number } | null = null
+    let coords: { longitude?: number } | null
     try {
       coords = await engineCityCoords(birth.birth_place)
     } catch {

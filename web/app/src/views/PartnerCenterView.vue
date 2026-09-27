@@ -5,19 +5,48 @@
       :subtitle="$t('partner.centerSubtitle')"
     >
       <template #actions>
-        <el-button :loading="loading" @click="load">{{ $t('common.refresh') }}</el-button>
+        <el-button
+          :loading="loading"
+          @click="load"
+        >
+          {{ $t('common.refresh') }}
+        </el-button>
       </template>
     </AppPageHeader>
 
-    <el-skeleton v-if="loading" :rows="5" animated aria-busy="true" />
-    <el-alert v-else-if="error" type="error" :title="error" show-icon :closable="false" />
+    <el-skeleton
+      v-if="loading"
+      :rows="5"
+      animated
+      aria-busy="true"
+    />
+    <el-alert
+      v-else-if="error"
+      type="error"
+      :title="error"
+      show-icon
+      :closable="false"
+    />
 
-    <div v-else class="role-grid">
-      <el-card v-for="program in programs" :key="program.role" shadow="never" class="role-card">
+    <div
+      v-else
+      class="role-grid"
+    >
+      <el-card
+        v-for="program in programs"
+        :key="program.role"
+        shadow="never"
+        class="role-card"
+      >
         <template #header>
           <div class="role-head">
             <span class="role-name">{{ program.title }}</span>
-            <el-tag size="small" :type="program.tagType">{{ program.stateLabel }}</el-tag>
+            <el-tag
+              size="small"
+              :type="program.tagType"
+            >
+              {{ program.stateLabel }}
+            </el-tag>
           </div>
         </template>
         <p>{{ program.description }}</p>
@@ -25,29 +54,53 @@
         <el-alert
           v-if="program.state.application?.status === 'rejected'"
           :title="$t('partner.rejectedTitle', { reason: program.state.application.decision_reason || $t('partner.defaultRejectionReason') })"
-          type="warning" :closable="false" show-icon class="card-alert"
+          type="warning"
+          :closable="false"
+          show-icon
+          class="card-alert"
         />
         <el-alert
           v-else-if="program.state.status === 'frozen'"
-          :title="$t('partner.currentRoleFrozen')" type="warning" :closable="false" show-icon class="card-alert"
+          :title="$t('partner.currentRoleFrozen')"
+          type="warning"
+          :closable="false"
+          show-icon
+          class="card-alert"
         />
 
         <div class="actions">
-          <router-link v-if="program.state.status === 'active' || program.state.status === 'retired'" :to="program.dashboard">
-            <el-button type="primary">{{ $t('partner.openWorkspace') }}</el-button>
+          <router-link
+            v-if="program.state.status === 'active' || program.state.status === 'retired'"
+            :to="program.dashboard"
+          >
+            <el-button type="primary">
+              {{ $t('partner.openWorkspace') }}
+            </el-button>
           </router-link>
-          <router-link v-else-if="program.canApply" :to="program.apply">
-            <el-button type="primary">{{ $t('partner.applyNow') }}</el-button>
+          <router-link
+            v-else-if="program.canApply"
+            :to="program.apply"
+          >
+            <el-button type="primary">
+              {{ $t('partner.applyNow') }}
+            </el-button>
           </router-link>
-          <router-link v-else-if="program.otherAssigned" :to="program.role === 'kol' ? '/partners/scout' : '/partners/kol'">
-            <el-button text>{{ $t('partner.viewRoleDescription') }}</el-button>
+          <router-link
+            v-else-if="program.otherAssigned"
+            :to="program.role === 'kol' ? '/partners/scout' : '/partners/kol'"
+          >
+            <el-button text>
+              {{ $t('partner.viewRoleDescription') }}
+            </el-button>
           </router-link>
         </div>
       </el-card>
     </div>
 
     <el-card shadow="never">
-      <template #header><span>{{ $t('partner.rules') }}</span></template>
+      <template #header>
+        <span>{{ $t('partner.rules') }}</span>
+      </template>
       <ol class="rules-list">
         <li>{{ $t('partner.rule1') }}</li>
         <li>{{ $t('partner.rule2') }}</li>

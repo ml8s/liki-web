@@ -1,6 +1,9 @@
 <template>
   <section class="new-profile">
-    <el-page-header class="new-profile-header" @back="router.push('/profiles')">
+    <el-page-header
+      class="new-profile-header"
+      @back="router.push('/profiles')"
+    >
       <template #content>
         <div class="page-heading">
           <h1>{{ $t('router.profileNew') }}</h1>
@@ -8,9 +11,25 @@
         </div>
       </template>
     </el-page-header>
-    <el-alert v-if="draftLoaded" :title="$t('profiles.new.draftLoaded')" type="info" :closable="false" show-icon/>
-    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
-    <BirthForm :submitting="submitting" :initial="draft ?? undefined" @submit="submit" />
+    <el-alert
+      v-if="draftLoaded"
+      :title="$t('profiles.new.draftLoaded')"
+      type="info"
+      :closable="false"
+      show-icon
+    />
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
+    <BirthForm
+      :submitting="submitting"
+      :initial="draft ?? undefined"
+      @submit="submit"
+    />
   </section>
 </template>
 

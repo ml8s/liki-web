@@ -1,8 +1,12 @@
 <template>
   <main class="login-page">
     <section class="login-brand">
-      <div class="brand-mark">Liki<span>·</span>{{ $t('auth.brandTail') }}</div>
-      <p class="brand-headline">{{ $t('auth.headline') }}</p>
+      <div class="brand-mark">
+        Liki<span>·</span>{{ $t('auth.brandTail') }}
+      </div>
+      <p class="brand-headline">
+        {{ $t('auth.headline') }}
+      </p>
       <p class="brand-description">
         {{ $t('auth.description') }}
       </p>
@@ -14,82 +18,116 @@
     </section>
 
     <section class="login-form-side">
-    <el-card class="login-card" shadow="never">
-      <h1>{{ $t('auth.loginTitle') }}</h1>
-      <p class="slogan font-serif">{{ $t('auth.slogan') }}</p>
-      <div class="values">
-        <span class="value">{{ $t('auth.valueChart') }}</span>
-        <span class="value">{{ $t('auth.valueInterpretation') }}</span>
-        <span class="value">{{ $t('auth.valueProfile') }}</span>
-      </div>
-      <p class="hint">{{ $t('auth.codeHint') }}</p>
-
-      <el-form label-position="top" @submit.prevent="sendCode">
-        <el-form-item :label="$t('auth.email')">
-          <el-input
-            v-model="email"
-            type="email"
-            name="email"
-            autocomplete="email"
-            spellcheck="false"
-            :aria-invalid="!!error || undefined"
-            :aria-describedby="error ? 'login-error' : undefined"
-            :disabled="codeSent"
-          />
-        </el-form-item>
-        <el-button
-          v-if="!codeSent"
-          native-type="submit"
-          type="primary"
-          class="wide"
-          :loading="sending"
-        >{{ $t('auth.getCode') }}</el-button>
-      </el-form>
-
-      <el-form v-if="codeSent" label-position="top" @submit.prevent="verify">
-        <el-form-item :label="$t('auth.verificationCode')">
-          <el-input
-            v-model="code"
-            inputmode="numeric"
-            name="verification-code"
-            autocomplete="one-time-code"
-            spellcheck="false"
-            maxlength="6"
-            :placeholder="$t('auth.codePlaceholder')"
-            :aria-invalid="!!error || undefined"
-            :aria-describedby="error ? 'login-error' : undefined"
-            @update:model-value="maybeAutoVerify"
-          />
-        </el-form-item>
-        <div class="code-actions">
-          <el-button text :disabled="resendIn > 0 || sending" :loading="sending" @click="resend">
-            {{ resendIn > 0 ? $t('auth.resendIn', { seconds: resendIn }) : $t('auth.resend') }}
-          </el-button>
-          <el-button text type="primary" @click="unlockEmail">{{ $t('auth.changeEmail') }}</el-button>
+      <el-card
+        class="login-card"
+        shadow="never"
+      >
+        <h1>{{ $t('auth.loginTitle') }}</h1>
+        <p class="slogan font-serif">
+          {{ $t('auth.slogan') }}
+        </p>
+        <div class="values">
+          <span class="value">{{ $t('auth.valueChart') }}</span>
+          <span class="value">{{ $t('auth.valueInterpretation') }}</span>
+          <span class="value">{{ $t('auth.valueProfile') }}</span>
         </div>
-        <el-button type="primary" class="wide" native-type="submit" :loading="verifying">{{ $t('auth.login') }}</el-button>
-      </el-form>
+        <p class="hint">
+          {{ $t('auth.codeHint') }}
+        </p>
 
-      <el-alert
-        v-if="devCode"
-        :title="$t('auth.devCode')"
-        :description="devCode"
-        type="info"
-        show-icon
-        :closable="false"
-        class="dev-code"
-      />
+        <el-form
+          label-position="top"
+          @submit.prevent="sendCode"
+        >
+          <el-form-item :label="$t('auth.email')">
+            <el-input
+              v-model="email"
+              type="email"
+              name="email"
+              autocomplete="email"
+              spellcheck="false"
+              :aria-invalid="!!error || undefined"
+              :aria-describedby="error ? 'login-error' : undefined"
+              :disabled="codeSent"
+            />
+          </el-form-item>
+          <el-button
+            v-if="!codeSent"
+            native-type="submit"
+            type="primary"
+            class="wide"
+            :loading="sending"
+          >
+            {{ $t('auth.getCode') }}
+          </el-button>
+        </el-form>
 
-      <el-alert
-        v-if="error"
-        id="login-error"
-        :title="error"
-        type="error"
-        show-icon
-        :closable="false"
-        class="error"
-      />
-    </el-card>
+        <el-form
+          v-if="codeSent"
+          label-position="top"
+          @submit.prevent="verify"
+        >
+          <el-form-item :label="$t('auth.verificationCode')">
+            <el-input
+              v-model="code"
+              inputmode="numeric"
+              name="verification-code"
+              autocomplete="one-time-code"
+              spellcheck="false"
+              maxlength="6"
+              :placeholder="$t('auth.codePlaceholder')"
+              :aria-invalid="!!error || undefined"
+              :aria-describedby="error ? 'login-error' : undefined"
+              @update:model-value="maybeAutoVerify"
+            />
+          </el-form-item>
+          <div class="code-actions">
+            <el-button
+              text
+              :disabled="resendIn > 0 || sending"
+              :loading="sending"
+              @click="resend"
+            >
+              {{ resendIn > 0 ? $t('auth.resendIn', { seconds: resendIn }) : $t('auth.resend') }}
+            </el-button>
+            <el-button
+              text
+              type="primary"
+              @click="unlockEmail"
+            >
+              {{ $t('auth.changeEmail') }}
+            </el-button>
+          </div>
+          <el-button
+            type="primary"
+            class="wide"
+            native-type="submit"
+            :loading="verifying"
+          >
+            {{ $t('auth.login') }}
+          </el-button>
+        </el-form>
+
+        <el-alert
+          v-if="devCode"
+          :title="$t('auth.devCode')"
+          :description="devCode"
+          type="info"
+          show-icon
+          :closable="false"
+          class="dev-code"
+        />
+
+        <el-alert
+          v-if="error"
+          id="login-error"
+          :title="error"
+          type="error"
+          show-icon
+          :closable="false"
+          class="error"
+        />
+      </el-card>
     </section>
   </main>
 </template>

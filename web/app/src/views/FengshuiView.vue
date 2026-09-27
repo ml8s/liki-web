@@ -1,45 +1,124 @@
 <template>
   <section class="service-view">
-    <AppPageHeader :title="$t('services.fengshui.pageTitle')" :subtitle="$t('services.fengshui.subtitle')" />
+    <AppPageHeader
+      :title="$t('services.fengshui.pageTitle')"
+      :subtitle="$t('services.fengshui.subtitle')"
+    />
 
-    <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon/>
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-    <el-card class="app-card" shadow="never">
-      <template #header><h2 class="app-card__title">{{ $t('services.fengshui.selectProfile') }}</h2></template>
-      <el-select v-model="profileId" :aria-label="$t('chat.selectProfile')" :placeholder="$t('chat.selectProfile')" style="width: 100%" @change="profileId && loadPreview()">
-        <el-option v-for="p in profiles.list" :key="p.id" :value="p.id" :label="p.nickname" />
+    <el-card
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('services.fengshui.selectProfile') }}
+        </h2>
+      </template>
+      <el-select
+        v-model="profileId"
+        :aria-label="$t('chat.selectProfile')"
+        :placeholder="$t('chat.selectProfile')"
+        style="width: 100%"
+        @change="profileId && loadPreview()"
+      >
+        <el-option
+          v-for="p in profiles.list"
+          :key="p.id"
+          :value="p.id"
+          :label="p.nickname"
+        />
       </el-select>
-      <p v-if="!profiles.list.length" class="hint">{{ $t('services.fengshui.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.fengshui.noProfileSuffix') }}</p>
+      <p
+        v-if="!profiles.list.length"
+        class="hint"
+      >
+        {{ $t('services.fengshui.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.fengshui.noProfileSuffix') }}
+      </p>
     </el-card>
 
-    <el-card v-if="loading" class="app-card" shadow="never">
-      <template #header><h2 class="app-card__title">{{ $t('services.fengshui.lifeGua') }}</h2></template>
+    <el-card
+      v-if="loading"
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('services.fengshui.lifeGua') }}
+        </h2>
+      </template>
       {{ $t('profiles.chart.compute') }}…
     </el-card>
 
     <template v-if="bazhai">
-      <el-card class="app-card app-card--highlight" shadow="never">
-        <template #header><h2 class="app-card__title">{{ $t('services.fengshui.lifeGuaDirections') }}</h2></template>
+      <el-card
+        class="app-card app-card--highlight"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('services.fengshui.lifeGuaDirections') }}
+          </h2>
+        </template>
         <div class="mingua-row">
-          <div class="mingua font-serif">{{ bazhai.ming_gua.gua.name }}</div>
+          <div class="mingua font-serif">
+            {{ bazhai.ming_gua.gua.name }}
+          </div>
           <div>
-            <div class="mg-name">{{ bazhai.ming_gua.group }}</div>
-            <div v-if="bazhai.ming_gua.gua.wuxing" class="mg-wuxing">{{ $t('services.fengshui.element') }}{{ bazhai.ming_gua.gua.wuxing }}</div>
+            <div class="mg-name">
+              {{ bazhai.ming_gua.group }}
+            </div>
+            <div
+              v-if="bazhai.ming_gua.gua.wuxing"
+              class="mg-wuxing"
+            >
+              {{ $t('services.fengshui.element') }}{{ bazhai.ming_gua.gua.wuxing }}
+            </div>
           </div>
         </div>
         <div class="dirs">
-          <div v-for="d in bazhaiDirs" :key="d.key" :class="['dir', { good: d.good }]">
-            <div class="dg font-serif">{{ d.gua }}</div>
-            <div class="dname">{{ $t(`profiles.chart.direction.${d.key}`) }}</div>
+          <div
+            v-for="d in bazhaiDirs"
+            :key="d.key"
+            :class="['dir', { good: d.good }]"
+          >
+            <div class="dg font-serif">
+              {{ d.gua }}
+            </div>
+            <div class="dname">
+              {{ $t(`profiles.chart.direction.${d.key}`) }}
+            </div>
           </div>
         </div>
         <template v-if="liuNianXing">
-          <div class="sec-title">{{ $t('profiles.chart.annualStars', { year: liuNianXing.year }) }}</div>
-          <div class="ln-row">{{ $t('profiles.chart.centerStar') }}<strong>{{ liuNianXing.ru_zhong }}</strong></div>
+          <div class="sec-title">
+            {{ $t('profiles.chart.annualStars', { year: liuNianXing.year }) }}
+          </div>
+          <div class="ln-row">
+            {{ $t('profiles.chart.centerStar') }}<strong>{{ liuNianXing.ru_zhong }}</strong>
+          </div>
           <div class="fly-grid">
-            <div v-for="f in flyStars" :key="f.gong_num" :class="['fly-cell', { center: f.gong_num === 5, ru_zhong: f.ru_zhong }]">
-              <div class="fly-name">{{ f.xing_name }}</div>
-              <div v-if="f.wuxing" class="fly-wuxing">{{ f.wuxing }}</div>
+            <div
+              v-for="f in flyStars"
+              :key="f.gong_num"
+              :class="['fly-cell', { center: f.gong_num === 5, ru_zhong: f.ru_zhong }]"
+            >
+              <div class="fly-name">
+                {{ f.xing_name }}
+              </div>
+              <div
+                v-if="f.wuxing"
+                class="fly-wuxing"
+              >
+                {{ f.wuxing }}
+              </div>
             </div>
           </div>
         </template>

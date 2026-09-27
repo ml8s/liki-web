@@ -1,14 +1,38 @@
 <template>
   <section>
-    <AppPageHeader :title="$t('router.chat')" :subtitle="$t('chat.subtitle')" />
+    <AppPageHeader
+      :title="$t('router.chat')"
+      :subtitle="$t('chat.subtitle')"
+    />
 
-    <el-alert v-if="chat.error" :title="chat.error" type="error" :closable="false" show-icon/>
-    <el-alert v-if="commerce.paymentMessage"
+    <el-alert
+      v-if="chat.error"
+      :title="chat.error"
+      type="error"
+      :closable="false"
+      show-icon
+    />
+    <el-alert
+      v-if="commerce.paymentMessage"
       :title="commerce.paymentMessage"
-      :type="commerce.paymentState === 'confirmed' ? 'success' : commerce.paymentState === 'unpaid' ? 'warning' : 'info'" :closable="false" show-icon/>
-    <el-alert v-if="commerce.actionError" :title="commerce.actionError" type="error" :closable="false" show-icon/>
+      :type="commerce.paymentState === 'confirmed' ? 'success' : commerce.paymentState === 'unpaid' ? 'warning' : 'info'"
+      :closable="false"
+      show-icon
+    />
+    <el-alert
+      v-if="commerce.actionError"
+      :title="commerce.actionError"
+      type="error"
+      :closable="false"
+      show-icon
+    />
 
-    <el-skeleton v-if="commerce.initialLoading" :rows="7" animated aria-busy="true"/>
+    <el-skeleton
+      v-if="commerce.initialLoading"
+      :rows="7"
+      animated
+      aria-busy="true"
+    />
 
     <el-result
       v-else-if="commerce.showProductError"
@@ -17,21 +41,33 @@
       :sub-title="commerce.productsError"
     >
       <template #extra>
-        <el-button type="primary" @click="commerce.loadProducts">{{ $t('common.retry') }}</el-button>
+        <el-button
+          type="primary"
+          @click="commerce.loadProducts"
+        >
+          {{ $t('common.retry') }}
+        </el-button>
       </template>
     </el-result>
 
     <template v-else>
       <ProductPurchaseCard
-        id="chat-purchase"
         v-if="commerce.chatProduct && !commerce.chatProduct.purchased"
+        id="chat-purchase"
         :product="commerce.chatProduct"
         :buying="commerce.buying"
         @purchase="commerce.buy"
       />
 
-      <el-card class="app-card" shadow="never">
-        <template #header><h2 class="app-card__title">{{ $t('chat.selectProfile') }}</h2></template>
+      <el-card
+        class="app-card"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('chat.selectProfile') }}
+          </h2>
+        </template>
         <div ref="profilePickerEl">
           <ProfilePicker
             :profiles="profiles.list"
@@ -39,11 +75,25 @@
             @update:model-value="activeProfileId = $event"
           />
         </div>
-        <el-alert v-if="!activeProfileId" :title="$t('chat.selectProfileFirst')" type="info" class="inline-alert" :closable="false" show-icon/>
+        <el-alert
+          v-if="!activeProfileId"
+          :title="$t('chat.selectProfileFirst')"
+          type="info"
+          class="inline-alert"
+          :closable="false"
+          show-icon
+        />
       </el-card>
 
-      <el-card class="app-card" shadow="never">
-        <template #header><h2 class="app-card__title">{{ $t('chat.selectDomain') }}</h2></template>
+      <el-card
+        class="app-card"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('chat.selectDomain') }}
+          </h2>
+        </template>
         <div class="skill-grid">
           <SkillCard
             v-for="item in chatSkills"
@@ -62,18 +112,35 @@
         </div>
       </el-card>
 
-      <el-alert v-if="pendingService"
+      <el-alert
+        v-if="pendingService"
         :title="$t('chat.pendingService', { service: $t(pendingService.labelKey) })"
         :description="$t(pendingService.descKey)"
-        type="info" :closable="false" show-icon/>
+        type="info"
+        :closable="false"
+        show-icon
+      />
 
-      <el-card class="app-card" shadow="never">
-        <template #header><h2 class="app-card__title">{{ $t('dashboard.recentSessions') }}</h2></template>
+      <el-card
+        class="app-card"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('dashboard.recentSessions') }}
+          </h2>
+        </template>
         <el-empty
           v-if="!chat.sessions.length"
           :description="$t('chat.empty')"
         >
-          <el-button type="primary" tag="a" to="/profiles/new">{{ $t('profiles.create') }}</el-button>
+          <el-button
+            type="primary"
+            tag="a"
+            to="/profiles/new"
+          >
+            {{ $t('profiles.create') }}
+          </el-button>
         </el-empty>
         <SessionList
           v-else

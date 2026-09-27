@@ -1,21 +1,41 @@
 <template>
-  <el-card class="app-card app-card--highlight" shadow="never">
+  <el-card
+    class="app-card app-card--highlight"
+    shadow="never"
+  >
     <template #header>
       <div class="app-card__header">
-        <h2 class="app-card__title">{{ title }}</h2>
+        <h2 class="app-card__title">
+          {{ title }}
+        </h2>
       </div>
     </template>
-    <p class="description">{{ purchased ? description : lockedDescription }}</p>
+    <p class="description">
+      {{ purchased ? description : lockedDescription }}
+    </p>
     <slot />
 
     <div class="action">
-      <el-button v-if="purchased" type="primary" size="large" @click="$emit('action')">
+      <el-button
+        v-if="purchased"
+        type="primary"
+        size="large"
+        @click="$emit('action')"
+      >
         {{ actionLabel }}
       </el-button>
-      <RouterLink v-else class="locked-link" :to="to">{{ lockedActionLabel }}</RouterLink>
+      <RouterLink
+        v-else
+        class="locked-link"
+        :to="to"
+      >
+        {{ lockedActionLabel }}
+      </RouterLink>
     </div>
 
-    <p class="disclaimer">{{ $t('commerce.aiDisclaimer') }}</p>
+    <p class="disclaimer">
+      {{ $t('commerce.aiDisclaimer') }}
+    </p>
   </el-card>
 </template>
 
