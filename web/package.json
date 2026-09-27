@@ -5,8 +5,6 @@
   "scripts": {
     "build": "npx astro build",
     "preview": "npx astro preview",
-    "test:js": "npx vitest run js/__tests__/",
-    "test:js:watch": "npx vitest js/__tests__/",
     "test:e2e": "npx playwright test --config e2e/playwright.config.js",
     "test:e2e:ui": "npx playwright test --ui --config e2e/playwright.config.js",
     "lint": "eslint js/"
