@@ -44,7 +44,9 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
   const session = (await sessionResponse.json()).data
 
   await page.goto(`/app/chat/${session.id}`)
-  await expect(page.locator('.thread')).toBeVisible()
+  // .thread is shared by the loading wrapper and the message log; target the
+  // accessible log explicitly (aria-label is localized).
+  await expect(page.getByRole('log')).toBeVisible()
 
   const composer = page.locator('.composer textarea')
   await composer.fill('请基于我的出生档案做完整系统 E2E 分析')
