@@ -41,11 +41,14 @@ help: ## 列出所有 target
 
 # ── 质量门槛 ──
 
-check: lint-go fmt-check lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version ## 静态检查（纯静态，不跑测试、不构建）
+check: lint-go fmt-check lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version check-actions ## 静态检查（纯静态，不跑测试、不构建）
 
 test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
 
 gate: check test ## 部署门槛：check + test 全过才能部署
+
+check-actions: ## Reject mutable reusable workflow/action references
+	python3 scripts/check_actions_pinned.py
 
 smoke: ## 部署后冒烟验证（make smoke 或 make smoke to=us）
 	scripts/smoke.sh $(URL)
@@ -63,7 +66,7 @@ lint-js: ## JS lint
 	cd web && PATH="$(NODE_BIN):$$PATH" npx eslint js/
 
 lint-docs: ## Markdown lint
-	PATH="$(NODE_BIN):$$PATH" npx --yes markdownlint-cli2
+	cd web && PATH="$(NODE_BIN):$$PATH" npm run lint:docs
 
 typecheck: ## vue-tsc
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npx vue-tsc --noEmit
@@ -131,8 +134,8 @@ check-html:
 	node web/scripts/check-static-sync.cjs
 
 check-security:
-	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-	- trivy fs --severity HIGH,CRITICAL --exit-code 1 . 2>/dev/null || echo "⚠ trivy not found, skipping"
+	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+	trivy fs --severity HIGH,CRITICAL --exit-code 1 .
 
 check-skills:
 	scripts/check-skills.sh
