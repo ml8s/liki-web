@@ -72,6 +72,7 @@ In development, the login page shows a local verification code when the email se
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
 | `LIKI_AGENTS_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | Mandatory AG-UI runtime integration |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
+| `LIKI_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
 | `METRICS_TOKEN` | Protects the internal metrics endpoint |
 | `FEEDBACK_API_KEY` | Reads and updates feedback records |
 

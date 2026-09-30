@@ -148,7 +148,10 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		mux.HandleFunc("PATCH /api/feedback/{id}", feedback.HandleUpdate(deps.FeedbackStore, deps.FeedbackAPIKey))
 	}
 
-	handler := Recover(SecurityHeaders(CORSMiddleware(deps.DevMode, BodyLimit(mux))))
+	handler := Recover(SecurityHeaders(SameOrigin(
+		deps.DevMode,
+		CORSMiddleware(deps.DevMode, BodyLimit(mux)),
+	)))
 
 	webDir := findWebDir()
 	if webDir != "" {

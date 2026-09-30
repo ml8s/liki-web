@@ -23,10 +23,32 @@ type Handler struct {
 	service      *Service
 	runtime      *payment.Runtime
 	requireUser  RequireUserFunc
+	currency     CurrencyResolver
 }
 
-func NewHandler(orders *OrderStore, entitlements *EntitlementStore, service *Service, runtime *payment.Runtime, requireUser RequireUserFunc) *Handler {
-	return &Handler{orders: orders, entitlements: entitlements, service: service, runtime: runtime, requireUser: requireUser}
+type HandlerOption func(*Handler)
+
+func WithCurrencyResolver(resolver CurrencyResolver) HandlerOption {
+	return func(h *Handler) {
+		if resolver != nil {
+			h.currency = resolver
+		}
+	}
+}
+
+func NewHandler(orders *OrderStore, entitlements *EntitlementStore, service *Service, runtime *payment.Runtime, requireUser RequireUserFunc, options ...HandlerOption) *Handler {
+	h := &Handler{
+		orders:       orders,
+		entitlements: entitlements,
+		service:      service,
+		runtime:      runtime,
+		requireUser:  requireUser,
+		currency:     HeaderCurrencyResolver{},
+	}
+	for _, option := range options {
+		option(h)
+	}
+	return h
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
@@ -112,7 +134,7 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 		for currency, amount := range commercial.AmountMinor {
 			prices[currency] = amount
 		}
-		displayCurrency := DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
+		displayCurrency := h.currency.CurrencyFor(r)
 		displayAmount := commercial.AmountMinor[string(displayCurrency)]
 		purchased := len(skills) > 0
 		for _, skill := range skills {
@@ -155,7 +177,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "product_not_found", "产品不存在")
 		return
 	}
-	currency := string(DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country")))
+	currency := string(h.currency.CurrencyFor(r))
 	order, err := h.orders.CreateOrder(r.Context(), user.ID, user.Email, productID, currency)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "order_failed", "创建订单失败")

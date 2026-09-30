@@ -374,10 +374,7 @@ func (h *Handler) assertSameOrigin(w http.ResponseWriter, r *http.Request) bool 
 }
 
 func expectedHost(r *http.Request) string {
-	if value := r.Header.Get("X-Forwarded-Host"); value != "" {
-		return strings.TrimSpace(strings.Split(value, ",")[0])
-	}
-	return r.Host
+	return httputil.ForwardedHost(r)
 }
 
 func unauthorized(w http.ResponseWriter) {

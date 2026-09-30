@@ -69,6 +69,8 @@ type Config struct {
 	JWTSecret           string
 	ListenAddr          string
 	DevMode             bool
+	CurrencySource      string
+	BillingRegion       string
 }
 
 func LoadConfig() Config {
@@ -93,6 +95,8 @@ func LoadConfig() Config {
 		JWTSecret:           os.Getenv("JWT_SECRET"),
 		ListenAddr:          envOr("LISTEN_ADDR", ":8080"),
 		DevMode:             envOrBool("DEV_MODE", false),
+		CurrencySource:      envOr("LIKI_CURRENCY_SOURCE", liki.CurrencySourceTrustedEdge),
+		BillingRegion:       envOr("LIKI_BILLING_REGION", "global"),
 	}
 }
 
@@ -126,6 +130,12 @@ func loadAlipayConfig() aipay.Config {
 
 func main() {
 	cfg := LoadConfig()
+
+	currencyResolver, err := liki.NewCurrencyResolver(cfg.CurrencySource, cfg.BillingRegion)
+	if err != nil {
+		slog.Error("invalid billing currency configuration", "err", err)
+		os.Exit(1)
+	}
 
 	// Structured logging
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
@@ -467,7 +477,7 @@ func main() {
 		AuthHandler:     authHandler,
 		ReferralHandler: referralHandler,
 		ReferralStore:   referralStore,
-		LikiHandler:     liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser),
+		LikiHandler:     liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser, liki.WithCurrencyResolver(currencyResolver)),
 		AipayHandler:    aipayHandler,
 		ProfileHandler:  profile.NewHandler(profileStore, authHandler.RequireUser),
 		AccountHandler: account.NewHandler(
