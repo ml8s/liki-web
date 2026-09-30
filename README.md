@@ -51,10 +51,9 @@ In development, the login page shows a local verification code when the email se
 | Command | Purpose |
 | --- | --- |
 | `make dev` | Build and start the local stack |
-| `make build` | Verify the prepared skill artifact, then build static assets and Go service |
-| `make check` | Static checks and project validation |
-| `make test` | Full tests, build, and packaging |
+| `make test` | Unit, integration, and skill tests (Go/JS/Python) |
 | `make gate` | `check` + `test`; pre-release gate |
+| `make build` | Verify the prepared skill artifact, then build static assets and Go service |
 | `make clean` | Remove local build artifacts |
 
 ## Configuration
@@ -71,7 +70,6 @@ In development, the login page shows a local verification code when the email se
 | `PAYMENTS_WEBHOOK_URL` | Provider webhook URL |
 | `DODO_API_KEY`, `DODO_WEBHOOK_KEY`, `DODO_PRODUCT_LIKI_CHAT` | Dodo configuration |
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
-| `LIKI_LLM_BASE_URL`, `LIKI_LLM_API_KEY`, `LIKI_LLM_MODEL` | Naming/report LLM runner |
 | `LIKI_AGENTS_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | Mandatory AG-UI runtime integration |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
 | `METRICS_TOKEN` | Protects the internal metrics endpoint |
@@ -111,7 +109,7 @@ USD checkout requires `DODO_PRODUCT_LIKI_CHAT`. If the value is absent, USD chec
 make gate
 ```
 
-This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static HTML/i18n checks, Go race tests, E2E tests, and packaging checks.
+This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static HTML/i18n checks, and Go race tests. Docker E2E runs separately via `make e2e`; packaging is verified by `make check-packaging`.
 
 ## Documentation
 
@@ -120,7 +118,7 @@ This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static HTML
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Components, boundaries, and request flows |
 | [`DOMAIN_MODEL.md`](./DOMAIN_MODEL.md) | Stable entities, relationships, and invariants |
 | [`API.md`](./API.md) | Stable HTTP API contract |
-| [`FRONTEND.md`](./FRONTEND.md) | Astro, Vue App, legacy JS, and frontend state |
+| [`FRONTEND.md`](./FRONTEND.md) | Astro marketing pages, Vue App, and frontend state |
 | [`LEGACY_PRODUCTS.md`](./LEGACY_PRODUCTS.md) | retired-product compatibility boundary |
 | [`docs/database/overview.md`](./docs/database/overview.md) | SQLite bounded-context inventory |
 | [`docs/mcp.md`](./docs/mcp.md) | Engine/Counsel MCP compatibility boundary |

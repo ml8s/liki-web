@@ -113,9 +113,7 @@ function walkDir(dir, files) {
 }
 
 // Known page names used in BaseLayout: t(locale, `${page}.meta.ogTitle`)
-const KNOWN_PAGES = ['about','contact','disclaimer','privacy','terms','index','skills','hepan','mingshu','naming','chat','activate'];
-// Meta keys that BaseLayout auto-generates per page
-const META_SUFFIXES = ['metaDesc','meta.ogTitle','meta.ogDesc','meta.twitterTitle','meta.twitterDesc','title','heading'];
+const KNOWN_PAGES = ['about','contact','disclaimer','privacy','terms','index','skills','hepan','mingshu','naming'];
 
 function expandTemplateKey(tmpl, fileContent) {
   const keys = [];
@@ -129,7 +127,7 @@ function expandTemplateKey(tmpl, fileContent) {
     const prefix = nsM ? nsM[1] : 'naming.example';
     const base = namedNsMatch[1];
     const suffix = namedNsMatch[3] || '';
-    const maxN = prefix === 'naming.example' ? 36 : (prefix === 'mingshu.example.fortune' ? 4 : 10);
+    const maxN = prefix === 'naming.example' ? 36 : 10;
     for (let n = 1; n <= maxN; n++) {
       keys.push(`${prefix}.${base}${n}${suffix}`);
     }
@@ -146,7 +144,7 @@ function expandTemplateKey(tmpl, fileContent) {
     return keys;
   }
 
-  // Pattern: ${ns}.suffix — used in PersonFields/PaymentRow
+  // Pattern: ${ns}.suffix
   const nsMatch = tmpl.match(/^\$\{ns\}\.(.+)$/);
   if (nsMatch) {
     const suffix = nsMatch[1];
@@ -161,10 +159,6 @@ function expandTemplateKey(tmpl, fileContent) {
     const nsConstRe = /(?:const\s+)?ns\s*=\s*'([^']+)'/g;
     while ((m = nsConstRe.exec(fc)) !== null) {
       nsValues.add(m[1]);
-    }
-    // Default known ns values
-    for (const val of ['hepan.form', 'mingshu.form']) {
-      nsValues.add(val);
     }
     for (const val of nsValues) {
       keys.push(`${val}.${suffix}`);
@@ -196,59 +190,13 @@ function expandTemplateKey(tmpl, fileContent) {
 }
 
 function addKnownCompoundKeys(used) {
-  const PAGES = ['about','contact','disclaimer','privacy','terms','index','skills','hepan','mingshu','naming','chat','activate'];
   const META = ['metaDesc','meta.ogTitle','meta.ogDesc','meta.twitterTitle','meta.twitterDesc','title','heading'];
-  for (const p of PAGES) for (const s of META) used.add(`${p}.${s}`);
-  for (const ns of ['hepan.form','mingshu.form']) {
-    for (const f of ['name','city','birthHint','male','female','email','submit','email.placeholder','person_a','person_b']) {
-      used.add(`${ns}.${f}`);
-    }
-  }
-  for (const s of ['bazi','ziwei','character','advice']) {
-    used.add(`hepan.example.${s}.title`);
-    const n = (s === 'bazi' || s === 'ziwei') ? 5 : 3;
-    for (let i=1;i<=n;i++) used.add(`hepan.example.${s}.p${i}`);
-  }
-  for (const k of ['rating_title','rating_label','rating_value','rigan_label','rigan_value','wuxing_label','wuxing_value','fugong_label','fugong_value','rating_p1','rating_adv','rating_adv_v','footnote','match_rigan','match_rigan_v','match_wuxing','match_wuxing_v','match_shi','match_shi_v','match_verify','match_verify_v','sus_title','sus_dy_label','sus_dy_v','sus_zw_label','sus_zw_v','sus_ky_label','sus_ky_v']) {
-    used.add(`hepan.example.${k}`);
-  }
-  for (const side of ['person_a','person_b']) {
-    for (const f of ['name','info','pillar','god']) used.add(`hepan.example.${side}.${f}`);
-  }
-  for (const side of ['pa','pb']) {
-    used.add(`hepan.example.${side}_title`);
-    for (const sys of ['bazi','zw']) {
-      used.add(`hepan.example.${side}_${sys}_label`);
-      for (let i=1;i<=3;i++) used.add(`hepan.example.${side}_${sys}_p${i}`);
-    }
-  }
-  used.add('hepan.example.disclaimer');
-  for (const s of ['personality','career','love','health']) {
-    used.add(`mingshu.example.${s}.title`);
-    const n = (s === 'health') ? 2 : 3;
-    for (let i=1;i<=n;i++) used.add(`mingshu.example.${s}.p${i}`);
-  }
-  for (const c of ['age','pillar','analysis','advice']) {
-    for (let r=1;r<=8;r++) used.add(`mingshu.example.fortune.r${r}_${c}`);
-    used.add(`mingshu.example.fortune.th_${c}`);
-  }
-  for (const k of ['title','birth_pillar','birth_info','fortune.title','reminder.title','reminder.p1','reminder.p2','footnote']) {
-    used.add(`mingshu.example.${k}`);
-  }
-  for (const section of ['bazi','ziwei']) {
-    used.add(`mingshu.example.${section}.title`);
-    for (const field of ['pillar','daymaster','strength','pattern','god','palace','rating']) {
-      used.add(`mingshu.example.${section}.${field}_label`);
-      used.add(`mingshu.example.${section}.${field}_value`);
-    }
-    for (let i=1;i<=5;i++) used.add(`mingshu.example.${section}.p${i}`);
-  }
-  used.add('mingshu.cta.title');
+  for (const p of KNOWN_PAGES) for (const s of META) used.add(`${p}.${s}`);
   for (const key of [
     'brand', 'cta.primary', 'cta.secondary', 'cta.bottom', 'stepsTitle', 'faqTitle', 'demoNote',
     'steps.s1', 'steps.s2', 'steps.s3', 'steps.s4',
   ]) used.add(`scenario.${key}`);
-  for (const faq of ['free', 'paid', 'data', 'accuracy']) {
+  for (const faq of ['paid', 'data', 'accuracy']) {
     used.add(`scenario.faq.${faq}.q`);
     used.add(`scenario.faq.${faq}.a`);
   }
@@ -282,32 +230,17 @@ function addKnownCompoundKeys(used) {
     for (let n=1;n<=36;n++) used.add(`naming.example.${f}${n}`);
   }
   for (let n=1;n<=36;n++) for (const t of ['a','b','c','d']) used.add(`naming.example.tag${n}${t}`);
-  const namingStatic = ['a11y.examples','hero.title','hero.subtitle','cta.title','cta.body','cta.button','cta.emailLabel',
-    'cta.emailPlaceholder','cta.errorEmail','cta.returningUser','faq.q1','faq.a1','faq.q2','faq.a2','faq.q3','faq.a3',
-    'contactType','offerName','footer','example.footer1','example.footer2','example.footer3','example.footer4',
-    'example.footer5','example.footer6','example.footer7','example.footer8','example.footer9','example.footer10',
-    'example.footer11','example.footer12','example.footer13','example.footer14','example.footer15','example.footer16',
-    'example.footer17','example.footer18','example.footer19','example.footer20','example.footer21','example.footer22',
-    'example.footer23','example.footer24','example.footer25','example.footer26','example.footer27','example.footer28',
-    'example.footer29','example.footer30','example.footer31','example.footer32','example.footer33','example.footer34',
-    'example.footer35','example.footer36'];
+  const namingStatic = ['a11y.examples'];
   for (const k of namingStatic) used.add(`naming.${k}`);
   for (const s of ['hero.title','hero.subtitle','cta.title']) {
     used.add(`hepan.${s}`);
     used.add(`mingshu.${s}`);
-  }
-  for (const k of ['title','person_a.name','person_a.info','person_b.name','person_b.info','footnote']) {
-    used.add(`hepan.example.${k}`);
   }
   for (const k of ['hero.title','hero.subtitle','hero.desc','features','install.title','install.method1','install.method2']) {
     used.add(`index.${k}`);
   }
   for (const skill of ['mingli','qiming','wengua','fengshui']) {
     for (const k of ['title','desc']) used.add(`index.skills.${skill}.${k}`);
-  }
-  for (const k of ['heading','desc','codeLabel','codePlaceholder','emailLabel','emailPlaceholder','button','returningUser',
-    'success','errorNetwork','errorInvalidCode','errorUsed','errorExpired']) {
-    used.add(`activate.${k}`);
   }
 }
 
@@ -326,6 +259,7 @@ function checkUnusedKeys(locales) {
     /\bt\("([^"]+)"\)/g,
     /data-i18n(?:-\w+)?="([^"]+)"/g,
     /data-i18n(?:-\w+)?='([^']+)'/g,
+    /(?:labelKey|titleKey|subtitleKey|questionKey|answerKey|benefitsTitleKey|exampleTitleKey|stepsTitleKey|questionsTitleKey|faqTitleKey|ctaKey|intentKey|descriptionKey)="([^"]+)"/g,
   ];
 
   function collectKeys(content, filepath) {

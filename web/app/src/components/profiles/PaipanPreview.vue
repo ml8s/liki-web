@@ -254,6 +254,7 @@ import {
   type ZiweiChart,
 } from '@/api/engine'
 import { resolvePaipanContext } from '@/utils/paipan'
+import { BAZHAI_AUS, LUOSHU_ORDER } from '@/utils/bazhai'
 import type { Profile } from '@/api/profiles'
 
 const props = defineProps<{ profile: Profile; auto?: boolean }>()
@@ -364,7 +365,6 @@ function minorStars(g: { xing_yao: Array<{ name: string; is_zhu_xing?: boolean; 
   return g.xing_yao.filter(s => !s.is_zhu_xing).map(s => (s.liang_du ? `${s.name}${s.liang_du}` : s.name)).join(' ')
 }
 
-const BAZHAI_AUS = ['sheng_qi', 'tian_yi', 'yan_nian', 'fu_wei']
 const bazhaiDirs = computed(() => {
   if (!bazhai.value) return []
   const dirs = bazhai.value.ba_zhai_dirs
@@ -378,8 +378,7 @@ const flyStars = computed(() => {
   const gong = liuNianXing.value?.gong_wei
   if (!gong || gong.length !== 9) return []
   // gong_num 1-9：按洛书九宫排 3x3（1下、2右上…按洛书序）
-  const order = [4, 9, 2, 3, 5, 7, 8, 1, 6]
-  return order.map(n => gong.find(g => g.gong_num === n) ?? { gong_num: n, xing_name: '—' })
+  return LUOSHU_ORDER.map(n => gong.find(g => g.gong_num === n) ?? { gong_num: n, xing_name: '—' })
 })
 
 async function compute() {

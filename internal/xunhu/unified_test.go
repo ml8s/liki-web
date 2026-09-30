@@ -3,7 +3,6 @@ package xunhu
 import (
 	"context"
 	"encoding/json"
-	"github.com/ml8s/liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -39,9 +38,9 @@ func TestCreateCheckoutUsesFixedNotifyURL(t *testing.T) {
 
 	c := &Client{appID: "app", appSecret: "secret", httpClient: srv.Client(), payURL: srv.URL, webhookURL: "https://liki.hk/api/payments/webhook"}
 	req := payment.CheckoutRequest{
-		IntentID: "pi-1", BusinessOrderID: "biz-1", Product: string(product.ProductNaming),
+		IntentID: "pi-1", BusinessOrderID: "biz-1", Product: "liki-chat",
 		AmountMinor: 990, Currency: "CNY", Email: "user@example.com", Locale: "zh-Hant",
-		ReturnURL: "https://liki.hk/api/payments/return/pi-1", CancelURL: "https://liki.hk/zh-Hant/naming",
+		ReturnURL: "https://liki.hk/api/payments/return/pi-1", CancelURL: "https://liki.hk/app",
 	}
 	result, err := c.CreateCheckout(context.Background(), req)
 	if err != nil {

@@ -1,11 +1,4 @@
-// Package llm provides a DeepSeek LLM client with streaming and tool calling.
-//
-// Client
-//
-//	Client                   — DeepSeek API client
-//	New                      — constructor (apiKey, model)
-//	ChatStream               — streaming chat, text-only
-//	ChatStreamWithTools      — streaming chat with tool calling support
+// Package llm provides the chat message model shared by protocol surfaces.
 //
 // Messages
 //
@@ -15,9 +8,6 @@
 //	ToolCall                 — function call requested by LLM
 //	FunctionCall             — function name + JSON arguments
 //
-// Responses
-//
-//	ChatResult               — LLM response: content + tool calls
-//	StreamEvent              — streaming chunk: text delta + reasoning + finish reason
-//	ToolDef                  — tool definition passed to LLM API
+// The DeepSeek streaming client was removed together with the retired
+// standalone products; active chat runs through liki-agents.
 package llm

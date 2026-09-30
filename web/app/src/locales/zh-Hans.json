@@ -59,7 +59,6 @@
     "profileNew": "新建档案",
     "profileDetail": "档案详情",
     "synastry": "合盘",
-    "naming": "起名",
     "divination": "问卦",
     "fengshui": "风水",
     "huangli": "择日",
@@ -83,31 +82,6 @@
       "description": "八字·紫微·大运·流年·格局",
       "intent": "我想咨询八字。",
       "cta": "去排盘"
-    },
-    "naming": {
-      "label": "起名",
-      "description": "依八字用神取名，五行配字",
-      "intent": "我想咨询起名。",
-      "cta": "开始定制起名",
-      "title": "起名",
-      "subtitle": "依八字用神选字——先看喜用五行与候选字，定制化起名进对话。",
-      "selectProfile": "选择档案（起名对象）",
-      "noProfilePrefix": "还没有档案，先",
-      "noProfileSuffix": "再起名。",
-      "favorableElements": "喜用五行",
-      "dayMaster": "日主强弱",
-      "zodiac": "生肖",
-      "unfavorable": "忌神",
-      "elementStats": "五行统计",
-      "singleCharacters": "单字候选",
-      "doubleCharacters": "双字候选",
-      "consultationTitle": "定制化起名",
-      "consultationBody": "AI 顾问会结合八字喜用与候选字，为你定制名字。",
-      "lockedBody": "解锁 Liki Chat 后可获得定制化起名。",
-      "previewFailed": "起名预览失败",
-      "noUsefulGod": "未评估出喜用神，暂无法取字",
-      "favorableValue": "{strength}{primary}{secondary}",
-      "unfavorableValue": "忌 {value}"
     },
     "divination": {
       "label": "问卦",
@@ -462,7 +436,10 @@
       "available": "可用"
     },
     "action": {
-      "resolve": "去处理"
+      "resolve": "去处理",
+      "activate": "去开通",
+      "orders": "去查看",
+      "start": "开始"
     },
     "composer": {
       "label": "咨询输入框",
@@ -621,7 +598,6 @@
       "profile_conflict": "档案已被其他设备修改，请刷新后重试",
       "quota_exceeded": "档案数量已达上限",
       "rate_limited": "请求过于频繁，请稍后重试",
-      "redeem_failed": "兑换码使用失败",
       "role_conflict": "KOL 和 Scout 是不同角色，不能互相转换",
       "role_required": "需要对应的合作角色",
       "self_management_forbidden": "不能管理自己的管理员权限",
@@ -632,7 +608,15 @@
       "city_not_found": "无法识别出生地，无法做真太阳时修正；请改用常见城市名，或移除出生地后重试",
       "city_invalid": "未找到出生地坐标；请改用常见城市名，或移除出生地后重试",
       "lunar_preview_unsupported": "免费预览暂支持公历出生时间",
-      "birth_time_required": "需要出生时间"
+      "birth_time_required": "需要出生时间",
+      "invalid_email": "邮箱格式不正确",
+      "code_cooldown": "验证码请求过于频繁，请稍后再试",
+      "invalid_code": "验证码不正确",
+      "code_expired": "验证码已过期，请重新获取",
+      "code_locked": "验证码尝试次数过多，请稍后再试",
+      "user_disabled": "账户不可用",
+      "user_not_found": "用户不存在",
+      "mailer_unavailable": "邮件服务暂不可用，请稍后再试"
     }
   },
   "notFound": {

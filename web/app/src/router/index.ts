@@ -25,7 +25,6 @@ const router = createRouter({
         { path: 'profiles/new', name: 'profile-new', component: () => import('@/views/ProfileNewView.vue'), meta: { titleKey: 'router.profileNew' } },
         { path: 'profiles/:id', name: 'profile-detail', component: () => import('@/views/ProfileDetailView.vue'), meta: { titleKey: 'router.profileDetail' } },
         { path: 'synastry', name: 'synastry', component: () => import('@/views/SynastryView.vue'), meta: { titleKey: 'router.synastry' } },
-        { path: 'naming', name: 'naming', component: () => import('@/views/NamingView.vue'), meta: { titleKey: 'router.naming' } },
         { path: 'divination', name: 'divination', component: () => import('@/views/DivinationView.vue'), meta: { titleKey: 'router.divination' } },
         { path: 'fengshui', name: 'fengshui', component: () => import('@/views/FengshuiView.vue'), meta: { titleKey: 'router.fengshui' } },
         { path: 'huangli', name: 'huangli', component: () => import('@/views/HuangliView.vue'), meta: { titleKey: 'router.huangli' } },

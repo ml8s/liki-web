@@ -11,6 +11,8 @@ COMPOSE_FILE="$DEV_DIR/docker-compose.yml"
 TEST_ENV_FILE="${LIKI_TEST_ENV_FILE:-/tmp/liki-web-e2e.env}"
 export LIKI_ENGINE_IMAGE="${LIKI_ENGINE_IMAGE:-ghcr.io/ml8s/liki-engine:2026.09.26.0}"
 export LIKI_TEST_ENV_FILE="$TEST_ENV_FILE"
+# Compose interpolation must also succeed for `down` when the env file is gone.
+export LIKI_AGENTS_INTERNAL_TOKEN="${LIKI_AGENTS_INTERNAL_TOKEN:-e2e-agent-secret}"
 
 CMD="${1:-up}"
 
@@ -31,17 +33,17 @@ do_up() {
   # provider credentials or depend on optional services on the developer host.
   cat > "$TEST_ENV_FILE" << 'EOF'
 JWT_SECRET=e2e-jwt-secret-0123456789abcdefghijklmnop
-LIKI_LLM_API_KEY=e2e-dummy
-LIKI_LLM_MODEL=e2e-dummy
 XUNHU_APPID=e2e
 XUNHU_APPSECRET=e2e
 REFERRAL_PAYOUT_SECRET=e2e-referral-payout-secret-0123456789abcdef
 DOMAIN=localhost
 LISTEN_ADDR=:8081
+RETURN_URL=http://localhost:8080/api/payments/return
+PAYMENTS_WEBHOOK_URL=http://localhost:8080/api/payments/webhook
 LIKI_AGENTS_INTERNAL_TOKEN=e2e-agent-secret
 EOF
 
-  DOMAIN=localhost docker compose --env-file "$TEST_ENV_FILE" -f "$COMPOSE_FILE" up -d --wait 2>&1 | sed 's/^/    /'
+  DOMAIN=localhost docker compose --env-file "$TEST_ENV_FILE" -f "$COMPOSE_FILE" up -d --build --wait 2>&1 | sed 's/^/    /'
 
   # ── Wait ──
   echo -n "==> 等待就绪"
@@ -61,6 +63,8 @@ EOF
 do_down() {
   echo "==> 停止并清理..."
   cd "$PROJECT_DIR"
+  # Compose requires the env file to exist; recreate an empty one if `up` already cleaned it up.
+  [ -f "$TEST_ENV_FILE" ] || : > "$TEST_ENV_FILE"
   docker compose --env-file "$TEST_ENV_FILE" -f "$COMPOSE_FILE" down --volumes --remove-orphans --timeout 5 2>/dev/null || true
   rm -f "$TEST_ENV_FILE"
 }

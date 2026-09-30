@@ -107,7 +107,6 @@
             :action-to="skillState(item.id).actionTo"
             :starting="creating === item.id"
             @start="create(item.id)"
-            @blocked-action="handleBlockedAction(item.id)"
           />
         </div>
       </el-card>
@@ -181,7 +180,7 @@ const commerce = useCommerceStore()
 const activeProfileId = ref('')
 const creating = ref('')
 
-const chatPurchased = computed(() => entitlements.allowedSkills.length > 0)
+const chatPurchased = computed(() => entitlements.purchased)
 const profilePickerEl = ref<HTMLElement | null>(null)
 
 const pendingService = computed(() => (chat.pendingIntent ? serviceByIntent(chat.pendingIntent) : undefined))
@@ -202,7 +201,6 @@ function skillState(skill: string) {
 	      reason: t('chat.state.inactive'),
 	      status: t('chat.status.inactive'),
 	      actionLabel: t('chat.action.activate'),
-	      actionKind: 'purchase',
 	      actionTo: '',
 	    }
 	  }
@@ -212,7 +210,6 @@ function skillState(skill: string) {
 	      reason: t('chat.state.notIncluded'),
 	      status: t('chat.status.notIncluded'),
 	      actionLabel: t('chat.action.orders'),
-	      actionKind: 'orders',
 	      actionTo: '/orders',
 	    }
   }
@@ -222,7 +219,6 @@ function skillState(skill: string) {
 	      reason: t('chat.state.profileRequired'),
 	      status: t('chat.status.profileRequired'),
 	      actionLabel: t('profiles.create'),
-	      actionKind: 'create-profile',
 	      actionTo: '/profiles/new',
 	    }
   }
@@ -231,20 +227,8 @@ function skillState(skill: string) {
 	    reason: '',
 	    status: t('chat.status.available'),
 	    actionLabel: t('chat.action.start'),
-	    actionKind: 'start',
 	    actionTo: '',
 	  }
-}
-
-function handleBlockedAction(skill: string) {
-  const state = skillState(skill)
-  if (state.actionKind === 'purchase') {
-    void commerce.buy()
-    return
-  }
-  if (state.actionKind === 'select-profile') {
-    profilePickerEl.value?.scrollIntoView({ block: 'center' })
-  }
 }
 
 function openSession(session: ChatSession) {

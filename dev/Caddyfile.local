@@ -25,7 +25,7 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	header /i18n/* Cache-Control "public, max-age=60"
 
 	# Application pages with no indexable content
-	@noindex path */chat */chat.html /report */report.html */report/*
+	@noindex path_regexp noindex .*/(chat|report)(/.*)?$
 	header @noindex X-Robots-Tag "noindex"
 
 	log {
@@ -33,7 +33,7 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 		format json
 	}
 
-	@consolePaths path /kol /scout /admin.html
+	@consolePaths path /admin.html
 	header @consolePaths Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://liki.hk; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 
 	# Protected routes — require same-origin
@@ -46,14 +46,6 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 		reverse_proxy {$LIKI_WEB_HOST:web}:8081 {
 			flush_interval -1
 		}
-	}
-	handle /api/orders/*/retry {
-		@external {
-			header Origin *
-			not header Origin http://localhost:8080
-		}
-		respond @external 403
-		reverse_proxy {$LIKI_WEB_HOST:web}:8081
 	}
 
 	# JSON-RPC
@@ -110,29 +102,9 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	redir / /zh-Hant/ 302
 	redir /index.html /zh-Hant/ 302
 
-	# /chat
-	@chatZhHans {
-		path /chat /naming/chat
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@chatZhHant {
-		path /chat /naming/chat
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@chatZh {
-		path /chat /naming/chat
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@chatEn {
-		path /chat /naming/chat
-		expression {header.Accept-Language}.startsWith('en')
-	}
-
-	redir @chatZhHans /zh-Hans/chat 302
-	redir @chatZhHant /zh-Hant/chat 302
-	redir @chatZh /zh-Hant/chat 302
-	redir @chatEn /en/chat 302
-	redir /chat /zh-Hant/naming/chat 301
+	# /chat — legacy chat landing now lives in the Liki Chat app
+	redir /chat /app/chat 302
+	redir /naming/chat /app/chat 302
 
 	# /naming
 	@namingZhHans {

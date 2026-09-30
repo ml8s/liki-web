@@ -8,13 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	_ "modernc.org/sqlite"
 
-	"github.com/ml8s/liki-web/internal/naming"
+	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/payment"
-
-	"github.com/ml8s/liki-web/internal/paymentflow"
-	"github.com/ml8s/liki-web/internal/product"
 )
 
 type fakeGateway struct {
@@ -35,7 +34,7 @@ func (g *fakeGateway) FetchPayment(ctx context.Context, intent payment.PaymentIn
 
 func (g *fakeGateway) WebhookAck() []byte { return []byte("success") }
 
-func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway) {
+func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.OrderStore, string) {
 	t.Helper()
 	ctx := context.Background()
 	mainDB, err := sql.Open("sqlite", t.TempDir()+"/main.db")
@@ -43,11 +42,6 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = mainDB.Close() })
-	namingDB, err := sql.Open("sqlite", t.TempDir()+"/naming.db")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = namingDB.Close() })
 
 	intents := payment.NewIntentStore(mainDB)
 	notifications := payment.NewNotificationStore(mainDB)
@@ -65,15 +59,23 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway) {
 	if err := events.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	namingStore := naming.NewStore(namingDB)
-	if err := namingStore.CreateOrder(ctx, "biz-1", "naming", 990, "CNY", "user@example.com", "zh-Hant"); err != nil {
+	orderStore := liki.NewOrderStore(mainDB)
+	entitlementStore := liki.NewEntitlementStore(mainDB)
+	if err := orderStore.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := entitlementStore.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	order, err := orderStore.CreateOrder(ctx, "user_1", "user@example.com", liki.ProductChat, "CNY")
+	if err != nil {
 		t.Fatal(err)
 	}
 	gateway := &fakeGateway{}
-	return payment.NewRuntime(
+	runtime := payment.NewRuntime(
 		map[payment.Provider]payment.Gateway{payment.ProviderXunhu: gateway},
 		map[string]payment.ProductFlow{
-			string(product.ProductNaming): paymentflow.NewNamingFlow(namingStore, 15),
+			string(liki.ProductChat): liki.NewFulfiller(orderStore, entitlementStore, liki.ProductChat, 30*time.Hour),
 		},
 		intents,
 		notifications,
@@ -81,7 +83,8 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway) {
 		events,
 		&fakeEmailSender{},
 		payment.RuntimeOptions{BaseURL: "https://liki.hk", AdminEmail: "admin@example.com"},
-	), gateway
+	)
+	return runtime, gateway, orderStore, order.ID
 }
 
 type fakeEmailSender struct{}
@@ -99,14 +102,17 @@ func postJSON(t *testing.T, mux *http.ServeMux, path, body string) *httptest.Res
 
 func TestSharedPaymentHTTPFlow(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret-32-chars-long-enough")
-	runtime, gateway := newPaymentRuntime(t)
+	runtime, gateway, orderStore, bizOrderID := newPaymentRuntime(t)
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 
 	intent, err := runtime.CreateIntent(context.Background(), payment.CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: payment.ProviderXunhu,
+		Product: string(liki.ProductChat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
 	})
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := orderStore.AttachIntent(context.Background(), "user_1", bizOrderID, intent.ID); err != nil {
 		t.Fatal(err)
 	}
 	intentID := intent.ID
@@ -132,7 +138,7 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 		Provider: payment.ProviderXunhu,
 		Type:     payment.EventPaymentSucceeded,
 		Data: payment.WebhookEventData{
-			OrderID: intentID, Amount: 990, Currency: "CNY", PaymentID: "pay-1",
+			OrderID: intentID, Amount: 100, Currency: "CNY", PaymentID: "pay-1",
 		},
 	}
 	rec := postJSON(t, mux, "/api/payments/webhook", `signature-body`)
@@ -150,7 +156,7 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 	if returnRec.Code != http.StatusSeeOther {
 		t.Fatalf("return = %d, want 303", returnRec.Code)
 	}
-	if got := returnRec.Header().Get("Location"); !strings.Contains(got, "/zh-Hant/naming/chat?order_id=biz-1") {
+	if got := returnRec.Header().Get("Location"); !strings.Contains(got, "/app/chat?order_id="+bizOrderID+"&status=paid") {
 		t.Fatalf("redirect = %q", got)
 	}
 	cookies := returnRec.Result().Cookies()
@@ -161,21 +167,24 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 
 func TestSharedPaymentWebhookReturnsProviderAck(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret-32-chars-long-enough")
-	runtime, gateway := newPaymentRuntime(t)
+	runtime, gateway, orderStore, bizOrderID := newPaymentRuntime(t)
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 
 	intent, err := runtime.CreateIntent(context.Background(), payment.CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: payment.ProviderXunhu,
+		Product: string(liki.ProductChat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
 	})
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := orderStore.AttachIntent(context.Background(), "user_1", bizOrderID, intent.ID); err != nil {
 		t.Fatal(err)
 	}
 	gateway.event = payment.WebhookEvent{
 		Provider: payment.ProviderXunhu,
 		Type:     payment.EventPaymentSucceeded,
 		Data: payment.WebhookEventData{
-			OrderID: intent.ID, Amount: 990, PaymentID: "pay-ack",
+			OrderID: intent.ID, Amount: 100, PaymentID: "pay-ack",
 		},
 	}
 
@@ -188,7 +197,7 @@ func TestSharedPaymentWebhookReturnsProviderAck(t *testing.T) {
 }
 
 func TestSharedPaymentWebhookRouteOnly(t *testing.T) {
-	runtime, _ := newPaymentRuntime(t)
+	runtime, _, _, _ := newPaymentRuntime(t)
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 	for _, path := range []string{

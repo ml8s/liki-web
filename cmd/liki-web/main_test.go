@@ -74,35 +74,17 @@ func TestEnvOrBool(t *testing.T) {
 
 func TestLoadConfigUsesRuntimeEnvironment(t *testing.T) {
 	t.Setenv("LISTEN_ADDR", ":18081")
-	t.Setenv("LIKI_LLM_API_KEY", "ci-test-dummy")
-	t.Setenv("LIKI_LLM_MODEL", "ci-test-model")
-	t.Setenv("LIKI_LLM_BASE_URL", "https://llm.example.test/v1")
 
 	config := LoadConfig()
 
 	if config.ListenAddr != ":18081" {
 		t.Fatalf("ListenAddr = %q, want :18081", config.ListenAddr)
 	}
-	if config.LLMAPIKey != "ci-test-dummy" || config.LLMModel != "ci-test-model" {
-		t.Fatalf("LLM credentials = %q/%q, want CI test values", config.LLMAPIKey, config.LLMModel)
-	}
-	if config.LLMBaseURL != "https://llm.example.test/v1" {
-		t.Fatalf("LLMBaseURL = %q", config.LLMBaseURL)
-	}
-}
-
-func TestLoadConfigUsesInternalWebPortForSelfURL(t *testing.T) {
-	t.Setenv("LIKI_SELF_URL", "")
-
-	if got := LoadConfig().SelfURL; got != "http://127.0.0.1:8081" {
-		t.Fatalf("SelfURL = %q, want local internal web URL", got)
-	}
 }
 
 func TestValidateRuntimeURLs(t *testing.T) {
 	valid := Config{
 		EngineURL: "http://engine:8082/jsonrpc",
-		SelfURL:   "http://web:8081",
 		ReturnURL: "https://liki.hk",
 		AgentURL:  "http://agent:8083",
 	}
@@ -112,8 +94,6 @@ func TestValidateRuntimeURLs(t *testing.T) {
 
 	invalid := Config{
 		EngineURL:         "engine:8082",
-		SelfURL:           "127.0.0.1:8081",
-		LLMBaseURL:        "https://",
 		ReturnURL:         "/liki.hk",
 		PaymentWebhookURL: "liki.hk/api/payments/webhook",
 		AgentURL:          "agent:8083",
@@ -123,7 +103,7 @@ func TestValidateRuntimeURLs(t *testing.T) {
 		t.Fatal("validateRuntimeURLs(invalid) error = nil, want URL errors")
 	}
 	for _, name := range []string{
-		"LIKI_ENGINE_URL", "LIKI_SELF_URL", "LIKI_LLM_BASE_URL",
+		"LIKI_ENGINE_URL",
 		"RETURN_URL", "PAYMENTS_WEBHOOK_URL", "LIKI_AGENTS_URL",
 	} {
 		if !strings.Contains(err.Error(), name) {

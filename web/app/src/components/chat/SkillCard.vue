@@ -60,7 +60,7 @@ defineProps<{
   actionTo?: string
 }>()
 
-defineEmits<{ start: []; blockedAction: [] }>()
+defineEmits<{ start: [] }>()
 </script>
 
 <style scoped>

@@ -10,13 +10,13 @@ import (
 )
 
 type Mailer interface {
-	SendAuthCode(ctx context.Context, email, code string) error
+	SendAuthCode(ctx context.Context, email, code, locale string) error
 }
 
-type MailerFunc func(ctx context.Context, email, code string) error
+type MailerFunc func(ctx context.Context, email, code, locale string) error
 
-func (fn MailerFunc) SendAuthCode(ctx context.Context, email, code string) error {
-	return fn(ctx, email, code)
+func (fn MailerFunc) SendAuthCode(ctx context.Context, email, code, locale string) error {
+	return fn(ctx, email, code, locale)
 }
 
 type Config struct {
@@ -98,7 +98,7 @@ type CodeIssued struct {
 	DevCode   string
 }
 
-func (s *Service) RequestEmailCode(ctx context.Context, rawEmail, ip, userAgent string) (CodeIssued, error) {
+func (s *Service) RequestEmailCode(ctx context.Context, rawEmail, ip, userAgent, locale string) (CodeIssued, error) {
 	email, err := s.config.EmailResolver(rawEmail)
 	if err != nil {
 		return CodeIssued{}, err
@@ -107,7 +107,7 @@ func (s *Service) RequestEmailCode(ctx context.Context, rawEmail, ip, userAgent 
 	if err != nil {
 		return CodeIssued{}, err
 	}
-	sendErr := s.mailer.SendAuthCode(ctx, email, code)
+	sendErr := s.mailer.SendAuthCode(ctx, email, code, locale)
 	if sendErr != nil && !s.config.ExposeDevCode {
 		return CodeIssued{}, fmt.Errorf("auth: send email code: %w", sendErr)
 	}
@@ -118,7 +118,7 @@ func (s *Service) RequestEmailCode(ctx context.Context, rawEmail, ip, userAgent 
 	return issued, nil
 }
 
-func (s *Service) VerifyEmailCode(ctx context.Context, rawEmail, rawCode, ip, userAgent string) (LoginResult, error) {
+func (s *Service) VerifyEmailCode(ctx context.Context, rawEmail, rawCode, ip, userAgent, locale string) (LoginResult, error) {
 	email, err := s.config.EmailResolver(rawEmail)
 	if err != nil {
 		return LoginResult{}, err
@@ -127,7 +127,10 @@ func (s *Service) VerifyEmailCode(ctx context.Context, rawEmail, rawCode, ip, us
 	if !emailDigits.MatchString(code) {
 		return LoginResult{}, ErrCodeInvalid
 	}
-	return s.store.CompleteEmailLogin(ctx, email, code, s.store.ipHash(ip), truncateUserAgent(userAgent), "zh-Hant")
+	if locale == "" {
+		locale = "zh-Hant"
+	}
+	return s.store.CompleteEmailLogin(ctx, email, code, s.store.ipHash(ip), truncateUserAgent(userAgent), locale)
 }
 
 func (s *Service) SessionCookieMaxAge() int {

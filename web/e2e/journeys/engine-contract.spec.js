@@ -195,23 +195,6 @@ test('合盘按真实引擎契约渲染（bazi.bond）', async ({ page }) => {
   await expect(page.locator('.rel-chip')).toContainText(['妈妈年柱看對方：偏财'])
 })
 
-test('起名按真实契约渲染（qiming.pick）', async ({ page }) => {
-  await routeApp(page)
-  await page.route('**/api/profiles**', r => (r.request().url().endsWith('/profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
-  await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
-  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
-  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
-  await routeEngine(page)
-
-  await page.goto('/app/naming')
-  await page.waitForSelector('.el-select', { timeout: 10000 })
-  await page.locator('.el-select').first().click()
-  await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
-  await page.waitForSelector('.char', { timeout: 12000 })
-  await expect(page.locator('.ys')).toContainText('金') // 用神五行（fu_yi.yong）
-  await expect(page.locator('.char')).toContainText(['锐', '铭']) // qiming.pick 字池（char/frequency）
-})
-
 test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
   await routeApp(page)
   await page.route('**/api/profiles**', r => r.fulfill(json({ profiles: [profile], next_cursor: '' })))

@@ -262,54 +262,22 @@
       </el-form>
     </el-card>
 
-    <el-dialog
+    <PayoutDialog
       v-model="payoutVisible"
       :title="$t('partner.payoutTitle', { role: $t('partner.kol.roleName') })"
-      width="420px"
-    >
-      <el-form label-position="top">
-        <el-form-item :label="$t('partner.method')">
-          <el-radio-group v-model="payoutForm.method">
-            <el-radio-button value="alipay">
-              {{ $t('partner.alipay') }}
-            </el-radio-button>
-            <el-radio-button value="paypal">
-              PayPal
-            </el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item
-          :label="$t('partner.account')"
-          required
-        >
-          <el-input
-            v-model="payoutForm.account"
-            autocomplete="off"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="payoutVisible = false">
-          {{ $t('common.cancel') }}
-        </el-button>
-        <el-button
-          type="primary"
-          :loading="submitting"
-          @click="submitPayout"
-        >
-          {{ $t('common.submit') }}
-        </el-button>
-      </template>
-    </el-dialog>
+      :submitting="submitting"
+      @submit="submitPayout"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import PartnerSettlement from '@/components/partner/PartnerSettlement.vue'
+import PayoutDialog from '@/components/partner/PayoutDialog.vue'
 import {
   createKOLPayout,
   fetchKOLCommissions,
@@ -335,13 +303,11 @@ const error = ref('')
 const roleStatus = ref<PartnerRoleStatus | ''>('')
 const otherRoleAssigned = ref(false)
 const application = ref<PartnerApplication | null>(null)
-const canSubmit = ref(false)
 const note = ref('')
 const overview = ref<KOLOverview | null>(null)
 const commissions = ref<ReferralCommission[]>([])
 const balances = ref<BalanceSummary[]>([])
 const payouts = ref<Payout[]>([])
-const payoutForm = reactive({ method: 'alipay' as PayoutMethod, account: '' })
 
 const referralLink = computed(() => {
   const code = overview.value?.referrer.code
@@ -356,7 +322,6 @@ async function load() {
     roleStatus.value = states.kol.status ?? ''
     otherRoleAssigned.value = !roleStatus.value && Boolean(states.scout.status)
     application.value = states.kol.application
-    canSubmit.value = states.kol.can_submit
     if (states.kol.status !== 'active') return
 
     const [session, commissionResult, payoutResult] = await Promise.all([
@@ -384,7 +349,6 @@ async function submit() {
   try {
     const result = await submitApplication('kol', note.value.trim())
     application.value = result.application
-    canSubmit.value = false
     ElMessage.success(t('partner.kol.applicationSubmitted'))
   } catch (err) {
     ElMessage.error(err instanceof Error ? err.message : t('partner.submitFailed'))
@@ -402,14 +366,10 @@ async function copy(value: string) {
   }
 }
 
-async function submitPayout() {
-  if (!payoutForm.account.trim()) {
-    ElMessage.warning(t('partner.accountRequired'))
-    return
-  }
+async function submitPayout(payload: { method: PayoutMethod; account: string }) {
   submitting.value = true
   try {
-    const result = await createKOLPayout({ ...payoutForm, account: payoutForm.account.trim() })
+    const result = await createKOLPayout({ ...payload })
     payouts.value.unshift(result.payout)
     payoutVisible.value = false
     ElMessage.success(t('partner.payoutSubmitted'))

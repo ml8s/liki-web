@@ -11,7 +11,6 @@ LABEL org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.created="${BUILD_TIME}" \
       org.opencontainers.image.title="liki-web" \
       org.opencontainers.image.description="Liki product BFF and web application"
-ENV LIKI_SKILLS_DIR=/web/skills
 USER liki
 EXPOSE 8081
 ENTRYPOINT ["/usr/local/bin/liki-web"]

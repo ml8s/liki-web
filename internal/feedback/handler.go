@@ -35,10 +35,15 @@ func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFun
 			http.Error(w, "body must be UTF-8", 400)
 			return
 		}
-		// 极简校验：必须是合法 JSON 对象（map）。不解析任何业务字段。
+		// 极简校验：必须是合法 JSON 对象（map），且非空。不解析业务字段——
+		// schema 演进不触发后端改动（含 legacy category/message 与 feedback-v1 两种格式）。
 		var probe map[string]any
 		if err := json.Unmarshal(body, &probe); err != nil {
 			http.Error(w, "body must be a JSON object", 400)
+			return
+		}
+		if len(probe) == 0 {
+			http.Error(w, "body must not be empty", 400)
 			return
 		}
 

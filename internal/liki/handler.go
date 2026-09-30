@@ -1,19 +1,15 @@
 package liki
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
 
-	"github.com/ml8s/liki-web/internal/agent"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/payment"
-	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/profile"
-	"github.com/ml8s/liki-web/internal/sse"
 )
 
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
@@ -48,7 +44,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 	mux.HandleFunc("POST /api/chat/sessions", h.requireUser(limit(h.HandleCreateSession)))
 	mux.HandleFunc("GET /api/chat/sessions/{id}", h.requireUser(h.HandleSession))
 	mux.HandleFunc("GET /api/chat/sessions/{id}/messages", h.requireUser(h.HandleMessages))
-	mux.HandleFunc("POST /api/chat/sessions/{id}/messages", h.requireUser(limit(h.HandleSendMessage)))
 	mux.HandleFunc("POST /api/chat/sessions/{id}/ag-ui", h.requireUser(limit(h.HandleAGUIMessage)))
 }
 
@@ -117,7 +112,7 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 		for currency, amount := range commercial.AmountMinor {
 			prices[currency] = amount
 		}
-		displayCurrency := product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
+		displayCurrency := DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country"))
 		displayAmount := commercial.AmountMinor[string(displayCurrency)]
 		purchased := len(skills) > 0
 		for _, skill := range skills {
@@ -160,7 +155,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "product_not_found", "产品不存在")
 		return
 	}
-	currency := string(product.DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country")))
+	currency := string(DetectCurrency(r.Header.Get("CF-IPCountry"), r.Header.Get("X-Geo-Country")))
 	order, err := h.orders.CreateOrder(r.Context(), user.ID, user.Email, productID, currency)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "order_failed", "创建订单失败")
@@ -245,18 +240,6 @@ func (r createSessionRequest) Validate() error {
 	return nil
 }
 
-type sendMessageRequest struct {
-	Content string `json:"content"`
-	Locale  string `json:"locale"`
-}
-
-func (r sendMessageRequest) Validate() error {
-	if strings.TrimSpace(r.Content) == "" {
-		return errors.New("content is required")
-	}
-	return nil
-}
-
 func (h *Handler) HandleSessions(w http.ResponseWriter, r *http.Request) {
 	sessions, err := h.service.store.ListSessions(r.Context(), userID(r))
 	if err != nil {
@@ -325,70 +308,6 @@ func (h *Handler) HandleSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responseOK(w, session)
-}
-
-func (h *Handler) HandleSendMessage(w http.ResponseWriter, r *http.Request) {
-	req, ok := decode[sendMessageRequest](w, r)
-	if !ok {
-		return
-	}
-	user, ok := auth.UserFromContext(r.Context())
-	if !ok {
-		unauthorized(w)
-		return
-	}
-	sessionID := r.PathValue("id")
-
-	if _, err := h.service.Session(r.Context(), user.ID, sessionID); err != nil {
-		writeSessionError(w, err)
-		return
-	}
-
-	flusher, ok := sse.Begin(w)
-	if !ok {
-		writeError(w, http.StatusInternalServerError, "internal_error", "服务器不支持流式响应")
-		return
-	}
-
-	streamCtx, cancelStream := context.WithCancel(r.Context())
-	defer cancelStream()
-	streamCtx = withChatLocale(streamCtx, localeOrDefault(firstNonEmpty(req.Locale, user.Locale)))
-	var writeErr error
-	userMessage, assistantMessage, session, err := h.service.SendMessage(
-		streamCtx, user.ID, sessionID, req.Content,
-		func(ev agent.ChatEvent) {
-			if writeErr != nil {
-				return
-			}
-			if err := sse.Write(w, flusher, ev); err != nil {
-				writeErr = err
-				cancelStream()
-				slog.Warn("liki: write sse event", "err", err)
-			}
-		},
-	)
-	if err != nil && writeErr == nil && !errors.Is(err, context.Canceled) {
-		slog.Error("liki: send message", "session_id", sessionID, "err", err)
-	}
-	if err != nil {
-		if writeErr == nil && !errors.Is(err, context.Canceled) {
-			_ = sse.Write(w, flusher, agent.ChatEvent{Type: agent.EventError, Content: "服务暂时不可用，请稍后重试"})
-		}
-		return
-	}
-	if writeErr != nil {
-		return
-	}
-
-	_ = sse.Write(w, flusher, agent.ChatEvent{
-		Type: agent.EventDone,
-		Data: map[string]any{
-			"session":           session,
-			"active_skill":      session.Skill,
-			"user_message":      userMessage,
-			"assistant_message": assistantMessage,
-		},
-	})
 }
 
 // ── Shared HTTP helpers ──

@@ -3,7 +3,8 @@ import { t } from '../i18n.js';
 
 export interface Props {
   locale: string;
-  scenario: string;
+  scenario?: string;
+  service?: string;
   labelKey?: string;
   secondaryKey?: string;
   class?: string;
@@ -11,16 +12,21 @@ export interface Props {
 
 const {
   locale,
-  scenario,
+  scenario = '',
+  service = '',
   labelKey = 'scenario.cta.primary',
   secondaryKey = '',
   class: className = 'btn-purple',
 } = Astro.props;
 
-const target = `/app?scenario=${encodeURIComponent(scenario)}&locale=${encodeURIComponent(locale)}`;
+const query = new URLSearchParams();
+if (scenario) query.set('scenario', scenario);
+if (service) query.set('service', service);
+query.set('locale', locale);
+const target = `/app?${query.toString()}`;
 ---
 
-<a href={target} class={className} data-scenario-cta={scenario}>
+<a href={target} class={className} data-cta={scenario || service}>
   {t(locale, labelKey)}
 </a>
 {secondaryKey && <a href="#how-it-works" class="btn-ghost">{t(locale, secondaryKey)}</a>}

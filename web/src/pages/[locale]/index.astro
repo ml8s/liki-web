@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import LikiChatCta from '../../components/LikiChatCta.astro';
 import { t, locales } from '../../i18n.js';
 import keywords from '../../keywords.json' with { type: 'json' };
 
@@ -26,7 +27,7 @@ const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
     <h1 class="landing-h1">{t(locale, 'index.hero.title')}</h1>
     <p class="landing-sub">{t(locale, 'index.hero.subtitle')}</p>
     <div class="landing-actions">
-      <a href={`/app?locale=${locale}`} class="btn-purple">{t(locale, 'index.cta.paipan')}</a>
+      <LikiChatCta locale={locale} labelKey="index.cta.paipan" />
       <a href="#services" class="btn-ghost">{t(locale, 'index.cta.learn')}</a>
     </div>
   </section>
@@ -70,32 +71,32 @@ const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.naming.title')}</h3>
         <p>{t(locale, 'index.services.naming.desc')}</p>
-        <a href={`/app?scenario=naming&locale=${locale}`} class="card-link">{t(locale, 'index.services.cta')}</a>
+        <LikiChatCta locale={locale} scenario="naming" labelKey="index.services.cta" class="card-link" />
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.bazi.title')}</h3>
         <p>{t(locale, 'index.services.bazi.desc')}</p>
-        <a href={`/app?service=bazi&locale=${locale}`} class="card-link">{t(locale, 'index.services.cta')}</a>
+        <LikiChatCta locale={locale} service="bazi" labelKey="index.services.cta" class="card-link" />
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.mingshu.title')}</h3>
         <p>{t(locale, 'index.services.mingshu.desc')}</p>
-        <a href={`/app?scenario=mingshu&locale=${locale}`} class="card-link">{t(locale, 'index.services.cta')}</a>
+        <LikiChatCta locale={locale} scenario="mingshu" labelKey="index.services.cta" class="card-link" />
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.divination.title')}</h3>
         <p>{t(locale, 'index.services.divination.desc')}</p>
-        <a href={`/app?service=divination&locale=${locale}`} class="card-link">{t(locale, 'index.services.cta')}</a>
+        <LikiChatCta locale={locale} service="divination" labelKey="index.services.cta" class="card-link" />
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.fengshui.title')}</h3>
         <p>{t(locale, 'index.services.fengshui.desc')}</p>
-        <a href={`/app?service=fengshui&locale=${locale}`} class="card-link">{t(locale, 'index.services.cta')}</a>
+        <LikiChatCta locale={locale} service="fengshui" labelKey="index.services.cta" class="card-link" />
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.bond.title')}</h3>
         <p>{t(locale, 'index.services.bond.desc')}</p>
-        <a href={`/app?scenario=hepan&locale=${locale}`} class="card-link">{t(locale, 'index.services.cta')}</a>
+        <LikiChatCta locale={locale} scenario="hepan" labelKey="index.services.cta" class="card-link" />
       </div>
     </div>
   </section>
@@ -121,6 +122,6 @@ const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
 
   <section class="landing-cta">
     <p class="font-serif">{t(locale, 'index.cta.bottom')}</p>
-    <a href={`/app?locale=${locale}`} class="btn-purple">{t(locale, 'index.cta.paipan')}</a>
+    <LikiChatCta locale={locale} labelKey="index.cta.paipan" />
   </section>
 </BaseLayout>

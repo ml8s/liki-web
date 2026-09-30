@@ -10,14 +10,12 @@
 | `internal/http` | HTTP route composition, middleware, security headers, rate limiting |
 | `internal/auth` | email-code identity, sessions, verification codes |
 | `internal/profile` | birth profile aggregate |
-| `internal/product` | retired legacy product IDs and historical prices |
 | `internal/payment` | provider-neutral payment runtime |
-| `internal/paymentflow` | retired-product fulfillment compatibility |
 | `internal/liki` | Liki Chat product, order, entitlement, and chat domain |
 | `internal/account` | account erasure orchestration |
 | `internal/referral` | KOL/Scout applications, attribution, commission, and payout domain |
 | `internal/admin` | admin operations and audit |
-| `internal/agent` | LLM client and tool registry (shared by naming/report and AG-UI product adapters) |
+| `internal/agent` | AG-UI event contract shared with the liki-agents runtime |
 
 ## Frontend modules
 
@@ -25,9 +23,9 @@
 | --- | --- |
 | `web/src` | Astro marketing and static locale pages |
 | `web/app` | Vue 3 authenticated product SPA with zh-Hans/zh-Hant/en i18n |
-| `web/js` | legacy vanilla JS compatibility pages |
+| `web/js` | static assets for marketing pages (report demo renderers) |
 
-New product functionality belongs in `web/app` and its backing Go APIs. Legacy vanilla JS pages are compatibility surfaces only.
+New product functionality belongs in `web/app` and its backing Go APIs.
 
 ## External boundaries
 

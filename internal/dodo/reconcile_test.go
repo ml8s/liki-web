@@ -3,7 +3,6 @@ package dodo
 import (
 	"context"
 	"encoding/json"
-	"github.com/ml8s/liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -68,7 +67,7 @@ func testIntent() payment.PaymentIntent {
 	return payment.PaymentIntent{
 		ID:                "pi-1",
 		BusinessOrderID:   "biz-1",
-		Product:           string(product.ProductNaming),
+		Product:           "liki-chat",
 		AmountMinor:       990,
 		Currency:          "USD",
 		ProviderSessionID: "sess-1",

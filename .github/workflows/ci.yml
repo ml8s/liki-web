@@ -54,7 +54,7 @@ jobs:
       - name: make check (lint-go skipped, done by action above)
         run: |
           go vet ./...
-          make lint-js typecheck check-html check-security check-caddy check-skills check-version
+          make fmt-check lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version
 
   # ── test：对应 make test-go + test-js + test-python + build + check-packaging（e2e 单独 job）──
   test:
@@ -88,8 +88,8 @@ jobs:
           go test -race -count=1 -coverprofile=coverage.out ./... -coverpkg=./internal/...
           COV=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
           echo "Coverage: ${COV}%"
-          if [ "$(echo "$COV < 60" | bc)" -eq 1 ]; then
-            echo "❌ Coverage ${COV}% < 60%"; exit 1
+          if [ "$(echo "$COV < 65" | bc)" -eq 1 ]; then
+            echo "❌ Coverage ${COV}% < 65%"; exit 1
           fi
 
       - name: Vitest
@@ -147,8 +147,6 @@ jobs:
           REFERRAL_PAYOUT_SECRET: liki-ci-e2e-referral-payout-secret-0123456789abcdef
           LISTEN_ADDR: :8081
           RETURN_URL: http://localhost:8080
-          LIKI_LLM_API_KEY: ci-test-dummy
-          LIKI_LLM_MODEL: ci-test-dummy
           XUNHU_APPID: ci-test-dummy
           XUNHU_APPSECRET: ci-test-dummy
           PAYMENTS_WEBHOOK_URL: http://localhost:8081/api/payments/webhook
@@ -254,12 +252,8 @@ jobs:
           docker run -d --name web-smoke \
             -e LISTEN_ADDR=:8081 \
             -e JWT_SECRET=ci-smoke-secret \
-            -e LIKI_LLM_API_KEY=ci-smoke \
-            -e LIKI_LLM_MODEL=ci-smoke \
-            -e LIKI_LLM_BASE_URL=https://validation.invalid/v1 \
             -e LIKI_AGENTS_URL=http://127.0.0.1:18083 \
             -e LIKI_AGENTS_INTERNAL_TOKEN=ci-smoke-agent-token \
-            -e LIKI_SKILLS_DIR=/web/skills \
             -p 18081:8081 \
             ghcr.io/${{ github.repository_owner }}/liki-web:${{ steps.version.outputs.runtime }}
           for i in $(seq 1 30); do

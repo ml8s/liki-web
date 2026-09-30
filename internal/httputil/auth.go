@@ -2,7 +2,6 @@ package httputil
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -64,16 +63,5 @@ func SetJWTCookie(w http.ResponseWriter, email, orderID string) error {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400,
 	})
-	return nil
-}
-
-// SetJWTCookieOrRespondErr sets the JWT cookie and writes an error response on failure.
-// Returns the error so callers can stop further processing.
-func SetJWTCookieOrRespondErr(w http.ResponseWriter, email, orderID string) error {
-	if err := SetJWTCookie(w, email, orderID); err != nil {
-		slog.Error("auth: sign jwt", "err", err)
-		RespondError(w, http.StatusInternalServerError, ErrCodeInternal, "登录失败")
-		return err
-	}
 	return nil
 }

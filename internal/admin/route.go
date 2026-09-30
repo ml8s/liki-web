@@ -1,13 +1,11 @@
 package admin
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/naming"
 	"github.com/ml8s/liki-web/internal/referral"
 )
 
@@ -49,14 +47,12 @@ func capabilityGuard(authorizer *adminauth.Store, identity IdentityFunc) func(ad
 
 func RegisterRoutes(
 	mux *http.ServeMux,
-	svc *naming.AdminService,
-	onPaid func(ctx context.Context, orderID string),
 	referralStore *referral.Store,
 	authorizer *adminauth.Store,
 	identity IdentityFunc,
 	partnerDecisionNotifier referral.DecisionNotifier,
 ) {
-	h := NewHandler(svc, onPaid)
+	h := NewHandler()
 	guard := capabilityGuard(authorizer, identity)
 	identityFunc := func(r *http.Request) auth.User { user, _ := identity(r); return user }
 	adminAuthHandler := adminauth.NewHandler(authorizer)
@@ -71,12 +67,6 @@ func RegisterRoutes(
 	mux.HandleFunc("POST /api/admin/admins/{email}/capabilities/revoke", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleRevokeCapability()))
 	mux.HandleFunc("POST /api/admin/admins/{email}/enable", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleEnableAdmin()))
 	mux.HandleFunc("POST /api/admin/admins/{email}/disable", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleDisableAdmin()))
-
-	mux.HandleFunc("GET /api/admin/orders", guard(adminauth.CapabilityAdminSuper)(h.HandleListOrders()))
-	mux.HandleFunc("POST /api/admin/orders", guard(adminauth.CapabilityAdminSuper)(h.HandleCreateOrder()))
-	mux.HandleFunc("PATCH /api/admin/orders/{id}/expire", guard(adminauth.CapabilityAdminSuper)(h.HandleUpdateExpire()))
-	mux.HandleFunc("POST /api/admin/verification-codes", guard(adminauth.CapabilityAdminSuper)(h.HandleGenerateCodes()))
-	mux.HandleFunc("GET /api/admin/verification-codes", guard(adminauth.CapabilityAdminSuper)(h.HandleListCodes()))
 
 	if referralStore != nil {
 		referralAdmin := referral.NewAdminHandler(referralStore, partnerDecisionNotifier)

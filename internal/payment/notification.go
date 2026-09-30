@@ -29,7 +29,6 @@ type NotificationKind string
 const (
 	NotificationCustomerReceipt NotificationKind = "customer_receipt"
 	NotificationAdminNewOrder   NotificationKind = "admin_new_order"
-	NotificationReportReady     NotificationKind = "report_ready"
 )
 
 type Notification struct {
@@ -172,12 +171,6 @@ func notificationLocale(locale string) string {
 	default:
 		return "zh-Hant"
 	}
-}
-
-// NotificationLocale normalizes a payment locale for localized receipts.
-// Exported so product flows can render product names with the same rule.
-func NotificationLocale(locale string) string {
-	return notificationLocale(locale)
 }
 
 func customerReceiptTemplateFor(locale string) *template.Template {

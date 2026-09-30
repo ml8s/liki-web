@@ -3,7 +3,6 @@ package xunhu
 import (
 	"context"
 	"encoding/json"
-	"github.com/ml8s/liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -140,7 +139,7 @@ func TestCreateCheckout_Success(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	result, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: string(product.ProductNaming), AmountMinor: 990, Email: "user@test.com", Title: "test", ReturnURL: "https://liki.hk/return"})
+	result, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: "liki-chat", AmountMinor: 990, Email: "user@test.com", Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
@@ -184,7 +183,7 @@ func TestCreateCheckout_APIError(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: string(product.ProductNaming), AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: "liki-chat", AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err == nil {
 		t.Fatal("expected error for API error response")
 	}
@@ -198,7 +197,7 @@ func TestCreateCheckout_HTTPError(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: string(product.ProductNaming), AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: "liki-chat", AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err == nil {
 		t.Fatal("expected error for 500 response")
 	}
@@ -215,7 +214,7 @@ func TestCreateCheckout_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
-	_, err := c.CreateCheckout(ctx, payment.CheckoutRequest{IntentID: "order-1", Product: string(product.ProductNaming), AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
+	_, err := c.CreateCheckout(ctx, payment.CheckoutRequest{IntentID: "order-1", Product: "liki-chat", AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err == nil {
 		t.Fatal("expected timeout error")
 	}
@@ -403,9 +402,9 @@ func TestCreateCheckout_ProductPricing(t *testing.T) {
 		prod   string
 		amount int
 	}{
-		{"chart", "naming", 990},
-		{"bond", "naming", 990},
-		{"naming", "naming", 990},
+		{"chart", "liki-chat", 990},
+		{"bond", "liki-chat", 990},
+		{"chat", "liki-chat", 990},
 	}
 
 	for _, tt := range tests {
@@ -448,7 +447,7 @@ func TestCreateCheckout_ParamFormat(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: string(product.ProductNaming), AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: "liki-chat", AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
@@ -483,7 +482,7 @@ func TestCreateCheckout_AmountFormat(t *testing.T) {
 			defer srv.Close()
 
 			c := newTestClient(srv)
-			_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{Product: string(product.ProductNaming), BusinessOrderID: "order-1", AmountMinor: int64(tt.amount), ReturnURL: "https://liki.hk/return"})
+			_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{Product: "liki-chat", BusinessOrderID: "order-1", AmountMinor: int64(tt.amount), ReturnURL: "https://liki.hk/return"})
 			if err != nil {
 				t.Fatalf("CreateCheckout: %v", err)
 			}
@@ -541,7 +540,7 @@ func TestCreateCheckout_HashPresent(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv)
-	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: string(product.ProductNaming), AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
+	_, err := c.CreateCheckout(context.Background(), payment.CheckoutRequest{IntentID: "order-1", Product: "liki-chat", AmountMinor: 990, Title: "test", ReturnURL: "https://liki.hk/return"})
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}

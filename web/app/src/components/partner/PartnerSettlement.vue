@@ -103,45 +103,12 @@
       </el-table>
     </template>
 
-    <el-dialog
+    <PayoutDialog
       v-model="payoutVisible"
       :title="$t('partner.settlement.dialogTitle', { role: title })"
-      width="420px"
-    >
-      <el-form label-position="top">
-        <el-form-item :label="$t('partner.method')">
-          <el-radio-group v-model="method">
-            <el-radio-button value="alipay">
-              {{ $t('partner.alipay') }}
-            </el-radio-button>
-            <el-radio-button value="paypal">
-              PayPal
-            </el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item
-          :label="$t('partner.account')"
-          required
-        >
-          <el-input
-            v-model="account"
-            autocomplete="off"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="payoutVisible = false">
-          {{ $t('common.cancel') }}
-        </el-button>
-        <el-button
-          type="primary"
-          :loading="submitting"
-          @click="submit"
-        >
-          {{ $t('common.submit') }}
-        </el-button>
-      </template>
-    </el-dialog>
+      :submitting="submitting"
+      @submit="submit"
+    />
   </el-card>
 </template>
 
@@ -149,6 +116,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import PayoutDialog from '@/components/partner/PayoutDialog.vue'
 import {
   fetchKOLSettlement,
   fetchScoutSettlement,
@@ -170,8 +138,6 @@ const submitting = ref(false)
 const payoutVisible = ref(false)
 const error = ref('')
 const settlement = ref<Settlement | null>(null)
-const method = ref<PayoutMethod>('alipay')
-const account = ref('')
 
 const title = computed(() => props.role === 'kol' ? 'KOL' : 'Scout')
 
@@ -189,18 +155,12 @@ async function load() {
   }
 }
 
-async function submit() {
-  if (!account.value.trim()) {
-    ElMessage.warning(t('partner.accountRequired'))
-    return
-  }
+async function submit(payload: { method: PayoutMethod; account: string }) {
   submitting.value = true
   try {
-    const input = { method: method.value, account: account.value.trim() }
-    const result = props.role === 'kol' ? await createKOLPayout(input) : await createScoutPayout(input)
+    const result = props.role === 'kol' ? await createKOLPayout({ ...payload }) : await createScoutPayout({ ...payload })
     settlement.value?.payouts.unshift(result.payout)
     payoutVisible.value = false
-    account.value = ''
     ElMessage.success(t('partner.payoutSubmitted'))
     await load()
   } catch (err) {

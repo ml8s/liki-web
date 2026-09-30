@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 )
 
 type testValid struct{ Name string }
@@ -108,65 +107,5 @@ func TestSetJWTCookie(t *testing.T) {
 	}
 	if cookies[0].Name != "liki_token" {
 		t.Errorf("cookie name = %q", cookies[0].Name)
-	}
-}
-
-func TestSetJWTCookieOrRespondErr_Success(t *testing.T) {
-	t.Setenv("JWT_SECRET", "test-secret-32-chars-long-enough-ok")
-	w := httptest.NewRecorder()
-	if err := SetJWTCookieOrRespondErr(w, "u@t.com", "oid-2"); err != nil {
-		t.Fatalf("error: %v", err)
-	}
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want 200", w.Code)
-	}
-}
-
-func TestLocaleFromAccept_Exact(t *testing.T) {
-	r := httptest.NewRequest("GET", "/", nil)
-	r.Header.Set("Accept-Language", "zh-CN")
-	got := LocaleFromAccept(r)
-	if got != "zh-Hans" {
-		t.Errorf("got %q, want zh-Hans", got)
-	}
-}
-
-func TestLocaleFromAccept_Fallback(t *testing.T) {
-	r := httptest.NewRequest("GET", "/", nil)
-	r.Header.Set("Accept-Language", "ja-JP")
-	got := LocaleFromAccept(r)
-	if got != "en" {
-		t.Errorf("got %q, want en (fallback)", got)
-	}
-}
-
-func TestLocaleFromAccept_Empty(t *testing.T) {
-	r := httptest.NewRequest("GET", "/", nil)
-	got := LocaleFromAccept(r)
-	if got != "en" {
-		t.Errorf("got %q, want en (fallback)", got)
-	}
-}
-
-func TestOrderAccessToken_Verifies(t *testing.T) {
-	now := time.Now()
-	token, err := NewOrderAccessToken("hepan", "oid-test", now, time.Hour)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !VerifyOrderAccessToken("hepan", "oid-test", token, now.Add(time.Minute)) {
-		t.Error("expected valid")
-	}
-	if VerifyOrderAccessToken("mingshu", "oid-test", token, now.Add(time.Minute)) {
-		t.Error("expected invalid product")
-	}
-	if VerifyOrderAccessToken("hepan", "wrong", token, now.Add(time.Minute)) {
-		t.Error("expected invalid order")
-	}
-	if VerifyOrderAccessToken("hepan", "oid-test", token, now.Add(time.Hour)) {
-		t.Error("expected expired token")
-	}
-	if VerifyOrderAccessToken("hepan", "oid-test", "", now) {
-		t.Error("expected invalid empty token")
 	}
 }

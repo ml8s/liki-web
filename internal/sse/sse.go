@@ -3,8 +3,6 @@
 package sse
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -19,17 +17,4 @@ func Begin(w http.ResponseWriter) (http.Flusher, bool) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	return flusher, true
-}
-
-// Write serializes one event as an SSE data frame and flushes it.
-func Write(w http.ResponseWriter, flusher http.Flusher, event any) error {
-	data, err := json.Marshal(event)
-	if err != nil {
-		return fmt.Errorf("sse marshal: %w", err)
-	}
-	if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
-		return err
-	}
-	flusher.Flush()
-	return nil
 }

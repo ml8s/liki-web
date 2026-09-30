@@ -36,7 +36,8 @@ func (h *Handler) SetPostLoginHook(hook PostLoginHook) {
 }
 
 type sendCodeRequest struct {
-	Email string `json:"email"`
+	Email  string `json:"email"`
+	Locale string `json:"locale,omitempty"`
 }
 
 func (r sendCodeRequest) Validate() error {
@@ -86,7 +87,7 @@ func (h *Handler) HandleSendEmailCode(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	issued, err := h.service.RequestEmailCode(r.Context(), req.Email, clientIP(r), userAgent(r))
+	issued, err := h.service.RequestEmailCode(r.Context(), req.Email, clientIP(r), userAgent(r), req.Locale)
 	if err != nil {
 		h.writeError(w, err)
 		return
@@ -109,7 +110,7 @@ func (h *Handler) HandleVerifyEmailCode(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	result, err := h.service.VerifyEmailCode(r.Context(), req.Email, req.Code, clientIP(r), userAgent(r))
+	result, err := h.service.VerifyEmailCode(r.Context(), req.Email, req.Code, clientIP(r), userAgent(r), req.Locale)
 	if err != nil {
 		h.writeError(w, err)
 		return

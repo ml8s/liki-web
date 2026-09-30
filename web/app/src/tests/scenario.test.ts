@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeScenario, resolveScenarioTarget } from '@/composables/scenario'
+import { normalizeScenario, scenarioService } from '@/composables/scenario'
 
 describe('scenario handoff', () => {
   it('normalizes public marketing scenarios', () => {
@@ -9,14 +9,10 @@ describe('scenario handoff', () => {
     expect(normalizeScenario('unknown')).toBe('general')
   })
 
-  it('resolves profile-aware targets', () => {
-    expect(resolveScenarioTarget('naming', [])).toEqual({ path: '/naming' })
-    expect(resolveScenarioTarget('hepan', ['p1'])).toEqual({ path: '/synastry' })
-    expect(resolveScenarioTarget('mingshu', [])).toEqual({
-      path: '/profiles/new', service: 'bazi', storeService: true,
-    })
-    expect(resolveScenarioTarget('mingshu', ['p1'])).toEqual({
-      path: '/chat?profile=p1&service=bazi',
-    })
+  it('maps marketing scenarios to chat services', () => {
+    expect(scenarioService('naming')).toBeNull()
+    expect(scenarioService('hepan')).toBe('bond')
+    expect(scenarioService('mingshu')).toBe('bazi')
+    expect(scenarioService('general')).toBeNull()
   })
 })

@@ -33,7 +33,7 @@ class EnvExampleTest(unittest.TestCase):
         for name in (
             "JWT_SECRET", "REFERRAL_PAYOUT_SECRET", "RESEND_API_KEY",
             "DODO_API_KEY", "DODO_WEBHOOK_KEY", "XUNHU_APPSECRET",
-            "ALIPAY_PRIVATE_KEY", "LIKI_LLM_API_KEY", "LIKI_AGENTS_INTERNAL_TOKEN",
+            "ALIPAY_PRIVATE_KEY", "LIKI_AGENTS_INTERNAL_TOKEN",
             "FEEDBACK_API_KEY", "METRICS_TOKEN",
         ):
             match = re.search(rf"^{name}=(.*)$", template, re.MULTILINE)

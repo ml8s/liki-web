@@ -217,8 +217,8 @@ import { useProfilesStore } from '@/stores/profiles'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { birthSummary, type Profile } from '@/api/profiles'
 import { resolveDashboardState, type DashboardState } from '@/composables/dashboardState'
-import { normalizeScenario, resolveScenarioTarget } from '@/composables/scenario'
-import { chatServices, serviceByKey } from '@/config/chat'
+import { normalizeScenario, scenarioService } from '@/composables/scenario'
+import { chatServices, chatUrl, serviceByKey } from '@/config/chat'
 import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/utils/format'
 
@@ -233,6 +233,15 @@ const loading = computed(() =>
   chat.loadingSessions || profiles.loading || entitlements.loading,
 )
 const hasProfile = computed(() => profiles.list.length > 0)
+
+function startScenario(scenario: string) {
+  const service = scenarioService(normalizeScenario(scenario))
+  if (service) {
+    startService(service)
+    return
+  }
+  void router.push('/chat')
+}
 const hasEntitlement = computed(() => entitlements.purchased)
 const primaryProfile = computed<Profile | undefined>(() => profiles.list[0])
 const latestSession = computed(() => chat.sessions[0])
@@ -273,7 +282,7 @@ function viewChart() {
 
 function startInterpretation() {
   if (!primaryProfile.value) return
-  void router.push(`/chat?profile=${primaryProfile.value.id}&service=bazi`)
+  void router.push(chatUrl(primaryProfile.value.id, 'bazi'))
 }
 
 function startService(key: string) {
@@ -292,21 +301,9 @@ function startService(key: string) {
     return
   }
   const profile = profiles.list[0]
-  void router.push(`/chat?profile=${profile.id}&service=${key}`)
+  void router.push(chatUrl(profile.id, key))
 }
 
-function startScenario(scenario: string) {
-  const target = resolveScenarioTarget(normalizeScenario(scenario), profiles.list.map(item => item.id))
-  if (!target) return
-  if (target.storeService && target.service) {
-    try {
-      sessionStorage.setItem('liki-service', target.service)
-    } catch {
-      // Ignore storage failures; profile creation remains useful.
-    }
-  }
-  void router.push(target.path)
-}
 
 onMounted(async () => {
   await Promise.allSettled([
@@ -317,7 +314,7 @@ onMounted(async () => {
 
   const rawScenario = route.query.scenario
   const scenario = Array.isArray(rawScenario) ? String(rawScenario[0] ?? '') : String(rawScenario ?? '')
-  if (['naming', 'mingshu', 'hepan'].includes(scenario)) {
+  if (normalizeScenario(scenario) !== 'general') {
     const query = { ...route.query }
     delete query.scenario
     void router.replace({ query })

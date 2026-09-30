@@ -18,7 +18,7 @@ test.describe('Scenario landing pages', () => {
     test(`${locale}/${scenario} routes to Liki Chat`, async ({ page }) => {
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible()
-      await expect(page.locator(`[data-scenario-cta="${scenario}"]`).first()).toHaveAttribute(
+      await expect(page.locator(`[data-cta="${scenario}"]`).first()).toHaveAttribute(
         'href',
         `/app?scenario=${scenario}&locale=${locale}`,
       )
@@ -55,8 +55,8 @@ test.describe('Authenticated scenario handoff', () => {
   test('naming and hepan reach their App workspaces in English', async ({ page }) => {
     await mockAuthenticated(page)
     await page.goto('/app?scenario=naming&locale=en')
-    await expect(page).toHaveURL(/\/app\/naming/)
-    await expect(page.getByRole('heading', { level: 1, name: 'Naming' })).toBeVisible()
+    await expect(page).toHaveURL(/\/app\/chat/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Liki Chat' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 
     await page.goto('/app?scenario=hepan&locale=en')

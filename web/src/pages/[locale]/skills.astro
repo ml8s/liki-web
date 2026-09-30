@@ -18,10 +18,10 @@ const skillSchema = {
   applicationCategory: 'UtilityApplication',
   description: t(locale, 'skills.metaDesc'),
   keywords: skillKeywords.join(', '),
-  offers: [
-    { '@type': 'Offer', name: t(locale, 'scenario.naming.title'), description: t(locale, 'scenario.naming.subtitle') },
-    { '@type': 'Offer', name: t(locale, 'scenario.mingshu.title'), description: t(locale, 'scenario.mingshu.subtitle') },
-    { '@type': 'Offer', name: t(locale, 'scenario.hepan.title'), description: t(locale, 'scenario.hepan.subtitle') },
+  hasPart: [
+    { '@type': 'Service', name: t(locale, 'scenario.naming.title'), description: t(locale, 'scenario.naming.subtitle'), url: `https://liki.hk/${locale}/naming/` },
+    { '@type': 'Service', name: t(locale, 'scenario.mingshu.title'), description: t(locale, 'scenario.mingshu.subtitle'), url: `https://liki.hk/${locale}/mingshu/` },
+    { '@type': 'Service', name: t(locale, 'scenario.hepan.title'), description: t(locale, 'scenario.hepan.subtitle'), url: `https://liki.hk/${locale}/hepan/` },
   ],
   contactPoint: {
     '@type': 'ContactPoint',

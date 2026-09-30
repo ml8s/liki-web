@@ -61,7 +61,7 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useProfilesStore } from '@/stores/profiles'
@@ -73,7 +73,7 @@ const router = useRouter()
 const { t } = useI18n()
 const profiles = useProfilesStore()
 
-const error = profiles.error
+const error = computed(() => profiles.error)
 
 async function load() {
   await profiles.loadList()

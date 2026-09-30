@@ -59,7 +59,6 @@
     "profileNew": "新建檔案",
     "profileDetail": "檔案詳情",
     "synastry": "合盤",
-    "naming": "起名",
     "divination": "問卦",
     "fengshui": "風水",
     "huangli": "擇日",
@@ -83,31 +82,6 @@
       "description": "八字·紫微·大運·流年·格局",
       "intent": "我想諮詢八字。",
       "cta": "去排盤"
-    },
-    "naming": {
-      "label": "起名",
-      "description": "依八字用神取名，五行配字",
-      "intent": "我想諮詢起名。",
-      "cta": "開始定制起名",
-      "title": "起名",
-      "subtitle": "依八字用神選字——先看喜用五行與候選字，定制化起名進對話。",
-      "selectProfile": "選擇檔案（起名對象）",
-      "noProfilePrefix": "還沒有檔案，先",
-      "noProfileSuffix": "再起名。",
-      "favorableElements": "喜用五行",
-      "dayMaster": "日主強弱",
-      "zodiac": "生肖",
-      "unfavorable": "忌神",
-      "elementStats": "五行統計",
-      "singleCharacters": "單字候選",
-      "doubleCharacters": "雙字候選",
-      "consultationTitle": "定制化起名",
-      "consultationBody": "AI 顧問會結合八字喜用與候選字，為你定制名字。",
-      "lockedBody": "解鎖 Liki Chat 後可獲得定制化起名。",
-      "previewFailed": "起名預覽失敗",
-      "noUsefulGod": "未評估出喜用神，暫無法取字",
-      "favorableValue": "{strength}{primary}{secondary}",
-      "unfavorableValue": "忌 {value}"
     },
     "divination": {
       "label": "問卦",
@@ -462,7 +436,10 @@
       "available": "可用"
     },
     "action": {
-      "resolve": "去處理"
+      "resolve": "去處理",
+      "activate": "去開通",
+      "orders": "去查看",
+      "start": "開始"
     },
     "composer": {
       "label": "諮詢輸入框",
@@ -621,7 +598,6 @@
       "profile_conflict": "檔案已被其他裝置修改，請重新整理後重試",
       "quota_exceeded": "檔案數量已達上限",
       "rate_limited": "請求過於頻繁，請稍後重試",
-      "redeem_failed": "兌換碼使用失敗",
       "role_conflict": "KOL 和 Scout 是不同角色，不能互相轉換",
       "role_required": "需要對應的合作角色",
       "self_management_forbidden": "不能管理自己的管理員權限",
@@ -632,7 +608,15 @@
       "city_not_found": "無法識別出生地，無法做真太陽時修正；請改用常見城市名，或移除出生地後重試",
       "city_invalid": "未找到出生地座標；請改用常見城市名，或移除出生地後重試",
       "lunar_preview_unsupported": "免費預覽暫支援公曆出生時間",
-      "birth_time_required": "需要出生時間"
+      "birth_time_required": "需要出生時間",
+      "invalid_email": "郵箱格式不正確",
+      "code_cooldown": "驗證碼請求過於頻繁，請稍後再試",
+      "invalid_code": "驗證碼不正確",
+      "code_expired": "驗證碼已過期，請重新獲取",
+      "code_locked": "驗證碼嘗試次數過多，請稍後再試",
+      "user_disabled": "賬戶不可用",
+      "user_not_found": "用戶不存在",
+      "mailer_unavailable": "郵件服務暫不可用，請稍後再試"
     }
   },
   "notFound": {

@@ -32,7 +32,6 @@ export interface ChatService {
 // route：每个入口都有免费盘面页（看命/风水→人列表排盘、起名/问卦/合盘→独立预览页）；付费解读统一进 Chat。
 export const chatServices: ChatService[] = [
   { key: 'bazi', labelKey: 'services.bazi.label', descKey: 'services.bazi.description', intentKey: 'services.bazi.intent', route: '/profiles', ctaKey: 'services.bazi.cta' },
-  { key: 'naming', labelKey: 'services.naming.label', descKey: 'services.naming.description', intentKey: 'services.naming.intent', route: '/naming', ctaKey: 'services.naming.cta' },
   { key: 'divination', labelKey: 'services.divination.label', descKey: 'services.divination.description', intentKey: 'services.divination.intent', route: '/divination', ctaKey: 'services.divination.cta' },
   { key: 'fengshui', labelKey: 'services.fengshui.label', descKey: 'services.fengshui.description', intentKey: 'services.fengshui.intent', route: '/fengshui', ctaKey: 'services.fengshui.cta' },
   { key: 'huangli', labelKey: 'services.huangli.label', descKey: 'services.huangli.description', intentKey: 'services.huangli.intent', route: '/huangli', ctaKey: 'services.huangli.cta' },
@@ -45,4 +44,8 @@ export function serviceByKey(key: string): ChatService | undefined {
 
 export function serviceByIntent(intent: string): ChatService | undefined {
   return chatServices.find(s => i18n.global.t(s.intentKey) === intent)
+}
+
+export function chatUrl(profileId: string, service: string): string {
+  return `/chat?profile=${encodeURIComponent(profileId)}&service=${encodeURIComponent(service)}`
 }

@@ -60,8 +60,6 @@ const PAGES = [
       { selector: 'h1', text: 'BaZi compatibility and relationship reading' },
     ] },
   { path: '/llms.txt',         marker: null,             name: 'llms.txt', resource: true },
-  { path: '/zh-Hans/hepan/report?order_id=demo',  marker: '#report-container',  name: 'hepan report', resource: true },
-  { path: '/zh-Hans/mingshu/report?order_id=demo', marker: '#report-container', name: 'mingshu report', resource: true },
 ];
 
 test.describe('Smoke — all pages render without errors or warnings', () => {
@@ -157,20 +155,22 @@ test.describe('OG / Twitter meta tags', () => {
 });
 
 test.describe('Images load without error', () => {
-  test('naming page images are valid', async ({ page }) => {
-    await page.goto('/zh-Hans/naming');
-    await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
+  for (const page of ['naming', 'mingshu', 'hepan']) {
+    test(`${page} page images are valid`, async ({ page: p }) => {
+      await p.goto(`/zh-Hans/${page}`);
+      await expect(p.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
 
-    const imgs = page.locator('img');
-    const count = await imgs.count();
-    for (let i = 0; i < count; i++) {
-      const img = imgs.nth(i);
-      const src = await img.getAttribute('src');
-      if (!src || src.startsWith('data:')) continue;
-      const w = await img.evaluate(el => el.naturalWidth);
-      if (w === 0) throw new Error(`Broken image on /zh-Hans/naming: src="${src}"`);
-    }
-  });
+      const imgs = p.locator('img');
+      const count = await imgs.count();
+      for (let i = 0; i < count; i++) {
+        const img = imgs.nth(i);
+        const src = await img.getAttribute('src');
+        if (!src || src.startsWith('data:')) continue;
+        const w = await img.evaluate(el => el.naturalWidth);
+        if (w === 0) throw new Error(`Broken image on /zh-Hans/${page}: src="${src}"`);
+      }
+    });
+  }
 });
 
 // ── Mobile viewport: critical pages render on mobile ──
@@ -180,6 +180,6 @@ test.describe('Mobile viewport', () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/zh-Hans/naming');
     await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
-    await expect(page.locator('[data-scenario-cta="naming"]').first()).toBeVisible();
+    await expect(page.locator('[data-cta="naming"]').first()).toBeVisible();
   });
 });

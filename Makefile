@@ -1,6 +1,5 @@
 .DEFAULT_GOAL := help
 # 统一语义（四仓一致）：
-#   make lint   静态检查聚合
 #   make check  纯静态契约检查（lint+格式+类型+安全+skills；不跑测试、不构建）
 #   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
 #   make gate   check + test ＝ 推送门槛

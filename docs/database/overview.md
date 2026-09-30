@@ -10,11 +10,14 @@ All SQLite files live in `${LIKI_DATA_DIR}`.
 | profiles.db | profile | customer profiles |
 | referral.db | referral/partnership | partners, attribution, applications, commission ledger, payouts, commission/refund intake, admin actions |
 | liki.db | liki product | products, entitlements, orders, chat sessions/messages |
-| naming.db | retired naming identifier | historical naming orders/messages/codes |
-| mingshu.db | retired mingshu identifier | historical orders/reports |
-| hepan.db | retired hepan identifier | historical orders/reports |
 | aipay.db | aipay product | voluntary AI-pay orders |
 | feedback.db | feedback | customer feedback |
+
+## Historical archive
+
+The retired naming / mingshu / hepan product databases (`naming.db`,
+`mingshu.db`, `hepan.db`) are no longer opened by the runtime. Local copies may
+remain in `${LIKI_DATA_DIR}` from before the product removal; they are inert.
 
 ## Cross-database rules
 

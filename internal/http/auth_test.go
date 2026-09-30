@@ -1,90 +1,17 @@
 package http
 
 import (
-	"context"
-	"database/sql"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/naming"
-	"github.com/ml8s/liki-web/internal/product"
 
 	_ "modernc.org/sqlite"
 )
-
-func newAuthTestStore(t *testing.T) *naming.Store {
-	t.Helper()
-	db, err := sql.Open("sqlite", ":memory:?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
-	if err != nil {
-		t.Fatalf("open test db: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-	db.SetMaxOpenConns(1)
-	return naming.NewStore(db)
-}
-
-func seedActiveOrder(t *testing.T, store *naming.Store, orderID, email string, prod product.Product, expiresAt string) {
-	t.Helper()
-	if err := store.CreateOrder(context.Background(), orderID, string(prod), 990, "CNY", "", "zh-Hans"); err != nil {
-		t.Fatalf("create order: %v", err)
-	}
-	if err := store.UpdateEmail(context.Background(), orderID, email); err != nil {
-		t.Fatalf("update email: %v", err)
-	}
-	if _, err := store.MarkPaidIdempotent(context.Background(), orderID, "pay-"+orderID); err != nil {
-		t.Fatalf("mark paid: %v", err)
-	}
-	if err := store.OverrideChatExpiresAt(context.Background(), orderID, expiresAt); err != nil {
-		t.Fatalf("set expiry: %v", err)
-	}
-}
-
-func TestRetiredNamingLoginRoutesFailClosed(t *testing.T) {
-	t.Parallel()
-	db, err := sql.Open("sqlite", ":memory:?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)")
-	if err != nil {
-		t.Fatalf("open test db: %v", err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-	store := naming.NewStore(db)
-
-	tests := []struct {
-		name    string
-		target  string
-		handler http.HandlerFunc
-	}{
-		{
-			name:    "email login",
-			target:  "/api/naming/auth/login",
-			handler: naming.HandleLogin(store),
-		},
-		{
-			name:    "order select",
-			target:  "/api/naming/orders/select",
-			handler: naming.HandleOrderSelect(store),
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			request := httptest.NewRequest(http.MethodPost, test.target, strings.NewReader(`{}`))
-			response := httptest.NewRecorder()
-			test.handler(response, request)
-			if response.Code != http.StatusGone {
-				t.Fatalf("status = %d, want %d, body: %s", response.Code, http.StatusGone, response.Body.String())
-			}
-			if cookies := response.Result().Cookies(); len(cookies) != 0 {
-				t.Fatalf("retired route set cookies: %#v", cookies)
-			}
-		})
-	}
-}
 
 func TestJWTAuth_NoCookie(t *testing.T) {
 	t.Parallel()

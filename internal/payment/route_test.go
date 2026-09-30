@@ -32,7 +32,7 @@ func TestRuntimeCreateIntentIgnoresProviderHint(t *testing.T) {
 	runtime, _, flow, _, _, _ := newTestRuntime(t)
 
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product:         "naming",
+		Product:         "test-product",
 		BusinessOrderID: "biz-1",
 		Provider:        ProviderDodo,
 	})
@@ -56,7 +56,7 @@ func TestFulfillmentTaskRetriesWithBackoff(t *testing.T) {
 		t.Fatal(err)
 	}
 	intent := PaymentIntent{
-		ID: "pi-retry", BusinessOrderID: "biz-retry", Product: "naming",
+		ID: "pi-retry", BusinessOrderID: "biz-retry", Product: "test-product",
 	}
 	if err := tasks.EnsureQueued(ctx, intent); err != nil {
 		t.Fatal(err)

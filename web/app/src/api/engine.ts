@@ -23,7 +23,6 @@ export const RPC_METHODS = {
   ZiweiFullChart: 'ziwei.fullchart',
   BazhaiChart: 'bazhai.chart',
   BaziBond: 'bazi.bond',
-  QimingPick: 'qiming.pick',
   LiuyaoQigua: 'liuyao.qigua',
   LiuyaoChart: 'liuyao.chart',
   HuangliDays: 'huangli.days',
@@ -511,19 +510,6 @@ export interface BaziBondResult {
 /** 八字合盘：输入双方最小命盘（bazi.chart 结果）。 */
 export function engineBaziBond(chartA: unknown, chartB: unknown): Promise<BaziBondResult> {
   return engineRpc<BaziBondResult>(RPC_METHODS.BaziBond, { a: { chart: chartA }, b: { chart: chartB } })
-}
-
-export interface QimingPickResult {
-  wuxing1: string
-  wuxing2?: string
-  pools: Array<{ slot: string; chars: Array<{ char: string; frequency: string }> }>
-}
-
-/** 起名取字：按用神五行（金木水火土）取单/双字候选。 */
-export function engineQimingPick(wuxing1: string, wuxing2: string, count: number): Promise<QimingPickResult> {
-  const params: Record<string, unknown> = { wuxing1, count }
-  if (wuxing2) params.wuxing2 = wuxing2
-  return engineRpc<QimingPickResult>(RPC_METHODS.QimingPick, params)
 }
 
 export interface LiuyaoCasting {

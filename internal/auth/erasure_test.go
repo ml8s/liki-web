@@ -11,7 +11,7 @@ func TestEraseUserDestroysIdentityAndKeepsPseudonymousRecord(t *testing.T) {
 	store := newTestStore(t)
 	service, mailer := newTestService(t, store)
 	email := "erase@example.com"
-	if _, err := service.RequestEmailCode(ctx, email, "192.0.2.10", "erase-agent"); err != nil {
+	if _, err := service.RequestEmailCode(ctx, email, "192.0.2.10", "erase-agent", "zh-Hans"); err != nil {
 		t.Fatal(err)
 	}
 	result := login(t, service, email, mailer.codes[0])

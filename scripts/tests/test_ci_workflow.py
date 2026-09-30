@@ -22,8 +22,6 @@ class CIWorkflowTest(unittest.TestCase):
             "REFERRAL_PAYOUT_SECRET",
             "LISTEN_ADDR",
             "RETURN_URL",
-            "LIKI_LLM_API_KEY",
-            "LIKI_LLM_MODEL",
             "XUNHU_APPID",
             "XUNHU_APPSECRET",
         }

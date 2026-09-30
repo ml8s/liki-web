@@ -20,7 +20,7 @@ type fakeMailer struct {
 	err   error
 }
 
-func (f *fakeMailer) SendAuthCode(_ context.Context, _ string, code string) error {
+func (f *fakeMailer) SendAuthCode(_ context.Context, _ string, code string, _ string) error {
 	if f.err != nil {
 		return f.err
 	}
@@ -54,7 +54,7 @@ func newTestService(t *testing.T, store *Store) (*Service, *fakeMailer) {
 
 func login(t *testing.T, service *Service, email, code string) LoginResult {
 	t.Helper()
-	result, err := service.VerifyEmailCode(context.Background(), email, code, "192.0.2.10", "pytest")
+	result, err := service.VerifyEmailCode(context.Background(), email, code, "192.0.2.10", "pytest", "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestEmailLoginCreatesUserAndSession(t *testing.T) {
 	service, mailer := newTestService(t, store)
 	email := " User@Example.COM "
 
-	if _, err := service.RequestEmailCode(context.Background(), email, "192.0.2.10", "test-agent"); err != nil {
+	if _, err := service.RequestEmailCode(context.Background(), email, "192.0.2.10", "test-agent", "zh-Hans"); err != nil {
 		t.Fatal(err)
 	}
 	if len(mailer.codes) != 1 {
@@ -110,14 +110,14 @@ func TestDevCodeAllowsLoginWhenMailerFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	issued, err := service.RequestEmailCode(context.Background(), "user@example.com", "", "")
+	issued, err := service.RequestEmailCode(context.Background(), "user@example.com", "", "", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(issued.DevCode) != 6 {
 		t.Fatalf("dev code = %q", issued.DevCode)
 	}
-	result, err := service.VerifyEmailCode(context.Background(), "user@example.com", issued.DevCode, "", "")
+	result, err := service.VerifyEmailCode(context.Background(), "user@example.com", issued.DevCode, "", "", "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestProductionDoesNotExposeDevCode(t *testing.T) {
 	store := newTestStore(t)
 	service, mailer := newTestService(t, store)
 
-	issued, err := service.RequestEmailCode(context.Background(), "user@example.com", "", "")
+	issued, err := service.RequestEmailCode(context.Background(), "user@example.com", "", "", "zh-Hans")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,24 +147,24 @@ func TestEmailCodeCooldownAndReuse(t *testing.T) {
 	service, mailer := newTestService(t, store)
 	email := "cooldown@example.com"
 
-	if _, err := service.RequestEmailCode(context.Background(), email, "", ""); err != nil {
+	if _, err := service.RequestEmailCode(context.Background(), email, "", "", "zh-Hans"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.RequestEmailCode(context.Background(), email, "", ""); !errors.Is(err, ErrCodeCooldown) {
+	if _, err := service.RequestEmailCode(context.Background(), email, "", "", "zh-Hans"); !errors.Is(err, ErrCodeCooldown) {
 		t.Fatalf("second request err = %v, want cooldown", err)
 	}
 	// The first code is invalidated when a new code is issued after cooldown.
 	store.nowFunc = func() time.Time { return time.Now().UTC().Add(2 * time.Minute) }
-	if _, err := service.RequestEmailCode(context.Background(), email, "", ""); err != nil {
+	if _, err := service.RequestEmailCode(context.Background(), email, "", "", "zh-Hans"); err != nil {
 		t.Fatal(err)
 	}
 	if len(mailer.codes) != 2 {
 		t.Fatalf("codes = %d, want 2", len(mailer.codes))
 	}
-	if _, err := service.VerifyEmailCode(context.Background(), email, mailer.codes[0], "", ""); !errors.Is(err, ErrCodeInvalid) {
+	if _, err := service.VerifyEmailCode(context.Background(), email, mailer.codes[0], "", "", "en"); !errors.Is(err, ErrCodeInvalid) {
 		t.Fatalf("old code err = %v, want invalid", err)
 	}
-	if _, err := service.VerifyEmailCode(context.Background(), email, mailer.codes[1], "", ""); err != nil {
+	if _, err := service.VerifyEmailCode(context.Background(), email, mailer.codes[1], "", "", "en"); err != nil {
 		t.Fatalf("new code err = %v", err)
 	}
 }
@@ -173,13 +173,13 @@ func TestEmailCodeLocksAfterMaxAttempts(t *testing.T) {
 	store := newTestStore(t)
 	service, mailer := newTestService(t, store)
 	email := "lock@example.com"
-	if _, err := service.RequestEmailCode(context.Background(), email, "", ""); err != nil {
+	if _, err := service.RequestEmailCode(context.Background(), email, "", "", "zh-Hans"); err != nil {
 		t.Fatal(err)
 	}
 	code := mailer.codes[0]
 
 	for i := 0; i < 5; i++ {
-		if _, err := service.VerifyEmailCode(context.Background(), email, "000000", "", ""); !errors.Is(err, ErrCodeInvalid) {
+		if _, err := service.VerifyEmailCode(context.Background(), email, "000000", "", "", "en"); !errors.Is(err, ErrCodeInvalid) {
 			t.Fatalf("attempt %d err = %v, want invalid", i+1, err)
 		}
 	}
@@ -189,7 +189,7 @@ func TestEmailCodeLocksAfterMaxAttempts(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("before correct: attempts=%d used=%#v", attempts, usedAt)
-	if _, err := service.VerifyEmailCode(context.Background(), email, code, "", ""); !errors.Is(err, ErrCodeLocked) {
+	if _, err := service.VerifyEmailCode(context.Background(), email, code, "", "", "en"); !errors.Is(err, ErrCodeLocked) {
 		t.Fatalf("locked err = %v, want locked", err)
 	}
 }
@@ -198,17 +198,17 @@ func TestDisabledUserCannotLogin(t *testing.T) {
 	store := newTestStore(t)
 	service, mailer := newTestService(t, store)
 	email := "disabled@example.com"
-	if _, err := service.RequestEmailCode(context.Background(), email, "", ""); err != nil {
+	if _, err := service.RequestEmailCode(context.Background(), email, "", "", "zh-Hans"); err != nil {
 		t.Fatal(err)
 	}
 	result := login(t, service, email, mailer.codes[0])
 	if _, err := store.db.Exec(`UPDATE users SET status='disabled' WHERE id=?`, result.User.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.RequestEmailCode(context.Background(), email, "", ""); !errors.Is(err, ErrUserDisabled) {
+	if _, err := service.RequestEmailCode(context.Background(), email, "", "", "zh-Hans"); !errors.Is(err, ErrUserDisabled) {
 		t.Fatalf("issue err = %v, want disabled", err)
 	}
-	if _, err := service.VerifyEmailCode(context.Background(), email, mailer.codes[0], "", ""); !errors.Is(err, ErrUserDisabled) {
+	if _, err := service.VerifyEmailCode(context.Background(), email, mailer.codes[0], "", "", "en"); !errors.Is(err, ErrUserDisabled) {
 		t.Fatalf("verify err = %v, want disabled", err)
 	}
 }
@@ -217,7 +217,7 @@ func TestExpiredSessionRejected(t *testing.T) {
 	store := newTestStore(t)
 	service, mailer := newTestService(t, store)
 	email := "expired@example.com"
-	if _, err := service.RequestEmailCode(context.Background(), email, "", ""); err != nil {
+	if _, err := service.RequestEmailCode(context.Background(), email, "", "", "zh-Hans"); err != nil {
 		t.Fatal(err)
 	}
 	result := login(t, service, email, mailer.codes[0])
@@ -234,7 +234,7 @@ func TestSessionRevokeAndList(t *testing.T) {
 	email := "sessions@example.com"
 
 	request := func() LoginResult {
-		if _, err := service.RequestEmailCode(context.Background(), email, "", ""); err != nil {
+		if _, err := service.RequestEmailCode(context.Background(), email, "", "", "zh-Hans"); err != nil {
 			t.Fatal(err)
 		}
 		return login(t, service, email, mailer.codes[len(mailer.codes)-1])

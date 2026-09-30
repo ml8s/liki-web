@@ -26,7 +26,6 @@ Liki 是多 Agent 命理专家系统，四仓分工：
 
 - 用户/认证/权益/订单/支付/档案/会话持久化
 - **Liki Chat 产品**：通过 AG-UI 网关（`/api/chat/sessions/{id}/ag-ui`）调用 liki-agents 运行时
-- **确定性产品**（起名/报告/合婚/合盘）：直接调 engine JSON-RPC
 - 托管客户端 skill（`web/skills/liki`）供终端用户下载
 
 **Agent 模式（唯一）**：所有 chat 会话（含 profile-bound）都走 liki-agents，local 进程内 runner 已退役。
@@ -51,7 +50,7 @@ liki release bundle → 校验 SHA256 / archive digest
 ### 3.2 Agent 运行时
 
 - local 进程内 runner 已删除，Liki Chat 唯一路径是 liki-agents AG-UI
-- 必需 env：`LIKI_AGENTS_URL`、`LIKI_AGENTS_INTERNAL_TOKEN`、`LIKI_LLM_*`
+- 必需 env：`LIKI_AGENTS_URL`、`LIKI_AGENTS_INTERNAL_TOKEN`；模型 provider 凭据只属于 liki-agents，不得进入 liki-web runtime
 - `cmd/liki-web/main.go`：`SetAgentRunner` 把 AG-UI 客户端挂到 chat service；readiness 校验 agents 端点
 
 ### 3.3 镜像发布（release 触发）

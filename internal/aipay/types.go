@@ -22,7 +22,6 @@ const (
 const (
 	StatusPending        = "pending"
 	StatusPaid           = "paid"
-	FulfillmentNone      = "unfulfilled"
 	FulfillmentPending   = "pending_confirm"
 	FulfillmentConfirmed = "fulfilled"
 )

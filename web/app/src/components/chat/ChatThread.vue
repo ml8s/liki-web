@@ -12,17 +12,6 @@
       <el-empty
         :description="$t('chat.emptyThread')"
       >
-        <div class="suggestions">
-          <button
-            v-for="suggestion in suggestions"
-            :key="suggestion"
-            type="button"
-            class="suggestion"
-            @click="$emit('select', suggestion)"
-          >
-            {{ suggestion }}
-          </button>
-        </div>
       </el-empty>
       <div
         class="suggestions"

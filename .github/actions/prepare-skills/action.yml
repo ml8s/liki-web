@@ -75,7 +75,6 @@ runs:
         mkdir -p web/skills web/.well-known/agent-skills
         mkdir -p web/skills/liki
         cp -a "$skill_source"/. web/skills/liki/
-        cp -a "$extract/webapp" web/skills/liki/webapp
         cp "$extract/liki.tar.gz" web/skills/liki.tar.gz
         cp "$extract/index.json" web/.well-known/agent-skills/index.json
         if [ -f "$extract/manifest.json" ]; then
@@ -87,8 +86,7 @@ runs:
         set -euo pipefail
         test -f web/skills/liki/SKILL.md
         test -f web/skills/liki/VERSION.txt
-        test -f web/skills/liki/natal/app/mingshu.md
-        test -f web/skills/liki/webapp/mingshu/generate.md
+        test -f web/skills/liki/references/natal/app/mingshu.md
         test -f web/skills/liki.tar.gz
         test -f web/.well-known/agent-skills/index.json
         echo "liki VERSION: $(cat web/skills/liki/VERSION.txt)"

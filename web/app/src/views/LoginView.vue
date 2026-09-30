@@ -142,7 +142,7 @@ import { useAuthStore } from '@/stores/auth'
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const email = ref('')
 const code = ref('')
@@ -170,7 +170,7 @@ async function sendCode() {
   error.value = ''
   sending.value = true
   try {
-    const issued = await auth.requestEmailCode(email.value)
+    const issued = await auth.requestEmailCode(email.value, locale.value)
     devCode.value = issued.dev_code ?? ''
     codeSent.value = true
     startCountdown()
@@ -202,7 +202,7 @@ async function verify() {
   error.value = ''
   verifying.value = true
   try {
-    await auth.verifyEmailCode(email.value, code.value)
+    await auth.verifyEmailCode(email.value, code.value, locale.value)
     const requested = typeof route.query.redirect === 'string' ? route.query.redirect : '/app'
     await router.push(safeRedirect(requested))
   } catch (err) {

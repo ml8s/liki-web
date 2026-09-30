@@ -3,7 +3,6 @@ package dodo
 import (
 	"context"
 	"encoding/json"
-	"github.com/ml8s/liki-web/internal/product"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,20 +27,20 @@ func TestCreateCheckoutUnifiedRequest(t *testing.T) {
 	c := &Client{
 		checkoutSvc: dodopayments.NewCheckoutSessionService(option.WithBearerToken("test"), option.WithBaseURL(srv.URL)),
 		products: map[string]string{
-			"naming": "pdt_naming",
+			"liki-chat": "pdt_test_liki_chat",
 		},
 	}
 
 	req := payment.CheckoutRequest{
 		IntentID:        "pi-1",
 		BusinessOrderID: "biz-1",
-		Product:         string(product.ProductNaming),
+		Product:         "liki-chat",
 		AmountMinor:     990,
 		Currency:        "USD",
 		Email:           "user@example.com",
 		Locale:          "zh-Hant",
 		ReturnURL:       "https://liki.hk/api/payments/return/pi-1",
-		CancelURL:       "https://liki.hk/zh-Hant/naming?payment=cancelled",
+		CancelURL:       "https://liki.hk/zh-Hant/chat?payment=cancelled",
 		Metadata: map[string]string{
 			"payment_intent_id": "pi-1",
 		},
@@ -54,11 +53,11 @@ func TestCreateCheckoutUnifiedRequest(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 	cart := body["product_cart"].([]any)[0].(map[string]any)
-	if cart["product_id"] != "pdt_naming" || cart["amount"] != float64(990) {
+	if cart["product_id"] != "pdt_test_liki_chat" || cart["amount"] != float64(990) {
 		t.Fatalf("product cart = %#v", cart["product_cart"])
 	}
 	metadata := body["metadata"].(map[string]any)
-	if metadata["payment_intent_id"] != "pi-1" || metadata["product"] != "naming" {
+	if metadata["payment_intent_id"] != "pi-1" || metadata["product"] != "liki-chat" {
 		t.Fatalf("metadata = %#v", metadata)
 	}
 	if body["return_url"] != req.ReturnURL {

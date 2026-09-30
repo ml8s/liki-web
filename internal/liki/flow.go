@@ -45,7 +45,7 @@ func (f *Fulfiller) PrepareCheckout(ctx context.Context, businessOrderID string)
 	return payment.BusinessOrder{
 		ID: order.ID, UserID: order.UserID, Product: string(order.ProductID),
 		AmountMinor: order.AmountMinor, Currency: order.Currency,
-		Email: order.Email, Locale: "zh-Hant", Status: string(order.Status),
+		Email: order.Email, Status: string(order.Status),
 	}, nil
 }
 

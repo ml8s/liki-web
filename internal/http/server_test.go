@@ -19,9 +19,7 @@ func TestRegisterRoutes_DoesNotPanic(t *testing.T) {
 	mux := http.NewServeMux()
 	rl := NewRateLimiter()
 	defer rl.Stop()
-	deps := ServerDeps{
-		NamingStore: nil,
-	}
+	deps := ServerDeps{}
 	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
 
 	r := httptest.NewRequest("GET", "/api/health", nil)
@@ -43,7 +41,6 @@ func TestRegisterRoutes_Feedback(t *testing.T) {
 		t.Fatal(err)
 	}
 	deps := ServerDeps{
-		NamingStore:    nil,
 		FeedbackStore:  fstore,
 		FeedbackAPIKey: "test-key",
 	}
@@ -117,9 +114,7 @@ func TestRegisterRoutes_JSONRPC(t *testing.T) {
 	mux := http.NewServeMux()
 	rl := NewRateLimiter()
 	defer rl.Stop()
-	deps := ServerDeps{
-		NamingStore: nil,
-	}
+	deps := ServerDeps{}
 	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
 
 	r := httptest.NewRequest("POST", "/jsonrpc", nil)

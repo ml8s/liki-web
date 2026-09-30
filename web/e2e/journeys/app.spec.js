@@ -7,7 +7,6 @@ const protectedPages = [
   { path: '/app/', heading: '工作台' },
   { path: '/app/profiles', heading: '檔案' },
   { path: '/app/synastry', heading: '合盤' },
-  { path: '/app/naming', heading: '起名' },
   { path: '/app/divination', heading: '問卦' },
   { path: '/app/fengshui', heading: '風水' },
   { path: '/app/huangli', heading: '擇日' },

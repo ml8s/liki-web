@@ -5,19 +5,10 @@ export function normalizeScenario(value: unknown): ScenarioId {
   return scenario === 'naming' || scenario === 'mingshu' || scenario === 'hepan' ? scenario : 'general'
 }
 
-export interface ScenarioTarget {
-  path: string
-  service?: string
-  storeService?: boolean
-}
-
-export function resolveScenarioTarget(scenario: ScenarioId, profileIds: string[]): ScenarioTarget | null {
-  if (scenario === 'naming') return { path: '/naming' }
-  if (scenario === 'hepan') return { path: '/synastry' }
-  if (scenario === 'mingshu') {
-    const profileId = profileIds[0]
-    if (!profileId) return { path: '/profiles/new', service: 'bazi', storeService: true }
-    return { path: `/chat?profile=${encodeURIComponent(profileId)}&service=bazi` }
-  }
+// 落地页场景 → chat 服务映射：hepan 复用合盘(bond)，mingshu 复用看命(bazi)。
+// naming 无对应服务，走默认 Chat 入口。
+export function scenarioService(scenario: ScenarioId): string | null {
+  if (scenario === 'hepan') return 'bond'
+  if (scenario === 'mingshu') return 'bazi'
   return null
 }

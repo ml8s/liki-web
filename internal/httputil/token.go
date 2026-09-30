@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -48,30 +47,4 @@ func VerifyCapabilityToken(action, subject, token string, now time.Time) bool {
 
 func capabilityTokenPayload(action, subject string, expiresAt int64) string {
 	return "capability:v1|" + action + "|" + subject + "|" + strconv.FormatInt(expiresAt, 10)
-}
-
-// NewOrderAccessToken creates a bounded capability for one product order. It is
-// intended for e-mail links and other stateless report access; browser sessions
-// continue to use JWT ownership checks.
-func NewOrderAccessToken(productID, orderID string, issuedAt time.Time, ttl time.Duration) (string, error) {
-	if productID == "" || orderID == "" {
-		return "", fmt.Errorf("token: product and order are required")
-	}
-	if ttl <= 0 {
-		return "", fmt.Errorf("token: ttl must be positive")
-	}
-	return NewCapabilityToken("order-access", productID+"|"+orderID, issuedAt, ttl)
-}
-
-func VerifyOrderAccessToken(productID, orderID, token string, now time.Time) bool {
-	return VerifyCapabilityToken("order-access", productID+"|"+orderID, token, now)
-}
-
-// AuthorizeOrderAccess accepts either an authenticated owner session or a valid
-// bounded capability. Product handlers must still verify that the order is paid.
-func AuthorizeOrderAccess(r *http.Request, productID, orderID, ownerEmail string, now time.Time) bool {
-	if email, jwtOrderID, ok := JWTAuth(r); ok && email == ownerEmail && jwtOrderID == orderID {
-		return true
-	}
-	return VerifyOrderAccessToken(productID, orderID, r.URL.Query().Get("access_token"), now)
 }

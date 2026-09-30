@@ -9,10 +9,7 @@ import (
 	"net/http"
 
 	"github.com/ml8s/liki-web/internal/auth"
-	"github.com/ml8s/liki-web/internal/hepan"
 	"github.com/ml8s/liki-web/internal/liki"
-	"github.com/ml8s/liki-web/internal/mingshu"
-	"github.com/ml8s/liki-web/internal/naming"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/profile"
 	"github.com/ml8s/liki-web/internal/referral"
@@ -36,9 +33,6 @@ type Handler struct {
 	entitlement   *liki.EntitlementStore
 	payments      *payment.IntentStore
 	notifications *payment.NotificationStore
-	naming        *naming.Store
-	mingshu       *mingshu.Store
-	hepan         *hepan.Store
 	referral      ReferralEraser
 	requireUser   RequireUserFunc
 }
@@ -51,18 +45,15 @@ func NewHandler(
 	entitlement *liki.EntitlementStore,
 	payments *payment.IntentStore,
 	notifications *payment.NotificationStore,
-	naming *naming.Store,
-	mingshu *mingshu.Store,
-	hepan *hepan.Store,
 	referral ReferralEraser,
 	requireUser RequireUserFunc,
 ) *Handler {
 	return &Handler{
 		profiles: profiles, chat: chatStore, auth: authStore,
 		orders: orders, entitlement: entitlement, payments: payments,
-		notifications: notifications, naming: naming, mingshu: mingshu, hepan: hepan,
-		referral:    referral,
-		requireUser: requireUser,
+		notifications: notifications,
+		referral:      referral,
+		requireUser:   requireUser,
 	}
 }
 
@@ -113,15 +104,6 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		}},
 		{name: "payment_notifications", erase: func(ctx context.Context) (int64, error) {
 			return h.notifications.AnonymizeUser(ctx, user.ID, user.Email, tombstone)
-		}},
-		{name: "naming", erase: func(ctx context.Context) (int64, error) {
-			return h.naming.AnonymizeEmail(ctx, user.Email, tombstone)
-		}},
-		{name: "mingshu", erase: func(ctx context.Context) (int64, error) {
-			return h.mingshu.AnonymizeEmail(ctx, user.Email, tombstone)
-		}},
-		{name: "hepan", erase: func(ctx context.Context) (int64, error) {
-			return h.hepan.AnonymizeEmail(ctx, user.Email, tombstone)
 		}},
 	}
 	for _, domain := range domains {

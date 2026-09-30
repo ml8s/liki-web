@@ -43,11 +43,11 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false
       }
     },
-    async requestEmailCode(email: string) {
-      return authApi.requestEmailCode(email)
+    async requestEmailCode(email: string, locale: string) {
+      return authApi.requestEmailCode(email, locale)
     },
-    async verifyEmailCode(email: string, code: string) {
-      const result = await authApi.verifyEmailCode(email, code)
+    async verifyEmailCode(email: string, code: string, locale: string) {
+      const result = await authApi.verifyEmailCode(email, code, locale)
       this.user = result.user
       this.status = 'authenticated'
       return result.user

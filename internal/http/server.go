@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"os"
@@ -11,44 +10,32 @@ import (
 	"github.com/ml8s/liki-web/internal/account"
 	"github.com/ml8s/liki-web/internal/admin"
 	"github.com/ml8s/liki-web/internal/adminauth"
-	"github.com/ml8s/liki-web/internal/agent"
 	"github.com/ml8s/liki-web/internal/aipay"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/feedback"
-	"github.com/ml8s/liki-web/internal/hepan"
 	"github.com/ml8s/liki-web/internal/liki"
-	"github.com/ml8s/liki-web/internal/mingshu"
-	"github.com/ml8s/liki-web/internal/naming"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/profile"
 	"github.com/ml8s/liki-web/internal/referral"
 )
 
 type ServerDeps struct {
-	OnPaid           func(ctx context.Context, orderID string)
-	PaymentRuntime   *payment.Runtime
-	AuthHandler      *auth.Handler
-	ReferralHandler  *referral.Handler
-	ReferralStore    *referral.Store
-	LikiHandler      *liki.Handler
-	AipayHandler     *aipay.Handler
-	ProfileHandler   *profile.Handler
-	AccountHandler   *account.Handler
-	NamingStore      *naming.Store
-	MingShuStore     *mingshu.Store
-	MingShuGenerator *mingshu.Generator
-	HepanStore       *hepan.Store
-	HepanGenerator   *hepan.Generator
-	NamingAgent      *agent.Agent
-	Agent            *agent.Agent
-	MetricsHandler   http.HandlerFunc
-	Readiness        ReadinessChecker
-	FeedbackStore    *feedback.Store
-	FeedbackAPIKey   string
-	AdminEmail       string
-	AdminAuthorizer  *adminauth.Store
-	PartnerNotifier  referral.DecisionNotifier
-	DevMode          bool
+	PaymentRuntime  *payment.Runtime
+	AuthHandler     *auth.Handler
+	ReferralHandler *referral.Handler
+	ReferralStore   *referral.Store
+	LikiHandler     *liki.Handler
+	AipayHandler    *aipay.Handler
+	ProfileHandler  *profile.Handler
+	AccountHandler  *account.Handler
+	MetricsHandler  http.HandlerFunc
+	Readiness       ReadinessChecker
+	FeedbackStore   *feedback.Store
+	FeedbackAPIKey  string
+	AdminEmail      string
+	AdminAuthorizer *adminauth.Store
+	PartnerNotifier referral.DecisionNotifier
+	DevMode         bool
 }
 
 func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl, verifyRL *RateLimiter) http.Handler {
@@ -121,11 +108,6 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		deps.AccountHandler.RegisterRoutes(mux, erasureLimit)
 	}
 
-	// ── retired naming compatibility routes ──
-	if deps.NamingStore != nil {
-		naming.RegisterRoutes(mux, deps.NamingStore, deps.NamingAgent, rateLimit)
-	}
-
 	mux.HandleFunc("GET /api/health", handleHealth())
 	readinessLimit := func(next http.HandlerFunc) http.HandlerFunc {
 		return rl.Wrap(10.0/60, 10, next)
@@ -140,18 +122,8 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		mux.HandleFunc("GET /api/internal/metrics", deps.MetricsHandler)
 	}
 
-	// ── retired mingshu compatibility routes ──
-	if deps.MingShuStore != nil {
-		mingshu.RegisterRoutes(mux, deps.MingShuStore, rateLimit)
-	}
-
-	// ── retired hepan compatibility routes ──
-	if deps.HepanStore != nil {
-		hepan.RegisterRoutes(mux, deps.HepanStore, rateLimit)
-	}
-
-	// ── admin routes (naming-specific — registered here to avoid import cycle) ──
-	if deps.NamingStore != nil {
+	// ── admin routes (registered here to avoid import cycle) ──
+	if deps.ReferralStore != nil {
 		if deps.AuthHandler != nil || deps.AdminEmail != "" {
 			adminIdentity := func(r *http.Request) (auth.User, bool) {
 				if deps.AuthHandler == nil {
@@ -159,7 +131,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 				}
 				return deps.AuthHandler.IdentityFromRequest(r)
 			}
-			admin.RegisterRoutes(mux, naming.NewAdminService(deps.NamingStore), deps.OnPaid, deps.ReferralStore, deps.AdminAuthorizer, adminIdentity, deps.PartnerNotifier)
+			admin.RegisterRoutes(mux, deps.ReferralStore, deps.AdminAuthorizer, adminIdentity, deps.PartnerNotifier)
 		}
 	}
 	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3）──

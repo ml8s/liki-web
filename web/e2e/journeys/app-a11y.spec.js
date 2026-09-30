@@ -38,7 +38,6 @@ const pages = [
   { path: '/app/profiles/new', name: 'profile-new', marker: '.birth-form' },
   { path: '/app/profiles/p_1', name: 'profile-detail', marker: '.paipan-preview' },
   { path: '/app/synastry', name: 'synastry', marker: '.b-form' },
-  { path: '/app/naming', name: 'naming', marker: '.el-select' },
   { path: '/app/divination', name: 'divination', marker: '.el-input' },
   { path: '/app/fengshui', name: 'fengshui', marker: '.el-select' },
   { path: '/app/huangli', name: 'huangli', marker: '.el-select' },

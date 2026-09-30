@@ -11,8 +11,7 @@ cd "$PROJECT_DIR"
 for path in \
   web/skills/liki/SKILL.md \
   web/skills/liki/VERSION.txt \
-  web/skills/liki/natal/app/mingshu.md \
-  web/skills/liki/webapp/mingshu/generate.md \
+  web/skills/liki/references/natal/app/mingshu.md \
   web/skills/liki.tar.gz \
   web/.well-known/agent-skills/index.json; do
   test -f "$path" || { echo "❌ Missing prepared skill artifact: $path" >&2; exit 1; }

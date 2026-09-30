@@ -45,7 +45,7 @@ export const useCommerceStore = defineStore('commerce', {
   }),
   getters: {
     chatProduct: state => state.products.find(item => item.id === 'liki-chat') ?? null,
-    chatPurchased: () => useEntitlementsStore().allowedSkills.length > 0,
+    chatPurchased: () => useEntitlementsStore().purchased,
     showProductError: state => !!state.productsError && !state.products.length,
     initialLoading: state =>
       !state.products.length && (state.loadingProducts || useEntitlementsStore().loading || useChatStore().loadingSessions),

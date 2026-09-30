@@ -25,6 +25,7 @@ admin.super
 partner.read
 partner.approve
 partner.freeze
+partner.unfreeze
 commission.read
 commission.void
 payout.read

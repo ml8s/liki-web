@@ -27,8 +27,6 @@ services:
       - LISTEN_ADDR=:8081
       - LIKI_DATA_DIR=/var/lib/liki
       - LIKI_ENGINE_URL=http://engine:8082/jsonrpc
-      - LIKI_SELF_URL=http://127.0.0.1:8081
-      - LIKI_SKILLS_DIR=/web/skills
       - LIKI_AGENTS_URL=${LIKI_AGENTS_URL:-http://127.0.0.1:18083}
       - LIKI_AGENTS_INTERNAL_TOKEN=${LIKI_AGENTS_INTERNAL_TOKEN:?LIKI_AGENTS_INTERNAL_TOKEN is required}
     tmpfs:

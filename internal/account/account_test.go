@@ -12,10 +12,7 @@ import (
 	"time"
 
 	"github.com/ml8s/liki-web/internal/auth"
-	"github.com/ml8s/liki-web/internal/hepan"
 	"github.com/ml8s/liki-web/internal/liki"
-	"github.com/ml8s/liki-web/internal/mingshu"
-	"github.com/ml8s/liki-web/internal/naming"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/profile"
 	"github.com/ml8s/liki-web/internal/referral"
@@ -54,14 +51,6 @@ func TestHandleErasure(t *testing.T) {
 	entitlementStore := liki.NewEntitlementStore(db)
 	paymentStore := payment.NewIntentStore(db)
 	notificationStore := payment.NewNotificationStore(db)
-	namingStore := naming.NewStore(openTestDBNamed(t, "naming.db"))
-	mingshuStore := mingshu.NewStore(openTestDBNamed(t, "mingshu.db"))
-	hepanDB := openTestDBNamed(t, "hepan.db")
-	if _, err := hepanDB.Exec(hepan.Schema); err != nil {
-		t.Fatal(err)
-	}
-	hepanStore := hepan.NewStore(hepanDB)
-
 	referralDBPath := filepath.Join(t.TempDir(), "referral.db")
 	referralDB, err := sqliteutil.Open(referralDBPath)
 	if err != nil {
@@ -133,7 +122,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 
 	handler := NewHandler(profileStore, chatStore, authStore,
 		orderStore, entitlementStore, paymentStore, notificationStore,
-		namingStore, mingshuStore, hepanStore, referralStore,
+		referralStore,
 		func(next http.HandlerFunc) http.HandlerFunc {
 			return func(w http.ResponseWriter, r *http.Request) {
 				user := auth.User{ID: "user_1", Email: "u@example.com", Status: auth.UserActive}

@@ -170,12 +170,10 @@ FEEDBACK_API_KEY=... python3 scripts/feedback-read.py --status pending
 ## Retired product compatibility
 
 The naming, Ming Shu, and He Pan public pages are Liki Chat CTA surfaces, not
-separate products. Historical order/report and naming-chat routes remain under
-`/api/naming`, `/api/mingshu`, and `/api/hepan` only so previously paid records
-can be read. New order, activation, and checkout creation is retired and fails
-closed; all new commerce uses the Liki Chat APIs above.
-The historical email-only naming login and order-selection routes also return
-`410 product_retired`; they never establish a session.
+separate products. Their historical commerce backends (orders, checkout,
+naming-chat sessions, email-only login) have been fully removed. Requests to the
+retired `/api/naming`, `/api/mingshu`, and `/api/hepan` routes return `404`;
+they never establish a session or grant an entitlement.
 
 ## Internal
 

@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue'
+import { ref } from 'vue'
 import type { ChatMessage } from '@/api/chat'
 import { useClipboard } from '@/composables/useClipboard'
 import SystemProfileCard from '@/components/chat/SystemProfileCard.vue'
@@ -57,8 +57,6 @@ import AppMarkdown from '@/components/common/AppMarkdown.vue'
 const props = defineProps<{ message: ChatMessage }>()
 const copied = ref(false)
 const { copy } = useClipboard()
-
-onBeforeUnmount(() => {})
 
 // 复制：优先 navigator.clipboard，失败/不可用时降级 execCommand
 async function handleCopy() {

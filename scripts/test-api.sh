@@ -93,13 +93,8 @@ check_201()  { check "$1 HTTP" "201" "${2:-}"; }
 check_204()  { check "$1 HTTP" "204" "${2:-}"; }
 check_302()  { check "$1 HTTP" "302" "${2:-}"; }
 check_400()  { check "$1 HTTP" "400" "${2:-}"; }
-check_401()  { check "$1 HTTP" "401" "${2:-}"; }
 check_403()  { check "$1 HTTP" "403" "${2:-}"; }
 check_404()  { check "$1 HTTP" "404" "${2:-}"; }
-check_410()  { check "$1 HTTP" "410" "${2:-}"; }
-check_422()  { check "$1 HTTP" "422" "${2:-}"; }
-check_405()  { check "$1 HTTP" "405" "${2:-}"; }
-check_any()  { check_range "$1 HTTP" "${2:-}" "${3:-}"; }
 
 # ── test data ─────────────────────────────────────────────────────
 
@@ -166,6 +161,14 @@ if [ "$_caddy_check" = "302" ] || [ "$_caddy_check" = "308" ]; then
   loc=$(redir_to "en" /hepan)
   check "  /hepan en → /en/hepan"            "$BASE/en/hepan"         "$loc"
 
+  # Legacy chat paths land in the Liki Chat app (product chat pages removed)
+  loc=$(redir_to "zh-CN" /chat)
+  check "  /chat zh-CN → /app/chat"          "$BASE/app/chat"         "$loc"
+  loc=$(redir_to "en" /chat)
+  check "  /chat en → /app/chat"             "$BASE/app/chat"         "$loc"
+  loc=$(redir_to "en" /naming/chat)
+  check "  /naming/chat → /app/chat"         "$BASE/app/chat"         "$loc"
+
   # Already locale-prefixed → 200 (no redirect loop)
   s=$(caddy GET /zh-Hans/naming)
   check_200 "GET /zh-Hans/naming (no redirect)" "$s"
@@ -189,10 +192,10 @@ echo "${BOLD}── Orders ──${NC}"
 
 # Retired product creation fails closed.
 s=$(api POST /api/naming/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"naming\",\"currency\":\"USD\",\"lang\":\"zh-Hans\"}")
-check_410 "POST /api/naming/orders (retired)" "$s"
+check_404 "POST /api/naming/orders (removed)" "$s"
 
 s=$(api POST /api/naming/orders/select '{"order_id":"no-such-id","email":"test@example.com"}')
-check_410 "POST /api/naming/orders/select (retired)" "$s"
+check_404 "POST /api/naming/orders/select (removed)" "$s"
 
 # Order status — non-existent
 s=$(api GET /api/naming/orders/nonexistent/status)
@@ -210,7 +213,7 @@ echo "${BOLD}── Auth ──${NC}"
 
 # Email-only login is retired and can never establish an order session.
 s=$(api POST /api/naming/auth/login '{"email":"no-such@example.com"}')
-check_410 "POST /api/naming/auth/login (retired)" "$s"
+check_404 "POST /api/naming/auth/login (removed)" "$s"
 
 # ============================================================================
 # Payment
@@ -229,37 +232,19 @@ s=$(api GET "/api/payments/return/nonexistent")
 check_302 "GET /api/payments/return/{id} (unknown)" "$s"
 
 # ============================================================================
-# Agent
+# Naming compatibility
 # ============================================================================
 echo ""
-echo "${BOLD}── Agent ──${NC}"
-
-	# Broken JSON — auth check before body parse (runs here before burst exhausted)
-	s=$(api POST /api/naming/agent/chat '{broken}')
-	check_401 "POST /api/naming/agent/chat (broken JSON - auth before body)" "$s"
-
-# With invalid JWT cookie → 401
-s=$(curl -s -w '%{http_code}' -o "$TMP/body" -X POST "$API/api/naming/agent/chat" \
-  -H 'Content-Type: application/json' \
-  -H "Cookie: liki_token=not-a-valid-jwt" \
-  -d '{"message":"hello","lang":"zh-Hans"}')
-check_401 "POST /api/naming/agent/chat (invalid JWT)" "$s"
-
-# With invalid JWT in Authorization header
-s=$(curl -s -w '%{http_code}' -o "$TMP/body" -X POST "$API/api/naming/agent/chat" \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer invalid' \
-  -d '{"message":"hello","lang":"zh-Hans"}')
-check_401 "POST /api/naming/agent/chat (invalid Bearer)" "$s"
+echo "${BOLD}── Naming compatibility ──${NC}"
 
 # Chat history — no JWT
 s=$(api GET /api/naming/orders/nonexistent/messages)
-check_401 "GET /api/naming/orders/{id}/messages (no JWT)" "$s"
+check_404 "GET /api/naming/orders/{id}/messages (no JWT)" "$s"
 
 # Chat history — with invalid JWT
 s=$(curl -s -w '%{http_code}' -o "$TMP/body" -X GET "$API/api/naming/orders/nonexistent/messages" \
   -H "Cookie: liki_token=not-a-valid-jwt")
-check_401 "GET /api/naming/orders/{id}/messages (invalid JWT)" "$s"
+check_404 "GET /api/naming/orders/{id}/messages (invalid JWT)" "$s"
 
 # ============================================================================
 # Admin
@@ -281,22 +266,22 @@ check_403 "GET /api/admin/session (no session)" "$s"
 
 # Admin list orders — no unified session (should not reach handler, auth fails first)
 s=$(api GET "/api/admin/orders?email=$TEST_EMAIL")
-check_403 "GET /api/admin/orders (no JWT)" "$s"
+check_404 "GET /api/admin/orders (removed)" "$s"
 
 # Admin create order — no JWT
 s=$(api POST /api/admin/orders "{\"email\":\"$TEST_EMAIL\",\"product\":\"naming\"}")
-check_403 "POST /api/admin/orders (no JWT)" "$s"
+check_404 "POST /api/admin/orders (removed)" "$s"
 
 # Admin expire order — no JWT
-s=$(api PATCH "/api/admin/orders/$ORDER_ID/expire" '{"expires_at":"2026-07-10 00:00:00"}')
-check_403 "PATCH /api/admin/orders/{id}/expire (no JWT)" "$s"
+s=$(api PATCH "/api/admin/orders/nonexistent/expire" '{"expires_at":"2026-07-10 00:00:00"}')
+check_404 "PATCH /api/admin/orders/{id}/expire (removed)" "$s"
 
 # Admin verification codes — no JWT
 s=$(api GET /api/admin/verification-codes)
-check_403 "GET /api/admin/verification-codes (no JWT)" "$s"
+check_404 "GET /api/admin/verification-codes (removed)" "$s"
 
 s=$(api POST /api/admin/verification-codes '{"count":1}')
-check_403 "POST /api/admin/verification-codes (no JWT)" "$s"
+check_404 "POST /api/admin/verification-codes (removed)" "$s"
 
 # ============================================================================
 # Verification Codes
@@ -306,7 +291,7 @@ echo "${BOLD}── Verification Codes ──${NC}"
 
 # Retired product activation fails closed.
 s=$(api POST /api/naming/verification-codes/redeem '{"code":"XXXXXXXX","email":"test@example.com"}')
-check_410 "POST /api/naming/verification-codes/redeem (retired)" "$s"
+check_404 "POST /api/naming/verification-codes/redeem (removed)" "$s"
 
 # ============================================================================
 # Misc
@@ -330,7 +315,7 @@ echo "${BOLD}── Edge Cases ──${NC}"
 
 # Malformed JSON (1 representative — L4 Go unit covers all endpoints in detail)
 s=$(api POST /api/naming/orders '{broken}')
-check_410 "POST /api/naming/orders (retired)" "$s"
+check_404 "POST /api/naming/orders (removed)" "$s"
 
 # Unknown endpoints
 s=$(api GET /api/unknown)
@@ -341,7 +326,7 @@ check_404 "POST /api/unknown (not found)" "$s"
 
 # Method not allowed — GET on POST-only endpoints
 s=$(api GET '/api/naming/orders?email=test@example.com')
-check_405 "GET /api/naming/orders (method not allowed)" "$s"
+check_404 "GET /api/naming/orders (removed)" "$s"
 
 # ============================================================================
 # Rate Limiting (optional — only runs when SKIP_EXTERNAL=1 is NOT set)

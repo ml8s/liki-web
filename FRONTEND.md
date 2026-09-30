@@ -36,7 +36,6 @@ Authenticated routes live under `/app`:
 /app/profiles/new
 /app/profiles/:id
 /app/synastry
-/app/naming
 /app/divination
 /app/fengshui
 /app/huangli
@@ -179,6 +178,6 @@ The public `/naming`, `/mingshu`, and `/hepan` pages are Liki Chat CTA pages.
 They explain a scenario and send the visitor to `/app?scenario=…`, just as the
 home page sends visitors to the app.
 
-`web/js` retains historical report readers. The public naming activation and
-chat URLs redirect to the Liki Chat scenario; backend compatibility endpoints
-never create or modify a Liki Chat entitlement.
+`web/js` retains the report demo renderers used by the Ming Shu and He Pan CTA
+pages. The retired naming activation and chat URLs redirect to the Liki Chat
+scenario; the retired commerce backends have been removed.

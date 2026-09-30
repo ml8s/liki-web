@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
@@ -23,15 +22,9 @@ import (
 
 	"github.com/ml8s/liki-web/internal/account"
 	"github.com/ml8s/liki-web/internal/adminauth"
-	"github.com/ml8s/liki-web/internal/agent"
 	"github.com/ml8s/liki-web/internal/aipay"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/dodo"
-	"github.com/ml8s/liki-web/internal/hepan"
-	"github.com/ml8s/liki-web/internal/mingshu"
-	"github.com/ml8s/liki-web/internal/naming"
-	"github.com/ml8s/liki-web/internal/paymentflow"
-	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/profile"
 	"github.com/ml8s/liki-web/internal/referral"
 	"github.com/ml8s/liki-web/internal/xunhu"
@@ -41,7 +34,6 @@ import (
 	apphttp "github.com/ml8s/liki-web/internal/http"
 	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/liki"
-	"github.com/ml8s/liki-web/internal/llm"
 	"github.com/ml8s/liki-web/internal/metrics"
 	"github.com/ml8s/liki-web/internal/payment"
 )
@@ -69,14 +61,7 @@ type Config struct {
 	XunhuAppSecret      string
 	PaymentWebhookURL   string
 	AlipayConfig        aipay.Config
-	LLMAPIKey           string
-	LLMBaseURL          string
-	LLMModel            string
-	LLMThinking         bool
-	SkillsDir           string
-	PromptFile          string
 	EngineURL           string
-	SelfURL             string
 	AgentURL            string
 	AgentInternalToken  string
 	AgentTimeoutSeconds int
@@ -100,14 +85,7 @@ func LoadConfig() Config {
 		XunhuAppSecret:      envOr("XUNHU_APPSECRET", ""),
 		PaymentWebhookURL:   envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
 		AlipayConfig:        loadAlipayConfig(),
-		LLMAPIKey:           envOr("LIKI_LLM_API_KEY", ""),
-		LLMBaseURL:          os.Getenv("LIKI_LLM_BASE_URL"),
-		LLMModel:            envOr("LIKI_LLM_MODEL", ""),
-		LLMThinking:         envOrBool("LIKI_LLM_THINKING", false),
-		SkillsDir:           envOr("LIKI_SKILLS_DIR", "web/skills"),
-		PromptFile:          envOr("LIKI_PROMPT_FILE", "liki/SKILL.md"),
 		EngineURL:           envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
-		SelfURL:             envOr("LIKI_SELF_URL", "http://127.0.0.1:8081"),
 		AgentURL:            strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
 		AgentInternalToken:  os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
 		AgentTimeoutSeconds: envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
@@ -153,7 +131,7 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
 	// Validate required config
-	requireEnv("JWT_SECRET", cfg.JWTSecret, "LIKI_LLM_API_KEY", cfg.LLMAPIKey, "LIKI_LLM_MODEL", cfg.LLMModel)
+	requireEnv("JWT_SECRET", cfg.JWTSecret)
 	if err := validateRuntimeURLs(cfg); err != nil {
 		slog.Error("invalid runtime URL configuration", "err", err)
 		os.Exit(1)
@@ -178,12 +156,6 @@ func main() {
 	defer func() { _ = feedbackDB.Close() }()
 	likiDB := open("liki.db")
 	defer func() { _ = likiDB.Close() }()
-	namingDB := open("naming.db")
-	defer func() { _ = namingDB.Close() }()
-	mingshuDB := open("mingshu.db")
-	defer func() { _ = mingshuDB.Close() }()
-	hepanDB := open("hepan.db")
-	defer func() { _ = hepanDB.Close() }()
 	aipayDB := open("aipay.db")
 	defer func() { _ = aipayDB.Close() }()
 
@@ -200,10 +172,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// ── products ──
-	namingStore := naming.NewStore(namingDB)
-	mingshuStore := mingshu.NewStore(mingshuDB)
-
 	// Init services
 	emailClient := email.New(cfg.ResendAPIKey, cfg.ResendFrom)
 
@@ -213,48 +181,6 @@ func main() {
 	dodoClient := dodo.New(cfg.DodoAPIKey, cfg.DodoWebhookKey, cfg.DodoTestMode, dodoProducts)
 
 	xunhuClient := xunhu.New(cfg.XunhuAppID, cfg.XunhuAppSecret, cfg.PaymentWebhookURL)
-
-	llmClient := llm.New(cfg.LLMAPIKey, cfg.LLMBaseURL, cfg.LLMModel, cfg.LLMThinking)
-	prompt, err := os.ReadFile(filepath.Join(cfg.SkillsDir, cfg.PromptFile))
-	if err != nil {
-		slog.Error("read prompt file", "err", err, "dir", cfg.SkillsDir, "file", cfg.PromptFile)
-		os.Exit(1)
-	}
-
-	// 命名 agent 工具：read_file + RPC（懒发现）。命名聊天走字库 RPC，不用命理 Python 工具。
-	namingTools := agent.NewToolRegistry(cfg.EngineURL)
-	namingTools.Register("read_file",
-		"Read a file from the skills directory. Use this to load skill instructions or report templates.",
-		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. liki/natal/domains/bazi/caiyun.md"}},"required":["path"]}`),
-		agent.ReadFileHandler(cfg.SkillsDir))
-
-	// 报告 agent 工具：read_file + engine RPC。工具 schema 通过 rpc.discover
-	// 懒发现，避免把 skill 包中的旧 Python manifest 固化进 web 服务。
-	reportTools := agent.NewToolRegistry(cfg.EngineURL)
-	reportTools.Register("read_file",
-		"Read a file from the skills directory. Use this to load skill instructions or report templates.",
-		json.RawMessage(`{"type":"object","properties":{"path":{"type":"string","description":"Relative path within skills directory, e.g. liki/natal/domains/bazi/caiyun.md"}},"required":["path"]}`),
-		agent.ReadFileHandler(cfg.SkillsDir))
-
-	namingAgent := agent.NewAgent(llmClient, namingTools, string(prompt))
-	reportAgent := agent.NewAgent(llmClient, reportTools, "")
-	mingshuGenerator := mingshu.NewGenerator(reportAgent, mingshuStore)
-	if err := mingshuGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/mingshu")); err != nil {
-		slog.Error("mingshu: load prompts", "err", err)
-		os.Exit(1)
-	}
-
-	// ── hepan ──
-	if _, err := hepanDB.Exec(hepan.Schema); err != nil {
-		slog.Error("init hepan schema", "err", err)
-		os.Exit(1)
-	}
-	hepanStore := hepan.NewStore(hepanDB)
-	hepanGenerator := hepan.NewGenerator(reportAgent, hepanStore)
-	if err := hepanGenerator.LoadPromptsFrom(filepath.Join(cfg.SkillsDir, "liki/webapp/hepan")); err != nil {
-		slog.Error("load hepan prompts", "err", err)
-		os.Exit(1)
-	}
 
 	// Liki Chat owns exactly the one installable skill.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -296,9 +222,14 @@ func main() {
 	}
 
 	// ── Callbacks ──
-	authMailer := auth.MailerFunc(func(ctx context.Context, email, code string) error {
-		subject := "Liki 登录验证码"
-		body := `<p>你的 Liki 登录验证码：</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">` + code + `</p><p>验证码 10 分钟内有效。</p>`
+	authMailer := auth.MailerFunc(func(ctx context.Context, email, code, locale string) error {
+		subject, body := "Liki login code", `<p>Your Liki login code:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">`+code+`</p><p>The code is valid for 10 minutes.</p>`
+		switch locale {
+		case "zh-Hant":
+			subject, body = "Liki 登入驗證碼", `<p>你的 Liki 登入驗證碼：</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">`+code+`</p><p>驗證碼 10 分鐘內有效。</p>`
+		case "zh-Hans", "":
+			subject, body = "Liki 登录验证码", `<p>你的 Liki 登录验证码：</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">`+code+`</p><p>验证码 10 分钟内有效。</p>`
+		}
 		return emailClient.SendReport(ctx, email, subject, body)
 	})
 	partnerDecisionEmail := func(ctx context.Context, item referral.PartnerApplication, approved bool, reason string) error {
@@ -436,7 +367,6 @@ func main() {
 		os.Exit(1)
 	}
 	chatDuration := 30 * 24 * time.Hour
-	onPaid := namingOnPaid(namingStore, emailClient, cfg.ReturnURL)
 
 	intents := payment.NewIntentStore(platformDB)
 	notifications := payment.NewNotificationStore(platformDB)
@@ -458,11 +388,6 @@ func main() {
 		slog.Error("init payment events", "err", err)
 		os.Exit(1)
 	}
-	// Retired flows remain registered only to fulfill and reconcile intents
-	// created before the single-product cutover.
-	namingFlow := paymentflow.NewNamingFlow(namingStore, 15)
-	mingshuFlow := paymentflow.NewMingShuFlow(mingshuStore, mingshuGenerator, notifications, cfg.ReturnURL)
-	hepanFlow := paymentflow.NewHepanFlow(hepanStore, hepanGenerator, notifications, cfg.ReturnURL)
 	dodoConfigured := cfg.DodoAPIKey != "" && cfg.DodoWebhookKey != ""
 	if dodoConfigured && cfg.DodoProductLikiChat == "" {
 		slog.Warn("dodo product is not configured for liki-chat; USD chat checkout will fail")
@@ -490,10 +415,6 @@ func main() {
 		slog.Warn("xunhu payment provider is not fully configured; it is disabled")
 	}
 	flows := map[string]payment.ProductFlow{
-		string(product.ProductNaming):  namingFlow,
-		string(product.ProductMingShu): mingshuFlow,
-		string(product.ProductHePan):   hepanFlow,
-
 		string(liki.ProductChat): liki.NewFulfiller(commerceOrders, entitlements, liki.ProductChat, chatDuration),
 	}
 	paymentSender := paymentEmailSender{client: emailClient}
@@ -525,8 +446,7 @@ func main() {
 	readiness := func(ctx context.Context) error {
 		for name, db := range map[string]*sql.DB{
 			"platform": platformDB, "profiles": profilesDB, "feedback": feedbackDB,
-			"liki": likiDB, "naming": namingDB, "mingshu": mingshuDB,
-			"hepan": hepanDB, "aipay": aipayDB,
+			"liki": likiDB, "aipay": aipayDB,
 		} {
 			if err := db.PingContext(ctx); err != nil {
 				return fmt.Errorf("database %s: %w", name, err)
@@ -543,7 +463,6 @@ func main() {
 
 	mux := http.NewServeMux()
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
-		OnPaid:          onPaid, // admin-created orders only
 		PaymentRuntime:  paymentRuntime,
 		AuthHandler:     authHandler,
 		ReferralHandler: referralHandler,
@@ -559,28 +478,18 @@ func main() {
 			entitlements,
 			intents,
 			notifications,
-			namingStore,
-			mingshuStore,
-			hepanStore,
 			referralStore,
 			authHandler.RequireUser,
 		),
-		NamingStore:      namingStore,
-		MingShuStore:     mingshuStore,
-		MingShuGenerator: mingshuGenerator,
-		HepanStore:       hepanStore,
-		HepanGenerator:   hepanGenerator,
-		FeedbackStore:    feedbackStore,
-		FeedbackAPIKey:   cfg.FeedbackAPIKey,
-		AdminEmail:       os.Getenv("ADMIN_EMAIL"),
-		AdminAuthorizer:  adminAuthorizer,
+		FeedbackStore:   feedbackStore,
+		FeedbackAPIKey:  cfg.FeedbackAPIKey,
+		AdminEmail:      os.Getenv("ADMIN_EMAIL"),
+		AdminAuthorizer: adminAuthorizer,
 		PartnerNotifier: func(ctx context.Context, item referral.PartnerApplication, approved bool, reason string) {
 			if err := partnerDecisionEmail(ctx, item, approved, reason); err != nil {
 				slog.Warn("send partner decision notification", "application_id", item.ID, "err", err)
 			}
 		},
-		NamingAgent:    namingAgent,
-		Agent:          reportAgent,
 		MetricsHandler: metrics.Handler(os.Getenv("METRICS_TOKEN")),
 		Readiness:      readiness,
 		DevMode:        cfg.DevMode,
@@ -655,29 +564,6 @@ func main() {
 		}
 	}()
 
-	// Background stale order cleanup
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				slog.Error("panic in cleanupStaleOrders", "panic", r)
-			}
-		}()
-		ticker := time.NewTicker(1 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				if n, err := namingStore.CleanStale(ctx); err != nil {
-					slog.Error("clean stale orders", "err", err)
-				} else if n > 0 {
-					slog.Info("cleaned stale orders", "count", n)
-				}
-			}
-		}
-	}()
-
 	// Signal handling
 	go handleSignals(srv)
 
@@ -716,12 +602,6 @@ func validateHTTPURL(name, value string) error {
 func validateRuntimeURLs(cfg Config) error {
 	var errs []error
 	if err := validateHTTPURL("LIKI_ENGINE_URL", cfg.EngineURL); err != nil {
-		errs = append(errs, err)
-	}
-	if err := validateHTTPURL("LIKI_SELF_URL", cfg.SelfURL); err != nil {
-		errs = append(errs, err)
-	}
-	if err := validateHTTPURL("LIKI_LLM_BASE_URL", cfg.LLMBaseURL); err != nil {
 		errs = append(errs, err)
 	}
 	if err := validateHTTPURL("RETURN_URL", cfg.ReturnURL); err != nil {

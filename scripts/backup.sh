@@ -4,7 +4,7 @@
 # checkpointed view of the database, so WAL files are not needed in the copy.
 #
 # Database names match cmd/liki-web/main.go:
-#   platform, profiles, feedback, liki, naming, mingshu, hepan, aipay, referral
+#   platform, profiles, feedback, liki, aipay, referral
 # Missing files are skipped (for example, referral.db may not exist yet).
 #
 # Usage:
@@ -25,9 +25,6 @@ DATABASES=(
   profiles
   feedback
   liki
-  naming
-  mingshu
-  hepan
   aipay
   referral
 )

@@ -56,9 +56,9 @@ func (f *fakeFlow) Product() string { return f.product }
 
 func (f *fakeFlow) DisplayName(locale string) string {
 	if locale == "en" {
-		return "Custom Naming"
+		return "Test Product"
 	}
-	return "定制化起名"
+	return "测试产品"
 }
 
 func (f *fakeFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (BusinessOrder, error) {
@@ -74,11 +74,11 @@ func (f *fakeFlow) OnPaid(ctx context.Context, intent PaymentIntent) error {
 }
 
 func (f *fakeFlow) SuccessRedirect(intent PaymentIntent) string {
-	return "/zh-Hant/naming/chat?order_id=" + intent.BusinessOrderID
+	return "/app/chat?order_id=" + intent.BusinessOrderID
 }
 
 func (f *fakeFlow) FailureRedirect(intent PaymentIntent) string {
-	return "/zh-Hant/naming?order_id=" + intent.BusinessOrderID
+	return "/app?order_id=" + intent.BusinessOrderID
 }
 
 type fakeSender struct {
@@ -125,7 +125,7 @@ func newTestRuntime(t *testing.T) (*Runtime, *fakeGateway, *fakeFlow, *fakeSende
 	db := newRuntimeTestDB(t)
 	gateway := &fakeGateway{}
 	flow := &fakeFlow{
-		product: "naming",
+		product: "test-product",
 		order: BusinessOrder{
 			ID: "biz-1", AmountMinor: 990, Currency: "CNY",
 			Email: "user@example.com", Locale: "zh-Hant",
@@ -136,7 +136,7 @@ func newTestRuntime(t *testing.T) (*Runtime, *fakeGateway, *fakeFlow, *fakeSende
 	notifications := NewNotificationStore(db)
 	runtime := NewRuntime(
 		map[Provider]Gateway{ProviderXunhu: gateway, ProviderDodo: gateway},
-		map[string]ProductFlow{"naming": flow},
+		map[string]ProductFlow{"test-product": flow},
 		intents,
 		notifications,
 		NewFulfillmentTaskStore(db),
@@ -166,7 +166,7 @@ func TestRuntimeRoutesUSDToDodoDespiteHint(t *testing.T) {
 	flow.order.Currency = "USD"
 
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product:         "naming",
+		Product:         "test-product",
 		BusinessOrderID: "biz-1",
 		Provider:        ProviderXunhu,
 	})
@@ -186,7 +186,7 @@ func TestQueuePaidNotificationsUsesUnifiedTemplateData(t *testing.T) {
 		Email: "user@example.com", Locale: "zh-Hant",
 	}
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "order-<1>",
+		Product: "test-product", BusinessOrderID: "order-<1>",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -222,7 +222,7 @@ func TestQueuePaidNotificationsUsesUnifiedTemplateData(t *testing.T) {
 		t.Fatalf("customer notification = %+v", customer)
 	}
 	for _, want := range []string{
-		"定制化起名", "order-&lt;1&gt;", "$1.00", "https://liki.hk/zh-Hant/naming/chat",
+		"测试产品", "order-&lt;1&gt;", "$1.00", "https://liki.hk/app/chat",
 	} {
 		if !strings.Contains(customer.Body, want) {
 			t.Fatalf("customer body %q missing %q", customer.Body, want)
@@ -237,7 +237,7 @@ func TestQueuePaidNotificationsUsesUnifiedTemplateData(t *testing.T) {
 		t.Fatalf("admin notification = %+v", admin)
 	}
 	for _, want := range []string{
-		"定制化起名", intent.ID, "user@example.com", "$1.00", "Dodo",
+		"测试产品", intent.ID, "user@example.com", "$1.00", "Dodo",
 		updated.PaidAt.UTC().Format("2006-01-02 15:04:05 MST"),
 	} {
 		if !strings.Contains(admin.Body, want) {
@@ -254,7 +254,7 @@ func TestQueuePaidNotificationsLocalizesCustomerReceipt(t *testing.T) {
 		Email: "user@example.com", Locale: "en",
 	}
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "order-en",
+		Product: "test-product", BusinessOrderID: "order-en",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -284,7 +284,7 @@ func TestQueuePaidNotificationsLocalizesCustomerReceipt(t *testing.T) {
 
 	customer := queued[0]
 	for _, want := range []string{
-		"Payment received", "Custom Naming", "Order: order-en", "$1.00", "Continue",
+		"Payment received", "Test Product", "Order: order-en", "$1.00", "Continue",
 	} {
 		if !strings.Contains(customer.Body, want) {
 			t.Fatalf("English customer body %q missing %q", customer.Body, want)
@@ -293,7 +293,7 @@ func TestQueuePaidNotificationsLocalizesCustomerReceipt(t *testing.T) {
 
 	admin := queued[1]
 	for _, want := range []string{
-		"新订单", "Custom Naming", "user@example.com", "$1.00", "Dodo",
+		"新订单", "Test Product", "user@example.com", "$1.00", "Dodo",
 	} {
 		if !strings.Contains(admin.Body, want) {
 			t.Fatalf("Chinese admin body %q missing %q", admin.Body, want)
@@ -306,7 +306,7 @@ func TestRuntimeCreateIntentUsesProductFlow(t *testing.T) {
 	runtime, _, flow, _, store, _ := newTestRuntime(t)
 
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product:         "naming",
+		Product:         "test-product",
 		BusinessOrderID: "biz-1",
 		Provider:        ProviderXunhu,
 	})
@@ -323,7 +323,7 @@ func TestRuntimeCreateIntentUsesProductFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Status != IntentCreated || got.Product != "naming" {
+	if got.Status != IntentCreated || got.Product != "test-product" {
 		t.Fatalf("stored intent = %+v", got)
 	}
 	if got.SuccessURL != intent.SuccessURL || got.FailureURL != intent.FailureURL {
@@ -339,7 +339,7 @@ func TestRuntimeStartCheckoutSendsReturnURLAndStoresSession(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, _, _, store, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -371,7 +371,7 @@ func TestRuntimeWebhookMarksPaidDispatchesOnceAndQueuesNotifications(t *testing.
 	ctx := context.Background()
 	runtime, gateway, flow, sender, _, notifications := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -429,7 +429,7 @@ func TestRuntimeWebhookRejectsAmountMismatch(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, flow, _, _, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -450,7 +450,7 @@ func TestRuntimeCaptureQueuesNotificationsBeforeProductFulfillment(t *testing.T)
 	runtime, gateway, _, sender, _, notifications := newTestRuntime(t)
 	flow := &failingFlow{
 		fakeFlow: fakeFlow{
-			product: "naming",
+			product: "test-product",
 			order: BusinessOrder{
 				ID: "biz-1", AmountMinor: 990, Currency: "CNY",
 				Email: "user@example.com", Locale: "zh-Hant",
@@ -458,10 +458,10 @@ func TestRuntimeCaptureQueuesNotificationsBeforeProductFulfillment(t *testing.T)
 		},
 		onPaidErr: errors.New("report generator failed"),
 	}
-	runtime.flows["naming"] = flow
+	runtime.flows["test-product"] = flow
 
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -493,7 +493,7 @@ func TestRuntimeReconcilePendingIntentMarksPaidOnce(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, flow, _, store, notifications := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -546,7 +546,7 @@ func TestRuntimeReconcileIgnoresUnpaidProviderState(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, flow, _, store, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -577,11 +577,11 @@ func TestRuntimeReconcileIgnoresUnpaidProviderState(t *testing.T) {
 	}
 }
 
-func TestRuntimeWebhookDoesNotGrantRetiredProductEntitlement(t *testing.T) {
+func TestRuntimeDuplicateWebhookIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, _, _, _, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -603,7 +603,7 @@ func TestRuntimeReturnReconcilesCompletedProviderPayment(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, flow, _, _, _ := newTestRuntime(t)
 	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{
-		Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
+		Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -636,7 +636,7 @@ func TestFulfillmentObserverCannotFailProductFulfillment(t *testing.T) {
 			t.Errorf("provider = %q, want xunhu", intent.Provider)
 		}
 	})
-	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -670,7 +670,7 @@ func TestRefundWebhookMarksIntentAndNotifiesObserver(t *testing.T) {
 		}
 		return nil
 	})
-	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -724,7 +724,7 @@ func TestPartialRefundWebhookRecordsLedgerAndKeepsIntentPaid(t *testing.T) {
 		events = append(events, intent)
 		return nil
 	})
-	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "naming", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
 	if err != nil {
 		t.Fatal(err)
 	}

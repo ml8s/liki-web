@@ -59,7 +59,6 @@
     "profileNew": "New profile",
     "profileDetail": "Profile details",
     "synastry": "Compatibility",
-    "naming": "Naming",
     "divination": "Divination",
     "fengshui": "Feng Shui",
     "huangli": "Date selection",
@@ -75,7 +74,7 @@
   "services": {
     "skill": {
       "label": "Metaphysics consultation",
-      "description": "BaZi, ZiWei, naming, divination, and Feng Shui in one guided chat.",
+      "description": "BaZi, ZiWei, divination, and Feng Shui in one guided chat.",
       "compact": "Metaphysics"
     },
     "bazi": {
@@ -83,31 +82,6 @@
       "description": "BaZi · ZiWei · destiny cycles · annual luck",
       "intent": "I would like a BaZi consultation.",
       "cta": "View charts"
-    },
-    "naming": {
-      "label": "Naming",
-      "description": "Name ideas guided by BaZi favorable elements",
-      "intent": "I would like a naming consultation.",
-      "cta": "Start custom naming",
-      "title": "Naming",
-      "subtitle": "Choose characters from BaZi favorable elements, preview candidates, then continue with a custom naming consultation.",
-      "selectProfile": "Select a profile (naming subject)",
-      "noProfilePrefix": "No profile yet—",
-      "noProfileSuffix": " before naming.",
-      "favorableElements": "Favorable elements",
-      "dayMaster": "Day-master strength",
-      "zodiac": "Chinese zodiac",
-      "unfavorable": "Unfavorable elements",
-      "elementStats": "Element distribution",
-      "singleCharacters": "Single-character candidates",
-      "doubleCharacters": "Two-character candidates",
-      "consultationTitle": "Custom naming",
-      "consultationBody": "The AI consultant combines favorable elements and candidate characters to customize names.",
-      "lockedBody": "Unlock Liki Chat for custom naming.",
-      "previewFailed": "Naming preview failed",
-      "noUsefulGod": "A useful god was not determined, so characters cannot be selected yet",
-      "favorableValue": "{strength} · favorable {primary}{secondary}",
-      "unfavorableValue": "unfavorable {value}"
     },
     "divination": {
       "label": "Divination",
@@ -462,7 +436,10 @@
       "available": "Available"
     },
     "action": {
-      "resolve": "Resolve"
+      "resolve": "Resolve",
+      "activate": "Activate",
+      "orders": "View orders",
+      "start": "Start"
     },
     "composer": {
       "label": "Consultation message box",
@@ -621,7 +598,6 @@
       "profile_conflict": "This profile was changed on another device. Refresh and try again.",
       "quota_exceeded": "The profile limit has been reached.",
       "rate_limited": "Too many requests. Try again later.",
-      "redeem_failed": "The activation code could not be redeemed.",
       "role_conflict": "KOL and Scout are separate roles and cannot be converted.",
       "role_required": "The corresponding partner role is required.",
       "self_management_forbidden": "You cannot manage your own admin capabilities.",
@@ -632,7 +608,15 @@
       "city_not_found": "The birthplace could not be recognized for solar-time correction. Use a common city name or remove it.",
       "city_invalid": "No coordinates were found for the birthplace. Use a common city name or remove it.",
       "lunar_preview_unsupported": "The free preview currently supports Gregorian birth dates.",
-      "birth_time_required": "Birth time is required."
+      "birth_time_required": "Birth time is required.",
+      "invalid_email": "The email address is not valid.",
+      "code_cooldown": "Too many code requests. Please try again later.",
+      "invalid_code": "The verification code is incorrect.",
+      "code_expired": "The verification code has expired. Please request a new one.",
+      "code_locked": "Too many attempts. Please try again later.",
+      "user_disabled": "This account is not available.",
+      "user_not_found": "User not found.",
+      "mailer_unavailable": "Email service is temporarily unavailable. Please try again later."
     }
   },
   "notFound": {

@@ -190,6 +190,14 @@ func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (Pa
 		return PaymentIntent{}, err
 	}
 
+	orderLocale := order.Locale
+	if orderLocale == "" {
+		orderLocale = input.Locale
+	}
+	if orderLocale == "" {
+		orderLocale = "zh-Hant"
+	}
+
 	intent := PaymentIntent{
 		ID:              uuid.NewString(),
 		BusinessOrderID: input.BusinessOrderID,
@@ -200,7 +208,7 @@ func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (Pa
 		AmountMinor:     order.AmountMinor,
 		Currency:        order.Currency,
 		Email:           order.Email,
-		Locale:          order.Locale,
+		Locale:          orderLocale,
 		Metadata: map[string]string{
 			"business_order_id": input.BusinessOrderID,
 			"product":           string(input.Product),

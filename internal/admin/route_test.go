@@ -77,7 +77,7 @@ func TestAdminManagementRoutes(t *testing.T) {
 	identity := func(*http.Request) (auth.User, bool) { return owner, true }
 
 	mux := http.NewServeMux()
-	RegisterRoutes(mux, nil, nil, nil, authorizer, identity, nil)
+	RegisterRoutes(mux, nil, authorizer, identity, nil)
 
 	execute := func(method, target, body string) *httptest.ResponseRecorder {
 		t.Helper()

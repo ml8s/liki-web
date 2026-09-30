@@ -81,6 +81,17 @@ func TestHandleCreate_RejectsNonObject(t *testing.T) {
 	}
 }
 
+func TestHandleCreate_RejectsEmptyObject(t *testing.T) {
+	s := setup(t)
+	// 空对象 {} 无任何信息——极简校验拒绝，防止垃圾入库。
+	req := httptest.NewRequest("POST", "/api/feedback", strings.NewReader(`{}`))
+	w := httptest.NewRecorder()
+	HandleCreate(s, rateLimit)(w, req)
+	if w.Code != 400 {
+		t.Fatalf("want 400 for empty object, got %d", w.Code)
+	}
+}
+
 func TestHandleList_RequiresAuth(t *testing.T) {
 	s := setup(t)
 	req := httptest.NewRequest("GET", "/api/feedback", nil)

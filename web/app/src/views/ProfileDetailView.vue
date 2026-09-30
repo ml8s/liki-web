@@ -95,7 +95,7 @@ import { useI18n } from 'vue-i18n'
 import { useProfilesStore } from '@/stores/profiles'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import type { ProfileInput } from '@/api/profiles'
-import { chatServices, serviceByKey } from '@/config/chat'
+import { chatServices, chatUrl, serviceByKey } from '@/config/chat'
 import PaipanPreview from '@/components/profiles/PaipanPreview.vue'
 import ProfileInfo from '@/components/profiles/ProfileInfo.vue'
 
@@ -138,7 +138,7 @@ async function goChat() {
 function startService(key: string) {
   try { sessionStorage.removeItem('liki-service') } catch { /* ignore */ }
   preselectedKey.value = ''
-  void router.push(`/chat?profile=${profileId.value}&service=${key}`)
+  void router.push(chatUrl(profileId.value, key))
 }
 
 onMounted(async () => {

@@ -48,7 +48,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_intents_provider_payment
     WHERE provider_payment_id IS NOT NULL AND provider_payment_id != '';
 CREATE INDEX IF NOT EXISTS idx_payment_intents_business_order
     ON payment_intents(business_order_id, product);
-UPDATE payment_intents SET product='mingshu' WHERE product='lifebook';
 
 CREATE TABLE IF NOT EXISTS payment_refunds (
     id TEXT PRIMARY KEY,
