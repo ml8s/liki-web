@@ -25,7 +25,8 @@
       <el-select
         v-model="profileAId"
         :aria-label="$t('chat.selectProfile')"
-        :placeholder="$t('chat.selectProfile')" class="w-full"
+        :placeholder="$t('chat.selectProfile')"
+        class="w-full"
         @change="profileAId && loadA()"
       >
         <el-option
@@ -73,7 +74,8 @@
               v-model="b.birth_date"
               type="date"
               value-format="YYYY-MM-DD"
-              :placeholder="$t('profiles.form.selectDate')" class="w-full"
+              :placeholder="$t('profiles.form.selectDate')"
+              class="w-full"
             />
           </el-form-item>
           <el-form-item :label="$t('profiles.form.birthTime')">
@@ -81,7 +83,8 @@
               v-model="b.birth_time"
               format="HH:mm"
               value-format="HH:mm"
-              :placeholder="$t('profiles.form.timePlaceholder')" class="w-full"
+              :placeholder="$t('profiles.form.timePlaceholder')"
+              class="w-full"
             />
           </el-form-item>
           <el-form-item :label="$t('services.bond.birthPlaceOptional')">

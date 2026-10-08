@@ -11,8 +11,7 @@
     >
       <el-empty
         :description="$t('chat.emptyThread')"
-      >
-      </el-empty>
+      />
       <div
         class="suggestions"
         role="group"

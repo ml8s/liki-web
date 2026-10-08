@@ -64,6 +64,7 @@ fmt-check: ## Reject unformatted Go sources
 
 lint-js: ## JS lint
 	cd web && PATH="$(NODE_BIN):$$PATH" npx eslint js/
+	cd web/app && PATH="$(NODE_BIN):$$PATH" npx eslint src/
 
 lint-docs: ## Markdown lint
 	cd web && PATH="$(NODE_BIN):$$PATH" npm run lint:docs

@@ -25,7 +25,8 @@
       <el-select
         v-model="profileId"
         :aria-label="$t('chat.selectProfile')"
-        :placeholder="$t('chat.selectProfile')" class="w-full"
+        :placeholder="$t('chat.selectProfile')"
+        class="w-full"
         @change="profileId && loadPreview()"
       >
         <el-option

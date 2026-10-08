@@ -30,7 +30,8 @@
           <el-form-item :label="$t('services.huangli.event')">
             <el-select
               v-model="event"
-              :aria-label="$t('services.huangli.event')" class="w-full"
+              :aria-label="$t('services.huangli.event')"
+              class="w-full"
             >
               <el-option
                 v-for="key in EVENT_KEYS"
@@ -45,7 +46,8 @@
               v-model="startDate"
               type="date"
               value-format="YYYY-MM-DD"
-              :placeholder="$t('services.huangli.startDate')" class="w-full"
+              :placeholder="$t('services.huangli.startDate')"
+              class="w-full"
             />
           </el-form-item>
           <el-form-item :label="$t('services.huangli.endDate')">
@@ -53,7 +55,8 @@
               v-model="endDate"
               type="date"
               value-format="YYYY-MM-DD"
-              :placeholder="$t('services.huangli.endDate')" class="w-full"
+              :placeholder="$t('services.huangli.endDate')"
+              class="w-full"
             />
           </el-form-item>
         </div>
