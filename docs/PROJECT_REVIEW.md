@@ -421,9 +421,10 @@ Astro 静态页面和 Vue 生产构建通常不需要 `unsafe-eval`。建议：
 
 另外，root web 工程与 `web/app` 的 Vitest 主版本不一致。建议：
 
-1. 给 `web/app` 增加 `eslint.config.js` 与 `eslint-plugin-vue`；
-2. 将 Vue App lint 纳入 `make lint-js`；
-3. 统一 Vitest 主版本；
+1. ~~给 `web/app` 增加 `eslint.config.js` 与 `eslint-plugin-vue`~~（已完成：
+   flat config + TS parser，`make lint-js` 已接入，0 error / 0 warning 基线）；
+2. ~~将 Vue App lint 纳入 `make lint-js`~~（已完成）；
+3. ~~统一 Vitest 主版本~~（已完成：`web/app` 升至 vitest 4，47/47 测试通过）；
 4. 评估 npm workspaces 收敛双 package 工程。
 
 ## 7. 做得好的部分
@@ -494,7 +495,7 @@ discovery index 和 optional manifest 都会校验。相比 checkout sibling sou
 | 3 | 统一 strict JSON decode | API 一致性 |
 | 3 | 增加 explicit topology guard | 防止误水平扩容 |
 | 3 | 统一 `docs/SYSTEM.md` / env / architecture 文案 | 减少理解偏差 |
-| 3 | 为 Vue App 补 ESLint 并统一 Vitest | 前端质量门完整 |
+| 3 | ~~为 Vue App 补 ESLint 并统一 Vitest~~ | ✅ 已完成（2026-10-08） |
 
 ## 9. 总体判断
 
