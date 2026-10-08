@@ -8,6 +8,7 @@
     "test:e2e": "npx playwright test --config e2e/playwright.config.js",
     "test:e2e:ui": "npx playwright test --ui --config e2e/playwright.config.js",
     "lint": "eslint js/",
+    "check:inline-scripts": "node scripts/check-inline-scripts.cjs",
     "lint:docs": "markdownlint-cli2 --config ../.markdownlint-cli2.jsonc \"../README.md\" \"../ARCHITECTURE.md\" \"../DOMAIN_MODEL.md\" \"../API.md\" \"../FRONTEND.md\" \"../LEGACY_PRODUCTS.md\" \"../CONTRIBUTING.md\" \"../SECURITY.md\" \"../docs/**/*.md\""
   },
   "devDependencies": {

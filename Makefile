@@ -125,6 +125,7 @@ version-major: ## bump major
 # ════════════════════════════════════════════════════════════
 
 check-html:
+	node web/scripts/check-inline-scripts.cjs
 	node web/scripts/check-design-tokens.cjs
 	node web/scripts/check-performance.cjs
 	node web/scripts/check-mobile-responsive.cjs
