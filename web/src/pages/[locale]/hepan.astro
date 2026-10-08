@@ -59,19 +59,21 @@ const staticSections = ['overview', 'wuxing', 'dayMaster', 'branches', 'rating']
       <script is:inline defer src={`/js/marked.min.js?v=${v}`}></script>
       <script is:inline defer src={`/js/purify.min.js?v=${v}`}></script>
       <script is:inline defer src={`/js/render-report.js?v=${v}`}></script>
-      <script is:inline type="application/json" id="hepan-demo-data" set:html={JSON.stringify(demo)}></script>
-      <script is:inline>
-        document.addEventListener('DOMContentLoaded', function() {
-          var target = document.getElementById('hepan-report-example');
-          var source = document.getElementById('hepan-demo-data');
-          if (!target || !source || !window.renderReport) return;
-          try {
-            target.innerHTML = window.renderReport(JSON.parse(source.textContent));
-          } catch (error) {
-            target.textContent = target.getAttribute('data-error') || 'Render error';
-          }
-        });
-      </script>
+      <script
+        is:inline
+        type="application/json"
+        id="hepan-demo-data"
+        data-demo-target="hepan-report-example"
+        data-data-id="hepan-demo-data"
+        set:html={JSON.stringify(demo)}
+      ></script>
+      <script
+        is:inline
+        defer
+        src={`/js/report-demo.js?v=${v}`}
+        data-demo-target="hepan-report-example"
+        data-data-id="hepan-demo-data"
+      ></script>
     </>
   )}
 </ScenarioLanding>

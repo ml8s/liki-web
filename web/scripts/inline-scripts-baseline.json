@@ -1,18 +1,17 @@
 {
-  "app/index.html:executable-inline": 1,
   "app/index.html:external": 1,
   "app/index.html:external-without-sri": 1,
-  "src/components/LangSwitcher.astro:astro-processed": 1,
-  "src/layouts/BaseLayout.astro:executable-inline": 1,
-  "src/pages/[locale]/hepan.astro:data-block": 1,
-  "src/pages/[locale]/hepan.astro:executable-inline": 1,
+  "src/components/LangSwitcher.astro:external": 1,
+  "src/components/LangSwitcher.astro:external-without-sri": 1,
+  "src/layouts/BaseLayout.astro:external": 1,
+  "src/layouts/BaseLayout.astro:external-without-sri": 1,
   "src/pages/[locale]/hepan.astro:external": 3,
   "src/pages/[locale]/hepan.astro:external-without-sri": 3,
-  "src/pages/[locale]/index.astro:executable-inline": 1,
-  "src/pages/[locale]/mingshu.astro:data-block": 1,
-  "src/pages/[locale]/mingshu.astro:executable-inline": 1,
+  "src/pages/[locale]/index.astro:external": 1,
+  "src/pages/[locale]/index.astro:external-without-sri": 1,
   "src/pages/[locale]/mingshu.astro:external": 3,
   "src/pages/[locale]/mingshu.astro:external-without-sri": 3,
   "src/pages/[locale]/skills.astro:data-block": 2,
-  "src/pages/[locale]/skills.astro:executable-inline": 1
+  "src/pages/[locale]/skills.astro:external": 1,
+  "src/pages/[locale]/skills.astro:external-without-sri": 1
 }

@@ -9,6 +9,8 @@ const path = require('path');
 const WEB_DIR = path.resolve(__dirname, '..');
 const BASELINE = path.join(__dirname, 'inline-scripts-baseline.json');
 const ROOTS = [path.join(WEB_DIR, 'src'), path.join(WEB_DIR, 'app', 'index.html')];
+const distIndex = process.argv.indexOf('--dist');
+const DIST_DIR = distIndex === -1 ? null : path.resolve(WEB_DIR, process.argv[distIndex + 1]);
 const EXECUTABLE_TYPES = new Set(['', 'module', 'text/javascript', 'application/javascript']);
 const DATA_TYPES = new Set(['application/ld+json', 'application/json']);
 
@@ -86,6 +88,36 @@ function summarize(findings) {
 
 const findings = inventory();
 const actual = summarize(findings);
+
+if (DIST_DIR) {
+  const builtFiles = walk(DIST_DIR).filter((file) => /\.html$/i.test(file));
+  const builtExecutable = [];
+  for (const file of builtFiles) {
+    const relative = path.relative(WEB_DIR, file).replaceAll('\\', '/');
+    const text = fs.readFileSync(file, 'utf-8');
+    for (const match of text.matchAll(/<script\b([^>]*)>/gi)) {
+      const attrs = match[1];
+      const hasSrc = /\bsrc\s*=/i.test(attrs);
+      const type = /\btype\s*=\s*["']([^"']+)["']/i.exec(attrs)?.[1]?.toLowerCase() || '';
+      const isData = type === 'application/ld+json' || type === 'application/json';
+      if (!hasSrc && !isData) builtExecutable.push(relative);
+    }
+  }
+  if (builtExecutable.length) {
+    console.error(`❌ built HTML contains ${builtExecutable.length} executable inline scripts:`);
+    console.error(builtExecutable.map((file) => `  ${file}`).join('\n'));
+    process.exit(1);
+  }
+  console.log(`✓ built HTML has no executable inline scripts (${builtFiles.length} pages)`);
+  process.exit(0);
+}
+
+const executableInline = findings.filter((finding) => finding.kind === 'executable-inline');
+if (executableInline.length) {
+  console.error(`❌ source contains ${executableInline.length} executable inline scripts:`);
+  console.error(executableInline.map((finding) => `  ${finding.file}:${finding.line}`).join('\n'));
+  process.exit(1);
+}
 
 if (process.argv.includes('--update')) {
   fs.writeFileSync(BASELINE, JSON.stringify(actual, null, 2) + '\n');

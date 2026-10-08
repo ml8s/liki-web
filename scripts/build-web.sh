@@ -25,8 +25,9 @@ if [ ! -d node_modules ]; then
   npm ci --ignore-scripts
 fi
 npm run build
+cd "$PROJECT_DIR/web"
+node scripts/check-inline-scripts.cjs --dist dist
 cd "$PROJECT_DIR"
 
 echo "[build-web] sitemap..."
 node web/scripts/build-sitemap.cjs
-

@@ -14,26 +14,6 @@
   </head>
   <body>
     <div id="app"><div id="app-boot">Liki·命理</div></div>
-    <script>
-      (function () {
-        var locales = ['zh-Hans', 'zh-Hant', 'en'];
-        function normalize(value) {
-          value = String(value || '').toLowerCase();
-          if (locales.indexOf(value) >= 0) return value;
-          if (value.indexOf('zh') === 0) {
-            return value.indexOf('cn') >= 0 || value.indexOf('hans') >= 0 || value.indexOf('sg') >= 0 ? 'zh-Hans' : 'zh-Hant';
-          }
-          return value.indexOf('en') === 0 ? 'en' : 'zh-Hant';
-        }
-        var params = new URLSearchParams(location.search);
-        var cookie = document.cookie.match(/(?:^|;\s*)liki_locale=([^;]+)/);
-        var locale = normalize(params.get('locale') || (cookie && cookie[1]) || navigator.language);
-        var tail = locale === 'en' ? 'Metaphysics' : '命理';
-        document.documentElement.lang = locale;
-        document.title = 'Liki·' + tail;
-        document.getElementById('app-boot').textContent = 'Liki·' + tail;
-      })();
-    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

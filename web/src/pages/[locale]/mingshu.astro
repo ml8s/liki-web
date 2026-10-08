@@ -58,19 +58,21 @@ const staticSections = ['personality', 'career', 'love', 'health', 'fortune', 'm
       <script is:inline defer src={`/js/marked.min.js?v=${v}`}></script>
       <script is:inline defer src={`/js/purify.min.js?v=${v}`}></script>
       <script is:inline defer src={`/js/render-report.js?v=${v}`}></script>
-      <script is:inline type="application/json" id="mingshu-demo-data" set:html={JSON.stringify(demo)}></script>
-      <script is:inline>
-        document.addEventListener('DOMContentLoaded', function() {
-          var target = document.getElementById('mingshu-report-example');
-          var source = document.getElementById('mingshu-demo-data');
-          if (!target || !source || !window.renderReport) return;
-          try {
-            target.innerHTML = window.renderReport(JSON.parse(source.textContent));
-          } catch (error) {
-            target.textContent = target.getAttribute('data-error') || 'Render error';
-          }
-        });
-      </script>
+      <script
+        is:inline
+        type="application/json"
+        id="mingshu-demo-data"
+        data-demo-target="mingshu-report-example"
+        data-data-id="mingshu-demo-data"
+        set:html={JSON.stringify(demo)}
+      ></script>
+      <script
+        is:inline
+        defer
+        src={`/js/report-demo.js?v=${v}`}
+        data-demo-target="mingshu-report-example"
+        data-data-id="mingshu-demo-data"
+      ></script>
     </>
   )}
 </ScenarioLanding>

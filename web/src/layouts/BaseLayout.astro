@@ -105,13 +105,7 @@ const ogImage = 'https://liki.hk/img/og-image.png';
 
   </div>
 
-  <script is:inline>
-    fetch('/api/analytics/pageview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: location.pathname }),
-    }).catch(function(){});
-  </script>
+  <script is:inline defer src={`/js/analytics.js?v=${v}`}></script>
   </>
 )}
 </body>

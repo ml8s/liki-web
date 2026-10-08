@@ -110,6 +110,21 @@ Rules:
 - external links get `rel="noopener noreferrer nofollow"`;
 - dangerous protocols are removed.
 
+## Script and CSP policy
+
+Marketing and app pages use external same-origin scripts. The production edge
+CSP does not permit executable inline scripts. JSON-LD and declarative JSON
+data blocks are allowed because the browser does not execute them as JavaScript.
+
+`web/scripts/check-inline-scripts.cjs` enforces this in two ways:
+
+1. source inventory rejects new executable inline scripts;
+2. `scripts/build-web.sh` scans the built HTML and fails if executable inline
+   scripts reappear after Astro/Vite processing.
+
+Static browser behavior belongs in `web/js` (mirrored to `web/public/js`), and
+Vue application modules belong under `web/app/src`.
+
 ## Payments
 
 Commerce UI handles:

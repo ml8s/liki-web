@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import LikiChatCta from '../../components/LikiChatCta.astro';
 import { t, locales } from '../../i18n.js';
+import { v } from '../../version.js';
 import keywords from '../../keywords.json' with { type: 'json' };
 
 export function getStaticPaths() {
@@ -46,23 +47,7 @@ const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
       <button type="submit" class="btn-purple">{t(locale, 'index.cta.paipan')}</button>
     </form>
     <p class="paipan-hint">{t(locale, 'index.paipan.hint')}</p>
-    <script is:inline>
-    (function(){
-      var f = document.getElementById('paipanHook');
-      if (!f) return;
-      f.addEventListener('submit', function(e){
-        e.preventDefault();
-        var date = f.date.value, time = f.time.value, gender = f.gender.value;
-        if (!date || !time || !gender) return;
-        try {
-          sessionStorage.setItem('liki-draft', JSON.stringify({
-            birth_date: date, birth_time: time, gender: gender, calendar: 'solar'
-          }));
-        } catch (_) {}
-        location.href = '/app/profiles/new';
-      });
-    })();
-    </script>
+    <script is:inline defer src={`/js/paipan-hook.js?v=${v}`}></script>
   </section>
 
   <section class="landing-services" id="services">

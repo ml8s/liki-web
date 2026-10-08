@@ -1,3 +1,4 @@
+import './boot'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import 'element-plus/theme-chalk/base.css'

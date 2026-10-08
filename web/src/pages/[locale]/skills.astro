@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { t, locales } from '../../i18n.js';
+import { v } from '../../version.js';
 import keywords from '../../keywords.json' with { type: 'json' };
 
 export function getStaticPaths() {
@@ -89,27 +90,5 @@ const websiteSchema = {
     {keywords['zh-Hans'].map(k => <span>{k}</span>)}
     {keywords['zh-Hant'].map(k => <span>{k}</span>)}
   </div>
-  <script is:inline>
-  (function(){
-    var items = document.querySelectorAll('#kw-bg span');
-    for (var i = 0; i < items.length; i++) {
-      items[i].style.cssText = 'position:absolute;left:'+(Math.random()*85+7)+'%;top:'+(Math.random()*90+5)+'%;font-size:'+(12+Math.random()*14)+'px;color:#16775d;opacity:0.06;white-space:nowrap;pointer-events:none;user-select:none;transform:translateX(-50%) rotate('+(Math.random()*60-30)+'deg)';
-    }
-    var btns = document.querySelectorAll('.copy-btn');
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].addEventListener('click', function() {
-        var cmd = this.getAttribute('data-cmd');
-        if (!cmd) return;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(cmd).then(function() {
-            var orig = this.innerHTML;
-            this.innerHTML = '<span class="text-xs">✓</span>';
-            var self = this;
-            setTimeout(function() { self.innerHTML = orig; }, 1500);
-          }.bind(this)).catch(function() {});
-        }
-      });
-    }
-  })();
-  </script>
+  <script is:inline defer src={`/js/skills-page.js?v=${v}`}></script>
 </BaseLayout>
