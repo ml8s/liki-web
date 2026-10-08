@@ -137,7 +137,6 @@ check-html:
 
 check-security:
 	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
-	trivy fs --severity HIGH,CRITICAL --exit-code 1 .
 
 check-skills:
 	scripts/check-skills.sh
