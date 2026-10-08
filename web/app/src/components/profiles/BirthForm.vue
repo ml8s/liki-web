@@ -61,7 +61,7 @@
           value-format="YYYY-MM-DD"
           :placeholder="$t('profiles.form.selectDate')"
           :disabled-date="disabledDate"
-          style="width: 100%"
+          class="w-full"
         />
         <el-input
           v-else
@@ -103,7 +103,7 @@
           format="HH:mm"
           value-format="HH:mm"
           :placeholder="$t('profiles.form.timePlaceholder')"
-          style="width: 100%"
+          class="w-full"
         />
       </el-form-item>
 

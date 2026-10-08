@@ -77,6 +77,10 @@ body {
   font-family: var(--liki-font-serif);
 }
 
+.w-full {
+  width: 100%;
+}
+
 /* 排版：标题平衡换行 + 微负字距；正文漂亮换行 */
 h1, h2, h3 {
   text-wrap: balance;

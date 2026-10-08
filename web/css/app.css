@@ -226,6 +226,8 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 /* .hidden moved to end of file for cascade priority */
 .min-h-screen { min-height: 100vh; min-height: 100dvh; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.page-shell { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.lang-switcher { position: relative; }
 
 .flex { display: flex; }
 .block { display: block; }

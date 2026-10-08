@@ -92,6 +92,7 @@ const actual = summarize(findings);
 if (DIST_DIR) {
   const builtFiles = walk(DIST_DIR).filter((file) => /\.html$/i.test(file));
   const builtExecutable = [];
+  const builtStyleAttributes = [];
   for (const file of builtFiles) {
     const relative = path.relative(WEB_DIR, file).replaceAll('\\', '/');
     const text = fs.readFileSync(file, 'utf-8');
@@ -101,6 +102,7 @@ if (DIST_DIR) {
       const type = /\btype\s*=\s*["']([^"']+)["']/i.exec(attrs)?.[1]?.toLowerCase() || '';
       const isData = type === 'application/ld+json' || type === 'application/json';
       if (!hasSrc && !isData) builtExecutable.push(relative);
+      if (/\sstyle\s*=/i.test(attrs)) builtStyleAttributes.push(`${relative}: style attribute`);
     }
   }
   if (builtExecutable.length) {
@@ -108,7 +110,21 @@ if (DIST_DIR) {
     console.error(builtExecutable.map((file) => `  ${file}`).join('\n'));
     process.exit(1);
   }
+  const styleElements = builtFiles
+    .filter((file) => /<style\b/i.test(fs.readFileSync(file, 'utf-8')))
+    .map((file) => path.relative(WEB_DIR, file).replaceAll('\\', '/'));
+  if (styleElements.length) {
+    console.error(`❌ built HTML contains ${styleElements.length} style elements:`);
+    console.error(styleElements.map((file) => `  ${file}`).join('\n'));
+    process.exit(1);
+  }
   console.log(`✓ built HTML has no executable inline scripts (${builtFiles.length} pages)`);
+  if (builtStyleAttributes.length) {
+    console.log(
+      `ℹ built HTML has ${builtStyleAttributes.length} style attributes; ` +
+      "'unsafe-inline' remains an accepted Element Plus runtime exception"
+    );
+  }
   process.exit(0);
 }
 

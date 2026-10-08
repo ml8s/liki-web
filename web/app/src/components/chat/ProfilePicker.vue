@@ -5,7 +5,7 @@
       v-model="selectedId"
       :placeholder="$t('chat.profilePicker.placeholder')"
       :aria-label="$t('chat.profilePicker.label')"
-      style="width: 240px"
+      class="profile-picker__select"
     >
       <el-option
         v-for="p in profiles"
@@ -41,5 +41,6 @@ const selectedId = computed({
 <style scoped>
 .profile-picker { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .label { font-weight: 600; }
+.profile-picker__select { width: 240px; }
 .new-link { display: inline-block; padding: 4px 2px; font-size: 14px; color: var(--liki-primary); text-decoration: none; }
 </style>

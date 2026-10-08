@@ -116,6 +116,11 @@ Marketing and app pages use external same-origin scripts. The production edge
 CSP does not permit executable inline scripts. JSON-LD and declarative JSON
 data blocks are allowed because the browser does not execute them as JavaScript.
 
+Static styles are external. `style-src 'unsafe-inline'` remains an explicit
+exception because Element Plus writes runtime style attributes for positioning.
+Replacing or configuring that component library is the path to removing this
+exception; do not add new hand-written inline styles.
+
 `web/scripts/check-inline-scripts.cjs` enforces this in two ways:
 
 1. source inventory rejects new executable inline scripts;
