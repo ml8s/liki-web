@@ -91,6 +91,13 @@ jobs:
           if [ "$(echo "$COV < 65" | bc)" -eq 1 ]; then
             echo "❌ Coverage ${COV}% < 65%"; exit 1
           fi
+          echo "Go coverage: ${COV}%" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: coverage.out
 
       - name: Vitest
         run: make test-js
