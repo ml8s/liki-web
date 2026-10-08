@@ -41,9 +41,15 @@ jobs:
           cd app && npm ci
 
       - name: Install caddy
+        env:
+          CADDY_VERSION: 2.10.2
         run: |
-          curl -sfL "https://caddyserver.com/api/download?os=linux&arch=amd64" -o /usr/local/bin/caddy
-          chmod +x /usr/local/bin/caddy
+          base="https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}"
+          curl -fsSL --retry 3 "${base}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz" -o /tmp/caddy.tar.gz
+          curl -fsSL --retry 3 "${base}/caddy_${CADDY_VERSION}_checksums.txt" -o /tmp/caddy_checksums.txt
+          grep "caddy_${CADDY_VERSION}_linux_amd64.tar.gz" /tmp/caddy_checksums.txt | sed 's#caddy_.*#caddy.tar.gz#' > /tmp/caddy_expected.txt
+          cd /tmp && sha256sum -c caddy_expected.txt
+          install -m 0755 /tmp/caddy /usr/local/bin/caddy
 
       - name: Lint Go (golangci-lint-action)
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
@@ -83,6 +89,13 @@ jobs:
           cd web && npm ci
           cd app && npm ci
 
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+
       - name: Go test + coverage
         run: |
           go test -race -count=1 -coverprofile=coverage.out ./... -coverpkg=./internal/...
@@ -94,7 +107,7 @@ jobs:
           echo "Go coverage: ${COV}%" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: go-coverage
           path: coverage.out
