@@ -26,6 +26,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--url", default=os.environ.get("LIKI_FEEDBACK_URL", DEFAULT_URL))
     parser.add_argument("--status", choices=("pending", "processing", "done", "rejected"))
     parser.add_argument("--limit", type=int, default=50)
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="page through the API with offset until exhausted (the server "
+        "caps a single page at 50 records)",
+    )
     parser.add_argument("--format", choices=("table", "json"), default="table")
     parser.add_argument(
         "--details",
@@ -35,13 +41,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def fetch_records(url: str, api_key: str, status: str | None, limit: int) -> list[dict[str, Any]]:
-    query: list[str] = []
-    if status:
-        query.append(f"status={urllib.parse.quote(status)}")
-    if limit > 0:
-        query.append(f"limit={limit}")
-    endpoint = url + ("?" + "&".join(query) if query else "")
+def _http_get_json(endpoint: str, api_key: str) -> Any:
     request = urllib.request.Request(
         endpoint,
         headers={"Authorization": f"Bearer {api_key}", "Accept": "application/json"},
@@ -55,12 +55,36 @@ def fetch_records(url: str, api_key: str, status: str | None, limit: int) -> lis
     except (urllib.error.URLError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"feedback API unavailable: {exc}") from exc
 
-    records = body.get("data", []) if isinstance(body, dict) else body
-    if not isinstance(records, list):
-        raise RuntimeError("feedback API response must be an array")
-    if any(not isinstance(record, dict) for record in records):
-        raise RuntimeError("feedback API returned a non-object record")
-    return records
+    return body
+
+
+def fetch_records(
+    url: str,
+    api_key: str,
+    status: str | None,
+    limit: int,
+    fetch_all: bool = False,
+) -> list[dict[str, Any]]:
+    page_size = min(limit, 50) if limit > 0 else 50
+    records: list[dict[str, Any]] = []
+    offset = 0
+    while True:
+        query = [f"limit={page_size}", f"offset={offset}"]
+        if status:
+            query.insert(0, f"status={urllib.parse.quote(status)}")
+        endpoint = url + "?" + "&".join(query)
+        body = _http_get_json(endpoint, api_key)
+        page = body.get("data", []) if isinstance(body, dict) else body
+        if not isinstance(page, list):
+            raise RuntimeError("feedback API response must be an array")
+        if any(not isinstance(record, dict) for record in page):
+            raise RuntimeError("feedback API returned a non-object record")
+        records.extend(page)
+        if not fetch_all or len(page) < page_size:
+            return records
+        offset += page_size
+        if offset > 100000:  # 与后端 maxOffset 对齐的防御上限
+            raise RuntimeError("feedback pagination exceeded safety bound")
 
 
 def decode_record(record: dict[str, Any]) -> dict[str, Any]:
@@ -149,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        records = fetch_records(args.url, api_key, args.status, args.limit)
+        records = fetch_records(args.url, api_key, args.status, args.limit, args.all)
     except RuntimeError as exc:
         print(exc, file=sys.stderr)
         return 1

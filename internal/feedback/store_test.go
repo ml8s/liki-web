@@ -23,7 +23,7 @@ func TestStore_CreateAndList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	list, err := s.List("", 10) //nolint:errcheck
+	list, err := s.List("", 10, 0) //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestStore_ListByStatus(t *testing.T) {
 	s.Update("nonexistent", "done", "")                         //nolint:errcheck
 	s.Create(&Feedback{Payload: `{"problem":{"summary":"c"}}`}) //nolint:errcheck
 
-	pending, err := s.List("pending", 10) //nolint:errcheck
+	pending, err := s.List("pending", 10, 0) //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestStore_Update(t *testing.T) {
 	}
 
 	s.Create(&Feedback{Payload: `{"problem":{"summary":"test"}}`}) //nolint:errcheck
-	list, _ := s.List("", 10)                                      //nolint:errcheck
+	list, _ := s.List("", 10, 0)                                   //nolint:errcheck
 	id := list[0].ID
 
 	err = s.Update(id, "done", "https://github.com/ml8s/liki/issues/1") //nolint:errcheck
@@ -99,7 +99,7 @@ func TestStore_Update(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updated, _ := s.List("done", 10) //nolint:errcheck
+	updated, _ := s.List("done", 10, 0) //nolint:errcheck
 	if len(updated) != 1 {
 		t.Fatalf("want 1 done, got %d", len(updated))
 	}
@@ -136,12 +136,54 @@ func TestStore_ListLimit(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		s.Create(&Feedback{Payload: `{"problem":{"summary":"x"}}`}) //nolint:errcheck
 	}
-	list, err := s.List("", 3) //nolint:errcheck
+	list, err := s.List("", 3, 0) //nolint:errcheck
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(list) > 3 {
 		t.Fatalf("want ≤3, got %d", len(list))
+	}
+}
+
+func TestStore_ListOffsetPagination(t *testing.T) {
+	db := openTestDB(t)
+	defer func() { _ = db.Close() }()
+	s, err := NewStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 5; i++ {
+		if err := s.Create(&Feedback{Payload: `{"problem":{"summary":"x"}}`}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	page1, err := s.List("", 3, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page2, err := s.List("", 3, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page1) != 3 || len(page2) != 2 {
+		t.Fatalf("want 3+2 pages, got %d+%d", len(page1), len(page2))
+	}
+	seen := map[string]bool{}
+	for _, fb := range append(append([]Feedback{}, page1...), page2...) {
+		if seen[fb.ID] {
+			t.Fatalf("duplicate id across pages: %s", fb.ID)
+		}
+		seen[fb.ID] = true
+	}
+	if len(seen) != 5 {
+		t.Fatalf("paged traversal must cover all rows, got %d", len(seen))
+	}
+	beyond, err := s.List("", 3, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(beyond) != 0 {
+		t.Fatalf("offset past end must be empty, got %d", len(beyond))
 	}
 }
 

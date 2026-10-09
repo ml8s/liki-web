@@ -84,7 +84,13 @@ func HandleList(store *Store, apiKey string) http.HandlerFunc {
 				limit = n
 			}
 		}
-		list, err := store.List(status, limit)
+		offset := 0
+		if o := r.URL.Query().Get("offset"); o != "" {
+			if n, err := parseInt(o); err == nil && n > 0 {
+				offset = n
+			}
+		}
+		list, err := store.List(status, limit, offset)
 		if err != nil {
 			http.Error(w, "internal error", 500)
 			return

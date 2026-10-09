@@ -30,7 +30,7 @@ func TestHandleCreate_Success(t *testing.T) {
 	if res["id"] == "" || res["status"] != "pending" {
 		t.Fatalf("bad response: %+v", res)
 	}
-	list, _ := s.List("", 10) //nolint:errcheck
+	list, _ := s.List("", 10, 0) //nolint:errcheck
 	if len(list) != 1 || list[0].Payload != validFeedbackV1 {
 		t.Fatalf("payload not stored verbatim: %+v", list)
 	}
@@ -54,7 +54,7 @@ func TestHandleCreate_Deduplicates(t *testing.T) {
 	if first == "" || first != second {
 		t.Fatalf("identical feedback must dedup to same id: %q vs %q", first, second)
 	}
-	list, _ := s.List("", 10) //nolint:errcheck
+	list, _ := s.List("", 10, 0) //nolint:errcheck
 	if len(list) != 1 {
 		t.Fatalf("dedup failed: %d rows", len(list))
 	}
@@ -166,10 +166,33 @@ func TestHandleList_EmptyAuthKey(t *testing.T) {
 	}
 }
 
+func TestHandleList_Offset(t *testing.T) {
+	s := setup(t)
+	for i := 0; i < 3; i++ {
+		if err := s.Create(&Feedback{Payload: validFeedbackV1}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	req := httptest.NewRequest("GET", "/api/feedback?limit=2&offset=2", nil)
+	req.Header.Set("Authorization", "my-key")
+	w := httptest.NewRecorder()
+	HandleList(s, "my-key")(w, req)
+	if w.Code != 200 {
+		t.Fatalf("want 200, got %d", w.Code)
+	}
+	var list []Feedback
+	if err := json.Unmarshal(w.Body.Bytes(), &list); err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("limit=2 offset=2 over 3 rows want 1, got %d", len(list))
+	}
+}
+
 func TestHandleUpdate_Success(t *testing.T) {
 	s := setup(t)
 	s.Create(&Feedback{Payload: validFeedbackV1}) //nolint:errcheck
-	list, _ := s.List("", 10)                     //nolint:errcheck
+	list, _ := s.List("", 10, 0)                  //nolint:errcheck
 	id := list[0].ID
 
 	body, _ := json.Marshal(UpdateRequest{Status: "done", IssueURL: "https://github.com/ml8s/liki/issues/1"})
@@ -223,7 +246,7 @@ func TestHandleCreate_RejectsNonUTF8(t *testing.T) {
 	if !strings.Contains(w.Body.String(), "UTF-8") {
 		t.Fatalf("错误信息应指明 UTF-8，got %q", w.Body.String())
 	}
-	list, err := s.List("", 50)
+	list, err := s.List("", 50, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

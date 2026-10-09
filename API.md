@@ -155,7 +155,7 @@ A retired role exposes only settlement data and cannot reopen the partner dashbo
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | POST | `/api/feedback` | public, rate limited | Submit a UTF-8 JSON `feedback-v1` payload |
-| GET | `/api/feedback` | feedback API key | List feedback lifecycle records |
+| GET | `/api/feedback` | feedback API key | List feedback lifecycle records (`status`, `limit` ≤ 50, `offset`) |
 | PATCH | `/api/feedback/{id}` | feedback API key | Update processing state and issue URL |
 
 The server stores and returns the self-describing payload verbatim. It does not
@@ -165,7 +165,12 @@ Operators can decode records for triage with:
 
 ```bash
 FEEDBACK_API_KEY=... python3 scripts/feedback-read.py --status pending
+FEEDBACK_API_KEY=... python3 scripts/feedback-read.py --all
 ```
+
+`GET /api/feedback` pages oldest-first with `limit` (default 20, cap 50) and
+`offset`. Traversing `offset` until a short page covers records beyond the
+single-page cap.
 
 ## Retired product compatibility
 

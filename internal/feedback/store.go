@@ -113,17 +113,30 @@ func (s *Store) ExistingByHash(hash string) (string, string, bool) {
 	return id, status, true
 }
 
-func (s *Store) List(status string, limit int) ([]Feedback, error) {
+// maxOffset bounds offset pagination. The list endpoint is key-protected,
+// but an unbounded offset still lets a bad client build expensive scans.
+const maxOffset = 100000
+
+// List returns feedback ordered oldest-first (created_at ASC, id ASC as a
+// deterministic tiebreaker). Page through with offset until a short page to
+// see records beyond the limit cap.
+func (s *Store) List(status string, limit, offset int) ([]Feedback, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if offset > maxOffset {
+		offset = maxOffset
 	}
 	rows, err := s.db.Query(`
 		SELECT id, payload, status, issue_url, created_at, updated_at
 		FROM feedback
 		WHERE (? = '' OR status = ?)
-		ORDER BY created_at ASC
-		LIMIT ?
-	`, status, status, limit)
+		ORDER BY created_at ASC, id ASC
+		LIMIT ? OFFSET ?
+	`, status, status, limit, offset)
 	if err != nil {
 		return nil, err
 	}
