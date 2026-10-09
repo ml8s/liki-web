@@ -198,6 +198,14 @@ p {
   background-color: var(--liki-surface);
   color: var(--liki-text-2);
 }
+.el-input .el-input__count {
+  color: var(--liki-text-2);
+}
+
+/* info tag：EP 次级灰（#909399）在浅底上仅 2.8:1，加深文字至可读 */
+.el-tag.el-tag--info {
+  color: var(--liki-text-2);
+}
 
 /* 路由页面切换过渡 */
 .page-fade-enter-active,
