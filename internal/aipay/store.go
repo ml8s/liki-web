@@ -115,6 +115,9 @@ func (s *Store) recomputeAmountMinor(ctx context.Context) error {
 
 // parseAmountMinor converts a fixed 2-decimal amount string ("1", "1.0",
 // "1.00") into integer minor units without float rounding.
+// parseAmountMinor converts a fixed 2-decimal amount string into integer
+// minor units, rejecting >2dp instead of truncating (语义与
+// xunhu.parseMinorUnits 保持一致：金额路径上的协议异常必须显式失败).
 func parseAmountMinor(amount string) (int64, error) {
 	trimmed := strings.TrimSpace(amount)
 	if trimmed == "" {

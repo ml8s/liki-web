@@ -321,6 +321,10 @@ func formatMinorUnits(amount int64) string {
 	return fmt.Sprintf("%d.%02d", amount/100, amount%100)
 }
 
+// parseMinorUnits converts XunhuPay's fixed 2-decimal amount string into
+// integer minor units. Amounts with more than 2 decimal places are rejected
+// (not truncated) — consistent with aipay.parseAmountMinor: a protocol
+// violation must fail loudly on a money path, never silently lose precision.
 func parseMinorUnits(value string) (int64, error) {
 	parts := strings.SplitN(value, ".", 2)
 	whole, err := strconv.ParseInt(parts[0], 10, 64)
@@ -330,12 +334,12 @@ func parseMinorUnits(value string) (int64, error) {
 	fraction := "00"
 	if len(parts) == 2 {
 		fraction = parts[1]
-	}
-	if len(fraction) < 2 {
-		fraction += "0"
-	}
-	if len(fraction) > 2 {
-		fraction = fraction[:2]
+		if len(fraction) > 2 {
+			return 0, fmt.Errorf("xunhu: amount %q has more than 2 decimal places", value)
+		}
+		if len(fraction) < 2 {
+			fraction += "0"
+		}
 	}
 	fractionMinor, err := strconv.ParseInt(fraction, 10, 64)
 	if err != nil {

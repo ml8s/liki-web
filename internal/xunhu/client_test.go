@@ -569,3 +569,38 @@ func TestSign_Deterministic(t *testing.T) {
 		t.Errorf("sign() length = %d, want 32", len(got))
 	}
 }
+
+func TestParseMinorUnitsRejectsOverpreciseAmounts(t *testing.T) {
+	t.Parallel()
+	// 协议固定 2 位小数：超出的输入是异常，必须报错而非静默截断
+	// （与 aipay.parseAmountMinor 语义一致）。
+	cases := []struct {
+		in   string
+		want int64
+		err  bool
+	}{
+		{"1", 100, false},
+		{"1.5", 150, false},
+		{"1.00", 100, false},
+		{"12.34", 1234, false},
+		{"1.005", 0, true}, // 3 位小数：拒绝而非截断
+		{"1.000", 0, true}, // 剥零后 3 位：拒绝
+		{"0.01", 1, false},
+	}
+	for _, tc := range cases {
+		got, err := parseMinorUnits(tc.in)
+		if tc.err {
+			if err == nil {
+				t.Errorf("parseMinorUnits(%q) want error, got %d", tc.in, got)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("parseMinorUnits(%q) unexpected error: %v", tc.in, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("parseMinorUnits(%q) = %d, want %d", tc.in, got, tc.want)
+		}
+	}
+}
