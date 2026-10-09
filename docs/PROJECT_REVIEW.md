@@ -728,7 +728,7 @@ INTEGER。字符串直传支付宝接口是成因，但 `WHERE amount=?` 已存�
 
 | 优先级 | 事项 | 工作量 |
 | --- | --- | --- |
-| P2 | DROP products 死表（迁移）+ 移除播种；两个 catalog 职责分界写入 doc | 0.5 天 |
-| P2 | aipay_orders 货币数量类型治理（镜像 minor 列或约束注释） | 0.5 天 |
-| P3 | overview.md 增补"范式偏差与理由"清单（本节表格平移） | 1 小时 |
-| P3 | unified_chat_* 重命名评估（或文档保留理由） | 0.5 天 |
+| P2 | ~~DROP products 死表（迁移）+ 移除播种；两个 catalog 职责分界写入 doc~~ | ✅ 已完成（2026-10-09），方案修订：002 迁移移除建表+播种（新库不再有）；不做 DROP——legacy 库 entitlements.product_id 曾带 REFERENCES products(id)，FK-ON 下 DROP 会约束失败，旧库残留表按 naming.db 先例标注 inert；两个 catalog 职责分界已写入 product.go/catalog.go |
+| P2 | ~~aipay_orders 货币数量类型治理~~ | ✅ 已完成（2026-10-09）：新增 amount_minor INTEGER（CREATE + guarded ALTER + Go 精确回填），CreateBill 双写并拒绝 >2 位小数/非正金额，附 parseAmountMinor 边界测试 |
+| P3 | ~~overview.md 增补"范式偏差与理由"清单~~ | ✅ 已完成（2026-10-09）：新增 Schema design notes 节（偏差表 + unified 前缀 + products inert + aipay 金额口径） |
+| P3 | ~~unified_chat_* 重命名评估~~ | ✅ 已完成（2026-10-09）：选择文档保留理由（前缀是合并迁移历史痕迹，非第二套模型），迁移注释 + overview.md 双处标注 |

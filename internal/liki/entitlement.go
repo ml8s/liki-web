@@ -81,13 +81,6 @@ func (s *EntitlementStore) Migrate(ctx context.Context) error {
 		ID: "002_single_chat_product",
 		Up: func(ctx context.Context, tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx, `
-CREATE TABLE IF NOT EXISTS products (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    skills TEXT NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1
-);
-
 CREATE TABLE IF NOT EXISTS entitlements (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -110,17 +103,6 @@ CREATE INDEX IF NOT EXISTS idx_entitlements_source
 `)
 			if err != nil {
 				return err
-			}
-			for _, definition := range ProductCatalog() {
-				skillsJSON, err := json.Marshal(definition.Skills)
-				if err != nil {
-					return err
-				}
-				if _, err := tx.ExecContext(ctx, `
-INSERT OR IGNORE INTO products (id,name,skills,active) VALUES (?,?,?,1)`,
-					string(definition.ID), definition.Name, string(skillsJSON)); err != nil {
-					return err
-				}
 			}
 			return nil
 		},

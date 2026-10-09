@@ -13,6 +13,9 @@ type Definition struct {
 	AmountMinor map[string]int64
 }
 
+// commerceCatalog returns the commerce-facing product cards: presentation and
+// price per currency. Entitlement semantics (which skills a purchase grants)
+// live in ProductCatalog — see the boundary note there.
 func commerceCatalog() map[Product]Definition {
 	return map[Product]Definition{
 		ProductChat: {

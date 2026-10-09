@@ -75,6 +75,9 @@ func NewChatStore(db *sql.DB) *ChatStore {
 func (s *ChatStore) Migrate(ctx context.Context) error {
 	return migrate.Run(ctx, s.db, []migrate.Migration{
 		{
+			// The unified_* table names keep their prefix from the
+			// session-merge migration; they denote the one and only chat
+			// model. Renaming is cosmetic and deferred.
 			ID: "001_unified_chat_runtime",
 			Up: func(ctx context.Context, tx *sql.Tx) error {
 				_, err := tx.ExecContext(ctx, `

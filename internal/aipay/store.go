@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +32,7 @@ CREATE TABLE IF NOT EXISTS aipay_orders (
     out_trade_no TEXT PRIMARY KEY,
     trade_no TEXT NOT NULL DEFAULT '',
     amount TEXT NOT NULL,
+    amount_minor INTEGER NOT NULL DEFAULT 0,
     currency TEXT NOT NULL,
     resource_id TEXT NOT NULL,
     goods_name TEXT NOT NULL,
@@ -47,11 +50,108 @@ CREATE INDEX IF NOT EXISTS idx_aipay_orders_fulfillment
 	if err != nil {
 		return fmt.Errorf("aipay: migrate: %w", err)
 	}
+	return s.backfillAmountMinor(ctx)
+}
+
+// backfillAmountMinor adds the canonical integer minor-unit column to
+// databases created before it existed, then derives it from the provider
+// wire string for every row predating the column.
+func (s *Store) backfillAmountMinor(ctx context.Context) error {
+	var name string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT name FROM pragma_table_info('aipay_orders') WHERE name='amount_minor'`).Scan(&name)
+	if err == nil {
+		return s.recomputeAmountMinor(ctx)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("aipay: check amount_minor: %w", err)
+	}
+	if _, err := s.db.ExecContext(ctx,
+		`ALTER TABLE aipay_orders ADD COLUMN amount_minor INTEGER NOT NULL DEFAULT 0`); err != nil {
+		return fmt.Errorf("aipay: add amount_minor: %w", err)
+	}
+	return s.recomputeAmountMinor(ctx)
+}
+
+// recomputeAmountMinor derives amount_minor from the provider wire string.
+// Alipay amounts are fixed 2-decimal strings, so the split-and-pad parse is
+// exact (no float rounding).
+func (s *Store) recomputeAmountMinor(ctx context.Context) error {
+	rows, err := s.db.QueryContext(ctx, `SELECT out_trade_no, amount FROM aipay_orders WHERE amount_minor = 0`)
+	if err != nil {
+		return fmt.Errorf("aipay: scan amount_minor backlog: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	type backlogItem struct {
+		outTradeNo string
+		minor      int64
+	}
+	var backlog []backlogItem
+	for rows.Next() {
+		var outTradeNo, amount string
+		if err := rows.Scan(&outTradeNo, &amount); err != nil {
+			return fmt.Errorf("aipay: scan amount row: %w", err)
+		}
+		minor, err := parseAmountMinor(amount)
+		if err != nil {
+			return fmt.Errorf("aipay: backfill %s: %w", outTradeNo, err)
+		}
+		if minor != 0 {
+			backlog = append(backlog, backlogItem{outTradeNo, minor})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("aipay: iterate amount rows: %w", err)
+	}
+	for _, item := range backlog {
+		if _, err := s.db.ExecContext(ctx,
+			`UPDATE aipay_orders SET amount_minor=? WHERE out_trade_no=? AND amount_minor=0`,
+			item.minor, item.outTradeNo); err != nil {
+			return fmt.Errorf("aipay: backfill update: %w", err)
+		}
+	}
 	return nil
+}
+
+// parseAmountMinor converts a fixed 2-decimal amount string ("1", "1.0",
+// "1.00") into integer minor units without float rounding.
+func parseAmountMinor(amount string) (int64, error) {
+	trimmed := strings.TrimSpace(amount)
+	if trimmed == "" {
+		return 0, errors.New("aipay: empty amount")
+	}
+	parts := strings.SplitN(trimmed, ".", 2)
+	whole, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil || whole < 0 {
+		return 0, fmt.Errorf("aipay: invalid amount %q", amount)
+	}
+	minor := whole * 100
+	if len(parts) == 2 {
+		frac := parts[1]
+		if len(frac) > 2 {
+			return 0, fmt.Errorf("aipay: amount %q has more than 2 decimal places", amount)
+		}
+		for len(frac) < 2 {
+			frac += "0"
+		}
+		fraction, parseErr := strconv.ParseInt(frac, 10, 64)
+		if parseErr != nil {
+			return 0, fmt.Errorf("aipay: invalid amount %q", amount)
+		}
+		minor += fraction
+	}
+	if minor <= 0 {
+		return 0, fmt.Errorf("aipay: amount %q must be positive", amount)
+	}
+	return minor, nil
 }
 
 func (s *Store) CreateBill(ctx context.Context, amount, goodsName string) (Bill, error) {
 	now := s.nowFun()
+	minor, err := parseAmountMinor(amount)
+	if err != nil {
+		return Bill{}, err
+	}
 	bill := Bill{
 		OutTradeNo: s.idFun(),
 		Amount:     amount,
@@ -61,12 +161,12 @@ func (s *Store) CreateBill(ctx context.Context, amount, goodsName string) (Bill,
 		PayBefore:  now.Local().Add(30 * time.Minute).Format(time.RFC3339),
 		Status:     StatusPending,
 	}
-	_, err := s.db.ExecContext(ctx, `
+	_, err = s.db.ExecContext(ctx, `
 INSERT INTO aipay_orders
-(out_trade_no, amount, currency, resource_id, goods_name, pay_before,
+(out_trade_no, amount, amount_minor, currency, resource_id, goods_name, pay_before,
  status, fulfillment_status, created_at, updated_at)
-VALUES (?,?,?,?,?,?,?, 'unfulfilled', ?, ?)`,
-		bill.OutTradeNo, bill.Amount, bill.Currency, bill.ResourceID, bill.GoodsName,
+VALUES (?,?,?,?,?,?,?,?, 'unfulfilled', ?, ?)`,
+		bill.OutTradeNo, bill.Amount, minor, bill.Currency, bill.ResourceID, bill.GoodsName,
 		bill.PayBefore, bill.Status, now.Format(time.RFC3339), now.Format(time.RFC3339))
 	if err != nil {
 		return Bill{}, fmt.Errorf("aipay: create bill: %w", err)
