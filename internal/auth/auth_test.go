@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/ml8s/liki-web/internal/httputil"
@@ -391,5 +392,42 @@ func TestAuthJSONEncoding(t *testing.T) {
 	httputil.RespondJSON(rec, http.StatusOK, map[string]string{"ok": "yes"})
 	if rec.Code != http.StatusOK || !json.Valid(rec.Body.Bytes()) {
 		t.Fatalf("response = %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSessionCapEnforced(t *testing.T) {
+	store := newTestStore(t)
+	store.SessionCap = 5
+	ctx := context.Background()
+	userID, email := "user-cap", "cap@example.com"
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := store.db.Exec(`
+INSERT INTO users (id,email,status,locale,created_at,updated_at)
+VALUES (?,?, 'active','zh-Hans',?,?)`, userID, email, now, now); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 8; i++ {
+		created := time.Now().UTC().Add(time.Duration(i-8) * time.Hour).Format(time.RFC3339)
+		if _, err := store.db.Exec(`
+INSERT INTO auth_sessions (id,user_id,token_hash,status,created_at,expires_at,last_seen_at)
+VALUES (?,?,?,'active',?,?,?)`,
+			fmt.Sprintf("s-%d", i), userID, fmt.Sprintf("hash-%d", i), created,
+			"2030-01-01T00:00:00Z", created); err != nil {
+			t.Fatal(err)
+		}
+	}
+	code, _, err := store.IssueEmailCode(ctx, email, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CompleteEmailLogin(ctx, email, code, "", "", "zh-Hans"); err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM auth_sessions WHERE user_id=?`, userID).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 5 {
+		t.Fatalf("sessions = %d, want capped at 5", n)
 	}
 }

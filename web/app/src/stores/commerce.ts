@@ -82,7 +82,14 @@ export const useCommerceStore = defineStore('commerce', {
       this.actionError = ''
       try {
         const checkout = await checkoutChatProduct(product.id, i18n.global.locale.value)
-        window.location.href = checkout.checkout_url
+        // 只跟随相对路径或 https 支付域：防御后端配置错误导致的开放重定向。
+        const url = checkout.checkout_url
+        if (!url.startsWith('/') && !url.startsWith('https://')) {
+          this.actionError = t('commerce.checkoutFailed')
+          await this.refresh()
+          return
+        }
+        window.location.href = url
       } catch (error) {
         this.actionError = toUserMessage(error, t('commerce.checkoutFailed'))
         await this.refresh()

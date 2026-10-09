@@ -19,6 +19,10 @@ import (
 	"github.com/ml8s/liki-web/internal/migrate"
 )
 
+// defaultSessionCap caps concurrent sessions per user when Service config
+// does not override it.
+const defaultSessionCap = 20
+
 var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9.!#$%&'*+/=?^_` + "`" + `{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$`)
 
 const (
@@ -29,19 +33,21 @@ const (
 )
 
 type Store struct {
-	db      *sql.DB
-	hmacKey []byte
-	nowFunc func() time.Time
-	idFunc  func() string
-	codeFun func() (string, error)
+	db         *sql.DB
+	hmacKey    []byte
+	nowFunc    func() time.Time
+	idFunc     func() string
+	codeFun    func() (string, error)
+	SessionCap int
 }
 
 func NewStore(db *sql.DB, hmacKey []byte) *Store {
 	return &Store{
-		db:      db,
-		hmacKey: hmacKey,
-		nowFunc: func() time.Time { return time.Now().UTC() },
-		idFunc:  func() string { return uuid.NewString() },
+		db:         db,
+		hmacKey:    hmacKey,
+		SessionCap: defaultSessionCap,
+		nowFunc:    func() time.Time { return time.Now().UTC() },
+		idFunc:     func() string { return uuid.NewString() },
 		codeFun: func() (string, error) {
 			b := make([]byte, 3)
 			if _, err := rand.Read(b); err != nil {
@@ -389,6 +395,21 @@ VALUES (?,?,?, 'active',?,?,?,? ,?)`,
 		return LoginResult{}, err
 	}
 
+	// Enforce the per-user session cap: keep the newest SessionCap sessions
+	// (the just-created one is always retained) and purge older ones along
+	// with their ip_hash/user_agent metadata.
+	if s.SessionCap > 0 {
+		if _, err := tx.ExecContext(ctx, `
+DELETE FROM auth_sessions
+WHERE user_id=? AND id<>? AND id NOT IN (
+	SELECT id FROM auth_sessions
+	WHERE user_id=? AND id<>?
+	ORDER BY created_at DESC, id DESC LIMIT ?
+)`, user.ID, sessionID, user.ID, sessionID, s.SessionCap-1); err != nil {
+			return LoginResult{}, err
+		}
+	}
+
 	if err = s.audit(ctx, tx, "login_succeeded", user.ID, email, s.ipHash(ipHash), userAgent, "{}", now); err != nil {
 		return LoginResult{}, err
 	}
@@ -603,5 +624,15 @@ WHERE status='active' AND expires_at<=?`, now)
 	}
 	_, err = s.db.ExecContext(ctx, `
 DELETE FROM auth_codes WHERE expires_at < datetime('now','-30 days')`)
+	if err != nil {
+		return n, err
+	}
+	// Expired/revoked sessions keep ip_hash/user_agent for a 30-day forensic
+	// window, then are purged (PII retention).
+	if _, err := s.db.ExecContext(ctx, `
+DELETE FROM auth_sessions
+WHERE status IN ('expired','revoked') AND expires_at <= datetime('now','-30 days')`); err != nil {
+		return n, err
+	}
 	return n, err
 }

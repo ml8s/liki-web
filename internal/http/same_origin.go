@@ -3,6 +3,7 @@ package http
 import (
 	stdhttp "net/http"
 	"net/url"
+	"strings"
 
 	"github.com/ml8s/liki-web/internal/httputil"
 )
@@ -58,9 +59,14 @@ func sameOriginExpectedHost(r *stdhttp.Request) bool {
 	if r.Header.Get("Origin") == "" && r.Header.Get("Referer") == "" {
 		return false
 	}
-	expected := httputil.ForwardedHost(r)
+	expected := strings.ToLower(httputil.ForwardedHost(r))
 	if expected == "" {
 		return false
+	}
+	// Behind the edge, Caddy sets X-Forwarded-Proto; production is HTTPS.
+	expectedScheme := r.Header.Get("X-Forwarded-Proto")
+	if expectedScheme == "" {
+		expectedScheme = "https"
 	}
 	for _, name := range []string{"Origin", "Referer"} {
 		value := r.Header.Get(name)
@@ -68,7 +74,10 @@ func sameOriginExpectedHost(r *stdhttp.Request) bool {
 			continue
 		}
 		parsed, err := url.Parse(value)
-		if err != nil || parsed.Host != expected {
+		if err != nil || strings.ToLower(parsed.Host) != expected {
+			return false
+		}
+		if !strings.EqualFold(parsed.Scheme, expectedScheme) {
 			return false
 		}
 	}

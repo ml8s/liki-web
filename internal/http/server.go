@@ -119,7 +119,10 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	mux.HandleFunc("POST /api/analytics/pageview", analyticsLimit(handlePageView()))
 	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
 	if deps.MetricsHandler != nil {
-		mux.HandleFunc("GET /api/internal/metrics", deps.MetricsHandler)
+		rlInternal := func(next http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(0.5, 10, next)
+		}
+		mux.HandleFunc("GET /api/internal/metrics", rlInternal(deps.MetricsHandler))
 	}
 
 	// ── admin routes (registered here to avoid import cycle) ──
@@ -143,9 +146,13 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		rlFeedback := func(next http.HandlerFunc) http.HandlerFunc {
 			return rl.Wrap(5.0/60, 1, next)
 		}
+		// 管理面（API key 保护）独立桶：读 30/min、写 10/min。
+		rlFeedbackOps := func(next http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(0.5, 10, next)
+		}
 		mux.HandleFunc("POST /api/feedback", feedback.HandleCreate(deps.FeedbackStore, rlFeedback))
-		mux.HandleFunc("GET /api/feedback", feedback.HandleList(deps.FeedbackStore, deps.FeedbackAPIKey))
-		mux.HandleFunc("PATCH /api/feedback/{id}", feedback.HandleUpdate(deps.FeedbackStore, deps.FeedbackAPIKey))
+		mux.HandleFunc("GET /api/feedback", rlFeedbackOps(feedback.HandleList(deps.FeedbackStore, deps.FeedbackAPIKey)))
+		mux.HandleFunc("PATCH /api/feedback/{id}", rlFeedbackOps(feedback.HandleUpdate(deps.FeedbackStore, deps.FeedbackAPIKey)))
 	}
 
 	handler := Recover(SecurityHeaders(SameOrigin(

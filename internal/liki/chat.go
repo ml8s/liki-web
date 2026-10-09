@@ -226,8 +226,13 @@ func (s *ChatStore) AppendMessage(ctx context.Context, userID, sessionID, role s
 		kind = KindText
 	}
 	message := Message{ID: s.idFunc(), SessionID: sessionID, UserID: userID, Role: role, Kind: kind, Content: content}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return Message{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
 	var createdAt string
-	err := s.db.QueryRowContext(ctx, `
+	err = tx.QueryRowContext(ctx, `
 INSERT INTO unified_chat_messages (id,session_id,user_id,role,kind,content,created_at)
 VALUES (?,?,?,?,?,?,?)
 RETURNING created_at`, message.ID, sessionID, userID, role, string(kind), content, now,
@@ -236,10 +241,15 @@ RETURNING created_at`, message.ID, sessionID, userID, role, string(kind), conten
 		return Message{}, err
 	}
 	message.CreatedAt = chatMustTime(createdAt)
-	_, err = s.db.ExecContext(ctx, `
+	if _, err := tx.ExecContext(ctx, `
 UPDATE unified_chat_sessions SET updated_at=?, last_message_at=CASE WHEN last_message_at IS NULL OR last_message_at<? THEN ? ELSE last_message_at END
-WHERE id=?`, now, now, now, sessionID)
-	return message, err
+WHERE id=?`, now, now, now, sessionID); err != nil {
+		return Message{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return Message{}, err
+	}
+	return message, nil
 }
 
 func (s *ChatStore) TouchSession(ctx context.Context, sessionID string, now time.Time) error {

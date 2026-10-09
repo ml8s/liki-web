@@ -195,8 +195,12 @@ async function load() {
   }
 }
 
+function asOrder(row: Record<string, unknown>): ChatOrder {
+  return row as unknown as ChatOrder
+}
+
 function formatAmount(row: Record<string, unknown>) {
-  const order = row as unknown as ChatOrder
+  const order = asOrder(row)
   return formatMinorUnit(order.amount_minor, order.currency)
 }
 

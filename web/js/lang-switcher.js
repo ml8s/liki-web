@@ -21,8 +21,9 @@
   }
 
   function rememberLang(locale) {
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
     document.cookie = 'liki_locale=' + encodeURIComponent(locale) +
-      '; Path=/; Max-Age=31536000; SameSite=Lax';
+      '; Path=/; Max-Age=31536000; SameSite=Lax' + secure;
   }
 
   window.Liki = window.Liki || {};
