@@ -209,3 +209,50 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 
 至本轮结束：**P2 20/20 闭环**（含 3 项验伪否决/取舍）；P3 22 项为择期
 结构性项，未在本轮范围。
+
+## 11. 未完成项全景分析与处置决策（2026-10-09）
+
+对全部剩余 30 项（P2 尾 6 + P3 22 + 结构性观察）逐项核验真伪后，归入四类。
+
+### 11.1 A 类 — 快赢：低风险、单项 ≤2h，建议立即做（9 项 ≈ 1.5 天）
+
+| 项 | 处置 | 依据 |
+| --- | --- | --- |
+| chat AppendMessage 的 insert+touch 双语句包事务 | 做 | 列表排序一致性；tx 包裹即可 |
+| same-origin 补 scheme 校验 + host 小写规范化 | 做 | 生产接受 `http://liki.hk` 是真实松弛 |
+| `MaxSessions` 死配置：生效 + 过期/撤销 session 保留期清理 | 做 | 配置存在但 0 引用，属死配置+PII 无限保留双重问题 |
+| `/api/internal/metrics` 与 feedback 管理面套限流器 | 做 | 基建已有（rl 系列包裹），接线即可 |
+| SECURITY.md 与 docs 关系声明 | 做 | GitHub 约定 vs 权威索引 |
+| 404 数字对比度（装饰化 aria-hidden） | 做 | axe 已有基线，补齐即可 |
+| checkout_url 前端 allowlist | 做 | 开放重定向防御纵深，代码 ~10 行 |
+| lang-switcher cookie `Secure` | 做 | 与 SPA setAppLocale 对齐 |
+| OrdersView typed row helper | 做 | 唯一的类型边界弱化点 |
+
+### 11.2 B 类 — 下迭代中型项（真实价值，需专注）
+
+| 项 | 工作量 | 说明 |
+| --- | --- | --- |
+| durable erasure 编排（P1-4 本体） | 3–5 天 | 覆盖缺口已补，durable job 是合规闭环的最后一块 |
+| 错误包装一致性（store 层 `domain: operation: %w`） | 1–2 天 | 与 feedback ctx 化同批 |
+| chat chunk 动态 import（dashboard 减重 292KB raw） | M | 首屏体验 |
+| aipay pending bill 过期清理 | 0.5–1 天 | 表体积不受控 |
+| Axe 覆盖 Partner×3 + NotFound | M | 无障碍基线补齐 |
+| profiles load more UI | S/M | >50 档案可达性（待产品确认上限预期） |
+
+### 11.3 C 类 — 明确不做（取舍已记录）
+
+- kol/scout 路由树收敛（结构性重构，收益低于风险）
+- schema 演进双轨统一（3–5 天，行为等价，仅风格）
+- 迁移 checksum（forward-only + 事务内检查已 fail-closed）
+- feedback store 全量 ctx 化（本地单文件 SQLite）
+- partner 邮件完整 outbox（低频 admin 动作，WithoutCancel 已硬化）
+
+### 11.4 D 类 — 待外部验证（挂起）
+
+- 引擎 `safety_advisory` 是否按 locale 返回（需 liki 仓确认，前端再定映射）
+
+### 11.5 建议节奏
+
+A 类一个 PR 收口（1.5 天）；B 类按 erasure → 错误包装 → chat chunk 顺序进
+下一迭代；C/D 维持记录。全部 P1 已修、P2 已闭环，A 类完成后本项目无
+已知 P1/P2 存量。
