@@ -227,24 +227,18 @@ VALUES (?,?,?,?,?,?,'pending',?)`,
 }
 
 func (s *NotificationStore) EnqueueOnce(ctx context.Context, intentID string, kind NotificationKind, msg EmailMessage) error {
-	exists, err := s.exists(ctx, intentID, kind)
-	if err != nil {
-		return err
+	// Single statement: the unique index (payment_intent_id, kind) is the
+	// concurrency-safe authority, so a racing webhook either inserts or
+	// idempotently no-ops — no SELECT/INSERT window.
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := s.db.ExecContext(ctx, `
+INSERT INTO payment_notifications (id, payment_intent_id, kind, to_email, subject, body, status, created_at)
+VALUES (?,?,?,?,?,?,'pending',?)
+ON CONFLICT(payment_intent_id, kind) DO NOTHING`,
+		uuid.NewString(), intentID, string(kind), msg.To, msg.Subject, msg.Body, now); err != nil {
+		return fmt.Errorf("payment: enqueue notification: %w", err)
 	}
-	if exists {
-		return nil
-	}
-	return s.Enqueue(ctx, intentID, kind, msg)
-}
-
-func (s *NotificationStore) exists(ctx context.Context, intentID string, kind NotificationKind) (bool, error) {
-	var n int
-	if err := s.db.QueryRowContext(ctx, `
-SELECT COUNT(1) FROM payment_notifications
-WHERE payment_intent_id=? AND kind=?`, intentID, string(kind)).Scan(&n); err != nil {
-		return false, err
-	}
-	return n > 0, nil
+	return nil
 }
 
 func (s *NotificationStore) Migrate(ctx context.Context) error {

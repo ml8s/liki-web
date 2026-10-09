@@ -117,27 +117,3 @@ func TestDecodeAndValidate_WritesErrorResponse(t *testing.T) {
 		t.Error("error response should contain 'error' key")
 	}
 }
-
-func TestLangToLocale(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		lang     string
-		expected string
-	}{
-		{"zh", "zh-Hant"},
-		{"zh-CN", "zh-Hans"},
-		{"zh-Hans", "zh-Hans"},
-		{"hk", "zh-Hant"},
-		{"zh-Hant", "zh-Hant"},
-		{"en", "en"},
-		{"unknown", "zh-Hant"},
-		{"", "zh-Hant"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.lang, func(t *testing.T) {
-			if got := langToLocale(tt.lang); got != tt.expected {
-				t.Errorf("langToLocale(%q) = %q, want %q", tt.lang, got, tt.expected)
-			}
-		})
-	}
-}

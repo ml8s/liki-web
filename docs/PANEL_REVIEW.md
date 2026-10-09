@@ -260,7 +260,7 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 | 17 | aipay `pay_before` UTC | ✅ 已做（前批） |
 | 18 | admin 未认证 deny 不落审计 | ✅ 已做（前批） |
 | 19 | refund observer 0-amount 契约归一 | ✅ 已做（前批） |
-| 20 | EnqueueOnce ON CONFLICT | ✅ 已做（前批） |
+| 20 | EnqueueOnce ON CONFLICT | ✅ 已落地（2026-10-10 复核发现前批仅改了提交信息未改代码——本轮真正落地并移除孤儿 `exists()`） |
 | 21 | referral 补偿扫描 ASC | ✅ 已做（前批） |
 
 ### 11.2 不做清单（10 项，含理由）
@@ -286,3 +286,20 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 - 提交二：#10 durable erasure + #12 动态 import + #13 aipay 清理
 - 提交三：#14 Axe 扩页 + #15 load more + 文档收口
 - 每批全量验证（go test ./...、golangci、vue-tsc、vitest、eslint、markdownlint）
+
+## 13.1 死代码清扫 · 第二轮（2026-10-10，代码演进后复扫）
+
+方法同 13 节（导出零引用 + `golangci --tests=false` 抓 test-only 存活）。
+
+本轮清除：
+
+| 死代码 | 位置 | 死因 |
+| --- | --- | --- |
+| `langToLocale` + locale.go 整文件 + 其测试 | internal/http | products/胶水收敛后全仓零引用（含测试外无调用方） |
+| `NotificationStore.exists` | internal/payment | EnqueueOnce 改单语句后孤儿化（本轮清扫才发现前批该修复未落地，见 8.1 更正） |
+
+核验为存活（保留）：`canonicalHost`、`absoluteNotificationURL`、`formatMinorAmount`、
+`actorFromRequest`、`decodeAPI`（测试 helper）、`createKOLPartner`/`commission`
+（refund 测试经真实 store 方法构造状态，属正当 fixture，记录不删）。
+
+前端未使用导出复扫：零。
