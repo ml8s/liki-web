@@ -309,8 +309,14 @@ jobs:
           docker run -d --name web-smoke \
             -e LISTEN_ADDR=:8081 \
             -e JWT_SECRET=ci-smoke-secret \
+            -e REFERRAL_PAYOUT_SECRET=ci-smoke-referral-payout-secret-32-bytes \
+            -e RETURN_URL=http://127.0.0.1:18081 \
+            -e PAYMENTS_WEBHOOK_URL=http://127.0.0.1:18081/api/payments/webhook \
+            -e XUNHU_APPID=ci-smoke \
+            -e XUNHU_APPSECRET=ci-smoke-secret \
             -e LIKI_AGENTS_URL=http://127.0.0.1:18083 \
             -e LIKI_AGENTS_INTERNAL_TOKEN=ci-smoke-agent-token \
+            -e LIKI_WEB_HOST=localhost \
             -p 18081:8081 \
             ghcr.io/${{ github.repository_owner }}/liki-web:${{ steps.version.outputs.runtime }}
           for i in $(seq 1 30); do
