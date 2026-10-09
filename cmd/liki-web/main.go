@@ -489,6 +489,7 @@ func main() {
 			intents,
 			notifications,
 			referralStore,
+			adminAuthorizer,
 			authHandler.RequireUser,
 		),
 		FeedbackStore:   feedbackStore,

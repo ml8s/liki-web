@@ -51,6 +51,16 @@ export const useCommerceStore = defineStore('commerce', {
       !state.products.length && (state.loadingProducts || useEntitlementsStore().loading || useChatStore().loadingSessions),
   },
   actions: {
+    reset() {
+      this.products = []
+      this.productsError = ''
+      this.loadingProducts = false
+      this.buying = false
+      this.refreshing = false
+      this.actionError = ''
+      this.paymentState = 'idle'
+      this.paymentMessage = ''
+    },
     wait(ms: number) {
       return new Promise(resolve => setTimeout(resolve, ms))
     },

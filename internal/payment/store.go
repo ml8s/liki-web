@@ -115,12 +115,9 @@ func (s *IntentStore) RecordRefund(ctx context.Context, intent PaymentIntent, pr
 	if providerRefundID == "" {
 		providerRefundID = "refund-" + intent.ID
 	}
-	if amountMinor <= 0 {
-		amountMinor = intent.AmountMinor
-	}
-	if amountMinor <= 0 || amountMinor > intent.AmountMinor {
-		return PaymentIntent{}, RefundRecord{}, fmt.Errorf("payment: invalid refund amount %d for intent %s", amountMinor, intent.ID)
-	}
+	// amountMinor <= 0 means "refund the remaining balance"; the exact value
+	// is re-derived inside the transaction below so concurrent refunds can
+	// never overshoot.
 	if strings.TrimSpace(currency) == "" {
 		currency = intent.Currency
 	}
@@ -133,6 +130,22 @@ func (s *IntentStore) RecordRefund(ctx context.Context, intent PaymentIntent, pr
 		return PaymentIntent{}, RefundRecord{}, err
 	}
 	defer func() { _ = tx.Rollback() }()
+	// Re-read the authoritative refunded total inside the transaction. The
+	// intent snapshot held by the caller may be stale under concurrent
+	// refunds; relying on it allowed cumulative overdrafts.
+	var refundedNow int64
+	if err := tx.QueryRowContext(ctx,
+		`SELECT COALESCE(refunded_amount_minor,0) FROM payment_intents WHERE id=?`,
+		intent.ID).Scan(&refundedNow); err != nil {
+		return PaymentIntent{}, RefundRecord{}, err
+	}
+	if amountMinor <= 0 {
+		amountMinor = intent.AmountMinor - refundedNow
+	}
+	if amountMinor <= 0 || refundedNow+amountMinor > intent.AmountMinor {
+		return PaymentIntent{}, RefundRecord{}, fmt.Errorf("payment: refund %d exceeds remaining %d for intent %s",
+			amountMinor, intent.AmountMinor-refundedNow, intent.ID)
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	refundID := string(intent.Provider) + ":" + providerRefundID
 	res, err := tx.ExecContext(ctx, `
@@ -157,15 +170,23 @@ ON CONFLICT(provider,provider_refund_id) DO NOTHING`,
 		intent, err = s.GetIntent(ctx, intent.ID)
 		return intent, RefundRecord{ID: refundID, Notified: notified.Valid}, err
 	}
-	if _, err := tx.ExecContext(ctx, `
+	res, err = tx.ExecContext(ctx, `
 UPDATE payment_intents
 SET refunded_amount_minor=refunded_amount_minor+?,
     status=CASE WHEN refunded_amount_minor+?>=amount_minor THEN ? ELSE ? END,
     refunded_at=COALESCE(refunded_at,?),
     updated_at=?
-WHERE id=?`,
-		amountMinor, amountMinor, string(PaymentStatusRefunded), string(IntentPaid), now, now, intent.ID); err != nil {
+WHERE id=? AND refunded_amount_minor+?<=amount_minor`,
+		amountMinor, amountMinor, string(PaymentStatusRefunded), string(IntentPaid), now, now, intent.ID, amountMinor)
+	if err != nil {
 		return PaymentIntent{}, RefundRecord{}, err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return PaymentIntent{}, RefundRecord{}, err
+	} else if n == 0 {
+		// A concurrent refund consumed the remaining balance first.
+		return PaymentIntent{}, RefundRecord{}, fmt.Errorf("payment: refund %d exceeds remaining balance for intent %s",
+			amountMinor, intent.ID)
 	}
 	if err := tx.Commit(); err != nil {
 		return PaymentIntent{}, RefundRecord{}, err

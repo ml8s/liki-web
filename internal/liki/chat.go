@@ -250,9 +250,16 @@ func (s *ChatStore) TouchSession(ctx context.Context, sessionID string, now time
 // AnonymizeUserMessages clears the PII-bearing message content for a user's
 // chat history during compliance erasure. Every message kind (user text,
 // assistant text, and system_profile payloads) may embed personal data such as
-// birth info or personal questions, so content is cleared across all kinds;
-// message structure and metadata are preserved for audit continuity.
+// birth info or personal questions, so content is cleared across all kinds.
+// Session titles are user-authored free text and profile_id links to the (now
+// soft-deleted) profile, so both are cleared as well; message structure and
+// metadata are preserved for audit continuity.
 func (s *ChatStore) AnonymizeUserMessages(ctx context.Context, userID string) (int64, error) {
+	if _, err := s.db.ExecContext(ctx, `
+UPDATE unified_chat_sessions SET title='', profile_id=''
+WHERE user_id=?`, userID); err != nil {
+		return 0, err
+	}
 	result, err := s.db.ExecContext(ctx, `
 UPDATE unified_chat_messages SET content=''
 WHERE user_id=?`, userID)

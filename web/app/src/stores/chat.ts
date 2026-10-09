@@ -82,6 +82,8 @@ export const useChatStore = defineStore('chat', {
       return this.createSession(profileId, 'liki')
     },
     async openSession(sessionId: string) {
+      // 切换会话即中止进行中的流：旧请求的完成回调不得写入新会话。
+      this.stopGeneration()
       this.loadingMessages = true
       this.error = ''
       this.activeSession = this.sessions.find(item => item.id === sessionId) ?? null
@@ -162,6 +164,10 @@ export const useChatStore = defineStore('chat', {
           }
         }, streamController.signal)
 
+        if (this.activeSession?.id !== session.id) {
+          // 用户已切换会话：结果属旧会话，权威消息由服务端持久化，前端不写入。
+          return
+        }
         if (textTimer) { clearTimeout(textTimer); textTimer = null }
         assistant.content = pendingText
         assistant.thinking = pendingThinking
@@ -207,6 +213,7 @@ export const useChatStore = defineStore('chat', {
       this.error = ''
     },
     reset() {
+      this.stopGeneration()
       this.sessions = []
       this.resetActive()
       this.loadingSessions = false

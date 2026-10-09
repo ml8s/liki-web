@@ -79,18 +79,22 @@ func TestAdminManagementSafetyRules(t *testing.T) {
 		t.Fatalf("validation order err=%v", err)
 	}
 
-	// Removing the only active super capability would lock out authorization.
+	// Granting or revoking admin.super requires the actor to hold an active
+	// admin.super capability. Without this gate, admin.user.manage alone
+	// enables a full privilege-escalation path (create a controlled admin,
+	// then promote it to super).
 	if err := store.EnsureAdmin(ctx, "owner@example.com", "second@example.com", "no capabilities"); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.RevokeCapability(ctx, "second@example.com", "owner@example.com", CapabilityAdminSuper, "rotation without successor"); !errors.Is(err, ErrLastSuperAdmin) {
-		t.Fatalf("last super revoke err=%v", err)
+	if err := store.GrantCapability(ctx, "ops@example.com", "second@example.com", CapabilityAdminSuper, "escalation attempt"); !errors.Is(err, ErrSuperRequiresSuper) {
+		t.Fatalf("non-super grant err=%v", err)
 	}
-	if err := store.SetAdminStatus(ctx, "second@example.com", "owner@example.com", AdminDisabled, "disable without successor"); !errors.Is(err, ErrLastSuperAdmin) {
-		t.Fatalf("last super disable err=%v", err)
+	if err := store.RevokeCapability(ctx, "ops@example.com", "owner@example.com", CapabilityAdminSuper, "escalation attempt"); !errors.Is(err, ErrSuperRequiresSuper) {
+		t.Fatalf("non-super revoke err=%v", err)
 	}
 
-	// A second active super makes rotation possible.
+	// A genuine super performs the planned rotation: second becomes super,
+	// then revokes the owner's super (two active supers, so not a lockout).
 	if err := store.GrantCapability(ctx, "owner@example.com", "second@example.com", CapabilityAdminSuper, "successor owner"); err != nil {
 		t.Fatal(err)
 	}

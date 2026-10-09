@@ -122,7 +122,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 
 	handler := NewHandler(profileStore, chatStore, authStore,
 		orderStore, entitlementStore, paymentStore, notificationStore,
-		referralStore,
+		referralStore, nil,
 		func(next http.HandlerFunc) http.HandlerFunc {
 			return func(w http.ResponseWriter, r *http.Request) {
 				user := auth.User{ID: "user_1", Email: "u@example.com", Status: auth.UserActive}

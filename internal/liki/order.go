@@ -197,9 +197,13 @@ WHERE id=? AND user_id=? AND status='pending'`,
 
 func (s *OrderStore) MarkPaidByIntent(ctx context.Context, intentID string) (Order, bool, error) {
 	now := s.nowFunc().Format(time.RFC3339)
+	// A canceled order can still be paid when the provider captures a
+	// checkout that was created before our local cancel (lost response,
+	// user retry). Reviving is deliberate: once money moved we must grant
+	// the entitlement rather than silently keep it.
 	result, err := s.db.ExecContext(ctx, `
 UPDATE chat_orders SET status='paid', paid_at=?, updated_at=?
-WHERE payment_intent_id=? AND status='pending'`, now, now, intentID)
+WHERE payment_intent_id=? AND status IN ('pending','canceled')`, now, now, intentID)
 	if err != nil {
 		return Order{}, false, err
 	}

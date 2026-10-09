@@ -167,6 +167,8 @@ func (h *Handler) writeError(w http.ResponseWriter, err error, fallback string) 
 		httputil.RespondError(w, http.StatusConflict, "self_management_forbidden", "不能修改自己的管理员权限")
 	case errors.Is(err, ErrLastSuperAdmin):
 		httputil.RespondError(w, http.StatusConflict, "last_super_admin", "至少保留一位可用超级管理员")
+	case errors.Is(err, ErrSuperRequiresSuper):
+		httputil.RespondError(w, http.StatusForbidden, "super_requires_super", "变更超级管理员权限需要超级管理员身份")
 	default:
 		slog.Error("adminauth: management operation", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", fallback)

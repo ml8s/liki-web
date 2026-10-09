@@ -773,3 +773,60 @@ func TestPartialRefundWebhookRecordsLedgerAndKeepsIntentPaid(t *testing.T) {
 		t.Fatalf("events=%d", len(events))
 	}
 }
+
+func TestRefundWebhookRejectsOverdraftAndZeroMeansRemaining(t *testing.T) {
+	ctx := context.Background()
+	runtime, gateway, _, _, _, _ := newTestRuntime(t)
+	intent, err := runtime.CreateIntent(ctx, CreateIntentInput{Product: "test-product", BusinessOrderID: "biz-1", Provider: ProviderXunhu})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := runtime.StartCheckout(ctx, intent.ID); err != nil {
+		t.Fatal(err)
+	}
+	gateway.event = checkoutEvent(intent)
+	if err := runtime.HandleWebhookEvent(ctx, []byte("paid"), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	refund := checkoutEvent(intent)
+	refund.Type = EventPaymentRefunded
+	refund.Data.PaymentID = "refund-partial"
+	refund.Data.Amount = 400
+	gateway.event = refund
+	if err := runtime.HandleWebhookEvent(ctx, []byte("partial"), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// A second refund exceeding the remaining balance must be rejected and
+	// must leave the intent untouched (cumulative overdraft guard).
+	refund.Data.PaymentID = "refund-overdraft"
+	refund.Data.Amount = 700
+	gateway.event = refund
+	if err := runtime.HandleWebhookEvent(ctx, []byte("overdraft"), nil); err == nil {
+		t.Fatal("overdraft refund webhook: want error, got nil")
+	}
+	got, err := runtime.GetIntent(ctx, intent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != IntentPaid || got.RefundedAmountMinor != 400 {
+		t.Fatalf("after overdraft intent=%+v", got)
+	}
+
+	// A zero amount means "refund the remaining balance", not the original
+	// total — it must complete the refund without overshooting.
+	refund.Data.PaymentID = "refund-rest"
+	refund.Data.Amount = 0
+	gateway.event = refund
+	if err := runtime.HandleWebhookEvent(ctx, []byte("rest"), nil); err != nil {
+		t.Fatalf("remaining refund webhook: %+v", err)
+	}
+	got, err = runtime.GetIntent(ctx, intent.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != PaymentStatusRefunded || got.RefundedAmountMinor != got.AmountMinor {
+		t.Fatalf("final intent=%+v", got)
+	}
+}

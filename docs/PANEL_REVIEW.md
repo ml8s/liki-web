@@ -157,3 +157,22 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
    通过但并发保护缺失，建议第一批修复时同步补 goroutine 级 race/overdraft 测试。
 - 三位后端侧专家均独立给出"durable queue/outbox 方向正确、继续沿用"的结论，
    erasure 与 partner 邮件应复用该模式而非新造机制。
+
+## 8. 修复进度（2026-10-09，同日启动）
+
+实施前逐项验伪（读代码为证），7 个 P1 全部确认为真；两处子细节修正：
+
+- `MarkPaid` 对 refunded 状态有保护（WHERE 限定 created/checkout_created），Turing 该子细节不成立；真实危害路径是 `capture` 忽略 MarkPaid 生效与否、`EnsureQueued` 无状态守卫——迟到支付在退款后仍触发履约流，核心成立。
+- 额外发现报告未载细节：部分退款后收到 `Amount==0`（全额语义）会绕过剩余校验，`refunded > amount_minor`。已随 P1-1 一并修复。
+
+| 批次 | 内容 | 状态 |
+| --- | --- | --- |
+| 1 | RecordRefund 事务内重读余额 + 条件 UPDATE + 0=补剩余；附超退回归测试 | ✅ |
+| 2 | MarkPaidByIntent 放宽含 canceled（迟到 webhook 复活，不吞钱），附注释 | ✅ |
+| 3 | admin.super 授予/撤销要求 actor 持有 super（新增 ErrSuperRequiresSuper + 403 映射）；SafetyRules 测试按新语义重写（含提权拒绝用例） | ✅ |
+| 4 | erasure 覆盖：chat session title/profile_id 清除；admin_audit_logs 邮箱化名（account 编排新增 AdminAuditEraser，nil 容错兼容旧调用）；feedback 无用户关联 → 声明不适用（非 DSAR 工程） | ✅ |
+| 5 | 前端：auth.logout 统一清理五 store + likiChatDraft；chat 切换会话即 abort + 完成回调 session 校验；commerce 补 reset | ✅ |
+| 6 | CI：docker-publish needs +e2e；顶层 permissions + 各 job timeout；Node cache 双 lock | ✅ |
+| 明确不做 | Idempotency-Key 全套、erasure 全新 outbox 表、DSAR 工具、kol/scout 路由重构 | 记录为已知取舍 |
+
+验证：go test ./... 全过、golangci 0、vue-tsc + vitest 47/47、ESLint、markdownlint、actions SHA-pinned、YAML 解析通过。

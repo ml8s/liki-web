@@ -11,6 +11,7 @@ var (
 	ErrAdminNotFound           = errors.New("adminauth: admin not found")
 	ErrAdminAlreadyExists      = errors.New("adminauth: admin already exists")
 	ErrInvalidCapability       = errors.New("adminauth: invalid capability")
+	ErrSuperRequiresSuper      = errors.New("adminauth: admin.super changes require an active admin.super holder")
 	ErrInvalidAdminStatus      = errors.New("adminauth: invalid admin status")
 	ErrReasonRequired          = errors.New("adminauth: reason is required")
 	ErrSelfManagementForbidden = errors.New("adminauth: self management is forbidden")
@@ -44,6 +45,23 @@ func IsCapabilityValid(capability Capability) bool {
 		}
 	}
 	return false
+}
+
+// actorHoldsSuperTx reports whether the acting admin currently holds an
+// active admin.super capability. Granting or revoking admin.super is a
+// privileged operation precisely because admin.user.manage alone would
+// otherwise enable a full privilege-escalation path (create a controlled
+// admin, then promote it to super).
+func actorHoldsSuperTx(ctx context.Context, tx *sql.Tx, actorEmail string) (bool, error) {
+	var n int
+	err := tx.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM admin_capabilities
+WHERE admin_email=? AND capability=? AND status='active'`,
+		actorEmail, string(CapabilityAdminSuper)).Scan(&n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
 
 type AdminCapability struct {
@@ -158,6 +176,15 @@ func (s *Store) GrantCapability(ctx context.Context, actorEmail, targetEmail str
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if capability == CapabilityAdminSuper {
+		held, err := actorHoldsSuperTx(ctx, tx, actorEmail)
+		if err != nil {
+			return err
+		}
+		if !held {
+			return ErrSuperRequiresSuper
+		}
+	}
 	if err := requireAdminTx(ctx, tx, targetEmail); err != nil {
 		return err
 	}
@@ -198,6 +225,15 @@ func (s *Store) RevokeCapability(ctx context.Context, actorEmail, targetEmail st
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if capability == CapabilityAdminSuper {
+		held, err := actorHoldsSuperTx(ctx, tx, actorEmail)
+		if err != nil {
+			return err
+		}
+		if !held {
+			return ErrSuperRequiresSuper
+		}
+	}
 
 	var before string
 	if err := tx.QueryRowContext(ctx, `

@@ -24,6 +24,14 @@ type ReferralEraser interface {
 	EraseUser(ctx context.Context, userID string) (referral.ErasureResult, error)
 }
 
+// AdminAuditEraser pseudonymizes the acting admin's email on historical
+// admin audit rows. Feedback is intentionally absent from the erasure
+// domains: submissions are anonymous (no user linkage is stored or
+// accepted), so there is nothing to scope to a deleted user.
+type AdminAuditEraser interface {
+	AnonymizeAuditLogs(ctx context.Context, email, tombstone string) (int64, error)
+}
+
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
@@ -35,6 +43,7 @@ type Handler struct {
 	payments      *payment.IntentStore
 	notifications *payment.NotificationStore
 	referral      ReferralEraser
+	adminAudit    AdminAuditEraser
 	requireUser   RequireUserFunc
 }
 
@@ -47,6 +56,7 @@ func NewHandler(
 	payments *payment.IntentStore,
 	notifications *payment.NotificationStore,
 	referral ReferralEraser,
+	adminAudit AdminAuditEraser,
 	requireUser RequireUserFunc,
 ) *Handler {
 	return &Handler{
@@ -54,6 +64,7 @@ func NewHandler(
 		orders: orders, entitlement: entitlement, payments: payments,
 		notifications: notifications,
 		referral:      referral,
+		adminAudit:    adminAudit,
 		requireUser:   requireUser,
 	}
 }
@@ -127,6 +138,13 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		slog.Error("account: erase auth identity", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
+	}
+	if h.adminAudit != nil {
+		if _, err := h.adminAudit.AnonymizeAuditLogs(r.Context(), user.Email, tombstone); err != nil {
+			slog.Error("account: erase admin audit PII", "user_id", user.ID, "err", err)
+			httputil.InternalError(w)
+			return
+		}
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"status": "erased", "profiles_cleared": profilesCleared, "messages_cleared": messagesCleared,

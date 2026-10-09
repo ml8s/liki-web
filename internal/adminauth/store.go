@@ -87,6 +87,18 @@ func Open(path string) (*Store, error) {
 
 func (s *Store) Close() error { return s.db.Close() }
 
+// AnonymizeAuditLogs tombstones the acting admin's email on historical audit
+// rows during account erasure. The pseudonymous actor_user_id, capability,
+// action, and object references are preserved for security-audit continuity.
+func (s *Store) AnonymizeAuditLogs(ctx context.Context, email, tombstone string) (int64, error) {
+	res, err := s.db.ExecContext(ctx, `
+UPDATE admin_audit_logs SET actor_email=? WHERE actor_email=?`, tombstone, email)
+	if err != nil {
+		return 0, fmt.Errorf("adminauth: anonymize audit logs: %w", err)
+	}
+	return res.RowsAffected()
+}
+
 func (s *Store) Migrate(ctx context.Context) error {
 	return migrate.Run(ctx, s.db, []migrate.Migration{{
 		ID: "001_admin_auth",
