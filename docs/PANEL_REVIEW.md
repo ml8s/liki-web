@@ -309,3 +309,20 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 （refund 测试经真实 store 方法构造状态，属正当 fixture，记录不删）。
 
 前端未使用导出复扫：零。
+
+## 14. D 类挂起项终审（2026-10-10）——验伪否决，无需改动
+
+**引擎 `safety_advisory` locale**（原 D 类：en 用户疑见中文警示）：
+
+三重证据否决：
+
+1. liki **Go 引擎全仓从不返回** `safety_advisory`（唯一命中是
+   skill_docs_contract_test 的字段清单字符串，非 RPC 响应）；
+2. 该字段实为 counsel **chat-agent 工具路径**的
+   `divination_safety.assess()` 输出（`liuyao_ask`/`qimen_ask` 等
+   `*_ask` 工具），语言由 agent 对话自行处理，与前端免费排盘 RPC 无关；
+3. 前端 `safety_advisory?: string` 为防御性可选类型，
+   `v-if="result.safety_advisory"` 永不触发。
+
+结论：不存在报告所担心的问题，两个仓库均无需改动。前端类型保留
+（面向未来 counsel 契约的防御性声明）。
