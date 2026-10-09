@@ -286,17 +286,17 @@ function startInterpretation() {
 }
 
 function startService(key: string) {
+  try {
+    sessionStorage.setItem('liki-service', key)
+  } catch {
+    // sessionStorage 不可用时不阻断主流程。
+  }
   const service = serviceByKey(key)
   if (service?.route) {
     void router.push(service.route)
     return
   }
   if (!profiles.list.length) {
-    try {
-      sessionStorage.setItem('liki-service', key)
-    } catch {
-      // sessionStorage 不可用时不阻断主流程。
-    }
     void router.push('/profiles/new')
     return
   }
