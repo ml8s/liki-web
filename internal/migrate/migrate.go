@@ -32,16 +32,21 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 		if migration.ID == "" || migration.Up == nil {
 			return fmt.Errorf("migrate: invalid migration %+v", migration)
 		}
-		applied, err := isApplied(ctx, db, migration.ID)
-		if err != nil {
-			return err
-		}
-		if applied {
-			continue
-		}
+		// The applied-check runs inside the transaction: under concurrent
+		// migrators the loser fails on the (scope,id) primary key instead of
+		// double-applying (fail-closed).
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return err
+		}
+		applied, err := isAppliedTx(ctx, tx, migration.ID)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+		if applied {
+			_ = tx.Rollback()
+			continue
 		}
 		if err := migration.Up(ctx, tx); err != nil {
 			_ = tx.Rollback()
@@ -58,9 +63,9 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 	return nil
 }
 
-func isApplied(ctx context.Context, db *sql.DB, id string) (bool, error) {
+func isAppliedTx(ctx context.Context, tx *sql.Tx, id string) (bool, error) {
 	var n int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(1) FROM schema_migrations WHERE scope='liki' AND id=?`, id).Scan(&n); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(1) FROM schema_migrations WHERE scope='liki' AND id=?`, id).Scan(&n); err != nil {
 		return false, err
 	}
 	return n > 0, nil

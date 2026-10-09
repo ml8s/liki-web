@@ -189,3 +189,23 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 - 前端：`loadMe` 区分 401/网络·5xx（后者登录页提示重试）；BirthForm dirty 快照同构修复；Partner 四视图 9 处错误统一 `errorMessage()`；profiles 列表失败保留 stale + cursor 归零 + URLSearchParams 编码
 
 同步遗留说明：优雅关停已确认**根因更深**——`handleSignals` 从未 cancel root ctx，本次以 `workers.Wait()` + 显式 `cancel()` 修复。
+
+## 10. 尾批清零（2026-10-09 第三轮）——P2 归零
+
+- 迁移并发：applied 检查移入迁移事务内——并发 migrator 输家在 (scope,id)
+  主键上 fail-closed，不再双跑；checksum 记为已知取舍（forward-only、单实例部署）
+- feedback：legacy 回填错误不再吞掉（fresh 表按列存在性跳过）；hash 内容去重
+  升级为 schema 级（去重 DELETE + `WHERE hash != ''` 部分唯一索引）；store 方法
+  ctx 化记为已知取舍（本地单文件 SQLite）
+- aipay 402 流：same-origin 显式 bypass（Payment-Proof 即凭证，CSRF 不适用；
+  限流保留）——SKILL.md 契约与实现对齐
+- status_token 不再进结构化日志（只记 path；1 小时 capability 不泄漏）
+- partner 决策邮件：`context.WithoutCancel` 硬化（不随请求取消）；完整 outbox
+  维持已知取舍（低频 admin 动作）
+- **验伪否决一项**："分摊舍入漂移"的前提不成立——entries 只覆盖 beneficiary
+  份额，部分退款的其余部分归买家（sale 级计数跟踪），`sum(deltas) !=
+  refund 总额` 是正确语义；首轮实施过 exact-sum 断言后被既有测试抓到回归，
+  已撤销并在代码内注明理由
+
+至本轮结束：**P2 20/20 闭环**（含 3 项验伪否决/取舍）；P3 22 项为择期
+结构性项，未在本轮范围。

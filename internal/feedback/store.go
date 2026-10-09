@@ -58,11 +58,40 @@ func (s *Store) migrate() error {
 		}
 	}
 	// legacy 行回填为 raw JSON，便于排查（旧列保留不用）。
-	_, _ = s.db.Exec(`
-		UPDATE feedback SET
-			payload = json_object('schema_version','legacy','category',category,'message',message)
-		WHERE payload = '' AND message != ''
-	`)
+	// Legacy rows are backfilled eagerly; a missing column must surface
+	// instead of silently leaving payloads empty forever. Fresh tables never
+	// had the legacy category/message columns, so the backfill is skipped.
+	var legacyCols int
+	if err := s.db.QueryRow(`
+		SELECT COUNT(*) FROM pragma_table_info('feedback')
+		WHERE name IN ('category','message')
+	`).Scan(&legacyCols); err != nil {
+		return err
+	}
+	if legacyCols == 2 {
+		if _, err := s.db.Exec(`
+			UPDATE feedback SET
+				payload = json_object('schema_version','legacy','category',category,'message',message)
+			WHERE payload = '' AND message != ''
+		`); err != nil {
+			return err
+		}
+	}
+	// Content-hash dedup is enforced at the schema level; empty hashes
+	// (legacy rows) are excluded from the unique scope.
+	if _, err := s.db.Exec(`
+		DELETE FROM feedback WHERE hash != '' AND rowid NOT IN (
+			SELECT MIN(rowid) FROM feedback WHERE hash != '' GROUP BY hash
+		)
+	`); err != nil {
+		return err
+	}
+	if _, err := s.db.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_feedback_hash
+			ON feedback(hash) WHERE hash != ''
+	`); err != nil {
+		return err
+	}
 	return nil
 }
 

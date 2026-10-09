@@ -244,6 +244,10 @@ WHERE commission_id=? ORDER BY beneficiary_role`, commissionID)
 			entry.delta = min(entry.delta, entryRemaining)
 		}
 	}
+	// Per-entry rounding is deliberate: entries cover only beneficiary
+	// shares — the remainder of a partial refund belongs to the buyer and is
+	// tracked by the sale-level refunded counter, so sum(deltas) does not
+	// equal the refund amount.
 	for _, entry := range entries {
 		if entry.delta <= 0 {
 			continue

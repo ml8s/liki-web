@@ -40,7 +40,10 @@ func unsafeMethod(method string) bool {
 
 func sameOriginBypass(path string) bool {
 	// Webhooks authenticate with provider signatures, not browser cookies.
-	return path == "/api/payments/webhook"
+	// The aipay 402 flow is a non-browser agent redemption: the credential
+	// is the Payment-Proof header, so same-origin is meaningless there.
+	// Both stay rate limited.
+	return path == "/api/payments/webhook" || path == "/api/aipay"
 }
 
 func sameOriginAllowed(r *stdhttp.Request, allowed map[string]bool) bool {

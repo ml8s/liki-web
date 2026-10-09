@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/ml8s/liki-web/internal/httputil"
 )
@@ -62,7 +63,10 @@ func (runtime *Runtime) HandlePaymentReturn(w http.ResponseWriter, r *http.Reque
 				slog.Error("payment: return auth cookie", "intent_id", intent.ID, "err", err)
 			}
 		}
-		slog.Info("payment: return redirect", "intent_id", intent.ID, "status", intent.Status, "location", location)
+		// Log the path only: the query carries a 1-hour payment-status
+		// capability token that must not leak into logs.
+		slog.Info("payment: return redirect", "intent_id", intent.ID, "status", intent.Status,
+			"location", strings.SplitN(location, "?", 2)[0])
 		http.Redirect(w, r, location, http.StatusSeeOther)
 	}
 }

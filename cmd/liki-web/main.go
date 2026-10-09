@@ -497,6 +497,9 @@ func main() {
 		AdminEmail:      os.Getenv("ADMIN_EMAIL"),
 		AdminAuthorizer: adminAuthorizer,
 		PartnerNotifier: func(ctx context.Context, item referral.PartnerApplication, approved bool, reason string) {
+			// The decision is already committed; delivery must not be
+			// cancelled with the request context.
+			ctx = context.WithoutCancel(ctx)
 			if err := partnerDecisionEmail(ctx, item, approved, reason); err != nil {
 				slog.Warn("send partner decision notification", "application_id", item.ID, "err", err)
 			}
