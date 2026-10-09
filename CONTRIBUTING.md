@@ -54,7 +54,6 @@ Wrap errors at operation boundaries so logs can locate the failure:
 notification: ...`). Keep sentinel errors comparable with `errors.Is`.
 Handlers may return bare `err` only when the call chain is one level deep.
 
-
 - Go modules and binaries use the `liki-web` service identity.
 - New authenticated UI belongs in `web/app`.
 - New server state belongs in Pinia stores.
