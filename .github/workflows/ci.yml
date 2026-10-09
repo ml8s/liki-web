@@ -41,15 +41,10 @@ jobs:
           cd app && npm ci
 
       - name: Install caddy
-        env:
-          CADDY_VERSION: 2.10.2
-        run: |
-          base="https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}"
-          curl -fsSL --retry 3 "${base}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz" -o /tmp/caddy.tar.gz
-          curl -fsSL --retry 3 "${base}/caddy_${CADDY_VERSION}_checksums.txt" -o /tmp/caddy_checksums.txt
-          grep "caddy_${CADDY_VERSION}_linux_amd64.tar.gz" /tmp/caddy_checksums.txt | sed 's#caddy_.*#caddy.tar.gz#' > /tmp/caddy_expected.txt
-          cd /tmp && sha256sum -c caddy_expected.txt
-          install -m 0755 /tmp/caddy /usr/local/bin/caddy
+        uses: ./.github/actions/install-caddy
+        with:
+          version: "2.10.2"
+          sha512: "747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546"
 
       - name: Lint Go (golangci-lint-action)
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
@@ -189,9 +184,10 @@ jobs:
         run: cd web && npx playwright install chromium
 
       - name: Install Caddy
-        run: |
-          curl -sfL "https://caddyserver.com/api/download?os=linux&arch=amd64" -o caddy
-          chmod +x caddy
+        uses: ./.github/actions/install-caddy
+        with:
+          version: "2.10.2"
+          sha512: "747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546"
 
       - name: Build
         run: make build-go build-web

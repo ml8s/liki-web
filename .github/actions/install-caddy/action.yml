@@ -1,0 +1,27 @@
+name: 'Install Caddy'
+description: 'Install a release-pinned Caddy binary and verify its publisher checksum'
+inputs:
+  version:
+    description: 'Exact Caddy release version'
+    required: true
+  sha512:
+    description: 'Upstream SHA-512 checksum for linux_amd64.tar.gz'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Download and verify Caddy
+      shell: bash
+      env:
+        CADDY_VERSION: ${{ inputs.version }}
+        CADDY_SHA512: ${{ inputs.sha512 }}
+      run: |
+        set -euo pipefail
+        base="https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}"
+        archive="$(mktemp /tmp/caddy.XXXXXX.tar.gz)"
+        extract="$(mktemp -d /tmp/caddy.XXXXXX)"
+        trap 'rm -f "$archive"; rm -rf "$extract"' EXIT
+        curl -fsSL --retry 3 "${base}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz" -o "$archive"
+        echo "${CADDY_SHA512}  ${archive}" | sha512sum -c -
+        tar -xzf "$archive" -C "$extract" caddy
+        install -m 0755 "$extract/caddy" /usr/local/bin/caddy

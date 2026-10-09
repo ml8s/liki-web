@@ -1,6 +1,6 @@
 module github.com/ml8s/liki-web
 
-go 1.26.6
+go 1.26.9
 
 require (
 	github.com/ag-ui-protocol/ag-ui/sdks/community/go v0.0.0-20260921233645-db790c3d4832
