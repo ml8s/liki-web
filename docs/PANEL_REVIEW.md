@@ -326,3 +326,56 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 
 结论：不存在报告所担心的问题，两个仓库均无需改动。前端类型保留
 （面向未来 counsel 契约的防御性声明）。
+
+## 15. 专项评审：库 / 标准 / 一致性（2026-10-10）
+
+### 15.1 库 vs 手写
+
+依赖面精简且全部正当：uuid / bcrypt（验证码）/ HMAC-SHA256（token）/
+golang-jwt（平台会话）/ x/time rate（限流）/ ozzo（校验）/ modernc sqlite
+（纯 Go 驱动）/ standard-webhooks（Dodo）/ dodopayments SDK / resend /
+ag-ui SDK / x/crypto。手写部分逐项核对均为"必须手写"：域引擎算法、
+供应商协议适配（XunHu MD5 / Alipay A2M）、边界胶水。
+
+发现：**金额解析/格式化共 5 套实现**——
+`xunhu.parseMinorUnits`（>2 位小数静默截断）、`aipay.parseAmountMinor`
+（>2 位拒绝，严格）、`xunhu.formatMinorUnits`（无符号十进制）、
+`payment.formatMinorAmount`（币种符号，邮件用）、前端 `formatMinorUnit`
+（Intl locale-aware，浏览器用）。
+
+裁决：三种**展示**格式各有正当表面（供应商协议/邮件/浏览器），不收敛；
+两个**解析**语义分歧（截断 vs 拒绝）真实存在但输入域均受协议约束
+（供应商回调固定 2 位小数）。处置：收敛为 `internal/money` 严格解析器，
+列入"下次触碰时"清单（P3，不立即做）。
+
+### 15.2 标准
+
+对齐项：JSON-RPC 2.0（引擎公共面）/ Standard Webhooks 规范（Dodo）/
+RFC 3339 时间戳 / BCP 47 locale / ISO 4217 minor-units 金额 / WCAG
+（axe 基线）/ `de facto` 信封（{data}/{error}）。
+
+私有定义仅 2 处且均合理：capability token 自有格式（比 JWT 更小、无
+claims 泄漏、action+subject 绑定、常数时间校验、TTL 有界，已文档化）；
+响应信封（行业惯例非标准）。
+
+**修复一项密钥分离反模式**：capability token 的 MAC 原与平台 JWT 共用
+同一 `JWT_SECRET` 原始密钥。已改为 stdlib `crypto/hkdf` 派生独立 MAC
+密钥（info 域隔离，零新依赖），附密钥分离回归测试（原始密钥伪造 MAC
+必须被拒）。
+
+### 15.3 一致性
+
+- 时间精度：RFC3339（秒）×55 处 vs RFC3339Nano ×5 处。chat 已用固定
+  9 位填充自解"剥零破坏字典序"问题（注释在案）；auth erasure 写 Nano
+  进秒精度列——列内无字符串比较依赖，影响≈0，记录不churn。
+- 错误响应/限流桶模式/构造器模式：全 API 统一（前轮已收敛）。
+- 前端 `formatMinorUnit`（Intl）与后端展示格式双轨：UI locale-aware vs
+  邮件简式，各自正确。
+
+### 15.4 行动项
+
+| 优先级 | 事项 | 工作量 |
+| --- | --- | --- |
+| ✅ 已做 | capability MAC 密钥分离（stdlib HKDF）+ 回归测试 | 0.5h |
+| P3 | 金额解析收敛 `internal/money`（统一 strict 语义），下次触碰时 | 0.5 天 |
+| 记录 | 时间精度策略（Nano 列内不混比较依赖） | — |

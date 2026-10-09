@@ -1,16 +1,30 @@
 package httputil
 
 import (
+	"crypto/hkdf"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 const orderAccessTokenPrefix = "v1"
+
+// capabilityMACKey derives an independent HMAC key for capability tokens via
+// HKDF from the platform secret: sharing raw key material across the JWT
+// signing context and this MAC context would violate key-separation
+// practice. Computed once; sha256 never returns an error.
+var capabilityMACKey = sync.OnceValue(func() []byte {
+	key, err := hkdf.Key(sha256.New, JWTSecret(), nil, "liki capability-token v1", 32)
+	if err != nil {
+		panic(err)
+	}
+	return key
+})
 
 // NewCapabilityToken creates a bounded, action-specific capability. Use it for
 // short-lived payment polling and other browser callbacks that should not rely
@@ -24,7 +38,7 @@ func NewCapabilityToken(action, subject string, issuedAt time.Time, ttl time.Dur
 	}
 	expiresAt := issuedAt.Add(ttl).Unix()
 	payload := capabilityTokenPayload(action, subject, expiresAt)
-	mac := hmac.New(sha256.New, JWTSecret())
+	mac := hmac.New(sha256.New, capabilityMACKey())
 	mac.Write([]byte(payload))
 	return fmt.Sprintf("%s.%d.%s", orderAccessTokenPrefix, expiresAt, hex.EncodeToString(mac.Sum(nil))), nil
 }
@@ -39,7 +53,7 @@ func VerifyCapabilityToken(action, subject, token string, now time.Time) bool {
 		return false
 	}
 	payload := capabilityTokenPayload(action, subject, expiresAt)
-	mac := hmac.New(sha256.New, JWTSecret())
+	mac := hmac.New(sha256.New, capabilityMACKey())
 	mac.Write([]byte(payload))
 	expected := hex.EncodeToString(mac.Sum(nil))
 	return hmac.Equal([]byte(expected), []byte(parts[2]))
