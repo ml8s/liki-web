@@ -46,10 +46,12 @@ export const useProfilesStore = defineStore('profiles', {
         const result = await fetchProfiles(effectiveCursor)
         this.list = result.profiles
         // 下一页 cursor（若后端返回非空，则下次传入）
-        if (result.next_cursor) this.next_cursor = result.next_cursor
+        // 每次以响应为准：空 cursor 表示已到末页，必须重置。
+        this.next_cursor = result.next_cursor ?? ''
       } catch (error) {
         this.error = errorMessage(error)
-        this.list = []
+        // 保留 stale 列表供继续查看，只展示错误与重试入口。
+        if (!this.list.length) this.list = []
       } finally {
         this.loading = false
       }

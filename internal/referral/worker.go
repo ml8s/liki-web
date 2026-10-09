@@ -120,7 +120,7 @@ SELECT pi.id,pi.business_order_id,pi.user_id,pi.product,pi.provider,
 FROM payment_intents AS pi
 JOIN fulfillment_tasks AS ft ON ft.payment_intent_id=pi.id
 WHERE pi.status=? AND ft.status=?
-ORDER BY pi.updated_at DESC LIMIT ?`, string(payment.IntentPaid), "succeeded", limit)
+ORDER BY pi.updated_at ASC LIMIT ?`, string(payment.IntentPaid), "succeeded", limit)
 	if err != nil {
 		return 0, fmt.Errorf("referral: query successful payments: %w", err)
 	}
@@ -412,6 +412,16 @@ UPDATE commission_intents SET status=?,run_at=?,updated_at=? WHERE status=?`,
 	return err
 }
 
+// recoverCommissionRefunds mirrors recoverCommissionIntakes for the refund
+// side: a restart between claim and apply would otherwise leave the intake
+// stuck in running forever.
+func (s *Store) recoverCommissionRefunds(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, `
+UPDATE commission_refund_intents SET status=?,run_at=?,updated_at=? WHERE status=?`,
+		string(IntakeQueued), formatTime(s.nowFunc()), formatTime(s.nowFunc()), string(IntakeRunning))
+	return err
+}
+
 // StartCommissionWorker owns the referral side of the payment -> referral
 // boundary. Payment failures never enter here; only durable fulfilled facts do.
 func (s *Store) StartCommissionWorker(ctx context.Context, platformDB *sql.DB, interval time.Duration) {
@@ -420,6 +430,9 @@ func (s *Store) StartCommissionWorker(ctx context.Context, platformDB *sql.DB, i
 	}
 	if err := s.recoverCommissionIntakes(ctx); err != nil {
 		slog.Error("referral: recover commission intakes", "err", err)
+	}
+	if err := s.recoverCommissionRefunds(ctx); err != nil {
+		slog.Error("referral: recover commission refunds", "err", err)
 	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()

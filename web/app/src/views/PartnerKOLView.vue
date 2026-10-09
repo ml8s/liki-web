@@ -272,6 +272,7 @@
 </template>
 
 <script setup lang="ts">
+import { errorMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -334,7 +335,7 @@ async function load() {
     balances.value = commissionResult.balances
     payouts.value = payoutResult.payouts
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('common.loadFailed')
+    error.value = errorMessage(err) || t('common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -351,7 +352,7 @@ async function submit() {
     application.value = result.application
     ElMessage.success(t('partner.kol.applicationSubmitted'))
   } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : t('partner.submitFailed'))
+    ElMessage.error(errorMessage(err) || t('partner.submitFailed'))
   } finally {
     submitting.value = false
   }
@@ -375,7 +376,7 @@ async function submitPayout(payload: { method: PayoutMethod; account: string }) 
     ElMessage.success(t('partner.payoutSubmitted'))
     await load()
   } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : t('partner.submitFailed'))
+    ElMessage.error(errorMessage(err) || t('partner.submitFailed'))
   } finally {
     submitting.value = false
   }

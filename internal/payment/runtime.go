@@ -285,11 +285,16 @@ func (r *Runtime) HandleWebhookEvent(ctx context.Context, raw []byte, header htt
 // HandleWebhookEventWithAck returns the provider-specific acknowledgement body.
 // Xunhu requires exactly "success"; an otherwise successful empty response can
 // make the provider retry a payment that has already been captured.
+// ErrWebhookVerification marks signature/authentication failures. Providers
+// must not retry those (the request is hostile or malformed), so the HTTP
+// layer maps it to 400; transient failures map to 500 instead.
+var ErrWebhookVerification = errors.New("payment: webhook verification failed")
+
 func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, header http.Header) ([]byte, error) {
 	event, err := r.verifyWebhook(raw, header)
 	if err != nil {
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "verify_failed"})
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrWebhookVerification, err)
 	}
 	if event.Type != EventPaymentSucceeded && event.Type != EventPaymentRefunded {
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "ignored"})
@@ -387,6 +392,12 @@ func (r *Runtime) captureRefund(ctx context.Context, event *WebhookEvent, intent
 	updated, record, err := r.intents.RecordRefund(ctx, intent, event.Data.PaymentID, event.Data.Amount, event.Data.Currency)
 	if err != nil {
 		return err
+	}
+	// Normalize the observer contract: a zero provider amount means
+	// "refund the remainder", which RecordRefund has already resolved to the
+	// recorded amount. Downstream ledgers (referral) require a positive value.
+	if event.Data.Amount == 0 {
+		event.Data.Amount = record.Amount
 	}
 	if (record.New || !record.Notified) && r.refundObserver != nil {
 		if err := r.refundObserver(context.WithoutCancel(ctx), *event, updated); err != nil {

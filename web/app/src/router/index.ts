@@ -57,11 +57,12 @@ router.beforeEach(async to => {
       name: 'login',
       query: {
         redirect: to.fullPath,
+        ...(auth.sessionError === 'unreachable' ? { reason: 'unreachable' } : {}),
         ...(locale ? { locale } : {}),
       },
     }
   } catch {
-    return { name: 'login', query: { redirect: to.fullPath } }
+    return { name: 'login', query: { redirect: to.fullPath, reason: 'unreachable' } }
   }
 })
 

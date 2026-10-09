@@ -103,6 +103,7 @@ type RefundRecord struct {
 	ID       string
 	New      bool
 	Notified bool
+	Amount   int64
 }
 
 // RecordRefund stores one provider refund fact and advances the intent to

@@ -5,6 +5,7 @@ import { useChatStore } from '@/stores/chat'
 import { useCommerceStore } from '@/stores/commerce'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useProfilesStore } from '@/stores/profiles'
+import { ApiError } from '@/api/http'
 import type { Me } from '@/api/me'
 import { normalizeUnknownLocale, requestedLocale, savedLocalePreference, setAppLocale } from '@/i18n'
 
@@ -14,10 +15,11 @@ interface AuthState {
   status: AuthStatus
   user: Me | null
   loading: boolean
+  sessionError: '' | 'expired' | 'unreachable'
 }
 
 export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({ status: 'unknown', user: null, loading: false }),
+  state: (): AuthState => ({ status: 'unknown', user: null, loading: false, sessionError: '' }),
   getters: {
     isAuthenticated: state => state.status === 'authenticated',
     displayName: state => state.user?.email ?? '',
@@ -37,11 +39,13 @@ export const useAuthStore = defineStore('auth', {
         }
         this.status = 'authenticated'
         return this.user
-      } catch {
+      } catch (error) {
         // 与其他 store 统一：内部 catch，不 re-throw。
         // 路由守卫通过 user=null → 重定向 login；AppLayout 无需额外 catch。
         this.status = 'unauthenticated'
         this.user = null
+        // 401=会话过期（登录页正常流程）；网络/5xx=暂时不可达（登录页提示重试）。
+        this.sessionError = error instanceof ApiError && error.status === 401 ? 'expired' : 'unreachable'
         return null
       } finally {
         this.loading = false

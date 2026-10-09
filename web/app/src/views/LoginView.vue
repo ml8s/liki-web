@@ -154,6 +154,11 @@ const error = ref('')
 const resendIn = ref(0)
 let resendTimer: ReturnType<typeof setInterval> | null = null
 
+// 会话检查暂时不可达（网络/5xx）被重定向到登录页时，提示可重试而非静默。
+if (route.query.reason === 'unreachable') {
+  error.value = t('errors.code.network_error')
+}
+
 function startCountdown() {
   resendIn.value = 60
   if (resendTimer) clearInterval(resendTimer)

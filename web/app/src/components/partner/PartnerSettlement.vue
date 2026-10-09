@@ -113,6 +113,7 @@
 </template>
 
 <script setup lang="ts">
+import { errorMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -149,7 +150,7 @@ async function load() {
       ? await fetchKOLSettlement()
       : await fetchScoutSettlement()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('common.loadFailed')
+    error.value = errorMessage(err) || t('common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -164,7 +165,7 @@ async function submit(payload: { method: PayoutMethod; account: string }) {
     ElMessage.success(t('partner.payoutSubmitted'))
     await load()
   } catch (err) {
-    ElMessage.error(err instanceof Error ? err.message : t('partner.submitFailed'))
+    ElMessage.error(errorMessage(err) || t('partner.submitFailed'))
   } finally {
     submitting.value = false
   }

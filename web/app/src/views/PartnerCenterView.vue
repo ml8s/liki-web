@@ -112,6 +112,7 @@
 </template>
 
 <script setup lang="ts">
+import { errorMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
@@ -177,7 +178,7 @@ async function load() {
   try {
     states.value = await fetchPartnerStates()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : t('common.loadFailed')
+    error.value = errorMessage(err) || t('common.loadFailed')
   } finally {
     loading.value = false
   }

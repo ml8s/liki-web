@@ -39,7 +39,9 @@ export interface ProfileListResult {
 }
 
 export function fetchProfiles(cursor?: string): Promise<ProfileListResult> {
-  return get<ProfileListResult>(`/api/profiles?limit=50${cursor ? '&cursor=' + cursor : ''}`)
+  const query = new URLSearchParams({ limit: '50' })
+  if (cursor) query.set('cursor', cursor)
+  return get<ProfileListResult>(`/api/profiles?${query.toString()}`)
 }
 
 export function fetchProfile(id: string): Promise<Profile> {

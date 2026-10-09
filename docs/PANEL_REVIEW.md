@@ -176,3 +176,16 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 | 明确不做 | Idempotency-Key 全套、erasure 全新 outbox 表、DSAR 工具、kol/scout 路由重构 | 记录为已知取舍 |
 
 验证：go test ./... 全过、golangci 0、vue-tsc + vitest 47/47、ESLint、markdownlint、actions SHA-pinned、YAML 解析通过。
+
+## 9. P2 收尾批次（2026-10-09 第二轮）
+
+- refund intake `running` 启动恢复（`recoverCommissionRefunds`，与 intake 对称）
+- webhook 错误分级：验签失败 → `ErrWebhookVerification`（HTTP 400，provider 不重试）；DB/内部错误 → 500（可重试）；未知订单 400
+- `EnqueueOnce` 单语句 `ON CONFLICT DO NOTHING`（依赖既有唯一索引，消除 TOCTOU）
+- `RefundRecord` 携带实际入账金额：0-amount 观察者契约归一化（referral intake 不再因 0 失败）
+- aipay `pay_before` 统一 UTC（消除本地时区字典序比较隐患）
+- referral 补偿扫描 `DESC` → `ASC`（老积压不再饥饿）
+- admin 未认证 deny 不再写审计表（存储耗尽放大消除；已认证 capability deny 仍审计）
+- 前端：`loadMe` 区分 401/网络·5xx（后者登录页提示重试）；BirthForm dirty 快照同构修复；Partner 四视图 9 处错误统一 `errorMessage()`；profiles 列表失败保留 stale + cursor 归零 + URLSearchParams 编码
+
+同步遗留说明：优雅关停已确认**根因更深**——`handleSignals` 从未 cancel root ctx，本次以 `workers.Wait()` + 显式 `cancel()` 修复。

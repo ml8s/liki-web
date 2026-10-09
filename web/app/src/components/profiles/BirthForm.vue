@@ -251,7 +251,22 @@ function disabledDate(date: Date) {
   return date.getTime() > Date.now() || date.getFullYear() < 1900
 }
 
-const initialSnapshot = JSON.stringify(props.initial ?? {})
+// 快照仅含表单字段，与 currentSnapshot() 同构——否则 dirty 恒为 true。
+function snapshotOf(profile: typeof props.initial) {
+  return JSON.stringify({
+    nickname: profile?.nickname ?? '',
+    gender: profile?.gender ?? '',
+    calendar: profile?.calendar ?? '',
+    birth_date: profile?.birth_date ?? '',
+    birth_time_known: profile?.birth_time_known ?? '',
+    birth_time: profile?.birth_time ?? '',
+    birth_place: profile?.birth_place ?? '',
+    note: profile?.note ?? '',
+    third_party_consent: profile?.third_party_consent ?? false,
+  })
+}
+
+const initialSnapshot = snapshotOf(props.initial)
 
 function currentSnapshot() {
   return JSON.stringify({
