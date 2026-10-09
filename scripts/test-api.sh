@@ -12,6 +12,13 @@ else
 fi
 PASS=0; FAIL=0
 
+# Same-origin 边界单点化后，非 GET 请求需要第一方浏览器上下文（Origin 与
+# Host 同源 + X-Forwarded-Proto 与请求 scheme 一致），否则被中间件 403。
+ORIGIN="$API"
+XPROTO="http"
+case "$API" in https:*) XPROTO="https" ;; esac
+SAME_ORIGIN_HEADERS=(-H "Origin: $ORIGIN" -H "X-Forwarded-Proto: $XPROTO")
+
 RED=""; GREEN=""; YELLOW=""; BOLD=""; NC=""
 [ -t 1 ] && { RED='\033[31m'; GREEN='\033[32m'; BOLD='\033[1m'; NC='\033[0m'; }
 
@@ -28,11 +35,13 @@ api() {
     curl -s -w '%{http_code}' -o "$f" -X "$method" "$API$path" \
       -H 'Content-Type: application/json' \
       -H "X-Forwarded-For: $fake_ip" \
+      "${SAME_ORIGIN_HEADERS[@]}" \
       -d "$data" || echo "000"
   else
     curl -s -w '%{http_code}' -o "$f" -X "$method" "$API$path" \
       -H 'Content-Type: application/json' \
-      -H "X-Forwarded-For: $fake_ip" || echo "000"
+      -H "X-Forwarded-For: $fake_ip" \
+      "${SAME_ORIGIN_HEADERS[@]}" || echo "000"
   fi
 }
 
@@ -40,7 +49,7 @@ api_with_cookie() {
   local method="$1" path="$2" cookie="$3" data="${4:-}"
   local f="$TMP/body"
   local fake_ip="10.$((RANDOM % 256)).$((RANDOM % 256)).$((RANDOM % 254 + 1))"
-  local hdrs=(-H 'Content-Type: application/json' -H "X-Forwarded-For: $fake_ip")
+  local hdrs=(-H 'Content-Type: application/json' -H "X-Forwarded-For: $fake_ip" "${SAME_ORIGIN_HEADERS[@]}")
   [ -n "$cookie" ] && hdrs+=(-H "Cookie: $cookie")
   if [ -n "$data" ]; then
     curl -s -w '%{http_code}' -o "$f" -X "$method" "$API$path" "${hdrs[@]}" -d "$data" || echo "000"
