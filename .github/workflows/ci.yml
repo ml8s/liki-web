@@ -285,12 +285,12 @@ jobs:
           echo "runtime=$(cat cmd/liki-web/VERSION)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        id: web-image
         with:
           context: .
           push: true
           provenance: mode=max
           sbom: true
-          id: web-image
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
             COMMIT=${{ github.sha }}
