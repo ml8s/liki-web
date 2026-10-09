@@ -100,5 +100,10 @@ async function confirmRemove(profile: Profile) {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  if (!profiles.error && !profiles.list.length) {
+    void router.replace('/profiles/new')
+  }
+})
 </script>
