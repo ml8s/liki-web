@@ -574,5 +574,5 @@ build-time 读取 demo JSON、`admin.html` 加载 console 脚本、`skills.astro
 | --- | --- | --- |
 | P1 | ~~HTTP 胶水收敛到 `httputil`，消除 decode 校验语义漂移~~ | ✅ 已完成（2026-10-09）：auth 迁 `DecodeStrict`（保留 DisallowUnknownFields）、liki 迁 `Decode`/`DecodeAndValidate`、五包 `writeJSON/writeError/responseOK/unauthorized` 全部删除 |
 | P2 | ~~错误响应统一为 envelope（含限流 429 / Recover / operator API）~~ | ✅ 已完成（2026-10-09）：payment/feedback/metrics/middleware 四处 plain-text 站点迁 `httputil.RespondError`，API.md 标注 ServeMux 404/405 残留 |
-| P3 | FRONTEND.md 标注 legacy vendor 库 EOL 与 CVE 责任 | 0.5 小时 |
-| P4 | `internal/sse` 并包；ARCHITECTURE 模块表补全 | 1 小时 |
+| P3 | ~~FRONTEND.md 标注 legacy vendor 库 EOL 与 CVE 责任~~ | ✅ 已完成（2026-10-09） |
+| P4 | ~~`internal/sse` 并包；ARCHITECTURE 模块表补全~~ | ✅ 已完成（2026-10-09）：`sse.Begin` → `httputil.BeginSSE`（附非 flusher 用例），空目录 `internal/incense` 清除，模块表补全至全部 22 包 |

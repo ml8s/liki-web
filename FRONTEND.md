@@ -201,3 +201,8 @@ home page sends visitors to the app.
 `web/js` retains the report demo renderers used by the Ming Shu and He Pan CTA
 pages. The retired naming activation and chat URLs redirect to the Liki Chat
 scenario; the retired commerce backends have been removed.
+
+`web/js` vendors `marked.min.js` and `purify.min.js` instead of using npm
+packages. They are frozen with the legacy surface: they receive no routine
+dependency updates, and CVE watch for them is owned by liki-web maintainers.
+Replace them with the audited npm stack when the legacy pages retire.

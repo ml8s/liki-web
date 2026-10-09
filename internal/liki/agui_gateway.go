@@ -17,7 +17,6 @@ import (
 	"github.com/ml8s/liki-web/internal/agent"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/sse"
 )
 
 // HandleAGUIMessage exposes the existing product conversation behind a
@@ -53,7 +52,7 @@ func (h *Handler) HandleAGUIMessage(w http.ResponseWriter, r *http.Request) {
 		user.Locale,
 	)))
 
-	if _, ok := sse.Begin(w); !ok {
+	if _, ok := httputil.BeginSSE(w); !ok {
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器不支持流式响应")
 		return
 	}

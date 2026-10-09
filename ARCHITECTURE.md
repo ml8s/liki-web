@@ -16,6 +16,18 @@
 | `internal/referral` | KOL/Scout applications, attribution, commission, and payout domain |
 | `internal/admin` | admin operations and audit |
 | `internal/agent` | AG-UI event contract shared with the liki-agents runtime |
+| `internal/adminauth` | admin console session gate |
+| `internal/aipay` | Alipay A2M gateway, sandbox proof-of-payment records |
+| `internal/dodo` | Dodo payment gateway client |
+| `internal/xunhu` | XunHuPay gateway client |
+| `internal/email` | Resend email client |
+| `internal/feedback` | feedback lifecycle store and API |
+| `internal/httputil` | shared HTTP primitives: client IP, forwarded headers, JWT validation, response envelope, decode, SSE |
+| `internal/i18n` | supported language tag constants |
+| `internal/llm` | chat message model shared by protocol surfaces |
+| `internal/metrics` | in-memory lifecycle counters and the internal metrics endpoint |
+| `internal/migrate` | forward-only SQL migration runner for embedded SQLite |
+| `internal/sqliteutil` | standard SQLite connection policy for every database file |
 
 ## Frontend modules
 
