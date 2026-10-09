@@ -177,10 +177,6 @@ export function createKOLPayout(input: { method: PayoutMethod; account: string }
   return post('/api/kol/payouts', input)
 }
 
-export function fetchScoutApplication(): Promise<PartnerProgramState> {
-  return get('/api/scout/application')
-}
-
 export function submitApplication(role: PartnerRole, note: string): Promise<{ application: PartnerApplication }> {
   return post(`/api/${role}/application`, { note })
 }

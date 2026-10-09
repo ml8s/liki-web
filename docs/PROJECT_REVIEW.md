@@ -732,3 +732,27 @@ INTEGER。字符串直传支付宝接口是成因，但 `WHERE amount=?` 已存�
 | P2 | ~~aipay_orders 货币数量类型治理~~ | ✅ 已完成（2026-10-09）：新增 amount_minor INTEGER（CREATE + guarded ALTER + Go 精确回填），CreateBill 双写并拒绝 >2 位小数/非正金额，附 parseAmountMinor 边界测试 |
 | P3 | ~~overview.md 增补"范式偏差与理由"清单~~ | ✅ 已完成（2026-10-09）：新增 Schema design notes 节（偏差表 + unified 前缀 + products inert + aipay 金额口径） |
 | P3 | ~~unified_chat_* 重命名评估~~ | ✅ 已完成（2026-10-09）：选择文档保留理由（前缀是合并迁移历史痕迹，非第二套模型），迁移注释 + overview.md 双处标注 |
+
+## 13. 专项评审：死代码清扫（2026-10-09）
+
+方法：Go 导出符号全量零引用扫描（排除测试与定义行，含泛型 `[` 调用）、
+env 定义/使用对账（含 Makefile 消费）、npm 依赖逐个引用计数、前端 API
+导出零调用扫描。
+
+清扫结果（已全部删除）：
+
+| 死代码 | 位置 | 备注 |
+| --- | --- | --- |
+| `ProductCatalog()` | internal/liki/product.go | 12 节 products 表移除播种后变成 prod 零引用；职责注释移至私有 `productCatalog` map |
+| `ContextSession()` | internal/auth/context.go | 仅自身测试引用；WithAuth 已覆盖 session 注入，断言合并进现有测试 |
+| `OpenDB()` | internal/payment/types.go | sqliteutil.Open 的零引用薄包装 |
+| `errors.go`（ErrCodeTooLarge） | internal/http | 唯一消费者（已删的 handler_helpers.go）随之消亡 |
+| `fetchScoutApplication()` | web/app/src/api/referral.ts | 零调用；Scout 视图走 session + submitApplication |
+
+排查为存活（勿删）：
+
+- `DOMAIN_US/CN`：Go 零引用但 Makefile smoke 目标消费；
+- web/js 12 文件、双 npm 工程 devDeps、vite 插件：全部有消费方。
+
+方法论留痕：`unused` linter 只覆盖包内未用符号，导出符号的死代码
+需要外部引用扫描；本次脚本可复用（零引用判定 + Makefile 交叉验证）。

@@ -25,6 +25,12 @@ type ProductDefinition struct {
 	Skills []Skill
 }
 
+// productCatalog holds the entitlement semantics: which skills each product
+// grants. It is the source of truth for entitlement grants. The
+// commerce-facing card (name/description/prices) lives in commerceCatalog —
+// the two answer different questions on purpose. The legacy liki.db
+// `products` table mirrored this catalog but is no longer created or
+// seeded; old database files may still carry an inert copy.
 var productCatalog = map[Product]ProductDefinition{
 	ProductChat: {
 		ID:   ProductChat,
@@ -32,16 +38,6 @@ var productCatalog = map[Product]ProductDefinition{
 		// One Liki Chat skill (the engine routes 八字/起名/问卦/风水 internally).
 		Skills: []Skill{SkillLiki},
 	},
-}
-
-// ProductCatalog returns the entitlement semantics: which skills each product
-// grants. It is the source of truth for entitlement grants. The
-// commerce-facing card (name/description/prices) lives in commerceCatalog —
-// the two answer different questions on purpose. The legacy liki.db
-// `products` table mirrored this catalog but is no longer created or
-// seeded; old database files may still carry an inert copy.
-func ProductCatalog() []ProductDefinition {
-	return []ProductDefinition{productCatalog[ProductChat]}
 }
 
 // ProductDefinitionFor fails closed for unknown commercial products.

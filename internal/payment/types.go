@@ -2,10 +2,7 @@
 package payment
 
 import (
-	"database/sql"
 	"errors"
-
-	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
 // ---------------------------------------------------------------------------
@@ -65,8 +62,3 @@ var (
 	ErrUnknownProvider = errors.New("payment: unknown provider")
 	ErrUnknownProduct  = errors.New("payment: unknown product")
 )
-
-// OpenDB opens a SQLite database and creates it if needed.
-func OpenDB(path string) (*sql.DB, error) {
-	return sqliteutil.Open(path)
-}

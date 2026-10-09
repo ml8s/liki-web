@@ -17,11 +17,6 @@ func ContextUser(ctx context.Context) (User, bool) {
 	return user, ok
 }
 
-func ContextSession(ctx context.Context) (AuthSession, bool) {
-	session, ok := ctx.Value(sessionContextKey).(AuthSession)
-	return session, ok
-}
-
 func ContextSessionToken(ctx context.Context) (string, bool) {
 	token, ok := ctx.Value(tokenContextKey).(string)
 	return token, ok

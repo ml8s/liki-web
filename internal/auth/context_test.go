@@ -16,10 +16,6 @@ func TestWithAuthRoundTrip(t *testing.T) {
 	if !ok || gotUser.ID != user.ID || gotUser.Email != user.Email {
 		t.Fatalf("ContextUser() = %+v, %v", gotUser, ok)
 	}
-	gotSession, ok := ContextSession(ctx)
-	if !ok || gotSession.ID != session.ID {
-		t.Fatalf("ContextSession() = %+v, %v", gotSession, ok)
-	}
 	gotToken, ok := ContextSessionToken(ctx)
 	if !ok || gotToken != token {
 		t.Fatalf("ContextSessionToken() = %q, %v", gotToken, ok)
@@ -36,9 +32,6 @@ func TestWithAuthRoundTrip(t *testing.T) {
 func TestAuthContextMissingValues(t *testing.T) {
 	if _, ok := ContextUser(context.Background()); ok {
 		t.Error("ContextUser() reported presence on empty context")
-	}
-	if _, ok := ContextSession(context.Background()); ok {
-		t.Error("ContextSession() reported presence on empty context")
 	}
 	if _, ok := ContextSessionToken(context.Background()); ok {
 		t.Error("ContextSessionToken() reported presence on empty context")
