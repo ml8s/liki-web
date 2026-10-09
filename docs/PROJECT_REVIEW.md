@@ -655,3 +655,80 @@ payouts/settlement/session` 两套近乎同构（17 条）。属 partner 域资�
 | P3 | ~~`Decode`/`DecodeStrict` 畸形 JSON 消息统一~~ | ✅ 已完成（2026-10-09）：三处统一为「请求无效」 |
 | P3 | ~~`sqliteutil` 共享测试开库 helper~~ | ❌ 评审后不做：三包实现语义各异（WAL 文件 / 内存 / 多库命名布局），强行统一会制造更复杂的抽象，维持各自 8 行以内实现 |
 | 观察 | kol/scout 路由树对称复制，待 partner 域下一轮迭代评估收敛 | — |
+
+## 12. 专项评审：数据库——正交性 / 范式（2026-10-09）
+
+基线：6 个 SQLite 库（platform / profiles / referral / liki / aipay /
+feedback），退役的 naming/mingshu/hepan 三库 inert 有文档。
+
+### 12.1 正交性
+
+做得好的：
+
+- **物理隔离 + 成文规则**：库按 bounded context 划分；overview.md 写明
+  三条跨库规则（FK 仅库内 / 跨域 ID 纯 TEXT 由属主服务校验 / 金融变更
+  幂等审计）；
+- **库内 FK 用在对的地方**：auth_identities、auth_sessions → users
+  `ON DELETE CASCADE`；chat messages → sessions 同样 CASCADE；payment 域
+  有意不用 FK（订单在 liki.db，payment_intents 在 platform.db，跨库无
+  FK 是设计使然）；
+- **连接政策单一出口**：sqliteutil.Open 统一 WAL + busy_timeout +
+  foreign_keys(ON) + 0700 收紧 + 单连接；
+- **冗余字段的生命周期有人管**：entitlements.email 等 contact 冗余在
+  AnonymizeUser 中 tombstone 化，保留期限与假名 ID 供审计。
+
+问题：
+
+**P2 — liki.db 的 products 表是 write-only 死表。** migrate 时从
+`ProductCatalog()` `INSERT OR IGNORE` 播种，全仓无任何 SELECT/JOIN；
+产品真源在代码目录（commerce 消费 `commerceCatalog()`，HandleProducts
+不走 DB）。附带暴露两层目录的混淆：`ProductCatalog()`（技能授予语义）
+与 `commerceCatalog()`（商业卡片）是两个不同用途的代码目录，DB 表只
+镜像了前者且无人消费。建议：DROP TABLE 迁移 + 移除播种逻辑。
+
+**P3 — 实体命名漂移。** liki 域表名 `unified_chat_sessions/messages`，
+而代码概念与文档均为 ChatSession/ChatMessage；"unified" 是会话合并迁移
+的历史前缀。重命名（含迁移）或文档保留理由。
+
+**P3 — 目录二重性**（同上一条的根因）：建议在 product.go/doc 注明两个
+catalog 的职责分界，避免后来者再为"哪边是真源"困惑。
+
+### 12.2 范式
+
+做得好的：
+
+- 实体表基本满足 3NF：属性原子、无传递依赖；状态机用 CHECK 枚举固化
+  （fulfillment queued/running/succeeded/failed 等）；
+- **幂等在 schema 层固化**：payment_events
+  `UNIQUE(payment_intent_id, source, event_type, payload_hash)`、
+  payment_refunds `UNIQUE(provider, provider_refund_id)`、entitlements
+  `UNIQUE(source, source_id, product_id)`；
+- 金额一律 INTEGER minor units 且 `CHECK (amount_minor > 0)`；
+- created_at/updated_at 全表齐备，RFC3339 TEXT 排序语义正确；
+- schema_migrations (scope, id) 复合主键，标准 migration runner。
+
+范式偏差（均为有意设计，应文档化而非改表）：
+
+| 偏差 | 位置 | 判定 |
+| --- | --- | --- |
+| email 快照冗余 ×7（users/auth_identities/auth_codes/payment_intents/entitlements/chat_orders/notifications） | 各库 | ✅ 有界上下文各自快照联系方式，erasure tombstone 有生命周期 |
+| 整包 JSON 载荷 | feedback.payload | ✅ schema_version 自描述、后端不解字段，文档已声明 |
+| JSON 数组列 | products.skills / entitlements.skills | ✅ 技能快照随权益冻结，不参与 SQL 过滤；若未来按 skill 查询需拆表 |
+| JSON 扩展字段 | payment_intents.metadata | ✅ |
+| 消息行冗余 user_id | unified_chat_messages | ✅ 服务于 erasure 扫描 |
+
+问题：
+
+**P2 — aipay_orders.amount 是 TEXT**，全仓其他域一律 amount_minor
+INTEGER。字符串直传支付宝接口是成因，但 `WHERE amount=?` 已存在字符串
+等值比较，存在 "1" vs "1.00" 的比较陷阱。建议：保留 TEXT 原文列的同时
+镜像 amount_minor INTEGER（带 CHECK），或至少注释绑定单位与格式。
+
+### 12.4 行动项
+
+| 优先级 | 事项 | 工作量 |
+| --- | --- | --- |
+| P2 | DROP products 死表（迁移）+ 移除播种；两个 catalog 职责分界写入 doc | 0.5 天 |
+| P2 | aipay_orders 货币数量类型治理（镜像 minor 列或约束注释） | 0.5 天 |
+| P3 | overview.md 增补"范式偏差与理由"清单（本节表格平移） | 1 小时 |
+| P3 | unified_chat_* 重命名评估（或文档保留理由） | 0.5 天 |
