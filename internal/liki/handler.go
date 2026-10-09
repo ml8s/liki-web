@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/profile"
 )
@@ -74,12 +75,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 func (h *Handler) HandleEntitlements(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	items, err := h.entitlements.ListActiveByUser(r.Context(), user.ID)
 	if err != nil {
-		internalError(w)
+		httputil.InternalError(w)
 		return
 	}
 	if items == nil {
@@ -96,7 +97,7 @@ func (h *Handler) HandleEntitlements(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	responseOK(w, map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"entitlements":   items,
 		"allowed_skills": out,
 	})
@@ -107,12 +108,12 @@ func (h *Handler) HandleEntitlements(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	allowed, err := h.entitlements.AllowedSkills(r.Context(), user.ID)
 	if err != nil {
-		internalError(w)
+		httputil.InternalError(w)
 		return
 	}
 	allowedSet := map[string]bool{}
@@ -123,7 +124,7 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 	for _, commercial := range Catalog() {
 		definition, err := ProductDefinitionFor(commercial.ID)
 		if err != nil {
-			internalError(w)
+			httputil.InternalError(w)
 			return
 		}
 		skills := make([]string, 0, len(definition.Skills))
@@ -154,7 +155,7 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 			"purchased":            purchased,
 		})
 	}
-	responseOK(w, map[string]any{"products": items})
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"products": items})
 }
 
 type checkoutRequest struct {
@@ -164,23 +165,23 @@ type checkoutRequest struct {
 func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	var req checkoutRequest
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
 		return
 	}
 	productID := Product(r.PathValue("id"))
 	if _, err := DefinitionFor(productID); err != nil {
-		writeError(w, http.StatusNotFound, "product_not_found", "产品不存在")
+		httputil.RespondError(w, http.StatusNotFound, "product_not_found", "产品不存在")
 		return
 	}
 	currency := string(h.currency.CurrencyFor(r))
 	order, err := h.orders.CreateOrder(r.Context(), user.ID, user.Email, productID, currency)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "order_failed", "创建订单失败")
+		httputil.RespondError(w, http.StatusBadRequest, "order_failed", "创建订单失败")
 		return
 	}
 	intent, err := h.runtime.CreateIntent(r.Context(), payment.CreateIntentInput{
@@ -194,7 +195,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		var result *payment.CheckoutResult
 		result, _, err = h.runtime.StartCheckout(r.Context(), intent.ID)
 		if err == nil {
-			responseOK(w, map[string]any{
+			httputil.RespondJSON(w, http.StatusOK, map[string]any{
 				"order_id":          order.ID,
 				"payment_intent_id": intent.ID,
 				"provider":          intent.Provider,
@@ -209,21 +210,21 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		slog.Error("liki: cancel failed checkout order", "order_id", order.ID, "err", cancelErr)
 	}
 	slog.Error("liki: start checkout", "order_id", order.ID, "product_id", string(productID), "err", err)
-	writeError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
+	httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
 }
 
 func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	orders, err := h.orders.ListOrdersForUser(r.Context(), user.ID, 50)
 	if err != nil {
-		internalError(w)
+		httputil.InternalError(w)
 		return
 	}
-	responseOK(w, map[string]any{"orders": orders})
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"orders": orders})
 }
 
 func localeOrDefault(locale string) string {
@@ -265,43 +266,43 @@ func (r createSessionRequest) Validate() error {
 func (h *Handler) HandleSessions(w http.ResponseWriter, r *http.Request) {
 	sessions, err := h.service.store.ListSessions(r.Context(), userID(r))
 	if err != nil {
-		internalError(w)
+		httputil.InternalError(w)
 		return
 	}
-	responseOK(w, sessions)
+	httputil.RespondJSON(w, http.StatusOK, sessions)
 }
 
 func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
-	req, ok := decode[createSessionRequest](w, r)
+	req, ok := httputil.Decode[createSessionRequest](w, r)
 	if !ok {
 		return
 	}
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	session, err := h.service.CreateSession(r.Context(), user.ID, req.Skill, req.Title, req.ProfileID)
 	if err != nil {
 		if errors.Is(err, ErrSkillForbidden) {
-			writeError(w, http.StatusForbidden, "skill_forbidden", "当前权益不可使用该 skill")
+			httputil.RespondError(w, http.StatusForbidden, "skill_forbidden", "当前权益不可使用该 skill")
 			return
 		}
 		if errors.Is(err, profile.ErrNotFound) {
-			notFound(w)
+			httputil.NotFound(w)
 			return
 		}
 		slog.Error("liki: create session", "user_id", user.ID, "err", err)
-		internalError(w)
+		httputil.InternalError(w)
 		return
 	}
-	responseOK(w, session)
+	httputil.RespondJSON(w, http.StatusOK, session)
 }
 
 func (h *Handler) HandleMessages(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	sessionID := r.PathValue("id")
@@ -312,16 +313,16 @@ func (h *Handler) HandleMessages(w http.ResponseWriter, r *http.Request) {
 	messages, err := h.service.store.ListMessages(r.Context(), user.ID, sessionID)
 	if err != nil {
 		slog.Error("liki: list messages", "session_id", sessionID, "err", err)
-		internalError(w)
+		httputil.InternalError(w)
 		return
 	}
-	responseOK(w, messages)
+	httputil.RespondJSON(w, http.StatusOK, messages)
 }
 
 func (h *Handler) HandleSession(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	session, err := h.service.Session(r.Context(), user.ID, r.PathValue("id"))
@@ -329,7 +330,7 @@ func (h *Handler) HandleSession(w http.ResponseWriter, r *http.Request) {
 		writeSessionError(w, err)
 		return
 	}
-	responseOK(w, session)
+	httputil.RespondJSON(w, http.StatusOK, session)
 }
 
 // ── Shared HTTP helpers ──
@@ -339,65 +340,16 @@ func userID(r *http.Request) string {
 	return user.ID
 }
 
-type validator interface {
-	Validate() error
-}
-
-func responseOK(w http.ResponseWriter, data any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]any{"data": data})
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
-}
-
-func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]any{"error": map[string]string{"code": code, "message": message}})
-}
-
-func unauthorized(w http.ResponseWriter) {
-	writeError(w, http.StatusUnauthorized, "unauthorized", "请先登录")
-}
-
-func notFound(w http.ResponseWriter) {
-	writeError(w, http.StatusNotFound, "not_found", "会话不存在")
-}
-
-func forbidden(w http.ResponseWriter) {
-	writeError(w, http.StatusForbidden, "skill_forbidden", "当前权益不可使用该 skill")
-}
-
-func internalError(w http.ResponseWriter) {
-	writeError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
-}
-
+// writeSessionError maps liki session domain errors onto the canonical
+// HTTP envelope without leaking internal identifiers.
 func writeSessionError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrSkillForbidden):
-		forbidden(w)
+		httputil.Forbidden(w)
 	case errors.Is(err, ErrSessionNotFound), errors.Is(err, ErrRunnerUnavailable):
-		notFound(w)
+		httputil.NotFound(w)
 	default:
 		slog.Error("liki: access session", "err", err)
-		internalError(w)
+		httputil.InternalError(w)
 	}
-}
-
-func decode[T any](w http.ResponseWriter, r *http.Request) (T, bool) {
-	var req T
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
-		return req, false
-	}
-	if v, ok := any(req).(validator); ok {
-		if err := v.Validate(); err != nil {
-			writeError(w, http.StatusUnprocessableEntity, "validation_error", "Invalid request parameters")
-			return req, false
-		}
-	}
-	return req, true
 }

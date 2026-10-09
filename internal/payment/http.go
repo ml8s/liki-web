@@ -71,13 +71,13 @@ func (runtime *Runtime) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
 		slog.Error("payment: read webhook body", "err", err)
-		http.Error(w, "read failed", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "read failed")
 		return
 	}
 	ack, err := runtime.HandleWebhookEventWithAck(r.Context(), body, r.Header)
 	if err != nil {
 		slog.Error("payment: webhook", "err", err)
-		http.Error(w, "webhook failed", http.StatusBadRequest)
+		httputil.RespondError(w, http.StatusBadRequest, "webhook_failed", "webhook failed")
 		return
 	}
 	if len(ack) > 0 {

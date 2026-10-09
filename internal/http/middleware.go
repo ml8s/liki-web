@@ -62,7 +62,7 @@ func Recover(next http.Handler) http.Handler {
 		defer func() {
 			if rv := recover(); rv != nil {
 				slog.Error("panic recovered", "panic", rv, "stack", string(debug.Stack()))
-				http.Error(w, "internal server error", http.StatusInternalServerError)
+				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "internal server error")
 			}
 		}()
 		next.ServeHTTP(w, r)
@@ -133,7 +133,7 @@ func (rl *RateLimiter) Wrap(r rate.Limit, burst int, next http.HandlerFunc) http
 		limiter := rl.getLimiter(ip, r, burst)
 		if !limiter.Allow() {
 			w.Header().Set("Retry-After", "60")
-			http.Error(w, `{"error":{"code":"rate_limited","message":"too many requests"}}`, http.StatusTooManyRequests)
+			httputil.RespondError(w, http.StatusTooManyRequests, "rate_limited", "too many requests")
 			return
 		}
 		next(w, req)

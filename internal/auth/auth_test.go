@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/ml8s/liki-web/internal/httputil"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
@@ -319,7 +321,7 @@ func TestAuthHandlerFlow(t *testing.T) {
 		if !ok {
 			t.Fatal("user missing")
 		}
-		responseOK(w, publicUser(user))
+		httputil.RespondJSON(w, http.StatusOK, publicUser(user))
 	})
 	meRec := httptest.NewRecorder()
 	meReq := httptest.NewRequest(http.MethodGet, "/api/me", nil)
@@ -386,7 +388,7 @@ func TestAuthHandlerRejectsBadRequests(t *testing.T) {
 
 func TestAuthJSONEncoding(t *testing.T) {
 	rec := httptest.NewRecorder()
-	responseOK(rec, map[string]string{"ok": "yes"})
+	httputil.RespondJSON(rec, http.StatusOK, map[string]string{"ok": "yes"})
 	if rec.Code != http.StatusOK || !json.Valid(rec.Body.Bytes()) {
 		t.Fatalf("response = %d %s", rec.Code, rec.Body.String())
 	}

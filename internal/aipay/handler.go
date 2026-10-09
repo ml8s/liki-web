@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 const maxProofLength = 64 * 1024
@@ -67,7 +69,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit func(http.HandlerFunc
 
 func (h *Handler) HandlePay(w http.ResponseWriter, r *http.Request) {
 	if !h.config.Enabled() || h.gateway == nil {
-		writeError(w, http.StatusServiceUnavailable, "aipay_disabled",
+		httputil.RespondError(w, http.StatusServiceUnavailable, "aipay_disabled",
 			"付费通道未开放；所有 Liki 功能仍可正常使用")
 		return
 	}
@@ -83,18 +85,18 @@ func (h *Handler) HandlePay(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) paymentRequired(w http.ResponseWriter, r *http.Request) {
 	bill, err := h.store.CreateBill(r.Context(), h.amount, h.config.GoodsName)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
 	encoded, err := h.gateway.PaymentNeededHeader(r.Context(), bill)
 	if err != nil {
 		// The bill remains pending and will be reconciled by expiry. Do not log
 		// a signature value or expose gateway internals to the caller.
-		writeError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
 	w.Header().Set("Payment-Needed", encoded)
-	writeJSON(w, http.StatusPaymentRequired, map[string]any{
+	httputil.RespondRawJSON(w, http.StatusPaymentRequired, map[string]any{
 		"code":         "Payment-Needed",
 		"message":      "Liki 先使用后付费。付费后获得凭证，所有功能仍然免费。",
 		"out_trade_no": bill.OutTradeNo,
@@ -133,7 +135,7 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
 	if order.ResourceID != ResourceID || order.Currency != Currency ||
@@ -145,14 +147,14 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 	confirmed := true
 	if order.FulfillmentStatus != FulfillmentConfirmed {
 		if err := h.gateway.Confirm(r.Context(), order.TradeNo); err != nil {
-			writeError(w, http.StatusBadGateway, "fulfillment_confirm_failed",
+			httputil.RespondError(w, http.StatusBadGateway, "fulfillment_confirm_failed",
 				"付费已收到，回执确认未完成；请使用同一 Payment-Proof 重试")
 			return
 		}
 		confirmed = true
 		if order.FulfillmentStatus != FulfillmentConfirmed {
 			if err := h.store.MarkFulfilled(r.Context(), order.OutTradeNo, order.TradeNo); err != nil {
-				writeError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 				return
 			}
 			order.FulfillmentStatus = FulfillmentConfirmed
@@ -168,12 +170,12 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 		"resource_id":  ResourceID,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
+		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
 	w.Header().Set("Payment-Validation", base64.RawURLEncoding.EncodeToString(validation))
 
-	writeJSON(w, http.StatusOK, map[string]any{
+	httputil.RespondRawJSON(w, http.StatusOK, map[string]any{
 		"resource_id": ResourceID,
 		"content": map[string]any{
 			"schema_version": SchemaVersion,
@@ -193,7 +195,7 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 }
 
 func (h *Handler) proofRejected(w http.ResponseWriter) {
-	writeError(w, http.StatusPaymentRequired, "Payment-Needed",
+	httputil.RespondError(w, http.StatusPaymentRequired, "Payment-Needed",
 		"支付凭证无效或未通过校验；请重新完成支付后重试。")
 }
 
@@ -219,16 +221,4 @@ func decodeBase64URL(value string) ([]byte, error) {
 		value += strings.Repeat("=", 4-pad)
 	}
 	return base64.URLEncoding.DecodeString(value)
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
-}
-
-func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]any{
-		"error": map[string]string{"code": code, "message": message},
-	})
 }

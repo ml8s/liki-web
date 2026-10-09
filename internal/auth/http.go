@@ -83,7 +83,7 @@ func (h *Handler) HandleSendEmailCode(w http.ResponseWriter, r *http.Request) {
 	if !h.assertSameOrigin(w, r) {
 		return
 	}
-	req, ok := decode[sendCodeRequest](w, r)
+	req, ok := httputil.DecodeStrict[sendCodeRequest](w, r)
 	if !ok {
 		return
 	}
@@ -99,14 +99,14 @@ func (h *Handler) HandleSendEmailCode(w http.ResponseWriter, r *http.Request) {
 	if issued.DevCode != "" {
 		response["dev_code"] = issued.DevCode
 	}
-	responseOK(w, response)
+	httputil.RespondJSON(w, http.StatusOK, response)
 }
 
 func (h *Handler) HandleVerifyEmailCode(w http.ResponseWriter, r *http.Request) {
 	if !h.assertSameOrigin(w, r) {
 		return
 	}
-	req, ok := decode[verifyRequest](w, r)
+	req, ok := httputil.DecodeStrict[verifyRequest](w, r)
 	if !ok {
 		return
 	}
@@ -129,7 +129,7 @@ func (h *Handler) HandleVerifyEmailCode(w http.ResponseWriter, r *http.Request) 
 	if h.postLoginHook != nil {
 		h.postLoginHook(w, r, result.User, result.IsNewUser)
 	}
-	responseOK(w, map[string]any{
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
 		"user":       publicUser(result.User),
 		"session_id": result.Session.ID,
 		"expires_at": result.Session.ExpiresAt,
@@ -140,13 +140,13 @@ func (h *Handler) RequireUser(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(h.config.CookieName)
 		if err != nil || cookie.Value == "" {
-			unauthorized(w)
+			httputil.Unauthorized(w)
 			return
 		}
 		user, session, err := h.store.GetSessionUser(r.Context(), cookie.Value)
 		if err != nil {
 			h.clearSessionCookie(w)
-			unauthorized(w)
+			httputil.Unauthorized(w)
 			return
 		}
 		now := time.Now().UTC()
@@ -173,21 +173,21 @@ func (h *Handler) IdentityFromRequest(r *http.Request) (User, bool) {
 func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
-	responseOK(w, publicUser(user))
+	httputil.RespondJSON(w, http.StatusOK, publicUser(user))
 }
 
 func (h *Handler) HandleAuthIdentities(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	identities, err := h.store.ListIdentities(r.Context(), user.ID)
 	if err != nil {
-		internal(w)
+		httputil.InternalError(w)
 		return
 	}
 	_, hasToken := SessionTokenFromContext(r.Context())
@@ -199,13 +199,13 @@ func (h *Handler) HandleAuthIdentities(w http.ResponseWriter, r *http.Request) {
 			IsCurrent: hasToken && identity.Provider == ProviderEmail,
 		})
 	}
-	responseOK(w, out)
+	httputil.RespondJSON(w, http.StatusOK, out)
 }
 
 func (h *Handler) HandleSessions(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	currentToken, hasToken := SessionTokenFromContext(r.Context())
@@ -215,7 +215,7 @@ func (h *Handler) HandleSessions(w http.ResponseWriter, r *http.Request) {
 	}
 	sessions, err := h.store.ListSessions(r.Context(), user.ID)
 	if err != nil {
-		internal(w)
+		httputil.InternalError(w)
 		return
 	}
 	out := make([]PublicSession, 0, len(sessions))
@@ -226,18 +226,18 @@ func (h *Handler) HandleSessions(w http.ResponseWriter, r *http.Request) {
 			IsCurrent: hasToken && session.TokenHash == currentHash,
 		})
 	}
-	responseOK(w, out)
+	httputil.RespondJSON(w, http.StatusOK, out)
 }
 
 func (h *Handler) HandleRevokeSession(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	sessionID := r.PathValue("id")
 	if sessionID == "" {
-		invalidRequest(w)
+		httputil.InvalidRequest(w)
 		return
 	}
 	currentToken, hasToken := SessionTokenFromContext(r.Context())
@@ -254,19 +254,19 @@ func (h *Handler) HandleRevokeSession(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.store.RevokeSession(r.Context(), user.ID, sessionID); err != nil {
 		if errors.Is(err, ErrSessionNotFound) {
-			notFound(w)
+			httputil.NotFound(w)
 			return
 		}
-		internal(w)
+		httputil.InternalError(w)
 		return
 	}
-	responseOK(w, map[string]string{"status": "revoked"})
+	httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 
 func (h *Handler) HandleRevokeAllSessions(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	currentToken, hasToken := SessionTokenFromContext(r.Context())
@@ -278,17 +278,17 @@ func (h *Handler) HandleRevokeAllSessions(w http.ResponseWriter, r *http.Request
 	}
 	count, err := h.store.RevokeAllSessions(r.Context(), user.ID, currentSessionID)
 	if err != nil {
-		internal(w)
+		httputil.InternalError(w)
 		return
 	}
-	responseOK(w, map[string]any{"status": "revoked", "count": count})
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"status": "revoked", "count": count})
 }
 
 func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	token, ok := SessionTokenFromContext(r.Context())
 	if !ok {
 		h.clearSessionCookie(w)
-		responseOK(w, map[string]string{"status": "logged_out"})
+		httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": "logged_out"})
 		return
 	}
 	user, session, err := h.store.GetSessionUser(r.Context(), token)
@@ -296,29 +296,29 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		_ = h.store.RevokeSession(r.Context(), user.ID, session.ID)
 	}
 	h.clearSessionCookie(w)
-	responseOK(w, map[string]string{"status": "logged_out"})
+	httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": "logged_out"})
 }
 
 func (h *Handler) writeError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidEmail):
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"error": map[string]string{"code": "invalid_email", "message": "邮箱格式不正确"}})
+		httputil.RespondError(w, http.StatusUnprocessableEntity, "invalid_email", "邮箱格式不正确")
 	case errors.Is(err, ErrCodeCooldown):
-		writeJSON(w, http.StatusTooManyRequests, map[string]any{"error": map[string]string{"code": "code_cooldown", "message": "验证码请求过于频繁"}})
+		httputil.RespondError(w, http.StatusTooManyRequests, "code_cooldown", "验证码请求过于频繁")
 	case errors.Is(err, ErrCodeInvalid):
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]string{"code": "invalid_code", "message": "验证码不正确"}})
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_code", "验证码不正确")
 	case errors.Is(err, ErrCodeExpired):
-		writeJSON(w, http.StatusUnauthorized, map[string]any{"error": map[string]string{"code": "code_expired", "message": "验证码已过期"}})
+		httputil.RespondError(w, http.StatusUnauthorized, "code_expired", "验证码已过期")
 	case errors.Is(err, ErrCodeLocked):
-		writeJSON(w, http.StatusLocked, map[string]any{"error": map[string]string{"code": "code_locked", "message": "验证码已锁定"}})
+		httputil.RespondError(w, http.StatusLocked, "code_locked", "验证码已锁定")
 	case errors.Is(err, ErrUserDisabled):
-		writeJSON(w, http.StatusForbidden, map[string]any{"error": map[string]string{"code": "user_disabled", "message": "账户不可用"}})
+		httputil.RespondError(w, http.StatusForbidden, "user_disabled", "账户不可用")
 	case errors.Is(err, ErrUserNotFound):
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]string{"code": "user_not_found", "message": "用户不存在"}})
+		httputil.RespondError(w, http.StatusNotFound, "user_not_found", "用户不存在")
 	case errors.Is(err, ErrMailerUnavailable):
-		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": map[string]string{"code": "mailer_unavailable", "message": "邮件服务暂不可用"}})
+		httputil.RespondError(w, http.StatusServiceUnavailable, "mailer_unavailable", "邮件服务暂不可用")
 	default:
-		internal(w)
+		httputil.InternalError(w)
 	}
 }
 
@@ -332,20 +332,6 @@ func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
 
 func publicUser(user User) PublicUser {
 	return PublicUser{ID: user.ID, Email: user.Email, Status: user.Status, Locale: user.Locale, LastLoginAt: user.LastLoginAt}
-}
-
-func responseOK(w http.ResponseWriter, data any) {
-	type envelope struct {
-		Data any `json:"data"`
-	}
-	writeJSON(w, http.StatusOK, envelope{Data: data})
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	// Keep local to avoid coupling auth to shared response helper behavior.
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = jsonEncode(w, body)
 }
 
 func clientIP(r *http.Request) string {
@@ -366,7 +352,7 @@ func (h *Handler) assertSameOrigin(w http.ResponseWriter, r *http.Request) bool 
 		}
 		parsed, err := url.Parse(value)
 		if err != nil || parsed.Host == "" || parsed.Host != expected {
-			forbidden(w)
+			httputil.Forbidden(w)
 			return false
 		}
 	}
@@ -375,37 +361,4 @@ func (h *Handler) assertSameOrigin(w http.ResponseWriter, r *http.Request) bool 
 
 func expectedHost(r *http.Request) string {
 	return httputil.ForwardedHost(r)
-}
-
-func unauthorized(w http.ResponseWriter) {
-	writeJSON(w, http.StatusUnauthorized, map[string]any{"error": map[string]string{"code": "unauthorized", "message": "请先登录"}})
-}
-
-func forbidden(w http.ResponseWriter) {
-	writeJSON(w, http.StatusForbidden, map[string]any{"error": map[string]string{"code": "forbidden", "message": "无权访问"}})
-}
-
-func notFound(w http.ResponseWriter) {
-	writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]string{"code": "not_found", "message": "资源不存在"}})
-}
-
-func invalidRequest(w http.ResponseWriter) {
-	writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]string{"code": "invalid_request", "message": "请求无效"}})
-}
-
-func internal(w http.ResponseWriter) {
-	writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
-}
-
-func decode[T any](w http.ResponseWriter, r *http.Request) (T, bool) {
-	var req T
-	if err := jsonDecode(r.Body, &req); err != nil {
-		invalidRequest(w)
-		return req, false
-	}
-	if err := validatorFn(req); err != nil {
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"error": map[string]string{"code": "validation_error", "message": "Invalid request parameters"}})
-		return req, false
-	}
-	return req, true
 }

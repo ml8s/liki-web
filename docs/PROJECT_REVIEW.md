@@ -504,3 +504,75 @@ discovery index 和 optional manifest 都会校验。相比 checkout sibling sou
 
 建议在解决 CI self-dependency 后合并当前收敛改动；随后优先处理隐私删除闭环、
 SQLite 权限和 session lock 竞态。当前阶段继续保持单副本部署。
+
+## 10. 专项评审：正交性 / 冗余性 / 过期代码（2026-10-09）
+
+### 10.1 正交性
+
+做得好的：
+
+- `internal/llm`（消息模型 Role/Message/ToolCall）与 `internal/agent`
+  （SSE 事件契约 ChatEvent）在 retired 清理后是两个互不重叠的瘦合约；
+- `internal/sse` 只暴露 `Begin` 一个流式原语，AG-UI gateway 只做事件翻译，
+  流式层与业务层分离；
+- bounded context 边界（第 2 节结论）仍然成立。
+
+问题：
+
+**P2 — 错误响应双风格并存。** 面向浏览器的包（auth/liki/profile/referral）
+输出 `{error:{code,message}}` JSON envelope；`payment/http.go`、
+`feedback/handler.go`、`metrics`、`middleware` 限流用纯文本 `http.Error`。
+其中限流 429 的 body 是 JSON 字符串但 `Content-Type: text/plain`（
+`http.Error` 的默认行为），是真实契约瑕疵。前端 `request<T>` 兼容两种
+（非 JSON 回退 `request_failed`），运行时无害，但新端点缺少可遵循的单一约定。
+
+建议（2026-10-09 修订：统一，而非分层）：全部端点经 `httputil` 的
+envelope writer 输出错误，`Content-Type: application/json`，status code
+语义不变（对只读 status 的现有脚本向后兼容）。不做"浏览器 / operator"
+分层——按层选择风格会让分类本身成为新的漂移源。已知残留：`ServeMux`
+自动生成的 404/405 为框架默认纯文本，在 API.md 标注即可，不值得包 mux
+拦截。
+
+### 10.2 冗余性
+
+**P1 — HTTP 胶水五包重复，且已发生语义漂移。** `decode[T]`×2（auth 强制
+ozzo 校验 / liki 裸版不校验）、`writeJSON`×5（auth/profile/account/aipay/liki）、
+`writeError`×3、`responseOK`×2、`unauthorized`×3，约 6 包 × 20–40 行。
+漂移证据：`decode` 的校验语义两包不一致——同一个"请求体解析失败"在
+auth 返回 `invalid_request`（带校验），在 liki 返回裸 JSON 错误。
+归宿：收敛进已存在的 `internal/httputil`（decode 以可选 validator 参数化）。
+
+**P3 — 双 markdown/消毒栈（知情冗余）。** SPA 用 npm `markdown-it` +
+`DOMPurify`；legacy `web/js` 内嵌 `marked.min.js` + `purify.min.js`。
+legacy 是冻结兼容面，冗余可接受，但 vendor 库的 CVE 跟踪责任应在
+FRONTEND.md 标注（planned-EOL + 维护归属）。
+
+可接受（非问题）：三层 i18n（Go 语言标签 / Astro 静态页 / SPA）服务
+不同层，Go 侧仅常量，无实质重复。
+
+### 10.3 过期代码
+
+**正面：retired 清理已经彻底。** `naming/mingshu/hepan/paymentflow/product`
+模块整体删除；`llm/agent` 留 doc 说明清理决策；`go mod tidy` 零 diff；
+README/.env.example 的 `LIKI_LLM_*` 残影已清；ARCHITECTURE 模块表无过期条目。
+
+澄清（假死真活）：`web/js` 12 个文件全部有消费方——scenario 落地页
+build-time 读取 demo JSON、`admin.html` 加载 console 脚本、`skills.astro`
+加载 `skills-page.js`。retired 产品的 demo 数据（hepan/mingshu）作为
+营销落地页数据属知情保留，非遗留死代码。
+
+小项：
+
+- `internal/sse`：15 行单函数包、单消费方，包粒度过碎，可并入
+  `httputil` 或 `liki`（P4）；
+- `ARCHITECTURE.md` Runtime modules 表仅列 9/23 模块，列出的均真实存在，
+  建议补全 dodo/xunhu/aipay 网关与 httputil/sqliteutil/metrics 等基础设施行（P4）。
+
+### 10.4 行动项
+
+| 优先级 | 事项 | 工作量 |
+| --- | --- | --- |
+| P1 | ~~HTTP 胶水收敛到 `httputil`，消除 decode 校验语义漂移~~ | ✅ 已完成（2026-10-09）：auth 迁 `DecodeStrict`（保留 DisallowUnknownFields）、liki 迁 `Decode`/`DecodeAndValidate`、五包 `writeJSON/writeError/responseOK/unauthorized` 全部删除 |
+| P2 | ~~错误响应统一为 envelope（含限流 429 / Recover / operator API）~~ | ✅ 已完成（2026-10-09）：payment/feedback/metrics/middleware 四处 plain-text 站点迁 `httputil.RespondError`，API.md 标注 ServeMux 404/405 残留 |
+| P3 | FRONTEND.md 标注 legacy vendor 库 EOL 与 CVE 责任 | 0.5 小时 |
+| P4 | `internal/sse` 并包；ARCHITECTURE 模块表补全 | 1 小时 |

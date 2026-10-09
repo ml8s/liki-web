@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
@@ -54,7 +55,7 @@ func (r updateRequest) Validate() error {
 func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	var req createRequest
@@ -69,20 +70,20 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrQuotaExceeded):
-			writeError(w, http.StatusTooManyRequests, "quota_exceeded", "档案数量已达上限")
+			httputil.RespondError(w, http.StatusTooManyRequests, "quota_exceeded", "档案数量已达上限")
 		default:
 			slog.Error("profile: create", "user_id", user.ID, "err", err)
-			internal(w)
+			httputil.InternalError(w)
 		}
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"data": p})
+	httputil.RespondRawJSON(w, http.StatusCreated, map[string]any{"data": p})
 }
 
 func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -90,13 +91,13 @@ func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 	items, nextCursor, err := h.store.List(r.Context(), user.ID, cursor, limit)
 	if err != nil {
 		slog.Error("profile: list", "user_id", user.ID, "err", err)
-		internal(w)
+		httputil.InternalError(w)
 		return
 	}
 	if items == nil {
 		items = []Profile{}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httputil.RespondRawJSON(w, http.StatusOK, map[string]any{
 		"data": map[string]any{"profiles": items, "next_cursor": nextCursor},
 	})
 }
@@ -104,26 +105,26 @@ func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	p, err := h.store.Get(r.Context(), user.ID, r.PathValue("id"))
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
-			notFound(w)
+			httputil.NotFound(w)
 			return
 		}
 		slog.Error("profile: get", "user_id", user.ID, "err", err)
-		internal(w)
+		httputil.InternalError(w)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"data": p})
+	httputil.RespondRawJSON(w, http.StatusOK, map[string]any{"data": p})
 }
 
 func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	var req updateRequest
@@ -142,66 +143,44 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrNotFound):
-			notFound(w)
+			httputil.NotFound(w)
 		case errors.Is(err, ErrConflict):
-			writeError(w, http.StatusConflict, "profile_conflict", "档案已被其他设备修改，请刷新后重试")
+			httputil.RespondError(w, http.StatusConflict, "profile_conflict", "档案已被其他设备修改，请刷新后重试")
 		default:
 			slog.Error("profile: update", "user_id", user.ID, "err", err)
-			internal(w)
+			httputil.InternalError(w)
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"data": p})
+	httputil.RespondRawJSON(w, http.StatusOK, map[string]any{"data": p})
 }
 
 func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	if err := h.store.SoftDelete(r.Context(), user.ID, r.PathValue("id")); err != nil {
 		if errors.Is(err, ErrNotFound) {
-			notFound(w)
+			httputil.NotFound(w)
 			return
 		}
 		slog.Error("profile: delete", "user_id", user.ID, "err", err)
-		internal(w)
+		httputil.InternalError(w)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"data": map[string]string{"status": "deleted"}})
+	httputil.RespondRawJSON(w, http.StatusOK, map[string]any{"data": map[string]string{"status": "deleted"}})
 }
 
 func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(dst); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
 		return false
 	}
 	return true
 }
 
 func validation(w http.ResponseWriter, message string) {
-	writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"error": map[string]string{"code": "validation_error", "message": message}})
-}
-
-func unauthorized(w http.ResponseWriter) {
-	writeJSON(w, http.StatusUnauthorized, map[string]any{"error": map[string]string{"code": "unauthorized", "message": "请先登录"}})
-}
-
-func notFound(w http.ResponseWriter) {
-	writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]string{"code": "not_found", "message": "档案不存在"}})
-}
-
-func internal(w http.ResponseWriter) {
-	writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
-}
-
-func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]any{"error": map[string]string{"code": code, "message": message}})
+	httputil.RespondRawJSON(w, http.StatusUnprocessableEntity, map[string]any{"error": map[string]string{"code": "validation_error", "message": message}})
 }

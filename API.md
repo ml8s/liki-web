@@ -22,6 +22,10 @@ Error:
 is not guaranteed to be in the browser's UI language; browser clients map codes
 to their own locale resources.
 
+The envelope applies to every handler-owned response, including operator
+endpoints and middleware (rate limiting, recovery). The only exception is the
+`net/http` ServeMux's own 404/405 replies, which remain the framework default.
+
 Authentication uses HttpOnly platform session cookies. Ownership and entitlement are always checked server-side.
 
 ## Identity

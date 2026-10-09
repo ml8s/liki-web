@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 type Registry struct {
@@ -133,7 +135,7 @@ func Handler(token string) http.HandlerFunc {
 		}
 		expected := "Bearer " + token
 		if subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte(expected)) != 1 {
-			http.Error(w, "forbidden", http.StatusForbidden)
+			httputil.RespondError(w, http.StatusForbidden, "forbidden", "forbidden")
 			return
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")

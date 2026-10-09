@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/ml8s/liki-web/internal/httputil"
 )
 
 // CreateRequest 是 POST /api/feedback 的最小契约：任何合法 JSON 对象都接受，
@@ -27,23 +29,23 @@ func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFun
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "invalid body", 400)
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "invalid body")
 			return
 		}
 		// 强制 UTF-8（RFC 8259 §8.1）：非 UTF-8 body 一律 400，防止 GBK 乱码入库。
 		if !utf8.Valid(body) {
-			http.Error(w, "body must be UTF-8", 400)
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "body must be UTF-8")
 			return
 		}
 		// 极简校验：必须是合法 JSON 对象（map），且非空。不解析业务字段——
 		// schema 演进不触发后端改动（含 legacy category/message 与 feedback-v1 两种格式）。
 		var probe map[string]any
 		if err := json.Unmarshal(body, &probe); err != nil {
-			http.Error(w, "body must be a JSON object", 400)
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "body must be a JSON object")
 			return
 		}
 		if len(probe) == 0 {
-			http.Error(w, "body must not be empty", 400)
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "body must not be empty")
 			return
 		}
 
@@ -58,7 +60,7 @@ func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFun
 
 		fb := &Feedback{Payload: string(body), Hash: hash}
 		if err := store.Create(fb); err != nil {
-			http.Error(w, "internal error", 500)
+			httputil.InternalError(w)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -74,7 +76,7 @@ func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFun
 func HandleList(store *Store, apiKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !authAPIKey(r, apiKey) {
-			http.Error(w, "unauthorized", http.StatusForbidden)
+			httputil.Forbidden(w)
 			return
 		}
 		status := r.URL.Query().Get("status")
@@ -92,7 +94,7 @@ func HandleList(store *Store, apiKey string) http.HandlerFunc {
 		}
 		list, err := store.List(status, limit, offset)
 		if err != nil {
-			http.Error(w, "internal error", 500)
+			httputil.InternalError(w)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -103,25 +105,25 @@ func HandleList(store *Store, apiKey string) http.HandlerFunc {
 func HandleUpdate(store *Store, apiKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !authAPIKey(r, apiKey) {
-			http.Error(w, "unauthorized", http.StatusForbidden)
+			httputil.Forbidden(w)
 			return
 		}
 		id := r.PathValue("id")
 		if id == "" {
-			http.Error(w, "id required", 400)
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "id required")
 			return
 		}
 		var req UpdateRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "invalid JSON", 400)
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "invalid JSON")
 			return
 		}
 		if req.Status == "" {
-			http.Error(w, "status required", 400)
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "status required")
 			return
 		}
 		if err := store.Update(id, req.Status, req.IssueURL); err != nil {
-			http.Error(w, err.Error(), 404)
+			httputil.NotFound(w)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

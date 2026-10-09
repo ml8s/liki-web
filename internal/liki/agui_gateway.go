@@ -16,6 +16,7 @@ import (
 
 	"github.com/ml8s/liki-web/internal/agent"
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/sse"
 )
 
@@ -24,23 +25,23 @@ import (
 // liki-web performs auth, entitlement, quota, persistence, and verified identity
 // injection before any agent traffic is generated.
 func (h *Handler) HandleAGUIMessage(w http.ResponseWriter, r *http.Request) {
-	input, ok := decode[aguitypes.RunAgentInput](w, r)
+	input, ok := httputil.Decode[aguitypes.RunAgentInput](w, r)
 	if !ok {
 		return
 	}
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		unauthorized(w)
+		httputil.Unauthorized(w)
 		return
 	}
 	sessionID := r.PathValue("id")
 	if input.ThreadID != "" && input.ThreadID != sessionID {
-		writeError(w, http.StatusUnprocessableEntity, "invalid_request", "threadId must match the session")
+		httputil.RespondError(w, http.StatusUnprocessableEntity, "invalid_request", "threadId must match the session")
 		return
 	}
 	content, err := latestAGUIUserText(input)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "invalid_request", err.Error())
+		httputil.RespondError(w, http.StatusUnprocessableEntity, "invalid_request", err.Error())
 		return
 	}
 	if _, err := h.service.Session(r.Context(), user.ID, sessionID); err != nil {
@@ -53,7 +54,7 @@ func (h *Handler) HandleAGUIMessage(w http.ResponseWriter, r *http.Request) {
 	)))
 
 	if _, ok := sse.Begin(w); !ok {
-		writeError(w, http.StatusInternalServerError, "internal_error", "服务器不支持流式响应")
+		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器不支持流式响应")
 		return
 	}
 	gateway := newAGUIGateway(w, r.Context(), sessionID, input.RunID)

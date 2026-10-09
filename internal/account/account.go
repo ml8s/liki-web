@@ -2,13 +2,14 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+
 	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/profile"
@@ -66,25 +67,23 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit func(http.HandlerFunc
 func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
-		writeJSON(w, http.StatusUnauthorized, map[string]any{"error": map[string]string{"code": "unauthorized", "message": "请先登录"}})
+		httputil.Unauthorized(w)
 		return
 	}
 	referralResult, err := h.referral.EraseUser(r.Context(), user.ID)
 	if err != nil {
 		if errors.Is(err, referral.ErrReferralFinancialHold) {
-			writeJSON(w, http.StatusConflict, map[string]any{"error": map[string]string{
-				"code": "referral_financial_hold", "message": "存在待结算提现，请先完成资金结算",
-			}})
+			httputil.RespondError(w, http.StatusConflict, "referral_financial_hold", "存在待结算提现，请先完成资金结算")
 			return
 		}
 		slog.Error("account: erase referral", "user_id", user.ID, "err", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
+		httputil.InternalError(w)
 		return
 	}
 	profilesCleared, err := h.profiles.AnonymizeUser(r.Context(), user.ID)
 	if err != nil {
 		slog.Error("account: erase profiles", "user_id", user.ID, "err", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
+		httputil.InternalError(w)
 		return
 	}
 	tombstone := "erased-" + uuid.NewString() + "@liki.invalid"
@@ -110,7 +109,7 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		cleared, err := domain.erase(r.Context())
 		if err != nil {
 			slog.Error("account: erase domain", "user_id", user.ID, "domain", domain.name, "err", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
+			httputil.InternalError(w)
 			return
 		}
 		if cleared > 0 {
@@ -120,29 +119,21 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 	messagesCleared, err := h.chat.AnonymizeUserMessages(r.Context(), user.ID)
 	if err != nil {
 		slog.Error("account: erase chat PII", "user_id", user.ID, "err", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
+		httputil.InternalError(w)
 		return
 	}
 	authResult, err := h.auth.EraseUser(r.Context(), user.ID, tombstone)
 	if err != nil {
 		slog.Error("account: erase auth identity", "user_id", user.ID, "err", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": map[string]string{"code": "internal_error", "message": "服务器内部错误"}})
+		httputil.InternalError(w)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"data": map[string]any{
-			"status": "erased", "profiles_cleared": profilesCleared, "messages_cleared": messagesCleared,
-			"auth_identities_cleared": authResult.Identities,
-			"auth_sessions_cleared":   authResult.Sessions,
-			"auth_codes_cleared":      authResult.Codes,
-			"domains":                 erased,
-			"referral_finance_tasks":  referralResult.FinanceTasks,
-		},
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
+		"status": "erased", "profiles_cleared": profilesCleared, "messages_cleared": messagesCleared,
+		"auth_identities_cleared": authResult.Identities,
+		"auth_sessions_cleared":   authResult.Sessions,
+		"auth_codes_cleared":      authResult.Codes,
+		"domains":                 erased,
+		"referral_finance_tasks":  referralResult.FinanceTasks,
 	})
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
 }
