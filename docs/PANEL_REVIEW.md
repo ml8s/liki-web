@@ -210,49 +210,68 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 至本轮结束：**P2 20/20 闭环**（含 3 项验伪否决/取舍）；P3 22 项为择期
 结构性项，未在本轮范围。
 
-## 11. 未完成项全景分析与处置决策（2026-10-09）
+## 11. 未完成项逐项裁决（2026-10-09 终版，全部经代码核验）
 
-对全部剩余 30 项（P2 尾 6 + P3 22 + 结构性观察）逐项核验真伪后，归入四类。
+裁决口径：**修问题/优化的做；新功能审慎，仅"补齐既有契约的缺口"才做**。
 
-### 11.1 A 类 — 快赢：低风险、单项 ≤2h，建议立即做（9 项 ≈ 1.5 天）
+### 11.1 做清单（21 项，3 个提交批次）
 
-| 项 | 处置 | 依据 |
+### A 批 — 快赢（9 项）
+
+| # | 项 | 裁决理由 |
 | --- | --- | --- |
-| chat AppendMessage 的 insert+touch 双语句包事务 | 做 | 列表排序一致性；tx 包裹即可 |
-| same-origin 补 scheme 校验 + host 小写规范化 | 做 | 生产接受 `http://liki.hk` 是真实松弛 |
-| `MaxSessions` 死配置：生效 + 过期/撤销 session 保留期清理 | 做 | 配置存在但 0 引用，属死配置+PII 无限保留双重问题 |
-| `/api/internal/metrics` 与 feedback 管理面套限流器 | 做 | 基建已有（rl 系列包裹），接线即可 |
-| SECURITY.md 与 docs 关系声明 | 做 | GitHub 约定 vs 权威索引 |
-| 404 数字对比度（装饰化 aria-hidden） | 做 | axe 已有基线，补齐即可 |
-| checkout_url 前端 allowlist | 做 | 开放重定向防御纵深，代码 ~10 行 |
-| lang-switcher cookie `Secure` | 做 | 与 SPA setAppLocale 对齐 |
-| OrdersView typed row helper | 做 | 唯一的类型边界弱化点 |
+| 1 | chat AppendMessage 双语句包事务 | 排序一致性缺陷，tx 包裹即可 |
+| 2 | same-origin 补 scheme 校验 + host 小写 | 现接受 `http://liki.hk`，真实松弛 |
+| 3 | `MaxSessions` 生效 + 过期/撤销 session 30 天清除 | 死配置 + PII 无限保留，双重缺陷 |
+| 4 | metrics / feedback GET·PATCH 套限流 | 限流基建已有，接线即可 |
+| 5 | SECURITY.md ↔ docs 关系声明 | 文档治理 |
+| 6 | 404 数字装饰化（aria-hidden） | 实测对比度 1.4:1 |
+| 7 | checkout_url 前端 allowlist | 开放重定向纵深，~10 行 |
+| 8 | lang-switcher cookie `Secure` | 与 SPA setAppLocale 对齐 |
+| 9 | OrdersView 统一 typed row helper | 唯一类型边界弱化 |
 
-### 11.2 B 类 — 下迭代中型项（真实价值，需专注）
+### B 批 — 本质修复（6 项）
 
-| 项 | 工作量 | 说明 |
+| # | 项 | 裁决理由 |
 | --- | --- | --- |
-| durable erasure 编排（P1-4 本体） | 3–5 天 | 覆盖缺口已补，durable job 是合规闭环的最后一块 |
-| 错误包装一致性（store 层 `domain: operation: %w`） | 1–2 天 | 与 feedback ctx 化同批 |
-| chat chunk 动态 import（dashboard 减重 292KB raw） | M | 首屏体验 |
-| aipay pending bill 过期清理 | 0.5–1 天 | 表体积不受控 |
-| Axe 覆盖 Partner×3 + NotFound | M | 无障碍基线补齐 |
-| profiles load more UI | S/M | >50 档案可达性（待产品确认上限预期） |
+| 10 | durable erasure 编排（最小化：enqueue-first + 剩余步骤续跑，无多步状态机） | P1-4 本体，PIPL 合规闭环 |
+| 11 | 错误包装窄版：worker/编排边界 `domain: operation: %w` | 排障定位；不做全仓 132 处 blanket |
+| 12 | chat store 对 `@/api/chat` 改动态 import | 实测 chat chunk 295KB（最大 chunk）被 dashboard 依赖链拖入首屏 |
+| 13 | aipay pending bill 过期清理（挂既有 6h retention） | 表体积无界增长 |
+| 14 | Axe 扫 Partner×3 + NotFound（既有 spec 扩路由） | 给既有资金页面补无障碍回归网 |
+| 15 | profiles load more（store append + 按钮） | 后端分页契约已存在，>50 不可达是可达性缺陷 |
 
-### 11.3 C 类 — 明确不做（取舍已记录）
+### P3 小项 — 并入 A/B 批顺带做（6 项，其中 4 项前批已完成）
 
-- kol/scout 路由树收敛（结构性重构，收益低于风险）
-- schema 演进双轨统一（3–5 天，行为等价，仅风格）
-- 迁移 checksum（forward-only + 事务内检查已 fail-closed）
-- feedback store 全量 ctx 化（本地单文件 SQLite）
-- partner 邮件完整 outbox（低频 admin 动作，WithoutCancel 已硬化）
+| # | 项 | 裁决 |
+| --- | --- | --- |
+| 16 | SECURITY.md 独立条目（同 #5） | 做 |
+| 17 | aipay `pay_before` UTC | ✅ 已做（前批） |
+| 18 | admin 未认证 deny 不落审计 | ✅ 已做（前批） |
+| 19 | refund observer 0-amount 契约归一 | ✅ 已做（前批） |
+| 20 | EnqueueOnce ON CONFLICT | ✅ 已做（前批） |
+| 21 | referral 补偿扫描 ASC | ✅ 已做（前批） |
 
-### 11.4 D 类 — 待外部验证（挂起）
+### 11.2 不做清单（10 项，含理由）
 
-- 引擎 `safety_advisory` 是否按 locale 返回（需 liki 仓确认，前端再定映射）
+| 项 | 裁决 | 理由 |
+| --- | --- | --- |
+| 引擎 `safety_advisory` locale | 本仓不做 | 已核验：字段来自 liki 确定性引擎 RPC，中文文案引擎域所有；加 locale 参数属 liki 仓契约变更，已记录跨仓需求 |
+| 分摊 exact-sum 断言 | 否决 | entries 仅覆盖 beneficiary 份额，买家自留部分走 sale 级计数；既有测试已抓到该回归 |
+| `MarkPaid` refunded 状态保护 | 非缺陷 | WHERE 已限定 created/checkout_created；真实缺口在 capture/EnsureQueued，已修 |
+| kol/scout 路由树收敛 | 不做 | 结构性重构，收益低于回归风险 |
+| schema 演进双轨统一 | 不做 | 行为等价、纯风格，3–5 天高风险低收益 |
+| 迁移 checksum | 不做 | 事务内检查已 fail-closed；forward-only + 单实例部署 |
+| feedback store 全量 ctx 化 | 不做 | 本地单文件 SQLite，无超时传播需求 |
+| partner 邮件完整 outbox | 不做 | 低频 admin 动作；WithoutCancel 硬化 + Warn 日志已够 |
+| erasure 全新多步状态机 | 不做（被 #10 最小化替代） | enqueue-first + 幂等续跑已满足合规 |
+| Idempotency-Key 全套 | 不做 | checkout 幂等以"活跃订单复用 + 迟到捕获复活"最小闭环实现 |
+| Axe 全站扩展到 40+ 路由 | 只做 4 页 | 既有基线 13 页已覆盖主路径，避免测试维护面膨胀 |
+| lang-switcher 完整键盘菜单管理 | 冻结面不做 | legacy 冻结面，仅补 cookie Secure |
 
-### 11.5 建议节奏
+### 11.3 执行批次
 
-A 类一个 PR 收口（1.5 天）；B 类按 erasure → 错误包装 → chat chunk 顺序进
-下一迭代；C/D 维持记录。全部 P1 已修、P2 已闭环，A 类完成后本项目无
-已知 P1/P2 存量。
+- 提交一：A 批 9 项 + P3 顺带（16/17/18/19 已在前批完成的标注）
+- 提交二：#10 durable erasure + #12 动态 import + #13 aipay 清理
+- 提交三：#14 Axe 扩页 + #15 load more + 文档收口
+- 每批全量验证（go test ./...、golangci、vue-tsc、vitest、eslint、markdownlint）
