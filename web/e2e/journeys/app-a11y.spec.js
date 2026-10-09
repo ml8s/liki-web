@@ -45,6 +45,10 @@ const pages = [
   { path: '/app/chat/chat_1', name: 'chat-session', marker: '.thread' },
   { path: '/app/orders', name: 'orders', marker: '.orders-table, .order-cards' },
   { path: '/app/account', name: 'account', marker: '.app-card--danger' },
+  { path: '/app/partners', name: 'partner-center', marker: 'main' },
+  { path: '/app/partners/kol', name: 'partner-kol', marker: 'main' },
+  { path: '/app/partners/scout', name: 'partner-scout', marker: 'main' },
+  { path: '/app/this-route-does-not-exist', name: 'not-found', marker: '.not-found' },
 ]
 
 test.describe('App accessibility audit', () => {
@@ -63,6 +67,13 @@ test.describe('App accessibility audit', () => {
       await page.route('**/api/chat/orders', r => r.fulfill(json({ orders: [order] })))
       await page.route('**/api/me/sessions', r => r.fulfill(json([])))
       await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
+      // Partner 面：kol/scout 深状态 mock 从简，覆盖骨架的错误/空态即可。
+      await page.route('**/api/partner', r => r.fulfill(json({
+        kol: { status: '', application: null, can_submit: true },
+        scout: { status: '', application: null, can_submit: true },
+      })))
+      await page.route('**/api/kol/**', r => r.fulfill(json({})))
+      await page.route('**/api/scout/**', r => r.fulfill(json({})))
 
       await page.goto(path)
       await page.waitForSelector(marker, { timeout: 10000 })

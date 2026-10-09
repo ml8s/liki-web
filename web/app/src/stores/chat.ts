@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia'
-import {
-  createChatSession,
-  fetchChatSession,
-  fetchChatMessages,
-  fetchChatSessions,
-  streamChatMessage,
-  type ChatMessage,
-  type ChatSession,
-} from '@/api/chat'
+import type { ChatMessage, ChatSession } from '@/api/chat'
+
+// @ag-ui/client 较重（~292KB raw）：仅在真正发送消息时动态加载，
+// 避免 dashboard 依赖链把 chat transport 拖入首屏。
+type ChatApi = typeof import('@/api/chat')
+let chatApi: ChatApi | null = null
+async function chatApiLazy(): Promise<ChatApi> {
+  if (!chatApi) chatApi = await import('@/api/chat')
+  return chatApi
+}
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useProfilesStore } from '@/stores/profiles'
 import { errorMessage } from '@/utils/errors'
@@ -54,7 +55,7 @@ export const useChatStore = defineStore('chat', {
       this.loadingSessions = true
       this.error = ''
       try {
-        this.sessions = await fetchChatSessions()
+        this.sessions = await (await chatApiLazy()).fetchChatSessions()
       } catch (error) {
         this.error = errorMessage(error)
       } finally {
@@ -71,7 +72,7 @@ export const useChatStore = defineStore('chat', {
       const title = nickname
         ? t('chat.sessionTitleWithProfile', { nickname, skill: skillLabel(skill) })
         : t('chat.sessionTitle', { skill: skillLabel(skill) })
-      const session = await createChatSession(profileId, skill, title)
+      const session = await (await chatApiLazy()).createChatSession(profileId, skill, title)
       this.sessions.unshift(session)
       return session
     },
@@ -89,9 +90,9 @@ export const useChatStore = defineStore('chat', {
       this.activeSession = this.sessions.find(item => item.id === sessionId) ?? null
       try {
         if (!this.activeSession) {
-          this.activeSession = await fetchChatSession(sessionId)
+          this.activeSession = await (await chatApiLazy()).fetchChatSession(sessionId)
         }
-        this.messages = await fetchChatMessages(sessionId)
+        this.messages = await (await chatApiLazy()).fetchChatMessages(sessionId)
       } catch (error) {
         this.messages = []
         this.activeSession = null
@@ -108,6 +109,9 @@ export const useChatStore = defineStore('chat', {
       this.error = ''
       this.phase = t('chat.phase.thinking')
       streamController = new AbortController()
+      // 先捕获 signal：stopGeneration 会把 streamController 置空，而参数在
+      // await 动态导入之后才求值，直接读会踩 null（真实竞态）。
+      const signal = streamController.signal
 
       const userId = localId()
       const assistantId = localId()
@@ -143,7 +147,7 @@ export const useChatStore = defineStore('chat', {
       }
 
       try {
-        const result = await streamChatMessage(session.id, message, event => {
+        const result = await (await chatApiLazy()).streamChatMessage(session.id, message, event => {
           if (event.type === 'thinking') {
             this.phase = this.phase || t('chat.phase.thinking')
             return
@@ -162,7 +166,7 @@ export const useChatStore = defineStore('chat', {
             pendingText += event.content ?? ''
             if (!textTimer) textTimer = setTimeout(flushText, 120)
           }
-        }, streamController.signal)
+        }, signal)
 
         if (this.activeSession?.id !== session.id) {
           // 用户已切换会话：结果属旧会话，权威消息由服务端持久化，前端不写入。
@@ -192,7 +196,7 @@ export const useChatStore = defineStore('chat', {
         assistant.content = pendingText
         assistant.thinking = pendingThinking
         try {
-          this.messages = await fetchChatMessages(session.id)
+          this.messages = await (await chatApiLazy()).fetchChatMessages(session.id)
         } catch {
           // 保留本地消息，标记为失败状态
           assistant.error = this.error || t('chat.sendFailed')

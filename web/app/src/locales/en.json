@@ -329,7 +329,8 @@
       "subtitle": "Manage birth information for the people you care about.",
       "empty": "Create a profile to view free charts and begin professional consultations.",
       "deleteConfirm": "Delete “{nickname}”? It can be restored for 30 days.",
-      "deleteTitle": "Delete profile"
+      "deleteTitle": "Delete profile",
+      "loadMore": "Load more"
     },
     "deleteFailed": "Delete failed",
     "new": {

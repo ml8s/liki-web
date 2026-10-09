@@ -56,6 +56,21 @@ export const useProfilesStore = defineStore('profiles', {
         this.loading = false
       }
     },
+    async loadMore() {
+      // 追加下一页：>50 条档案的可达性（后端分页契约的 UI 侧闭环）。
+      if (!this.next_cursor || this.loading) return
+      this.loading = true
+      this.error = ''
+      try {
+        const result = await fetchProfiles(this.next_cursor)
+        this.list = [...this.list, ...result.profiles]
+        this.next_cursor = result.next_cursor ?? ''
+      } catch (error) {
+        this.error = errorMessage(error)
+      } finally {
+        this.loading = false
+      }
+    },
     async loadDetail(id: string) {
       this.detailLoading = true
       this.error = ''

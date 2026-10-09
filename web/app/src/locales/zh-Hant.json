@@ -329,7 +329,8 @@
       "subtitle": "管理你關心的人的出生資訊。",
       "empty": "建立檔案後即可免費排盤，並開啟專業解讀。",
       "deleteConfirm": "刪除檔案「{nickname}」？30 天內可恢復。",
-      "deleteTitle": "刪除檔案"
+      "deleteTitle": "刪除檔案",
+      "loadMore": "載入更多"
     },
     "deleteFailed": "刪除失敗",
     "new": {

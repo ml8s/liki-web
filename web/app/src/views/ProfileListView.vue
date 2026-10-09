@@ -56,6 +56,18 @@
       @edit="open"
       @remove="confirmRemove"
     />
+
+    <div
+      v-if="profiles.next_cursor"
+      class="load-more"
+    >
+      <el-button
+        :loading="profiles.loading"
+        @click="profiles.loadMore()"
+      >
+        {{ $t('profiles.list.loadMore') }}
+      </el-button>
+    </div>
   </section>
 </template>
 

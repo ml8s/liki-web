@@ -329,7 +329,8 @@
       "subtitle": "管理你关心的人的出生信息。",
       "empty": "建立档案后即可免费排盘，并开启专业解读。",
       "deleteConfirm": "删除档案「{nickname}」？30 天内可恢复。",
-      "deleteTitle": "删除档案"
+      "deleteTitle": "删除档案",
+      "loadMore": "加载更多"
     },
     "deleteFailed": "删除失败",
     "new": {

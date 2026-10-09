@@ -174,6 +174,19 @@ VALUES (?,?,?,?,?,?,?,?, 'unfulfilled', ?, ?)`,
 	return bill, nil
 }
 
+// CleanupExpiredBills removes pending bills whose redemption window
+// (pay_before, 30 minutes) has passed. Paid orders and the receipt trail
+// are financial records and are retained.
+func (s *Store) CleanupExpiredBills(ctx context.Context, now time.Time) (int64, error) {
+	res, err := s.db.ExecContext(ctx, `
+DELETE FROM aipay_orders
+WHERE status='pending' AND pay_before < ?`, now.UTC().Format(time.RFC3339))
+	if err != nil {
+		return 0, fmt.Errorf("aipay: cleanup expired bills: %w", err)
+	}
+	return res.RowsAffected()
+}
+
 // PrepareFulfillment atomically transitions a verified aipay. Retrying an
 // already-confirmed order is idempotent and never replaces its receipt.
 func (s *Store) PrepareFulfillment(ctx context.Context, payment VerifiedPayment, receiptID string) (Order, error) {
