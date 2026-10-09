@@ -188,6 +188,12 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 | Axe 扩 4 页 + profiles load more | ✅ |
 | P2 尾项（refund recover、webhook 5xx、EnqueueOnce、ASC 扫描、aipay UTC、admin deny、status_token、aipay bypass、前端 4 项） | ✅ 前批已完成 |
 
+**CI 验证迭代记录（2026-10-10）**：新 Axe 网在 CI 首跑即抓到 9 处真实对比度
+违规（EP 次级灰 2.8/3.07:1）。修复经三轮收敛：组件选择器 → 变量级提升
+（`--el-text-color-secondary`）→ **ID 特异性（`#app` 前缀，终版）**——EP 按需
+注入样式后置于 app.css，类特异性与顺序博弈不可靠，ID 特异性与加载顺序无关。
+同批把 playwright 工件上传改为 always()（失败即有 DOM 快照可终审）。
+
 ## 9. P2 收尾批次（2026-10-09 第二轮）
 
 - refund intake `running` 启动恢复（`recoverCommissionRefunds`，与 intake 对称）
