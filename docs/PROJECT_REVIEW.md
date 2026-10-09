@@ -576,3 +576,81 @@ build-time 读取 demo JSON、`admin.html` 加载 console 脚本、`skills.astro
 | P2 | ~~错误响应统一为 envelope（含限流 429 / Recover / operator API）~~ | ✅ 已完成（2026-10-09）：payment/feedback/metrics/middleware 四处 plain-text 站点迁 `httputil.RespondError`，API.md 标注 ServeMux 404/405 残留 |
 | P3 | ~~FRONTEND.md 标注 legacy vendor 库 EOL 与 CVE 责任~~ | ✅ 已完成（2026-10-09） |
 | P4 | ~~`internal/sse` 并包；ARCHITECTURE 模块表补全~~ | ✅ 已完成（2026-10-09）：`sse.Begin` → `httputil.BeginSSE`（附非 flusher 用例），空目录 `internal/incense` 清除，模块表补全至全部 22 包 |
+
+## 11. 专项评审：标准化 / 最佳实践 / 一致性（2026-10-09）
+
+### 11.1 标准化
+
+做得好的：
+
+- **路由命名零违规**：78 条注册路由全部 `/api/*` + 标准方法 + `{id}`
+  PathValue；admin 动作面使用 RPC 式动词（`decision`/`resolve`/`freeze`）
+  属可接受惯例；
+- **错误包装纪律**：`fmt.Errorf` 中 `%w` 与 `%v/%s` 为 103:1；
+- **日志规范**：`fmt.Println`/`log.Print` 残留为 0，slog JSON 全覆盖；
+- **Conventional commits** 全程遵守；CI actions 已 pin。
+
+问题：
+
+**P2 — API.md 契约覆盖 51/78。** API.md 自称 stable contract，但 kol/scout
+partner 面（17 条，SPA PartnerCenter 在消费）、chat 面部分条目、
+health/ready/version 操作面未形成条目；admin 面（11 条）缺失且文档未声明
+"有意不覆盖"。建议：partner/操作面补齐，admin 面显式声明范围。
+
+**P2 — decode 严格度三态并存。** auth = `DecodeStrict`（拒绝未知字段），
+referral/liki = `DecodeAndValidate`（仅校验），feedback/analytics = 裸
+`json.NewDecoder`。政策应成文：一方 DTO → `DecodeStrict`，第三方载荷 →
+`Decode`（本节同时闭环第 8 节遗留的"统一 strict JSON decode"）。
+
+**P3 — env 命名三规并存**（`LIKI_*` / 支付品牌前缀 / 裸 infra 名如
+`JWT_SECRET`），`.env.example` 无命名政策说明。改名为 breaking，建议仅
+在 `.env.example` 头部补一段前缀政策注释。
+
+### 11.2 最佳实践
+
+未发现重大违反。逐项核对：优雅关停（SIGTERM → `srv.Shutdown` + 超时
+context）✓；`ReadTimeout 10s / WriteTimeout 610s`（LLM 余量）✓，
+slowloris 面已被 ReadTimeout 覆盖；`MaxBytesError` → 413 统一处理 ✓；
+webhook 以 provider 签名认证并显式绕过 same-origin，注释说明边界 ✓；
+中间件链序（Recover → SecurityHeaders → SameOrigin）正确 ✓。
+
+### 11.3 一致性
+
+做得好的：
+
+- 错误 envelope 与错误码 taxonomy 全 API 唯一（10.4 P1/P2 完成后）；
+- 构造模式一致（`NewXxxStore(db)` / `HandleXxx` 工厂）；
+- `error.message` 语言已声明为非契约，现状中文为主、少量英文残留，
+  可接受。
+
+问题：
+
+**P2 — same-origin 双实现。** 服务器级 `SameOrigin` 中间件已覆盖全部
+unsafe 方法（含 devMode allowlist、webhook bypass），auth 仍残留 per-handler
+`assertSameOrigin`（3 处引用）——同一安全边界两套代码且行为有差异
+（auth 侧无 devMode 分支）。建议删除 auth 侧，保留中间件单点。
+
+**P2 — kol/scout 路由树对称复制。** `application/commissions/overview/
+payouts/settlement/session` 两套近乎同构（17 条）。属 partner 域资源模型
+的结构性重复，可评估 `/api/partner/{role}/…` 收敛；改动面大，先记录
+不展开。
+
+**P3 — 测试基建部分重复。** `openTestDB` 在 feedback/profile/account
+三包各自实现（temp-SQLite 模式相同、schema 不同），可在 `sqliteutil`
+提供共享测试开库 helper；测试代码内，低优先。
+
+**P3 — `httputil.Decode` 与 `DecodeStrict` 的畸形 JSON 消息一英一中**
+（"Invalid JSON body" vs "请求无效"）。两者已是同一合约的两档严格度，
+消息应 canonical 化为一式。
+
+### 11.4 行动项
+
+| 优先级 | 事项 | 工作量 |
+| --- | --- | --- |
+| P2 | 删除 auth 残留 `assertSameOrigin`，same-origin 收敛到中间件单点 | 2 小时 |
+| P2 | decode 政策成文并落地（一方 DTO strict / 第三方 lenient）；feedback/analytics 迁 `httputil.DecodeStrict` | 0.5 天 |
+| P2 | API.md 补 partner/操作面路由，admin 面显式声明范围 | 0.5 天 |
+| P3 | `.env.example` 补 env 命名政策注释 | 0.5 小时 |
+| P3 | `Decode`/`DecodeStrict` 畸形 JSON 消息统一 | 10 分钟 |
+| P3 | `sqliteutil` 共享测试开库 helper | 0.5 天 |
+| 观察 | kol/scout 路由树对称复制，待 partner 域下一轮迭代评估收敛 | — |

@@ -29,7 +29,7 @@ func TestDecodeAndValidate_Valid(t *testing.T) {
 	r := httptest.NewRequest("POST", "/", strings.NewReader(body))
 	w := httptest.NewRecorder()
 
-	req, ok := decodeJSON[testReq](w, r)
+	req, ok := httputil.Decode[testReq](w, r)
 	if !ok {
 		t.Fatal("expected ok=true")
 	}
