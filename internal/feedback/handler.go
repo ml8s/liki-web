@@ -25,6 +25,18 @@ type UpdateRequest struct {
 	IssueURL string `json:"issue_url,omitempty"`
 }
 
+func (r UpdateRequest) Validate() error {
+	switch r.Status {
+	case "pending", "processing", "done", "rejected":
+	default:
+		return errors.New("status must be pending, processing, done, or rejected")
+	}
+	if r.IssueURL != "" && !strings.HasPrefix(r.IssueURL, "https://") {
+		return errors.New("issue_url must be an https URL")
+	}
+	return nil
+}
+
 func HandleCreate(store *Store, rateLimit func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
@@ -113,13 +125,8 @@ func HandleUpdate(store *Store, apiKey string) http.HandlerFunc {
 			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "id required")
 			return
 		}
-		var req UpdateRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "invalid JSON")
-			return
-		}
-		if req.Status == "" {
-			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "status required")
+		req, ok := httputil.DecodeStrict[UpdateRequest](w, r)
+		if !ok {
 			return
 		}
 		if err := store.Update(id, req.Status, req.IssueURL); err != nil {

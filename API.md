@@ -85,6 +85,7 @@ The product response includes all catalog prices plus `display_currency` and
 | GET | `/api/payments/intents/{id}/fulfillment-status` | capability/session | Check fulfillment status |
 | GET | `/api/payments/return/{id}` | capability/session | Browser return and reconciliation |
 | POST | `/api/payments/webhook` | provider signature | Provider callback |
+| POST | `/api/aipay` | public, rate limited | Redeem an Alipay A2M sandbox payment proof (`Payment-Proof` header, 402 flow); 503 when the channel is not enabled |
 
 Webhooks verify signature, amount, currency, provider, and event fingerprint. Browser returns may reconcile a provider state before the webhook arrives.
 
@@ -136,11 +137,13 @@ Erasure is rate limited and spans identity, profile, chat, commerce, payment, an
 | GET | `/api/scout/application` | user | Read Scout role/application state |
 | POST | `/api/scout/application` | user | Submit a Scout application |
 | GET | `/api/kol/session` | active KOL | Read KOL dashboard summary |
+| GET | `/api/kol/overview` | active KOL | Alias of `/api/kol/session` |
 | GET | `/api/kol/commissions` | active KOL | List KOL commission entries |
 | GET | `/api/kol/payouts` | active or retired KOL | List payouts |
 | POST | `/api/kol/payouts` | active or retired KOL | Request a payout |
 | GET | `/api/kol/settlement` | active or retired KOL | Read money-only settlement state |
 | GET | `/api/scout/session` | active Scout | Read Scout dashboard summary |
+| GET | `/api/scout/overview` | active Scout | Alias of `/api/scout/session` |
 | GET | `/api/scout/recruits` | active Scout | List recruited KOL partners |
 | GET | `/api/scout/commissions` | active Scout | List Scout commission entries |
 | GET | `/api/scout/payouts` | active or retired Scout | List payouts |
@@ -195,3 +198,12 @@ they never establish a session or grant an entitlement.
 | GET | `/api/internal/metrics` | token | JSON or Prometheus counters |
 
 Metrics are disabled when `METRICS_TOKEN` is empty.
+
+## Admin
+
+16 back-office endpoints live under `/api/admin/*` (administrator and
+capability management, referral application decisions, payout approval, and
+partner freeze controls). They are gated by admin sessions and capabilities
+and are intentionally outside this stable product contract; their shape may
+change with the back-office without notice. See `internal/admin/` and
+`internal/referral/admin_handler.go` for the authoritative list.

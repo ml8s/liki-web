@@ -592,10 +592,11 @@ build-time 读取 demo JSON、`admin.html` 加载 console 脚本、`skills.astro
 
 问题：
 
-**P2 — API.md 契约覆盖 51/78。** API.md 自称 stable contract，但 kol/scout
-partner 面（17 条，SPA PartnerCenter 在消费）、chat 面部分条目、
-health/ready/version 操作面未形成条目；admin 面（11 条）缺失且文档未声明
-"有意不覆盖"。建议：partner/操作面补齐，admin 面显式声明范围。
+**P2 — API.md 契约覆盖 53/75（admin 面未声明）。** 复核（2026-10-09，
+  初版 51/78 数字被测试字符串污染）：kol/scout partner 面实际已全部文档化；
+  真实缺口为 admin 16 条（可能有意但未声明）、kol/scout `overview` 别名
+  2 条、`/api/aipay` 1 条、`/r/{code}` 文档与注册对齐。建议：缺口补齐 +
+  admin 面显式声明范围。
 
 **P2 — decode 严格度三态并存。** auth = `DecodeStrict`（拒绝未知字段），
 referral/liki = `DecodeAndValidate`（仅校验），feedback/analytics = 裸
@@ -647,10 +648,10 @@ payouts/settlement/session` 两套近乎同构（17 条）。属 partner 域资�
 
 | 优先级 | 事项 | 工作量 |
 | --- | --- | --- |
-| P2 | 删除 auth 残留 `assertSameOrigin`，same-origin 收敛到中间件单点 | 2 小时 |
-| P2 | decode 政策成文并落地（一方 DTO strict / 第三方 lenient）；feedback/analytics 迁 `httputil.DecodeStrict` | 0.5 天 |
-| P2 | API.md 补 partner/操作面路由，admin 面显式声明范围 | 0.5 天 |
-| P3 | `.env.example` 补 env 命名政策注释 | 0.5 小时 |
-| P3 | `Decode`/`DecodeStrict` 畸形 JSON 消息统一 | 10 分钟 |
-| P3 | `sqliteutil` 共享测试开库 helper | 0.5 天 |
+| P2 | ~~删除 auth 残留 `assertSameOrigin`，same-origin 收敛到中间件单点~~ | ✅ 已完成（2026-10-09） |
+| P2 | ~~decode 政策成文并落地；feedback/analytics 迁 `httputil.DecodeStrict`~~ | ✅ 已完成（2026-10-09）：政策入 `httputil/doc.go`，feedback PATCH（新增 status 枚举/https 校验）与 analytics pageview 迁 strict |
+| P2 | ~~API.md 补 partner/操作面路由，admin 面显式声明范围~~ | ✅ 已完成（2026-10-09）：补 overview 别名与 `/api/aipay`，新增 Admin 范围声明节 |
+| P3 | ~~`.env.example` 补 env 命名政策注释~~ | ✅ 已完成（2026-10-09） |
+| P3 | ~~`Decode`/`DecodeStrict` 畸形 JSON 消息统一~~ | ✅ 已完成（2026-10-09）：三处统一为「请求无效」 |
+| P3 | ~~`sqliteutil` 共享测试开库 helper~~ | ❌ 评审后不做：三包实现语义各异（WAL 文件 / 内存 / 多库命名布局），强行统一会制造更复杂的抽象，维持各自 8 行以内实现 |
 | 观察 | kol/scout 路由树对称复制，待 partner 域下一轮迭代评估收敛 | — |

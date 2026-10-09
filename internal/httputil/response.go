@@ -78,7 +78,7 @@ func Decode[T any](w http.ResponseWriter, r *http.Request) (T, bool) {
 			RespondAppError(w, &AppError{Code: "too_large", Message: "Request body too large", HTTPStatus: http.StatusRequestEntityTooLarge})
 			return req, false
 		}
-		RespondAppError(w, &AppError{Code: ErrCodeInvalidRequest, Message: "Invalid JSON body", HTTPStatus: http.StatusBadRequest})
+		RespondAppError(w, &AppError{Code: ErrCodeInvalidRequest, Message: "请求无效", HTTPStatus: http.StatusBadRequest})
 		return req, false
 	}
 	return req, true
@@ -116,7 +116,7 @@ func DecodeAndValidate[T validator](w http.ResponseWriter, r *http.Request) (T, 
 			RespondAppError(w, &AppError{Code: "too_large", Message: "Request body too large", HTTPStatus: http.StatusRequestEntityTooLarge})
 			return req, false
 		}
-		RespondAppError(w, &AppError{Code: ErrCodeInvalidRequest, Message: "Invalid JSON body", HTTPStatus: http.StatusBadRequest})
+		RespondAppError(w, &AppError{Code: ErrCodeInvalidRequest, Message: "请求无效", HTTPStatus: http.StatusBadRequest})
 		return req, false
 	}
 	if err := req.Validate(); err != nil {

@@ -3,7 +3,6 @@ package auth
 import (
 	"errors"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -80,9 +79,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, sendCodeLimiter, verifyLimi
 }
 
 func (h *Handler) HandleSendEmailCode(w http.ResponseWriter, r *http.Request) {
-	if !h.assertSameOrigin(w, r) {
-		return
-	}
 	req, ok := httputil.DecodeStrict[sendCodeRequest](w, r)
 	if !ok {
 		return
@@ -103,9 +99,6 @@ func (h *Handler) HandleSendEmailCode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleVerifyEmailCode(w http.ResponseWriter, r *http.Request) {
-	if !h.assertSameOrigin(w, r) {
-		return
-	}
 	req, ok := httputil.DecodeStrict[verifyRequest](w, r)
 	if !ok {
 		return
@@ -339,26 +332,3 @@ func clientIP(r *http.Request) string {
 }
 
 func userAgent(r *http.Request) string { return r.UserAgent() }
-
-func (h *Handler) assertSameOrigin(w http.ResponseWriter, r *http.Request) bool {
-	expected := expectedHost(r)
-	if expected == "" {
-		return true
-	}
-	for _, header := range []string{"Origin", "Referer"} {
-		value := r.Header.Get(header)
-		if value == "" {
-			continue
-		}
-		parsed, err := url.Parse(value)
-		if err != nil || parsed.Host == "" || parsed.Host != expected {
-			httputil.Forbidden(w)
-			return false
-		}
-	}
-	return true
-}
-
-func expectedHost(r *http.Request) string {
-	return httputil.ForwardedHost(r)
-}
