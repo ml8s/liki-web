@@ -33,6 +33,7 @@
   --el-color-primary-dark-2: var(--liki-primary-hover);
 
   /* EP 默认语义色在浅底不达标，统一加深至 WCAG AA */
+  --el-text-color-secondary: var(--liki-text-2);
   --el-color-danger: #b42318;
   --el-color-danger-dark-2: #93261d;
   --el-color-danger-light-7: #fbe3e1;
