@@ -213,7 +213,7 @@ jobs:
             sleep 1
           done
           if [ "$i" = "10" ]; then echo "Go server failed" >&2; exit 1; fi
-          ./caddy run --config dev/Caddyfile.local &
+        caddy run --config dev/Caddyfile.local &
           for i in $(seq 1 30); do
             curl -sf http://localhost:8080/zh-Hans/ 2>/dev/null | grep -q '<html' && \
             curl -sf http://localhost:8080/api/health 2>/dev/null | grep -q '"ok"' && \
