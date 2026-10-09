@@ -44,6 +44,7 @@ type Handler struct {
 	notifications *payment.NotificationStore
 	referral      ReferralEraser
 	adminAudit    AdminAuditEraser
+	erasureQueue  *ErasureStore
 	requireUser   RequireUserFunc
 }
 
@@ -57,6 +58,7 @@ func NewHandler(
 	notifications *payment.NotificationStore,
 	referral ReferralEraser,
 	adminAudit AdminAuditEraser,
+	erasureQueue *ErasureStore,
 	requireUser RequireUserFunc,
 ) *Handler {
 	return &Handler{
@@ -65,6 +67,7 @@ func NewHandler(
 		notifications: notifications,
 		referral:      referral,
 		adminAudit:    adminAudit,
+		erasureQueue:  erasureQueue,
 		requireUser:   requireUser,
 	}
 }
@@ -81,24 +84,60 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	referralResult, err := h.referral.EraseUser(r.Context(), user.ID)
+	tombstone := "erased-" + uuid.NewString() + "@liki.invalid"
+	var requestID string
+	if h.erasureQueue != nil {
+		id, err := h.erasureQueue.Enqueue(r.Context(), user.ID, user.Email, tombstone)
+		if err != nil {
+			slog.Error("account: enqueue erasure", "user_id", user.ID, "err", err)
+			httputil.InternalError(w)
+			return
+		}
+		requestID = id
+	}
+	outcome, err := h.runErasureSteps(r.Context(), user, tombstone, requestID)
 	if err != nil {
 		if errors.Is(err, referral.ErrReferralFinancialHold) {
 			httputil.RespondError(w, http.StatusConflict, "referral_financial_hold", "存在待结算提现，请先完成资金结算")
 			return
 		}
-		slog.Error("account: erase referral", "user_id", user.ID, "err", err)
+		slog.Error("account: erasure", "user_id", user.ID, "request_id", requestID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
-	profilesCleared, err := h.profiles.AnonymizeUser(r.Context(), user.ID)
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
+		"status": "erased", "profiles_cleared": outcome.ProfilesCleared,
+		"messages_cleared":        outcome.MessagesCleared,
+		"auth_identities_cleared": outcome.AuthResult.Identities,
+		"auth_sessions_cleared":   outcome.AuthResult.Sessions,
+		"auth_codes_cleared":      outcome.AuthResult.Codes,
+		"domains":                 outcome.Erased,
+		"referral_finance_tasks":  outcome.ReferralResult.FinanceTasks,
+	})
+}
+
+// runErasureSteps executes every erasure domain in order, skipping steps
+// already recorded on the durable request (resume after failure). The auth
+// identity tombstone is always the final step.
+func (h *Handler) runErasureSteps(ctx context.Context, user auth.User, tombstone, requestID string) (erasureOutcome, error) {
+	outcome := erasureOutcome{Erased: map[string]int64{}}
+	mark := func(step string) {
+		if requestID != "" && h.erasureQueue != nil {
+			_ = h.erasureQueue.MarkStep(ctx, requestID, step)
+		}
+	}
+	referralResult, err := h.referral.EraseUser(ctx, user.ID)
 	if err != nil {
-		slog.Error("account: erase profiles", "user_id", user.ID, "err", err)
-		httputil.InternalError(w)
-		return
+		return outcome, err
 	}
-	tombstone := "erased-" + uuid.NewString() + "@liki.invalid"
-	erased := map[string]int64{}
+	outcome.ReferralResult = referralResult
+	mark("referral")
+	profilesCleared, err := h.profiles.AnonymizeUser(ctx, user.ID)
+	if err != nil {
+		return outcome, err
+	}
+	outcome.ProfilesCleared = profilesCleared
+	mark("profiles")
 	domains := []struct {
 		name  string
 		erase func(context.Context) (int64, error)
@@ -117,41 +156,32 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		}},
 	}
 	for _, domain := range domains {
-		cleared, err := domain.erase(r.Context())
+		cleared, err := domain.erase(ctx)
 		if err != nil {
-			slog.Error("account: erase domain", "user_id", user.ID, "domain", domain.name, "err", err)
-			httputil.InternalError(w)
-			return
+			return outcome, err
 		}
 		if cleared > 0 {
-			erased[domain.name] = cleared
+			outcome.Erased[domain.name] = cleared
 		}
+		mark(domain.name)
 	}
-	messagesCleared, err := h.chat.AnonymizeUserMessages(r.Context(), user.ID)
+	messagesCleared, err := h.chat.AnonymizeUserMessages(ctx, user.ID)
 	if err != nil {
-		slog.Error("account: erase chat PII", "user_id", user.ID, "err", err)
-		httputil.InternalError(w)
-		return
+		return outcome, err
 	}
-	authResult, err := h.auth.EraseUser(r.Context(), user.ID, tombstone)
-	if err != nil {
-		slog.Error("account: erase auth identity", "user_id", user.ID, "err", err)
-		httputil.InternalError(w)
-		return
-	}
+	outcome.MessagesCleared = messagesCleared
+	mark("chat")
 	if h.adminAudit != nil {
-		if _, err := h.adminAudit.AnonymizeAuditLogs(r.Context(), user.Email, tombstone); err != nil {
-			slog.Error("account: erase admin audit PII", "user_id", user.ID, "err", err)
-			httputil.InternalError(w)
-			return
+		if _, err := h.adminAudit.AnonymizeAuditLogs(ctx, user.Email, tombstone); err != nil {
+			return outcome, err
 		}
 	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{
-		"status": "erased", "profiles_cleared": profilesCleared, "messages_cleared": messagesCleared,
-		"auth_identities_cleared": authResult.Identities,
-		"auth_sessions_cleared":   authResult.Sessions,
-		"auth_codes_cleared":      authResult.Codes,
-		"domains":                 erased,
-		"referral_finance_tasks":  referralResult.FinanceTasks,
-	})
+	mark("admin_audit")
+	authResult, err := h.auth.EraseUser(ctx, user.ID, tombstone)
+	if err != nil {
+		return outcome, err
+	}
+	outcome.AuthResult = authResult
+	mark("auth_identity")
+	return outcome, nil
 }

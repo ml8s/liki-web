@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -440,7 +441,17 @@ func main() {
 	paymentRuntime.SetRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
 		return referralStore.EnqueueCommissionRefund(ctx, event, intent)
 	})
-	go referralStore.StartCommissionWorker(ctx, platformDB, 5*time.Second)
+	erasureQueue := account.NewErasureStore(platformDB)
+	if err := erasureQueue.Migrate(ctx); err != nil {
+		slog.Error("account: migrate erasure queue", "err", err)
+		os.Exit(1)
+	}
+	workers := new(sync.WaitGroup)
+	workers.Add(1)
+	go func() {
+		defer workers.Done()
+		referralStore.StartCommissionWorker(ctx, platformDB, 5*time.Second)
+	}()
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
 	if err := httputil.ValidateJWTSecret(cfg.JWTSecret); err != nil {
@@ -472,6 +483,20 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
+	accountHandler := account.NewHandler(
+		profileStore,
+		chatStore,
+		authStore,
+		commerceOrders,
+		entitlements,
+		intents,
+		notifications,
+		referralStore,
+		adminAuthorizer,
+		erasureQueue,
+		authHandler.RequireUser,
+	)
+
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
 		PaymentRuntime:  paymentRuntime,
 		AuthHandler:     authHandler,
@@ -480,18 +505,7 @@ func main() {
 		LikiHandler:     liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser, liki.WithCurrencyResolver(currencyResolver)),
 		AipayHandler:    aipayHandler,
 		ProfileHandler:  profile.NewHandler(profileStore, authHandler.RequireUser),
-		AccountHandler: account.NewHandler(
-			profileStore,
-			chatStore,
-			authStore,
-			commerceOrders,
-			entitlements,
-			intents,
-			notifications,
-			referralStore,
-			adminAuthorizer,
-			authHandler.RequireUser,
-		),
+		AccountHandler:  accountHandler,
 		FeedbackStore:   feedbackStore,
 		FeedbackAPIKey:  cfg.FeedbackAPIKey,
 		AdminEmail:      os.Getenv("ADMIN_EMAIL"),
@@ -509,6 +523,13 @@ func main() {
 		DevMode:        cfg.DevMode,
 	}, BuildTime, Version, rateLimiter, verifyLimiter)
 
+	workers.Add(1)
+	go func() {
+		defer workers.Done()
+		erasureWorker := &account.ErasureWorker{Queue: erasureQueue, Handler: accountHandler, Interval: 30 * time.Second}
+		erasureWorker.Start(ctx)
+	}()
+
 	// Write timeout must accommodate LLM calls (~120s)
 	srv := &http.Server{
 		Addr:         cfg.ListenAddr,
@@ -519,7 +540,9 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
+	workers.Add(1)
 	go func() {
+		defer workers.Done()
 		ticker := time.NewTicker(time.Hour)
 		defer ticker.Stop()
 		for {
@@ -535,7 +558,9 @@ func main() {
 	}()
 
 	// 软删档案 30 天恢复窗口到期后物理清理（个保法删除权落地）。
+	workers.Add(1)
 	go func() {
+		defer workers.Done()
 		ticker := time.NewTicker(6 * time.Hour)
 		defer ticker.Stop()
 		for {
@@ -553,12 +578,26 @@ func main() {
 		}
 	}()
 
-	go paymentRuntime.StartNotificationWorker(ctx, 30*time.Second)
-	go paymentRuntime.StartFulfillmentWorker(ctx, 5*time.Second)
-	go paymentRuntime.StartReconciliationWorker(ctx, time.Minute)
+	workers.Add(1)
+	go func() {
+		defer workers.Done()
+		paymentRuntime.StartNotificationWorker(ctx, 30*time.Second)
+	}()
+	workers.Add(1)
+	go func() {
+		defer workers.Done()
+		paymentRuntime.StartFulfillmentWorker(ctx, 5*time.Second)
+	}()
+	workers.Add(1)
+	go func() {
+		defer workers.Done()
+		paymentRuntime.StartReconciliationWorker(ctx, time.Minute)
+	}()
 
 	// Payment retention: expire abandoned checkouts and prune sent receipts.
+	workers.Add(1)
 	go func() {
+		defer workers.Done()
 		ticker := time.NewTicker(6 * time.Hour)
 		defer ticker.Stop()
 		for {
@@ -574,6 +613,11 @@ func main() {
 				if intents > 0 || notifications > 0 {
 					slog.Info("payment retention complete", "expired_intents", intents, "deleted_notifications", notifications)
 				}
+				if n, err := aipayStore.CleanupExpiredBills(ctx, time.Now().UTC()); err != nil {
+					slog.Error("aipay bill cleanup", "err", err)
+				} else if n > 0 {
+					slog.Info("aipay expired bills cleaned", "count", n)
+				}
 			}
 		}
 	}()
@@ -587,6 +631,11 @@ func main() {
 		os.Exit(1)
 	}
 	slog.Info("server stopped")
+
+	// HTTP is down; cancel background workers and wait for in-flight work
+	// before the deferred database closes run.
+	cancel()
+	workers.Wait()
 
 }
 
