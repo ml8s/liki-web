@@ -119,3 +119,10 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style>
+.load-more {
+  margin-top: 12px;
+  text-align: center;
+}
+</style>
