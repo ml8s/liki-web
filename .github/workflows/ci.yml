@@ -308,7 +308,7 @@ jobs:
           trap 'docker rm -f web-smoke 2>/dev/null || true' EXIT
           docker run -d --name web-smoke \
             -e LISTEN_ADDR=:8081 \
-            -e JWT_SECRET=ci-smoke-secret \
+            -e JWT_SECRET=ci-smoke-secret-0123456789abcdef \
             -e REFERRAL_PAYOUT_SECRET=ci-smoke-referral-payout-secret-32-bytes \
             -e RETURN_URL=http://127.0.0.1:18081 \
             -e PAYMENTS_WEBHOOK_URL=http://127.0.0.1:18081/api/payments/webhook \
@@ -323,5 +323,6 @@ jobs:
             curl -fsS http://127.0.0.1:18081/api/health 2>/dev/null | grep -q '"ok"' && break
             sleep 1
           done
+          docker logs --tail 100 web-smoke || true
           curl -fsS http://127.0.0.1:18081/api/health | grep -q '"ok"' || { echo "web smoke failed"; exit 1; }
           echo "✓ web image smoke passed"
