@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ml8s/liki-web/internal/money"
 	"github.com/ml8s/liki-web/internal/payment"
 )
 
@@ -114,7 +115,7 @@ func (c *Client) FetchPayment(ctx context.Context, intent payment.PaymentIntent)
 	if !ok || amountText == "" {
 		return nil, fmt.Errorf("xunhu: paid query response has no total_amount")
 	}
-	amount, err := parseMinorUnits(amountText)
+	amount, err := money.ParseDecimalToMinor(amountText)
 	if err != nil {
 		return nil, fmt.Errorf("xunhu: query invalid total_amount: %w", err)
 	}
@@ -158,7 +159,7 @@ func (c *Client) CreateCheckout(ctx context.Context, req payment.CheckoutRequest
 		"version":        "1.1",
 		"nonce_str":      hex.EncodeToString(nonce),
 		"trade_order_id": req.IntentID,
-		"total_fee":      formatMinorUnits(req.AmountMinor),
+		"total_fee":      money.FormatDecimalFromMinor(req.AmountMinor),
 		"title":          req.Title,
 		"notify_url":     c.webhookURL,
 		"return_url":     req.ReturnURL,
@@ -242,7 +243,7 @@ func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.We
 	if !hmacEqual(hash, expected) {
 		return nil, fmt.Errorf("xunhu: signature mismatch")
 	}
-	amount, err := parseMinorUnits(values.Get("total_fee"))
+	amount, err := money.ParseDecimalToMinor(values.Get("total_fee"))
 	if err != nil {
 		return nil, fmt.Errorf("xunhu: invalid total_fee: %w", err)
 	}
@@ -315,37 +316,6 @@ func verifyFlatResponseHash(raw []byte, secret string) error {
 		return fmt.Errorf("xunhu: response signature mismatch")
 	}
 	return nil
-}
-
-func formatMinorUnits(amount int64) string {
-	return fmt.Sprintf("%d.%02d", amount/100, amount%100)
-}
-
-// parseMinorUnits converts XunhuPay's fixed 2-decimal amount string into
-// integer minor units. Amounts with more than 2 decimal places are rejected
-// (not truncated) — consistent with aipay.parseAmountMinor: a protocol
-// violation must fail loudly on a money path, never silently lose precision.
-func parseMinorUnits(value string) (int64, error) {
-	parts := strings.SplitN(value, ".", 2)
-	whole, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	fraction := "00"
-	if len(parts) == 2 {
-		fraction = parts[1]
-		if len(fraction) > 2 {
-			return 0, fmt.Errorf("xunhu: amount %q has more than 2 decimal places", value)
-		}
-		if len(fraction) < 2 {
-			fraction += "0"
-		}
-	}
-	fractionMinor, err := strconv.ParseInt(fraction, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return whole*100 + fractionMinor, nil
 }
 
 // sign generates the MD5 signature required by XunhuPay. The official rule

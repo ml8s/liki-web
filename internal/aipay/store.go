@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/ml8s/liki-web/internal/money"
 )
 
 type Store struct {
@@ -92,7 +92,7 @@ func (s *Store) recomputeAmountMinor(ctx context.Context) error {
 		if err := rows.Scan(&outTradeNo, &amount); err != nil {
 			return fmt.Errorf("aipay: scan amount row: %w", err)
 		}
-		minor, err := parseAmountMinor(amount)
+		minor, err := money.ParseDecimalToMinor(amount)
 		if err != nil {
 			return fmt.Errorf("aipay: backfill %s: %w", outTradeNo, err)
 		}
@@ -115,43 +115,9 @@ func (s *Store) recomputeAmountMinor(ctx context.Context) error {
 
 // parseAmountMinor converts a fixed 2-decimal amount string ("1", "1.0",
 // "1.00") into integer minor units without float rounding.
-// parseAmountMinor converts a fixed 2-decimal amount string into integer
-// minor units, rejecting >2dp instead of truncating (语义与
-// xunhu.parseMinorUnits 保持一致：金额路径上的协议异常必须显式失败).
-func parseAmountMinor(amount string) (int64, error) {
-	trimmed := strings.TrimSpace(amount)
-	if trimmed == "" {
-		return 0, errors.New("aipay: empty amount")
-	}
-	parts := strings.SplitN(trimmed, ".", 2)
-	whole, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil || whole < 0 {
-		return 0, fmt.Errorf("aipay: invalid amount %q", amount)
-	}
-	minor := whole * 100
-	if len(parts) == 2 {
-		frac := parts[1]
-		if len(frac) > 2 {
-			return 0, fmt.Errorf("aipay: amount %q has more than 2 decimal places", amount)
-		}
-		for len(frac) < 2 {
-			frac += "0"
-		}
-		fraction, parseErr := strconv.ParseInt(frac, 10, 64)
-		if parseErr != nil {
-			return 0, fmt.Errorf("aipay: invalid amount %q", amount)
-		}
-		minor += fraction
-	}
-	if minor <= 0 {
-		return 0, fmt.Errorf("aipay: amount %q must be positive", amount)
-	}
-	return minor, nil
-}
-
 func (s *Store) CreateBill(ctx context.Context, amount, goodsName string) (Bill, error) {
 	now := s.nowFun()
-	minor, err := parseAmountMinor(amount)
+	minor, err := money.ParseDecimalToMinor(amount)
 	if err != nil {
 		return Bill{}, err
 	}
