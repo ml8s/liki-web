@@ -177,6 +177,17 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 
 验证：go test ./... 全过、golangci 0、vue-tsc + vitest 47/47、ESLint、markdownlint、actions SHA-pinned、YAML 解析通过。
 
+### 8.1 第二、三轮（同日）：P2 尾项与 B 批全部完成
+
+| 项 | 状态 |
+| --- | --- |
+| durable erasure（B1 最小化） | ✅ `erasure_requests` 表 + Handler.runErasureSteps 单一实现 + worker 续跑；优雅关停根因（handleSignals 不 cancel root ctx）一并修复（workers.Wait + 显式 cancel） |
+| 错误包装约定（B2 窄版） | ✅ CONTRIBUTING 落约定；新 erasure worker 全 wrapped；全仓 blanket 维持不做 |
+| chat chunk 动态 import（B3） | ✅ 附 stopGeneration 信号竞态修复（await 前捕获 signal） |
+| aipay pending bill 清理（B4） | ✅ 挂 6h retention |
+| Axe 扩 4 页 + profiles load more | ✅ |
+| P2 尾项（refund recover、webhook 5xx、EnqueueOnce、ASC 扫描、aipay UTC、admin deny、status_token、aipay bypass、前端 4 项） | ✅ 前批已完成 |
+
 ## 9. P2 收尾批次（2026-10-09 第二轮）
 
 - refund intake `running` 启动恢复（`recoverCommissionRefunds`，与 intake 对称）
