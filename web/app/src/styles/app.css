@@ -199,7 +199,8 @@ p {
   background-color: var(--liki-surface);
   color: var(--liki-text-2);
 }
-.el-input .el-input__count {
+.el-input .el-input__count,
+.el-textarea .el-input__count {
   color: var(--liki-text-2);
 }
 
