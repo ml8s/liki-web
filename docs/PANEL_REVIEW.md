@@ -327,6 +327,57 @@ profiles 分页 UI 无 load more（>50 档案不可达）；admin.html 冻结面
 结论：不存在报告所担心的问题，两个仓库均无需改动。前端类型保留
 （面向未来 counsel 契约的防御性声明）。
 
+## 17. 专项评审：库 / 不造轮子 / 公开协议 / 一致性（2026-10-10 终审）
+
+### 17.1 能用库用库——零重复轮子
+
+逐项核对全部自研代码，**每一处手写都属于三类必须手写之一**：
+
+1. **域算法**：八字/六爻/紫微计算、黄历、divination_safety——领域核心，
+   无库可用；
+2. **供应商协议适配**：XunHu MD5 签名 + 私有表单协议（无 Go SDK）；
+   Alipay A2M（RSA2 协议）；Dodo 走官方 `dodopayments-go` SDK ✓；
+3. **有界自研且已文档化**：capability token（比 JWT 更小的有界设计）、
+   `internal/migrate`（60 行 forward-only runner，替代 golang-migrate
+   全家桶）、`internal/money`（严格 2dp 解析，替代 decimal 度依赖）。
+
+其余全部用库/标准设施：bcrypt、HMAC-SHA256、x/time rate、ozzo、
+modernc sqlite、Standard Webhooks、resend、Intl.NumberFormat、
+DOMPurify、markdown-it、vue-i18n。**零重复轮子确认**。
+
+### 17.2 公开协议 vs 私有协议
+
+对外协议全部公开标准：
+
+| 面 | 协议 |
+| --- | --- |
+| 引擎公共计算 | JSON-RPC 2.0 |
+| Dodo 回调 | Standard Webhooks 规范 |
+| 前端↔BFF 流式 | SSE + AG-UI（公开 SDK） |
+| 数据格式 | JSON（snake_case 全对齐，61 处抽查）+ RFC 3339 + ISO 4217 minor units |
+
+私有定义仅 2 处且均不对外：capability token 内部格式（HMAC 有界
+capability，比 JWT 更小、无 claims 泄漏、常数时间校验；本轮已完成
+HKDF 密钥分离加固）；响应信封 `{data}/{error}`（行业惯例非私有协议，
+契约写于 API.md）。
+
+### 17.3 一致性终审
+
+| 维度 | 结果 |
+| --- | --- |
+| JSON tag | snake_case 全对齐（61 处抽查零偏差） |
+| slog 键 | `err` ×77 主导，实体键（user_id/intent_id/session_id）成对出现 |
+| 前端网络层 | 零裸 fetch——全部经统一 api 层（错误/信封/重定向一处处理） |
+| | 前端 `console.error` ×4 均为有意诊断（带组件前缀+全局兜底），非调试残留 |
+| 前端 `as unknown as` | ×2（EP slot/引擎响应类型窄化，非安全路径，P3 可选收窄） |
+| TODO/FIXME | 前后端均零 |
+| `JWTSecret()` 全局读 env | 全局状态模式的小瑕疵：每次调用读 env，且密钥注入非显式。pragmatic 可接受；记录为风格项不 churn |
+
+### 17.4 本轮修复
+
+- capability MAC 密钥分离：stdlib `crypto/hkdf` 派生（15.2），附
+  回归测试（原始密钥伪造 MAC 必须被拒）——已落地推送。
+
 ## 15. 专项评审：库 / 标准 / 一致性（2026-10-10）
 
 ### 15.1 库 vs 手写
