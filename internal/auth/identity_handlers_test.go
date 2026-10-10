@@ -50,15 +50,13 @@ func decodeEnvelope(t *testing.T, body []byte, out any) {
 
 func decodeError(t *testing.T, body []byte) (code string) {
 	t.Helper()
-	var envelope struct {
-		Error struct {
-			Code string `json:"code"`
-		} `json:"error"`
+	var problem struct {
+		Type string `json:"type"`
 	}
-	if err := json.Unmarshal(body, &envelope); err != nil {
+	if err := json.Unmarshal(body, &problem); err != nil {
 		t.Fatalf("decode error: %v (body=%s)", err, body)
 	}
-	return envelope.Error.Code
+	return problem.Type
 }
 
 func TestHandleMeRejectsUnauthenticatedRequest(t *testing.T) {
@@ -69,6 +67,7 @@ func TestHandleMeRejectsUnauthenticatedRequest(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
 	}
+	t.Logf("DEBUG body = %s", rec.Body.String())
 	if code := decodeError(t, rec.Body.Bytes()); code != "unauthorized" {
 		t.Fatalf("error code = %q", code)
 	}
@@ -99,6 +98,7 @@ func TestHandleSessionsRejectsUnauthenticatedRequest(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
 	}
+	t.Logf("DEBUG body = %s", rec.Body.String())
 }
 
 func TestHandleSessionsMarksCurrentSession(t *testing.T) {

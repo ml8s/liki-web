@@ -12,7 +12,7 @@ describe('http client', () => {
 
   it('throws normalized API error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({ error: { code: 'invalid', message: 'bad request' } }),
+      JSON.stringify({ type: 'invalid', title: 'invalid', status: 400, detail: 'bad request' }),
       { status: 400 },
     )))
     await expect(request('/api/test')).rejects.toMatchObject({

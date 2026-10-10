@@ -34,13 +34,11 @@ func TestRespondAppError(t *testing.T) {
 		t.Fatalf("status = %d, want 422", w.Code)
 	}
 	var resp struct {
-		Error struct {
-			Code string `json:"code"`
-		} `json:"error"`
+		Type string `json:"type"`
 	}
 	json.NewDecoder(w.Body).Decode(&resp) //nolint:errcheck
-	if resp.Error.Code != "test_err" {
-		t.Errorf("code = %q", resp.Error.Code)
+	if resp.Type != "test_err" {
+		t.Errorf("type = %q", resp.Type)
 	}
 }
 

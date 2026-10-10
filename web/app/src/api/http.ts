@@ -12,7 +12,14 @@ export class ApiError extends Error {
 
 interface Envelope<T> {
   data?: T
-  error?: { code?: string; message?: string }
+}
+
+/** RFC 9457 problem+json：type 为机器契约码，detail 为人读说明。 */
+interface ProblemDetails {
+  type?: string
+  title?: string
+  status?: number
+  detail?: string
 }
 
 // 会话过期（401）→ 回登录页；/api/me 交给路由守卫软跳转，避免整页刷新。
@@ -48,10 +55,14 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     if (response.status === 401 && path !== '/api/me') {
       redirectToLogin()
     }
+    let problem: ProblemDetails | null = null
+    if (envelope && typeof envelope === 'object' && 'type' in envelope) {
+      problem = envelope as unknown as ProblemDetails
+    }
     throw new ApiError(
       response.status,
-      envelope?.error?.code ?? 'request_failed',
-      envelope?.error?.message ?? `HTTP ${response.status}`,
+      problem?.type ?? 'request_failed',
+      problem?.detail ?? problem?.title ?? `HTTP ${response.status}`,
     )
   }
   if (!envelope || !('data' in envelope)) {

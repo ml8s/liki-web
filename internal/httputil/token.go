@@ -2,17 +2,13 @@ package httputil
 
 import (
 	"crypto/hkdf"
-	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
-)
 
-const orderAccessTokenPrefix = "v1"
+	"github.com/golang-jwt/jwt/v5"
+)
 
 // capabilityMACKey derives an independent HMAC key for capability tokens via
 // HKDF from the platform secret: sharing raw key material across the JWT
@@ -26,9 +22,10 @@ var capabilityMACKey = sync.OnceValue(func() []byte {
 	return key
 })
 
-// NewCapabilityToken creates a bounded, action-specific capability. Use it for
-// short-lived payment polling and other browser callbacks that should not rely
-// on an unguessable resource ID alone.
+// NewCapabilityToken issues a bounded, action-specific capability token
+// (RFC 7519 JWT, HS256 with the HKDF-derived key) for short-lived payment
+// polling and other browser callbacks that should not rely on an
+// unguessable resource ID alone.
 func NewCapabilityToken(action, subject string, issuedAt time.Time, ttl time.Duration) (string, error) {
 	if action == "" || subject == "" {
 		return "", fmt.Errorf("token: action and subject are required")
@@ -36,29 +33,30 @@ func NewCapabilityToken(action, subject string, issuedAt time.Time, ttl time.Dur
 	if ttl <= 0 {
 		return "", fmt.Errorf("token: ttl must be positive")
 	}
-	expiresAt := issuedAt.Add(ttl).Unix()
-	payload := capabilityTokenPayload(action, subject, expiresAt)
-	mac := hmac.New(sha256.New, capabilityMACKey())
-	mac.Write([]byte(payload))
-	return fmt.Sprintf("%s.%d.%s", orderAccessTokenPrefix, expiresAt, hex.EncodeToString(mac.Sum(nil))), nil
+	claims := jwt.RegisteredClaims{
+		Audience:  jwt.ClaimStrings{action},
+		Subject:   subject,
+		IssuedAt:  jwt.NewNumericDate(issuedAt),
+		ExpiresAt: jwt.NewNumericDate(issuedAt.Add(ttl)),
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(capabilityMACKey())
 }
 
+// VerifyCapabilityToken validates a capability token for exactly one action
+// and subject: signature (HS256, constant-time via library), expiry, and
+// audience must all match.
 func VerifyCapabilityToken(action, subject, token string, now time.Time) bool {
-	parts := strings.Split(token, ".")
-	if len(parts) != 3 || parts[0] != orderAccessTokenPrefix {
+	parser := jwt.NewParser(
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithAudience(action),
+		jwt.WithExpirationRequired(),
+		jwt.WithTimeFunc(func() time.Time { return now }),
+	)
+	var claims jwt.RegisteredClaims
+	if _, err := parser.ParseWithClaims(token, &claims, func(*jwt.Token) (any, error) {
+		return capabilityMACKey(), nil
+	}); err != nil {
 		return false
 	}
-	expiresAt, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil || now.Unix() >= expiresAt {
-		return false
-	}
-	payload := capabilityTokenPayload(action, subject, expiresAt)
-	mac := hmac.New(sha256.New, capabilityMACKey())
-	mac.Write([]byte(payload))
-	expected := hex.EncodeToString(mac.Sum(nil))
-	return hmac.Equal([]byte(expected), []byte(parts[2]))
-}
-
-func capabilityTokenPayload(action, subject string, expiresAt int64) string {
-	return "capability:v1|" + action + "|" + subject + "|" + strconv.FormatInt(expiresAt, 10)
+	return claims.Subject == subject
 }

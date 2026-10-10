@@ -113,7 +113,7 @@ func TestDecodeAndValidate_WritesErrorResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(body), "error") {
-		t.Error("error response should contain 'error' key")
+	if !strings.Contains(string(body), "invalid_request") {
+		t.Error("error response should carry the problem type")
 	}
 }

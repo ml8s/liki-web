@@ -30,18 +30,27 @@ func RespondRawJSON(w http.ResponseWriter, status int, body any) {
 }
 
 func RespondAppError(w http.ResponseWriter, appErr *AppError) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(appErr.HTTPStatus)
-	if err := json.NewEncoder(w).Encode(map[string]any{"error": appErr}); err != nil {
-		slog.Warn("respondAppError encode", "err", err)
-	}
+	respondProblem(w, appErr.HTTPStatus, appErr.Code, appErr.Message)
 }
 
 func RespondError(w http.ResponseWriter, status int, code, msg string) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	respondProblem(w, status, code, msg)
+}
+
+// respondProblem writes an RFC 9457 Problem Details document
+// (application/problem+json). type carries the machine-readable code;
+// detail the human explanation for this occurrence.
+func respondProblem(w http.ResponseWriter, status int, code, detail string) {
+	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(map[string]any{"error": map[string]string{"code": code, "message": msg}}); err != nil {
-		slog.Warn("respondError encode", "err", err)
+	body := map[string]any{
+		"type":   code,
+		"title":  code,
+		"status": status,
+		"detail": detail,
+	}
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		slog.Warn("respondProblem encode", "err", err)
 	}
 }
 
