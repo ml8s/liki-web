@@ -467,3 +467,44 @@ actions + 65% 覆盖率门禁 + coverage artifact。
 单人维护 + 主动 SHA-pin + 人工验证的供应链策略下，自动化依赖机器人
 与该策略冲突；单维护者仓库 CODEOWNERS/PR template 价值有限。若团队
 扩大再启用。
+
+## 18. 专项评审：两处私有定义的标准对标（2026-10-10）
+
+### 18.1 capability token
+
+| 对标 | 契合度 |
+| --- | --- |
+| JWT（RFC 7519） | 实用标准；仓库已有 golang-jwt；aud/sub/exp 恰好映射三要素 |
+| PASETO v4 | 只允许安全算法的 JWT 替代；但为"签名 bearer"，非"验证方注入上下文的 MAC capability"，映射不完美 |
+| Macaroons/Biscuit | 概念最贴合（可衰减 capability），生态小众 |
+
+现状（HMAC 密封 + 验证方注入 action/subject + 常数时间比较 + TTL）在安全
+模型上优于把 claims 装进 token（更小、不泄漏资源 ID、无法跨路由重放）。
+**裁决：保留**。迁移触发：第二个服务需验证同一 capability，或 token 需
+携带更多 claims → 迁 PASETO v4 / pinned-JWT。
+
+### 18.2 响应信封 {data}/{error}
+
+错误半边有 IETF 正牌标准——**RFC 9457 Problem Details**
+（`application/problem+json`；`type/title/status/detail/instance`）。
+映射：`code → type`、`message → detail`、HTTP status → `status`。
+成功半边 `{data}` 为 Google 风格 de facto，JSON:API 同构。
+
+**裁决：保留现状 + 记录映射**。错误响应可随外部集成需求平滑迁移到
+`application/problem+json`（前端 `ApiError.code ← type` 一行改动）；
+映射已写入 API.md。
+
+### 18.3 标准对照补全（含标准组织/规范号）
+
+| 私有定义 | 对标标准 | 规范出处 |
+| --- | --- | --- |
+| 错误信封 `{code,message}` | RFC 9457 Problem Details（`application/problem+json`） | IETF RFC 9457（2024，取代 RFC 7807） |
+| 成功信封 `{data}` | JSON:API v1.1 `{data,links,meta}`（`application/vnd.api+json`）；Google AIP 风格 | 社区规范 |
+| capability token | RFC 7519 JWT + RFC 9068 access token profile（`aud/sub/exp` 恰好映射 action/subject/exp）；备选 PASETO v4（非 IETF） | IETF / de facto |
+| 可衰减 capability 语义 | Macaroons / Biscuit（IETF 个人草案） | 概念对标，生态未成熟 |
+| sender-constrained 模型 | RFC 9449 DPoP | IETF（非本仓需求） |
+
+**迁移触发条件**（记录在案，当前均未触发）：
+
+1. capability 出现第二验证服务或需要更多 claims → RFC 9068 / PASETO v4；
+2. 出现第三方 API 消费者 → 错误响应迁 `application/problem+json`。
