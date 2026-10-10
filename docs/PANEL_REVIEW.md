@@ -379,3 +379,40 @@ claims 泄漏、action+subject 绑定、常数时间校验、TTL 有界，已文
 | ✅ 已做 | capability MAC 密钥分离（stdlib HKDF）+ 回归测试 | 0.5h |
 | P3 | 金额解析收敛 `internal/money`（统一 strict 语义），下次触碰时 | 0.5 天 |
 | 记录 | 时间精度策略（Nano 列内不混比较依赖） | — |
+
+## 16. 专项评审：最佳工程实践 / Go 惯用法 / 前端标准实践（2026-10-10）
+
+### 16.1 Go 语言标准实践
+
+用官方 `modernize` 分析器（gopls modernize）全仓扫描 + 自动修复：
+
+| 发现 | 处置 |
+| --- | --- |
+| goroutine 创建可用 Go 1.25 `WaitGroup.Go` ×8 | ✅ 已应用（本次新增的 worker 均命中） |
+| 循环内成员检查可用 `slices.Contains` ×2 | ✅ 已应用 |
+| `strings.Split` 可用 `strings.SplitSeq`（Go 1.24 零分配）×3 | ✅ 已应用 |
+| 循环内 `string +=` 可用 `strings.Builder` ×1 | ✅ 已应用 |
+| `payment/route.go`、`profile/store_test.go` 微现代化 | ✅ 已应用 |
+
+复检 **0 违规**。其余标准实践核验通过：`interface{}` ×0（全 `any`）、
+`sort.Slice` ×0（无手写排序）、`time.After` 循环 ×0、错误包装 `%w`
+103:1、结构化日志零残留、`-race` 常态、Context 全链传播、密钥分离
+（15.2 已修）。
+
+### 16.2 前端标准实践
+
+核验通过：`tsconfig strict: true`；script setup / Composition API；
+路由级懒加载 + Element Plus 按需；ESLint flat + `vue/` 规则集；唯一
+`v-html` 集中消毒（13 节）；i18n 605 key 三语对齐；Axe 无障碍基线 +
+partner/not-found 扩页（本轮新增）。
+
+### 16.3 工程实践
+
+核验通过：Conventional commits 全程；pre-commit（vet+lint+测试）与
+pre-push（make check）双层钩子；CI check/test/e2e 三 job + SHA-pinned
+actions + 65% 覆盖率门禁 + coverage artifact。
+
+**可选未采纳（记录决策）**：CODEOWNERS / PR template / dependabot——
+单人维护 + 主动 SHA-pin + 人工验证的供应链策略下，自动化依赖机器人
+与该策略冲突；单维护者仓库 CODEOWNERS/PR template 价值有限。若团队
+扩大再启用。
