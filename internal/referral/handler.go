@@ -16,14 +16,18 @@ type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 type RateLimiterFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
-	store        *Store
-	requireUser  RequireUserFunc
-	secureCookie bool
+	store          *Store
+	requireUser    RequireUserFunc
+	secureCookie   bool
+	attributionTTL time.Duration
 }
 
 func NewHandler(store *Store, requireUser RequireUserFunc, secureCookie bool) *Handler {
-	return &Handler{store: store, requireUser: requireUser, secureCookie: secureCookie}
+	return &Handler{store: store, requireUser: requireUser, secureCookie: secureCookie, attributionTTL: AttributionCookieTTL}
 }
+
+// SetAttributionTTL overrides the attribution cookie lifetime (deployment config).
+func (h *Handler) SetAttributionTTL(d time.Duration) { h.attributionTTL = d }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit RateLimiterFunc) {
 	if limit == nil {
@@ -175,8 +179,8 @@ func (h *Handler) HandleLink(w http.ResponseWriter, r *http.Request) {
 			Name:     AttributionCookieName,
 			Value:    strings.ToUpper(strings.TrimSpace(r.PathValue("code"))),
 			Path:     "/",
-			MaxAge:   int(AttributionCookieTTL.Seconds()),
-			Expires:  time.Now().UTC().Add(AttributionCookieTTL),
+			MaxAge:   int(h.attributionTTL.Seconds()),
+			Expires:  time.Now().UTC().Add(h.attributionTTL),
 			HttpOnly: true,
 			Secure:   h.secureCookie,
 			SameSite: http.SameSiteLaxMode,

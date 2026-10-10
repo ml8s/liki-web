@@ -610,7 +610,14 @@ WHERE user_id=? AND status='active' AND id!=?`,
 	return res.RowsAffected()
 }
 
-func (s *Store) Cleanup(ctx context.Context) (int64, error) {
+// Cleanup expires stale sessions, then purges expired auth codes and
+// expired/revoked sessions past the PII retention window (compliance:
+// configurable via LIKI_SESSION_RETENTION_DAYS).
+func (s *Store) Cleanup(ctx context.Context, retentionDays int) (int64, error) {
+	if retentionDays < 1 {
+		retentionDays = 30
+	}
+	modifier := fmt.Sprintf("-%d days", retentionDays)
 	now := s.nowFunc().Format(time.RFC3339)
 	res, err := s.db.ExecContext(ctx, `
 UPDATE auth_sessions SET status='expired'
@@ -622,16 +629,13 @@ WHERE status='active' AND expires_at<=?`, now)
 	if err != nil {
 		return 0, err
 	}
-	_, err = s.db.ExecContext(ctx, `
-DELETE FROM auth_codes WHERE expires_at < datetime('now','-30 days')`)
-	if err != nil {
+	if _, err = s.db.ExecContext(ctx, `
+DELETE FROM auth_codes WHERE expires_at < datetime('now', ?)`, modifier); err != nil {
 		return n, err
 	}
-	// Expired/revoked sessions keep ip_hash/user_agent for a 30-day forensic
-	// window, then are purged (PII retention).
-	if _, err := s.db.ExecContext(ctx, `
+	if _, err = s.db.ExecContext(ctx, `
 DELETE FROM auth_sessions
-WHERE status IN ('expired','revoked') AND expires_at <= datetime('now','-30 days')`); err != nil {
+WHERE status IN ('expired','revoked') AND expires_at <= datetime('now', ?)`, modifier); err != nil {
 		return n, err
 	}
 	return n, err

@@ -568,7 +568,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if _, err := authStore.Cleanup(ctx); err != nil {
+				if _, err := authStore.Cleanup(ctx, cfg.SessionRetentionDays); err != nil {
 					slog.Error("auth cleanup", "err", err)
 				}
 			}
