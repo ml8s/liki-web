@@ -4,27 +4,36 @@ This document describes the stable HTTP API exposed by `liki-web`.
 The deterministic public `/jsonrpc` engine protocol is owned by the `liki`
 engine and documented there; `liki-web` does not proxy or redefine it.
 
-JSON responses use a shared envelope.
-
-Success:
+Successful responses use a shared envelope (`application/json`):
 
 ```json
 {"data": {}}
 ```
 
-Error:
+Error responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)
+(`application/problem+json`):
 
 ```json
-{"error": {"code": "not_found", "message": "..."}}
+{
+  "type": "not_found",
+  "title": "not_found",
+  "status": 404,
+  "detail": "..."
+}
 ```
 
-`error.code` is the stable machine contract. `error.message` is diagnostic and
-is not guaranteed to be in the browser's UI language; browser clients map codes
-to their own locale resources.
+`type` is the stable machine contract (a URI reference; short codes like
+`not_found` are valid relative references). `detail` is diagnostic and is not
+guaranteed to be in the browser's UI language; browser clients map types to
+their own locale resources.
 
-The envelope applies to every handler-owned response, including operator
-endpoints and middleware (rate limiting, recovery). The only exception is the
-`net/http` ServeMux's own 404/405 replies, which remain the framework default.
+The problem shape applies to every handler-owned error response, including
+operator endpoints and middleware (rate limiting, recovery). The only
+exception is the `net/http` ServeMux's own 404/405 replies, which remain the
+framework default. If the API ever gains third-party consumers, the error
+shape already matches RFC 9457; full JSON:API v1.1 (`application/vnd.api+json`
+with links/meta) was evaluated and deliberately not adopted — recorded in
+`docs/PANEL_REVIEW.md` §18.
 
 Authentication uses HttpOnly platform session cookies. Ownership and entitlement are always checked server-side.
 
