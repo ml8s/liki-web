@@ -123,7 +123,7 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	if events[0].Type != agent.EventThinking {
 		t.Fatalf("first event = %+v", events[0])
 	}
-	if events[1].Type != agent.EventPhase || events[1].Content != "using engine" {
+	if events[1].Type != agent.EventPhase || events[1].Content != "正在排盘推演…" {
 		t.Fatalf("tool event = %+v", events[1])
 	}
 	textEvents := make([]agent.ChatEvent, 0, 2)
@@ -256,5 +256,31 @@ func TestLatestAGUIUserText(t *testing.T) {
 	input.Messages = []aguitypes.Message{input.Messages[1]}
 	if _, err := latestAGUIUserText(input); err == nil {
 		t.Fatal("latestAGUIUserText() error = nil, want missing user message")
+	}
+}
+
+func TestToolPhase(t *testing.T) {
+	t.Parallel()
+	cases := []struct{ tool, want string }{
+		{"load_skill", "正在安排合适的老师…"},
+		{"transfer_to_agent", "正在安排合适的老师…"},
+		{"city_coords", "正在校准时空坐标…"},
+		{"tianwen_time", "正在校准时空坐标…"},
+		{"bazi_chart", "正在排盘推演…"},
+		{"bazi_fullchart", "正在排盘推演…"},
+		{"compute_factors", "正在排盘推演…"},
+		{"period_query", "正在推演大运流年…"},
+		{"period_query", "正在推演大运流年…"},
+		{"qimen_cast", "正在起局…"},
+		{"liuyao_chart", "正在起卦…"},
+		{"naming_generate", "正在斟酌用字…"},
+		{"fengshui_analyze", "正在勘察方位…"},
+		{"unknown_tool", "正在计算命理数据…"},
+		{"", "正在计算命理数据…"},
+	}
+	for _, tc := range cases {
+		if got := toolPhase(tc.tool); got != tc.want {
+			t.Errorf("toolPhase(%q) = %q, want %q", tc.tool, got, tc.want)
+		}
 	}
 }
