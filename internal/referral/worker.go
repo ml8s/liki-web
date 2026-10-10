@@ -277,7 +277,7 @@ func (s *Store) settleIntake(ctx context.Context, item CommissionIntake) error {
 		}
 		if scoutErr == nil && scout.Status == PartnerActive {
 			recruiterID = scout.UserID
-			recruiterRate = RecruiterRateBPS
+			recruiterRate = s.recruiterRateBPS
 			recruiterAmount = commission_parts(item.AmountMinor, recruiterRate)
 		}
 	}
@@ -288,7 +288,7 @@ func (s *Store) settleIntake(ctx context.Context, item CommissionIntake) error {
 		ReferrerID: referrer.UserID, RecruiterID: recruiterID,
 		BeneficiaryRole: beneficiaryRole,
 		AmountMinor:     item.AmountMinor, Currency: item.Currency,
-		ReferrerRateBPS: ReferrerRateBPS, ReferrerAmount: commission_parts(item.AmountMinor, ReferrerRateBPS),
+		ReferrerRateBPS: s.referrerRateBPS, ReferrerAmount: commission_parts(item.AmountMinor, s.referrerRateBPS),
 		RecruiterRateBPS: recruiterRate, RecruiterAmount: recruiterAmount,
 		Status: CommissionPending, CreatedAt: parseTime(now), UpdatedAt: parseTime(now),
 	}
@@ -424,9 +424,22 @@ UPDATE commission_refund_intents SET status=?,run_at=?,updated_at=? WHERE status
 
 // StartCommissionWorker owns the referral side of the payment -> referral
 // boundary. Payment failures never enter here; only durable fulfilled facts do.
+// SetCommissionRates 由部署配置注入分成比例（BPS）；未调用时用内置默认。
+func (s *Store) SetCommissionRates(referrerBPS, recruiterBPS int) {
+	s.referrerRateBPS = referrerBPS
+	s.recruiterRateBPS = recruiterBPS
+}
+
 func (s *Store) StartCommissionWorker(ctx context.Context, platformDB *sql.DB, interval time.Duration) {
 	if interval <= 0 {
 		interval = 5 * time.Second
+	}
+	// 部署可通过 env 覆盖分成比例（BPS）；未配置时用内置默认。
+	if s.referrerRateBPS == 0 {
+		s.referrerRateBPS = ReferrerRateBPS
+	}
+	if s.recruiterRateBPS == 0 {
+		s.recruiterRateBPS = RecruiterRateBPS
 	}
 	if err := s.recoverCommissionIntakes(ctx); err != nil {
 		slog.Error("referral: recover commission intakes", "err", err)

@@ -27,11 +27,13 @@ var (
 const referralCommissionProduct = "liki-chat"
 
 type Store struct {
-	db       *sql.DB
-	nowFunc  func() time.Time
-	idFunc   func() string
-	codeFunc func() (string, error)
-	accounts *fieldSealer
+	db               *sql.DB
+	nowFunc          func() time.Time
+	idFunc           func() string
+	codeFunc         func() (string, error)
+	accounts         *fieldSealer
+	referrerRateBPS  int
+	recruiterRateBPS int
 }
 
 func Open(path string, payoutSecret []byte) (*Store, error) {
@@ -44,10 +46,13 @@ func Open(path string, payoutSecret []byte) (*Store, error) {
 		return nil, err
 	}
 	return &Store{
-		db: db, accounts: accounts,
-		nowFunc:  func() time.Time { return time.Now().UTC() },
-		idFunc:   uuid.NewString,
-		codeFunc: newPartnerCode,
+		db:               db,
+		accounts:         accounts,
+		nowFunc:          func() time.Time { return time.Now().UTC() },
+		idFunc:           uuid.NewString,
+		codeFunc:         newPartnerCode,
+		referrerRateBPS:  ReferrerRateBPS,
+		recruiterRateBPS: RecruiterRateBPS,
 	}, nil
 }
 

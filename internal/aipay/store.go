@@ -113,8 +113,6 @@ func (s *Store) recomputeAmountMinor(ctx context.Context) error {
 	return nil
 }
 
-// parseAmountMinor converts a fixed 2-decimal amount string ("1", "1.0",
-// "1.00") into integer minor units without float rounding.
 func (s *Store) CreateBill(ctx context.Context, amount, goodsName string) (Bill, error) {
 	now := s.nowFun()
 	minor, err := money.ParseDecimalToMinor(amount)
@@ -127,8 +125,10 @@ func (s *Store) CreateBill(ctx context.Context, amount, goodsName string) (Bill,
 		Currency:   Currency,
 		ResourceID: ResourceID,
 		GoodsName:  goodsName,
-		PayBefore:  now.Local().Add(30 * time.Minute).Format(time.RFC3339),
-		Status:     StatusPending,
+		// 落库统一 UTC：CleanupExpiredBills 以 UTC 字符串比较 pay_before，
+		// 本地时区字符串会让字典序比较失真。
+		PayBefore: now.Add(30 * time.Minute).Format(time.RFC3339),
+		Status:    StatusPending,
 	}
 	_, err = s.db.ExecContext(ctx, `
 INSERT INTO aipay_orders

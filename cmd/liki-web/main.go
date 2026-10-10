@@ -50,54 +50,74 @@ var (
 const maxAgentRunTimeout = 600 * time.Second
 
 type Config struct {
-	DataDir             string
-	FeedbackAPIKey      string
-	ResendAPIKey        string
-	ResendFrom          string
-	DodoAPIKey          string
-	DodoWebhookKey      string
-	DodoTestMode        bool
-	DodoProductLikiChat string
-	XunhuAppID          string
-	XunhuAppSecret      string
-	PaymentWebhookURL   string
-	AlipayConfig        aipay.Config
-	EngineURL           string
-	AgentURL            string
-	AgentInternalToken  string
-	AgentTimeoutSeconds int
-	ReturnURL           string
-	JWTSecret           string
-	ListenAddr          string
-	DevMode             bool
-	CurrencySource      string
-	BillingRegion       string
+	DataDir              string
+	FeedbackAPIKey       string
+	ResendAPIKey         string
+	ResendFrom           string
+	DodoAPIKey           string
+	DodoWebhookKey       string
+	DodoTestMode         bool
+	DodoProductLikiChat  string
+	XunhuAppID           string
+	XunhuAppSecret       string
+	PaymentWebhookURL    string
+	AlipayConfig         aipay.Config
+	EngineURL            string
+	AgentURL             string
+	AgentInternalToken   string
+	AgentTimeoutSeconds  int
+	ReturnURL            string
+	JWTSecret            string
+	ListenAddr           string
+	DevMode              bool
+	CurrencySource       string
+	BillingRegion        string
+	EntitlementDays      int
+	PriceMinorCNY        int
+	PriceMinorUSD        int
+	ReferrerRateBPS      int
+	RecruiterRateBPS     int
+	AttributionTTLDays   int
+	PendingExpireDays    int
+	NotifyRetentionDays  int
+	ProfileRetentionDays int
+	SessionRetentionDays int
 }
 
 func LoadConfig() Config {
 	return Config{
-		DataDir:             envOr("LIKI_DATA_DIR", "/var/lib/liki"),
-		FeedbackAPIKey:      os.Getenv("FEEDBACK_API_KEY"),
-		ResendAPIKey:        os.Getenv("RESEND_API_KEY"),
-		ResendFrom:          envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
-		DodoAPIKey:          envOr("DODO_API_KEY", ""),
-		DodoWebhookKey:      envOr("DODO_WEBHOOK_KEY", ""),
-		DodoTestMode:        envOrBool("DODO_TEST_MODE", false),
-		DodoProductLikiChat: os.Getenv("DODO_PRODUCT_LIKI_CHAT"),
-		XunhuAppID:          envOr("XUNHU_APPID", ""),
-		XunhuAppSecret:      envOr("XUNHU_APPSECRET", ""),
-		PaymentWebhookURL:   envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
-		AlipayConfig:        loadAlipayConfig(),
-		EngineURL:           envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
-		AgentURL:            strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
-		AgentInternalToken:  os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
-		AgentTimeoutSeconds: envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
-		ReturnURL:           envOr("RETURN_URL", ""),
-		JWTSecret:           os.Getenv("JWT_SECRET"),
-		ListenAddr:          envOr("LISTEN_ADDR", ":8080"),
-		DevMode:             envOrBool("DEV_MODE", false),
-		CurrencySource:      envOr("LIKI_CURRENCY_SOURCE", liki.CurrencySourceTrustedEdge),
-		BillingRegion:       envOr("LIKI_BILLING_REGION", "global"),
+		DataDir:              envOr("LIKI_DATA_DIR", "/var/lib/liki"),
+		FeedbackAPIKey:       os.Getenv("FEEDBACK_API_KEY"),
+		ResendAPIKey:         os.Getenv("RESEND_API_KEY"),
+		ResendFrom:           envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
+		DodoAPIKey:           envOr("DODO_API_KEY", ""),
+		DodoWebhookKey:       envOr("DODO_WEBHOOK_KEY", ""),
+		DodoTestMode:         envOrBool("DODO_TEST_MODE", false),
+		DodoProductLikiChat:  os.Getenv("DODO_PRODUCT_LIKI_CHAT"),
+		XunhuAppID:           envOr("XUNHU_APPID", ""),
+		XunhuAppSecret:       envOr("XUNHU_APPSECRET", ""),
+		PaymentWebhookURL:    envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
+		AlipayConfig:         loadAlipayConfig(),
+		EngineURL:            envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
+		AgentURL:             strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
+		AgentInternalToken:   os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
+		AgentTimeoutSeconds:  envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
+		ReturnURL:            envOr("RETURN_URL", ""),
+		JWTSecret:            os.Getenv("JWT_SECRET"),
+		ListenAddr:           envOr("LISTEN_ADDR", ":8080"),
+		DevMode:              envOrBool("DEV_MODE", false),
+		CurrencySource:       envOr("LIKI_CURRENCY_SOURCE", liki.CurrencySourceTrustedEdge),
+		BillingRegion:        envOr("LIKI_BILLING_REGION", "global"),
+		EntitlementDays:      envOrInt("LIKI_ENTITLEMENT_DAYS", 30),
+		PriceMinorCNY:        envOrInt("LIKI_PRICE_CNY_MINOR", 100),
+		PriceMinorUSD:        envOrInt("LIKI_PRICE_USD_MINOR", 100),
+		ReferrerRateBPS:      envOrInt("LIKI_REFERRER_RATE_BPS", 5000),
+		RecruiterRateBPS:     envOrInt("LIKI_RECRUITER_RATE_BPS", 2000),
+		AttributionTTLDays:   envOrInt("LIKI_ATTRIBUTION_TTL_DAYS", 30),
+		PendingExpireDays:    envOrInt("LIKI_PAYMENT_PENDING_EXPIRE_DAYS", 7),
+		NotifyRetentionDays:  envOrInt("LIKI_NOTIFICATION_RETENTION_DAYS", 90),
+		ProfileRetentionDays: envOrInt("LIKI_PROFILE_RETENTION_DAYS", 30),
+		SessionRetentionDays: envOrInt("LIKI_SESSION_RETENTION_DAYS", 30),
 	}
 }
 
@@ -145,6 +165,10 @@ func main() {
 	requireEnv("JWT_SECRET", cfg.JWTSecret)
 	if err := validateRuntimeURLs(cfg); err != nil {
 		slog.Error("invalid runtime URL configuration", "err", err)
+		os.Exit(1)
+	}
+	if err := validateBusinessConfig(cfg); err != nil {
+		slog.Error("invalid business configuration", "err", err)
 		os.Exit(1)
 	}
 
@@ -630,6 +654,44 @@ func requireEnv(pairs ...string) {
 			os.Exit(1)
 		}
 	}
+}
+
+// validateBusinessConfig fail-fast 检查业务/合规参数：错误配置宁可不启动，
+// 也不能把错误价格或比例带进资金路径。
+func validateBusinessConfig(cfg Config) error {
+	for name, minor := range map[string]int{
+		"LIKI_PRICE_CNY_MINOR": cfg.PriceMinorCNY,
+		"LIKI_PRICE_USD_MINOR": cfg.PriceMinorUSD,
+	} {
+		if minor <= 0 || minor > 1_000_000_000 {
+			return fmt.Errorf("%s must be within (0, 1000000000] minor units, got %d", name, minor)
+		}
+	}
+	for name, bps := range map[string]int{
+		"LIKI_REFERRER_RATE_BPS":  cfg.ReferrerRateBPS,
+		"LIKI_RECRUITER_RATE_BPS": cfg.RecruiterRateBPS,
+	} {
+		if bps < 0 || bps > 10000 {
+			return fmt.Errorf("%s must be within [0,10000] bps, got %d", name, bps)
+		}
+	}
+	if cfg.ReferrerRateBPS+cfg.RecruiterRateBPS > 10000 {
+		return fmt.Errorf("referrer+recruiter rates must not exceed 10000 bps, got %d",
+			cfg.ReferrerRateBPS+cfg.RecruiterRateBPS)
+	}
+	for name, days := range map[string]int{
+		"LIKI_ENTITLEMENT_DAYS":            cfg.EntitlementDays,
+		"LIKI_ATTRIBUTION_TTL_DAYS":        cfg.AttributionTTLDays,
+		"LIKI_PAYMENT_PENDING_EXPIRE_DAYS": cfg.PendingExpireDays,
+		"LIKI_NOTIFICATION_RETENTION_DAYS": cfg.NotifyRetentionDays,
+		"LIKI_PROFILE_RETENTION_DAYS":      cfg.ProfileRetentionDays,
+		"LIKI_SESSION_RETENTION_DAYS":      cfg.SessionRetentionDays,
+	} {
+		if days < 1 || days > 3650 {
+			return fmt.Errorf("%s must be within [1,3650] days, got %d", name, days)
+		}
+	}
+	return nil
 }
 
 func validateHTTPURL(name, value string) error {
