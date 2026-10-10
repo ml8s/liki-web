@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -81,7 +82,14 @@ func (runtime *Runtime) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	ack, err := runtime.HandleWebhookEventWithAck(r.Context(), body, r.Header)
 	if err != nil {
 		slog.Error("payment: webhook", "err", err)
-		httputil.RespondError(w, http.StatusBadRequest, "webhook_failed", "webhook failed")
+		// Verification failures and unknown orders are the provider's fault:
+		// 400 tells it to stop retrying. Transient failures (DB busy) must be
+		// 500 so the provider's at-least-once redelivery kicks in.
+		if errors.Is(err, ErrIntentNotFound) || errors.Is(err, ErrWebhookVerification) {
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "webhook failed")
+			return
+		}
+		httputil.RespondError(w, http.StatusInternalServerError, "webhook_failed", "webhook failed")
 		return
 	}
 	if len(ack) > 0 {
