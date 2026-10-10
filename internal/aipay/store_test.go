@@ -120,3 +120,40 @@ func TestAipayStoreRejectsExpiredPendingOrder(t *testing.T) {
 		t.Fatalf("PrepareFulfillment = %v, want ErrProofNotAllowed", err)
 	}
 }
+
+func TestAipayStoreCleanupExpiredBills(t *testing.T) {
+	ctx := context.Background()
+	store := newAipayStore(t)
+
+	// 过期 pending 单：应被清理
+	expired, err := store.CreateBill(ctx, "1.00", "Liki 服务支持")
+	if err != nil {
+		t.Fatal(err)
+	}
+	past := store.nowFun().Add(-time.Hour).Format(time.RFC3339)
+	if _, err := store.db.ExecContext(ctx, `UPDATE aipay_orders SET pay_before=? WHERE out_trade_no=?`, past, expired.OutTradeNo); err != nil {
+		t.Fatal(err)
+	}
+	store.idFun = func() string { return "ot-second" }
+
+	// 未过期 pending 单：应保留
+	active, err := store.CreateBill(ctx, "2.00", "Liki 服务支持")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := store.CleanupExpiredBills(ctx, store.nowFun())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("cleaned = %d, want 1", n)
+	}
+	var count int
+	if err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM aipay_orders WHERE out_trade_no=?`, active.OutTradeNo).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("unexpired bill must survive, got count=%d", count)
+	}
+}

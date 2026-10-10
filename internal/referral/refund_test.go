@@ -183,3 +183,28 @@ SELECT COUNT(1) FROM commission_entry_refunds WHERE provider_refund_id='refund-l
 		t.Fatalf("refund allocations=%d", allocations)
 	}
 }
+
+func TestRecoverCommissionRefundsResumesRunning(t *testing.T) {
+	ctx := context.Background()
+	store, commission := newPendingCommissionForRefund(t)
+	intent := paidIntent(payment.ProviderXunhu, "buyer", 10000)
+	event := payment.WebhookEvent{
+		Provider: payment.ProviderXunhu, Type: payment.EventPaymentRefunded,
+		Data: payment.WebhookEventData{OrderID: intent.ID, PaymentID: "refund-1", Amount: 4000, Currency: "CNY"},
+	}
+	if err := store.EnqueueCommissionRefund(ctx, event, intent); err != nil {
+		t.Fatal(err)
+	}
+	// 模拟进程在 claim 后、apply 前崩溃：intake 卡在 running
+	if _, err := store.db.ExecContext(ctx, `UPDATE commission_refund_intents SET status='running'`); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.recoverCommissionRefunds(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// 恢复为 queued 后，worker 必须能继续处理（不再永久卡死）
+	if n, err := store.ProcessCommissionRefunds(ctx, 10); err != nil || n != 1 {
+		t.Fatalf("processed=%d err=%v", n, err)
+	}
+	_ = commission
+}
