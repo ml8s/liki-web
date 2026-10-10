@@ -168,7 +168,7 @@ func TestHandleList_EmptyAuthKey(t *testing.T) {
 
 func TestHandleList_Offset(t *testing.T) {
 	s := setup(t)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		if err := s.Create(&Feedback{Payload: validFeedbackV1}); err != nil {
 			t.Fatal(err)
 		}

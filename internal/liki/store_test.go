@@ -53,7 +53,7 @@ INSERT INTO entitlements VALUES
 	}
 
 	entitlements := NewEntitlementStore(db)
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		if err := entitlements.Migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
@@ -92,7 +92,7 @@ INSERT INTO entitlements VALUES
 	}
 
 	chats := NewChatStore(db)
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		if err := chats.Migrate(ctx); err != nil {
 			t.Fatal(err)
 		}

@@ -181,7 +181,7 @@ func TestEmailCodeLocksAfterMaxAttempts(t *testing.T) {
 	}
 	code := mailer.codes[0]
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if _, err := service.VerifyEmailCode(context.Background(), email, "000000", "", "", "en"); !errors.Is(err, ErrCodeInvalid) {
 			t.Fatalf("attempt %d err = %v, want invalid", i+1, err)
 		}
@@ -406,7 +406,7 @@ INSERT INTO users (id,email,status,locale,created_at,updated_at)
 VALUES (?,?, 'active','zh-Hans',?,?)`, userID, email, now, now); err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		created := time.Now().UTC().Add(time.Duration(i-8) * time.Hour).Format(time.RFC3339)
 		if _, err := store.db.Exec(`
 INSERT INTO auth_sessions (id,user_id,token_hash,status,created_at,expires_at,last_seen_at)

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -116,10 +117,8 @@ func (s *ErasureStore) MarkStep(ctx context.Context, id, step string) error {
 		return err
 	}
 	steps := parseSteps(completed)
-	for _, existing := range steps {
-		if existing == step {
-			return nil
-		}
+	if slices.Contains(steps, step) {
+		return nil
 	}
 	steps = append(steps, step)
 	encoded, err := json.Marshal(steps)

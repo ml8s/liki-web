@@ -40,7 +40,7 @@ func (c *Client) SendReport(ctx context.Context, to, subject, htmlBody string) e
 	}
 
 	var lastErr error
-	for attempt := 0; attempt < 3; attempt++ {
+	for attempt := range 3 {
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		_, err := c.client.Emails.SendWithContext(ctx, params)
 		cancel()
@@ -49,8 +49,7 @@ func (c *Client) SendReport(ctx context.Context, to, subject, htmlBody string) e
 		}
 		lastErr = err
 
-		var rateLimitErr *resend.RateLimitError
-		if errors.As(err, &rateLimitErr) {
+		if rateLimitErr, ok := errors.AsType[*resend.RateLimitError](err); ok {
 			if retryAfter, e := strconv.Atoi(rateLimitErr.RetryAfter); e == nil {
 				slog.Warn("email: rate limited, waiting", "seconds", retryAfter)
 				time.Sleep(time.Duration(retryAfter) * time.Second)

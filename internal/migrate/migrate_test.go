@@ -26,7 +26,7 @@ func TestRunIsIdempotent(t *testing.T) {
 			return err
 		},
 	}}
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		if err := migrate.Run(ctx, db, migrations); err != nil {
 			t.Fatal(err)
 		}

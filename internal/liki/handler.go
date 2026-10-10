@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"maps"
 	"net/http"
 	"strings"
 
@@ -132,9 +133,7 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 			skills = append(skills, string(skill))
 		}
 		prices := make(map[string]int64, len(commercial.AmountMinor))
-		for currency, amount := range commercial.AmountMinor {
-			prices[currency] = amount
-		}
+		maps.Copy(prices, commercial.AmountMinor)
 		displayCurrency := h.currency.CurrencyFor(r)
 		displayAmount := commercial.AmountMinor[string(displayCurrency)]
 		purchased := len(skills) > 0

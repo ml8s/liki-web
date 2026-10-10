@@ -186,7 +186,7 @@ func TestRateLimiter_AllowsRequestWithinLimit(t *testing.T) {
 
 	handler := rl.Wrap(100, 10, okHandler())
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
 		r.RemoteAddr = "10.0.0.1:12345"

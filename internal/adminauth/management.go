@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"strings"
 )
 
@@ -39,12 +40,7 @@ func CapabilityRegistry() []Capability {
 }
 
 func IsCapabilityValid(capability Capability) bool {
-	for _, item := range CapabilityRegistry() {
-		if item == capability {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(CapabilityRegistry(), capability)
 }
 
 // actorHoldsSuperTx reports whether the acting admin currently holds an

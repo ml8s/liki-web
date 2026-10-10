@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -219,8 +220,8 @@ func (g *aguiGateway) fail(message string) {
 }
 
 func latestAGUIUserText(input aguitypes.RunAgentInput) (string, error) {
-	for index := len(input.Messages) - 1; index >= 0; index-- {
-		message := input.Messages[index]
+	for _, message := range slices.Backward(input.Messages) {
+
 		if message.Role != aguitypes.RoleUser {
 			continue
 		}

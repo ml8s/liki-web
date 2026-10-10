@@ -20,7 +20,7 @@ func ForwardedHostWithTrustedProxies(r *http.Request, trustedProxies int) string
 	}
 	entries := make([]string, 0, len(values))
 	for _, value := range values {
-		for _, item := range strings.Split(value, ",") {
+		for item := range strings.SplitSeq(value, ",") {
 			if item = canonicalHost(item); item != "" {
 				entries = append(entries, item)
 			}
@@ -29,10 +29,7 @@ func ForwardedHostWithTrustedProxies(r *http.Request, trustedProxies int) string
 	if len(entries) == 0 {
 		return canonicalHost(r.Host)
 	}
-	index := len(entries) - trustedProxies
-	if index < 0 {
-		index = 0
-	}
+	index := max(len(entries)-trustedProxies, 0)
 	return entries[index]
 }
 

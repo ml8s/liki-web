@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -237,10 +238,8 @@ func (s *EntitlementStore) AllowedSkills(ctx context.Context, userID string) ([]
 		return nil, err
 	}
 	for _, item := range items {
-		for _, skill := range item.Skills {
-			if skill == SkillLiki {
-				return []Skill{SkillLiki}, nil
-			}
+		if slices.Contains(item.Skills, SkillLiki) {
+			return []Skill{SkillLiki}, nil
 		}
 	}
 	return []Skill{}, nil

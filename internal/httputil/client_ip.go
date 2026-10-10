@@ -42,7 +42,7 @@ func ClientIPWithTrustedProxies(r *http.Request, trustedProxies int) string {
 	}
 	entries := make([]string, 0, len(values))
 	for _, header := range values {
-		for _, item := range strings.Split(header, ",") {
+		for item := range strings.SplitSeq(header, ",") {
 			if item = strings.TrimSpace(item); item != "" {
 				entries = append(entries, item)
 			}
@@ -52,10 +52,7 @@ func ClientIPWithTrustedProxies(r *http.Request, trustedProxies int) string {
 		return remote
 	}
 
-	index := len(entries) - trustedProxies
-	if index < 0 {
-		index = 0
-	}
+	index := max(len(entries)-trustedProxies, 0)
 	for i := index; i < len(entries); i++ {
 		if ip := normalizeForwardedIP(entries[i]); ip != "" {
 			return ip

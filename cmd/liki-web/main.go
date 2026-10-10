@@ -447,11 +447,9 @@ func main() {
 		os.Exit(1)
 	}
 	workers := new(sync.WaitGroup)
-	workers.Add(1)
-	go func() {
-		defer workers.Done()
+	workers.Go(func() {
 		referralStore.StartCommissionWorker(ctx, platformDB, 5*time.Second)
-	}()
+	})
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
 	if err := httputil.ValidateJWTSecret(cfg.JWTSecret); err != nil {
@@ -523,12 +521,10 @@ func main() {
 		DevMode:        cfg.DevMode,
 	}, BuildTime, Version, rateLimiter, verifyLimiter)
 
-	workers.Add(1)
-	go func() {
-		defer workers.Done()
+	workers.Go(func() {
 		erasureWorker := &account.ErasureWorker{Queue: erasureQueue, Handler: accountHandler, Interval: 30 * time.Second}
 		erasureWorker.Start(ctx)
-	}()
+	})
 
 	// Write timeout must accommodate LLM calls (~120s)
 	srv := &http.Server{
@@ -540,9 +536,7 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	workers.Add(1)
-	go func() {
-		defer workers.Done()
+	workers.Go(func() {
 		ticker := time.NewTicker(time.Hour)
 		defer ticker.Stop()
 		for {
@@ -555,12 +549,10 @@ func main() {
 				}
 			}
 		}
-	}()
+	})
 
 	// 软删档案 30 天恢复窗口到期后物理清理（个保法删除权落地）。
-	workers.Add(1)
-	go func() {
-		defer workers.Done()
+	workers.Go(func() {
 		ticker := time.NewTicker(6 * time.Hour)
 		defer ticker.Stop()
 		for {
@@ -576,28 +568,20 @@ func main() {
 				}
 			}
 		}
-	}()
+	})
 
-	workers.Add(1)
-	go func() {
-		defer workers.Done()
+	workers.Go(func() {
 		paymentRuntime.StartNotificationWorker(ctx, 30*time.Second)
-	}()
-	workers.Add(1)
-	go func() {
-		defer workers.Done()
+	})
+	workers.Go(func() {
 		paymentRuntime.StartFulfillmentWorker(ctx, 5*time.Second)
-	}()
-	workers.Add(1)
-	go func() {
-		defer workers.Done()
+	})
+	workers.Go(func() {
 		paymentRuntime.StartReconciliationWorker(ctx, time.Minute)
-	}()
+	})
 
 	// Payment retention: expire abandoned checkouts and prune sent receipts.
-	workers.Add(1)
-	go func() {
-		defer workers.Done()
+	workers.Go(func() {
 		ticker := time.NewTicker(6 * time.Hour)
 		defer ticker.Stop()
 		for {
@@ -620,7 +604,7 @@ func main() {
 				}
 			}
 		}
-	}()
+	})
 
 	// Signal handling
 	go handleSignals(srv)

@@ -3,6 +3,7 @@ package dodo
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 
 	dodopayments "github.com/dodopayments/dodopayments-go"
@@ -46,9 +47,7 @@ func (c *Client) CreateCheckout(ctx context.Context, req payment.CheckoutRequest
 		"business_order_id": req.BusinessOrderID,
 		"product":           string(req.Product),
 	}
-	for key, value := range req.Metadata {
-		metadata[key] = value
-	}
+	maps.Copy(metadata, req.Metadata)
 
 	params := dodopayments.CheckoutSessionNewParams{
 		CheckoutSessionRequest: dodopayments.CheckoutSessionRequestParam{

@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"sort"
 	"strings"
@@ -34,9 +35,7 @@ func (r *Registry) Snapshot() map[string]uint64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	out := make(map[string]uint64, len(r.counters))
-	for k, v := range r.counters {
-		out[k] = v
-	}
+	maps.Copy(out, r.counters)
 	return out
 }
 
@@ -49,11 +48,11 @@ func labelsKey(labels map[string]string) string {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	out := ""
+	var out strings.Builder
 	for _, k := range keys {
-		out += "|" + k + "=" + labels[k]
+		out.WriteString("|" + k + "=" + labels[k])
 	}
-	return out
+	return out.String()
 }
 
 // RenderPrometheus converts the internal snapshot into the standard text
@@ -69,7 +68,7 @@ func RenderPrometheus(counters map[string]uint64) string {
 		metric, rawLabels, _ := strings.Cut(key, "|")
 		labels := make([]string, 0)
 		if rawLabels != "" {
-			for _, pair := range strings.Split(rawLabels, "|") {
+			for pair := range strings.SplitSeq(rawLabels, "|") {
 				name, labelValue, ok := strings.Cut(pair, "=")
 				if !ok {
 					continue

@@ -133,7 +133,7 @@ func TestStore_ListLimit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		s.Create(&Feedback{Payload: `{"problem":{"summary":"x"}}`}) //nolint:errcheck
 	}
 	list, err := s.List("", 3, 0) //nolint:errcheck
@@ -152,7 +152,7 @@ func TestStore_ListOffsetPagination(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		if err := s.Create(&Feedback{Payload: `{"problem":{"summary":"x"}}`}); err != nil {
 			t.Fatal(err)
 		}

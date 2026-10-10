@@ -73,8 +73,7 @@ func InternalError(w http.ResponseWriter) {
 func Decode[T any](w http.ResponseWriter, r *http.Request) (T, bool) {
 	var req T
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			RespondAppError(w, &AppError{Code: "too_large", Message: "Request body too large", HTTPStatus: http.StatusRequestEntityTooLarge})
 			return req, false
 		}
@@ -92,8 +91,7 @@ func DecodeStrict[T validator](w http.ResponseWriter, r *http.Request) (T, bool)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			RespondAppError(w, &AppError{Code: "too_large", Message: "Request body too large", HTTPStatus: http.StatusRequestEntityTooLarge})
 			return req, false
 		}
@@ -111,8 +109,7 @@ func DecodeStrict[T validator](w http.ResponseWriter, r *http.Request) (T, bool)
 func DecodeAndValidate[T validator](w http.ResponseWriter, r *http.Request) (T, bool) {
 	var req T
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			RespondAppError(w, &AppError{Code: "too_large", Message: "Request body too large", HTTPStatus: http.StatusRequestEntityTooLarge})
 			return req, false
 		}

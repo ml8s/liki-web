@@ -1,5 +1,7 @@
 package payment
 
+import "slices"
+
 import "fmt"
 
 // ProviderRoutePolicy chooses the payment provider after the business order's
@@ -19,10 +21,8 @@ func (CurrencyRoutePolicy) Select(currency string, available []Provider) (Provid
 	if currency == "CNY" {
 		want = ProviderXunhu
 	}
-	for _, provider := range available {
-		if provider == want {
-			return want, nil
-		}
+	if slices.Contains(available, want) {
+		return want, nil
 	}
 	return "", fmt.Errorf("payment: no gateway configured for %s orders", currency)
 }

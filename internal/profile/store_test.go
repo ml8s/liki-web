@@ -60,7 +60,7 @@ func TestStoreCreateGetRoundtrip(t *testing.T) {
 
 func TestStoreListCursorPagination(t *testing.T) {
 	store, userID := newStoreFixture(t)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		in := validInput()
 		in.Nickname = string(rune('A' + i))
 		if _, err := store.Create(context.Background(), userID, in); err != nil {
@@ -136,7 +136,7 @@ func TestStoreSoftDelete(t *testing.T) {
 
 func TestStoreQuota(t *testing.T) {
 	store, userID := newStoreFixture(t)
-	for i := 0; i < MaxProfilesPerUser; i++ {
+	for i := range MaxProfilesPerUser {
 		if _, err := store.Create(context.Background(), userID, validInput()); err != nil {
 			t.Fatalf("create %d: %v", i, err)
 		}
@@ -178,7 +178,7 @@ func TestStore_AnonymizeUser(t *testing.T) {
 	store, _ := newStoreFixture(t)
 
 	// user_1 两个档案
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		if _, err := store.Create(context.Background(), "user_1", validInput()); err != nil {
 			t.Fatal(err)
 		}

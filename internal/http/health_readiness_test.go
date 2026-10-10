@@ -59,7 +59,7 @@ func TestReadyRouteIsRateLimited(t *testing.T) {
 	}, "test", "test", limiter, limiter)
 
 	var lastStatus int
-	for i := 0; i < 11; i++ {
+	for range 11 {
 		req := httptest.NewRequest(http.MethodGet, "/api/ready", nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
