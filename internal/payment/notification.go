@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/ml8s/liki-web/internal/money"
 )
 
 type EmailMessage struct {
@@ -110,7 +112,7 @@ func newPaidOrderNotice(intent PaymentIntent, flow ProductFlow, baseURL string) 
 		OrderID:         intent.BusinessOrderID,
 		PaymentIntentID: intent.ID,
 		CustomerEmail:   intent.Email,
-		Amount:          formatMinorAmount(intent.AmountMinor, intent.Currency),
+		Amount:          money.FormatDisplay(intent.AmountMinor, intent.Currency),
 		Provider:        providerDisplayName(intent.Provider),
 		PaidAt:          paidAt.Format("2006-01-02 15:04:05 MST"),
 		ContinueURL:     absoluteNotificationURL(baseURL, flow.SuccessRedirect(intent)),
@@ -136,19 +138,6 @@ func absoluteNotificationURL(baseURL, location string) string {
 		return location
 	}
 	return base.ResolveReference(reference).String()
-}
-
-func formatMinorAmount(amountMinor int64, currency string) string {
-	units := amountMinor / 100
-	cents := amountMinor % 100
-	switch currency {
-	case "CNY":
-		return fmt.Sprintf("¥%d.%02d", units, cents)
-	case "USD":
-		return fmt.Sprintf("$%d.%02d", units, cents)
-	default:
-		return fmt.Sprintf("%s %d.%02d", currency, units, cents)
-	}
 }
 
 func providerDisplayName(provider Provider) string {

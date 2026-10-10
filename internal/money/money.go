@@ -55,3 +55,19 @@ func FormatDecimalFromMinor(minor int64) string {
 	}
 	return fmt.Sprintf("%s%d.%02d", sign, minor/100, minor%100)
 }
+
+// FormatDisplay renders minor units for human-facing surfaces that do not
+// do their own locale formatting (emails, notifications): CNY/USD get
+// their conventional symbols, other currencies the ISO code.
+func FormatDisplay(minor int64, currency string) string {
+	units := minor / 100
+	cents := minor % 100
+	switch currency {
+	case "CNY":
+		return fmt.Sprintf("¥%d.%02d", units, cents)
+	case "USD":
+		return fmt.Sprintf("$%d.%02d", units, cents)
+	default:
+		return fmt.Sprintf("%s %d.%02d", currency, units, cents)
+	}
+}
