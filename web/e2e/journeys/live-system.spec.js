@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures'
 
 const answer = process.env.LIKI_E2E_ANSWER || 'E2E_FULL_CAPABILITY_ANSWER'
+const publicUrl = new URL(process.env.BASE_URL || 'http://localhost:8080').origin
 
 test('full system chat journey through Caddy and AG-UI @system', async ({ page }) => {
   test.skip(!process.env.LIVE_SYSTEM_E2E, 'Set LIVE_SYSTEM_E2E=1 for the deployed system journey')
@@ -18,6 +19,7 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
   }])
 
   const profileResponse = await page.request.post('/api/profiles', {
+    headers: { Origin: publicUrl, Referer: `${publicUrl}/` },
     data: {
       nickname: 'System E2E',
       gender: 'male',
@@ -34,6 +36,7 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
   const profile = (await profileResponse.json()).data
 
   const sessionResponse = await page.request.post('/api/chat/sessions', {
+    headers: { Origin: publicUrl, Referer: `${publicUrl}/` },
     data: {
       profile_id: profile.id,
       skill: 'liki',
