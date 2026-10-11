@@ -48,6 +48,5 @@ Never commit:
 
 Architectural security decisions — header ownership, same-origin policy,
 admin capability model, token and secret handling — are documented in
-[ARCHITECTURE.md](./ARCHITECTURE.md) and audited over time in
-[docs/PROJECT_REVIEW.md](./docs/PROJECT_REVIEW.md). This file covers
-responsible disclosure only.
+[ARCHITECTURE.md](./ARCHITECTURE.md). This file covers responsible disclosure
+only.

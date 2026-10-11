@@ -32,8 +32,7 @@ operator endpoints and middleware (rate limiting, recovery). The only
 exception is the `net/http` ServeMux's own 404/405 replies, which remain the
 framework default. If the API ever gains third-party consumers, the error
 shape already matches RFC 9457; full JSON:API v1.1 (`application/vnd.api+json`
-with links/meta) was evaluated and deliberately not adopted — recorded in
-`docs/PANEL_REVIEW.md` §18.
+with links/meta) was evaluated and deliberately not adopted.
 
 Authentication uses HttpOnly platform session cookies. Ownership and entitlement are always checked server-side.
 
