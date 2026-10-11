@@ -129,6 +129,45 @@ func TestDevCodeAllowsLoginWhenMailerFails(t *testing.T) {
 	}
 }
 
+func TestSessionsSupportNullableRequestMetadata(t *testing.T) {
+	store := newTestStore(t)
+	now := time.Now().UTC().Format(time.RFC3339)
+	expires := time.Now().UTC().Add(time.Hour).Format(time.RFC3339)
+	if _, err := store.db.Exec(`
+INSERT INTO users (id,email,status,locale,created_at,updated_at)
+VALUES ('user-null-meta','null-meta@example.com','active','zh-Hant',?,?)`,
+		now, now); err != nil {
+		t.Fatal(err)
+	}
+	tokenHash := store.sessionTokenHash("nullable-metadata-token")
+	if _, err := store.db.Exec(`
+INSERT INTO auth_sessions
+(id,user_id,token_hash,status,ip_hash,user_agent,created_at,expires_at,last_seen_at)
+VALUES ('session-null-meta','user-null-meta',?,'active',NULL,NULL,?,?,NULL)`,
+		tokenHash, now, expires); err != nil {
+		t.Fatal(err)
+	}
+
+	user, session, err := store.GetSessionUser(context.Background(), "nullable-metadata-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if user.ID != "user-null-meta" || session.ID != "session-null-meta" {
+		t.Fatalf("session lookup mismatch: user=%+v session=%+v", user, session)
+	}
+	if session.IPHash != "" || session.UserAgent != "" {
+		t.Fatalf("nullable metadata = ip=%q agent=%q, want empty", session.IPHash, session.UserAgent)
+	}
+
+	sessions, err := store.ListSessions(context.Background(), user.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sessions) != 1 || sessions[0].ID != "session-null-meta" {
+		t.Fatalf("sessions = %+v", sessions)
+	}
+}
+
 func TestProductionDoesNotExposeDevCode(t *testing.T) {
 	store := newTestStore(t)
 	service, mailer := newTestService(t, store)

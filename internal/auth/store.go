@@ -480,10 +480,10 @@ WHERE s.token_hash=?`, tokenHash)
 	var userStatus, userLocale, userCreatedAt, userUpdatedAt string
 	var userLastLogin, userDeleted sql.NullString
 	var sessionCreatedAt, sessionExpiresAt string
-	var sessionRevoked, sessionLastSeen sql.NullString
+	var sessionIPHash, sessionUserAgent, sessionRevoked, sessionLastSeen sql.NullString
 	err := row.Scan(
 		&user.ID, &user.Email, &userStatus, &userLocale, &userCreatedAt, &userUpdatedAt, &userLastLogin, &userDeleted,
-		&session.ID, &session.TokenHash, &session.Status, &session.IPHash, &session.UserAgent,
+		&session.ID, &session.TokenHash, &session.Status, &sessionIPHash, &sessionUserAgent,
 		&sessionCreatedAt, &sessionExpiresAt, &sessionRevoked, &sessionLastSeen,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -511,6 +511,12 @@ WHERE s.token_hash=?`, tokenHash)
 	if sessionLastSeen.Valid {
 		t := mustTime(sessionLastSeen.String)
 		session.LastSeenAt = &t
+	}
+	if sessionIPHash.Valid {
+		session.IPHash = sessionIPHash.String
+	}
+	if sessionUserAgent.Valid {
+		session.UserAgent = sessionUserAgent.String
 	}
 	session.CreatedAt = mustTime(sessionCreatedAt)
 	session.ExpiresAt = mustTime(sessionExpiresAt)
@@ -566,9 +572,15 @@ ORDER BY created_at DESC`, userID, s.nowFunc().Format(time.RFC3339))
 	for rows.Next() {
 		var session AuthSession
 		var createdAt, expiresAt string
-		var revoked, lastSeen sql.NullString
-		if err := rows.Scan(&session.ID, &session.UserID, &session.TokenHash, &session.Status, &session.IPHash, &session.UserAgent, &createdAt, &expiresAt, &revoked, &lastSeen); err != nil {
+		var ipHash, userAgent, revoked, lastSeen sql.NullString
+		if err := rows.Scan(&session.ID, &session.UserID, &session.TokenHash, &session.Status, &ipHash, &userAgent, &createdAt, &expiresAt, &revoked, &lastSeen); err != nil {
 			return nil, err
+		}
+		if ipHash.Valid {
+			session.IPHash = ipHash.String
+		}
+		if userAgent.Valid {
+			session.UserAgent = userAgent.String
 		}
 		session.CreatedAt = mustTime(createdAt)
 		session.ExpiresAt = mustTime(expiresAt)
