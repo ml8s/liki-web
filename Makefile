@@ -2,12 +2,12 @@
 # 统一语义（四仓一致）：
 #   make check  纯静态契约检查（lint+格式+类型+安全+skills；不跑测试、不构建）
 #   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
-#   make gate   check + test ＝ 推送门槛
+#   make gate   check + test + image smoke ＝ 推送门槛
 #   make build  本仓产物（前端+二进制；镜像由 CI release 构建）
 #   make image  本地镜像（调试用，非发布路径）
 #   make e2e    浏览器 E2E（本仓视角）
-#   make smoke  部署后 HTTP 冒烟
-.PHONY: help check test gate smoke e2e \
+#   make smoke  本仓镜像启动 + health/page 冒烟
+.PHONY: help check test gate smoke smoke-deploy e2e \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
         check-html check-security \
         build build-skills build-sitemap build-web build-go image \
@@ -16,11 +16,13 @@
 # ── 环境 ──
 NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
 VERSION_FILE := cmd/liki-web/VERSION
-export PATH := $(HOME)/app/go/bin:$(HOME)/app/go-tools/bin:$(HOME)/go/bin:$(PATH)
+PYTHON_BIN := $(HOME)/app/python3.12.14/bin
+export PATH := $(PYTHON_BIN):$(NODE_BIN):$(HOME)/app/go/bin:$(HOME)/app/go-tools/bin:$(HOME)/go/bin:$(PATH)
 export GOCACHE ?= /tmp/gocache
 export GOLANGCI_LINT_CACHE ?= /tmp/golangci-lint-cache
+export GOTOOLCHAIN ?= go1.26.9
 
-# smoke URL（make smoke 或 make smoke to=us / to=cn）
+# deployed smoke URL（make smoke-deploy URL=...）
 DOMAIN_US = $(shell /bin/grep -oP '^DOMAIN_US=\K.*' .env 2>/dev/null || echo "liki.hk")
 DOMAIN_CN = $(shell /bin/grep -oP '^DOMAIN_CN=\K.*' .env 2>/dev/null || echo "liki.hk")
 ifeq ($(to),us)
@@ -45,12 +47,15 @@ check: lint-go fmt-check lint-js lint-docs typecheck check-html check-security c
 
 test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
 
-gate: check test ## 部署门槛：check + test 全过才能部署
+gate: check test smoke ## 部署门槛：check + test + image smoke
 
 check-actions: ## Reject mutable reusable workflow/action references
 	python3 scripts/check_actions_pinned.py
 
-smoke: ## 部署后冒烟验证（make smoke 或 make smoke to=us）
+smoke: image ## 本仓镜像冒烟：health + rendered homepage
+	IMAGE_TAG=$(IMAGE_TAG) scripts/smoke-image.sh
+
+smoke-deploy: ## 部署后冒烟验证（make smoke-deploy URL=...）
 	scripts/smoke.sh $(URL)
 
 # ── 调试（check / test 失败时隔离定位）──
