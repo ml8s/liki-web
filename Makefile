@@ -110,16 +110,18 @@ clean: ## 清理构建产物
 hooks: ## 安装 git hooks
 	git config core.hooksPath .githooks
 
-version: ## bump patch（CalVer 日期）
-	@V=$$(date +%Y.%m.%d); echo "$$V" > $(VERSION_FILE); echo "✅ → $$V"
+version: ## bump patch（CalVer date）
+	@V="$$(date +%Y.%m.%d).0"; echo "$$V" > $(VERSION_FILE); echo "✅ → $$V"
 
 version-minor: ## bump minor
-	@V=$$(cat $(VERSION_FILE)); MAJOR=$${V%%.*}; REST=$${V#*.}; MINOR=$${REST%.*}; \
-	echo "$$MAJOR.$$((MINOR + 1)).0" > $(VERSION_FILE); echo "✅ $$V → $$(cat $(VERSION_FILE))"
+	@V=$$(cat $(VERSION_FILE)); NEXT=$$(printf '%s' "$$V" | awk -F. 'NF == 4 && $$1 ~ /^[0-9]+$$/ && $$2 ~ /^[0-9]+$$/ {print $$1 "." $$2 + 1 ".0.0"; ok=1} END {exit !ok}'); \
+	[ -n "$$NEXT" ] || { echo "❌ Expected CalVer version: YYYY.MM.PP.BUILD" >&2; exit 1; }; \
+	echo "$$NEXT" > $(VERSION_FILE); echo "✅ $$V → $$NEXT"
 
 version-major: ## bump major
-	@V=$$(cat $(VERSION_FILE)); MAJOR=$${V%%.*}; \
-	echo "$$((MAJOR + 1)).0.0" > $(VERSION_FILE); echo "✅ $$V → $$(cat $(VERSION_FILE))"
+	@V=$$(cat $(VERSION_FILE)); NEXT=$$(printf '%s' "$$V" | awk -F. 'NF == 4 && $$1 ~ /^[0-9]+$$/ {print $$1 + 1 ".0.0.0"; ok=1} END {exit !ok}'); \
+	[ -n "$$NEXT" ] || { echo "❌ Expected CalVer version: YYYY.MM.PP.BUILD" >&2; exit 1; }; \
+	echo "$$NEXT" > $(VERSION_FILE); echo "✅ $$V → $$NEXT"
 
 # ════════════════════════════════════════════════════════════
 #  内部依赖（help 不显示）
