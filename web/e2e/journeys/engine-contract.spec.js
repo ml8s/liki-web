@@ -1,13 +1,12 @@
 // @ts-check
 // 引擎契约回归：用「真实引擎输出形状」渲染免费排盘与合盘，防止字段漂移被假 mock 掩盖。
-// 排盘/合盘 = 前端 TS 直连引擎 RPC（只读），契约归 liki/engine。
+// 排盘/合盘 = 前端调用 web BFF，BFF 服务端调用 engine-mcp（只读）。
 import { test, expect } from '@playwright/test'
-import { RPC_METHODS } from '../../app/src/api/engine'
+import { ENGINE_TOOLS } from '../../app/src/api/engine'
 
 test.use({ locale: 'zh-Hant' })
 
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
-const rpc = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ result: { data } }) })
 
 const user = { id: 'usr_test', email: 'user@example.com', status: 'active', locale: 'zh-Hant' }
 const profile = {
@@ -95,13 +94,6 @@ const bond = {
   shi_shen_cross: { jia_dui_yi: { nian_gan: '偏财', ri_gan: '日主' }, yi_dui_jia: { nian_gan: '偏印', ri_gan: '日主' } },
 }
 
-const qimingPick = {
-  wuxing1: '金', wuxing2: '水',
-  pools: [
-    { slot: 'first', chars: [{ char: '锐', frequency: '2k' }, { char: '铭', frequency: '1k' }] },
-    { slot: 'second', chars: [{ char: '泓', frequency: '1k' }] },
-  ],
-}
 const liuyaoSnapshot = {
   question: '这个项目能成吗',
   casting: { mode: 'auto', rounds: 3, yaos: [[1, 2, 3], [4, 5, 6], [7, 8, 9]], dong_yao: [3], casting_id: 'c1', order: 0 },
@@ -116,25 +108,24 @@ const huangliDays = {
 }
 
 function routeEngine(page) {
-  return page.route('**/jsonrpc', async route => {
-    const { method } = await route.request().postDataJSON()
+  return page.route('**/api/engine/tools/*', async route => {
+    const tool = new URL(route.request().url()).pathname.split('/').pop()
     let data
-    switch (method) {
-      case RPC_METHODS.CityCoords: data = { longitude: 121.47, latitude: 31.23 }; break
-      case RPC_METHODS.TianwenTime: data = { solar: '1958-05-12T06:00:00+08:00', lunar: { year: 1958, month: 4, day: 24 } }; break
-      case RPC_METHODS.BaziChart: data = baziChart; break
-      case RPC_METHODS.BaziFullChart: data = baziFull; break
-      case RPC_METHODS.ZiweiChart: data = ziweiChart; break
-      case RPC_METHODS.ZiweiFullChart: data = ziweiFull; break
-      case RPC_METHODS.BazhaiChart: data = bazhai; break
-      case RPC_METHODS.BaziBond: data = bond; break
-      case RPC_METHODS.QimingPick: data = qimingPick; break
-      case RPC_METHODS.LiuyaoQigua: data = { casting: liuyaoSnapshot.casting }; break
-      case RPC_METHODS.LiuyaoChart: data = liuyaoSnapshot; break
-      case RPC_METHODS.HuangliDays: data = huangliDays; break
+    switch (tool) {
+      case ENGINE_TOOLS.CityCoords: data = { longitude: 121.47, latitude: 31.23 }; break
+      case ENGINE_TOOLS.TianwenTime: data = { solar: '1958-05-12T06:00:00+08:00', lunar: { year: 1958, month: 4, day: 24 } }; break
+      case ENGINE_TOOLS.BaziChart: data = baziChart; break
+      case ENGINE_TOOLS.BaziFullChart: data = baziFull; break
+      case ENGINE_TOOLS.ZiweiChart: data = ziweiChart; break
+      case ENGINE_TOOLS.ZiweiFullChart: data = ziweiFull; break
+      case ENGINE_TOOLS.BazhaiChart: data = bazhai; break
+      case ENGINE_TOOLS.BaziBond: data = bond; break
+      case ENGINE_TOOLS.LiuyaoQigua: data = { casting: liuyaoSnapshot.casting }; break
+      case ENGINE_TOOLS.LiuyaoChart: data = liuyaoSnapshot; break
+      case ENGINE_TOOLS.HuangliDays: data = huangliDays; break
       default: data = {}
     }
-    return route.fulfill(rpc(data))
+    return route.fulfill(json(data))
   })
 }
 
@@ -170,7 +161,7 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
   await expect(page.locator('.ln-row')).toContainText('三碧禄存')
 })
 
-test('合盘按真实引擎契约渲染（bazi.bond）', async ({ page }) => {
+test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await routeApp(page)
   await page.route('**/api/profiles**', r => (r.request().url().endsWith('/profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
   await page.route('**/api/chat/sessions', r => r.fulfill(json([])))

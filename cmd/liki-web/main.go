@@ -31,6 +31,7 @@ import (
 	"github.com/ml8s/liki-web/internal/xunhu"
 
 	"github.com/ml8s/liki-web/internal/email"
+	"github.com/ml8s/liki-web/internal/enginemcp"
 	"github.com/ml8s/liki-web/internal/feedback"
 	apphttp "github.com/ml8s/liki-web/internal/http"
 	"github.com/ml8s/liki-web/internal/httputil"
@@ -62,7 +63,8 @@ type Config struct {
 	XunhuAppSecret       string
 	PaymentWebhookURL    string
 	AlipayConfig         aipay.Config
-	EngineURL            string
+	EngineMCPBaseURL     string
+	EngineMCPToken       string
 	AgentURL             string
 	AgentInternalToken   string
 	AgentTimeoutSeconds  int
@@ -98,7 +100,8 @@ func LoadConfig() Config {
 		XunhuAppSecret:       envOr("XUNHU_APPSECRET", ""),
 		PaymentWebhookURL:    envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
 		AlipayConfig:         loadAlipayConfig(),
-		EngineURL:            envOr("LIKI_ENGINE_URL", "http://localhost:8082/jsonrpc"),
+		EngineMCPBaseURL:     envOr("LIKI_ENGINE_MCP_URL", "http://localhost:8085"),
+		EngineMCPToken:       os.Getenv("LIKI_ENGINE_MCP_TOKEN"),
 		AgentURL:             strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
 		AgentInternalToken:   os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
 		AgentTimeoutSeconds:  envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
@@ -495,7 +498,7 @@ func main() {
 				return fmt.Errorf("database %s: %w", name, err)
 			}
 		}
-		if err := checkEngineReadiness(ctx, cfg.EngineURL); err != nil {
+		if err := checkEngineMCPReadiness(ctx, cfg.EngineMCPBaseURL); err != nil {
 			return err
 		}
 		if err := checkAgentReadiness(ctx, cfg.AgentURL); err != nil {
@@ -525,6 +528,7 @@ func main() {
 		ReferralHandler: referralHandler,
 		ReferralStore:   referralStore,
 		LikiHandler:     liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser, liki.WithCurrencyResolver(currencyResolver)),
+		EngineMCP:       enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),
 		AipayHandler:    aipayHandler,
 		ProfileHandler:  profile.NewHandler(profileStore, authHandler.RequireUser),
 		AccountHandler:  accountHandler,
@@ -710,7 +714,7 @@ func validateHTTPURL(name, value string) error {
 
 func validateRuntimeURLs(cfg Config) error {
 	var errs []error
-	if err := validateHTTPURL("LIKI_ENGINE_URL", cfg.EngineURL); err != nil {
+	if err := validateHTTPURL("LIKI_ENGINE_MCP_URL", cfg.EngineMCPBaseURL); err != nil {
 		errs = append(errs, err)
 	}
 	if err := validateHTTPURL("RETURN_URL", cfg.ReturnURL); err != nil {

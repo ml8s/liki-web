@@ -1,12 +1,13 @@
 # Local/development full-stack environment used by liki-web/scripts/docker-test.sh.
 
 services:
-  engine:
+  engine-mcp:
     image: ${LIKI_ENGINE_IMAGE:?LIKI_ENGINE_IMAGE is required}
-    expose: ["8082"]
+    entrypoint: ["/usr/local/bin/engine-mcp", "--addr", ":8085"]
+    expose: ["8085"]
     restart: "no"
     environment:
-      - LISTEN_ADDR=:8082
+      - LISTEN_ADDR=:8085
     deploy:
       resources:
         limits:
@@ -26,13 +27,14 @@ services:
     environment:
       - LISTEN_ADDR=:8081
       - LIKI_DATA_DIR=/var/lib/liki
-      - LIKI_ENGINE_URL=http://engine:8082/jsonrpc
+      - LIKI_ENGINE_MCP_URL=http://engine-mcp:8085
+      - LIKI_ENGINE_MCP_TOKEN=${LIKI_ENGINE_MCP_TOKEN:-}
       - LIKI_AGENTS_URL=${LIKI_AGENTS_URL:-http://127.0.0.1:18083}
       - LIKI_AGENTS_INTERNAL_TOKEN=${LIKI_AGENTS_INTERNAL_TOKEN:?LIKI_AGENTS_INTERNAL_TOKEN is required}
     tmpfs:
       - /var/lib/liki:uid=1000,gid=1000,mode=0700
     depends_on:
-      engine:
+      engine-mcp:
         condition: service_started
     deploy:
       resources:
@@ -47,6 +49,7 @@ services:
     environment:
       - DOMAIN=localhost
       - CADDY_LISTEN_ADDR=:80
+      - LIKI_ENGINE_HOST=engine-rpc
     volumes:
       - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
     tmpfs:
@@ -54,7 +57,14 @@ services:
     depends_on:
       web:
         condition: service_started
+
+  engine-rpc:
+    image: ${LIKI_ENGINE_IMAGE:?LIKI_ENGINE_IMAGE is required}
+    entrypoint: ["/usr/local/bin/engine-rpc"]
+    expose: ["8082"]
     restart: "no"
+    environment:
+      - LISTEN_ADDR=:8082
     deploy:
       resources:
         limits:

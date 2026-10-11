@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Start Liki development environment WITHOUT Docker.
-# Engine on :8082, Web API on :8081, Caddy on :8080.
+# Engine MCP on :8085, Web API on :8081, Caddy on :8080.
 #
 # Prerequisites: make build-go build-web (run by Makefile 'dev' target)
 set -euo pipefail
@@ -13,7 +13,8 @@ if [ -f .env ]; then
   set -a; source .env; set +a
 fi
 
-LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
+LIKI_ENGINE_MCP_URL="${LIKI_ENGINE_MCP_URL:-http://localhost:8085}"
+LIKI_ENGINE_MCP_TOKEN="${LIKI_ENGINE_MCP_TOKEN:-}"
 export LIKI_WEB_HOST="${LIKI_WEB_HOST:-localhost}"
 export LIKI_ENGINE_HOST="${LIKI_ENGINE_HOST:-localhost}"
 
@@ -28,7 +29,8 @@ export RETURN_URL="${RETURN_URL:-http://localhost:8080}"
 export LIKI_DATA_DIR="${LIKI_DATA_DIR:-$(pwd)/data}"
 mkdir -p "$LIKI_DATA_DIR"
 export LISTEN_ADDR="${LISTEN_ADDR:-:8081}"
-export LIKI_ENGINE_URL="${LIKI_ENGINE_URL:-http://localhost:8082/jsonrpc}"
+export LIKI_ENGINE_MCP_URL
+export LIKI_ENGINE_MCP_TOKEN
 export LIKI_AGENTS_URL="${LIKI_AGENTS_URL:-http://127.0.0.1:18083}"
 export LIKI_AGENTS_INTERNAL_TOKEN="${LIKI_AGENTS_INTERNAL_TOKEN:-dev-agent-secret}"
 export TRUSTED_PROXY_HOPS="${TRUSTED_PROXY_HOPS:-1}"
@@ -65,11 +67,12 @@ if [ -z "${CADDY_BIN:-}" ]; then
   fi
 fi
 
-ENGINE_BIN="${ENGINE_BIN:-}"
-if [ -z "$ENGINE_BIN" ] && [[ "$LIKI_ENGINE_URL" == http://localhost:* ]]; then
-  echo "ERROR: set ENGINE_BIN to an extracted engine-rpc artifact when using localhost Engine" >&2
+ENGINE_MCP_BIN="${ENGINE_MCP_BIN:-}"
+if [ -z "$ENGINE_MCP_BIN" ]; then
+  echo "ERROR: set ENGINE_MCP_BIN to an extracted engine-mcp artifact" >&2
   exit 1
 fi
+ENGINE_RPC_BIN="${ENGINE_RPC_BIN:-}"
 
 # Web binary (pre-built by 'make build-go')
 WEB_BIN="${WEB_BIN:-bin/liki-web}"
@@ -79,25 +82,30 @@ if [ ! -x "$WEB_BIN" ]; then
 fi
 
 # Free ports
-for port in 8080 8081 8082; do
+for port in 8080 8081 8082 8085; do
   if fuser "$port/tcp" 2>/dev/null; then
     echo "==> Warning: killing existing process on port $port"
     fuser -k "$port/tcp" 2>/dev/null || true
   fi
 done
 for i in $(seq 1 30); do
-  if ! fuser 8080/tcp 8081/tcp 8082/tcp 2>/dev/null; then break; fi
+  if ! fuser 8080/tcp 8081/tcp 8082/tcp 8085/tcp 2>/dev/null; then break; fi
   sleep 0.5
 done
 
-ENGINE_PID=""
-if [ -n "$ENGINE_BIN" ]; then
-  echo "==> Starting engine on :8082"
-  LISTEN_ADDR=:8082 "$ENGINE_BIN" &
-  ENGINE_PID=$!
+ENGINE_MCP_PID=""
+echo "==> Starting engine MCP on :8085"
+"$ENGINE_MCP_BIN" --addr :8085 &
+ENGINE_MCP_PID=$!
+
+ENGINE_RPC_PID=""
+if [ -n "$ENGINE_RPC_BIN" ]; then
+  echo "==> Starting legacy engine JSON-RPC on :8082"
+  LISTEN_ADDR=:8082 "$ENGINE_RPC_BIN" &
+  ENGINE_RPC_PID=$!
 fi
 for i in $(seq 1 30); do
-  curl -sf "$LIKI_ENGINE_URL" -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"health","id":1}' >/dev/null 2>&1 && break
+  curl -sf "$LIKI_ENGINE_MCP_URL/health" >/dev/null 2>&1 && break
   sleep 0.5
 done
 
@@ -113,9 +121,10 @@ echo "==> Starting Caddy on :8080"
 "$CADDY_BIN" run --config "$PROJECT_DIR/dev/Caddyfile.local" --adapter caddyfile &
 CADDY_PID=$!
 
-trap "kill $ENGINE_PID $API_PID $CADDY_PID 2>/dev/null; exit" INT TERM EXIT
+trap "kill $ENGINE_MCP_PID $ENGINE_RPC_PID $API_PID $CADDY_PID 2>/dev/null; exit" INT TERM EXIT
 
 echo "==> Ready: http://localhost:8080"
-echo "    Engine JSON-RPC: http://localhost:8080/jsonrpc"
+echo "    Engine MCP: http://localhost:8085/mcp"
+echo "    Legacy Engine JSON-RPC: http://localhost:8080/jsonrpc (requires ENGINE_RPC_BIN)"
 echo "    Press Ctrl+C to stop"
 wait

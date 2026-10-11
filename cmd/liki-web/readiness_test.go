@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestCheckEngineReadinessUsesJSONRPCHealth(t *testing.T) {
+func TestCheckEngineMCPCReadinessUsesHealth(t *testing.T) {
 	var method string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method = r.Method
@@ -16,11 +16,11 @@ func TestCheckEngineReadinessUsesJSONRPCHealth(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := checkEngineReadiness(context.Background(), server.URL+"/jsonrpc"); err != nil {
-		t.Fatalf("checkEngineReadiness() = %v", err)
+	if err := checkEngineMCPReadiness(context.Background(), server.URL); err != nil {
+		t.Fatalf("checkEngineMCPReadiness() = %v", err)
 	}
-	if method != http.MethodPost {
-		t.Fatalf("method = %s, want POST", method)
+	if method != http.MethodGet {
+		t.Fatalf("method = %s, want GET", method)
 	}
 }
 

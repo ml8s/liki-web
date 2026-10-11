@@ -12,6 +12,7 @@ import (
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/aipay"
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/enginemcp"
 	"github.com/ml8s/liki-web/internal/feedback"
 	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/payment"
@@ -25,6 +26,7 @@ type ServerDeps struct {
 	ReferralHandler *referral.Handler
 	ReferralStore   *referral.Store
 	LikiHandler     *liki.Handler
+	EngineMCP       *enginemcp.Handler
 	AipayHandler    *aipay.Handler
 	ProfileHandler  *profile.Handler
 	AccountHandler  *account.Handler
@@ -75,6 +77,12 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 			return rl.Wrap(5.0/60, 6, next)
 		}
 		deps.LikiHandler.RegisterRoutes(mux, likiLimit)
+	}
+	if deps.EngineMCP != nil {
+		engineLimit := func(next http.HandlerFunc) http.HandlerFunc {
+			return rl.Wrap(30.0/60, 30, next)
+		}
+		deps.EngineMCP.RegisterRoutes(mux, engineLimit)
 	}
 	if deps.AipayHandler != nil {
 		// Aipay bills and proof redemption are write-like endpoints and get

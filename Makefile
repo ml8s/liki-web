@@ -116,7 +116,10 @@ hooks: ## 安装 git hooks
 	git config core.hooksPath .githooks
 
 version: ## bump patch（CalVer date）
-	@V="$$(date +%Y.%m.%d).0"; echo "$$V" > $(VERSION_FILE); echo "✅ → $$V"
+	@DATE="$$(date +%Y.%m.%d)"; CURRENT=$$(cat $(VERSION_FILE) 2>/dev/null || echo 0.0.0.0); \
+	case "$$CURRENT" in $$DATE.*.*) BUILD=$${CURRENT\#\#*.} ;; *) BUILD=0 ;; esac; \
+	case "$$BUILD" in ''|*[!0-9]*) BUILD=0 ;; esac; \
+	V="$$DATE.$$((BUILD + 1))"; echo "$$V" > $(VERSION_FILE); echo "✅ → $$V"
 
 version-minor: ## bump minor
 	@V=$$(cat $(VERSION_FILE)); NEXT=$$(printf '%s' "$$V" | awk -F. 'NF == 4 && $$1 ~ /^[0-9]+$$/ && $$2 ~ /^[0-9]+$$/ {print $$1 "." $$2 + 1 ".0.0"; ok=1} END {exit !ok}'); \

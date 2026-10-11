@@ -10,13 +10,8 @@ import (
 
 var readinessClient = &http.Client{Timeout: 2 * time.Second}
 
-func checkEngineReadiness(ctx context.Context, engineURL string) error {
-	request, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		engineURL,
-		strings.NewReader(`{"jsonrpc":"2.0","method":"health","id":1}`),
-	)
+func checkEngineMCPReadiness(ctx context.Context, baseURL string) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(baseURL, "/")+"/health", nil)
 	if err != nil {
 		return fmt.Errorf("build engine readiness request: %w", err)
 	}

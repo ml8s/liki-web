@@ -3,11 +3,25 @@
 This document describes the stable HTTP API exposed by `liki-web`.
 The deterministic public `/jsonrpc` engine protocol is owned by the `liki`
 engine and documented there; `liki-web` does not proxy or redefine it.
+The browser charting workspace instead uses the same-origin
+`POST /api/engine/tools/{tool}` BFF surface below; the BFF calls engine MCP and
+never exposes the downstream token to a browser.
 
 Successful responses use a shared envelope (`application/json`):
 
 ```json
 {"data": {}}
+```
+
+## Free engine tools
+
+`POST /api/engine/tools/{tool}` accepts a JSON object and returns the engine
+MCP tool result in `data`. The tool name is an explicit allowlist:
+
+```text
+tianwen_time, city_coords, bazi_chart, bazi_fullchart,
+ziwei_chart, ziwei_fullchart, bazhai_chart, bazi_bond,
+liuyao_qigua, liuyao_chart, huangli_days
 ```
 
 Error responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)

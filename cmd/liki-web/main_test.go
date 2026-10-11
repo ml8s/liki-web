@@ -84,16 +84,16 @@ func TestLoadConfigUsesRuntimeEnvironment(t *testing.T) {
 
 func TestValidateRuntimeURLs(t *testing.T) {
 	valid := Config{
-		EngineURL: "http://engine:8082/jsonrpc",
-		ReturnURL: "https://liki.hk",
-		AgentURL:  "http://agent:8083",
+		EngineMCPBaseURL: "http://engine-mcp:8085",
+		ReturnURL:        "https://liki.hk",
+		AgentURL:         "http://agent:8083",
 	}
 	if err := validateRuntimeURLs(valid); err != nil {
 		t.Fatalf("validateRuntimeURLs(valid) = %v", err)
 	}
 
 	invalid := Config{
-		EngineURL:         "engine:8082",
+		EngineMCPBaseURL:  "engine-mcp:8085",
 		ReturnURL:         "/liki.hk",
 		PaymentWebhookURL: "liki.hk/api/payments/webhook",
 		AgentURL:          "agent:8083",
@@ -103,7 +103,7 @@ func TestValidateRuntimeURLs(t *testing.T) {
 		t.Fatal("validateRuntimeURLs(invalid) error = nil, want URL errors")
 	}
 	for _, name := range []string{
-		"LIKI_ENGINE_URL",
+		"LIKI_ENGINE_MCP_URL",
 		"RETURN_URL", "PAYMENTS_WEBHOOK_URL", "LIKI_AGENTS_URL",
 	} {
 		if !strings.Contains(err.Error(), name) {

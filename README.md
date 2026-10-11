@@ -40,9 +40,9 @@ make dev
 ```
 
 The Docker E2E uses `LIKI_ENGINE_IMAGE` and does not build the sibling liki
-repository. The non-Docker `make dev` path accepts a pre-extracted engine
-binary through `ENGINE_BIN`, or an already-running Engine through
-`LIKI_ENGINE_URL`.
+repository. The non-Docker `make dev` path accepts a pre-extracted engine MCP
+binary through `ENGINE_MCP_BIN`; set `ENGINE_RPC_BIN` only when testing the
+legacy public JSON-RPC compatibility endpoint.
 
 In development, the login page shows a local verification code when the email service is unavailable. Production does not expose this code.
 
@@ -52,7 +52,7 @@ In development, the login page shows a local verification code when the email se
 | --- | --- |
 | `make dev` | Build and start the local stack |
 | `make test` | Unit, integration, and skill tests (Go/JS/Python) |
-| `make gate` | `check` + `test`; pre-release gate |
+| `make gate` | `check` + `test` + candidate image smoke |
 | `make build` | Verify the prepared skill artifact, then build static assets and Go service |
 | `make clean` | Remove local build artifacts |
 

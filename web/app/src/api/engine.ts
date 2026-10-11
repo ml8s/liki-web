@@ -1,60 +1,57 @@
-// 免费排盘预览：前端 TS 直连引擎 RPC（只读消费，不落库）。
-// 引擎 RPC 契约归 liki/engine，方法名/入参以引擎现状为准，绝不修改。
+// 免费排盘预览：浏览器调用 web BFF，BFF 服务端调用 engine-mcp（只读，不落库）。
+// MCP 工具契约归 liki/engine；下游 token 永不进入浏览器。
 import { ApiError } from './http'
 
-let rpcId = 0
-
-interface RpcEnvelope<T> {
-  result?: T
-  error?: { code: number; message: string }
+interface EngineToolEnvelope<T> {
+  data?: T
+  detail?: string
 }
 
-interface RpcResult<T> {
-  data: T
-}
-
-/** 引擎 RPC 方法名（单一真相源——API 层和 E2E mock 均从此导入）。 */
-export const RPC_METHODS = {
-  TianwenTime: 'tianwen.time',
-  CityCoords: 'city.coords',
-  BaziChart: 'bazi.chart',
-  BaziFullChart: 'bazi.fullchart',
-  ZiweiChart: 'ziwei.chart',
-  ZiweiFullChart: 'ziwei.fullchart',
-  BazhaiChart: 'bazhai.chart',
-  BaziBond: 'bazi.bond',
-  LiuyaoQigua: 'liuyao.qigua',
-  LiuyaoChart: 'liuyao.chart',
-  HuangliDays: 'huangli.days',
+/** 免费 Web UI 可用的 engine MCP 工具名（API 层和 E2E mock 共用）。 */
+export const ENGINE_TOOLS = {
+  TianwenTime: 'tianwen_time',
+  CityCoords: 'city_coords',
+  BaziChart: 'bazi_chart',
+  BaziFullChart: 'bazi_fullchart',
+  ZiweiChart: 'ziwei_chart',
+  ZiweiFullChart: 'ziwei_fullchart',
+  BazhaiChart: 'bazhai_chart',
+  BaziBond: 'bazi_bond',
+  LiuyaoQigua: 'liuyao_qigua',
+  LiuyaoChart: 'liuyao_chart',
+  HuangliDays: 'huangli_days',
 } as const
 
-export async function engineRpc<T = unknown>(method: string, params: unknown): Promise<T> {
+export async function engineTool<T = unknown>(tool: string, params: unknown): Promise<T> {
   let response: Response
   try {
-    response = await fetch('/jsonrpc', {
+    response = await fetch(`/api/engine/tools/${encodeURIComponent(tool)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method, params, id: (rpcId = (rpcId + 1) % 1_000_000) }),
+      body: JSON.stringify(params),
     })
   } catch {
     throw new ApiError(0, 'network_error', 'Network request failed')
   }
+  let envelope: EngineToolEnvelope<T>
+  try {
+    envelope = await response.json() as EngineToolEnvelope<T>
+  } catch {
+    if (!response.ok) {
+      throw new ApiError(response.status, 'engine_unavailable', `Engine HTTP ${response.status}`)
+    }
+    throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
+  }
+  if (envelope.detail) {
+    throw new ApiError(response.status, 'engine_tool_failed', envelope.detail)
+  }
   if (!response.ok) {
     throw new ApiError(response.status, 'engine_unavailable', `Engine HTTP ${response.status}`)
   }
-  let envelope: RpcEnvelope<RpcResult<T>>
-  try {
-    envelope = await response.json() as RpcEnvelope<RpcResult<T>>
-  } catch {
+  if (!envelope || envelope.data === undefined) {
     throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
   }
-  if (envelope.error) {
-    throw new ApiError(response.status, 'engine_rpc_failed', envelope.error.message)
-  }
-  if (!envelope.result || !('data' in envelope.result)) {
-    throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
-  }
-  return envelope.result.data
+  return envelope.data
 }
 
 export interface BaziZhu {
@@ -106,15 +103,15 @@ export interface BaziChartData {
 }
 
 export function engineSolarTime(time: string, longitude: number): Promise<{ solar: string; lunar: string }> {
-  return engineRpc<{ solar: string; lunar: string }>(RPC_METHODS.TianwenTime, { time, longitude })
+  return engineTool<{ solar: string; lunar: string }>(ENGINE_TOOLS.TianwenTime, { time, longitude })
 }
 
 export function engineCityCoords(city: string): Promise<{ longitude: number; latitude: number }> {
-  return engineRpc<{ longitude: number; latitude: number }>(RPC_METHODS.CityCoords, { city })
+  return engineTool<{ longitude: number; latitude: number }>(ENGINE_TOOLS.CityCoords, { city })
 }
 
 export function engineBaziChart(solarTime: string, gender: string): Promise<BaziChartData> {
-  return engineRpc<BaziChartData>(RPC_METHODS.BaziChart, { solar_time: solarTime, gender })
+  return engineTool<BaziChartData>(ENGINE_TOOLS.BaziChart, { solar_time: solarTime, gender })
 }
 
 export interface BaziFuYiBasis {
@@ -331,7 +328,7 @@ export interface BaziFullChartData {
 }
 
 export function engineBaziFullChart(chart: unknown): Promise<BaziFullChartData> {
-  return engineRpc<BaziFullChartData>(RPC_METHODS.BaziFullChart, { chart })
+  return engineTool<BaziFullChartData>(ENGINE_TOOLS.BaziFullChart, { chart })
 }
 
 export interface ZiweiStarInfo {
@@ -442,11 +439,11 @@ export interface ZiweiChartData {
 }
 
 export function engineZiweiChart(lunar: string, gender: string): Promise<ZiweiChartData> {
-  return engineRpc<ZiweiChartData>(RPC_METHODS.ZiweiChart, { lunar, gender })
+  return engineTool<ZiweiChartData>(ENGINE_TOOLS.ZiweiChart, { lunar, gender })
 }
 
 export function engineZiweiFullChart(chart: unknown): Promise<ZiweiChart> {
-  return engineRpc<ZiweiChart>(RPC_METHODS.ZiweiFullChart, { chart })
+  return engineTool<ZiweiChart>(ENGINE_TOOLS.ZiweiFullChart, { chart })
 }
 
 export interface BazhaiLiuNianXing {
@@ -462,7 +459,7 @@ export interface BazhaiChart {
 }
 
 export function engineBazhaiChart(birthYear: number, gender: string): Promise<BazhaiChart> {
-  return engineRpc<BazhaiChart>(RPC_METHODS.BazhaiChart, { birth_year: birthYear, gender })
+  return engineTool<BazhaiChart>(ENGINE_TOOLS.BazhaiChart, { birth_year: birthYear, gender })
 }
 
 export interface BaziGanRelation {
@@ -509,7 +506,7 @@ export interface BaziBondResult {
 
 /** 八字合盘：输入双方最小命盘（bazi.chart 结果）。 */
 export function engineBaziBond(chartA: unknown, chartB: unknown): Promise<BaziBondResult> {
-  return engineRpc<BaziBondResult>(RPC_METHODS.BaziBond, { a: { chart: chartA }, b: { chart: chartB } })
+  return engineTool<BaziBondResult>(ENGINE_TOOLS.BaziBond, { a: { chart: chartA }, b: { chart: chartB } })
 }
 
 export interface LiuyaoCasting {
@@ -576,14 +573,14 @@ export interface LiuyaoChartResult {
 
 /** 六爻起卦：生成 casting 收据。 */
 export function engineLiuyaoQigua(mode = 'auto'): Promise<{ casting: LiuyaoCasting }> {
-  return engineRpc<{ casting: LiuyaoCasting }>(RPC_METHODS.LiuyaoQigua, { mode })
+  return engineTool<{ casting: LiuyaoCasting }>(ENGINE_TOOLS.LiuyaoQigua, { mode })
 }
 
 /** 六爻装卦：传入 casting + 真太阳时，返回卦象/用神/应期。 */
 export function engineLiuyaoChart(solarTime: string, casting: LiuyaoCasting, yongShen?: string): Promise<LiuyaoChartResult> {
   const params: Record<string, unknown> = { solar_time: solarTime, casting }
   if (yongShen) params.yong_shen = yongShen
-  return engineRpc<LiuyaoChartResult>(RPC_METHODS.LiuyaoChart, params)
+  return engineTool<LiuyaoChartResult>(ENGINE_TOOLS.LiuyaoChart, params)
 }
 
 export interface HuangliCandidate {
@@ -606,5 +603,5 @@ export interface HuangliDaysResult {
 
 /** 黄历择日：按事项与日期范围返回推荐/排除候选。 */
 export function engineHuangliDays(question: string, event: string, startDate: string, endDate: string): Promise<HuangliDaysResult> {
-  return engineRpc<HuangliDaysResult>(RPC_METHODS.HuangliDays, { question, event, start_date: startDate, end_date: endDate })
+  return engineTool<HuangliDaysResult>(ENGINE_TOOLS.HuangliDays, { question, event, start_date: startDate, end_date: endDate })
 }

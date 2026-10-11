@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { baziChartFor, resolvePaipanContext, type BirthInfo } from '@/utils/paipan'
 
-const rpcOk = (data: unknown) =>
-  new Response(JSON.stringify({ result: { data } }), {
+const toolOk = (data: unknown) =>
+  new Response(JSON.stringify({ data }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   })
@@ -16,11 +16,10 @@ const birth = (overrides: Partial<BirthInfo> = {}): BirthInfo => ({
   ...overrides,
 })
 
-function mockRpc(handlers: Record<string, unknown>) {
-  return vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
-    const body = JSON.parse((init?.body as string) ?? '{}')
-    const data = handlers[body.method] ?? {}
-    return Promise.resolve(rpcOk(data))
+function mockEngineTools(handlers: Record<string, unknown>) {
+  return vi.fn().mockImplementation((url: string) => {
+    const tool = url.split('/').pop() ?? ''
+    return Promise.resolve(toolOk(handlers[tool] ?? {}))
   })
 }
 
@@ -28,9 +27,9 @@ describe('resolvePaipanContext', () => {
   beforeEach(() => { vi.restoreAllMocks() })
 
   it('applies true solar time correction when place is given', async () => {
-    vi.stubGlobal('fetch', mockRpc({
-      'city.coords': { longitude: 121.47, latitude: 31.23 },
-      'tianwen.time': { solar: '1958-05-12T05:53:20+08:00', lunar: '1958-闰4-24' },
+    vi.stubGlobal('fetch', mockEngineTools({
+      city_coords: { longitude: 121.47, latitude: 31.23 },
+      tianwen_time: { solar: '1958-05-12T05:53:20+08:00', lunar: '1958-闰4-24' },
     }))
     const ctx = await resolvePaipanContext(birth())
     expect(ctx.corrected).toBe(true)
@@ -41,7 +40,7 @@ describe('resolvePaipanContext', () => {
 
   it('skips correction when no birth place', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      rpcOk({ solar: '1958-05-12T06:00:00+08:00', lunar: '1958-闰4-24' }),
+      toolOk({ solar: '1958-05-12T06:00:00+08:00', lunar: '1958-闰4-24' }),
     ))
     const ctx = await resolvePaipanContext(birth({ birth_place: undefined }))
     expect(ctx.corrected).toBe(false)
@@ -50,7 +49,7 @@ describe('resolvePaipanContext', () => {
 
   it('skips correction when time is unknown', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      rpcOk({ solar: '1958-05-12T06:00:00+08:00', lunar: '1958-闰4-24' }),
+      toolOk({ solar: '1958-05-12T06:00:00+08:00', lunar: '1958-闰4-24' }),
     ))
     const ctx = await resolvePaipanContext(birth({ birth_time_known: 'unknown' }))
     expect(ctx.corrected).toBe(false)
@@ -74,10 +73,10 @@ describe('baziChartFor', () => {
   })
 
   it('calls engine with corrected solar time', async () => {
-    vi.stubGlobal('fetch', mockRpc({
-      'city.coords': { longitude: 121.47, latitude: 31.23 },
-      'tianwen.time': { solar: '1958-05-12T05:53:20+08:00', lunar: '1958-闰4-24' },
-      'bazi.chart': { birth_year: 1958, gender: 'female' },
+    vi.stubGlobal('fetch', mockEngineTools({
+      city_coords: { longitude: 121.47, latitude: 31.23 },
+      tianwen_time: { solar: '1958-05-12T05:53:20+08:00', lunar: '1958-闰4-24' },
+      bazi_chart: { birth_year: 1958, gender: 'female' },
     }))
     const chart = await baziChartFor(birth())
     expect(chart.birth_year).toBe(1958)
