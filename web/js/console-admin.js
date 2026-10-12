@@ -54,12 +54,26 @@ async function checkAdminSession() {
     setAuthed(true);
     loadAdmins();
     loadReferralAdmin();
-  } catch {
+  } catch (error) {
+    if (error && error.status === 403) {
+      // Authenticated session without admin capabilities: say so instead of
+      // showing a login form that cannot fix anything.
+      $('auth-section').classList.add('hidden');
+      $('no-permission').classList.remove('hidden');
+      return;
+    }
     setAuthed(false);
   }
 }
 
 $('search-form').addEventListener('submit', event => { event.preventDefault(); doSearch(); });
+
+// No-permission state: let the operator switch accounts cleanly.
+$('no-permission-logout').addEventListener('click', async () => {
+  try { await request('/api/auth/logout', { method: 'POST' }); } catch {}
+  location.reload();
+});
+
 async function doSearch() {
   const email = $('search-email').value.trim();
   if (!email) return;

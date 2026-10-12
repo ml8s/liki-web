@@ -33,6 +33,12 @@
     <p id="login-error" class="status-msg status-error" role="alert"></p>
   </section>
 
+  <section id="no-permission" class="card hidden" aria-labelledby="no-permission-title">
+    <h2 id="no-permission-title">无管理权限</h2>
+    <p class="status-msg">当前登录的账号没有管理后台权限。请切换管理员账号后重试。</p>
+    <button class="btn btn-secondary" id="no-permission-logout" type="button">退出当前账号</button>
+  </section>
+
   <main id="main-section" class="hidden">
     <section class="card" aria-labelledby="search-title">
       <h2 id="search-title">历史起名订单查询</h2>
