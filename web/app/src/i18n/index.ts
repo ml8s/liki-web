@@ -1,7 +1,11 @@
 import { createI18n } from 'vue-i18n'
+import localeConfig from '../../../shared/locales.json'
 
-export const appLocales = ['zh-Hans', 'zh-Hant', 'en'] as const
-export type AppLocale = typeof appLocales[number]
+export type AppLocale = 'zh-Hans' | 'zh-Hant' | 'en'
+
+// Values derive from web/shared/locales.json (single source of truth shared
+// with the marketing site and the sitemap builder).
+export const appLocales = localeConfig.locales as readonly AppLocale[]
 
 export const LOCALE_COOKIE = 'liki_locale'
 

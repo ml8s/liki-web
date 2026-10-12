@@ -7,8 +7,10 @@ const path = require('path');
 const PROJECT = path.resolve(__dirname, '../..');
 const OUT = path.resolve(PROJECT, 'web/sitemap.xml');
 
-const LOCALES = ['zh-Hant', 'zh-Hans', 'en'];
-const DEFAULT_LOCALE = 'zh-Hant';
+// Derived from the single source of truth shared with marketing + SPA.
+const localeConfig = require('../shared/locales.json');
+const LOCALES = localeConfig.locales;
+const DEFAULT_LOCALE = localeConfig.defaultLocale;
 
 // Structure (which pages exist) is derived from the pages directory — the only
 // copy. Per-page sitemap metadata is configuration: defaults plus overrides,
