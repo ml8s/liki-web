@@ -22,7 +22,7 @@
     "profiles": "檔案",
     "chat": "Liki Chat",
     "orders": "訂單",
-    "partner": "合作中心",
+    "partner": "合作計劃",
     "account": "帳戶設定",
     "mine": "我的",
     "logout": "登出"
@@ -65,7 +65,7 @@
     "chat": "Liki Chat",
     "chatSession": "諮詢",
     "orders": "訂單",
-    "partnerCenter": "合作中心",
+    "partnerCenter": "合作計劃",
     "partnerKol": "KOL 合作",
     "partnerScout": "Scout 合作",
     "account": "帳戶設定",

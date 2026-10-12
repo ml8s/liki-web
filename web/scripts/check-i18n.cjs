@@ -6,6 +6,8 @@ const fs = require('fs');
 const path = require('path');
 
 const I18N_DIR = path.resolve(__dirname, '..', 'i18n');
+const APP_I18N_DIR = path.resolve(__dirname, '..', 'app', 'src', 'locales');
+const SHARED_LOCALES = require('../shared/locales.json');
 const errors = [];
 
 function loadJSON(filepath) {
@@ -30,6 +32,44 @@ function checkKeyAlignment(locales) {
       }
       for (const k of keysB) {
         if (!keysA.has(k)) errors.push(`${a}.json: missing key "${k}" (present in ${b}.json)`);
+      }
+    }
+  }
+}
+
+function getPath(obj, segments) {
+  let cur = obj;
+  for (const s of segments) {
+    if (cur == null || typeof cur !== 'object') return undefined;
+    cur = cur[s];
+  }
+  return cur;
+}
+
+// Cross-surface terminology anchors: the marketing site and the SPA maintain
+// separate i18n catalogs (static build vs runtime), so user-visible terms can
+// drift silently. Anchors below MUST resolve to the same value in every locale.
+const TERM_ANCHORS = [
+  { name: 'partner program (nav)', marketing: 'footer.partners', app: 'nav.partner' },
+  { name: 'partner program (page title)', marketing: 'footer.partners', app: 'router.partnerCenter' },
+  { name: 'brand slogan', marketing: 'site.slogan', app: 'auth.slogan' },
+];
+
+function checkCrossSurfaceTerms(marketingLocales) {
+  for (const locale of SHARED_LOCALES.locales) {
+    const marketing = marketingLocales[locale];
+    const app = loadJSON(path.join(APP_I18N_DIR, `${locale}.json`));
+    if (!marketing || !app) {
+      errors.push(`cross-surface: missing locale file for "${locale}" (marketing=${Boolean(marketing)} app=${Boolean(app)})`);
+      continue;
+    }
+    for (const anchor of TERM_ANCHORS) {
+      const m = marketing[anchor.marketing];
+      const a = getPath(app, anchor.app.split('.'));
+      if (m === undefined || a === undefined) {
+        errors.push(`cross-surface [${locale}] ${anchor.name}: missing key (marketing ${anchor.marketing}=${JSON.stringify(m)}, app ${anchor.app}=${JSON.stringify(a)})`);
+      } else if (m !== a) {
+        errors.push(`cross-surface [${locale}] ${anchor.name}: marketing "${anchor.marketing}"=${JSON.stringify(m)} ≠ app "${anchor.app}"=${JSON.stringify(a)}`);
       }
     }
   }
@@ -340,6 +380,7 @@ function main() {
   }
 
   checkKeyAlignment(locales);
+  checkCrossSurfaceTerms(locales);
   checkPrices(locales);
   checkEmptyValues(locales);
   checkHtmlKeys(locales);
