@@ -43,7 +43,7 @@ services:
           cpus: "2"
 
   caddy:
-    image: caddy@sha256:c3d7ee5d2b11f9dc54f947f68a734c84e9c9666c92f887f30b9cba5da182adb
+    image: caddy:2-alpine
     ports:
       - "8080:80"
     environment:
