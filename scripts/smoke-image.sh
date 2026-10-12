@@ -4,7 +4,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-IMAGE_TAG="${IMAGE_TAG:-dev}"
+IMAGE_TAG="${IMAGE_TAG:-local}"
 IMAGE="${IMAGE:-ghcr.io/ml8s/liki-web:$IMAGE_TAG}"
 PORT="${WEB_SMOKE_PORT:-18081}"
 NAME="liki-web-smoke-$$"

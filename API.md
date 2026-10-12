@@ -36,7 +36,7 @@ Error responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc
 }
 ```
 
-`type` is the stable machine contract (a URI reference; short codes like
+`type` is the stable machine identifier (a URI reference; short codes like
 `not_found` are valid relative references). `detail` is diagnostic and is not
 guaranteed to be in the browser's UI language; browser clients map types to
 their own locale resources.
@@ -226,6 +226,6 @@ Metrics are disabled when `METRICS_TOKEN` is empty.
 16 back-office endpoints live under `/api/admin/*` (administrator and
 capability management, referral application decisions, payout approval, and
 partner freeze controls). They are gated by admin sessions and capabilities
-and are intentionally outside this stable product contract; their shape may
+and are intentionally outside this stable product API; their shape may
 change with the back-office without notice. See `internal/admin/` and
 `internal/referral/admin_handler.go` for the authoritative list.

@@ -2,7 +2,7 @@
 
 ## Branches
 
-Create short-lived feature branches from `master`.
+Create short-lived feature branches from `main`.
 
 ## Commits
 

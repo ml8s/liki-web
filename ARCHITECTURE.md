@@ -15,7 +15,7 @@
 | `internal/account` | account erasure orchestration |
 | `internal/referral` | KOL/Scout applications, attribution, commission, and payout domain |
 | `internal/admin` | admin operations and audit |
-| `internal/agent` | AG-UI event contract shared with the liki-agents runtime |
+| `internal/agent` | AG-UI event adapter shared with the liki-agents runtime |
 | `internal/adminauth` | admin console session gate |
 | `internal/aipay` | Alipay A2M gateway, sandbox proof-of-payment records |
 | `internal/dodo` | Dodo payment gateway client |

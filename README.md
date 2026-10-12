@@ -118,7 +118,7 @@ This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static HTML
 | --- | --- |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Components, boundaries, and request flows |
 | [`DOMAIN_MODEL.md`](./DOMAIN_MODEL.md) | Stable entities, relationships, and invariants |
-| [`API.md`](./API.md) | Stable HTTP API contract |
+| [`API.md`](./API.md) | Stable HTTP API |
 | [`FRONTEND.md`](./FRONTEND.md) | Astro marketing pages, Vue App, and frontend state |
 | [`LEGACY_PRODUCTS.md`](./LEGACY_PRODUCTS.md) | retired-product compatibility boundary |
 | [`docs/database/overview.md`](./docs/database/overview.md) | SQLite bounded-context inventory |

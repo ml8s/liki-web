@@ -1,7 +1,7 @@
 # Liki 系统全况与本仓对齐
 
 > 本文档描述 Liki 多 Agent 系统的全局架构，以及本仓（产品 BFF 仓）在其中
-> 的角色与对齐点。让本仓负责人知道：我产什么、谁消费、契约在哪、变更如何传播。
+> 的角色与对齐点。让本仓负责人知道：我产什么、谁消费、边界在哪、变更如何传播。
 
 ## 一、系统全局架构
 
@@ -16,7 +16,7 @@ Liki 是多 Agent 命理专家系统，四仓分工：
 | 仓 | 角色 | 产物 |
 | --- | --- | --- |
 | liki | 内容/领域仓 | 专家内容、engine/counsel MCP、deployment 工件、装配镜像、web skill bundle |
-| liki-agents | 通用运行时仓 | 纯运行时镜像、AgentDeployment schema 契约 |
+| liki-agents | 通用运行时仓 | 纯运行时镜像、AgentDeployment 运行时校验 |
 | **liki-web（本仓）** | 产品 BFF 仓 | **liki-web 镜像（BFF + 前端）** |
 | liki-deploy | 发布编排仓 | 纯清单：compose + env + Caddyfile，只 pin 版本 |
 
@@ -87,4 +87,4 @@ liki release bundle → 校验 SHA256 / archive digest
 - `docs/mcp.md`、`docs/database/`、`docs/aipay.md`：BFF 实现细节
 - `liki/docs/SYSTEM.md`：内容仓视角的全况
 - `liki-agents/docs/SYSTEM.md`：运行时仓视角的全况
-- `liki-deploy/docs/ARCHITECTURE.md`：系统落地计划与发布时序
+- `liki-deploy/docs/ARCHITECTURE.md`：系统架构与发布时序

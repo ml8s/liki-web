@@ -31,7 +31,7 @@ type AgentRunnerConfig struct {
 	Locale  string
 }
 
-// AgentRunner adapts liki-web's existing chat Runner contract to liki-agent's
+// AgentRunner adapts liki-web's existing chat Runner interface to liki-agent's
 // official AG-UI SSE protocol. It owns no prompts, tools, product database, or
 // entitlement policy: those remain behind the liki-web BFF boundary.
 type AgentRunner struct {
@@ -71,7 +71,7 @@ func NewAgentRunner(config AgentRunnerConfig) (*AgentRunner, error) {
 }
 
 // Execute sends the persisted conversation to liki-agent and translates only
-// the AG-UI events used by the existing product SSE contract.
+// the AG-UI events used by the existing product SSE interface.
 func (r *AgentRunner) Execute(
 	ctx context.Context,
 	msgs []llm.Message,

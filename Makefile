@@ -1,10 +1,10 @@
 .DEFAULT_GOAL := help
 # 统一语义（四仓一致）：
-#   make check  纯静态契约检查（lint+格式+类型+安全+skills；不跑测试、不构建）
+#   make check  纯静态检查（lint+格式+类型+安全+skills；不跑测试、不构建）
 #   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
 #   make gate   check + test + image smoke ＝ 推送门槛
 #   make build  本仓产物（前端+二进制；镜像由 CI release 构建）
-#   make image  本地镜像（调试用，非发布路径）
+#   make image  本地候选镜像（local tag；正式镜像由 CI release 发布）
 #   make e2e    浏览器 E2E（本仓视角）
 #   make smoke  本仓镜像启动 + health/page 冒烟
 .PHONY: help check test gate smoke smoke-deploy e2e \
@@ -96,12 +96,12 @@ e2e: ## Docker 全栈 E2E（不跑 lint / unit）
 
 build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）。镜像由 CI release 构建，非本地。
 
-# ── 镜像（本地调试用，非发布路径）──
-# 生产镜像由 CI release 构建并推送 GHCR；此目标仅用于本地构建/调试。
+# ── 镜像（本地候选，非发布路径）──
+# 生产镜像由 CI release 构建并推送 GHCR；此目标使用明确的 local 候选 tag。
 IMAGE_REGISTRY ?= ghcr.io/ml8s
-IMAGE_TAG ?= dev
+IMAGE_TAG ?= local
 
-image: build ## Build liki-web image locally (debug; production uses CI release)
+image: build ## Build the local candidate image (production uses CI release)
 	docker build -t $(IMAGE_REGISTRY)/liki-web:$(IMAGE_TAG) .
 
 # ── 工具 ──

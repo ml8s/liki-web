@@ -393,7 +393,7 @@ func (r *Runtime) captureRefund(ctx context.Context, event *WebhookEvent, intent
 	if err != nil {
 		return err
 	}
-	// Normalize the observer contract: a zero provider amount means
+	// Normalize the observer value: a zero provider amount means
 	// "refund the remainder", which RecordRefund has already resolved to the
 	// recorded amount. Downstream ledgers (referral) require a positive value.
 	if event.Data.Amount == 0 {

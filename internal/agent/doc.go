@@ -1,4 +1,4 @@
-// Package agent defines the chat event contract shared by SSE and AG-UI
+// Package agent defines the chat event model shared by SSE and AG-UI
 // streaming surfaces.
 //
 // The tool-calling chat agent, naming chat pipeline, and report prompt
