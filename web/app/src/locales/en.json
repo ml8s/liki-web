@@ -183,7 +183,7 @@
       }
     },
     "bond": {
-      "label": "Compatibility",
+      "label": "Synastry",
       "description": "Two-person BaZi compatibility analysis",
       "intent": "Please provide a compatibility reading for me ({a}) and the other person. Other person’s information: {info}.",
       "cta": "Start compatibility reading",

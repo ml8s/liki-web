@@ -53,6 +53,7 @@ const TERM_ANCHORS = [
   { name: 'partner program (nav)', marketing: 'footer.partners', app: 'nav.partner' },
   { name: 'partner program (page title)', marketing: 'footer.partners', app: 'router.partnerCenter' },
   { name: 'brand slogan', marketing: 'site.slogan', app: 'auth.slogan' },
+  { name: 'service: bond', marketing: 'index.services.bond.title', app: 'services.bond.label' },
 ];
 
 function checkCrossSurfaceTerms(marketingLocales) {
