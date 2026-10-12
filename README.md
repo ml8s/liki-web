@@ -110,6 +110,8 @@ The server owns:
 - fulfillment and entitlement.
 
 USD checkout requires `DODO_PRODUCT_LIKI_CHAT`. If the value is absent, USD checkout fails closed.
+The referenced Dodo product must use a one-time price that matches `LIKI_PRICE_USD_MINOR`; the application grants a fixed
+entitlement duration and does not process recurring subscriptions.
 
 ## Quality gate
 
