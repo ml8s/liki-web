@@ -208,7 +208,9 @@ async function verify() {
   verifying.value = true
   try {
     await auth.verifyEmailCode(email.value, code.value, locale.value)
-    const requested = typeof route.query.redirect === 'string' ? route.query.redirect : '/app'
+    // Router paths are base-relative (dashboard is '/'), never '/app':
+    // router.push('/app') would double the base and land on /app/app.
+    const requested = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
     await router.push(safeRedirect(requested))
   } catch (err) {
     error.value = toUserMessage(err, t('auth.loginFailed'))
@@ -219,7 +221,7 @@ async function verify() {
 
 function safeRedirect(value: string) {
   if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\') || value.includes('://')) {
-    return '/app'
+    return '/'
   }
   return value
 }
