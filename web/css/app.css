@@ -236,6 +236,7 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 .items-center { align-items: center; }
 .items-start { align-items: flex-start; }
 .justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
 .flex-wrap { flex-wrap: wrap; }
 .flex-shrink-0 { flex-shrink: 0; }
 .flex-1 { flex: 1; }
@@ -309,8 +310,6 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 .brand-link { color: var(--color-gold-light); text-decoration: none; }
 .brand-slogan { display: none; font-size: .875rem; font-weight: 500; color: #c0c5cc; }
 @media (min-width: 768px) { .brand-slogan { display: inline; } }
-.dev-link { font-size: .8125rem; color: #f7f6f4; text-decoration: none; margin-left: 4px; }
-.dev-link:hover { text-decoration: underline; }
 .font-serif { font-family: var(--font-serif); }
 .leading-loose { line-height: 2; }
 .tracking-tight { letter-spacing: -0.025em; }
@@ -401,6 +400,7 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 
 /* ── Transitions ── */
 .transition-colors { transition: color .15s ease, background-color .15s ease, border-color .15s ease; }
+.hover\:text-stone-600:hover { color: var(--color-stone-600-raw); }
 
 /* ── Report ── */
 .report p + p { margin-top: 0.5em; }
@@ -723,12 +723,6 @@ th {
 }
 
 /* ── Keyword cloud ── */
-#kw-bg {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
 .pb-8 { padding-bottom: 2rem; }
 .pb-4 { padding-bottom: 1rem; }
 .pr-4 { padding-right: 1rem; }
@@ -812,6 +806,8 @@ th {
 .paipan-hint { opacity:.8; font-size:.8125rem; margin-top:14px; }
 .card-link { display:inline-block; margin-top:10px; color:var(--brand-primary); font-size:.875rem; text-decoration:none; }
 .card-link:hover { text-decoration:underline; }
+.card-link-secondary { margin-left:14px; color:var(--brand-text-muted); }
+.card-link-secondary:hover { color:var(--brand-primary); text-decoration:underline; }
 
 /* ── Liki Chat 场景引流页 ── */
 .scenario-hero { text-align:center; }

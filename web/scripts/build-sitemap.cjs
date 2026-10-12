@@ -12,6 +12,7 @@ const DEFAULT_LOCALE = 'zh-Hant';
 
 const PAGES = [
   { path: '',          src: 'web/src/pages/[locale]/index.astro',    freq: 'weekly',  priority: '1.0' },
+  { path: 'skills',   src: 'web/src/pages/[locale]/skills.astro', freq: 'monthly', priority: '0.6' },
   { path: 'naming',   src: 'web/src/pages/[locale]/naming.astro',  freq: 'weekly',  priority: '0.8' },
   { path: 'mingshu', src: 'web/src/pages/[locale]/mingshu.astro', freq: 'weekly',  priority: '0.8' },
   { path: 'hepan',    src: 'web/src/pages/[locale]/hepan.astro',   freq: 'weekly',  priority: '0.8' },
@@ -56,7 +57,9 @@ for (const page of PAGES) {
     href: `https://liki.hk/${l}${page.path ? '/' + page.path : ''}/`,
   }));
   links.push({ hreflang: 'x-default', href: `https://liki.hk/${DEFAULT_LOCALE}${page.path ? '/' + page.path : ''}/` });
-  lines.push(url(`https://liki.hk/${DEFAULT_LOCALE}${page.path ? '/' + page.path : ''}/`, lastmod, page.freq, page.priority, links));
+  for (const l of LOCALES) {
+    lines.push(url(`https://liki.hk/${l}${page.path ? '/' + page.path : ''}/`, lastmod, page.freq, page.priority, links));
+  }
 }
 
 for (const s of SPECIAL) {

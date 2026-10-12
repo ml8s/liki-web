@@ -39,14 +39,6 @@ const skillSchema = {
     'https://www.xiaohongshu.com/user/profile/liki_hk',
   ],
 };
-const websiteSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'Liki',
-  url: 'https://liki.hk',
-  inLanguage: locale,
-  about: t(locale, 'skills.metaDesc'),
-};
 ---
 
 <BaseLayout
@@ -59,7 +51,6 @@ const websiteSchema = {
   <Fragment slot="head">
     <meta name="keywords" content={skillKeywords.join(', ')}>
     <script type="application/ld+json" set:html={JSON.stringify(skillSchema)} />
-    <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
   </Fragment>
 
   <section class="hero-brand mt-8">
@@ -85,10 +76,10 @@ const websiteSchema = {
     </div>
   </div>
 
-  <div id="kw-bg" aria-hidden="true">
-    {keywords.en.map(k => <span>{k}</span>)}
-    {keywords['zh-Hans'].map(k => <span>{k}</span>)}
-    {keywords['zh-Hant'].map(k => <span>{k}</span>)}
-  </div>
+  <p class="text-center text-xs text-stone-400 pb-8 flex flex-wrap justify-center gap-x-6 gap-y-2">
+    <a href="https://github.com/ml8s/liki" target="_blank" rel="noopener" class="hover:text-stone-600 transition-colors">GitHub</a>
+    <a href="/llms.txt" class="hover:text-stone-600 transition-colors">llms.txt</a>
+    <a href="/skills/liki/SKILL.md" class="hover:text-stone-600 transition-colors">SKILL.md</a>
+  </p>
   <script is:inline defer src={`/js/skills-page.js?v=${v}`}></script>
 </BaseLayout>

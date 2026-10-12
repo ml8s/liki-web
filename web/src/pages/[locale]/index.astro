@@ -11,6 +11,47 @@ export function getStaticPaths() {
 
 const { locale } = Astro.params;
 const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
+const siteUrl = 'https://liki.hk';
+const homeSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${siteUrl}/#organization`,
+      name: 'Liki',
+      url: siteUrl,
+      sameAs: [
+        'https://www.wikidata.org/wiki/Q140329242',
+        'https://github.com/ml8s/liki',
+        'https://x.com/liki_hk',
+        'https://t.me/liki_naming',
+        'https://zhihu.com/people/liki.hk',
+        'https://www.xiaohongshu.com/user/profile/liki_hk',
+      ],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteUrl}/#website`,
+      url: siteUrl,
+      name: 'Liki',
+      inLanguage: locale,
+      publisher: { '@id': `${siteUrl}/#organization` },
+    },
+    {
+      '@type': 'ItemList',
+      '@id': `${siteUrl}/#services`,
+      name: t(locale, 'index.services.title'),
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: t(locale, 'index.services.naming.title'), url: `${siteUrl}/${locale}/naming/` },
+        { '@type': 'ListItem', position: 2, name: t(locale, 'index.services.bazi.title') },
+        { '@type': 'ListItem', position: 3, name: t(locale, 'index.services.mingshu.title'), url: `${siteUrl}/${locale}/mingshu/` },
+        { '@type': 'ListItem', position: 4, name: t(locale, 'index.services.divination.title') },
+        { '@type': 'ListItem', position: 5, name: t(locale, 'index.services.fengshui.title') },
+        { '@type': 'ListItem', position: 6, name: t(locale, 'index.services.bond.title'), url: `${siteUrl}/${locale}/hepan/` },
+      ],
+    },
+  ],
+};
 ---
 
 <BaseLayout
@@ -22,6 +63,7 @@ const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
 >
   <Fragment slot="head">
     <meta name="keywords" content={pageKeywords}>
+    <script type="application/ld+json" set:html={JSON.stringify(homeSchema)} />
   </Fragment>
 
   <section class="landing-hero">
@@ -57,6 +99,7 @@ const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
         <h3 class="font-serif">{t(locale, 'index.services.naming.title')}</h3>
         <p>{t(locale, 'index.services.naming.desc')}</p>
         <LikiChatCta locale={locale} scenario="naming" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/naming/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.bazi.title')}</h3>
@@ -67,6 +110,7 @@ const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
         <h3 class="font-serif">{t(locale, 'index.services.mingshu.title')}</h3>
         <p>{t(locale, 'index.services.mingshu.desc')}</p>
         <LikiChatCta locale={locale} scenario="mingshu" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/mingshu/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.divination.title')}</h3>
@@ -82,6 +126,7 @@ const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
         <h3 class="font-serif">{t(locale, 'index.services.bond.title')}</h3>
         <p>{t(locale, 'index.services.bond.desc')}</p>
         <LikiChatCta locale={locale} scenario="hepan" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/hepan/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
       </div>
     </div>
   </section>

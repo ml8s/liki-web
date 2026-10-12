@@ -7,11 +7,12 @@
   "src/layouts/BaseLayout.astro:external-without-sri": 1,
   "src/pages/[locale]/hepan.astro:external": 3,
   "src/pages/[locale]/hepan.astro:external-without-sri": 3,
+  "src/pages/[locale]/index.astro:data-block": 1,
   "src/pages/[locale]/index.astro:external": 1,
   "src/pages/[locale]/index.astro:external-without-sri": 1,
   "src/pages/[locale]/mingshu.astro:external": 3,
   "src/pages/[locale]/mingshu.astro:external-without-sri": 3,
-  "src/pages/[locale]/skills.astro:data-block": 2,
+  "src/pages/[locale]/skills.astro:data-block": 1,
   "src/pages/[locale]/skills.astro:external": 1,
   "src/pages/[locale]/skills.astro:external-without-sri": 1
 }
