@@ -12,6 +12,10 @@ const baseProduct = {
 }
 
 async function mockWorkspace(page, { purchased, productPurchased }) {
+  // Fallback first (Playwright routes are LIFO): any API not explicitly
+  // mocked below gets an empty success instead of a real 401, which would
+  // trigger a hard redirectToLogin navigation away from the workspace.
+  await page.route('**/api/**', route => route.fulfill(json({})))
   await page.route('**/api/me', route => route.fulfill(json(user)))
   await page.route('**/api/me/entitlements', route => route.fulfill(json({
     entitlements: purchased ? [{ id: 'ent_1', skill: 'liki', status: 'active' }] : [],
