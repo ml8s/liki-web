@@ -10,19 +10,36 @@ const OUT = path.resolve(PROJECT, 'web/sitemap.xml');
 const LOCALES = ['zh-Hant', 'zh-Hans', 'en'];
 const DEFAULT_LOCALE = 'zh-Hant';
 
-const PAGES = [
-  { path: '',          src: 'web/src/pages/[locale]/index.astro',    freq: 'weekly',  priority: '1.0' },
-  { path: 'skills',   src: 'web/src/pages/[locale]/skills.astro', freq: 'monthly', priority: '0.6' },
-  { path: 'naming',   src: 'web/src/pages/[locale]/naming.astro',  freq: 'weekly',  priority: '0.8' },
-  { path: 'mingshu', src: 'web/src/pages/[locale]/mingshu.astro', freq: 'weekly',  priority: '0.8' },
-  { path: 'hepan',    src: 'web/src/pages/[locale]/hepan.astro',   freq: 'weekly',  priority: '0.8' },
-  { path: 'about',    src: 'web/src/pages/[locale]/about.astro',   freq: 'monthly', priority: '0.5' },
-  { path: 'partners', src: 'web/src/pages/[locale]/partners.astro', freq: 'monthly', priority: '0.5' },
-  { path: 'contact',  src: 'web/src/pages/[locale]/contact.astro', freq: 'monthly', priority: '0.4' },
-  { path: 'disclaimer',src: 'web/src/pages/[locale]/disclaimer.astro', freq: 'monthly', priority: '0.3' },
-  { path: 'privacy',  src: 'web/src/pages/[locale]/privacy.astro', freq: 'yearly',  priority: '0.2' },
-  { path: 'terms',    src: 'web/src/pages/[locale]/terms.astro',   freq: 'yearly',  priority: '0.2' },
-];
+// Structure (which pages exist) is derived from the pages directory — the only
+// copy. Per-page sitemap metadata is configuration: defaults plus overrides,
+// so a new page is included automatically without editing this file.
+const PAGES_DIR = path.resolve(__dirname, '../src/pages/[locale]');
+const DEFAULT_PAGE_META = { freq: 'monthly', priority: '0.5' };
+const PAGE_META = {
+  '':          { freq: 'weekly', priority: '1.0' },
+  skills:      { freq: 'monthly', priority: '0.6' },
+  naming:      { freq: 'weekly', priority: '0.8' },
+  mingshu:     { freq: 'weekly', priority: '0.8' },
+  hepan:       { freq: 'weekly', priority: '0.8' },
+  contact:     { freq: 'monthly', priority: '0.4' },
+  disclaimer:  { freq: 'monthly', priority: '0.3' },
+  privacy:     { freq: 'yearly', priority: '0.2' },
+  terms:       { freq: 'yearly', priority: '0.2' },
+};
+
+function discoverPages() {
+  return fs.readdirSync(PAGES_DIR)
+    .filter(f => f.endsWith('.astro'))
+    .map(f => path.basename(f, '.astro'))
+    .sort((a, b) => (a === 'index' ? -1 : b === 'index' ? 1 : a.localeCompare(b)))
+    .map(name => ({
+      path: name === 'index' ? '' : name,
+      src: `web/src/pages/[locale]/${name}.astro`,
+      ...(PAGE_META[name === 'index' ? '' : name] ?? DEFAULT_PAGE_META),
+    }));
+}
+
+const PAGES = discoverPages();
 
 const SPECIAL = [
   { loc: 'https://liki.hk/llms.txt',        src: 'web/llms.txt',           freq: 'weekly',  priority: '0.7' },

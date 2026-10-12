@@ -112,8 +112,12 @@ function walkDir(dir, files) {
   }
 }
 
-// Known page names used in BaseLayout: t(locale, `${page}.meta.ogTitle`)
-const KNOWN_PAGES = ['about','contact','disclaimer','privacy','terms','index','skills','partners','hepan','mingshu','naming'];
+// Page names used by BaseLayout's dynamic keys: t(locale, `${page}.meta.ogTitle`).
+// The source of truth is the pages directory itself; never keep a second copy.
+const PAGES_DIR = path.resolve(__dirname, '../src/pages/[locale]');
+const KNOWN_PAGES = fs.readdirSync(PAGES_DIR)
+  .filter(f => f.endsWith('.astro'))
+  .map(f => (f === 'index.astro' ? 'index' : path.basename(f, '.astro')));
 
 function expandTemplateKey(tmpl, fileContent) {
   const keys = [];
