@@ -9,7 +9,6 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEV_DIR="$PROJECT_DIR/dev"
 COMPOSE_FILE="$DEV_DIR/docker-compose.yml"
 TEST_ENV_FILE="${LIKI_TEST_ENV_FILE:-/tmp/liki-web-e2e.env}"
-export LIKI_ENGINE_IMAGE="${LIKI_ENGINE_IMAGE:-ghcr.io/ml8s/liki-engine:2026.09.26.0}"
 export LIKI_TEST_ENV_FILE="$TEST_ENV_FILE"
 # Compose interpolation must also succeed for `down` when the env file is gone.
 export LIKI_AGENTS_INTERNAL_TOKEN="${LIKI_AGENTS_INTERNAL_TOKEN:-e2e-agent-secret}"
@@ -17,6 +16,24 @@ export LIKI_AGENTS_INTERNAL_TOKEN="${LIKI_AGENTS_INTERNAL_TOKEN:-e2e-agent-secre
 CMD="${1:-up}"
 
 do_up() {
+  if [ -z "${LIKI_ENGINE_IMAGE:-}" ]; then
+    cat >&2 <<'EOF'
+LIKI_ENGINE_IMAGE is required for Docker E2E.
+
+Set it to an immutable, verified engine release digest, for example:
+
+  LIKI_ENGINE_IMAGE=ghcr.io/ml8s/liki-engine@sha256:<digest> make e2e
+
+This repository intentionally does not keep a second default engine matrix.
+The production combination remains owned by liki-deploy.
+EOF
+    exit 1
+  fi
+  if ! printf '%s' "$LIKI_ENGINE_IMAGE" | grep -Eq '@sha256:[0-9a-f]{64}$'; then
+    echo "LIKI_ENGINE_IMAGE must be an immutable sha256 digest reference: $LIKI_ENGINE_IMAGE" >&2
+    exit 1
+  fi
+
   trap 'rm -f "$TEST_ENV_FILE"' EXIT
 
   # ── Build ──
@@ -65,6 +82,10 @@ do_down() {
   cd "$PROJECT_DIR"
   # Compose requires the env file to exist; recreate an empty one if `up` already cleaned it up.
   [ -f "$TEST_ENV_FILE" ] || : > "$TEST_ENV_FILE"
+  # Image references are irrelevant while tearing down, but Compose still
+  # interpolates them. Use a non-pullable placeholder rather than a usable
+  # hidden engine default.
+  export LIKI_ENGINE_IMAGE="${LIKI_ENGINE_IMAGE:-liki-engine/e2e-down-placeholder}"
   docker compose --env-file "$TEST_ENV_FILE" -f "$COMPOSE_FILE" down --volumes --remove-orphans --timeout 5 2>/dev/null || true
   rm -f "$TEST_ENV_FILE"
 }

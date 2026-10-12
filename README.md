@@ -39,10 +39,17 @@ make build
 make dev
 ```
 
-The Docker E2E uses `LIKI_ENGINE_IMAGE` and does not build the sibling liki
-repository. The non-Docker `make dev` path accepts a pre-extracted engine MCP
-binary through `ENGINE_MCP_BIN`; set `ENGINE_RPC_BIN` only when testing the
-legacy public JSON-RPC compatibility endpoint.
+Docker E2E requires an explicit immutable engine reference and does not build
+the sibling liki repository:
+
+```bash
+LIKI_ENGINE_IMAGE=ghcr.io/ml8s/liki-engine@sha256:<verified-digest> make e2e
+```
+
+`liki-web` deliberately keeps no default engine matrix; the production
+combination is owned by `liki-deploy`. The non-Docker `make dev` path accepts
+a pre-extracted engine MCP binary through `ENGINE_MCP_BIN`; set `ENGINE_RPC_BIN`
+only when testing the legacy public JSON-RPC compatibility endpoint.
 
 In development, the login page shows a local verification code when the email service is unavailable. Production does not expose this code.
 
