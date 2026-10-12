@@ -142,7 +142,9 @@ check-html:
 	node web/scripts/check-mobile-responsive.cjs
 	node web/scripts/check-html.cjs
 	node web/scripts/check-i18n.cjs
+	node web/scripts/check-service-parity.cjs
 	node web/scripts/check-classes.cjs
+	node web/scripts/check-css-utility-freeze.cjs
 	node web/scripts/check-static-sync.cjs
 
 check-security:
