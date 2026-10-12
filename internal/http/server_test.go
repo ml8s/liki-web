@@ -182,6 +182,28 @@ func TestFileServer_ServesDirIndex(t *testing.T) {
 	}
 }
 
+func TestFileServer_ReferralLinkPassThrough(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(dir+"/zh-Hant", 0755)                                      //nolint:errcheck
+	os.WriteFile(dir+"/zh-Hant/index.html", []byte("<h1>home</h1>"), 0600) //nolint:errcheck
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Stands in for the mux: GET /r/{code} redirects to the locale landing page.
+		http.Redirect(w, r, "/zh-Hant/", http.StatusFound)
+	})
+	h := fileServer(dir, next)
+
+	r2 := httptest.NewRequest("GET", "/r/TESTCODE", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r2)
+	if w.Code != http.StatusFound {
+		t.Fatalf("GET /r/TESTCODE: status=%d, want 302 (mux route must not be shadowed by static files)", w.Code)
+	}
+	if loc := w.Header().Get("Location"); loc != "/zh-Hant/" {
+		t.Fatalf("GET /r/TESTCODE: location=%q, want /zh-Hant/", loc)
+	}
+}
+
 func TestFileServer_FallbackToZhHant(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir+"/zh-Hant", 0755)                                         //nolint:errcheck

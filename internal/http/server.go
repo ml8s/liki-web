@@ -231,7 +231,9 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/jsonrpc") {
+		// Dynamic routes registered on the mux that are NOT under /api/ must be
+		// listed here or the static file handler shadows them (currently: /r/{code}).
+		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/jsonrpc") || strings.HasPrefix(r.URL.Path, "/r/") {
 			next.ServeHTTP(w, r)
 			return
 		}
