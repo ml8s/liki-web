@@ -6,6 +6,8 @@
 import { test, expect } from '../fixtures.js';
 import { I18N_KEY_RE } from '../helpers.js';
 
+// Analytics is non-essential; the shared localhost CI client can hit its rate limit.
+
 // Pages to test with their framework-specific render marker and i18n content checks.
 const PAGES = [
   { path: '/zh-Hans/naming', name: 'naming (vanilla)',
@@ -66,6 +68,7 @@ test.describe('Smoke — all pages render without errors or warnings', () => {
   for (const { path, marker, name, checks, resource, skipI18nCheck } of PAGES) {
     test(`${name}: ${path}`, async ({ page }) => {
       const consoleProblems = [];
+      await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }));
       page.on('console', msg => {
         if ((msg.type() === 'error' || msg.type() === 'warning') && !(msg.location().url || '').includes('favicon')) {
           consoleProblems.push(`[${msg.type()}] ${msg.text()} (${msg.location().url || 'no-url'})`);
