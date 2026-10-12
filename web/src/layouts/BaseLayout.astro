@@ -7,7 +7,6 @@ import Footer from '../components/Footer.astro';
 export interface Props {
   locale: string;
   page: string;
-  heading?: string;
   metaDesc?: string;
   type?: 'article' | 'brand' | 'bare';
   twitterCard?: string;
@@ -17,7 +16,6 @@ export interface Props {
 const {
   locale,
   page,
-  heading = '',
   metaDesc = '',
   type = 'article',
   twitterCard = 'summary',
@@ -72,11 +70,10 @@ const ogImage = 'https://liki.hk/img/og-image.png';
 
   <a href="#main" class="skip-link">{t(locale, 'a11y.skipLink')}</a>
 
-  {type === 'brand' ? (
   <header class="header-dark page-header">
     <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <a href={`/${locale}/`} class="text-xl font-brand tracking-tight brand-link">{heading}</a>
+        <a href={`/${locale}/`} class="text-xl font-brand tracking-tight brand-link">{t(locale, 'site.brand')}</a>
         <span class="brand-slogan">{t(locale, 'site.slogan')}</span>
       </div>
       <div class="flex items-center gap-3">
@@ -84,17 +81,6 @@ const ogImage = 'https://liki.hk/img/og-image.png';
       </div>
     </div>
   </header>
-) : (
-  <header class="header-dark page-header">
-    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href={`/${locale}/`} class="back-link">{t(locale, 'site.backHome')}</a>
-      <div class="text-xl font-bold">{heading}</div>
-      <div class="flex items-center gap-3">
-        <LangSwitcher locale={locale} />
-      </div>
-    </div>
-  </header>
-)}
 
 <main id="main" class={type === 'article' ? 'page-main page-main--py' : 'page-main'} tabindex="-1">
   {type === 'article' ? <div class="page-card"><slot /></div> : <slot />}

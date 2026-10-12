@@ -44,7 +44,8 @@ const faqSchema = faqs.map(item => ({
 }));
 ---
 
-<BaseLayout locale={locale} page={page} heading={t(locale, 'site.brand')} type="brand" twitterCard="summary_large_image">
+<BaseLayout locale={locale} page={page} type="brand" twitterCard="summary_large_image">
+
   <Fragment slot="head">
     <script type="application/ld+json" set:html={JSON.stringify({
       '@context': 'https://schema.org',

@@ -21,15 +21,25 @@ const { locale, hideMobile = false } = Astro.props;
           <svg viewBox="0 0 24 24" width="16" height="16" fill="#26A5E4" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.46-1.901-.903-1.056-.692-1.653-1.123-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.009-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.324-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.015 3.333-1.386 4.025-1.627 4.476-1.635.1-.002.32.023.463.14.12.098.154.228.17.32.016.092.037.3.02.464z"/></svg>Telegram
         </a>
       </div>
-      <p class="text-xs text-stone-600 flex flex-wrap justify-end gap-3">
-        <a href={`/${locale}/about/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.about')}</a>
-        <a href={`/${locale}/partners/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.partners')}</a>
-        <a href={`/${locale}/skills/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.skill')}</a>
-        <a href={`/${locale}/privacy/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.privacy')}</a>
-        <a href={`/${locale}/terms/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.terms')}</a>
-        <a href={`/${locale}/disclaimer/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.disclaimer')}</a>
-        <a href={`/${locale}/contact/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.contact')}</a>
-      </p>
+      <div class="footer-groups">
+        <div class="footer-group">
+          <p class="footer-group-label">{t(locale, 'footer.explore')}</p>
+          <p class="text-xs text-stone-600 flex flex-wrap justify-end gap-3">
+            <a href={`/${locale}/partners/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.partners')}</a>
+            <a href={`/${locale}/skills/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.skill')}</a>
+            <a href={`/${locale}/about/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.about')}</a>
+            <a href={`/${locale}/contact/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.contact')}</a>
+          </p>
+        </div>
+        <div class="footer-group">
+          <p class="footer-group-label">{t(locale, 'footer.legal')}</p>
+          <p class="text-xs text-stone-600 flex flex-wrap justify-end gap-3">
+            <a href={`/${locale}/privacy/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.privacy')}</a>
+            <a href={`/${locale}/terms/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.terms')}</a>
+            <a href={`/${locale}/disclaimer/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.disclaimer')}</a>
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </footer>

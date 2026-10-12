@@ -12,10 +12,9 @@ const { locale } = Astro.params;
 <BaseLayout
   locale={locale}
   page="privacy"
-  heading={t(locale, 'privacy.heading')}
   type="article"
 >
-  <h1 class="sr-only">{t(locale, 'privacy.heading')}</h1>
+  <h1 class="page-title">{t(locale, 'privacy.heading')}</h1>
   <p class="text-stone-400 text-xs mb-6">{t(locale, 'privacy.updated')}</p>
 
   <section class="mb-10">

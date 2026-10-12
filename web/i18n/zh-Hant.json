@@ -95,7 +95,6 @@
   "privacy.meta.twitterTitle": "私隱政策 · liki.hk",
   "privacy.metaDesc": "了解 Liki 如何處理和保護您的數據。",
   "privacy.title": "私隱政策",
-  "site.backHome": "← 返回首頁",
   "site.footer": "© 2026 liki.hk. All rights reserved.",
   "site.name": "liki.hk",
   "site.brand": "Liki",
@@ -633,5 +632,10 @@
   "terms.s13.title": "KOL 與 Scout 合作角色",
   "terms.s13.body": "KOL 和 Scout 是獨立合作角色，不是會員等級，也不構成多層級行銷。申請無需購買或繳費，須經 Liki 審核；使用者通常一個帳號只保留一個角色。合作者是獨立主體，不構成 Liki 員工、代理或合夥關係。佣金僅來自實際完成且未退款的合格訂單，可能因退款、欺詐、違規推廣或定價錯誤調整或收回；僅發展下級、無實際銷售或要求付費加入的行為不產生報酬。合作者必須遵守適用法律和平台規則，不得發送垃圾訊息、誇大或保證命理結果、冒用資質、誤導使用者或濫用他人資料。提現需滿足最低金額並提供可驗證的收款帳號；Liki 可依法履行稅務、反欺詐和合規義務，暫停或終止違規角色，並保留追回不當報酬的權利。",
   "skills.install.copy": "複製安裝命令",
-  "skills.schema.contactType": "客戶支援"
+  "skills.schema.contactType": "客戶支援",
+  "footer.explore": "探索",
+  "footer.legal": "法律",
+  "partners.hero.title": "讓更多人遇見 Liki",
+  "partners.hero.subtitle": "KOL 與 Scout 兩種合作角色，佣金基於真實成交，平台按內容與渠道審核。",
+  "partners.roles.title": "兩種合作角色"
 }

@@ -95,7 +95,6 @@
   "privacy.meta.twitterTitle": "Privacy Policy · liki.hk",
   "privacy.metaDesc": "How liki.hk handles your data and protects your privacy.",
   "privacy.title": "Privacy Policy",
-  "site.backHome": "← Back to Home",
   "site.footer": "© 2026 liki.hk. All rights reserved.",
   "site.name": "liki.hk",
   "site.brand": "Liki",
@@ -633,5 +632,10 @@
   "terms.s13.title": "KOL and Scout partner roles",
   "terms.s13.body": "KOL and Scout are independent partner roles, not membership levels and not multi-level marketing. Applying requires no purchase or fee and is subject to Liki review; an account normally holds only one role. Partners are independent parties, not employees, agents, or partners of Liki. Commission is earned only from qualified orders that are actually completed and not refunded, and may be adjusted or clawed back for refunds, fraud, non-compliant promotion, or pricing errors. Recruiting alone, sales-free downlines, and paid-entry schemes earn nothing. Partners must follow applicable law and platform rules and must not spam, exaggerate or guarantee metaphysical outcomes, misrepresent credentials, mislead users, or misuse personal data. Payouts require the minimum balance and a verifiable payout account. Liki may meet tax, anti-fraud, and compliance duties, suspend or terminate a violating role, and recover improper compensation.",
   "skills.install.copy": "Copy install command",
-  "skills.schema.contactType": "Customer support"
+  "skills.schema.contactType": "Customer support",
+  "footer.explore": "Explore",
+  "footer.legal": "Legal",
+  "partners.hero.title": "Bring Liki to more people",
+  "partners.hero.subtitle": "Two partner roles for creators and channels. Commissions are based on real purchases; applications are reviewed by the team.",
+  "partners.roles.title": "Two partner roles"
 }

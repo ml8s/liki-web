@@ -187,18 +187,6 @@ a { color: inherit; text-decoration: none; }
 .header-dark h1 { color: var(--color-gold-light); }
 .header-dark .text-xl { color: #f7f6f4; }
 
-.header-dark .back-link {
-  color: #f7f6f4;
-}
-.header-dark .back-link:hover {
-  color: var(--color-gold-light);
-}
-.header-dark .back-link:focus-visible {
-  outline: 2px solid var(--color-fire);
-  outline-offset: 2px;
-  border-radius: .25rem;
-}
-
 /* ── Page Layout (liki-page) ── */
 liki-page:not(:defined) { visibility: hidden; }
 liki-page {
@@ -212,6 +200,8 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
 .page-main { flex: 1; min-width: 0; width: 100%; max-width: 48rem; margin-left: auto; margin-right: auto; padding-left: var(--space-4); padding-right: var(--space-4); }
 .page-main--py { padding-top: var(--space-8); padding-bottom: var(--space-8); }
 .page-main--centered { padding-top: var(--space-16); padding-bottom: var(--space-16); text-align: center; }
+.page-title { font-size: 1.25rem; font-weight: 650; letter-spacing: -.01em; color: var(--color-text); margin-bottom: var(--space-6); }
+
 .page-card { background: var(--color-paper); border-radius: .75rem; box-shadow: var(--shadow-sm); border: 1px solid var(--color-border); padding: var(--space-6); }
 @media (min-width: 768px) { .page-card { padding: var(--space-8); } }
 
@@ -482,17 +472,14 @@ th {
   text-transform: uppercase;
 }
 
-/* ── Back Link ── */
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: .875rem;
-  color: var(--color-text-muted);
-}
-.back-link:hover { color: var(--color-text); }
-.back-link:active { opacity: .65; }
-.back-link:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: .25rem; }
+.footer-groups { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-end; }
+.footer-group { min-width: 0; }
+.footer-group-label { font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 2px; }
+@media (max-width: 640px) { .footer-groups { align-items: flex-start; } }
+
+.footer-groups { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-end; }
+.footer-group-label { font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 2px; }
+@media (max-width: 640px) { .footer-groups { align-items: flex-start; } }
 
 /* ── Toast ── */
 .toast {
