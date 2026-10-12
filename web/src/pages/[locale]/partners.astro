@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { t, locales } from '../../i18n.js';
+
+export function getStaticPaths() {
+  return locales.map(locale => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+---
+
+<BaseLayout
+  locale={locale}
+  page="partners"
+  heading={t(locale, 'partners.heading')}
+  type="article"
+>
+  <h1 class="sr-only">{t(locale, 'partners.heading')}</h1>
+
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'partners.kol.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'partners.kol.body')}</p>
+  </section>
+
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'partners.scout.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'partners.scout.body')}</p>
+  </section>
+
+  <section class="mb-10">
+    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'partners.rules.title')}</h2>
+    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'partners.rules.body')}</p>
+  </section>
+
+  <section>
+    <a href="/app/partners" class="btn-purple">{t(locale, 'partners.cta')}</a>
+  </section>
+</BaseLayout>

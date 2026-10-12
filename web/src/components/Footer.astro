@@ -23,6 +23,7 @@ const { locale, hideMobile = false } = Astro.props;
       </div>
       <p class="text-xs text-stone-600 flex flex-wrap justify-end gap-3">
         <a href={`/${locale}/about/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.about')}</a>
+        <a href={`/${locale}/partners/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.partners')}</a>
         <a href={`/${locale}/skills/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.skill')}</a>
         <a href={`/${locale}/privacy/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.privacy')}</a>
         <a href={`/${locale}/terms/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.terms')}</a>

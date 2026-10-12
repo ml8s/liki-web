@@ -17,6 +17,7 @@ const PAGES = [
   { path: 'mingshu', src: 'web/src/pages/[locale]/mingshu.astro', freq: 'weekly',  priority: '0.8' },
   { path: 'hepan',    src: 'web/src/pages/[locale]/hepan.astro',   freq: 'weekly',  priority: '0.8' },
   { path: 'about',    src: 'web/src/pages/[locale]/about.astro',   freq: 'monthly', priority: '0.5' },
+  { path: 'partners', src: 'web/src/pages/[locale]/partners.astro', freq: 'monthly', priority: '0.5' },
   { path: 'contact',  src: 'web/src/pages/[locale]/contact.astro', freq: 'monthly', priority: '0.4' },
   { path: 'disclaimer',src: 'web/src/pages/[locale]/disclaimer.astro', freq: 'monthly', priority: '0.3' },
   { path: 'privacy',  src: 'web/src/pages/[locale]/privacy.astro', freq: 'yearly',  priority: '0.2' },

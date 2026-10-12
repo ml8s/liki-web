@@ -113,7 +113,7 @@ function walkDir(dir, files) {
 }
 
 // Known page names used in BaseLayout: t(locale, `${page}.meta.ogTitle`)
-const KNOWN_PAGES = ['about','contact','disclaimer','privacy','terms','index','skills','hepan','mingshu','naming'];
+const KNOWN_PAGES = ['about','contact','disclaimer','privacy','terms','index','skills','partners','hepan','mingshu','naming'];
 
 function expandTemplateKey(tmpl, fileContent) {
   const keys = [];
