@@ -236,6 +236,8 @@ jobs:
           PAYMENTS_WEBHOOK_URL: http://localhost:8081/api/payments/webhook
           LIKI_AGENTS_URL: http://127.0.0.1:18083
           LIKI_AGENTS_INTERNAL_TOKEN: liki-ci-e2e-agent-secret
+          # Email-code login journeys need the local dev code echo.
+          DEV_MODE: 'true'
           LIKI_WEB_HOST: localhost
           LIKI_ENGINE_HOST: localhost
         run: |

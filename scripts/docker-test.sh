@@ -58,6 +58,7 @@ LISTEN_ADDR=:8081
 RETURN_URL=http://localhost:8080/api/payments/return
 PAYMENTS_WEBHOOK_URL=http://localhost:8080/api/payments/webhook
 LIKI_AGENTS_INTERNAL_TOKEN=e2e-agent-secret
+DEV_MODE=true
 EOF
 
   DOMAIN=localhost docker compose --env-file "$TEST_ENV_FILE" -f "$COMPOSE_FILE" up -d --build --wait 2>&1 | sed 's/^/    /'
