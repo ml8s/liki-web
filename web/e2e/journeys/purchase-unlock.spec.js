@@ -36,6 +36,7 @@ test('purchased state hides the purchase entry', async ({ page }) => {
   await mockWorkspace(page, { purchased: true, productPurchased: true })
   await page.goto('/app/chat')
   await expect(page.locator('#chat-purchase')).toBeHidden()
-  // 核心功能入口仍在：档案选择。
-  await expect(page.getByText(/選擇檔案|选择档案/i).first()).toBeVisible()
+  // Core workspace still present (locale-independent structural markers).
+  await expect(page.locator('.profile-picker')).toBeVisible()
+  await expect(page.locator('.skill-grid')).toBeVisible()
 })
