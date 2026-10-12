@@ -34,10 +34,11 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
   await page.getByRole('button', { name: /儲存檔案/ }).click()
   await page.waitForURL(/\/app\/profiles\/[a-f0-9-]+/, { timeout: 15000 })
 
-  // 详情页：排盘渲染（免费确定性计算，无需任何购买）。
-  await expect(page.locator('.paipan-preview, [class*=paipan]').first()).toBeVisible()
-  await expect(page.getByText(/年柱/).first()).toBeVisible()
-  await expect(page.getByText(/日柱/).first()).toBeVisible()
+  // 详情页：档案信息已持久化。排盘渲染依赖 engine 集成，由
+  // engine-contract.spec（mock 形状）与 deploy assembly E2E（真实引擎）覆盖，
+  // CI 的 e2e job 不启动 engine。
+  await expect(page.getByText('旅程測試').first()).toBeVisible()
+  await expect(page.getByText(/出生|上海/).first()).toBeVisible()
 
   // 列表页可见该档案。
   await page.goto('/app/profiles')
