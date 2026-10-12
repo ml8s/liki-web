@@ -12,27 +12,37 @@ const { locale } = Astro.params;
 <BaseLayout
   locale={locale}
   page="partners"
-  heading={t(locale, 'partners.heading')}
-  type="article"
+  type="brand"
+  twitterCard="summary_large_image"
 >
-  <h1 class="sr-only">{t(locale, 'partners.heading')}</h1>
-
-  <section class="mb-10">
-    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'partners.kol.title')}</h2>
-    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'partners.kol.body')}</p>
+  <section class="landing-hero">
+    <p class="landing-kicker">{t(locale, 'partners.heading')}</p>
+    <h1 class="landing-h1">{t(locale, 'partners.hero.title')}</h1>
+    <p class="landing-sub">{t(locale, 'partners.hero.subtitle')}</p>
+    <div class="landing-actions">
+      <a href="/app/partners" class="btn-purple">{t(locale, 'partners.cta')}</a>
+    </div>
   </section>
 
-  <section class="mb-10">
-    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'partners.scout.title')}</h2>
-    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'partners.scout.body')}</p>
+  <section class="landing-services">
+    <h2>{t(locale, 'partners.roles.title')}</h2>
+    <div class="service-grid">
+      <div class="card">
+        <h3 class="font-serif">{t(locale, 'partners.kol.title')}</h3>
+        <p>{t(locale, 'partners.kol.body')}</p>
+      </div>
+      <div class="card">
+        <h3 class="font-serif">{t(locale, 'partners.scout.title')}</h3>
+        <p>{t(locale, 'partners.scout.body')}</p>
+      </div>
+    </div>
   </section>
 
-  <section class="mb-10">
-    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'partners.rules.title')}</h2>
-    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'partners.rules.body')}</p>
-  </section>
-
-  <section>
-    <a href="/app/partners" class="btn-purple">{t(locale, 'partners.cta')}</a>
+  <section class="landing-services">
+    <h2>{t(locale, 'partners.rules.title')}</h2>
+    <p>{t(locale, 'partners.rules.body')}</p>
+    <div class="landing-actions">
+      <a href="/app/partners" class="btn-purple">{t(locale, 'partners.cta')}</a>
+    </div>
   </section>
 </BaseLayout>
