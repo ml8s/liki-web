@@ -381,4 +381,4 @@ jobs:
       - name: Record released image digest
         run: |
           echo "liki-web=${{ steps.web-image.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
-          cosign sign --yes "ghcr.io/${{ github.repository_owner }}/liki-web@${{ steps.web-image.outputs.digest }}"
+          cosign sign --yes --oidc-provider github-actions "ghcr.io/${{ github.repository_owner }}/liki-web@${{ steps.web-image.outputs.digest }}"
