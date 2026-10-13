@@ -320,6 +320,24 @@ jobs:
           echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
           echo "runtime=$(cat cmd/liki-web/VERSION)" >> "$GITHUB_OUTPUT"
 
+      - name: Request Sigstore OIDC token
+        env:
+          OIDC_AUDIENCE: sigstore
+        run: |
+          set -euo pipefail
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "::error::GitHub Actions OIDC injection is unavailable" >&2
+            exit 1
+          fi
+          response="$(mktemp)"
+          curl -fsSL \
+            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            -H 'Accept: application/json' \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${OIDC_AUDIENCE}" > "$response"
+          python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["value"])' "$response" \
+            > "$RUNNER_TEMP/sigstore-oidc-token"
+          chmod 600 "$RUNNER_TEMP/sigstore-oidc-token"
+
       - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         id: web-image
         with:
@@ -341,4 +359,4 @@ jobs:
       - name: Record and sign released image digest
         run: |
           echo "liki-web=${{ steps.web-image.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
-          cosign sign --yes --oidc-provider github-actions "ghcr.io/${{ github.repository_owner }}/liki-web@${{ steps.web-image.outputs.digest }}"
+          cosign sign --yes --identity-token "$RUNNER_TEMP/sigstore-oidc-token" "ghcr.io/${{ github.repository_owner }}/liki-web@${{ steps.web-image.outputs.digest }}"
