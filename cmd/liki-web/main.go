@@ -95,9 +95,9 @@ func LoadConfig() Config {
 		DataDir:                          envOr("LIKI_DATA_DIR", "/var/lib/liki"),
 		AdminEmail:                       os.Getenv("LIKI_ADMIN_EMAIL"),
 		MetricsToken:                     os.Getenv("LIKI_METRICS_TOKEN"),
-		FeedbackAPIKey:                   os.Getenv("FEEDBACK_API_KEY"),
+		FeedbackAPIKey:                   os.Getenv("LIKI_FEEDBACK_API_TOKEN"),
 		ResendAPIKey:                     os.Getenv("RESEND_API_KEY"),
-		ResendFrom:                       envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
+		ResendFrom:                       envOr("LIKI_EMAIL_FROM_ADDRESS", "Liki <report@liki.email>"),
 		DodoAPIKey:                       envOr("DODO_API_KEY", ""),
 		DodoWebhookKey:                   envOr("DODO_WEBHOOK_KEY", ""),
 		DodoTestMode:                     envOrBool("DODO_TEST_MODE", false),
@@ -116,7 +116,7 @@ func LoadConfig() Config {
 		JWTSecret:                        os.Getenv("JWT_SECRET"),
 		HTTPListenAddress:                envOr("LIKI_HTTP_LISTEN_ADDRESS", ":8081"),
 		DevelopmentMode:                  envOrBool("LIKI_DEVELOPMENT_MODE", false),
-		CurrencySource:                   envOr("LIKI_CURRENCY_SOURCE", liki.CurrencySourceTrustedEdge),
+		CurrencySource:                   envOr("LIKI_BILLING_CURRENCY_SOURCE", liki.CurrencySourceTrustedEdge),
 		BillingRegion:                    envOr("LIKI_BILLING_REGION", "global"),
 		ChatOneTimeAccessDays:            envOrInt("LIKI_CHAT_ONE_TIME_ACCESS_DAYS", 30),
 		ChatOneTimePriceMinorCNY:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS", 100),
@@ -346,9 +346,9 @@ func main() {
 		slog.Error("init subscription schema", "err", err)
 		os.Exit(1)
 	}
-	payoutSecret := os.Getenv("REFERRAL_PAYOUT_SECRET")
+	payoutSecret := os.Getenv("LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY")
 	if len(payoutSecret) < 32 {
-		slog.Error("REFERRAL_PAYOUT_SECRET must contain at least 32 bytes")
+		slog.Error("LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY must contain at least 32 bytes")
 		os.Exit(1)
 	}
 	referralStore, err := referral.Open(filepath.Join(dataDir, "referral.db"), []byte(payoutSecret))
