@@ -8,6 +8,45 @@ WORKFLOW = PROJECT / ".github" / "workflows" / "ci.yml"
 
 
 class CIWorkflowTest(unittest.TestCase):
+    def test_docker_e2e_uses_absolute_runtime_webhook_name(self):
+        docker_test = (PROJECT / "scripts" / "docker-test.sh").read_text(encoding="utf-8")
+        self.assertIn(
+            "LIKI_PAYMENT_WEBHOOK_URL=http://localhost:8080/api/payments/webhook",
+            docker_test,
+        )
+        self.assertNotRegex(docker_test, r"^PAYMENTS_WEBHOOK_URL=", re.MULTILINE)
+
+    def test_docker_e2e_declares_complete_business_contract(self):
+        docker_test = (PROJECT / "scripts" / "docker-test.sh").read_text(encoding="utf-8")
+        required = {
+            "LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS": "7900",
+            "LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS": "2990",
+            "LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS": "1990",
+            "LIKI_CHAT_ONE_TIME_ACCESS_DAYS": "30",
+            "LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS": "4000",
+            "LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS": "1000",
+            "LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY": "e2e-referral-payout-encryption-key-32-bytes",
+        }
+        for name, value in required.items():
+            self.assertIn(f"{name}={value}", docker_test)
+
+    def test_image_smoke_declares_complete_business_contract(self):
+        smoke_image = (PROJECT / "scripts" / "smoke-image.sh").read_text(encoding="utf-8")
+        required = {
+            "LIKI_PAYMENT_WEBHOOK_URL": "http://127.0.0.1:$PORT/api/payments/webhook",
+            "LIKI_PUBLIC_BASE_URL": "http://127.0.0.1:$PORT",
+            "LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY": "web-image-smoke-referral-payout-encryption-key-32-bytes",
+            "LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS": "7900",
+            "LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS": "2990",
+            "LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS": "1990",
+            "LIKI_CHAT_ONE_TIME_ACCESS_DAYS": "30",
+            "LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS": "4000",
+            "LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS": "1000",
+        }
+        for name, value in required.items():
+            self.assertIn(f"{name}={value}", smoke_image)
+        self.assertNotRegex(smoke_image, r"^\s*-e PAYMENTS_WEBHOOK_URL=", re.MULTILINE)
+
     def test_e2e_uses_required_runtime_environment(self):
         text = WORKFLOW.read_text(encoding="utf-8")
         match = re.search(
@@ -19,11 +58,20 @@ class CIWorkflowTest(unittest.TestCase):
 
         required = {
             "JWT_SECRET",
-            "REFERRAL_PAYOUT_SECRET",
-            "LISTEN_ADDR",
-            "RETURN_URL",
+            "LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY",
+            "LIKI_HTTP_LISTEN_ADDR",
+            "LIKI_PUBLIC_BASE_URL",
             "XUNHU_APPID",
             "XUNHU_APPSECRET",
+            "LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS",
+            "LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS",
+            "LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS",
+            "LIKI_CHAT_ONE_TIME_ACCESS_DAYS",
+            "LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS",
+            "LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS",
+            "LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY",
+            "LIKI_DEVELOPMENT_MODE",
+            "LIKI_PAYMENT_WEBHOOK_URL",
         }
         for name in required:
             self.assertIsNotNone(
@@ -31,8 +79,14 @@ class CIWorkflowTest(unittest.TestCase):
                 f"missing CI e2e env {name}",
             )
 
-        self.assertIn("LISTEN_ADDR: :8081", env)
-        self.assertNotIn("-addr :8081", text, "liki-web listens through LISTEN_ADDR, not a CLI flag")
+        self.assertIn("LIKI_HTTP_LISTEN_ADDR: :8081", env)
+        self.assertIn("LIKI_PUBLIC_BASE_URL: http://localhost:8080", env)
+        self.assertIn("LIKI_DEVELOPMENT_MODE: 'true'", env)
+        self.assertNotRegex(env, r"^\s*DEV_MODE:", re.MULTILINE)
+        self.assertNotRegex(env, r"^\s*RETURN_URL:", re.MULTILINE)
+        self.assertIn("LIKI_PAYMENT_WEBHOOK_URL: http://localhost:8081/api/payments/webhook", env)
+        self.assertNotRegex(env, r"^\s*PAYMENTS_WEBHOOK_URL:", re.MULTILINE)
+        self.assertNotIn("-addr :8081", text, "liki-web listens through LIKI_HTTP_LISTEN_ADDR, not a CLI flag")
 
     def test_docker_entrypoint_does_not_add_removed_addr_flag(self):
         dockerfile = (PROJECT / "Dockerfile").read_text(encoding="utf-8")
@@ -42,3 +96,11 @@ class CIWorkflowTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_ci_runs_standardized_coverage_targets_and_uploads_frontend_report() -> None:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "make test-go-coverage" in text
+    assert "make test-js-coverage" in text
+    assert "name: frontend-coverage" in text
+    assert "web/app/coverage" in text

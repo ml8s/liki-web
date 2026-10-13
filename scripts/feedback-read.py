@@ -164,9 +164,9 @@ def render_table(rows: list[dict[str, Any]], details: bool) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    api_key = os.environ.get("FEEDBACK_API_KEY", "").strip()
+    api_key = os.environ.get("LIKI_FEEDBACK_API_TOKEN", "").strip()
     if not api_key:
-        print("FEEDBACK_API_KEY is required", file=sys.stderr)
+        print("LIKI_FEEDBACK_API_TOKEN is required", file=sys.stderr)
         return 2
     if args.limit < 1:
         print("--limit must be at least 1", file=sys.stderr)

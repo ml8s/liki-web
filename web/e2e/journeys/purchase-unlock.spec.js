@@ -9,6 +9,9 @@ const user = { id: 'usr_unlock', email: 'unlock@example.com', status: 'active', 
 const baseProduct = {
   id: 'liki-chat', name: 'Liki Chat', description: 'Unified metaphysics chat.',
   skills: ['liki'], prices: { CNY: 100 }, display_currency: 'CNY', display_amount_minor: 100,
+  purchase_options: [
+    { billing_mode: 'one_time', price: { currency_code: 'CNY', minor_units: 100 } },
+  ],
 }
 
 async function mockWorkspace(page, { purchased, productPurchased }) {
@@ -33,7 +36,7 @@ test('locked state shows the purchase entry', async ({ page }) => {
   await mockWorkspace(page, { purchased: false, productPurchased: false })
   await page.goto('/app/chat')
   await expect(page.locator('#chat-purchase')).toBeVisible()
-  await expect(page.locator('#chat-purchase')).toContainText('立即開通')
+  await expect(page.locator('#chat-purchase')).toContainText('單次訪問')
 })
 
 test('purchased state hides the purchase entry', async ({ page }) => {

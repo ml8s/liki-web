@@ -110,14 +110,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Go test + coverage
-        run: |
-          go test -race -count=1 -coverprofile=coverage.out ./... -coverpkg=./internal/...
-          COV=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
-          echo "Coverage: ${COV}%"
-          if [ "$(echo "$COV < 65" | bc)" -eq 1 ]; then
-            echo "❌ Coverage ${COV}% < 65%"; exit 1
-          fi
-          echo "Go coverage: ${COV}%" >> "$GITHUB_STEP_SUMMARY"
+        run: make test-go-coverage
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -125,8 +118,15 @@ jobs:
           name: go-coverage
           path: coverage.out
 
-      - name: Vitest
-        run: make test-js
+      - name: Vitest + coverage
+        run: make test-js-coverage
+
+      - name: Upload frontend coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frontend-coverage
+          path: web/app/coverage
+          if-no-files-found: error
 
       - name: Python helper tests
         run: make test-python
@@ -226,16 +226,25 @@ jobs:
       - name: Start servers
         env:
           JWT_SECRET: liki-ci-e2e-secret-0123456789abcdef
-          REFERRAL_PAYOUT_SECRET: liki-ci-e2e-referral-payout-secret-0123456789abcdef
-          LISTEN_ADDR: :8081
-          RETURN_URL: http://localhost:8080
+          LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY: liki-ci-e2e-referral-payout-encryption-key-32-bytes
+          LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY: e2e-referral-payout-encryption-key-32-bytes
+          LIKI_HTTP_LISTEN_ADDR: :8081
+          LIKI_PUBLIC_BASE_URL: http://localhost:8080
+          LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS: '7900'
+          LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS: '2990'
+          LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS: '1990'
+          LIKI_CHAT_ONE_TIME_ACCESS_DAYS: '30'
+          LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS: '4000'
+          LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS: '1000'
+          DODO_PRODUCT_LIKI_CHAT_ONE_TIME: ci-one-time-product
+          DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION: ci-subscription-product
           XUNHU_APPID: ci-test-dummy
           XUNHU_APPSECRET: ci-test-dummy
-          PAYMENTS_WEBHOOK_URL: http://localhost:8081/api/payments/webhook
+          LIKI_PAYMENT_WEBHOOK_URL: http://localhost:8081/api/payments/webhook
           LIKI_AGENTS_URL: http://127.0.0.1:18083
           LIKI_AGENTS_INTERNAL_TOKEN: liki-ci-e2e-agent-secret
           # Email-code login journeys need the local dev code echo.
-          DEV_MODE: 'true'
+          LIKI_DEVELOPMENT_MODE: 'true'
           LIKI_WEB_HOST: localhost
           LIKI_ENGINE_HOST: localhost
         run: |

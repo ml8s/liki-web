@@ -25,6 +25,9 @@ const product = {
   id: 'liki-chat', name: 'Liki Chat', description: 'Unified metaphysics chat.',
   skills: ['liki'], prices: { CNY: 100, USD: 100 },
   display_currency: 'CNY', display_amount_minor: 100, purchased: true,
+  purchase_options: [
+    { billing_mode: 'one_time', price: { currency_code: 'CNY', minor_units: 100 } },
+  ],
 }
 const order = {
   id: 'order_1', user_id: 'usr_test', email: 'user@example.com', product_id: 'liki-chat',
@@ -65,6 +68,8 @@ test.describe('App accessibility audit', () => {
       await page.route('**/api/chat/sessions/chat_1/messages', r => r.fulfill(json([message])))
       await page.route('**/api/chat/products', r => r.fulfill(json({ products: [product] })))
       await page.route('**/api/chat/orders', r => r.fulfill(json({ orders: [order] })))
+      await page.route('**/api/me/subscriptions', r => r.fulfill(json([])))
+      await page.route('**/api/me/subscription-payments', r => r.fulfill(json([])))
       await page.route('**/api/me/sessions', r => r.fulfill(json([])))
       await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
       // Partner 面：kol/scout 深状态 mock 从简，覆盖骨架的错误/空态即可。

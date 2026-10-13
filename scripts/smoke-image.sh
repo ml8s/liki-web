@@ -18,11 +18,18 @@ docker rm -f "$NAME" >/dev/null 2>&1 || true
 docker run -d --name "$NAME" \
   -p "$PORT:8081" \
   --tmpfs /var/lib/liki:uid=1000,gid=1000 \
-  -e LISTEN_ADDR=:8081 \
+  -e LIKI_HTTP_LISTEN_ADDR=:8081 \
   -e JWT_SECRET=web-image-smoke-jwt-secret-0123456789abcdef \
-  -e REFERRAL_PAYOUT_SECRET=web-image-smoke-referral-payout-secret-32-bytes \
-  -e RETURN_URL=http://127.0.0.1:$PORT \
-  -e PAYMENTS_WEBHOOK_URL=http://127.0.0.1:$PORT/api/payments/webhook \
+  -e LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY=web-image-smoke-referral-payout-encryption-key-32-bytes \
+  -e LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY=web-image-smoke-referral-payout-encryption-key-32-bytes \
+  -e LIKI_PUBLIC_BASE_URL=http://127.0.0.1:$PORT \
+  -e LIKI_PAYMENT_WEBHOOK_URL=http://127.0.0.1:$PORT/api/payments/webhook \
+  -e LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS=7900 \
+  -e LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS=2990 \
+  -e LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS=1990 \
+  -e LIKI_CHAT_ONE_TIME_ACCESS_DAYS=30 \
+  -e LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS=4000 \
+  -e LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS=1000 \
   -e XUNHU_APPID=web-image-smoke \
   -e XUNHU_APPSECRET=web-image-smoke-secret \
   -e LIKI_AGENTS_URL=http://127.0.0.1:9 \

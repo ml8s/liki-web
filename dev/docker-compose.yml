@@ -22,10 +22,9 @@ services:
     expose: ["8081"]
     restart: "no"
     env_file:
-      - path: ${LIKI_TEST_ENV_FILE:-/tmp/liki-web-e2e.env}
-        required: false
+      - ${LIKI_TEST_ENV_FILE:-/tmp/liki-web-e2e.env}
     environment:
-      - LISTEN_ADDR=:8081
+      - LIKI_HTTP_LISTEN_ADDR=:8081
       - LIKI_DATA_DIR=/var/lib/liki
       - LIKI_ENGINE_MCP_URL=http://engine-mcp:8085
       - LIKI_ENGINE_MCP_TOKEN=${LIKI_ENGINE_MCP_TOKEN:-}

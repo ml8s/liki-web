@@ -24,19 +24,21 @@ export DODO_TEST_MODE="${DODO_TEST_MODE:-true}"
 export XUNHU_APPID="${XUNHU_APPID:-}"
 export XUNHU_APPSECRET="${XUNHU_APPSECRET:-}"
 export RESEND_API_KEY="${RESEND_API_KEY:-}"
-export RESEND_FROM="${RESEND_FROM:-noreply@localhost}"
-export RETURN_URL="${RETURN_URL:-http://localhost:8080}"
+export LIKI_EMAIL_FROM_ADDRESS="${LIKI_EMAIL_FROM_ADDRESS:-Liki <noreply@localhost>}"
+export LIKI_PUBLIC_BASE_URL="${LIKI_PUBLIC_BASE_URL:-http://localhost:8080}"
 export LIKI_DATA_DIR="${LIKI_DATA_DIR:-$(pwd)/data}"
 mkdir -p "$LIKI_DATA_DIR"
-export LISTEN_ADDR="${LISTEN_ADDR:-:8081}"
+export LIKI_HTTP_LISTEN_ADDR="${LIKI_HTTP_LISTEN_ADDR:-:8081}"
+# Engine RPC still uses its own conventional LISTEN_ADDR variable.
+LISTEN_ADDR="${LIKI_HTTP_LISTEN_ADDR}"
 export LIKI_ENGINE_MCP_URL
 export LIKI_ENGINE_MCP_TOKEN
 export LIKI_AGENTS_URL="${LIKI_AGENTS_URL:-http://127.0.0.1:18083}"
 export LIKI_AGENTS_INTERNAL_TOKEN="${LIKI_AGENTS_INTERNAL_TOKEN:-dev-agent-secret}"
 export TRUSTED_PROXY_HOPS="${TRUSTED_PROXY_HOPS:-1}"
 export JWT_SECRET="${JWT_SECRET:-dev-secret-do-not-use-in-production}"
-export REFERRAL_PAYOUT_SECRET="${REFERRAL_PAYOUT_SECRET:-dev-referral-payout-secret-do-not-use-in-production}"
-export DEV_MODE="${DEV_MODE:-true}"
+export LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY="${LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY:-dev-referral-payout-encryption-key-32-bytes}"
+export LIKI_DEVELOPMENT_MODE="${LIKI_DEVELOPMENT_MODE:-true}"
 
 # Caddy binary
 if [ -z "${CADDY_BIN:-}" ]; then
@@ -109,7 +111,7 @@ for i in $(seq 1 30); do
   sleep 0.5
 done
 
-echo "==> Starting web API on $LISTEN_ADDR"
+echo "==> Starting web API on $LIKI_HTTP_LISTEN_ADDR"
 "$WEB_BIN" &
 API_PID=$!
 for i in $(seq 1 30); do
