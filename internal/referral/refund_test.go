@@ -18,14 +18,14 @@ func newPendingCommissionForRefund(t *testing.T) (*Store, Commission) {
 	if _, err := store.Attribute(context.Background(), "buyer", kol.Code); err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 10000)
-	if _, _, err := store.EnqueueCommissionIntent(context.Background(), intent); err != nil {
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 10000)
+	if _, _, err := store.EnqueueCommissionPayment(context.Background(), sale); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(context.Background(), 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(context.Background(), 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
-	commission, err := store.commission(context.Background(), string(payment.ProviderXunhu), intent.ID)
+	commission, err := store.commission(context.Background(), string(payment.ProviderXunhu), sale.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,16 +35,16 @@ func newPendingCommissionForRefund(t *testing.T) (*Store, Commission) {
 func TestPartialRefundAdjustsCommissionLedger(t *testing.T) {
 	ctx := context.Background()
 	store, commission := newPendingCommissionForRefund(t)
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 10000)
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 10000)
 	event := payment.WebhookEvent{
 		Provider: payment.ProviderXunhu, Type: payment.EventPaymentRefunded,
-		Data: payment.WebhookEventData{OrderID: intent.ID, PaymentID: "refund-1", Amount: 4000, Currency: "CNY"},
+		Data: payment.WebhookEventData{OrderID: sale.ID, PaymentID: "refund-1", Amount: 4000, Currency: "CNY"},
 	}
-	if err := store.EnqueueCommissionRefund(ctx, event, intent); err != nil {
+	if err := store.EnqueueCommissionRefund(ctx, event, sale); err != nil {
 		t.Fatal(err)
 	}
 	// A duplicate webhook fact must be ignored by the durable intake.
-	if err := store.EnqueueCommissionRefund(ctx, event, intent); err != nil {
+	if err := store.EnqueueCommissionRefund(ctx, event, sale); err != nil {
 		t.Fatal(err)
 	}
 	if n, err := store.ProcessCommissionRefunds(ctx, 10); err != nil || n != 1 {
@@ -59,7 +59,7 @@ SELECT refunded_minor,status FROM referral_commission_entries WHERE id=?`, commi
 	if refunded != 2000 || status != string(CommissionPending) {
 		t.Fatalf("entry refunded/status = %d/%q", refunded, status)
 	}
-	if commission, err := store.commission(ctx, string(payment.ProviderXunhu), intent.ID); err != nil || commission.RefundedMinor != 4000 {
+	if commission, err := store.commission(ctx, string(payment.ProviderXunhu), sale.ID); err != nil || commission.RefundedMinor != 4000 {
 		t.Fatalf("sale refunded=%d err=%v", commission.RefundedMinor, err)
 	}
 }
@@ -67,12 +67,12 @@ SELECT refunded_minor,status FROM referral_commission_entries WHERE id=?`, commi
 func TestFullRefundVoidsCommissionEntry(t *testing.T) {
 	ctx := context.Background()
 	store, commission := newPendingCommissionForRefund(t)
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 10000)
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 10000)
 	event := payment.WebhookEvent{
 		Provider: payment.ProviderXunhu, Type: payment.EventPaymentRefunded,
-		Data: payment.WebhookEventData{OrderID: intent.ID, PaymentID: "refund-full", Amount: 10000, Currency: "CNY"},
+		Data: payment.WebhookEventData{OrderID: sale.ID, PaymentID: "refund-full", Amount: 10000, Currency: "CNY"},
 	}
-	if err := store.EnqueueCommissionRefund(ctx, event, intent); err != nil {
+	if err := store.EnqueueCommissionRefund(ctx, event, sale); err != nil {
 		t.Fatal(err)
 	}
 	if n, err := store.ProcessCommissionRefunds(ctx, 10); err != nil || n != 1 {
@@ -104,12 +104,12 @@ func TestRefundDoesNotChangePaidLedgerAutomatically(t *testing.T) {
 	if err := store.MarkPayoutPaid(ctx, payout.ID, "admin", "transfer-paid"); err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 10000)
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 10000)
 	event := payment.WebhookEvent{
 		Provider: payment.ProviderXunhu, Type: payment.EventPaymentRefunded,
-		Data: payment.WebhookEventData{OrderID: intent.ID, PaymentID: "refund-after-paid", Amount: 10000, Currency: "CNY"},
+		Data: payment.WebhookEventData{OrderID: sale.ID, PaymentID: "refund-after-paid", Amount: 10000, Currency: "CNY"},
 	}
-	if err := store.EnqueueCommissionRefund(ctx, event, intent); err != nil {
+	if err := store.EnqueueCommissionRefund(ctx, event, sale); err != nil {
 		t.Fatal(err)
 	}
 	if n, err := store.ProcessCommissionRefunds(ctx, 10); err != nil || n != 1 {
@@ -148,12 +148,12 @@ func TestRefundRejectsLockedPayoutButPreservesRequestedAmount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 10000)
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 10000)
 	event := payment.WebhookEvent{
 		Provider: payment.ProviderXunhu, Type: payment.EventPaymentRefunded,
-		Data: payment.WebhookEventData{OrderID: intent.ID, PaymentID: "refund-locked", Amount: 10000, Currency: "CNY"},
+		Data: payment.WebhookEventData{OrderID: sale.ID, PaymentID: "refund-locked", Amount: 10000, Currency: "CNY"},
 	}
-	if err := store.EnqueueCommissionRefund(ctx, event, intent); err != nil {
+	if err := store.EnqueueCommissionRefund(ctx, event, sale); err != nil {
 		t.Fatal(err)
 	}
 	if n, err := store.ProcessCommissionRefunds(ctx, 10); err != nil || n != 1 {
@@ -187,12 +187,12 @@ SELECT COUNT(1) FROM commission_entry_refunds WHERE provider_refund_id='refund-l
 func TestRecoverCommissionRefundsResumesRunning(t *testing.T) {
 	ctx := context.Background()
 	store, commission := newPendingCommissionForRefund(t)
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 10000)
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 10000)
 	event := payment.WebhookEvent{
 		Provider: payment.ProviderXunhu, Type: payment.EventPaymentRefunded,
-		Data: payment.WebhookEventData{OrderID: intent.ID, PaymentID: "refund-1", Amount: 4000, Currency: "CNY"},
+		Data: payment.WebhookEventData{OrderID: sale.ID, PaymentID: "refund-1", Amount: 4000, Currency: "CNY"},
 	}
-	if err := store.EnqueueCommissionRefund(ctx, event, intent); err != nil {
+	if err := store.EnqueueCommissionRefund(ctx, event, sale); err != nil {
 		t.Fatal(err)
 	}
 	// 模拟进程在 claim 后、apply 前崩溃：intake 卡在 running

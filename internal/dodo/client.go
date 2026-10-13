@@ -45,9 +45,9 @@ func (c *Client) CreateCheckout(ctx context.Context, req payment.CheckoutRequest
 		return nil, fmt.Errorf("dodo: no product ID configured for %s", req.Product)
 	}
 	metadata := map[string]string{
-		"payment_intent_id": req.IntentID,
-		"business_order_id": req.BusinessOrderID,
-		"product":           string(req.Product),
+		payment.MetadataPaymentIntentID: req.IntentID,
+		payment.MetadataBusinessOrderID: req.BusinessOrderID,
+		payment.MetadataProduct:         string(req.Product),
 	}
 	maps.Copy(metadata, req.Metadata)
 
@@ -72,7 +72,7 @@ func (c *Client) CreateCheckout(ctx context.Context, req payment.CheckoutRequest
 	if err != nil {
 		return nil, fmt.Errorf("dodo: create checkout: %w", err)
 	}
-	return &payment.CheckoutResult{SessionID: resp.SessionID, CheckoutURL: resp.CheckoutURL}, nil
+	return &payment.CheckoutResult{CheckoutSessionID: resp.SessionID, CheckoutURL: resp.CheckoutURL}, nil
 }
 
 // CreateSubscriptionCheckout creates a hosted recurring checkout. The amount is
@@ -84,10 +84,10 @@ func (c *Client) CreateSubscriptionCheckout(ctx context.Context, req payment.Sub
 		return nil, fmt.Errorf("dodo: no subscription product ID configured for %s", req.Product)
 	}
 	metadata := map[string]string{
-		"liki_product":          req.Product,
-		"liki_billing_mode":     "subscription",
-		"liki_user_id":          req.UserID,
-		"liki_subscription_key": req.SubscriptionKey,
+		payment.MetadataLikiProduct:         req.Product,
+		payment.MetadataLikiBillingMode:     "subscription",
+		payment.MetadataLikiUserID:          req.UserID,
+		payment.MetadataLikiSubscriptionKey: req.SubscriptionKey,
 	}
 	params := dodopayments.CheckoutSessionNewParams{
 		CheckoutSessionRequest: dodopayments.CheckoutSessionRequestParam{
@@ -105,7 +105,7 @@ func (c *Client) CreateSubscriptionCheckout(ctx context.Context, req payment.Sub
 	if err != nil {
 		return nil, fmt.Errorf("dodo: create subscription checkout: %w", err)
 	}
-	return &payment.CheckoutResult{SessionID: resp.SessionID, CheckoutURL: resp.CheckoutURL}, nil
+	return &payment.CheckoutResult{CheckoutSessionID: resp.SessionID, CheckoutURL: resp.CheckoutURL}, nil
 }
 
 // SetSubscriptionCancellation schedules or cancels termination at period end.
@@ -195,13 +195,13 @@ func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.We
 
 	email := paymentEvent.Data.Customer.Email
 	if email == "" {
-		email = paymentEvent.Data.Metadata["email"]
+		email = paymentEvent.Data.Metadata[payment.MetadataEmail]
 	}
 	return &payment.WebhookEvent{
 		Provider: payment.ProviderDodo,
 		Type:     string(event.Type),
 		Data: payment.WebhookEventData{
-			OrderID:           paymentEvent.Data.Metadata["payment_intent_id"],
+			OrderID:           paymentEvent.Data.Metadata[payment.MetadataPaymentIntentID],
 			Amount:            int64(paymentEvent.Data.TotalAmount),
 			Email:             email,
 			PaymentID:         paymentEvent.Data.PaymentID,
@@ -220,7 +220,7 @@ func (c *Client) WebhookAck() []byte { return nil }
 // payment is then loaded with GET /payments/{id} so amount and currency are
 // always verified against the authoritative payment record.
 func (c *Client) FetchPayment(ctx context.Context, intent payment.PaymentIntent) (*payment.WebhookEvent, error) {
-	if intent.ProviderPaymentID == "" && intent.ProviderSessionID == "" {
+	if intent.ProviderPaymentID == "" && intent.ProviderCheckoutSessionID == "" {
 		return nil, fmt.Errorf("dodo: intent %s has no checkout session or payment ID", intent.ID)
 	}
 
@@ -238,7 +238,7 @@ func (c *Client) FetchPayment(ctx context.Context, intent payment.PaymentIntent)
 		return dodoPaymentEvent(resp.Metadata, resp.PaymentID, resp.TotalAmount, string(resp.Currency), resp.Customer.Email), nil
 	}
 
-	session, err := c.checkoutSvc.Get(ctx, intent.ProviderSessionID)
+	session, err := c.checkoutSvc.Get(ctx, intent.ProviderCheckoutSessionID)
 	if err != nil {
 		return nil, fmt.Errorf("dodo: fetch checkout session: %w", err)
 	}
@@ -264,15 +264,15 @@ func (c *Client) FetchPayment(ctx context.Context, intent payment.PaymentIntent)
 }
 
 func validateDodoPayment(intent payment.PaymentIntent, resp *dodopayments.Payment) error {
-	orderID := resp.Metadata["payment_intent_id"]
+	orderID := resp.Metadata[payment.MetadataPaymentIntentID]
 	if orderID == "" {
 		return fmt.Errorf("dodo: payment %s has no payment_intent_id metadata", resp.PaymentID)
 	}
 	if orderID != intent.ID {
 		return fmt.Errorf("dodo: payment %s metadata payment_intent_id %q does not match intent %q", resp.PaymentID, orderID, intent.ID)
 	}
-	if intent.ProviderSessionID != "" && resp.CheckoutSessionID != intent.ProviderSessionID {
-		return fmt.Errorf("dodo: payment %s checkout session %q does not match intent %q", resp.PaymentID, resp.CheckoutSessionID, intent.ProviderSessionID)
+	if intent.ProviderCheckoutSessionID != "" && resp.CheckoutSessionID != intent.ProviderCheckoutSessionID {
+		return fmt.Errorf("dodo: payment %s checkout session %q does not match intent %q", resp.PaymentID, resp.CheckoutSessionID, intent.ProviderCheckoutSessionID)
 	}
 	if resp.TotalAmount != intent.AmountMinor {
 		return fmt.Errorf("dodo: payment %s amount mismatch for intent %s: got %d want %d", resp.PaymentID, intent.ID, resp.TotalAmount, intent.AmountMinor)
@@ -284,9 +284,9 @@ func validateDodoPayment(intent payment.PaymentIntent, resp *dodopayments.Paymen
 }
 
 func dodoPaymentEvent(metadata map[string]string, paymentID string, amount int64, currency, email string) *payment.WebhookEvent {
-	orderID := metadata["payment_intent_id"]
+	orderID := metadata[payment.MetadataPaymentIntentID]
 	if orderID == "" {
-		orderID = metadata["business_order_id"]
+		orderID = metadata[payment.MetadataBusinessOrderID]
 	}
 	if email == "" {
 		email = metadata["email"]

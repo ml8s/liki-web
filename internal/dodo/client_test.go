@@ -282,8 +282,8 @@ func TestCreateCheckout_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
-	if result.SessionID != "sess_test123" {
-		t.Errorf("SessionID = %q, want sess_test123", result.SessionID)
+	if result.CheckoutSessionID != "sess_test123" {
+		t.Errorf("SessionID = %q, want sess_test123", result.CheckoutSessionID)
 	}
 	if result.CheckoutURL != "https://checkout.example.com/pay/test" {
 		t.Errorf("CheckoutURL = %q", result.CheckoutURL)

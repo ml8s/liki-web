@@ -96,17 +96,17 @@ WHERE id=? AND status=?`,
 
 func scanFinanceTask(scan func(dest ...any) error) (FinanceTask, error) {
 	var item FinanceTask
-	var taskType, provider, intentID, refundID, entryID, beneficiaryID, role, currency, status string
+	var taskType, provider, paymentID, refundID, entryID, beneficiaryID, role, currency, status string
 	var createdAt, updatedAt string
 	var assignee, note, resolvedAt sql.NullString
-	if err := scan(&item.ID, &taskType, &provider, &intentID, &refundID, &entryID,
+	if err := scan(&item.ID, &taskType, &provider, &paymentID, &refundID, &entryID,
 		&beneficiaryID, &role, &item.AmountMinor, &currency, &status,
 		&assignee, &note, &createdAt, &updatedAt, &resolvedAt); err != nil {
 		return FinanceTask{}, err
 	}
 	item.Type = FinanceTaskType(taskType)
 	item.Provider = provider
-	item.PaymentIntentID = intentID
+	item.PaymentID = paymentID
 	item.ProviderRefundID = refundID
 	item.EntryID = entryID
 	item.BeneficiaryID = beneficiaryID

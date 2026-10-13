@@ -22,12 +22,12 @@ func newStore(t *testing.T) *Store {
 	return store
 }
 
-func paidIntent(provider payment.Provider, buyer string, amount int64) payment.PaymentIntent {
-	return payment.PaymentIntent{
+func paidCommission(provider payment.Provider, buyer string, amount int64) payment.CommissionablePayment {
+	return payment.CommissionablePayment{
 		ID:              "pi-" + string(provider) + "-" + buyer,
 		BusinessOrderID: "order-" + buyer, Product: "liki-chat", UserID: buyer,
-		Provider: provider, Status: payment.IntentPaid, AmountMinor: amount,
-		Currency: "CNY", ProviderPaymentID: "pay-" + buyer,
+		Provider: provider, AmountMinor: amount,
+		Currency: "CNY",
 	}
 }
 

@@ -800,20 +800,20 @@ func commission_parts(amount int64, rate int) int64 {
 // RecordCommission records one dodo/xunhu paid intent exactly once. Missing
 // attribution is a normal no-op, while a conflict with different data is an
 // error so retry can surface corruption instead of hiding it.
-func (s *Store) commission(ctx context.Context, provider, intentID string) (Commission, error) {
-	return s.commissionTx(ctx, s.db, provider, intentID)
+func (s *Store) commission(ctx context.Context, provider, paymentID string) (Commission, error) {
+	return s.commissionTx(ctx, s.db, provider, paymentID)
 }
 
 func (s *Store) commissionTx(ctx context.Context, runner interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
-}, provider, intentID string) (Commission, error) {
+}, provider, paymentID string) (Commission, error) {
 	row := runner.QueryRowContext(ctx, `
 SELECT id,payment_provider,payment_intent_id,business_order_id,product,buyer_user_id,
        referrer_id,recruiter_id,amount_minor,currency,referrer_rate_bps,
        referrer_commission_minor,recruiter_rate_bps,recruiter_commission_minor,
        status,refunded_minor,created_at,updated_at,paid_at
 FROM referral_commissions
-WHERE payment_provider=? AND payment_intent_id=?`, provider, intentID)
+WHERE payment_provider=? AND payment_intent_id=?`, provider, paymentID)
 	return scanCommission(row.Scan)
 }
 
@@ -823,7 +823,7 @@ func scanCommission(scan func(dest ...any) error) (Commission, error) {
 	var recruiter sql.NullString
 	var paid sql.NullString
 	if err := scan(
-		&item.ID, &provider, &item.PaymentIntentID, &item.BusinessOrderID, &item.Product,
+		&item.ID, &provider, &item.PaymentID, &item.BusinessOrderID, &item.Product,
 		&item.BuyerUserID, &item.ReferrerID, &recruiter, &item.AmountMinor, &currency,
 		&item.ReferrerRateBPS, &item.ReferrerAmount, &item.RecruiterRateBPS,
 		&item.RecruiterAmount, &status, &item.RefundedMinor, &createdAt, &updatedAt, &paid,

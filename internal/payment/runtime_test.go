@@ -29,7 +29,7 @@ func (g *fakeGateway) CreateCheckout(ctx context.Context, req CheckoutRequest) (
 	if g.err != nil {
 		return nil, g.err
 	}
-	return &CheckoutResult{SessionID: "session", CheckoutURL: "https://pay.example/checkout"}, nil
+	return &CheckoutResult{CheckoutSessionID: "session", CheckoutURL: "https://pay.example/checkout"}, nil
 }
 
 func (g *fakeGateway) VerifyWebhook(raw []byte, header http.Header) (*WebhookEvent, error) {
@@ -709,6 +709,25 @@ func TestRefundWebhookMarksIntentAndNotifiesObserver(t *testing.T) {
 	}
 	if refunds != 1 || flow.onPaid != 1 {
 		t.Fatalf("refunds=%d onPaid=%d, want 1/1", refunds, flow.onPaid)
+	}
+}
+
+func TestRefundReferencePrefersExplicitRefundID(t *testing.T) {
+	tests := []struct {
+		name string
+		data WebhookEventData
+		want string
+	}{
+		{name: "explicit", data: WebhookEventData{RefundID: "refund", PaymentID: "pay"}, want: "refund"},
+		{name: "legacy", data: WebhookEventData{PaymentID: "refund"}, want: "refund"},
+		{name: "missing", data: WebhookEventData{}, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.data.RefundReference(); got != tt.want {
+				t.Fatalf("RefundReference() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 

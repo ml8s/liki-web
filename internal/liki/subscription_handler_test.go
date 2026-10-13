@@ -10,7 +10,7 @@ import (
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
-func TestSubscriptionEventHandlerRecordsPaymentAndAppliesLifecycle(t *testing.T) {
+func TestSubscriptionEventProcessorRecordsPaymentAndAppliesLifecycle(t *testing.T) {
 	ctx := context.Background()
 	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))
 	if err != nil {
@@ -33,7 +33,7 @@ func TestSubscriptionEventHandlerRecordsPaymentAndAppliesLifecycle(t *testing.T)
 	periodStartPtr := &periodStart
 	periodEndPtr := &periodEnd
 	observed := 0
-	handler := NewSubscriptionEventHandler(subscriptions, entitlements, "pdt_subscription", func(_ context.Context, _ payment.WebhookEvent) error {
+	processor := NewSubscriptionEventProcessor(subscriptions, entitlements, "pdt_subscription", func(_ context.Context, _ payment.CommissionablePayment) error {
 		observed++
 		return nil
 	})
@@ -47,14 +47,14 @@ func TestSubscriptionEventHandlerRecordsPaymentAndAppliesLifecycle(t *testing.T)
 			Metadata: map[string]string{"liki_user_id": "user-1"},
 		},
 	}
-	if err := handler.HandleSubscriptionEvent(ctx, paymentEvent); err != nil {
+	if err := processor.HandleSubscriptionEvent(ctx, paymentEvent); err != nil {
 		t.Fatal(err)
 	}
 	if observed != 1 {
 		t.Fatalf("observer count = %d, want 1", observed)
 	}
 
-	if err := handler.HandleSubscriptionEvent(ctx, paymentEvent); err != nil {
+	if err := processor.HandleSubscriptionEvent(ctx, paymentEvent); err != nil {
 		t.Fatal(err)
 	}
 	if observed != 1 {
@@ -65,12 +65,12 @@ func TestSubscriptionEventHandlerRecordsPaymentAndAppliesLifecycle(t *testing.T)
 		Provider: payment.ProviderDodo,
 		Type:     payment.EventSubscriptionActive,
 		Data: payment.WebhookEventData{
-			SubscriptionID: "sub_1", Product: "pdt_subscription", Status: "active", Currency: "USD",
+			SubscriptionID: "sub_1", ProviderProductID: "pdt_subscription", Status: "active", Currency: "USD",
 			PeriodStart: periodStartPtr, PeriodEnd: periodEndPtr,
 			Metadata: map[string]string{"liki_subscription_key": pending.ID},
 		},
 	}
-	if err := handler.HandleSubscriptionEvent(ctx, active); err != nil {
+	if err := processor.HandleSubscriptionEvent(ctx, active); err != nil {
 		t.Fatal(err)
 	}
 	allowed, err := entitlements.AllowedSkills(ctx, "user-1")
@@ -82,7 +82,7 @@ func TestSubscriptionEventHandlerRecordsPaymentAndAppliesLifecycle(t *testing.T)
 	}
 }
 
-func TestSubscriptionEventHandlerRoutesSubscriptionRefund(t *testing.T) {
+func TestSubscriptionEventProcessorRoutesSubscriptionRefund(t *testing.T) {
 	ctx := context.Background()
 	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))
 	if err != nil {
@@ -114,15 +114,15 @@ func TestSubscriptionEventHandlerRoutesSubscriptionRefund(t *testing.T) {
 			Metadata: map[string]string{"liki_user_id": "user-1"},
 		},
 	}
-	handler := NewSubscriptionEventHandler(subscriptions, entitlements, "pdt_subscription", func(_ context.Context, _ payment.WebhookEvent) error {
+	processor := NewSubscriptionEventProcessor(subscriptions, entitlements, "pdt_subscription", func(_ context.Context, _ payment.CommissionablePayment) error {
 		return nil
 	})
-	refundIntents := make([]payment.PaymentIntent, 0, 1)
-	handler.SetPaymentRefundObserver(func(_ context.Context, _ payment.WebhookEvent, intent payment.PaymentIntent) error {
-		refundIntents = append(refundIntents, intent)
+	refundSales := make([]payment.CommissionablePayment, 0, 1)
+	processor.SetCommissionRefundObserver(func(_ context.Context, _ payment.WebhookEvent, sale payment.CommissionablePayment) error {
+		refundSales = append(refundSales, sale)
 		return nil
 	})
-	if err := handler.HandleSubscriptionEvent(ctx, paid); err != nil {
+	if err := processor.HandleSubscriptionEvent(ctx, paid); err != nil {
 		t.Fatal(err)
 	}
 	refund := payment.WebhookEvent{
@@ -133,22 +133,22 @@ func TestSubscriptionEventHandlerRoutesSubscriptionRefund(t *testing.T) {
 			Metadata: map[string]string{"liki_user_id": "user-1"},
 		},
 	}
-	if err := handler.HandleSubscriptionEvent(ctx, refund); err != nil {
+	if err := processor.HandleSubscriptionEvent(ctx, refund); err != nil {
 		t.Fatal(err)
 	}
 	payments, err := subscriptions.ListPaymentsByUser(ctx, "user-1", 10)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(payments) != 1 || payments[0].Status != "refunded" || payments[0].RefundedMinorUnits != 1990 {
+	if len(payments) != 1 || payments[0].Status != SubscriptionPaymentRefunded || payments[0].RefundedMinorUnits != 1990 {
 		t.Fatalf("payments = %+v", payments)
 	}
-	if len(refundIntents) != 1 || refundIntents[0].ID != "pay_1" || refundIntents[0].UserID != "user-1" {
-		t.Fatalf("refund intents = %+v", refundIntents)
+	if len(refundSales) != 1 || refundSales[0].ID != "pay_1" || refundSales[0].UserID != "user-1" {
+		t.Fatalf("refund sales = %+v", refundSales)
 	}
 }
 
-func TestSubscriptionEventHandlerRejectsUnexpectedProduct(t *testing.T) {
+func TestSubscriptionEventProcessorRejectsUnexpectedProduct(t *testing.T) {
 	ctx := context.Background()
 	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))
 	if err != nil {
@@ -166,12 +166,12 @@ func TestSubscriptionEventHandlerRejectsUnexpectedProduct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := NewSubscriptionEventHandler(subscriptions, entitlements, "pdt_subscription", nil)
-	err = handler.HandleSubscriptionEvent(ctx, payment.WebhookEvent{
+	processor := NewSubscriptionEventProcessor(subscriptions, entitlements, "pdt_subscription", nil)
+	err = processor.HandleSubscriptionEvent(ctx, payment.WebhookEvent{
 		Provider: payment.ProviderDodo,
 		Type:     payment.EventSubscriptionActive,
 		Data: payment.WebhookEventData{
-			SubscriptionID: "sub_wrong", Product: "pdt_other", Status: "active",
+			SubscriptionID: "sub_wrong", ProviderProductID: "pdt_other", Status: "active",
 			PeriodStart: ptrTime(time.Date(2026, 10, 13, 0, 0, 0, 0, time.UTC)),
 			PeriodEnd:   ptrTime(time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC)),
 			Metadata:    map[string]string{"liki_subscription_key": pending.ID},

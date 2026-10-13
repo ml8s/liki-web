@@ -19,7 +19,7 @@ import (
 type CommissionRefundIntake struct {
 	ID               string
 	Provider         string
-	PaymentIntentID  string
+	PaymentID        string
 	ProviderRefundID string
 	AmountMinor      int64
 	Currency         string
@@ -33,20 +33,21 @@ type CommissionRefundIntake struct {
 }
 
 // EnqueueCommissionRefund records a verified payment refund fact exactly once.
-func (s *Store) EnqueueCommissionRefund(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
+func (s *Store) EnqueueCommissionRefund(ctx context.Context, event payment.WebhookEvent, sale payment.CommissionablePayment) error {
 	if event.Type != payment.EventPaymentRefunded {
 		return fmt.Errorf("referral: unexpected refund event %q", event.Type)
 	}
-	if intent.Provider != event.Provider {
-		return fmt.Errorf("referral: refund provider mismatch: intent %q event %q", intent.Provider, event.Provider)
+	if sale.Provider != event.Provider {
+		return fmt.Errorf("referral: refund provider mismatch: sale %q event %q", sale.Provider, event.Provider)
 	}
-	if intent.ID == "" || event.Data.PaymentID == "" || event.Data.Amount <= 0 {
-		return fmt.Errorf("referral: invalid refund payload for intent %q", intent.ID)
+	refundID := event.Data.RefundReference()
+	if sale.ID == "" || refundID == "" || event.Data.Amount <= 0 {
+		return fmt.Errorf("referral: invalid refund payload for sale %q", sale.ID)
 	}
 	amount := event.Data.Amount
 	currency := strings.ToUpper(event.Data.Currency)
 	if currency == "" {
-		currency = strings.ToUpper(intent.Currency)
+		currency = strings.ToUpper(sale.Currency)
 	}
 	now := formatTime(s.nowFunc())
 	id := string(event.Provider) + ":" + event.Data.PaymentID
@@ -56,7 +57,7 @@ INSERT INTO commission_refund_intents
  status,attempts,run_at,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,0,?,?,?)
 ON CONFLICT(payment_provider,provider_refund_id) DO NOTHING`,
-		id, string(event.Provider), intent.ID, event.Data.PaymentID, amount, currency,
+		id, string(event.Provider), sale.ID, refundID, amount, currency,
 		string(IntakeQueued), now, now, now)
 	if err != nil {
 		return fmt.Errorf("referral: enqueue refund intent: %w", err)
@@ -75,7 +76,7 @@ func (s *Store) claimCommissionRefund(ctx context.Context, now time.Time) (Commi
 	defer func() { _ = tx.Rollback() }()
 
 	var item CommissionRefundIntake
-	var provider, intentID, refundID, currency string
+	var provider, paymentID, refundID, currency string
 	var amount, attempts int64
 	var status, runAt, createdAt, updatedAt string
 	var skipReason, lastError sql.NullString
@@ -85,7 +86,7 @@ SELECT id,payment_provider,payment_intent_id,provider_refund_id,amount_minor,cur
 FROM commission_refund_intents
 WHERE status=? AND run_at<=?
 ORDER BY run_at LIMIT 1`, string(IntakeQueued), formatTime(now)).Scan(
-		&item.ID, &provider, &intentID, &refundID, &amount, &currency,
+		&item.ID, &provider, &paymentID, &refundID, &amount, &currency,
 		&status, &attempts, &runAt, &skipReason, &lastError, &createdAt, &updatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return CommissionRefundIntake{}, ErrNoRunnableCommissionIntake
@@ -106,7 +107,7 @@ WHERE id=? AND status=?`, string(IntakeRunning), formatTime(now), item.ID, strin
 		return CommissionRefundIntake{}, err
 	}
 	return CommissionRefundIntake{
-		ID: item.ID, Provider: provider, PaymentIntentID: intentID,
+		ID: item.ID, Provider: provider, PaymentID: paymentID,
 		ProviderRefundID: refundID, AmountMinor: amount, Currency: currency,
 		Status: IntakeRunning, SkipReason: skipReason.String, Attempts: int(attempts) + 1,
 		RunAt: parseTime(runAt), LastError: lastError.String,
@@ -153,7 +154,7 @@ func (s *Store) ProcessCommissionRefunds(ctx context.Context, limit int) (int, e
 		if markErr := s.failCommissionRefund(ctx, item.ID, err); markErr != nil {
 			return processed, markErr
 		}
-		slog.Warn("referral: commission refund retry", "id", item.ID, "intent", item.PaymentIntentID, "err", err)
+		slog.Warn("referral: commission refund retry", "id", item.ID, "intent", item.PaymentID, "err", err)
 		metrics.Default.Inc("referral_commission_refund_worker_total", map[string]string{"result": "retry_or_failed"})
 	}
 	return processed, nil
@@ -183,7 +184,7 @@ SELECT COUNT(1) FROM commission_entry_refunds WHERE provider_refund_id=?`,
 SELECT id,amount_minor,refunded_minor,currency,status
 FROM referral_commissions
 WHERE payment_provider=? AND payment_intent_id=?`,
-		item.Provider, item.PaymentIntentID).Scan(
+		item.Provider, item.PaymentID).Scan(
 		&commissionID, &saleAmount, &alreadyRefunded, &currency, &status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrReferralCommissionNotFound
@@ -193,7 +194,7 @@ WHERE payment_provider=? AND payment_intent_id=?`,
 	}
 	if currency != item.Currency {
 		return fmt.Errorf("referral: refund currency mismatch for %s/%s: got %s commission %s",
-			item.Provider, item.PaymentIntentID, item.Currency, currency)
+			item.Provider, item.PaymentID, item.Currency, currency)
 	}
 	if item.AmountMinor > saleAmount-alreadyRefunded {
 		return fmt.Errorf("referral: refund exceeds remaining sale amount: refund %d remaining %d",
@@ -419,7 +420,7 @@ INSERT INTO finance_tasks
 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
 ON CONFLICT(type,provider_refund_id,entry_id) DO NOTHING`,
 		s.idFunc(), string(FinanceTaskCommissionClawback),
-		item.Provider, item.PaymentIntentID, item.ProviderRefundID, entryID,
+		item.Provider, item.PaymentID, item.ProviderRefundID, entryID,
 		beneficiaryID, string(role), amountMinor, item.Currency,
 		string(FinanceTaskPending), now, now)
 	if err != nil {

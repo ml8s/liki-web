@@ -30,7 +30,7 @@ var ErrNoRunnableCommissionIntake = errors.New("referral: no runnable commission
 type CommissionIntake struct {
 	ID              string
 	Provider        string
-	PaymentIntentID string
+	PaymentID       string
 	BusinessOrderID string
 	Product         string
 	BuyerUserID     string
@@ -45,29 +45,26 @@ type CommissionIntake struct {
 	UpdatedAt       time.Time
 }
 
-func classificationForIntent(intent payment.PaymentIntent) (IntakeStatus, string) {
-	if intent.Status != payment.IntentPaid {
-		return IntakeSkipped, "intent_not_paid"
-	}
-	if intent.Provider != payment.ProviderDodo && intent.Provider != payment.ProviderXunhu {
+func classificationForPayment(sale payment.CommissionablePayment) (IntakeStatus, string) {
+	if sale.Provider != payment.ProviderDodo && sale.Provider != payment.ProviderXunhu {
 		return IntakeSkipped, "unsupported_provider"
 	}
-	if intent.Product != referralCommissionProduct {
+	if sale.Product != referralCommissionProduct {
 		return IntakeSkipped, "ineligible_product"
 	}
-	if intent.UserID == "" || intent.AmountMinor <= 0 || intent.BusinessOrderID == "" {
+	if sale.UserID == "" || sale.AmountMinor <= 0 || sale.BusinessOrderID == "" {
 		return IntakeSkipped, "invalid_payment_payload"
 	}
 	return IntakeQueued, ""
 }
 
-// EnqueueCommissionIntent durably records every fulfilled payment event. Rows
+// EnqueueCommissionPayment durably records every fulfilled payment event. Rows
 // that cannot earn a commission remain as auditable skips; eligible rows enter
 // the local worker queue. This method never changes the payment domain state.
-func (s *Store) EnqueueCommissionIntent(ctx context.Context, intent payment.PaymentIntent) (IntakeStatus, string, error) {
-	status, reason := classificationForIntent(intent)
+func (s *Store) EnqueueCommissionPayment(ctx context.Context, sale payment.CommissionablePayment) (IntakeStatus, string, error) {
+	status, reason := classificationForPayment(sale)
 	if status == IntakeQueued {
-		attribution, attributed, err := s.AttributionForUser(ctx, intent.UserID)
+		attribution, attributed, err := s.AttributionForUser(ctx, sale.UserID)
 		if err != nil {
 			return IntakeQueued, "", fmt.Errorf("referral: load attribution for intake: %w", err)
 		}
@@ -80,7 +77,7 @@ func (s *Store) EnqueueCommissionIntent(ctx context.Context, intent payment.Paym
 			}
 			if referrer.Status != PartnerActive {
 				status, reason = IntakeSkipped, "referrer_not_active"
-			} else if referrer.UserID == intent.UserID {
+			} else if referrer.UserID == sale.UserID {
 				status, reason = IntakeSkipped, "self_referral"
 			}
 		}
@@ -94,8 +91,8 @@ INSERT INTO commission_intents
  amount_minor,currency,status,skip_reason,attempts,run_at,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?,?)
 ON CONFLICT(payment_provider,payment_intent_id) DO NOTHING`,
-		id, string(intent.Provider), intent.ID, intent.BusinessOrderID, intent.Product,
-		intent.UserID, intent.AmountMinor, strings.ToUpper(intent.Currency), string(status),
+		id, string(sale.Provider), sale.ID, sale.BusinessOrderID, sale.Product,
+		sale.UserID, sale.AmountMinor, strings.ToUpper(sale.Currency), string(status),
 		reason, now, now, now)
 	if err != nil {
 		return status, reason, fmt.Errorf("referral: enqueue commission intent: %w", err)
@@ -128,14 +125,14 @@ ORDER BY pi.updated_at ASC LIMIT ?`, string(payment.IntentPaid), "succeeded", li
 
 	enqueued := 0
 	for rows.Next() {
-		intent := payment.PaymentIntent{Status: payment.IntentPaid}
+		sale := payment.CommissionablePayment{}
 		var provider string
-		if err := rows.Scan(&intent.ID, &intent.BusinessOrderID, &intent.UserID,
-			&intent.Product, &provider, &intent.AmountMinor, &intent.Currency); err != nil {
+		if err := rows.Scan(&sale.ID, &sale.BusinessOrderID, &sale.UserID,
+			&sale.Product, &provider, &sale.AmountMinor, &sale.Currency); err != nil {
 			return enqueued, err
 		}
-		intent.Provider = payment.Provider(provider)
-		if _, _, err := s.EnqueueCommissionIntent(ctx, intent); err != nil {
+		sale.Provider = payment.Provider(provider)
+		if _, _, err := s.EnqueueCommissionPayment(ctx, sale); err != nil {
 			return enqueued, err
 		}
 		enqueued++
@@ -162,7 +159,7 @@ func (s *Store) claimCommissionIntake(ctx context.Context, now time.Time) (Commi
 	defer func() { _ = tx.Rollback() }()
 
 	var item CommissionIntake
-	var provider, intentID, businessOrderID, product, buyer, currency string
+	var provider, paymentID, businessOrderID, product, buyer, currency string
 	var amountMinor, attempts int64
 	var status, runAt, createdAt, updatedAt string
 	var skipReason, lastError sql.NullString
@@ -172,7 +169,7 @@ SELECT id,payment_provider,payment_intent_id,business_order_id,product,buyer_use
 FROM commission_intents
 WHERE status=? AND run_at<=?
 ORDER BY run_at LIMIT 1`, string(IntakeQueued), formatTime(now)).Scan(
-		&item.ID, &provider, &intentID, &businessOrderID, &product,
+		&item.ID, &provider, &paymentID, &businessOrderID, &product,
 		&buyer, &amountMinor, &currency, &status, &attempts,
 		&runAt, &skipReason, &lastError, &createdAt, &updatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -195,7 +192,7 @@ WHERE id=? AND status=?`, string(IntakeRunning), formatTime(now), item.ID, strin
 	}
 
 	item = CommissionIntake{
-		ID: item.ID, Provider: provider, PaymentIntentID: intentID,
+		ID: item.ID, Provider: provider, PaymentID: paymentID,
 		BusinessOrderID: businessOrderID, Product: product, BuyerUserID: buyer,
 		AmountMinor: amountMinor, Currency: currency, Status: IntakeRunning,
 		Attempts: int(attempts) + 1, RunAt: parseTime(runAt), SkipReason: skipReason.String,
@@ -283,7 +280,7 @@ func (s *Store) settleIntake(ctx context.Context, item CommissionIntake) error {
 	}
 	now := formatTime(s.nowFunc())
 	commission := Commission{
-		ID: s.idFunc(), PaymentProvider: item.Provider, PaymentIntentID: item.PaymentIntentID,
+		ID: s.idFunc(), PaymentProvider: item.Provider, PaymentID: item.PaymentID,
 		BusinessOrderID: item.BusinessOrderID, Product: item.Product, BuyerUserID: item.BuyerUserID,
 		ReferrerID: referrer.UserID, RecruiterID: recruiterID,
 		BeneficiaryRole: beneficiaryRole,
@@ -306,7 +303,7 @@ INSERT INTO referral_commissions
  status,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 ON CONFLICT(payment_provider,payment_intent_id) DO NOTHING`,
-		commission.ID, commission.PaymentProvider, commission.PaymentIntentID,
+		commission.ID, commission.PaymentProvider, commission.PaymentID,
 		commission.BusinessOrderID, commission.Product, commission.BuyerUserID,
 		commission.ReferrerID, nullable(commission.RecruiterID), commission.AmountMinor,
 		commission.Currency, commission.ReferrerRateBPS, commission.ReferrerAmount,
@@ -316,7 +313,7 @@ ON CONFLICT(payment_provider,payment_intent_id) DO NOTHING`,
 		return err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		if commission, err = s.commissionTx(ctx, tx, item.Provider, item.PaymentIntentID); err != nil {
+		if commission, err = s.commissionTx(ctx, tx, item.Provider, item.PaymentID); err != nil {
 			return err
 		}
 	}
@@ -369,11 +366,11 @@ UPDATE commission_intents SET status=?,skip_reason=?,updated_at=? WHERE id=?`,
 	return err
 }
 
-// ProcessCommissionIntents settles at most limit durable referral events. The
+// ProcessCommissionPayments settles at most limit durable referral events. The
 // referral commission row and intake completion are not a cross-database
 // transaction; conflict-safe inserts plus retry make the operation effectively
 // exactly-once.
-func (s *Store) ProcessCommissionIntents(ctx context.Context, limit int) (int, error) {
+func (s *Store) ProcessCommissionPayments(ctx context.Context, limit int) (int, error) {
 	if limit <= 0 {
 		limit = 1
 	}
@@ -450,7 +447,7 @@ func (s *Store) StartCommissionWorker(ctx context.Context, platformDB *sql.DB, i
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
-		if n, err := s.ProcessCommissionIntents(ctx, 100); err != nil {
+		if n, err := s.ProcessCommissionPayments(ctx, 100); err != nil {
 			slog.Error("referral: process commissions", "err", err)
 		} else if n > 0 {
 			slog.Info("referral: commissions settled", "count", n)
@@ -473,9 +470,9 @@ func (s *Store) StartCommissionWorker(ctx context.Context, platformDB *sql.DB, i
 	}
 }
 
-// VoidCommissionForIntent makes an unpaid commission unusable after a refund.
+// VoidCommissionForPayment makes an unpaid commission unusable after a refund.
 // Paid commissions are intentionally not mutated; finance must handle clawback.
-func (s *Store) VoidCommissionForIntent(ctx context.Context, provider payment.Provider, intentID, reason string) error {
+func (s *Store) VoidCommissionForPayment(ctx context.Context, provider payment.Provider, paymentID, reason string) error {
 	providerName := string(provider)
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -488,7 +485,7 @@ UPDATE referral_commission_entries
 SET status=?,updated_at=?
 WHERE commission_id=(SELECT id FROM referral_commissions WHERE payment_provider=? AND payment_intent_id=?)
   AND status=? AND payout_id IS NULL`,
-		string(CommissionVoided), now, providerName, intentID, string(CommissionPending))
+		string(CommissionVoided), now, providerName, paymentID, string(CommissionPending))
 	if err != nil {
 		return err
 	}
@@ -496,11 +493,11 @@ WHERE commission_id=(SELECT id FROM referral_commissions WHERE payment_provider=
 UPDATE referral_commissions
 SET status=?,updated_at=?
 WHERE payment_provider=? AND payment_intent_id=? AND status=?`,
-		string(CommissionVoided), now, providerName, intentID, string(CommissionPending)); err != nil {
+		string(CommissionVoided), now, providerName, paymentID, string(CommissionPending)); err != nil {
 		return err
 	}
 	if err := recordReferralActionTx(ctx, tx, s.idFunc(), "system", "commission.voided", "commission",
-		providerName+":"+intentID, string(CommissionPending), string(CommissionVoided), reason); err != nil {
+		providerName+":"+paymentID, string(CommissionPending), string(CommissionVoided), reason); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {

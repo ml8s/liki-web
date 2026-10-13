@@ -143,7 +143,7 @@ func TestCreateCheckout_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateCheckout: %v", err)
 	}
-	if result.SessionID == "" {
+	if result.CheckoutSessionID == "" {
 		t.Error("SessionID should not be empty")
 	}
 	if result.CheckoutURL != "https://pay.xunhupay.com/checkout/test" {

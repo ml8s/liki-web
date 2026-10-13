@@ -320,7 +320,7 @@ func (s *IntentStore) MarkCheckoutCreated(ctx context.Context, id string, result
 UPDATE payment_intents
 SET status=?, provider_session_id=?, checkout_url=?, qr_code_url=?, updated_at=?
 WHERE id=? AND status IN (?,?)`,
-		string(IntentCheckoutCreated), result.SessionID, result.CheckoutURL, result.QRCodeURL,
+		string(IntentCheckoutCreated), result.CheckoutSessionID, result.CheckoutURL, result.QRCodeURL,
 		time.Now().UTC().Format(time.RFC3339), id, string(IntentCreated), string(IntentCheckoutCreated))
 	if err != nil {
 		return PaymentIntent{}, err
@@ -365,12 +365,12 @@ func scanIntent(scan func(dest ...any) error) (PaymentIntent, error) {
 	var intent PaymentIntent
 	var productKey, provider, status, metadata string
 	var userID string
-	var providerSessionID, providerPaymentID, checkoutURL, qrCodeURL, returnURL, successURL, failureURL, paidAt, refundedAt sql.NullString
+	var providerCheckoutSessionID, providerPaymentID, checkoutURL, qrCodeURL, returnURL, successURL, failureURL, paidAt, refundedAt sql.NullString
 	var createdAt, updatedAt string
 	err := scan(
 		&intent.ID, &intent.BusinessOrderID, &userID, &productKey, &provider, &status,
 		&intent.AmountMinor, &intent.Currency, &intent.Email, &intent.Locale, &metadata,
-		&providerSessionID, &providerPaymentID, &checkoutURL, &qrCodeURL,
+		&providerCheckoutSessionID, &providerPaymentID, &checkoutURL, &qrCodeURL,
 		&returnURL, &successURL, &failureURL, &createdAt, &updatedAt, &paidAt, &refundedAt, &intent.RefundedAmountMinor,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -383,7 +383,7 @@ func scanIntent(scan func(dest ...any) error) (PaymentIntent, error) {
 	intent.UserID = userID
 	intent.Provider = Provider(provider)
 	intent.Status = PaymentStatus(status)
-	intent.ProviderSessionID = providerSessionID.String
+	intent.ProviderCheckoutSessionID = providerCheckoutSessionID.String
 	intent.ProviderPaymentID = providerPaymentID.String
 	intent.CheckoutURL = checkoutURL.String
 	intent.QRCodeURL = qrCodeURL.String

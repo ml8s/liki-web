@@ -214,7 +214,7 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 			options = append(options, map[string]any{
 				"billing_mode": string(purchaseOption.BillingMode),
 				"price": map[string]any{
-					"currency_code": string(purchaseOption.Price.CurrencyCode),
+					"currency_code": string(purchaseOption.Price.Currency),
 					"minor_units":   purchaseOption.Price.MinorUnits,
 				},
 			})
@@ -294,12 +294,12 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		result, _, err = h.runtime.StartCheckout(r.Context(), intent.ID)
 		if err == nil {
 			httputil.RespondJSON(w, http.StatusOK, map[string]any{
-				"order_id":          order.ID,
-				"payment_intent_id": intent.ID,
-				"provider":          intent.Provider,
-				"status":            intent.Status,
-				"checkout_url":      result.CheckoutURL,
-				"status_token":      result.StatusToken,
+				"order_id":                      order.ID,
+				payment.MetadataPaymentIntentID: intent.ID,
+				"provider":                      intent.Provider,
+				"status":                        intent.Status,
+				"checkout_url":                  result.CheckoutURL,
+				"status_token":                  result.StatusToken,
 			})
 			return
 		}
@@ -366,7 +366,7 @@ func (h *Handler) handleSubscriptionCheckout(
 		CancelURL:       h.publicBaseURL + "/app/chat?subscription_state=cancelled",
 	})
 	if err == nil {
-		err = h.subscriptions.AttachCheckout(r.Context(), user.ID, subscription.ID, result.SessionID)
+		err = h.subscriptions.AttachCheckout(r.Context(), user.ID, subscription.ID, result.CheckoutSessionID)
 	}
 	if err != nil {
 		slog.Error("liki: start subscription checkout", "subscription_id", subscription.ID, "locale", localeOrDefault(locale), "err", err)
@@ -411,12 +411,12 @@ func (h *Handler) reconcilePendingSubscriptions(ctx context.Context, userID stri
 		return err
 	}
 	for _, item := range pending {
-		if item.ProviderCheckoutID == "" {
+		if item.ProviderCheckoutSessionID == "" {
 			continue
 		}
-		event, err := h.subscriptionReconciler.FetchSubscriptionByCheckout(ctx, item.ProviderCheckoutID)
+		event, err := h.subscriptionReconciler.FetchSubscriptionByCheckout(ctx, item.ProviderCheckoutSessionID)
 		if err != nil {
-			slog.Error("liki: fetch pending subscription", "subscription_id", item.ID, "checkout_id", item.ProviderCheckoutID, "err", err)
+			slog.Error("liki: fetch pending subscription", "subscription_id", item.ID, "checkout_id", item.ProviderCheckoutSessionID, "err", err)
 			continue
 		}
 		if event == nil {

@@ -20,7 +20,7 @@ func normalizeSubscription(eventType string, data dodopayments.Subscription, eve
 			CustomerID:          data.Customer.CustomerID,
 			Email:               data.Customer.Email,
 			Currency:            string(data.Currency),
-			Product:             data.ProductID,
+			ProviderProductID:   data.ProductID,
 			Status:              string(data.Status),
 			PeriodStart:         timePtr(previous),
 			PeriodEnd:           timePtr(next),
@@ -46,13 +46,13 @@ func timePtr(value time.Time) *time.Time {
 // by subscription payments.
 func normalizeRefund(eventType dodopayments.RefundSucceededWebhookEventType, data dodopayments.Refund, eventTime time.Time) *payment.WebhookEvent {
 	metadata := data.Metadata
-	orderID := metadata["payment_intent_id"]
+	orderID := metadata[payment.MetadataPaymentIntentID]
 	if orderID == "" {
-		orderID = metadata["order_id"]
+		orderID = metadata[payment.MetadataOrderID]
 	}
 	email := data.Customer.Email
 	if email == "" {
-		email = metadata["email"]
+		email = metadata[payment.MetadataEmail]
 	}
 	return &payment.WebhookEvent{
 		Provider: payment.ProviderDodo,

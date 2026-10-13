@@ -39,29 +39,29 @@ type BusinessOrder struct {
 }
 
 type PaymentIntent struct {
-	ID                  string
-	BusinessOrderID     string
-	UserID              string
-	Product             string
-	Provider            Provider
-	Status              PaymentStatus
-	AmountMinor         int64
-	Currency            string
-	Email               string
-	Locale              string
-	Metadata            map[string]string
-	ProviderSessionID   string
-	ProviderPaymentID   string
-	CheckoutURL         string
-	QRCodeURL           string
-	ReturnURL           string
-	SuccessURL          string
-	FailureURL          string
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
-	PaidAt              *time.Time
-	RefundedAt          *time.Time
-	RefundedAmountMinor int64
+	ID                        string
+	BusinessOrderID           string
+	UserID                    string
+	Product                   string
+	Provider                  Provider
+	Status                    PaymentStatus
+	AmountMinor               int64
+	Currency                  string
+	Email                     string
+	Locale                    string
+	Metadata                  map[string]string
+	ProviderCheckoutSessionID string
+	ProviderPaymentID         string
+	CheckoutURL               string
+	QRCodeURL                 string
+	ReturnURL                 string
+	SuccessURL                string
+	FailureURL                string
+	CreatedAt                 time.Time
+	UpdatedAt                 time.Time
+	PaidAt                    *time.Time
+	RefundedAt                *time.Time
+	RefundedAmountMinor       int64
 }
 
 type CheckoutRequest struct {
@@ -117,27 +117,27 @@ type RuntimeOptions struct {
 // Observers must be idempotent and must not block or fail product fulfillment.
 type FulfillmentObserver func(ctx context.Context, intent PaymentIntent)
 
-// SubscriptionEventHandler owns the recurring-payment lifecycle. It is called
+// SubscriptionEventProcessor owns the recurring-payment lifecycle. It is called
 // before intent lookup so provider subscription events cannot be mistaken for
 // one-time order events.
-type SubscriptionEventHandler interface {
+type SubscriptionEventProcessor interface {
 	HandleSubscriptionEvent(ctx context.Context, event WebhookEvent) error
 }
 
 type Runtime struct {
-	gateways            map[Provider]Gateway
-	flows               map[string]ProductFlow
-	intents             *IntentStore
-	notifications       *NotificationStore
-	fulfillments        *FulfillmentTaskStore
-	events              *PaymentEventStore
-	routePolicy         ProviderRoutePolicy
-	sender              EmailSender
-	adminEmail          string
-	baseURL             string
-	fulfillmentObserver FulfillmentObserver
-	refundObserver      func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error
-	subscriptionHandler SubscriptionEventHandler
+	gateways              map[Provider]Gateway
+	flows                 map[string]ProductFlow
+	intents               *IntentStore
+	notifications         *NotificationStore
+	fulfillments          *FulfillmentTaskStore
+	events                *PaymentEventStore
+	routePolicy           ProviderRoutePolicy
+	sender                EmailSender
+	adminEmail            string
+	baseURL               string
+	fulfillmentObserver   FulfillmentObserver
+	refundObserver        func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error
+	subscriptionProcessor SubscriptionEventProcessor
 }
 
 func NewRuntime(
@@ -172,8 +172,8 @@ func (r *Runtime) SetRefundObserver(observer func(ctx context.Context, event Web
 	r.refundObserver = observer
 }
 
-func (r *Runtime) SetSubscriptionHandler(handler SubscriptionEventHandler) {
-	r.subscriptionHandler = handler
+func (r *Runtime) SetSubscriptionProcessor(processor SubscriptionEventProcessor) {
+	r.subscriptionProcessor = processor
 }
 
 func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (PaymentIntent, error) {
@@ -222,8 +222,8 @@ func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (Pa
 		Email:           order.Email,
 		Locale:          orderLocale,
 		Metadata: map[string]string{
-			"business_order_id": input.BusinessOrderID,
-			"product":           string(input.Product),
+			MetadataBusinessOrderID: input.BusinessOrderID,
+			MetadataProduct:         string(input.Product),
 		},
 	}
 	intent.SuccessURL = flow.SuccessRedirect(intent)
@@ -262,9 +262,9 @@ func (r *Runtime) StartCheckout(ctx context.Context, intentID string) (*Checkout
 		Locale:          intent.Locale,
 		Title:           "Liki",
 		Metadata: map[string]string{
-			"payment_intent_id": intent.ID,
-			"business_order_id": intent.BusinessOrderID,
-			"product":           string(intent.Product),
+			MetadataPaymentIntentID: intent.ID,
+			MetadataBusinessOrderID: intent.BusinessOrderID,
+			MetadataProduct:         string(intent.Product),
 		},
 		ReturnURL: r.baseURL + "/api/payments/return/" + intent.ID,
 		CancelURL: flow.FailureRedirect(intent),
@@ -308,10 +308,10 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "verify_failed"})
 		return nil, fmt.Errorf("%w: %v", ErrWebhookVerification, err)
 	}
-	if r.subscriptionHandler != nil && (IsSubscriptionLifecycle(event.Type) ||
+	if r.subscriptionProcessor != nil && (IsSubscriptionLifecycle(event.Type) ||
 		(event.Type == EventPaymentSucceeded && event.Data.SubscriptionID != "") ||
 		(event.Type == EventPaymentRefunded && isSubscriptionRefund(event.Data))) {
-		if err := r.subscriptionHandler.HandleSubscriptionEvent(ctx, *event); err != nil {
+		if err := r.subscriptionProcessor.HandleSubscriptionEvent(ctx, *event); err != nil {
 			metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "subscription_failed"})
 			return nil, err
 		}
@@ -349,8 +349,8 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 
 func isSubscriptionRefund(data WebhookEventData) bool {
 	return data.SubscriptionID != "" ||
-		data.Metadata["liki_billing_mode"] == "subscription" ||
-		data.Metadata["liki_subscription_key"] != ""
+		data.Metadata[MetadataLikiBillingMode] == "subscription" ||
+		data.Metadata[MetadataLikiSubscriptionKey] != ""
 }
 
 func (r *Runtime) webhookAck(provider Provider) ([]byte, error) {
@@ -417,7 +417,7 @@ func (r *Runtime) captureRefund(ctx context.Context, event *WebhookEvent, intent
 		return fmt.Errorf("payment: refund exceeds remaining amount for intent %s: got %d remaining %d",
 			intent.ID, event.Data.Amount, intent.AmountMinor-intent.RefundedAmountMinor)
 	}
-	updated, record, err := r.intents.RecordRefund(ctx, intent, event.Data.PaymentID, event.Data.Amount, event.Data.Currency)
+	updated, record, err := r.intents.RecordRefund(ctx, intent, event.Data.RefundReference(), event.Data.Amount, event.Data.Currency)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,8 @@ package liki
 
 import (
 	"fmt"
+
+	"github.com/ml8s/liki-web/internal/money"
 )
 
 type CurrencyCode = Currency
@@ -18,15 +20,9 @@ const (
 	BillingModeSubscription BillingMode = "subscription"
 )
 
-// MoneyMinor is ISO-4217 minor units: cents for USD and fen for CNY.
-type MoneyMinor struct {
-	CurrencyCode CurrencyCode
-	MinorUnits   int64
-}
-
 type PurchaseOption struct {
 	BillingMode BillingMode
-	Price       MoneyMinor
+	Price       money.Amount
 }
 
 // Definition describes the commerce-facing product card (name, description,
@@ -59,19 +55,19 @@ func NewCommerceCatalog(config CommerceCatalogConfig) *Catalog {
 	if config.OneTimePriceMinorCNY > 0 {
 		chat.PurchaseOptions = append(chat.PurchaseOptions, PurchaseOption{
 			BillingMode: BillingModeOneTime,
-			Price:       MoneyMinor{CurrencyCode: CurrencyCNY, MinorUnits: config.OneTimePriceMinorCNY},
+			Price:       money.Amount{Currency: string(CurrencyCNY), MinorUnits: config.OneTimePriceMinorCNY},
 		})
 	}
 	if config.OneTimePriceMinorUSD > 0 {
 		chat.PurchaseOptions = append(chat.PurchaseOptions, PurchaseOption{
 			BillingMode: BillingModeOneTime,
-			Price:       MoneyMinor{CurrencyCode: CurrencyUSD, MinorUnits: config.OneTimePriceMinorUSD},
+			Price:       money.Amount{Currency: string(CurrencyUSD), MinorUnits: config.OneTimePriceMinorUSD},
 		})
 	}
 	if config.SubscriptionPriceMinorUSD > 0 {
 		chat.PurchaseOptions = append(chat.PurchaseOptions, PurchaseOption{
 			BillingMode: BillingModeSubscription,
-			Price:       MoneyMinor{CurrencyCode: CurrencyUSD, MinorUnits: config.SubscriptionPriceMinorUSD},
+			Price:       money.Amount{Currency: string(CurrencyUSD), MinorUnits: config.SubscriptionPriceMinorUSD},
 		})
 	}
 	return &Catalog{definitions: map[Product]Definition{ProductChat: chat}}
@@ -98,21 +94,21 @@ func (c *Catalog) DefinitionFor(id Product) (Definition, error) {
 	return item, nil
 }
 
-func (c *Catalog) Price(id Product, mode BillingMode, currency CurrencyCode) (MoneyMinor, error) {
+func (c *Catalog) Price(id Product, mode BillingMode, currency CurrencyCode) (money.Amount, error) {
 	if currency == "" {
-		return MoneyMinor{}, fmt.Errorf("liki: currency is required")
+		return money.Amount{}, fmt.Errorf("liki: currency is required")
 	}
 	item, err := c.DefinitionFor(id)
 	if err != nil {
-		return MoneyMinor{}, err
+		return money.Amount{}, err
 	}
 	for _, option := range item.PurchaseOptions {
-		if option.BillingMode == mode && option.Price.CurrencyCode == currency {
+		if option.BillingMode == mode && option.Price.Currency == string(currency) {
 			if option.Price.MinorUnits <= 0 {
 				break
 			}
 			return option.Price, nil
 		}
 	}
-	return MoneyMinor{}, fmt.Errorf("liki: product %s does not support %s pricing in %s", id, mode, currency)
+	return money.Amount{}, fmt.Errorf("liki: product %s does not support %s pricing in %s", id, mode, currency)
 }

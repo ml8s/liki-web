@@ -84,7 +84,7 @@ type Attribution struct {
 type Commission struct {
 	ID               string           `json:"id"`
 	PaymentProvider  string           `json:"payment_provider"`
-	PaymentIntentID  string           `json:"payment_intent_id"`
+	PaymentID        string           `json:"payment_intent_id"`
 	BusinessOrderID  string           `json:"business_order_id"`
 	Product          string           `json:"product"`
 	BuyerUserID      string           `json:"buyer_user_id"`
@@ -173,7 +173,7 @@ type FinanceTask struct {
 	ID               string            `json:"id"`
 	Type             FinanceTaskType   `json:"type"`
 	Provider         string            `json:"provider"`
-	PaymentIntentID  string            `json:"payment_intent_id"`
+	PaymentID        string            `json:"payment_intent_id"`
 	ProviderRefundID string            `json:"provider_refund_id"`
 	EntryID          string            `json:"entry_id"`
 	BeneficiaryID    string            `json:"beneficiary_id"`

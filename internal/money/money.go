@@ -12,6 +12,13 @@ import (
 	"strings"
 )
 
+// Amount is the canonical monetary value. Amounts are always integer minor
+// units so provider formatting never becomes domain state.
+type Amount struct {
+	Currency   string
+	MinorUnits int64
+}
+
 // ParseDecimalToMinor converts a fixed 2-decimal amount string ("1",
 // "1.5", "1.00") into integer minor units without float rounding.
 func ParseDecimalToMinor(value string) (int64, error) {

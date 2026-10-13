@@ -34,8 +34,8 @@ func (g *fakeSubscriptionCheckoutGateway) CreateSubscriptionCheckout(
 ) (*payment.CheckoutResult, error) {
 	g.request = request
 	return &payment.CheckoutResult{
-		SessionID:   "checkout_1",
-		CheckoutURL: "https://checkout.example/subscription",
+		CheckoutSessionID: "checkout_1",
+		CheckoutURL:       "https://checkout.example/subscription",
 	}, nil
 }
 
@@ -99,7 +99,7 @@ func TestSubscriptionCheckoutStoresLocalKeyAndOmitsAmount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stored.Status != SubscriptionPending || stored.ProviderCheckoutID != "checkout_1" {
+	if stored.Status != SubscriptionPending || stored.ProviderCheckoutSessionID != "checkout_1" {
 		t.Fatalf("stored = %+v", stored)
 	}
 }
@@ -225,7 +225,7 @@ func TestSubscriptionPaymentsRouteReturnsRefundState(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(response.Data.Payments) != 1 ||
-		response.Data.Payments[0].Status != "refunded" ||
+		response.Data.Payments[0].Status != SubscriptionPaymentRefunded ||
 		response.Data.Payments[0].RefundedMinorUnits != 1990 {
 		t.Fatalf("payments = %+v", response.Data.Payments)
 	}
@@ -258,7 +258,7 @@ func TestSubscriptionListReconcilesPendingCheckout(t *testing.T) {
 		Provider: payment.ProviderDodo,
 		Type:     payment.EventSubscriptionActive,
 		Data: payment.WebhookEventData{
-			SubscriptionID: "sub_1", Product: "pdt_subscription", Status: "active",
+			SubscriptionID: "sub_1", ProviderProductID: "pdt_subscription", Status: "active",
 			Currency: "USD", PeriodStart: &periodStart, PeriodEnd: &periodEnd,
 			Metadata: map[string]string{"liki_subscription_key": pending.ID},
 		},

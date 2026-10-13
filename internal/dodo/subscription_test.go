@@ -216,7 +216,7 @@ func TestFetchSubscriptionByCheckoutReconcilesLifecycle(t *testing.T) {
 	}
 	if event == nil || event.Type != payment.EventSubscriptionActive ||
 		event.Data.SubscriptionID != "sub_1" ||
-		event.Data.Product != "pdt_subscription" ||
+		event.Data.ProviderProductID != "pdt_subscription" ||
 		event.Data.Metadata["liki_subscription_key"] != "local-subscription" {
 		t.Fatalf("event = %#v", event)
 	}

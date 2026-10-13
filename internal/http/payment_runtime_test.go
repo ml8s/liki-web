@@ -21,7 +21,7 @@ type fakeGateway struct {
 }
 
 func (g *fakeGateway) CreateCheckout(ctx context.Context, req payment.CheckoutRequest) (*payment.CheckoutResult, error) {
-	return &payment.CheckoutResult{SessionID: "session-1", CheckoutURL: "https://pay.example/checkout"}, nil
+	return &payment.CheckoutResult{CheckoutSessionID: "session-1", CheckoutURL: "https://pay.example/checkout"}, nil
 }
 
 func (g *fakeGateway) VerifyWebhook(raw []byte, header http.Header) (*payment.WebhookEvent, error) {

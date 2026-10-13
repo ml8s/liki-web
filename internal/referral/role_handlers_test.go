@@ -30,11 +30,11 @@ func newPartnerJourneyStore(t *testing.T) (*Store, Referrer, Referrer) {
 	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 50000)
-	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 50000)
+	if _, _, err := store.EnqueueCommissionPayment(ctx, sale); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
 	return store, kol, scout

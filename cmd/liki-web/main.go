@@ -487,39 +487,36 @@ func main() {
 		AdminEmail: cfg.AdminEmail,
 	})
 	paymentRuntime.SetFulfillmentObserver(func(ctx context.Context, intent payment.PaymentIntent) {
-		if _, _, err := referralStore.EnqueueCommissionIntent(ctx, intent); err != nil {
-			slog.Error("referral: enqueue fulfilled payment", "intent_id", intent.ID, "err", err)
+		sale := payment.CommissionablePayment{
+			ID: intent.ID, BusinessOrderID: intent.BusinessOrderID, UserID: intent.UserID,
+			Product: intent.Product, Provider: intent.Provider,
+			AmountMinor: intent.AmountMinor, Currency: intent.Currency, Email: intent.Email,
+		}
+		if _, _, err := referralStore.EnqueueCommissionPayment(ctx, sale); err != nil {
+			slog.Error("referral: enqueue fulfilled payment", "payment_id", sale.ID, "err", err)
 		}
 	})
 	paymentRuntime.SetRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
-		return referralStore.EnqueueCommissionRefund(ctx, event, intent)
+		sale := payment.CommissionablePayment{
+			ID: intent.ID, BusinessOrderID: intent.BusinessOrderID, UserID: intent.UserID,
+			Product: intent.Product, Provider: intent.Provider,
+			AmountMinor: intent.AmountMinor, Currency: intent.Currency, Email: intent.Email,
+		}
+		return referralStore.EnqueueCommissionRefund(ctx, event, sale)
 	})
-	subscriptionEventHandler := liki.NewSubscriptionEventHandler(
+	subscriptionProcessor := liki.NewSubscriptionEventProcessor(
 		subscriptionStore,
 		entitlements,
 		cfg.DodoProductLikiChatSubscription,
-		func(ctx context.Context, event payment.WebhookEvent) error {
-			// A subscription payment is represented as a durable provider
-			// payment fact; business_order_id is the provider subscription ID.
-			intent := payment.PaymentIntent{
-				ID:              event.Data.PaymentID,
-				BusinessOrderID: event.Data.SubscriptionID,
-				UserID:          event.Data.Metadata["liki_user_id"],
-				Product:         string(liki.ProductChat),
-				Provider:        event.Provider,
-				Status:          payment.IntentPaid,
-				AmountMinor:     event.Data.Amount,
-				Currency:        event.Data.Currency,
-				Email:           event.Data.Email,
-			}
-			_, _, err := referralStore.EnqueueCommissionIntent(ctx, intent)
+		func(ctx context.Context, sale payment.CommissionablePayment) error {
+			_, _, err := referralStore.EnqueueCommissionPayment(ctx, sale)
 			return err
 		},
 	)
-	subscriptionEventHandler.SetPaymentRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
-		return referralStore.EnqueueCommissionRefund(ctx, event, intent)
+	subscriptionProcessor.SetCommissionRefundObserver(func(ctx context.Context, event payment.WebhookEvent, sale payment.CommissionablePayment) error {
+		return referralStore.EnqueueCommissionRefund(ctx, event, sale)
 	})
-	paymentRuntime.SetSubscriptionHandler(subscriptionEventHandler)
+	paymentRuntime.SetSubscriptionProcessor(subscriptionProcessor)
 	erasureQueue := account.NewErasureStore(platformDB)
 	if err := erasureQueue.Migrate(ctx); err != nil {
 		slog.Error("account: migrate erasure queue", "err", err)
@@ -592,7 +589,7 @@ func main() {
 			),
 			liki.WithSubscriptionReconciliation(
 				dodoClient,
-				subscriptionEventHandler.HandleSubscriptionEvent,
+				subscriptionProcessor.HandleSubscriptionEvent,
 			),
 		),
 		EngineMCP:       enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),

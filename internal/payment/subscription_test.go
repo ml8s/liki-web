@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-type subscriptionHandlerStub struct {
+type subscriptionProcessorStub struct {
 	events []WebhookEvent
 	err    error
 }
 
-func (s *subscriptionHandlerStub) HandleSubscriptionEvent(_ context.Context, event WebhookEvent) error {
+func (s *subscriptionProcessorStub) HandleSubscriptionEvent(_ context.Context, event WebhookEvent) error {
 	if s.err != nil {
 		return s.err
 	}
@@ -22,12 +22,12 @@ func (s *subscriptionHandlerStub) HandleSubscriptionEvent(_ context.Context, eve
 }
 
 func TestRuntimeRoutesSubscriptionEventsBeforeIntentLookup(t *testing.T) {
-	handler := &subscriptionHandlerStub{}
+	handler := &subscriptionProcessorStub{}
 	gateway := &fakeGateway{}
 	runtime := NewRuntime(
 		map[Provider]Gateway{ProviderDodo: gateway}, nil, nil, nil, nil, nil, nil, RuntimeOptions{},
 	)
-	runtime.SetSubscriptionHandler(handler)
+	runtime.SetSubscriptionProcessor(handler)
 
 	start := time.Date(2026, 10, 13, 0, 0, 0, 0, time.UTC)
 	event := WebhookEvent{
@@ -56,7 +56,7 @@ func TestRuntimeSubscriptionFailureIsRetryable(t *testing.T) {
 	runtime := NewRuntime(
 		map[Provider]Gateway{ProviderDodo: gateway}, nil, nil, nil, nil, nil, nil, RuntimeOptions{},
 	)
-	runtime.SetSubscriptionHandler(&subscriptionHandlerStub{err: errors.New("db unavailable")})
+	runtime.SetSubscriptionProcessor(&subscriptionProcessorStub{err: errors.New("db unavailable")})
 	gateway.event = WebhookEvent{Provider: ProviderDodo, Type: EventSubscriptionActive}
 	if _, err := runtime.HandleWebhookEventWithAck(context.Background(), []byte("body"), http.Header{}); err == nil {
 		t.Fatal("subscription handler error = nil, want retryable error")

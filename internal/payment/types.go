@@ -13,9 +13,9 @@ import (
 
 // CheckoutResult holds the result of creating a checkout session.
 type CheckoutResult struct {
-	SessionID   string `json:"session_id"`
-	CheckoutURL string `json:"checkout_url"`
-	QRCodeURL   string `json:"qr_url,omitempty"`
+	CheckoutSessionID string `json:"session_id"`
+	CheckoutURL       string `json:"checkout_url"`
+	QRCodeURL         string `json:"qr_url,omitempty"`
 	// StatusToken authorizes short-interval status polling for this intent only.
 	StatusToken string `json:"status_token"`
 }
@@ -48,6 +48,20 @@ const (
 	ProviderXunhu Provider = "xunhu"
 )
 
+// Metadata keys form the provider-neutral webhook contract. Values are stable
+// wire keys and must not be renamed without a compatibility alias.
+const (
+	MetadataBusinessOrderID     = "business_order_id"
+	MetadataEmail               = "email"
+	MetadataLikiBillingMode     = "liki_billing_mode"
+	MetadataLikiProduct         = "liki_product"
+	MetadataLikiSubscriptionKey = "liki_subscription_key"
+	MetadataLikiUserID          = "liki_user_id"
+	MetadataPaymentIntentID     = "payment_intent_id"
+	MetadataOrderID             = "order_id"
+	MetadataProduct             = "product"
+)
+
 // WebhookEvent is a verified webhook event from a payment provider.
 type WebhookEvent struct {
 	Provider Provider
@@ -67,7 +81,7 @@ type WebhookEventData struct {
 	Metadata            map[string]string
 	SubscriptionID      string
 	CustomerID          string
-	Product             string
+	ProviderProductID   string
 	Status              string
 	PeriodStart         *time.Time
 	PeriodEnd           *time.Time
@@ -75,6 +89,30 @@ type WebhookEventData struct {
 	CancelAtPeriodEnd   bool
 	ProviderPeriodCount int64
 	ProviderEventTime   *time.Time
+}
+
+// CommissionablePayment is the minimal successful-payment fact consumed by
+// revenue sharing. It intentionally omits checkout, redirect, and intent
+// lifecycle state that referral must not own.
+type CommissionablePayment struct {
+	ID              string
+	BusinessOrderID string
+	UserID          string
+	Product         string
+	Provider        Provider
+	AmountMinor     int64
+	Currency        string
+	Email           string
+}
+
+// RefundReference returns the refund operation ID, with the legacy webhook
+// field retained as a compatibility fallback for providers that do not expose
+// a distinct refund identifier.
+func (d WebhookEventData) RefundReference() string {
+	if d.RefundID != "" {
+		return d.RefundID
+	}
+	return d.PaymentID
 }
 
 // ---------------------------------------------------------------------------

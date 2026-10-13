@@ -213,9 +213,9 @@ func (c *Client) CreateCheckout(ctx context.Context, req payment.CheckoutRequest
 		return nil, fmt.Errorf("xunhu: %s (errcode=%d)", result.ErrMsg, result.ErrCode)
 	}
 	return &payment.CheckoutResult{
-		SessionID:   req.IntentID,
-		CheckoutURL: result.URL,
-		QRCodeURL:   result.QRCode,
+		CheckoutSessionID: req.IntentID,
+		CheckoutURL:       result.URL,
+		QRCodeURL:         result.QRCode,
 	}, nil
 }
 

@@ -1,6 +1,10 @@
 package liki
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/ml8s/liki-web/internal/money"
+)
 
 func TestCommerceCatalogUsesInjectedMinorUnitPrices(t *testing.T) {
 	catalog := NewCommerceCatalog(CommerceCatalogConfig{
@@ -15,17 +19,17 @@ func TestCommerceCatalogUsesInjectedMinorUnitPrices(t *testing.T) {
 	if len(definition.PurchaseOptions) != 3 {
 		t.Fatalf("purchase options = %#v, want one-time CNY/USD and subscription USD", definition.PurchaseOptions)
 	}
-	want := map[BillingMode]MoneyMinor{
-		BillingModeOneTime:      {CurrencyCode: CurrencyCNY, MinorUnits: 7900},
-		BillingModeSubscription: {CurrencyCode: CurrencyUSD, MinorUnits: 1990},
+	want := map[BillingMode]money.Amount{
+		BillingModeOneTime:      {Currency: string(CurrencyCNY), MinorUnits: 7900},
+		BillingModeSubscription: {Currency: string(CurrencyUSD), MinorUnits: 1990},
 	}
 	for mode, expected := range want {
-		got, priceErr := catalog.Price(ProductChat, mode, expected.CurrencyCode)
+		got, priceErr := catalog.Price(ProductChat, mode, CurrencyCode(expected.Currency))
 		if priceErr != nil {
-			t.Fatalf("Price(%s/%s): %v", mode, expected.CurrencyCode, priceErr)
+			t.Fatalf("Price(%s/%s): %v", mode, expected.Currency, priceErr)
 		}
 		if got != expected {
-			t.Fatalf("price[%s/%s] = %#v, want %#v", mode, expected.CurrencyCode, got, expected)
+			t.Fatalf("price[%s/%s] = %#v, want %#v", mode, expected.Currency, got, expected)
 		}
 	}
 }

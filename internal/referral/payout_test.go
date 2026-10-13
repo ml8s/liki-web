@@ -19,15 +19,15 @@ func newPendingCommissionPayout(t *testing.T) (*Store, Commission) {
 	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 10000)
-	intent.ID = "pi-payout"
-	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 10000)
+	sale.ID = "pi-payout"
+	if _, _, err := store.EnqueueCommissionPayment(ctx, sale); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
-	commission, err := store.commission(ctx, string(payment.ProviderXunhu), intent.ID)
+	commission, err := store.commission(ctx, string(payment.ProviderXunhu), sale.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,11 +59,11 @@ func TestRetiredRoleCanSettleOnlyItsOwnHistory(t *testing.T) {
 	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 50000)
-	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 50000)
+	if _, _, err := store.EnqueueCommissionPayment(ctx, sale); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
 	if _, err := store.db.ExecContext(ctx,
@@ -162,16 +162,16 @@ func TestCreatePayoutRejectsMixedCurrencies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderDodo, "buyer-usd", 1000)
-	intent.ID = "pi-payout-usd"
-	intent.Currency = "USD"
+	sale := paidCommission(payment.ProviderDodo, "buyer-usd", 1000)
+	sale.ID = "pi-payout-usd"
+	sale.Currency = "USD"
 	if _, err := store.Attribute(ctx, "buyer-usd", kol.Code); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+	if _, _, err := store.EnqueueCommissionPayment(ctx, sale); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
 	if _, err := store.CreatePayout(ctx, kol.UserID, PayoutMethodAlipay, "me@example.com"); !errors.Is(err, ErrMixedPayoutCurrency) {
@@ -211,11 +211,11 @@ func TestKOLAndScoutPayoutsAreIndependent(t *testing.T) {
 	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 50000)
-	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 50000)
+	if _, _, err := store.EnqueueCommissionPayment(ctx, sale); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
 
@@ -261,11 +261,11 @@ func TestPayoutAccessAllowsRetiredButNotFrozenRole(t *testing.T) {
 	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderDodo, "buyer", 50000)
-	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+	sale := paidCommission(payment.ProviderDodo, "buyer", 50000)
+	if _, _, err := store.EnqueueCommissionPayment(ctx, sale); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
 

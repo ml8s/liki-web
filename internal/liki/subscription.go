@@ -24,49 +24,56 @@ const (
 	SubscriptionFailed    SubscriptionStatus = "failed"
 )
 
+type SubscriptionPaymentStatus string
+
+const (
+	SubscriptionPaymentPaid     SubscriptionPaymentStatus = "paid"
+	SubscriptionPaymentRefunded SubscriptionPaymentStatus = "refunded"
+)
+
 var (
 	ErrSubscriptionNotFound = errors.New("liki: subscription not found")
 	ErrSubscriptionExists   = errors.New("liki: subscription payment already recorded")
 )
 
 type Subscription struct {
-	ID                     string             `json:"id"`
-	UserID                 string             `json:"user_id"`
-	Email                  string             `json:"email"`
-	ProductID              Product            `json:"product_id"`
-	BillingMode            BillingMode        `json:"billing_mode"`
-	Provider               payment.Provider   `json:"provider"`
-	ProviderSubscriptionID string             `json:"provider_subscription_id"`
-	ProviderCustomerID     string             `json:"provider_customer_id"`
-	ProviderCheckoutID     string             `json:"provider_checkout_id"`
-	Status                 SubscriptionStatus `json:"status"`
-	CurrencyCode           CurrencyCode       `json:"currency_code"`
-	CurrentPeriodStart     *time.Time         `json:"current_period_start"`
-	CurrentPeriodEnd       *time.Time         `json:"current_period_end"`
-	NextBillingAt          *time.Time         `json:"next_billing_at"`
-	CancelAtPeriodEnd      bool               `json:"cancel_at_period_end"`
-	CancelledAt            *time.Time         `json:"cancelled_at"`
-	ProviderSyncedAt       *time.Time         `json:"provider_synced_at"`
-	ProviderPeriodCount    int64              `json:"provider_period_count"`
-	CreatedAt              time.Time          `json:"created_at"`
-	UpdatedAt              time.Time          `json:"updated_at"`
+	ID                        string             `json:"id"`
+	UserID                    string             `json:"user_id"`
+	Email                     string             `json:"email"`
+	ProductID                 Product            `json:"product_id"`
+	BillingMode               BillingMode        `json:"billing_mode"`
+	Provider                  payment.Provider   `json:"provider"`
+	ProviderSubscriptionID    string             `json:"provider_subscription_id"`
+	ProviderCustomerID        string             `json:"provider_customer_id"`
+	ProviderCheckoutSessionID string             `json:"provider_checkout_id"`
+	Status                    SubscriptionStatus `json:"status"`
+	CurrencyCode              CurrencyCode       `json:"currency_code"`
+	CurrentPeriodStart        *time.Time         `json:"current_period_start"`
+	CurrentPeriodEnd          *time.Time         `json:"current_period_end"`
+	NextBillingAt             *time.Time         `json:"next_billing_at"`
+	CancelAtPeriodEnd         bool               `json:"cancel_at_period_end"`
+	CancelledAt               *time.Time         `json:"cancelled_at"`
+	ProviderSyncedAt          *time.Time         `json:"provider_synced_at"`
+	ProviderPeriodCount       int64              `json:"provider_period_count"`
+	CreatedAt                 time.Time          `json:"created_at"`
+	UpdatedAt                 time.Time          `json:"updated_at"`
 }
 
 type SubscriptionPayment struct {
-	ID                 string           `json:"id"`
-	SubscriptionID     string           `json:"subscription_id"`
-	UserID             string           `json:"user_id"`
-	ProductID          Product          `json:"product_id"`
-	Provider           payment.Provider `json:"provider"`
-	ProviderPaymentID  string           `json:"provider_payment_id"`
-	AmountMinorUnits   int64            `json:"amount_minor_units"`
-	RefundedMinorUnits int64            `json:"refunded_minor_units"`
-	CurrencyCode       CurrencyCode     `json:"currency_code"`
-	Status             string           `json:"status"`
-	PeriodStart        *time.Time       `json:"period_start"`
-	PeriodEnd          *time.Time       `json:"period_end"`
-	CreatedAt          time.Time        `json:"created_at"`
-	UpdatedAt          time.Time        `json:"updated_at"`
+	ID                 string                    `json:"id"`
+	SubscriptionID     string                    `json:"subscription_id"`
+	UserID             string                    `json:"user_id"`
+	ProductID          Product                   `json:"product_id"`
+	Provider           payment.Provider          `json:"provider"`
+	ProviderPaymentID  string                    `json:"provider_payment_id"`
+	AmountMinorUnits   int64                     `json:"amount_minor_units"`
+	RefundedMinorUnits int64                     `json:"refunded_minor_units"`
+	CurrencyCode       CurrencyCode              `json:"currency_code"`
+	Status             SubscriptionPaymentStatus `json:"status"`
+	PeriodStart        *time.Time                `json:"period_start"`
+	PeriodEnd          *time.Time                `json:"period_end"`
+	CreatedAt          time.Time                 `json:"created_at"`
+	UpdatedAt          time.Time                 `json:"updated_at"`
 }
 
 type SubscriptionStore struct {
@@ -297,13 +304,13 @@ func (s *SubscriptionStore) ApplyWebhook(ctx context.Context, entitlements *Enti
 	if data.SubscriptionID == "" {
 		return fmt.Errorf("liki: subscription webhook has no provider subscription id")
 	}
-	localKey := data.Metadata["liki_subscription_key"]
+	localKey := data.Metadata[payment.MetadataLikiSubscriptionKey]
 	existing, err := s.findByProviderOrLocalKey(ctx, data.SubscriptionID, localKey)
 	if err != nil {
 		return err
 	}
 
-	userID := data.Metadata["liki_user_id"]
+	userID := data.Metadata[payment.MetadataLikiUserID]
 	if userID == "" {
 		userID = existing.UserID
 	}
@@ -330,7 +337,7 @@ func (s *SubscriptionStore) ApplyWebhook(ctx context.Context, entitlements *Enti
 		existing.ID = localKey
 		existing.UserID = userID
 		existing.Email = email
-		existing.ProductID = Product(orDefault(data.Metadata["liki_product"], string(ProductChat)))
+		existing.ProductID = Product(orDefault(data.Metadata[payment.MetadataLikiProduct], string(ProductChat)))
 		if _, err := ProductDefinitionFor(existing.ProductID); err != nil {
 			return err
 		}
@@ -382,11 +389,11 @@ func (s *SubscriptionStore) RecordPayment(
 	if data.SubscriptionID == "" || data.PaymentID == "" || data.Amount <= 0 {
 		return fmt.Errorf("liki: subscription payment payload is incomplete")
 	}
-	subscription, err := s.findByProviderOrLocalKey(ctx, data.SubscriptionID, data.Metadata["liki_subscription_key"])
+	subscription, err := s.findByProviderOrLocalKey(ctx, data.SubscriptionID, data.Metadata[payment.MetadataLikiSubscriptionKey])
 	if err != nil {
 		return err
 	}
-	userID := data.Metadata["liki_user_id"]
+	userID := data.Metadata[payment.MetadataLikiUserID]
 	if userID == "" {
 		userID = subscription.UserID
 	}
@@ -396,13 +403,13 @@ func (s *SubscriptionStore) RecordPayment(
 INSERT INTO chat_subscription_payments
 (id,subscription_id,user_id,product_id,provider,provider_payment_id,
  amount_minor_units,currency_code,period_start,period_end,status,created_at,updated_at)
-VALUES (?,?,?,?,?,?,?,?,?,?,'paid',?,?)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
 ON CONFLICT(provider,provider_payment_id) DO NOTHING`,
 		id, subscription.ID, userID, string(subscription.ProductID), string(event.Provider),
 		data.PaymentID, data.Amount, string(subscription.CurrencyCode),
 		formatNullableSubscriptionTime(data.PeriodStart),
 		formatNullableSubscriptionTime(data.PeriodEnd),
-		formatSubscriptionTime(now), formatSubscriptionTime(now))
+		string(SubscriptionPaymentPaid), formatSubscriptionTime(now), formatSubscriptionTime(now))
 	if err != nil {
 		return fmt.Errorf("liki: record subscription payment: %w", err)
 	}
@@ -456,7 +463,7 @@ WHERE provider=? AND provider_payment_id=? AND observer_enqueued_at IS NULL`,
 
 func (s *SubscriptionStore) RecordPaymentRefund(
 	ctx context.Context, event payment.WebhookEvent,
-	refundObserver func(context.Context, payment.WebhookEvent, payment.PaymentIntent) error,
+	refundObserver func(context.Context, payment.WebhookEvent, payment.CommissionablePayment) error,
 ) error {
 	data := event.Data
 	refundID := data.RefundID
@@ -509,17 +516,16 @@ WHERE provider=? AND provider_refund_id=?`,
 	// Referral intake is idempotent, so calling before the local fact write
 	// makes a crash between the two writes safe to retry.
 	if refundObserver != nil {
-		intent := payment.PaymentIntent{
+		sale := payment.CommissionablePayment{
 			ID:              providerPaymentID,
 			BusinessOrderID: providerSubscriptionIDOrLocal,
 			UserID:          userID,
 			Product:         productID,
 			Provider:        event.Provider,
-			Status:          payment.IntentPaid,
 			AmountMinor:     amount,
 			Currency:        currency,
 		}
-		if err := refundObserver(context.WithoutCancel(ctx), event, intent); err != nil {
+		if err := refundObserver(context.WithoutCancel(ctx), event, sale); err != nil {
 			return err
 		}
 	}
@@ -546,10 +552,10 @@ ON CONFLICT(provider,provider_refund_id) DO NOTHING`,
 	result, err := tx.ExecContext(ctx, `
 UPDATE chat_subscription_payments
 SET refunded_minor_units=refunded_minor_units+?,
-    status=CASE WHEN refunded_minor_units+? >= amount_minor_units THEN 'refunded' ELSE status END,
+    status=CASE WHEN refunded_minor_units+? >= amount_minor_units THEN ? ELSE status END,
     updated_at=?
 WHERE id=? AND refunded_minor_units+?<=amount_minor_units`,
-		data.Amount, data.Amount, formatSubscriptionTime(now), paymentID, data.Amount,
+		data.Amount, data.Amount, string(SubscriptionPaymentRefunded), formatSubscriptionTime(now), paymentID, data.Amount,
 	)
 	if err != nil {
 		return fmt.Errorf("liki: update subscription refund: %w", err)
@@ -592,7 +598,7 @@ ORDER BY created_at DESC LIMIT ?`, userID, limit)
 		item.ProductID = Product(productID)
 		item.Provider = payment.Provider(provider)
 		item.CurrencyCode = CurrencyCode(currency)
-		item.Status = status
+		item.Status = SubscriptionPaymentStatus(status)
 		item.PeriodStart = parseNullableSubscriptionTime(periodStart.String)
 		item.PeriodEnd = parseNullableSubscriptionTime(periodEnd.String)
 		item.CreatedAt = parseSubscriptionTime(createdAt.String)
@@ -668,14 +674,14 @@ func subscriptionColumns() string {
 
 func scanSubscription(scan func(dest ...any) error) (Subscription, error) {
 	var item Subscription
-	var providerSubscriptionID, providerCustomerID, providerCheckoutID sql.NullString
+	var providerSubscriptionID, providerCustomerID, providerCheckoutSessionID sql.NullString
 	var productID, billingMode, provider, status, currency string
 	var periodStart, periodEnd, nextBillingAt, cancelledAt, syncedAt sql.NullString
 	var cancelAtPeriodEnd int
 	var createdAt, updatedAt string
 	if err := scan(
 		&item.ID, &item.UserID, &item.Email, &productID, &billingMode, &provider,
-		&providerSubscriptionID, &providerCustomerID, &providerCheckoutID, &status,
+		&providerSubscriptionID, &providerCustomerID, &providerCheckoutSessionID, &status,
 		&currency, &periodStart, &periodEnd, &nextBillingAt, &cancelAtPeriodEnd,
 		&cancelledAt, &syncedAt, &item.ProviderPeriodCount, &createdAt, &updatedAt,
 	); err != nil {
@@ -686,7 +692,7 @@ func scanSubscription(scan func(dest ...any) error) (Subscription, error) {
 	item.Provider = payment.Provider(provider)
 	item.ProviderSubscriptionID = providerSubscriptionID.String
 	item.ProviderCustomerID = providerCustomerID.String
-	item.ProviderCheckoutID = providerCheckoutID.String
+	item.ProviderCheckoutSessionID = providerCheckoutSessionID.String
 	item.Status = SubscriptionStatus(status)
 	item.CurrencyCode = CurrencyCode(currency)
 	item.CurrentPeriodStart = parseNullableSubscriptionTime(periodStart.String)

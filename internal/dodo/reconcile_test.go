@@ -65,12 +65,12 @@ func successfulPayment(metadata map[string]string) map[string]any {
 
 func testIntent() payment.PaymentIntent {
 	return payment.PaymentIntent{
-		ID:                "pi-1",
-		BusinessOrderID:   "biz-1",
-		Product:           "liki-chat",
-		AmountMinor:       990,
-		Currency:          "USD",
-		ProviderSessionID: "sess-1",
+		ID:                        "pi-1",
+		BusinessOrderID:           "biz-1",
+		Product:                   "liki-chat",
+		AmountMinor:               990,
+		Currency:                  "USD",
+		ProviderCheckoutSessionID: "sess-1",
 	}
 }
 

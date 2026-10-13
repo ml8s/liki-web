@@ -45,7 +45,7 @@ func TestSubscriptionStoreLifecycleIsIdempotent(t *testing.T) {
 		Data: payment.WebhookEventData{
 			SubscriptionID:      "sub_1",
 			CustomerID:          "cus_1",
-			Product:             string(ProductChat),
+			ProviderProductID:   string(ProductChat),
 			Status:              "active",
 			Currency:            "USD",
 			PeriodStart:         &start,
@@ -240,7 +240,7 @@ func TestSubscriptionStoreRecordsRefundOnce(t *testing.T) {
 		},
 	}
 	observed := 0
-	if err := subscriptions.RecordPaymentRefund(ctx, refund, func(_ context.Context, event payment.WebhookEvent, _ payment.PaymentIntent) error {
+	if err := subscriptions.RecordPaymentRefund(ctx, refund, func(_ context.Context, event payment.WebhookEvent, _ payment.CommissionablePayment) error {
 		observed++
 		if event.Data.RefundID != "refund_1" || event.Data.RefundedPaymentID != "pay_1" {
 			t.Fatalf("observer refund = %#v", event.Data)
@@ -249,7 +249,7 @@ func TestSubscriptionStoreRecordsRefundOnce(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := subscriptions.RecordPaymentRefund(ctx, refund, func(context.Context, payment.WebhookEvent, payment.PaymentIntent) error {
+	if err := subscriptions.RecordPaymentRefund(ctx, refund, func(context.Context, payment.WebhookEvent, payment.CommissionablePayment) error {
 		observed++
 		return nil
 	}); err != nil {
@@ -262,7 +262,7 @@ func TestSubscriptionStoreRecordsRefundOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(payments) != 1 || payments[0].Status != "refunded" || payments[0].RefundedMinorUnits != 1990 {
+	if len(payments) != 1 || payments[0].Status != SubscriptionPaymentRefunded || payments[0].RefundedMinorUnits != 1990 {
 		t.Fatalf("payments = %+v", payments)
 	}
 }
@@ -334,7 +334,7 @@ func TestSubscriptionStoreUsesWebhookTimeForStaleEvents(t *testing.T) {
 		Provider: payment.ProviderDodo,
 		Type:     payment.EventSubscriptionRenewed,
 		Data: payment.WebhookEventData{
-			SubscriptionID: "sub_1", Product: "pdt_subscription", Status: "active",
+			SubscriptionID: "sub_1", ProviderProductID: "pdt_subscription", Status: "active",
 			Currency: "USD", PeriodStart: &periodStart, PeriodEnd: &periodEnd,
 			NextBillingAt: &periodEnd, ProviderPeriodCount: 2,
 			ProviderEventTime: ptrTime(periodEnd.Add(time.Hour)),
@@ -384,7 +384,7 @@ func TestSubscriptionUpdatedUnknownStatusFailsClosed(t *testing.T) {
 		Provider: payment.ProviderDodo,
 		Type:     payment.EventSubscriptionUpdated,
 		Data: payment.WebhookEventData{
-			SubscriptionID: "sub_1", Product: "pdt_subscription", Status: "mystery",
+			SubscriptionID: "sub_1", ProviderProductID: "pdt_subscription", Status: "mystery",
 			Currency: "USD",
 			Metadata: map[string]string{"liki_subscription_key": pending.ID},
 		},
@@ -428,7 +428,7 @@ func TestSubscriptionStoreKeepsLocalProduct(t *testing.T) {
 		Provider: payment.ProviderDodo,
 		Type:     payment.EventSubscriptionActive,
 		Data: payment.WebhookEventData{
-			SubscriptionID: "sub_new", Product: "pdt_subscription", Status: "active",
+			SubscriptionID: "sub_new", ProviderProductID: "pdt_subscription", Status: "active",
 			Currency: "USD",
 			Metadata: map[string]string{
 				"liki_subscription_key": "missing-local-key",
@@ -483,7 +483,7 @@ func TestSubscriptionStoreRecordsPartialRefundsIdempotently(t *testing.T) {
 	if err := subscriptions.RecordPayment(ctx, paid, nil); err != nil {
 		t.Fatal(err)
 	}
-	refundObserver := func(_ context.Context, _ payment.WebhookEvent, intent payment.PaymentIntent) error {
+	refundObserver := func(_ context.Context, _ payment.WebhookEvent, intent payment.CommissionablePayment) error {
 		if intent.ID != "pay_1" {
 			t.Fatalf("refund intent = %+v", intent)
 		}
@@ -513,7 +513,7 @@ func TestSubscriptionStoreRecordsPartialRefundsIdempotently(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(payments) != 1 || payments[0].RefundedMinorUnits != 1200 || payments[0].Status != "paid" {
+	if len(payments) != 1 || payments[0].RefundedMinorUnits != 1200 || payments[0].Status != SubscriptionPaymentPaid {
 		t.Fatalf("payments = %+v", payments)
 	}
 }

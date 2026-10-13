@@ -13,9 +13,9 @@ import (
 func TestCommissionIntakeSkipsIneligiblePayments(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
-	intent := paidIntent("stripe", "buyer", 8800)
-	intent.ID = "pi-stripe"
-	status, reason, err := store.EnqueueCommissionIntent(ctx, intent)
+	sale := paidCommission("stripe", "buyer", 8800)
+	sale.ID = "pi-stripe"
+	status, reason, err := store.EnqueueCommissionPayment(ctx, sale)
 	if err != nil || status != IntakeSkipped || reason != "unsupported_provider" {
 		t.Fatalf("status=%q reason=%q err=%v", status, reason, err)
 	}
@@ -42,19 +42,19 @@ func TestCommissionWorkerSettlesDodoAndXunhuExactlyOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	xunhu := paidIntent(payment.ProviderXunhu, "buyer", 8800)
+	xunhu := paidCommission(payment.ProviderXunhu, "buyer", 8800)
 	xunhu.ID = "pi-xunhu"
-	if status, reason, err := store.EnqueueCommissionIntent(ctx, xunhu); err != nil || status != IntakeQueued || reason != "" {
+	if status, reason, err := store.EnqueueCommissionPayment(ctx, xunhu); err != nil || status != IntakeQueued || reason != "" {
 		t.Fatalf("xunhu intake=%q/%q err=%v", status, reason, err)
 	}
-	dodo := paidIntent(payment.ProviderDodo, "buyer", 1000)
+	dodo := paidCommission(payment.ProviderDodo, "buyer", 1000)
 	dodo.ID = "pi-dodo"
 	dodo.Currency = "USD"
-	if _, _, err := store.EnqueueCommissionIntent(ctx, dodo); err != nil {
+	if _, _, err := store.EnqueueCommissionPayment(ctx, dodo); err != nil {
 		t.Fatal(err)
 	}
 
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 2 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 2 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
 	xcom, err := store.commission(ctx, string(payment.ProviderXunhu), xunhu.ID)
@@ -64,7 +64,7 @@ func TestCommissionWorkerSettlesDodoAndXunhuExactlyOnce(t *testing.T) {
 	if xcom.ReferrerAmount != 4400 || xcom.RecruiterAmount != 1760 {
 		t.Fatalf("xunhu commission=%+v", xcom)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 0 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 0 {
 		t.Fatalf("second processed=%d err=%v", n, err)
 	}
 	stats, err := store.PartnerStats(ctx, "kol")
@@ -128,7 +128,7 @@ INSERT INTO fulfillment_tasks VALUES ('pi-reconcile','succeeded');`); err != nil
 	if _, err := store.ReconcileSuccessfulPayments(ctx, platformDB, 10); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
 	commission, err := store.commission(ctx, "xunhu", "pi-reconcile")
@@ -140,7 +140,7 @@ INSERT INTO fulfillment_tasks VALUES ('pi-reconcile','succeeded');`); err != nil
 	}
 }
 
-func TestVoidCommissionForIntent(t *testing.T) {
+func TestVoidCommissionForPayment(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
 	kol, err := store.createKOLPartner(ctx, "kol")
@@ -150,25 +150,25 @@ func TestVoidCommissionForIntent(t *testing.T) {
 	if _, err := store.Attribute(ctx, "buyer", kol.Code); err != nil {
 		t.Fatal(err)
 	}
-	intent := paidIntent(payment.ProviderXunhu, "buyer", 8800)
-	intent.ID = "pi-refund"
-	if _, _, err := store.EnqueueCommissionIntent(ctx, intent); err != nil {
+	sale := paidCommission(payment.ProviderXunhu, "buyer", 8800)
+	sale.ID = "pi-refund"
+	if _, _, err := store.EnqueueCommissionPayment(ctx, sale); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := store.ProcessCommissionIntents(ctx, 10); err != nil || n != 1 {
+	if n, err := store.ProcessCommissionPayments(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("processed=%d err=%v", n, err)
 	}
-	if err := store.VoidCommissionForIntent(ctx, payment.ProviderXunhu, intent.ID, "payment.refunded"); err != nil {
+	if err := store.VoidCommissionForPayment(ctx, payment.ProviderXunhu, sale.ID, "payment.refunded"); err != nil {
 		t.Fatal(err)
 	}
-	got, err := store.commission(ctx, string(payment.ProviderXunhu), intent.ID)
+	got, err := store.commission(ctx, string(payment.ProviderXunhu), sale.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got.Status != CommissionVoided {
 		t.Fatalf("status = %q, want voided", got.Status)
 	}
-	if err := store.VoidCommissionForIntent(ctx, payment.ProviderXunhu, intent.ID, "payment.refunded"); err != nil {
+	if err := store.VoidCommissionForPayment(ctx, payment.ProviderXunhu, sale.ID, "payment.refunded"); err != nil {
 		t.Fatalf("repeat void should be idempotent: %v", err)
 	}
 }
