@@ -70,18 +70,18 @@ In development, the login page shows a local verification code when the email se
 | Variable | Purpose |
 | --- | --- |
 | `JWT_SECRET` | Platform session signing secret |
-| `REFERRAL_PAYOUT_SECRET` | Encrypts partner payout accounts; must be at least 32 bytes |
-| `LISTEN_ADDR` | Internal HTTP listen address |
+| `LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY` | Encrypts partner payout accounts; must be at least 32 bytes |
+| `LIKI_HTTP_LISTEN_ADDRESS` | Internal HTTP listen address |
 | `LIKI_DATA_DIR` | SQLite data directory |
-| `RETURN_URL` | Public site base URL used for payment returns |
-| `PAYMENTS_WEBHOOK_URL` | Provider webhook URL |
-| `DODO_API_KEY`, `DODO_WEBHOOK_KEY`, `DODO_PRODUCT_LIKI_CHAT` | Dodo configuration |
+| `LIKI_PUBLIC_BASE_URL` | Public site base URL used for payment returns |
+| `LIKI_PAYMENT_WEBHOOK_URL` | Provider webhook URL |
+| `DODO_API_KEY`, `DODO_WEBHOOK_KEY`, `DODO_PRODUCT_LIKI_CHAT_ONE_TIME`, `DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION` | Dodo configuration |
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
 | `LIKI_AGENTS_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | Mandatory AG-UI runtime integration |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
-| `LIKI_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
-| `METRICS_TOKEN` | Protects the internal metrics endpoint |
-| `FEEDBACK_API_KEY` | Reads and updates feedback records |
+| `LIKI_BILLING_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
+| `LIKI_METRICS_TOKEN` | Protects the internal metrics endpoint |
+| `LIKI_FEEDBACK_API_TOKEN` | Reads and updates feedback records |
 
 Never commit real environment files or secrets.
 
@@ -109,9 +109,12 @@ The server owns:
 - reconciliation;
 - fulfillment and entitlement.
 
-USD checkout requires `DODO_PRODUCT_LIKI_CHAT`. If the value is absent, USD checkout fails closed.
-The referenced Dodo product must use a one-time price that matches `LIKI_PRICE_USD_MINOR`; the application grants a fixed
-entitlement duration and does not process recurring subscriptions.
+USD one-time checkout requires `DODO_PRODUCT_LIKI_CHAT_ONE_TIME`. Its Dodo price must match
+`LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS`; the application grants `LIKI_CHAT_ONE_TIME_ACCESS_DAYS`.
+
+USD monthly subscription requires `DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION`. The Dodo recurring product owns the charged
+price; `LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS` is the catalog/display price and must match it. Subscription
+lifecycle webhooks update local state and entitlement. CNY subscription checkout is intentionally unavailable.
 
 ## Quality gate
 
