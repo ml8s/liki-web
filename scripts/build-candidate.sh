@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and push the single local release candidate for liki-web.
+# Build and validate the liki-web candidate in the local registry.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -33,7 +33,33 @@ SOURCE_COMMIT="$(git rev-parse HEAD)"
 SHA7="${SOURCE_COMMIT:0:7}"
 BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 CANDIDATE_TAG="candidate-${SHA7}-$(date -u '+%Y%m%d%H%M%S')"
-IMAGE="ghcr.io/ml8s/liki-web:${CANDIDATE_TAG}"
+
+CANDIDATE_REGISTRY="${CANDIDATE_REGISTRY:-127.0.0.1:5000}"
+CANDIDATE_REGISTRY_NAME="${CANDIDATE_REGISTRY_NAME:-liki-candidate-registry}"
+CANDIDATE_REGISTRY_IMAGE="${CANDIDATE_REGISTRY_IMAGE:-registry:2}"
+
+ensure_candidate_registry() {
+  if curl -fsS "http://${CANDIDATE_REGISTRY}/v2/" >/dev/null 2>&1; then
+    return
+  fi
+  if docker container inspect "$CANDIDATE_REGISTRY_NAME" >/dev/null 2>&1; then
+    docker start "$CANDIDATE_REGISTRY_NAME" >/dev/null
+  else
+    docker run -d --name "$CANDIDATE_REGISTRY_NAME" \
+      --restart unless-stopped \
+      -p 127.0.0.1:5000:5000 \
+      "$CANDIDATE_REGISTRY_IMAGE" >/dev/null
+  fi
+  for _ in $(seq 1 30); do
+    curl -fsS "http://${CANDIDATE_REGISTRY}/v2/" >/dev/null 2>&1 && return
+    sleep 1
+  done
+  echo "❌ local candidate registry did not become ready" >&2
+  exit 1
+}
+
+ensure_candidate_registry
+IMAGE="$CANDIDATE_REGISTRY/ml8s/liki-web:${CANDIDATE_TAG}"
 METADATA_FILE="$ROOT/build/candidate/buildx-metadata.json"
 MANIFEST_FILE="$ROOT/build/candidate/candidate-digests.json"
 
@@ -41,7 +67,6 @@ rm -rf "$ROOT/build/candidate"
 mkdir -p "$(dirname "$METADATA_FILE")"
 make build
 docker buildx build \
-  --push \
   --build-arg "VERSION=${RELEASE_VERSION}" \
   --build-arg "COMMIT=${SOURCE_COMMIT}" \
   --build-arg "BUILD_TIME=${BUILD_TIME}" \
@@ -53,11 +78,12 @@ docker buildx build \
 
 python3 scripts/build_candidate_manifest.py \
   --output "$MANIFEST_FILE" \
+  --registry "$CANDIDATE_REGISTRY" \
   --source-commit "$SOURCE_COMMIT" \
   --candidate-tag "$CANDIDATE_TAG" \
   --metadata-file "$METADATA_FILE"
 
-echo "🚀 Pushed ${IMAGE}"
-echo "📦 Digest: $(python3 -c 'import json; print(json.load(open("'"$METADATA_FILE"'"))["containerimage.digest"])')"
-IMAGE="ghcr.io/ml8s/liki-web@$(python3 -c 'import json; print(json.load(open("'"$METADATA_FILE"'"))["containerimage.digest"])')" \
-  scripts/smoke-image.sh
+DIGEST="$(python3 -c 'import json; print(json.load(open("'"$METADATA_FILE"'"))["containerimage.digest"])')"
+echo "📦 local candidate digest: $DIGEST"
+IMAGE="$CANDIDATE_REGISTRY/ml8s/liki-web@$DIGEST" scripts/smoke-image.sh
+echo "✅ candidate validated locally: ${IMAGE}"

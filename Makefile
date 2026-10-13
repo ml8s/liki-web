@@ -7,7 +7,7 @@ export RELEASE_VERSION
 #   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
 #   make gate   check + test ＝ 源码门槛；镜像冒烟只在 candidate/release 流程执行
 #   make build  本仓产物（前端+二进制）
-#   make candidate RELEASE_VERSION=... 本地构建并推送 candidate，记录 exact digest
+#   make candidate RELEASE_VERSION=... 本地构建并冒烟 candidate，通过后推送并记录 exact digest
 #   make e2e    浏览器 E2E（本仓视角）
 #   make smoke  本仓镜像启动 + health/page 冒烟
 .PHONY: help check test gate smoke e2e \
@@ -71,8 +71,11 @@ check-actions: ## Reject mutable reusable workflow/action references
 smoke: image ## 本仓镜像冒烟：health + rendered homepage
 	IMAGE_TAG=$(IMAGE_TAG) scripts/smoke-image.sh
 
-candidate: ## 从干净 worktree 构建、测试并推送 GHCR candidate 镜像
+candidate: ## 从干净 worktree 构建、本地冒烟，并记录 exact digest（不推 GHCR）
 	scripts/build-candidate.sh
+
+candidate-publish: ## 整机 candidate-test 通过后，将同一 digest 推送到 GHCR
+	scripts/publish-candidate.sh
 
 # ── 调试（check / test 失败时隔离定位）──
 

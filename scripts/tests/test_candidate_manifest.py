@@ -16,14 +16,27 @@ def test_candidate_build_fails_fast_before_expensive_gate():
     assert script.index("cmd/liki-web/VERSION") < script.index("make gate")
 
 
+def test_candidate_smokes_locally_before_remote_publication():
+    script = Path(__file__).resolve().parents[1].joinpath("build-candidate.sh").read_text(encoding="utf-8")
+    assert script.index("docker buildx build") < script.index("scripts/smoke-image.sh")
+    assert "docker push" not in script
+    assert "--push" not in script
+    assert script.index("ensure_candidate_registry") < script.index("scripts/smoke-image.sh")
+    assert "candidate-publish" not in script
+
+
 class CandidateManifestTest(unittest.TestCase):
     def test_generates_exact_web_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
             metadata = Path(tmp) / "buildx.json"
             output = Path(tmp) / "candidate-digests.json"
             metadata.write_text(json.dumps({"containerimage.digest": "sha256:" + "a" * 64}))
-            actual = generate_manifest("b" * 40, "candidate-ccccccc-20261013010203", "sha256:" + "a" * 64)
+            actual = generate_manifest(
+                "b" * 40, "candidate-ccccccc-20261013010203", "sha256:" + "a" * 64,
+                "127.0.0.1:5000",
+            )
             self.assertEqual(actual, {
+                "registry": "127.0.0.1:5000",
                 "repository": "ml8s/liki-web",
                 "source_commit": "b" * 40,
                 "candidate_tag": "candidate-ccccccc-20261013010203",
@@ -32,7 +45,7 @@ class CandidateManifestTest(unittest.TestCase):
 
     def test_rejects_invalid_tag(self):
         with self.assertRaisesRegex(ValueError, "candidate_tag"):
-            generate_manifest("b" * 40, "latest", "sha256:" + "a" * 64)
+            generate_manifest("b" * 40, "latest", "sha256:" + "a" * 64, "127.0.0.1:5000")
 
 
 if __name__ == "__main__":
