@@ -34,6 +34,7 @@ Thumbs.db
 
 # Test artifacts
 coverage.out
+test-results/
 web/test-results/
 __pycache__/
 skills-lock.json
@@ -46,6 +47,7 @@ web/node_modules/
 web/skills/
 
 # Generated
+/build/candidate/
 web/sitemap.xml
 web/dist/
 web/.astro/
@@ -62,3 +64,10 @@ social.md
 web/.well-known/
 /keys/
 /.env.production.alipay
+
+# Coverage artifacts
+coverage.out
+coverage.xml
+coverage.html
+htmlcov/
+web/app/coverage/

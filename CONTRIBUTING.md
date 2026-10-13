@@ -2,7 +2,11 @@
 
 ## Branches
 
-Create short-lived feature branches from `main`.
+`main` is the only long-lived branch. Do not create `dev`, `master`, or long-lived
+release branches. Maintainers commit focused changes directly to `main`; external
+contributors may use a short-lived branch in a fork and target `main`.
+
+Release tags are created only from tested `main` commits.
 
 ## Commits
 
@@ -20,7 +24,7 @@ Keep unrelated changes in separate commits.
 
 ## Quality gate
 
-Before opening a pull request:
+Before pushing:
 
 ```bash
 make check

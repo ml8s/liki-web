@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Build and push the single local release candidate for liki-web.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+[ -z "$(git status --porcelain --untracked-files=normal)" ] || {
+  echo "❌ Git worktree is not clean; candidate releases require a clean tree" >&2
+  exit 1
+}
+
+RELEASE_VERSION="${RELEASE_VERSION:?set RELEASE_VERSION to the selected CalVer, e.g. 2026.10.13.0}"
+if [[ ! "$RELEASE_VERSION" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
+  echo "❌ RELEASE_VERSION must use CalVer YYYY.MM.DD.N: $RELEASE_VERSION" >&2
+  exit 1
+fi
+version_file="$(cat cmd/liki-web/VERSION)"
+if [ "$version_file" != "$RELEASE_VERSION" ]; then
+  echo "❌ RELEASE_VERSION=$RELEASE_VERSION does not match cmd/liki-web/VERSION=$version_file" >&2
+  exit 1
+fi
+
+
+make gate
+
+[ -z "$(git status --porcelain --untracked-files=normal)" ] || {
+  echo "❌ Git worktree changed during gate; aborting candidate build" >&2
+  git status --short >&2
+  exit 1
+}
+SOURCE_COMMIT="$(git rev-parse HEAD)"
+SHA7="${SOURCE_COMMIT:0:7}"
+BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+CANDIDATE_TAG="candidate-${SHA7}-$(date -u '+%Y%m%d%H%M%S')"
+IMAGE="ghcr.io/ml8s/liki-web:${CANDIDATE_TAG}"
+METADATA_FILE="$ROOT/build/candidate/buildx-metadata.json"
+MANIFEST_FILE="$ROOT/build/candidate/candidate-digests.json"
+
+rm -rf "$ROOT/build/candidate"
+mkdir -p "$(dirname "$METADATA_FILE")"
+make build
+docker buildx build \
+  --push \
+  --build-arg "VERSION=${RELEASE_VERSION}" \
+  --build-arg "COMMIT=${SOURCE_COMMIT}" \
+  --build-arg "BUILD_TIME=${BUILD_TIME}" \
+  --provenance=mode=max \
+  --sbom=true \
+  --metadata-file "$METADATA_FILE" \
+  --tag "$IMAGE" \
+  .
+
+python3 scripts/build_candidate_manifest.py \
+  --output "$MANIFEST_FILE" \
+  --source-commit "$SOURCE_COMMIT" \
+  --candidate-tag "$CANDIDATE_TAG" \
+  --metadata-file "$METADATA_FILE"
+
+echo "🚀 Pushed ${IMAGE}"
+echo "📦 Digest: $(python3 -c 'import json; print(json.load(open("'"$METADATA_FILE"'"))["containerimage.digest"])')"
+IMAGE="ghcr.io/ml8s/liki-web@$(python3 -c 'import json; print(json.load(open("'"$METADATA_FILE"'"))["containerimage.digest"])')" \
+  scripts/smoke-image.sh

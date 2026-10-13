@@ -53,9 +53,15 @@ liki release bundle → 校验 SHA256 / archive digest
 - 必需 env：`LIKI_AGENTS_URL`、`LIKI_AGENTS_INTERNAL_TOKEN`；模型 provider 凭据只属于 liki-agents，不得进入 liki-web runtime
 - `cmd/liki-web/main.go`：`SetAgentRunner` 把 AG-UI 客户端挂到 chat service；readiness 校验 agents 端点
 
-### 3.3 镜像发布（release 触发）
+### 3.3 镜像发布（promotion）
 
-`docker-publish` job：`make build-sitemap build-go build-web` → 打 `liki-web:<version>` 镜像 push GHCR。
+`promote-release` workflow 在 Git tag `v<version>` 上 dispatch；它不构建镜像。
+候选镜像先由本地 `make candidate RELEASE_VERSION=<calver>` 产生
+`build/candidate/candidate-digests.json`，
+发布时提供 `version`、`source_commit` 和该 JSON。workflow 校验 tag 指向的 commit、
+manifest 来源与 web digest，然后 `docker buildx imagetools create` 将同一 exact
+digest 提升（重新打 tag）为 `liki-web:v<version>`，再执行冒烟、cosign 签名与
+GitHub Release。
 
 - 镜像依赖预构建产物（bin + web/dist + web/app/dist + web/skills）
 - **web/skills 来自 prepare-skills**（消费 liki bundle），非本仓源码
@@ -70,7 +76,7 @@ liki release bundle → 校验 SHA256 / archive digest
 
 | 本仓变更 | 影响 | 传播路径 |
 | --- | --- | --- |
-| 改前端/BFF | 产品功能 | 发本仓镜像 → deploy 换 tag |
+| 改前端/BFF | 产品功能 | 发本仓镜像 → 更新 signed digest lock |
 | 改 chat 产品逻辑 | chat 体验 | 发本仓镜像（不改 agents/内容） |
 | 依赖 skill 内容更新 | 前端 skill 页面/客户端下载 | **先发 liki release** → 重发本仓镜像 |
 
@@ -79,7 +85,7 @@ liki release bundle → 校验 SHA256 / archive digest
 ## 五、本仓 CI
 
 - `check`/`test`/`e2e`：质量门（全部依赖 `prepare-skills` 消费 bundle）
-- `docker-publish`：release 触发 push `liki-web`
+- `promote-release`：在 tag 上校验并提升本地候选 digest；GitHub Actions 不构建镜像
 
 ## 六、相关文档
 

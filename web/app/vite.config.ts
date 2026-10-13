@@ -51,6 +51,23 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/tests/setup.ts',
+    coverage: {
+      provider: 'v8',
+      reportsDirectory: './coverage',
+      reporter: ['text-summary', 'html', 'json'],
+      include: [
+        'src/api/**',
+        'src/stores/**',
+        'src/components/**',
+        'src/utils/**',
+      ],
+      thresholds: {
+        statements: 29,
+        branches: 25,
+        functions: 18,
+        lines: 30,
+      },
+    },
     // element-plus 按需引入后组件带 CSS side-effect import；测试里需内联
     // 让 Vite 处理 CSS，否则 Node ESM 会报 Unknown file extension ".css"。
     server: {

@@ -23,7 +23,7 @@ liki engine  /  liki-agents  /  payment providers
 | `liki-web` | Product BFF, platform identity, profiles, commerce, entitlements, Liki Chat |
 | `liki` | deterministic engine, skills, Engine MCP, Counsel MCP source |
 | `liki-agents` | generic agent runtime, AG-UI/A2A protocol adapters, execution audit |
-| `liki-deploy` | images, Compose, Caddy, release and rollback |
+| `liki-deploy` | deployment locks, Compose, Caddy, release and rollback |
 
 ## Quick start
 
@@ -59,7 +59,7 @@ In development, the login page shows a local verification code when the email se
 | --- | --- |
 | `make dev` | Build and start the local stack |
 | `make test` | Unit, integration, and skill tests (Go/JS/Python) |
-| `make gate` | `check` + `test` + candidate image smoke |
+| `make gate` | `check` + `test` |
 | `make build` | Verify the prepared skill artifact, then build static assets and Go service |
 | `make clean` | Remove local build artifacts |
 
@@ -123,6 +123,15 @@ make gate
 ```
 
 This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static HTML/i18n checks, and Go race tests. Docker E2E runs separately via `make e2e`; packaging is verified by `make check-packaging`.
+
+Release candidates are built locally with:
+
+```bash
+make candidate RELEASE_VERSION=<YYYY.MM.DD.N>
+```
+
+The command requires a clean worktree and GHCR login, then records the immutable
+candidate digest for promotion.
 
 ## Documentation
 
