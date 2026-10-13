@@ -1,30 +1,107 @@
-// @ts-check
-// 管理台会话状态：未登录显示登录表单；已登录但无管理能力必须明确告知，
-// 不能落入「已登录却反复看到登录表单」的循环。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 
-const json = (status, data) => ({
-  status,
-  contentType: 'application/json',
-  body: JSON.stringify(data),
+const adminUser = { id: 'user-admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hans' }
+
+test.describe('Vue admin console', () => {
+  test('renders capability-scoped workspace and manages entitlement search journey', async ({ page }) => {
+    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
+    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
+    await page.route('**/api/admin/session', route => route.fulfill({
+      json: { data: { email: adminUser.email, capabilities: ['entitlement.read', 'entitlement.manage'] } },
+    }))
+    await page.route('**/api/admin/entitlements*', route => route.fulfill({
+      json: { data: { entitlements: [{
+        id: 'ent_1', user_id: 'user-1', email: 'customer@example.com', product_id: 'liki-chat',
+        skills: ['liki'], status: 'active', source: 'payment', source_id: 'order_1',
+        starts_at: '2026-10-01T00:00:00Z', expires_at: '2026-11-01T00:00:00Z',
+        created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z',
+      }] } },
+    }))
+
+    await page.goto('/app/admin')
+    await expect(page).toHaveURL(/\/app\/admin$/)
+    await expect(page.getByRole('heading', { name: '管理总览' })).toBeVisible()
+    await expect(page.locator('.operator').getByText('admin@example.com')).toBeVisible()
+    await expect(page.getByText('权益管理')).toBeVisible()
+    await expect(page.getByRole('link', { name: '提现' })).toHaveCount(0)
+
+    await page.getByRole('link', { name: '权益' }).click()
+    await page.locator('.filters').getByPlaceholder('user@example.com').fill('customer@example.com')
+    await page.getByRole('button', { name: '查询' }).click()
+    await expect(page.getByText('customer@example.com').first()).toBeVisible()
+    await expect(page.getByText('payment', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '改期' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '撤销' })).toBeVisible()
+  })
+
+  test('shows the no-permission state for a signed-in non-admin', async ({ page }) => {
+    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
+    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
+    await page.route('**/api/admin/session', route => route.fulfill({
+      json: { data: { email: adminUser.email, capabilities: [] } },
+    }))
+
+    await page.goto('/app/admin')
+    await expect(page.getByText('无管理权限')).toBeVisible()
+    await expect(page.getByRole('button', { name: '切换账号' })).toBeVisible()
+  })
 })
 
-test('403 session shows the no-permission state, not the login form', async ({ page }) => {
-  await page.route('**/api/admin/session', route => route.fulfill(json(403, {
-    type: 'about:blank', title: 'forbidden', status: 403, detail: '无权访问',
-  })))
-  await page.goto('/admin.html')
-  await expect(page.locator('#no-permission')).toBeVisible()
-  await expect(page.locator('#no-permission')).toContainText('没有管理后台权限')
-  await expect(page.locator('#auth-section')).toBeHidden()
-  await expect(page.locator('#main-section')).toBeHidden()
-})
+test.describe('Vue admin finance and compensation', () => {
+  test('shows period finance totals', async ({ page }) => {
+    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
+    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
+    await page.route('**/api/admin/session', route => route.fulfill({
+      json: { data: { email: adminUser.email, capabilities: ['commission.read'] } },
+    }))
+    await page.route('**/api/admin/finance/summary*', route => route.fulfill({
+      json: { data: {
+        period_start: '2026-10-06T00:00:00Z', period_end: '2026-10-13T00:00:00Z',
+        one_time_paid: [{ currency: 'USD', amount_minor: 1000 }],
+        subscription_paid: [], subscription_refunded: [], net_product_revenue: [],
+        referral_commission_net: [{ currency: 'USD', amount_minor: 200 }],
+        referral_payout_paid: [], referral_pending_payout: [],
+      } },
+    }))
 
-test('401 session keeps the login form', async ({ page }) => {
-  await page.route('**/api/admin/session', route => route.fulfill(json(401, {
-    type: 'about:blank', title: 'unauthenticated', status: 401,
-  })))
-  await page.goto('/admin.html')
-  await expect(page.locator('#auth-section')).toBeVisible()
-  await expect(page.locator('#no-permission')).toBeHidden()
+    await page.goto('/app/admin/finance')
+    await expect(page.getByRole('heading', { name: '财务' })).toBeVisible()
+    await expect(page.getByText('一次性收入')).toBeVisible()
+    await expect(page.getByText('USD 10.00')).toBeVisible()
+    await expect(page.getByText('USD 2.00')).toBeVisible()
+  })
+
+  test('grants a templated entitlement compensation', async ({ page }) => {
+    const compensations = []
+    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
+    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
+    await page.route('**/api/admin/session', route => route.fulfill({
+      json: { data: { email: adminUser.email, capabilities: ['entitlement.read', 'entitlement.manage'] } },
+    }))
+    await page.route('**/api/admin/entitlements/compensation', async (route) => {
+      compensations.push(route.request().postDataJSON())
+      await route.fulfill({
+        status: 201,
+        json: {
+          data: {
+            template: 'support_30d', entitlement: { id: 'ent_new' }, email_queued: true,
+          },
+        },
+      })
+    })
+    await page.route('**/api/admin/entitlements*', route => route.fulfill({ json: { data: { entitlements: [] } } }))
+
+    await page.goto('/app/admin/entitlements')
+    await page.locator('.compensation-card').getByPlaceholder('user@example.com').fill('customer@example.com')
+    await page.locator('.compensation-card .el-select').click()
+    await page.getByRole('option', { name: '补偿 30 天' }).click()
+    await page.getByPlaceholder('服务事故 / 工单编号').fill('ticket-1')
+    await page.getByRole('button', { name: '发放补偿' }).click()
+
+    await expect(page.getByText('补偿已发放')).toBeVisible()
+    expect(compensations).toEqual([{
+      email: 'customer@example.com', template: 'support_30d', reason: 'ticket-1',
+      idempotency_key: expect.stringMatching(/^[0-9a-f-]{36}$/i),
+    }])
+  })
 })

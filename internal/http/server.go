@@ -21,23 +21,27 @@ import (
 )
 
 type ServerDeps struct {
-	PaymentRuntime  *payment.Runtime
-	AuthHandler     *auth.Handler
-	ReferralHandler *referral.Handler
-	ReferralStore   *referral.Store
-	LikiHandler     *liki.Handler
-	EngineMCP       *enginemcp.Handler
-	AipayHandler    *aipay.Handler
-	ProfileHandler  *profile.Handler
-	AccountHandler  *account.Handler
-	MetricsHandler  http.HandlerFunc
-	Readiness       ReadinessChecker
-	FeedbackStore   *feedback.Store
-	FeedbackAPIKey  string
-	AdminEmail      string
-	AdminAuthorizer *adminauth.Store
-	PartnerNotifier referral.DecisionNotifier
-	DevMode         bool
+	PaymentRuntime       *payment.Runtime
+	AuthHandler          *auth.Handler
+	ReferralHandler      *referral.Handler
+	ReferralStore        *referral.Store
+	LikiHandler          *liki.Handler
+	EngineMCP            *enginemcp.Handler
+	AipayHandler         *aipay.Handler
+	ProfileHandler       *profile.Handler
+	AccountHandler       *account.Handler
+	Entitlements         *liki.EntitlementStore
+	MetricsHandler       http.HandlerFunc
+	Readiness            ReadinessChecker
+	FeedbackStore        *feedback.Store
+	FeedbackAPIKey       string
+	AdminEmail           string
+	AdminAuthorizer      *adminauth.Store
+	AuthUsers            *auth.Store
+	CommerceStores       *liki.CommerceStores
+	CompensationNotifier admin.CompensationNotifier
+	PartnerNotifier      referral.DecisionNotifier
+	DevMode              bool
 }
 
 func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl, verifyRL *RateLimiter) http.Handler {
@@ -142,7 +146,9 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 				}
 				return deps.AuthHandler.IdentityFromRequest(r)
 			}
-			admin.RegisterRoutes(mux, deps.ReferralStore, deps.AdminAuthorizer, adminIdentity, deps.PartnerNotifier)
+			admin.RegisterRoutes(mux, deps.ReferralStore, deps.AdminAuthorizer, adminIdentity,
+				deps.PartnerNotifier, deps.Entitlements, deps.AuthUsers, deps.CommerceStores,
+				deps.ReferralStore, deps.CompensationNotifier)
 		}
 	}
 	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3）──

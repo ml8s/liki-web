@@ -20,19 +20,21 @@ import (
 type Capability string
 
 const (
-	CapabilityPartnerRead     Capability = "partner.read"
-	CapabilityPartnerApprove  Capability = "partner.approve"
-	CapabilityPartnerFreeze   Capability = "partner.freeze"
-	CapabilityPartnerUnfreeze Capability = "partner.unfreeze"
-	CapabilityCommissionRead  Capability = "commission.read"
-	CapabilityCommissionVoid  Capability = "commission.void"
-	CapabilityPayoutRead      Capability = "payout.read"
-	CapabilityPayoutApprove   Capability = "payout.approve"
-	CapabilityPayoutReject    Capability = "payout.reject"
-	CapabilityPayoutMarkPaid  Capability = "payout.mark_paid"
-	CapabilityAuditRead       Capability = "audit.read"
-	CapabilityAdminUserManage Capability = "admin.user.manage"
-	CapabilityAdminSuper      Capability = "admin.super"
+	CapabilityEntitlementRead   Capability = "entitlement.read"
+	CapabilityEntitlementManage Capability = "entitlement.manage"
+	CapabilityPartnerRead       Capability = "partner.read"
+	CapabilityPartnerApprove    Capability = "partner.approve"
+	CapabilityPartnerFreeze     Capability = "partner.freeze"
+	CapabilityPartnerUnfreeze   Capability = "partner.unfreeze"
+	CapabilityCommissionRead    Capability = "commission.read"
+	CapabilityCommissionVoid    Capability = "commission.void"
+	CapabilityPayoutRead        Capability = "payout.read"
+	CapabilityPayoutApprove     Capability = "payout.approve"
+	CapabilityPayoutReject      Capability = "payout.reject"
+	CapabilityPayoutMarkPaid    Capability = "payout.mark_paid"
+	CapabilityAuditRead         Capability = "audit.read"
+	CapabilityAdminUserManage   Capability = "admin.user.manage"
+	CapabilityAdminSuper        Capability = "admin.super"
 )
 
 type AdminStatus string
@@ -238,6 +240,70 @@ WHERE u.email=?`, string(CapabilityAdminSuper), string(capability), email).Scan(
 		return false, err
 	}
 	return capabilityStatus == "active", nil
+}
+
+// Capabilities returns the effective capabilities for a bound, active admin.
+// It is used to render capability-scoped navigation and never grants access by
+// itself: every data route still performs its own Authorize check.
+func (s *Store) Capabilities(ctx context.Context, user auth.User) ([]Capability, error) {
+	email := normalizeEmail(user.Email)
+	if email == "" || user.ID == "" || user.Status != auth.UserActive {
+		return []Capability{}, nil
+	}
+
+	var adminID, boundUserID, adminStatus string
+	err := s.db.QueryRowContext(ctx, `
+SELECT id,COALESCE(user_id,''),status
+FROM admin_users WHERE email=?`, email).Scan(&adminID, &boundUserID, &adminStatus)
+	if errors.Is(err, sql.ErrNoRows) {
+		return []Capability{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if adminStatus != string(AdminActive) {
+		return []Capability{}, nil
+	}
+	if boundUserID != "" && boundUserID != user.ID {
+		return []Capability{}, nil
+	}
+	if boundUserID == "" {
+		if _, err := s.db.ExecContext(ctx, `
+UPDATE admin_users SET user_id=?,updated_at=? WHERE id=?`,
+			user.ID, formatTime(s.now()), adminID); err != nil {
+			return nil, err
+		}
+	}
+
+	var superActive int
+	if err := s.db.QueryRowContext(ctx, `
+SELECT COUNT(1) FROM admin_capabilities
+WHERE admin_email=? AND capability=? AND status='active'`,
+		email, string(CapabilityAdminSuper)).Scan(&superActive); err != nil {
+		return nil, err
+	}
+	if superActive > 0 {
+		return CapabilityRegistry(), nil
+	}
+
+	rows, err := s.db.QueryContext(ctx, `
+SELECT capability FROM admin_capabilities
+WHERE admin_email=? AND status='active' ORDER BY capability`, email)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	capabilities := make([]Capability, 0)
+	for rows.Next() {
+		var capability Capability
+		if err := rows.Scan(&capability); err != nil {
+			return nil, err
+		}
+		if IsCapabilityValid(capability) {
+			capabilities = append(capabilities, capability)
+		}
+	}
+	return capabilities, rows.Err()
 }
 
 func (s *Store) Audit(ctx context.Context, entry AuditEntry) error {

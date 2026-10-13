@@ -6,6 +6,7 @@ import (
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/referral"
 )
 
@@ -13,34 +14,44 @@ type IdentityFunc func(r *http.Request) (auth.User, bool)
 
 func capabilityGuard(authorizer *adminauth.Store, identity IdentityFunc) func(adminauth.Capability) func(http.HandlerFunc) http.HandlerFunc {
 	return func(capability adminauth.Capability) func(http.HandlerFunc) http.HandlerFunc {
-		return func(next http.HandlerFunc) http.HandlerFunc {
-			return func(w http.ResponseWriter, r *http.Request) {
-				user, ok := identity(r)
-				if !ok {
-					_ = authorizer.Audit(r.Context(), adminauth.AuditEntry{
-						ActorEmail: user.Email, Action: "admin.request", ObjectType: "route",
-						ObjectID: r.URL.Path, Reason: "missing unified session",
-					})
-					httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
-					return
-				}
+		return authorizeAny(authorizer, identity, capability)
+	}
+}
+
+func anyCapabilityGuard(authorizer *adminauth.Store, identity IdentityFunc, capabilities ...adminauth.Capability) func(http.HandlerFunc) http.HandlerFunc {
+	return authorizeAny(authorizer, identity, capabilities...)
+}
+
+func authorizeAny(authorizer *adminauth.Store, identity IdentityFunc, capabilities ...adminauth.Capability) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			user, ok := identity(r)
+			if !ok {
+				_ = authorizer.Audit(r.Context(), adminauth.AuditEntry{
+					ActorEmail: user.Email, Action: "admin.request", ObjectType: "route",
+					ObjectID: r.URL.Path, Reason: "missing unified session",
+				})
+				httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
+				return
+			}
+			for _, capability := range capabilities {
 				allowed, err := authorizer.Authorize(r.Context(), user, capability)
 				if err != nil {
 					httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "权限检查失败")
 					return
 				}
-				if !allowed {
-					_ = authorizer.Audit(r.Context(), adminauth.AuditEntry{
-						ActorUserID: user.ID, ActorEmail: user.Email, Capability: string(capability),
-						Action: "admin.request", ObjectType: "route", ObjectID: r.URL.Path,
-						Reason: "capability denied",
-					})
-					httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
+				if allowed {
+					r = r.WithContext(auth.WithAuth(r.Context(), user, auth.AuthSession{}, ""))
+					next(w, r)
 					return
 				}
-				r = r.WithContext(auth.WithAuth(r.Context(), user, auth.AuthSession{}, ""))
-				next(w, r)
 			}
+			_ = authorizer.Audit(r.Context(), adminauth.AuditEntry{
+				ActorUserID: user.ID, ActorEmail: user.Email,
+				Action: "admin.request", ObjectType: "route", ObjectID: r.URL.Path,
+				Reason: "capability denied",
+			})
+			httputil.RespondError(w, http.StatusForbidden, "forbidden", "无权访问")
 		}
 	}
 }
@@ -51,15 +62,38 @@ func RegisterRoutes(
 	authorizer *adminauth.Store,
 	identity IdentityFunc,
 	partnerDecisionNotifier referral.DecisionNotifier,
+	entitlements *liki.EntitlementStore,
+	users UserByEmailReader,
+	commerce *liki.CommerceStores,
+	referralFinance ReferralFinanceReader,
+	compensationNotifier CompensationNotifier,
 ) {
-	h := NewHandler()
+	h := NewHandler(authorizer, entitlements)
+	h.users = users
+	h.commerce = commerce
+	h.referralFinance = referralFinance
+	h.compensationNotifier = compensationNotifier
 	guard := capabilityGuard(authorizer, identity)
+	sessionGuard := anyCapabilityGuard(authorizer, identity, adminauth.CapabilityRegistry()...)
 	identityFunc := func(r *http.Request) auth.User { user, _ := identity(r); return user }
 	adminAuthHandler := adminauth.NewHandler(authorizer)
 
-	mux.HandleFunc("GET /api/admin/session", guard(adminauth.CapabilityPartnerRead)(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/admin/session", sessionGuard(func(w http.ResponseWriter, r *http.Request) {
 		h.HandleSession(identityFunc(r))(w, r)
 	}))
+
+	if entitlements != nil {
+		mux.HandleFunc("GET /api/admin/entitlements", guard(adminauth.CapabilityEntitlementRead)(h.HandleEntitlements()))
+		mux.HandleFunc("PATCH /api/admin/entitlements/{id}/expire", guard(adminauth.CapabilityEntitlementManage)(h.HandleExpireEntitlement()))
+		mux.HandleFunc("POST /api/admin/entitlements/{id}/revoke", guard(adminauth.CapabilityEntitlementManage)(h.HandleRevokeEntitlement()))
+		if users != nil {
+			mux.HandleFunc("POST /api/admin/entitlements/compensation", guard(adminauth.CapabilityEntitlementManage)(h.HandleCompensateEntitlement()))
+		}
+	}
+
+	if commerce != nil && referralFinance != nil {
+		mux.HandleFunc("GET /api/admin/finance/summary", guard(adminauth.CapabilityCommissionRead)(h.HandleFinanceSummary()))
+	}
 
 	mux.HandleFunc("GET /api/admin/admins", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleListAdmins()))
 	mux.HandleFunc("POST /api/admin/admins", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleCreateAdmin()))

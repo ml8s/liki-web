@@ -466,6 +466,20 @@ FROM users WHERE id=? AND status!='deleted'`, userID)
 	return scanUser(row.Scan)
 }
 
+// GetUserByEmail resolves an active platform identity for privileged support
+// workflows. Deleted users remain invisible and disabled users are returned so
+// callers can distinguish "cannot compensate" from "does not exist".
+func (s *Store) GetUserByEmail(ctx context.Context, rawEmail string) (User, error) {
+	email := strings.ToLower(strings.TrimSpace(rawEmail))
+	if email == "" {
+		return User{}, ErrUserNotFound
+	}
+	row := s.db.QueryRowContext(ctx, `
+SELECT id,email,status,locale,created_at,updated_at,last_login_at,deleted_at
+FROM users WHERE email=? AND status!='deleted'`, email)
+	return scanUser(row.Scan)
+}
+
 func (s *Store) GetSessionUser(ctx context.Context, token string) (User, AuthSession, error) {
 	tokenHash := s.sessionTokenHash(token)
 	row := s.db.QueryRowContext(ctx, `

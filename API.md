@@ -223,9 +223,23 @@ Metrics are disabled when `METRICS_TOKEN` is empty.
 
 ## Admin
 
-16 back-office endpoints live under `/api/admin/*` (administrator and
-capability management, referral application decisions, payout approval, and
-partner freeze controls). They are gated by admin sessions and capabilities
+21 back-office endpoints live under `/api/admin/*` (administrator and
+capability management, user entitlement support and compensation, finance
+aggregates, referral application decisions, payout approval, and partner freeze
+controls). They are gated by admin sessions
+and capabilities
 and are intentionally outside this stable product API; their shape may
 change with the back-office without notice. See `internal/admin/` and
 `internal/referral/admin_handler.go` for the authoritative list.
+
+Compensation accepts `idempotency_key`; an unchanged retry maps to the same
+beneficiary and returns the same entitlement instead of stacking access. The
+response reports whether the customer notification entered the durable email
+queue (`email_queued`). A false value means the grant is committed but the
+notification requires operator follow-up.
+
+Finance aggregates use UTC half-open periods `[start,end)`. `net_product_revenue`
+means known product cash receipts less subscription refunds in the period;
+one-time provider refunds are not represented in the commerce ledger. The
+pending payout aggregate is a current operational balance, not a period-limited
+total.

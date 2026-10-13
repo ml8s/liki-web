@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useAdminStore } from '@/stores/admin'
 import { normalizeUnknownLocale, setAppLocale } from '@/i18n'
 import { i18n } from '@/i18n'
 
@@ -14,6 +15,20 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
       meta: { public: true, titleKey: 'router.login' },
+    },
+    {
+      path: '/admin',
+      component: () => import('@/views/admin/AdminLayout.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true, title: 'Admin' },
+      children: [
+        { path: '', name: 'admin-overview', component: () => import('@/views/admin/AdminOverviewView.vue') },
+        { path: 'entitlements', name: 'admin-entitlements', component: () => import('@/views/admin/AdminEntitlementsView.vue') },
+        { path: 'referrals', name: 'admin-referrals', component: () => import('@/views/admin/AdminReferralsView.vue') },
+        { path: 'payouts', name: 'admin-payouts', component: () => import('@/views/admin/AdminPayoutsView.vue') },
+        { path: 'finance', name: 'admin-finance', component: () => import('@/views/admin/AdminFinanceView.vue') },
+        { path: 'audit', name: 'admin-audit', component: () => import('@/views/admin/AdminAuditView.vue') },
+        { path: 'administrators', name: 'admin-administrators', component: () => import('@/views/admin/AdminAdministratorsView.vue') },
+      ],
     },
     {
       path: '/',
@@ -53,7 +68,7 @@ router.beforeEach(async to => {
   if (!to.meta.requiresAuth) return true
   try {
     const user = await auth.loadMe()
-    return user ? true : {
+    if (!user) return {
       name: 'login',
       query: {
         redirect: to.fullPath,
@@ -61,6 +76,10 @@ router.beforeEach(async to => {
         ...(locale ? { locale } : {}),
       },
     }
+    if (to.meta.requiresAdmin) {
+      await useAdminStore().loadSession(true)
+    }
+    return true
   } catch {
     return { name: 'login', query: { redirect: to.fullPath, reason: 'unreachable' } }
   }

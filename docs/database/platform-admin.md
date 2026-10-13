@@ -22,6 +22,8 @@ Internal capabilities:
 
 ```text
 admin.super
+entitlement.read
+entitlement.manage
 partner.read
 partner.approve
 partner.freeze

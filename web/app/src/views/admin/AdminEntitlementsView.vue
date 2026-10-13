@@ -1,0 +1,400 @@
+<template>
+  <section>
+    <div class="page-heading">
+      <div>
+        <h1>用户权益</h1>
+        <p>按邮箱查询支持工单中的访问权限，并保留操作审计。</p>
+      </div>
+    </div>
+
+    <el-card
+      v-if="admin.can('entitlement.manage')"
+      shadow="never"
+      class="compensation-card"
+    >
+      <template #header>
+        客服补偿
+      </template>
+      <el-form
+        inline
+        @submit.prevent="compensate"
+      >
+        <el-form-item label="用户邮箱">
+          <el-input
+            v-model="compensation.email"
+            type="email"
+            placeholder="user@example.com"
+          />
+        </el-form-item>
+        <el-form-item label="模板">
+          <el-select
+            v-model="compensation.template"
+            style="width: 140px"
+          >
+            <el-option
+              label="补偿 7 天"
+              value="support_7d"
+            />
+            <el-option
+              label="补偿 30 天"
+              value="support_30d"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="原因">
+          <el-input
+            v-model="compensation.reason"
+            placeholder="服务事故 / 工单编号"
+          />
+        </el-form-item>
+        <el-button
+          type="warning"
+          plain
+          :loading="compensating"
+          @click="compensate"
+        >
+          发放补偿
+        </el-button>
+      </el-form>
+    </el-card>
+
+    <el-form
+      class="filters"
+      inline
+      @submit.prevent="load"
+    >
+      <el-form-item label="用户邮箱">
+        <el-input
+          v-model="email"
+          type="email"
+          placeholder="user@example.com"
+          clearable
+          @keyup.enter="load"
+        />
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select
+          v-model="status"
+          style="width: 130px"
+        >
+          <el-option
+            label="全部"
+            value=""
+          />
+          <el-option
+            label="有效"
+            value="active"
+          />
+          <el-option
+            label="已过期"
+            value="expired"
+          />
+          <el-option
+            label="已撤销"
+            value="revoked"
+          />
+        </el-select>
+      </el-form-item>
+      <el-button
+        type="primary"
+        :loading="loading"
+        @click="load"
+      >
+        查询
+      </el-button>
+    </el-form>
+
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      show-icon
+      :closable="false"
+    />
+
+    <el-empty
+      v-else-if="!loading && !entitlements.length"
+      description="请输入邮箱后查询"
+    />
+    <el-table
+      v-else
+      v-loading="loading"
+      :data="entitlements"
+      row-key="id"
+    >
+      <el-table-column
+        prop="email"
+        label="邮箱"
+        min-width="190"
+        show-overflow-tooltip
+      />
+      <el-table-column
+        prop="product_id"
+        label="产品"
+        width="120"
+      />
+      <el-table-column
+        label="技能"
+        min-width="120"
+      >
+        <template #default="{ row }">
+          <el-tag
+            v-for="skill in row.skills"
+            :key="skill"
+            size="small"
+            class="skill-tag"
+          >
+            {{ skill }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="状态"
+        width="100"
+      >
+        <template #default="{ row }">
+          <el-tag
+            :type="adminStatusTagType(row.status)"
+            size="small"
+          >
+            {{ row.status }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="有效期"
+        min-width="300"
+      >
+        <template #default="{ row }">
+          {{ formatDateTime(row.starts_at) }} — {{ formatDateTime(row.expires_at) }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="来源"
+        min-width="170"
+      >
+        <template #default="{ row }">
+          <div>{{ row.source }}</div>
+          <div class="mono muted">
+            {{ row.source_id }}
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        v-if="admin.can('entitlement.manage')"
+        label="操作"
+        width="170"
+        fixed="right"
+      >
+        <template #default="{ row }">
+          <el-button
+            size="small"
+            :disabled="row.status === 'revoked'"
+            @click="openExpire(row as AdminEntitlement)"
+          >
+            改期
+          </el-button>
+          <el-button
+            size="small"
+            type="danger"
+            plain
+            :disabled="row.status === 'revoked'"
+            @click="revoke(row as AdminEntitlement)"
+          >
+            撤销
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <el-dialog
+      v-model="expireDialog"
+      title="修改权益到期时间"
+      width="430px"
+    >
+      <el-form label-position="top">
+        <el-form-item label="到期时间">
+          <el-date-picker
+            v-model="expireForm.expiresAt"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ssZ"
+            format="YYYY-MM-DD HH:mm"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item
+          label="操作原因"
+          required
+        >
+          <el-input
+            v-model="expireForm.reason"
+            type="textarea"
+            :rows="3"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="expireDialog = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          @click="saveExpiry"
+        >
+          保存
+        </el-button>
+      </template>
+    </el-dialog>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  compensateAdminEntitlement, expireAdminEntitlement, fetchAdminEntitlements, revokeAdminEntitlement,
+  type AdminEntitlement,
+} from '@/api/admin'
+import { useAdminStore } from '@/stores/admin'
+import { adminStatusTagType } from '@/utils/adminFormat'
+import { formatDateTime } from '@/utils/format'
+
+const admin = useAdminStore()
+const email = ref('')
+const status = ref('')
+const loading = ref(false)
+const saving = ref(false)
+const error = ref('')
+const entitlements = ref<AdminEntitlement[]>([])
+const expireDialog = ref(false)
+const editing = ref<AdminEntitlement | null>(null)
+const expireForm = ref({ expiresAt: '', reason: '' })
+const compensating = ref(false)
+const compensation = ref({
+  email: '',
+  template: 'support_7d' as 'support_7d' | 'support_30d',
+  reason: '',
+  idempotency_key: '',
+})
+
+// The idempotency key represents one intended operation. Changing the intended
+// operation starts a new key; resubmitting an unchanged form preserves it.
+watch(() => [compensation.value.email, compensation.value.template, compensation.value.reason], () => {
+  compensation.value.idempotency_key = ''
+})
+
+async function load() {
+  if (!email.value.trim()) {
+    error.value = ''
+    entitlements.value = []
+    return
+  }
+  loading.value = true
+  error.value = ''
+  try {
+    const payload = await fetchAdminEntitlements(email.value.trim(), status.value)
+    entitlements.value = payload.entitlements ?? []
+  } catch (requestError) {
+    error.value = requestError instanceof Error ? requestError.message : '查询失败'
+    entitlements.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+function openExpire(row: AdminEntitlement) {
+  editing.value = row
+  expireForm.value = { expiresAt: toDatetimeValue(row.expires_at), reason: '' }
+  expireDialog.value = true
+}
+
+function toDatetimeValue(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const pad = (item: number) => String(item).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+async function saveExpiry() {
+  if (!editing.value) return
+  if (!expireForm.value.expiresAt || !expireForm.value.reason.trim()) {
+    ElMessage.warning('请填写到期时间和原因')
+    return
+  }
+  saving.value = true
+  try {
+    await expireAdminEntitlement(editing.value.id, new Date(expireForm.value.expiresAt).toISOString(), expireForm.value.reason.trim())
+    ElMessage.success('权益已更新')
+    expireDialog.value = false
+    await load()
+  } catch (requestError) {
+    ElMessage.error(requestError instanceof Error ? requestError.message : '保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function revoke(row: AdminEntitlement) {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入撤销原因，该操作会写入审计。', '撤销权益', {
+      confirmButtonText: '撤销',
+      cancelButtonText: '取消',
+      inputValidator: (input: string) => Boolean(input.trim()) || '原因必填',
+    })
+    await revokeAdminEntitlement(row.id, value.trim())
+    ElMessage.success('权益已撤销')
+    await load()
+  } catch {
+    // User cancelled the irreversible-action confirmation.
+  }
+}
+
+async function compensate() {
+  const request = {
+    email: compensation.value.email.trim(),
+    template: compensation.value.template,
+    reason: compensation.value.reason.trim(),
+    idempotency_key: compensation.value.idempotency_key,
+  }
+  if (!request.email || !request.reason) {
+    ElMessage.warning('请填写用户邮箱和原因')
+    return
+  }
+  if (!request.idempotency_key) {
+    request.idempotency_key = crypto.randomUUID()
+    compensation.value.idempotency_key = request.idempotency_key
+  }
+  compensating.value = true
+  try {
+    const result = await compensateAdminEntitlement(
+      request.email, request.template, request.reason, request.idempotency_key,
+    )
+    if (result.email_queued) {
+      ElMessage.success('补偿已发放，通知邮件已排队')
+    } else {
+      ElMessage.warning('补偿已发放，但通知邮件排队失败；请记录工单并联系运维。')
+    }
+    email.value = request.email
+    compensation.value.email = request.email
+    compensation.value.reason = ''
+    compensation.value.idempotency_key = ''
+    await load()
+  } catch (requestError) {
+    ElMessage.error(requestError instanceof Error ? requestError.message : '补偿失败')
+  } finally {
+    compensating.value = false
+  }
+}
+</script>
+
+<style scoped>
+.page-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 16px; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+.page-heading p { margin: 0; color: #6b7280; }
+.filters { margin-bottom: 14px; }
+.compensation-card { margin-bottom: 14px; }
+.skill-tag + .skill-tag { margin-left: 4px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.muted { color: #6b7280; font-size: 12px; }
+</style>

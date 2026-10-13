@@ -35,7 +35,9 @@ SET to_email=?,
     body=''
 FROM payment_intents AS pi
 WHERE (pi.user_id=? OR (? != '' AND pi.email=?))
-  AND n.payment_intent_id=pi.id`, tombstone, userID, oldEmail, oldEmail)
+  AND n.payment_intent_id=pi.id
+   OR (n.to_email=? AND n.payment_intent_id LIKE 'entitlement:%')`,
+		tombstone, userID, oldEmail, oldEmail, oldEmail)
 	if err != nil {
 		return 0, fmt.Errorf("payment: anonymize notifications: %w", err)
 	}

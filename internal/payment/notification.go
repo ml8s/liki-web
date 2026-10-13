@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/ml8s/liki-web/internal/email"
 	"github.com/ml8s/liki-web/internal/money"
 )
 
@@ -63,6 +64,7 @@ type paidOrderNotice struct {
 	Provider        string
 	PaidAt          string
 	ContinueURL     string
+	HomepageURL     string
 }
 
 var customerReceiptTemplate = template.Must(template.New("customer_receipt").Parse(
@@ -70,21 +72,24 @@ var customerReceiptTemplate = template.Must(template.New("customer_receipt").Par
 <p>订单号：{{.OrderID}}<br>
 金额：{{.Amount}}<br>
 支付时间：{{.PaidAt}}</p>
-<p><a href="{{.ContinueURL}}">继续使用服务</a></p>`))
+<p><a href="{{.ContinueURL}}">继续使用服务</a></p>
+<p class="liki-email-footer">前往 <a href="{{.HomepageURL}}" target="_blank" rel="noopener noreferrer">{{.HomepageURL}}</a> 使用 Liki。</p>`))
 
 var customerReceiptTemplateHant = template.Must(template.New("customer_receipt_hant").Parse(
 	`<p>付款已完成，正在為你開通 {{.ProductName}}。</p>
 <p>訂單號：{{.OrderID}}<br>
 金額：{{.Amount}}<br>
 支付時間：{{.PaidAt}}</p>
-<p><a href="{{.ContinueURL}}">繼續使用服務</a></p>`))
+<p><a href="{{.ContinueURL}}">繼續使用服務</a></p>
+<p class="liki-email-footer">前往 <a href="{{.HomepageURL}}" target="_blank" rel="noopener noreferrer">{{.HomepageURL}}</a> 使用 Liki。</p>`))
 
 var customerReceiptTemplateEn = template.Must(template.New("customer_receipt_en").Parse(
 	`<p>Payment received. We are preparing access to {{.ProductName}}.</p>
 <p>Order: {{.OrderID}}<br>
 Amount: {{.Amount}}<br>
 Paid at: {{.PaidAt}}</p>
-<p><a href="{{.ContinueURL}}">Continue</a></p>`))
+<p><a href="{{.ContinueURL}}">Continue</a></p>
+<p class="liki-email-footer">Visit <a href="{{.HomepageURL}}" target="_blank" rel="noopener noreferrer">{{.HomepageURL}}</a> to use Liki.</p>`))
 
 var customerReceiptSubjects = map[string]string{
 	"zh-Hans": "订单确认 — ",
@@ -100,7 +105,8 @@ Payment Intent：{{.PaymentIntentID}}<br>
 用户邮箱：{{.CustomerEmail}}<br>
 金额：{{.Amount}}<br>
 支付方式：{{.Provider}}<br>
-支付时间：{{.PaidAt}}</p>`))
+支付时间：{{.PaidAt}}</p>
+<p class="liki-email-footer">前往 <a href="{{.HomepageURL}}" target="_blank" rel="noopener noreferrer">{{.HomepageURL}}</a> 使用 Liki。</p>`))
 
 func newPaidOrderNotice(intent PaymentIntent, flow ProductFlow, baseURL string) paidOrderNotice {
 	paidAt := time.Now().UTC()
@@ -117,6 +123,7 @@ func newPaidOrderNotice(intent PaymentIntent, flow ProductFlow, baseURL string) 
 		PaidAt:          paidAt.Format("2006-01-02 15:04:05 MST"),
 		ContinueURL:     absoluteNotificationURL(baseURL, flow.SuccessRedirect(intent)),
 		Locale:          notificationLocale(intent.Locale),
+		HomepageURL:     email.HomepageURL(baseURL),
 	}
 }
 
@@ -152,14 +159,7 @@ func providerDisplayName(provider Provider) string {
 }
 
 func notificationLocale(locale string) string {
-	switch strings.ToLower(strings.TrimSpace(locale)) {
-	case "en", "en-us", "en-gb":
-		return "en"
-	case "zh-hans", "zh-cn", "zh-sg":
-		return "zh-Hans"
-	default:
-		return "zh-Hant"
-	}
+	return email.NormalizeLocale(locale)
 }
 
 func customerReceiptTemplateFor(locale string) *template.Template {

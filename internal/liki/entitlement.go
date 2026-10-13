@@ -24,6 +24,13 @@ const (
 	StatusExpired EntitlementStatus = "expired"
 )
 
+var (
+	ErrEntitlementNotFound          = errors.New("liki: entitlement not found")
+	ErrEntitlementAlreadyRevoked    = errors.New("liki: entitlement already revoked")
+	ErrRevokedEntitlementImmutable  = errors.New("liki: revoked entitlement cannot be changed")
+	ErrEntitlementSearchUnsupported = errors.New("liki: entitlement search requires an email")
+)
+
 // Entitlement records a user's right to use one or more skills.
 type Entitlement struct {
 	ID        string
@@ -283,6 +290,135 @@ ORDER BY expires_at DESC, created_at DESC`, userID, now, now)
 		out = append(out, item)
 	}
 	return out, rows.Err()
+}
+
+// ListForAdmin is a narrowly scoped support lookup. It requires an email so
+// the admin API cannot accidentally become an unbounded customer listing.
+func (s *EntitlementStore) ListForAdmin(ctx context.Context, email, status string, limit int) ([]Entitlement, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	status = strings.ToLower(strings.TrimSpace(status))
+	if email == "" {
+		return nil, ErrEntitlementSearchUnsupported
+	}
+	if limit <= 0 || limit > 200 {
+		limit = 100
+	}
+	query := `
+SELECT id,user_id,email,product_id,skills,status,source,source_id,starts_at,expires_at,created_at,updated_at
+FROM entitlements WHERE email=?`
+	args := []any{email}
+	if status != "" {
+		if status != string(StatusActive) && status != string(StatusRevoked) && status != string(StatusExpired) {
+			return nil, fmt.Errorf("liki: invalid entitlement status %q", status)
+		}
+		query += ` AND status=?`
+		args = append(args, status)
+	}
+	query += ` ORDER BY created_at DESC LIMIT ?`
+	args = append(args, limit)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	items := make([]Entitlement, 0)
+	for rows.Next() {
+		item, scanErr := scanEntitlement(rows.Scan)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (s *EntitlementStore) getForAdmin(ctx context.Context, id string) (Entitlement, error) {
+	row := s.db.QueryRowContext(ctx, `
+SELECT id,user_id,email,product_id,skills,status,source,source_id,starts_at,expires_at,created_at,updated_at
+FROM entitlements WHERE id=?`, id)
+	item, err := scanEntitlement(row.Scan)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Entitlement{}, ErrEntitlementNotFound
+	}
+	return item, err
+}
+
+func (s *EntitlementStore) UpdateExpiration(ctx context.Context, id string, expiresAt time.Time) (string, string, error) {
+	current, err := s.getForAdmin(ctx, id)
+	if err != nil {
+		return "", "", err
+	}
+	if current.Status == StatusRevoked {
+		return "", "", ErrRevokedEntitlementImmutable
+	}
+	now := s.nowFunc()
+	status := StatusActive
+	if !expiresAt.After(now) {
+		status = StatusExpired
+	}
+	updated := current
+	updated.Status = status
+	updated.ExpiresAt = expiresAt
+	updated.UpdatedAt = now
+	result, err := s.db.ExecContext(ctx, `
+UPDATE entitlements SET status=?,expires_at=?,updated_at=?
+WHERE id=? AND status<>?`, string(status), formatEntitlementTime(expiresAt),
+		formatEntitlementTime(now), id, string(StatusRevoked))
+	if err != nil {
+		return "", "", err
+	}
+	if n, _ := result.RowsAffected(); n == 0 {
+		return "", "", ErrRevokedEntitlementImmutable
+	}
+	return marshalEntitlementAudit(current), marshalEntitlementAudit(updated), nil
+}
+
+func (s *EntitlementStore) Revoke(ctx context.Context, id string) (string, string, error) {
+	current, err := s.getForAdmin(ctx, id)
+	if err != nil {
+		return "", "", err
+	}
+	if current.Status == StatusRevoked {
+		return "", "", ErrEntitlementAlreadyRevoked
+	}
+	now := s.nowFunc()
+	updated := current
+	updated.Status = StatusRevoked
+	updated.UpdatedAt = now
+	result, err := s.db.ExecContext(ctx, `
+UPDATE entitlements SET status=?,updated_at=? WHERE id=?`, string(StatusRevoked),
+		formatEntitlementTime(now), id)
+	if err != nil {
+		return "", "", err
+	}
+	if n, _ := result.RowsAffected(); n == 0 {
+		return "", "", ErrEntitlementNotFound
+	}
+	return marshalEntitlementAudit(current), marshalEntitlementAudit(updated), nil
+}
+
+func formatEntitlementTime(value time.Time) string {
+	return value.Format(time.RFC3339)
+}
+
+func marshalEntitlementAudit(item Entitlement) string {
+	payload, err := json.Marshal(struct {
+		ID        string `json:"id"`
+		UserID    string `json:"user_id"`
+		Email     string `json:"email"`
+		ProductID string `json:"product_id"`
+		Status    string `json:"status"`
+		ExpiresAt string `json:"expires_at"`
+	}{
+		ID: item.ID, UserID: item.UserID, Email: item.Email,
+		ProductID: string(item.ProductID), Status: string(item.Status),
+		ExpiresAt: item.ExpiresAt.Format(time.RFC3339),
+	})
+	if err != nil {
+		return ""
+	}
+	return string(payload)
 }
 
 func (s *EntitlementStore) AllowedSkills(ctx context.Context, userID string) ([]Skill, error) {

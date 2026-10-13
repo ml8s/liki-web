@@ -223,6 +223,7 @@ func TestQueuePaidNotificationsUsesUnifiedTemplateData(t *testing.T) {
 	}
 	for _, want := range []string{
 		"测试产品", "order-&lt;1&gt;", "$1.00", "https://liki.hk/app/chat",
+		"https://liki.hk</a> 使用 Liki",
 	} {
 		if !strings.Contains(customer.Body, want) {
 			t.Fatalf("customer body %q missing %q", customer.Body, want)
@@ -239,6 +240,7 @@ func TestQueuePaidNotificationsUsesUnifiedTemplateData(t *testing.T) {
 	for _, want := range []string{
 		"测试产品", intent.ID, "user@example.com", "$1.00", "Dodo",
 		updated.PaidAt.UTC().Format("2006-01-02 15:04:05 MST"),
+		"https://liki.hk</a> 使用 Liki",
 	} {
 		if !strings.Contains(admin.Body, want) {
 			t.Fatalf("admin body %q missing %q", admin.Body, want)
@@ -847,5 +849,29 @@ func TestRefundWebhookRejectsOverdraftAndZeroMeansRemaining(t *testing.T) {
 	}
 	if got.Status != PaymentStatusRefunded || got.RefundedAmountMinor != got.AmountMinor {
 		t.Fatalf("final intent=%+v", got)
+	}
+}
+
+func TestNotificationQueueProcessesEntitlementCompensation(t *testing.T) {
+	ctx := context.Background()
+	runtime, _, _, sender, _, notifications := newTestRuntime(t)
+	if err := notifications.EnqueueOnce(ctx, "entitlement:test",
+		EntitlementCompensationKind(), EmailMessage{
+			To: "user@example.com", Subject: "Compensation", Body: "<p>7 days</p>",
+		}); err != nil {
+		t.Fatal(err)
+	}
+	if err := runtime.ProcessPendingNotifications(ctx, 10); err != nil {
+		t.Fatal(err)
+	}
+	if len(sender.messages) != 1 || sender.messages[0].Subject != "Compensation" {
+		t.Fatalf("messages=%+v", sender.messages)
+	}
+	pending, err := notifications.Pending(ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pending) != 0 {
+		t.Fatalf("pending=%+v", pending)
 	}
 }

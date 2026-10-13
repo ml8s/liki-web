@@ -33,8 +33,7 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 		format json
 	}
 
-	@consolePaths path /admin.html
-	header @consolePaths Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://liki.hk; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+	redir /admin.html /app/admin permanent
 
 	# Protected routes — require same-origin
 	handle /api/chat/sessions/*/ag-ui {

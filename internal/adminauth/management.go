@@ -23,6 +23,8 @@ var (
 // an authorization payload from creating a typo that silently grants nothing.
 func CapabilityRegistry() []Capability {
 	return []Capability{
+		CapabilityEntitlementRead,
+		CapabilityEntitlementManage,
 		CapabilityPartnerRead,
 		CapabilityPartnerApprove,
 		CapabilityPartnerFreeze,

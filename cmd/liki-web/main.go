@@ -241,7 +241,7 @@ func main() {
 	}
 
 	if cfg.PublicBaseURL == "" {
-		slog.Warn("RETURN_URL not set — post-payment redirect will fail")
+		slog.Warn("LIKI_PUBLIC_BASE_URL not set — post-payment redirect will fail")
 	}
 
 	if err := authStore.Migrate(ctx); err != nil {
@@ -269,7 +269,7 @@ func main() {
 	}
 
 	// ── Callbacks ──
-	authMailer := auth.MailerFunc(func(ctx context.Context, email, code, locale string) error {
+	authMailer := auth.MailerFunc(func(ctx context.Context, recipient, code, locale string) error {
 		subject, body := "Liki login code", `<p>Your Liki login code:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">`+code+`</p><p>The code is valid for 10 minutes.</p>`
 		switch locale {
 		case "zh-Hant":
@@ -277,7 +277,7 @@ func main() {
 		case "zh-Hans", "":
 			subject, body = "Liki 登录验证码", `<p>你的 Liki 登录验证码：</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">`+code+`</p><p>验证码 10 分钟内有效。</p>`
 		}
-		return emailClient.SendReport(ctx, email, subject, body)
+		return emailClient.SendReport(ctx, recipient, subject, email.Document(locale, cfg.PublicBaseURL, body))
 	})
 	partnerDecisionEmail := func(ctx context.Context, item referral.PartnerApplication, approved bool, reason string) error {
 		applicant, err := authStore.GetUser(ctx, item.UserID)
@@ -317,8 +317,9 @@ func main() {
 			}
 		}
 		body := `<p>` + opening + `</p><p>` + noteLabel + html.EscapeString(reason) + `</p><p>` + next + `</p>`
-		return emailClient.SendReport(ctx, applicant.Email, subject, body)
+		return emailClient.SendReport(ctx, applicant.Email, subject, email.Document(applicant.Locale, cfg.PublicBaseURL, body))
 	}
+
 	authConfig := auth.DefaultConfig()
 	authConfig.SecureCookie = !cfg.DevelopmentMode
 	authConfig.ExposeDevCode = cfg.DevelopmentMode
@@ -445,6 +446,21 @@ func main() {
 		slog.Error("init payment fulfillment tasks", "err", err)
 		os.Exit(1)
 	}
+	compensationEmail := func(ctx context.Context, user auth.User, entitlement liki.Entitlement, template string) error {
+		message, err := email.BuildCompensationEmail(
+			user.Locale, template, entitlement.StartsAt, entitlement.ExpiresAt, cfg.PublicBaseURL,
+		)
+		if err != nil {
+			return err
+		}
+		return notifications.EnqueueOnce(ctx, "entitlement:"+entitlement.ID,
+			payment.EntitlementCompensationKind(), payment.EmailMessage{
+				To:      user.Email,
+				Subject: message.Subject,
+				Body:    message.Body,
+			})
+	}
+
 	if err := events.Migrate(ctx); err != nil {
 		slog.Error("init payment events", "err", err)
 		os.Exit(1)
@@ -592,14 +608,18 @@ func main() {
 				subscriptionProcessor.HandleSubscriptionEvent,
 			),
 		),
-		EngineMCP:       enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),
-		AipayHandler:    aipayHandler,
-		ProfileHandler:  profile.NewHandler(profileStore, authHandler.RequireUser),
-		AccountHandler:  accountHandler,
-		FeedbackStore:   feedbackStore,
-		FeedbackAPIKey:  cfg.FeedbackAPIKey,
-		AdminEmail:      cfg.AdminEmail,
-		AdminAuthorizer: adminAuthorizer,
+		EngineMCP:            enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),
+		AipayHandler:         aipayHandler,
+		ProfileHandler:       profile.NewHandler(profileStore, authHandler.RequireUser),
+		AccountHandler:       accountHandler,
+		Entitlements:         entitlements,
+		FeedbackStore:        feedbackStore,
+		FeedbackAPIKey:       cfg.FeedbackAPIKey,
+		AdminEmail:           cfg.AdminEmail,
+		AdminAuthorizer:      adminAuthorizer,
+		AuthUsers:            authStore,
+		CommerceStores:       liki.NewCommerceStores(commerceOrders, subscriptionStore),
+		CompensationNotifier: compensationEmail,
 		PartnerNotifier: func(ctx context.Context, item referral.PartnerApplication, approved bool, reason string) {
 			// The decision is already committed; delivery must not be
 			// cancelled with the request context.
