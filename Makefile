@@ -2,7 +2,7 @@
 # 统一语义（四仓一致）：
 #   make check  纯静态检查（lint+格式+类型+安全+skills；不跑测试、不构建）
 #   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
-#   make gate   check + test + image smoke ＝ 推送门槛
+#   make gate   check + test ＝ 源码门槛；镜像冒烟只在 release workflow 执行
 #   make build  本仓产物（前端+二进制；镜像由 CI release 构建）
 #   make image  本地候选镜像（local tag；正式镜像由 CI release 发布）
 #   make e2e    浏览器 E2E（本仓视角）
@@ -47,7 +47,7 @@ check: lint-go fmt-check lint-js lint-docs typecheck check-html check-security c
 
 test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
 
-gate: check test smoke ## 部署门槛：check + test + image smoke
+gate: check test ## 源码门槛：check + test；镜像冒烟只在发版流程执行
 
 check-actions: ## Reject mutable reusable workflow/action references
 	python3 scripts/check_actions_pinned.py
