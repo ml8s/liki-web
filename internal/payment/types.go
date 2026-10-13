@@ -2,7 +2,9 @@
 package payment
 
 import (
+	"context"
 	"errors"
+	"time"
 )
 
 // ---------------------------------------------------------------------------
@@ -26,6 +28,15 @@ type CheckoutResult struct {
 const (
 	EventPaymentSucceeded = "payment.succeeded"
 	EventPaymentRefunded  = "payment.refunded"
+
+	EventSubscriptionActive                = "subscription.active"
+	EventSubscriptionRenewed               = "subscription.renewed"
+	EventSubscriptionUpdated               = "subscription.updated"
+	EventSubscriptionCancellationScheduled = "subscription.cancellation_scheduled"
+	EventSubscriptionOnHold                = "subscription.on_hold"
+	EventSubscriptionFailed                = "subscription.failed"
+	EventSubscriptionCancelled             = "subscription.cancelled"
+	EventSubscriptionExpired               = "subscription.expired"
 )
 
 // Provider identifies a payment provider.
@@ -46,12 +57,22 @@ type WebhookEvent struct {
 
 // WebhookEventData holds the extracted fields from a webhook event.
 type WebhookEventData struct {
-	OrderID   string
-	Amount    int64
-	Currency  string
-	Email     string
-	PaymentID string
-	Metadata  map[string]string
+	OrderID             string
+	Amount              int64
+	Currency            string
+	Email               string
+	PaymentID           string
+	Metadata            map[string]string
+	SubscriptionID      string
+	CustomerID          string
+	Product             string
+	Status              string
+	PeriodStart         *time.Time
+	PeriodEnd           *time.Time
+	NextBillingAt       *time.Time
+	CancelAtPeriodEnd   bool
+	ProviderPeriodCount int64
+	ProviderEventTime   *time.Time
 }
 
 // ---------------------------------------------------------------------------
@@ -62,3 +83,33 @@ var (
 	ErrUnknownProvider = errors.New("payment: unknown provider")
 	ErrUnknownProduct  = errors.New("payment: unknown product")
 )
+
+// IsSubscriptionLifecycle reports whether a webhook changes subscription state.
+func IsSubscriptionLifecycle(eventType string) bool {
+	switch eventType {
+	case EventSubscriptionActive, EventSubscriptionRenewed, EventSubscriptionUpdated,
+		EventSubscriptionCancellationScheduled, EventSubscriptionOnHold,
+		EventSubscriptionFailed, EventSubscriptionCancelled, EventSubscriptionExpired:
+		return true
+	default:
+		return false
+	}
+}
+
+// SubscriptionCheckoutRequest is the provider-neutral request for a hosted
+// recurring checkout. Providers that own recurring prices must not accept an
+// application-supplied amount.
+type SubscriptionCheckoutRequest struct {
+	Product         string
+	SubscriptionKey string
+	UserID          string
+	Email           string
+	Currency        string
+	ReturnURL       string
+	CancelURL       string
+}
+
+// SubscriptionCancellationGateway updates provider-side renewal policy.
+type SubscriptionCancellationGateway interface {
+	SetSubscriptionCancellation(ctx context.Context, subscriptionID string, cancel bool) error
+}

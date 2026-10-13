@@ -51,76 +51,84 @@ var (
 const maxAgentRunTimeout = 600 * time.Second
 
 type Config struct {
-	DataDir              string
-	FeedbackAPIKey       string
-	ResendAPIKey         string
-	ResendFrom           string
-	DodoAPIKey           string
-	DodoWebhookKey       string
-	DodoTestMode         bool
-	DodoProductLikiChat  string
-	XunhuAppID           string
-	XunhuAppSecret       string
-	PaymentWebhookURL    string
-	AlipayConfig         aipay.Config
-	EngineMCPBaseURL     string
-	EngineMCPToken       string
-	AgentURL             string
-	AgentInternalToken   string
-	AgentTimeoutSeconds  int
-	ReturnURL            string
-	JWTSecret            string
-	ListenAddr           string
-	DevMode              bool
-	CurrencySource       string
-	BillingRegion        string
-	EntitlementDays      int
-	PriceMinorCNY        int
-	PriceMinorUSD        int
-	ReferrerRateBPS      int
-	RecruiterRateBPS     int
-	AttributionTTLDays   int
-	PendingExpireDays    int
-	NotifyRetentionDays  int
-	ProfileRetentionDays int
-	SessionRetentionDays int
+	DataDir                          string
+	AdminEmail                       string
+	MetricsToken                     string
+	FeedbackAPIKey                   string
+	ResendAPIKey                     string
+	ResendFrom                       string
+	DodoAPIKey                       string
+	DodoWebhookKey                   string
+	DodoTestMode                     bool
+	DodoProductLikiChatOneTime       string
+	DodoProductLikiChatSubscription  string
+	XunhuAppID                       string
+	XunhuAppSecret                   string
+	PaymentWebhookURL                string
+	AlipayConfig                     aipay.Config
+	EngineMCPBaseURL                 string
+	EngineMCPToken                   string
+	AgentURL                         string
+	AgentInternalToken               string
+	AgentTimeoutSeconds              int
+	PublicBaseURL                    string
+	JWTSecret                        string
+	HTTPListenAddress                string
+	DevelopmentMode                  bool
+	CurrencySource                   string
+	BillingRegion                    string
+	ChatOneTimeAccessDays            int
+	ChatOneTimePriceMinorCNY         int64
+	ChatOneTimePriceMinorUSD         int64
+	ChatSubscriptionPriceMinorUSD    int64
+	KOLRevenueShareBasisPoints       int
+	ScoutRevenueShareBasisPoints     int
+	ReferralAttributionTTLDays       int
+	PaymentIntentExpiryDays          int
+	PaymentNotificationRetentionDays int
+	DeletedProfileRetentionDays      int
+	ExpiredSessionRetentionDays      int
 }
 
 func LoadConfig() Config {
 	return Config{
-		DataDir:              envOr("LIKI_DATA_DIR", "/var/lib/liki"),
-		FeedbackAPIKey:       os.Getenv("FEEDBACK_API_KEY"),
-		ResendAPIKey:         os.Getenv("RESEND_API_KEY"),
-		ResendFrom:           envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
-		DodoAPIKey:           envOr("DODO_API_KEY", ""),
-		DodoWebhookKey:       envOr("DODO_WEBHOOK_KEY", ""),
-		DodoTestMode:         envOrBool("DODO_TEST_MODE", false),
-		DodoProductLikiChat:  os.Getenv("DODO_PRODUCT_LIKI_CHAT"),
-		XunhuAppID:           envOr("XUNHU_APPID", ""),
-		XunhuAppSecret:       envOr("XUNHU_APPSECRET", ""),
-		PaymentWebhookURL:    envOr("PAYMENTS_WEBHOOK_URL", strings.TrimSuffix(envOr("RETURN_URL", ""), "/")+"/api/payments/webhook"),
-		AlipayConfig:         loadAlipayConfig(),
-		EngineMCPBaseURL:     envOr("LIKI_ENGINE_MCP_URL", "http://localhost:8085"),
-		EngineMCPToken:       os.Getenv("LIKI_ENGINE_MCP_TOKEN"),
-		AgentURL:             strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
-		AgentInternalToken:   os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
-		AgentTimeoutSeconds:  envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
-		ReturnURL:            envOr("RETURN_URL", ""),
-		JWTSecret:            os.Getenv("JWT_SECRET"),
-		ListenAddr:           envOr("LISTEN_ADDR", ":8080"),
-		DevMode:              envOrBool("DEV_MODE", false),
-		CurrencySource:       envOr("LIKI_CURRENCY_SOURCE", liki.CurrencySourceTrustedEdge),
-		BillingRegion:        envOr("LIKI_BILLING_REGION", "global"),
-		EntitlementDays:      envOrInt("LIKI_ENTITLEMENT_DAYS", 30),
-		PriceMinorCNY:        envOrInt("LIKI_PRICE_CNY_MINOR", 100),
-		PriceMinorUSD:        envOrInt("LIKI_PRICE_USD_MINOR", 100),
-		ReferrerRateBPS:      envOrInt("LIKI_REFERRER_RATE_BPS", 5000),
-		RecruiterRateBPS:     envOrInt("LIKI_RECRUITER_RATE_BPS", 2000),
-		AttributionTTLDays:   envOrInt("LIKI_ATTRIBUTION_TTL_DAYS", 30),
-		PendingExpireDays:    envOrInt("LIKI_PAYMENT_PENDING_EXPIRE_DAYS", 7),
-		NotifyRetentionDays:  envOrInt("LIKI_NOTIFICATION_RETENTION_DAYS", 90),
-		ProfileRetentionDays: envOrInt("LIKI_PROFILE_RETENTION_DAYS", 30),
-		SessionRetentionDays: envOrInt("LIKI_SESSION_RETENTION_DAYS", 30),
+		DataDir:                          envOr("LIKI_DATA_DIR", "/var/lib/liki"),
+		AdminEmail:                       os.Getenv("LIKI_ADMIN_EMAIL"),
+		MetricsToken:                     os.Getenv("LIKI_METRICS_TOKEN"),
+		FeedbackAPIKey:                   os.Getenv("FEEDBACK_API_KEY"),
+		ResendAPIKey:                     os.Getenv("RESEND_API_KEY"),
+		ResendFrom:                       envOr("RESEND_FROM", envOr("EMAIL_FROM", "Liki <report@liki.email>")),
+		DodoAPIKey:                       envOr("DODO_API_KEY", ""),
+		DodoWebhookKey:                   envOr("DODO_WEBHOOK_KEY", ""),
+		DodoTestMode:                     envOrBool("DODO_TEST_MODE", false),
+		DodoProductLikiChatOneTime:       os.Getenv("DODO_PRODUCT_LIKI_CHAT_ONE_TIME"),
+		DodoProductLikiChatSubscription:  os.Getenv("DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION"),
+		XunhuAppID:                       envOr("XUNHU_APPID", ""),
+		XunhuAppSecret:                   envOr("XUNHU_APPSECRET", ""),
+		PaymentWebhookURL:                envOr("LIKI_PAYMENT_WEBHOOK_URL", strings.TrimSuffix(envOr("LIKI_PUBLIC_BASE_URL", ""), "/")+"/api/payments/webhook"),
+		AlipayConfig:                     loadAlipayConfig(),
+		EngineMCPBaseURL:                 envOr("LIKI_ENGINE_MCP_URL", "http://localhost:8085"),
+		EngineMCPToken:                   os.Getenv("LIKI_ENGINE_MCP_TOKEN"),
+		AgentURL:                         strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
+		AgentInternalToken:               os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
+		AgentTimeoutSeconds:              envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
+		PublicBaseURL:                    envOr("LIKI_PUBLIC_BASE_URL", ""),
+		JWTSecret:                        os.Getenv("JWT_SECRET"),
+		HTTPListenAddress:                envOr("LIKI_HTTP_LISTEN_ADDRESS", ":8081"),
+		DevelopmentMode:                  envOrBool("LIKI_DEVELOPMENT_MODE", false),
+		CurrencySource:                   envOr("LIKI_CURRENCY_SOURCE", liki.CurrencySourceTrustedEdge),
+		BillingRegion:                    envOr("LIKI_BILLING_REGION", "global"),
+		ChatOneTimeAccessDays:            envOrInt("LIKI_CHAT_ONE_TIME_ACCESS_DAYS", 30),
+		ChatOneTimePriceMinorCNY:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS", 100),
+		ChatOneTimePriceMinorUSD:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS", 100),
+		ChatSubscriptionPriceMinorUSD:    envOrInt64("LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS", 0),
+		KOLRevenueShareBasisPoints:       envOrInt("LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS", 5000),
+		ScoutRevenueShareBasisPoints:     envOrInt("LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS", 2000),
+		ReferralAttributionTTLDays:       envOrInt("LIKI_REFERRAL_ATTRIBUTION_TTL_DAYS", 30),
+		PaymentIntentExpiryDays:          envOrInt("LIKI_PAYMENT_INTENT_EXPIRY_DAYS", 7),
+		PaymentNotificationRetentionDays: envOrInt("LIKI_PAYMENT_NOTIFICATION_RETENTION_DAYS", 90),
+		DeletedProfileRetentionDays:      envOrInt("LIKI_DELETED_PROFILE_RETENTION_DAYS", 30),
+		ExpiredSessionRetentionDays:      envOrInt("LIKI_EXPIRED_SESSION_RETENTION_DAYS", 30),
 	}
 }
 
@@ -214,7 +222,8 @@ func main() {
 	emailClient := email.New(cfg.ResendAPIKey, cfg.ResendFrom)
 
 	dodoProducts := map[string]string{
-		string(liki.ProductChat): cfg.DodoProductLikiChat,
+		string(liki.ProductChat) + ":one_time":     cfg.DodoProductLikiChatOneTime,
+		string(liki.ProductChat) + ":subscription": cfg.DodoProductLikiChatSubscription,
 	}
 	dodoClient := dodo.New(cfg.DodoAPIKey, cfg.DodoWebhookKey, cfg.DodoTestMode, dodoProducts)
 
@@ -231,7 +240,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if cfg.ReturnURL == "" {
+	if cfg.PublicBaseURL == "" {
 		slog.Warn("RETURN_URL not set — post-payment redirect will fail")
 	}
 
@@ -250,13 +259,13 @@ func main() {
 		slog.Error("init admin auth schema", "err", err)
 		os.Exit(1)
 	}
-	if adminEmail := os.Getenv("ADMIN_EMAIL"); adminEmail != "" {
+	if adminEmail := cfg.AdminEmail; adminEmail != "" {
 		if err := adminAuthorizer.BootstrapAdminByEmail(ctx, adminEmail); err != nil {
 			slog.Error("bootstrap admin", "err", err)
 			os.Exit(1)
 		}
 	} else {
-		slog.Warn("ADMIN_EMAIL is empty; admin console capabilities are disabled")
+		slog.Warn("LIKI_ADMIN_EMAIL is empty; admin console capabilities are disabled")
 	}
 
 	// ── Callbacks ──
@@ -311,8 +320,8 @@ func main() {
 		return emailClient.SendReport(ctx, applicant.Email, subject, body)
 	}
 	authConfig := auth.DefaultConfig()
-	authConfig.SecureCookie = !cfg.DevMode
-	authConfig.ExposeDevCode = cfg.DevMode
+	authConfig.SecureCookie = !cfg.DevelopmentMode
+	authConfig.ExposeDevCode = cfg.DevelopmentMode
 	authService, err := auth.NewService(authStore, authMailer, authConfig)
 	if err != nil {
 		slog.Error("init auth service", "err", err)
@@ -332,6 +341,11 @@ func main() {
 	if _, err := entitlements.ExpireDue(ctx); err != nil {
 		slog.Warn("expire entitlements", "err", err)
 	}
+	subscriptionStore := liki.NewSubscriptionStore(likiDB)
+	if err := subscriptionStore.Migrate(ctx); err != nil {
+		slog.Error("init subscription schema", "err", err)
+		os.Exit(1)
+	}
 	payoutSecret := os.Getenv("REFERRAL_PAYOUT_SECRET")
 	if len(payoutSecret) < 32 {
 		slog.Error("REFERRAL_PAYOUT_SECRET must contain at least 32 bytes")
@@ -347,7 +361,11 @@ func main() {
 		slog.Error("init referral schema", "err", err)
 		os.Exit(1)
 	}
-	referralHandler := referral.NewHandler(referralStore, authHandler.RequireUser, !cfg.DevMode)
+	referralStore.SetCommissionRates(
+		cfg.KOLRevenueShareBasisPoints,
+		cfg.ScoutRevenueShareBasisPoints,
+	)
+	referralHandler := referral.NewHandler(referralStore, authHandler.RequireUser, !cfg.DevelopmentMode)
 	authHandler.SetPostLoginHook(referralHandler.PostLoginHook)
 	chatStore := liki.NewChatStore(likiDB)
 	if err := chatStore.Migrate(ctx); err != nil {
@@ -378,7 +396,12 @@ func main() {
 		os.Exit(1)
 	}
 	chatService.SetAgentRunner(agentRunner)
-	commerceOrders := liki.NewOrderStore(likiDB)
+	commerceCatalog := liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
+		OneTimePriceMinorCNY:      cfg.ChatOneTimePriceMinorCNY,
+		OneTimePriceMinorUSD:      cfg.ChatOneTimePriceMinorUSD,
+		SubscriptionPriceMinorUSD: cfg.ChatSubscriptionPriceMinorUSD,
+	})
+	commerceOrders := liki.NewOrderStoreWithCatalog(likiDB, commerceCatalog)
 	if err := commerceOrders.Migrate(ctx); err != nil {
 		slog.Error("init commerce schema", "err", err)
 		os.Exit(1)
@@ -404,7 +427,7 @@ func main() {
 		slog.Error("init aipay handler", "err", err)
 		os.Exit(1)
 	}
-	chatDuration := 30 * 24 * time.Hour
+	chatDuration := time.Duration(cfg.ChatOneTimeAccessDays) * 24 * time.Hour
 
 	intents := payment.NewIntentStore(platformDB)
 	notifications := payment.NewNotificationStore(platformDB)
@@ -427,13 +450,16 @@ func main() {
 		os.Exit(1)
 	}
 	dodoConfigured := cfg.DodoAPIKey != "" && cfg.DodoWebhookKey != ""
-	if dodoConfigured && cfg.DodoProductLikiChat == "" {
-		slog.Warn("dodo product is not configured for liki-chat; USD chat checkout will fail")
+	if dodoConfigured && cfg.DodoProductLikiChatOneTime == "" {
+		slog.Warn("dodo one-time product is not configured for liki-chat; USD chat checkout will fail")
+	}
+	if dodoConfigured && cfg.DodoProductLikiChatSubscription == "" {
+		slog.Warn("dodo subscription product is not configured for liki-chat; subscription checkout will fail")
 	}
 	xunhuConfigured := cfg.XunhuAppID != "" && cfg.XunhuAppSecret != "" && cfg.PaymentWebhookURL != ""
 	if dodoConfigured || xunhuConfigured {
-		if err := validateHTTPURL("RETURN_URL", cfg.ReturnURL); err != nil {
-			slog.Error("payment runtime requires an absolute public RETURN_URL", "err", err)
+		if err := validateHTTPURL("LIKI_PUBLIC_BASE_URL", cfg.PublicBaseURL); err != nil {
+			slog.Error("payment runtime requires an absolute public LIKI_PUBLIC_BASE_URL", "err", err)
 			os.Exit(1)
 		}
 	}
@@ -457,8 +483,8 @@ func main() {
 	}
 	paymentSender := paymentEmailSender{client: emailClient}
 	paymentRuntime := payment.NewRuntime(gateways, flows, intents, notifications, fulfillments, events, paymentSender, payment.RuntimeOptions{
-		BaseURL:    cfg.ReturnURL,
-		AdminEmail: os.Getenv("ADMIN_EMAIL"),
+		BaseURL:    cfg.PublicBaseURL,
+		AdminEmail: cfg.AdminEmail,
 	})
 	paymentRuntime.SetFulfillmentObserver(func(ctx context.Context, intent payment.PaymentIntent) {
 		if _, _, err := referralStore.EnqueueCommissionIntent(ctx, intent); err != nil {
@@ -468,6 +494,27 @@ func main() {
 	paymentRuntime.SetRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
 		return referralStore.EnqueueCommissionRefund(ctx, event, intent)
 	})
+	paymentRuntime.SetSubscriptionHandler(liki.NewSubscriptionEventHandler(
+		subscriptionStore,
+		entitlements,
+		func(ctx context.Context, event payment.WebhookEvent) error {
+			// A subscription payment is represented as a durable provider
+			// payment fact; business_order_id is the provider subscription ID.
+			intent := payment.PaymentIntent{
+				ID:              event.Data.PaymentID,
+				BusinessOrderID: event.Data.SubscriptionID,
+				UserID:          event.Data.Metadata["liki_user_id"],
+				Product:         string(liki.ProductChat),
+				Provider:        event.Provider,
+				Status:          payment.IntentPaid,
+				AmountMinor:     event.Data.Amount,
+				Currency:        event.Data.Currency,
+				Email:           event.Data.Email,
+			}
+			_, _, err := referralStore.EnqueueCommissionIntent(ctx, intent)
+			return err
+		},
+	))
 	erasureQueue := account.NewErasureStore(platformDB)
 	if err := erasureQueue.Migrate(ctx); err != nil {
 		slog.Error("account: migrate erasure queue", "err", err)
@@ -527,14 +574,24 @@ func main() {
 		AuthHandler:     authHandler,
 		ReferralHandler: referralHandler,
 		ReferralStore:   referralStore,
-		LikiHandler:     liki.NewHandler(commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser, liki.WithCurrencyResolver(currencyResolver)),
+		LikiHandler: liki.NewHandler(
+			commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser,
+			liki.WithCurrencyResolver(currencyResolver),
+			liki.WithCommerceCatalog(commerceCatalog),
+			liki.WithSubscriptionCommerce(
+				subscriptionStore,
+				dodoClient,
+				dodoClient,
+				cfg.PublicBaseURL,
+			),
+		),
 		EngineMCP:       enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),
 		AipayHandler:    aipayHandler,
 		ProfileHandler:  profile.NewHandler(profileStore, authHandler.RequireUser),
 		AccountHandler:  accountHandler,
 		FeedbackStore:   feedbackStore,
 		FeedbackAPIKey:  cfg.FeedbackAPIKey,
-		AdminEmail:      os.Getenv("ADMIN_EMAIL"),
+		AdminEmail:      cfg.AdminEmail,
 		AdminAuthorizer: adminAuthorizer,
 		PartnerNotifier: func(ctx context.Context, item referral.PartnerApplication, approved bool, reason string) {
 			// The decision is already committed; delivery must not be
@@ -544,9 +601,9 @@ func main() {
 				slog.Warn("send partner decision notification", "application_id", item.ID, "err", err)
 			}
 		},
-		MetricsHandler: metrics.Handler(os.Getenv("METRICS_TOKEN")),
+		MetricsHandler: metrics.Handler(cfg.MetricsToken),
 		Readiness:      readiness,
-		DevMode:        cfg.DevMode,
+		DevMode:        cfg.DevelopmentMode,
 	}, BuildTime, Version, rateLimiter, verifyLimiter)
 
 	workers.Go(func() {
@@ -556,7 +613,7 @@ func main() {
 
 	// Write timeout must accommodate LLM calls (~120s)
 	srv := &http.Server{
-		Addr:         cfg.ListenAddr,
+		Addr:         cfg.HTTPListenAddress,
 		Handler:      h,
 		BaseContext:  func(_ net.Listener) context.Context { return ctx },
 		ReadTimeout:  10 * time.Second,
@@ -572,7 +629,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if _, err := authStore.Cleanup(ctx, cfg.SessionRetentionDays); err != nil {
+				if _, err := authStore.Cleanup(ctx, cfg.ExpiredSessionRetentionDays); err != nil {
 					slog.Error("auth cleanup", "err", err)
 				}
 			}
@@ -663,33 +720,34 @@ func requireEnv(pairs ...string) {
 // validateBusinessConfig fail-fast 检查业务/合规参数：错误配置宁可不启动，
 // 也不能把错误价格或比例带进资金路径。
 func validateBusinessConfig(cfg Config) error {
-	for name, minor := range map[string]int{
-		"LIKI_PRICE_CNY_MINOR": cfg.PriceMinorCNY,
-		"LIKI_PRICE_USD_MINOR": cfg.PriceMinorUSD,
+	for name, minor := range map[string]int64{
+		"LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS":     cfg.ChatOneTimePriceMinorCNY,
+		"LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS":     cfg.ChatOneTimePriceMinorUSD,
+		"LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS": cfg.ChatSubscriptionPriceMinorUSD,
 	} {
 		if minor <= 0 || minor > 1_000_000_000 {
 			return fmt.Errorf("%s must be within (0, 1000000000] minor units, got %d", name, minor)
 		}
 	}
 	for name, bps := range map[string]int{
-		"LIKI_REFERRER_RATE_BPS":  cfg.ReferrerRateBPS,
-		"LIKI_RECRUITER_RATE_BPS": cfg.RecruiterRateBPS,
+		"LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS":   cfg.KOLRevenueShareBasisPoints,
+		"LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS": cfg.ScoutRevenueShareBasisPoints,
 	} {
 		if bps < 0 || bps > 10000 {
 			return fmt.Errorf("%s must be within [0,10000] bps, got %d", name, bps)
 		}
 	}
-	if cfg.ReferrerRateBPS+cfg.RecruiterRateBPS > 10000 {
-		return fmt.Errorf("referrer+recruiter rates must not exceed 10000 bps, got %d",
-			cfg.ReferrerRateBPS+cfg.RecruiterRateBPS)
+	if cfg.KOLRevenueShareBasisPoints+cfg.ScoutRevenueShareBasisPoints > 10000 {
+		return fmt.Errorf("KOL+Scout revenue shares must not exceed 10000 basis points, got %d",
+			cfg.KOLRevenueShareBasisPoints+cfg.ScoutRevenueShareBasisPoints)
 	}
 	for name, days := range map[string]int{
-		"LIKI_ENTITLEMENT_DAYS":            cfg.EntitlementDays,
-		"LIKI_ATTRIBUTION_TTL_DAYS":        cfg.AttributionTTLDays,
-		"LIKI_PAYMENT_PENDING_EXPIRE_DAYS": cfg.PendingExpireDays,
-		"LIKI_NOTIFICATION_RETENTION_DAYS": cfg.NotifyRetentionDays,
-		"LIKI_PROFILE_RETENTION_DAYS":      cfg.ProfileRetentionDays,
-		"LIKI_SESSION_RETENTION_DAYS":      cfg.SessionRetentionDays,
+		"LIKI_CHAT_ONE_TIME_ACCESS_DAYS":           cfg.ChatOneTimeAccessDays,
+		"LIKI_REFERRAL_ATTRIBUTION_TTL_DAYS":       cfg.ReferralAttributionTTLDays,
+		"LIKI_PAYMENT_INTENT_EXPIRY_DAYS":          cfg.PaymentIntentExpiryDays,
+		"LIKI_PAYMENT_NOTIFICATION_RETENTION_DAYS": cfg.PaymentNotificationRetentionDays,
+		"LIKI_DELETED_PROFILE_RETENTION_DAYS":      cfg.DeletedProfileRetentionDays,
+		"LIKI_EXPIRED_SESSION_RETENTION_DAYS":      cfg.ExpiredSessionRetentionDays,
 	} {
 		if days < 1 || days > 3650 {
 			return fmt.Errorf("%s must be within [1,3650] days, got %d", name, days)
@@ -717,10 +775,10 @@ func validateRuntimeURLs(cfg Config) error {
 	if err := validateHTTPURL("LIKI_ENGINE_MCP_URL", cfg.EngineMCPBaseURL); err != nil {
 		errs = append(errs, err)
 	}
-	if err := validateHTTPURL("RETURN_URL", cfg.ReturnURL); err != nil {
+	if err := validateHTTPURL("LIKI_PUBLIC_BASE_URL", cfg.PublicBaseURL); err != nil {
 		errs = append(errs, err)
 	}
-	if err := validateHTTPURL("PAYMENTS_WEBHOOK_URL", cfg.PaymentWebhookURL); err != nil {
+	if err := validateHTTPURL("LIKI_PAYMENT_WEBHOOK_URL", cfg.PaymentWebhookURL); err != nil {
 		errs = append(errs, err)
 	}
 	if err := validateHTTPURL("LIKI_AGENTS_URL", cfg.AgentURL); err != nil {
@@ -751,6 +809,18 @@ func envOrBool(key string, def bool) bool {
 func envOrInt(key string, def int) int {
 	if value := os.Getenv(key); value != "" {
 		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed <= 0 {
+			slog.Warn("invalid integer env", "key", key, "value", value, "default", def)
+			return def
+		}
+		return parsed
+	}
+	return def
+}
+
+func envOrInt64(key string, def int64) int64 {
+	if value := os.Getenv(key); value != "" {
+		parsed, err := strconv.ParseInt(value, 10, 64)
 		if err != nil || parsed <= 0 {
 			slog.Warn("invalid integer env", "key", key, "value", value, "default", def)
 			return def

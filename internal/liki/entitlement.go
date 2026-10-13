@@ -172,6 +172,59 @@ ON CONFLICT(source,source_id,product_id) DO NOTHING`,
 	return s.latestForSource(ctx, userID, productID, source, sourceID)
 }
 
+// GrantSubscriptionPeriod makes the provider-owned period authoritative. A
+// repeated active/renewed webhook updates the same row instead of stacking a
+// second grant after the current term.
+func (s *EntitlementStore) GrantSubscriptionPeriod(
+	ctx context.Context,
+	userID string,
+	email string,
+	productID Product,
+	sourceID string,
+	startsAt time.Time,
+	expiresAt time.Time,
+) (Entitlement, error) {
+	userID = strings.TrimSpace(userID)
+	email = strings.ToLower(strings.TrimSpace(email))
+	sourceID = strings.TrimSpace(sourceID)
+	definition, err := ProductDefinitionFor(productID)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	if userID == "" || email == "" || sourceID == "" {
+		return Entitlement{}, fmt.Errorf("liki: subscription grant requires user, email, and source id")
+	}
+	if !startsAt.Before(expiresAt) {
+		return Entitlement{}, fmt.Errorf("liki: subscription period start must precede end")
+	}
+
+	skillsJSON, err := json.Marshal(definition.Skills)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	now := s.nowFunc()
+	id := s.idFunc()
+	_, err = s.db.ExecContext(ctx, `
+INSERT INTO entitlements
+(id,user_id,email,product_id,skills,status,source,source_id,starts_at,expires_at,created_at,updated_at)
+VALUES (?,?,?,?,?,'active','subscription',?,?,?,?,?)
+ON CONFLICT(source,source_id,product_id) DO UPDATE SET
+    user_id=excluded.user_id,
+    email=excluded.email,
+    skills=excluded.skills,
+    status='active',
+    starts_at=excluded.starts_at,
+    expires_at=excluded.expires_at,
+    updated_at=excluded.updated_at`,
+		id, userID, email, string(productID), string(skillsJSON), sourceID,
+		startsAt.Format(time.RFC3339), expiresAt.Format(time.RFC3339),
+		now.Format(time.RFC3339), now.Format(time.RFC3339))
+	if err != nil {
+		return Entitlement{}, fmt.Errorf("liki: grant subscription period: %w", err)
+	}
+	return s.latestForSource(ctx, userID, productID, "subscription", sourceID)
+}
+
 func scanEntitlement(scan func(dest ...any) error) (Entitlement, error) {
 	var entitlement Entitlement
 	var skillsJSON, status, startsAt, expiresAt, createdAt, updatedAt string

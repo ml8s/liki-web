@@ -117,6 +117,13 @@ type RuntimeOptions struct {
 // Observers must be idempotent and must not block or fail product fulfillment.
 type FulfillmentObserver func(ctx context.Context, intent PaymentIntent)
 
+// SubscriptionEventHandler owns the recurring-payment lifecycle. It is called
+// before intent lookup so provider subscription events cannot be mistaken for
+// one-time order events.
+type SubscriptionEventHandler interface {
+	HandleSubscriptionEvent(ctx context.Context, event WebhookEvent) error
+}
+
 type Runtime struct {
 	gateways            map[Provider]Gateway
 	flows               map[string]ProductFlow
@@ -130,6 +137,7 @@ type Runtime struct {
 	baseURL             string
 	fulfillmentObserver FulfillmentObserver
 	refundObserver      func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error
+	subscriptionHandler SubscriptionEventHandler
 }
 
 func NewRuntime(
@@ -162,6 +170,10 @@ func (r *Runtime) SetFulfillmentObserver(observer FulfillmentObserver) {
 
 func (r *Runtime) SetRefundObserver(observer func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error) {
 	r.refundObserver = observer
+}
+
+func (r *Runtime) SetSubscriptionHandler(handler SubscriptionEventHandler) {
+	r.subscriptionHandler = handler
 }
 
 func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (PaymentIntent, error) {
@@ -295,6 +307,15 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 	if err != nil {
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "verify_failed"})
 		return nil, fmt.Errorf("%w: %v", ErrWebhookVerification, err)
+	}
+	if r.subscriptionHandler != nil && (IsSubscriptionLifecycle(event.Type) ||
+		((event.Type == EventPaymentSucceeded || event.Type == EventPaymentRefunded) && event.Data.SubscriptionID != "")) {
+		if err := r.subscriptionHandler.HandleSubscriptionEvent(ctx, *event); err != nil {
+			metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "subscription_failed"})
+			return nil, err
+		}
+		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "subscription_handled"})
+		return r.webhookAck(event.Provider)
 	}
 	if event.Type != EventPaymentSucceeded && event.Type != EventPaymentRefunded {
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "ignored"})

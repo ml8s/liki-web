@@ -47,7 +47,9 @@ func TestHandleErasure(t *testing.T) {
 	if err := chatStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	orderStore := liki.NewOrderStore(db)
+	orderStore := liki.NewOrderStoreWithCatalog(db, liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
+		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
+	}))
 	entitlementStore := liki.NewEntitlementStore(db)
 	paymentStore := payment.NewIntentStore(db)
 	notificationStore := payment.NewNotificationStore(db)

@@ -14,10 +14,11 @@ import (
 
 // Client wraps the Dodo Payments SDK for checkout and webhook operations.
 type Client struct {
-	checkoutSvc *dodopayments.CheckoutSessionService
-	webhookSvc  *dodopayments.WebhookService
-	paymentsSvc *dodopayments.PaymentService
-	products    map[string]string
+	checkoutSvc     *dodopayments.CheckoutSessionService
+	subscriptionSvc *dodopayments.SubscriptionService
+	webhookSvc      *dodopayments.WebhookService
+	paymentsSvc     *dodopayments.PaymentService
+	products        map[string]string
 }
 
 // New creates a Dodo Payments client with the given API key and webhook secret.
@@ -29,10 +30,11 @@ func New(apiKey, webhookKey string, testMode bool, products map[string]string) *
 		opts = append(opts, option.WithEnvironmentLiveMode())
 	}
 	return &Client{
-		checkoutSvc: dodopayments.NewCheckoutSessionService(opts...),
-		webhookSvc:  dodopayments.NewWebhookService(append(opts, option.WithWebhookKey(webhookKey))...),
-		paymentsSvc: dodopayments.NewPaymentService(opts...),
-		products:    products,
+		checkoutSvc:     dodopayments.NewCheckoutSessionService(opts...),
+		subscriptionSvc: dodopayments.NewSubscriptionService(opts...),
+		webhookSvc:      dodopayments.NewWebhookService(append(opts, option.WithWebhookKey(webhookKey))...),
+		paymentsSvc:     dodopayments.NewPaymentService(opts...),
+		products:        products,
 	}
 }
 
@@ -73,6 +75,50 @@ func (c *Client) CreateCheckout(ctx context.Context, req payment.CheckoutRequest
 	return &payment.CheckoutResult{SessionID: resp.SessionID, CheckoutURL: resp.CheckoutURL}, nil
 }
 
+// CreateSubscriptionCheckout creates a hosted recurring checkout. The amount is
+// intentionally omitted: a recurring Dodo product owns its price.
+func (c *Client) CreateSubscriptionCheckout(ctx context.Context, req payment.SubscriptionCheckoutRequest) (*payment.CheckoutResult, error) {
+	productKey := req.Product + ":subscription"
+	productID, ok := c.products[productKey]
+	if !ok || productID == "" {
+		return nil, fmt.Errorf("dodo: no subscription product ID configured for %s", req.Product)
+	}
+	metadata := map[string]string{
+		"liki_product":          req.Product,
+		"liki_billing_mode":     "subscription",
+		"liki_user_id":          req.UserID,
+		"liki_subscription_key": req.SubscriptionKey,
+	}
+	params := dodopayments.CheckoutSessionNewParams{
+		CheckoutSessionRequest: dodopayments.CheckoutSessionRequestParam{
+			ProductCart: dodopayments.F([]dodopayments.ProductItemReqParam{{
+				ProductID: dodopayments.F(productID),
+				Quantity:  dodopayments.F(int64(1)),
+			}}),
+			Metadata:        dodopayments.F(metadata),
+			ReturnURL:       dodopayments.F(req.ReturnURL),
+			CancelURL:       dodopayments.F(req.CancelURL),
+			BillingCurrency: dodopayments.F(dodopayments.Currency(req.Currency)),
+		},
+	}
+	resp, err := c.checkoutSvc.New(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("dodo: create subscription checkout: %w", err)
+	}
+	return &payment.CheckoutResult{SessionID: resp.SessionID, CheckoutURL: resp.CheckoutURL}, nil
+}
+
+// SetSubscriptionCancellation schedules or cancels termination at period end.
+func (c *Client) SetSubscriptionCancellation(ctx context.Context, subscriptionID string, cancel bool) error {
+	_, err := c.subscriptionSvc.Update(ctx, subscriptionID, dodopayments.SubscriptionUpdateParams{
+		CancelAtNextBillingDate: dodopayments.F(cancel),
+	})
+	if err != nil {
+		return fmt.Errorf("dodo: update subscription cancellation: %w", err)
+	}
+	return nil
+}
+
 // VerifyWebhook verifies and normalizes a Dodo webhook event.
 func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.WebhookEvent, error) {
 	event, err := c.webhookSvc.Unwrap(rawBody, headers)
@@ -81,6 +127,27 @@ func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.We
 	}
 
 	union := event.AsUnion()
+	if subscriptionEvent, ok := union.(dodopayments.SubscriptionActiveWebhookEvent); ok {
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+	}
+	if subscriptionEvent, ok := union.(dodopayments.SubscriptionRenewedWebhookEvent); ok {
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+	}
+	if subscriptionEvent, ok := union.(dodopayments.SubscriptionUpdatedWebhookEvent); ok {
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+	}
+	if subscriptionEvent, ok := union.(dodopayments.SubscriptionOnHoldWebhookEvent); ok {
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+	}
+	if subscriptionEvent, ok := union.(dodopayments.SubscriptionFailedWebhookEvent); ok {
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+	}
+	if subscriptionEvent, ok := union.(dodopayments.SubscriptionCancelledWebhookEvent); ok {
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+	}
+	if subscriptionEvent, ok := union.(dodopayments.SubscriptionExpiredWebhookEvent); ok {
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+	}
 	if refundEvent, ok := union.(dodopayments.RefundSucceededWebhookEvent); ok {
 		metadata := refundEvent.Data.Metadata
 		orderID := metadata["payment_intent_id"]
@@ -117,11 +184,12 @@ func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.We
 		Provider: payment.ProviderDodo,
 		Type:     string(event.Type),
 		Data: payment.WebhookEventData{
-			OrderID:   paymentEvent.Data.Metadata["payment_intent_id"],
-			Amount:    int64(paymentEvent.Data.TotalAmount),
-			Email:     email,
-			PaymentID: paymentEvent.Data.PaymentID,
-			Metadata:  paymentEvent.Data.Metadata,
+			OrderID:        paymentEvent.Data.Metadata["payment_intent_id"],
+			Amount:         int64(paymentEvent.Data.TotalAmount),
+			Email:          email,
+			PaymentID:      paymentEvent.Data.PaymentID,
+			Metadata:       paymentEvent.Data.Metadata,
+			SubscriptionID: paymentEvent.Data.SubscriptionID,
 		},
 	}, nil
 }

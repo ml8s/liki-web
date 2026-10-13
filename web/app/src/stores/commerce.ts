@@ -75,13 +75,13 @@ export const useCommerceStore = defineStore('commerce', {
         this.loadingProducts = false
       }
     },
-    async buy() {
+    async buy(billingMode: 'one_time' | 'subscription' = 'one_time') {
       const product = this.chatProduct
       if (!product) return
       this.buying = true
       this.actionError = ''
       try {
-        const checkout = await checkoutChatProduct(product.id, i18n.global.locale.value)
+        const checkout = await checkoutChatProduct(product.id, billingMode, i18n.global.locale.value)
         // 只跟随相对路径或 https 支付域：防御后端配置错误导致的开放重定向。
         const url = checkout.checkout_url
         if (!url.startsWith('/') && !url.startsWith('https://')) {

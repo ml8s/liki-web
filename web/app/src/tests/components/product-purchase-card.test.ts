@@ -9,24 +9,29 @@ const product: ChatProduct = {
   name: 'Liki Chat',
   description: 'Liki Chat.',
   skills: ['liki'],
-  prices: { CNY: 100, USD: 100 },
-  display_currency: 'CNY',
-  display_amount_minor: 100,
+  display_currency: 'USD',
+  display_amount_minor: 2990,
+  purchase_options: [
+    { billing_mode: 'one_time', price: { currency_code: 'CNY', minor_units: 7900 } },
+    { billing_mode: 'one_time', price: { currency_code: 'USD', minor_units: 2990 } },
+    { billing_mode: 'subscription', price: { currency_code: 'USD', minor_units: 1990 } },
+  ],
   purchased: false,
 }
 
 describe('ProductPurchaseCard', () => {
-  it('renders price and emits purchase', async () => {
+  it('renders subscription first and emits its billing mode', async () => {
     setActivePinia(createPinia())
     const wrapper = mount(ProductPurchaseCard, { props: { product, buying: false } })
     expect(wrapper.text()).toContain('Liki Chat')
     const text = wrapper.text()
-    const hasCny = text.includes('¥1.00')
-    const hasUsd = text.includes('$1.00')
-    expect(hasCny || hasUsd).toBe(true)
+    expect(text).toContain('$19.90')
+    expect(text).toContain('$29.90')
+    expect(text).toContain('每月自动续费，可随时取消')
 
     await wrapper.find('button').trigger('click')
     expect(wrapper.emitted('purchase')).toHaveLength(1)
+    expect(wrapper.emitted('purchase')?.[0]).toEqual(['subscription'])
   })
 
   it('disables purchase for an active product', () => {

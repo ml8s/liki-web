@@ -73,19 +73,19 @@ func TestEnvOrBool(t *testing.T) {
 }
 
 func TestLoadConfigUsesRuntimeEnvironment(t *testing.T) {
-	t.Setenv("LISTEN_ADDR", ":18081")
+	t.Setenv("LIKI_HTTP_LISTEN_ADDRESS", ":18081")
 
 	config := LoadConfig()
 
-	if config.ListenAddr != ":18081" {
-		t.Fatalf("ListenAddr = %q, want :18081", config.ListenAddr)
+	if config.HTTPListenAddress != ":18081" {
+		t.Fatalf("HTTPListenAddress = %q, want :18081", config.HTTPListenAddress)
 	}
 }
 
 func TestValidateRuntimeURLs(t *testing.T) {
 	valid := Config{
 		EngineMCPBaseURL: "http://engine-mcp:8085",
-		ReturnURL:        "https://liki.hk",
+		PublicBaseURL:    "https://liki.hk",
 		AgentURL:         "http://agent:8083",
 	}
 	if err := validateRuntimeURLs(valid); err != nil {
@@ -94,7 +94,7 @@ func TestValidateRuntimeURLs(t *testing.T) {
 
 	invalid := Config{
 		EngineMCPBaseURL:  "engine-mcp:8085",
-		ReturnURL:         "/liki.hk",
+		PublicBaseURL:     "/liki.hk",
 		PaymentWebhookURL: "liki.hk/api/payments/webhook",
 		AgentURL:          "agent:8083",
 	}
@@ -104,7 +104,7 @@ func TestValidateRuntimeURLs(t *testing.T) {
 	}
 	for _, name := range []string{
 		"LIKI_ENGINE_MCP_URL",
-		"RETURN_URL", "PAYMENTS_WEBHOOK_URL", "LIKI_AGENTS_URL",
+		"LIKI_PUBLIC_BASE_URL", "LIKI_PAYMENT_WEBHOOK_URL", "LIKI_AGENTS_URL",
 	} {
 		if !strings.Contains(err.Error(), name) {
 			t.Errorf("error %v does not mention %s", err, name)

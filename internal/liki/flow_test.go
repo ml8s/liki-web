@@ -25,7 +25,9 @@ func TestFulfillerOnPaidGrantsEntitlementIdempotently(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	orders := NewOrderStore(db)
+	orders := NewOrderStoreWithCatalog(db, NewCommerceCatalog(CommerceCatalogConfig{
+		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
+	}))
 	entitlements := NewEntitlementStore(db)
 	for _, migrate := range []func(context.Context) error{orders.Migrate, entitlements.Migrate} {
 		if err := migrate(ctx); err != nil {

@@ -403,6 +403,14 @@
     "summary": "{calendar} {date} {time} · {gender} · {known}{place}"
   },
   "commerce": {
+    "oneTime": {
+      "title": "One-time access",
+      "access": "30-day access, no auto-renewal"
+    },
+    "subscription": {
+      "title": "Monthly subscription",
+      "renewsMonthly": "Automatically renews monthly until canceled"
+    },
     "activated": "Active",
     "inactive": "Not active",
     "activateNow": "Activate now",

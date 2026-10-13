@@ -403,6 +403,14 @@
     "summary": "{calendar} {date} {time} · {gender} · {known}{place}"
   },
   "commerce": {
+    "oneTime": {
+      "title": "单次访问",
+      "access": "30 天访问，不自动续费"
+    },
+    "subscription": {
+      "title": "按月订阅",
+      "renewsMonthly": "每月自动续费，可随时取消"
+    },
     "activated": "已开通",
     "inactive": "未开通",
     "activateNow": "立即开通",

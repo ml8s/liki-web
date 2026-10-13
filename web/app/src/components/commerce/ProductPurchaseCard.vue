@@ -27,19 +27,30 @@
       </li>
     </ul>
 
-    <div class="actions">
-      <div class="price">
-        {{ priceLabel }}
-      </div>
-      <el-button
-        type="primary"
-        size="large"
-        :disabled="product.purchased"
-        :loading="buying"
-        @click="$emit('purchase')"
+    <div class="plans">
+      <button
+        v-if="subscriptionOption"
+        type="button"
+        class="plan plan--primary"
+        :disabled="product.purchased || buying"
+        @click="$emit('purchase', 'subscription')"
       >
-        {{ $t(product.purchased ? 'commerce.activated' : 'commerce.activateNow') }}
-      </el-button>
+        <span class="plan__name">{{ $t('commerce.subscription.title') }}</span>
+        <span class="plan__price">{{ formatPrice(subscriptionOption.price) }}</span>
+        <span class="plan__note">{{ $t('commerce.subscription.renewsMonthly') }}</span>
+      </button>
+      <button
+        v-if="oneTimeOption"
+        type="button"
+        class="plan"
+        :class="{ 'plan--primary': !subscriptionOption }"
+        :disabled="product.purchased || buying"
+        @click="$emit('purchase', 'one_time')"
+      >
+        <span class="plan__name">{{ $t('commerce.oneTime.title') }}</span>
+        <span class="plan__price">{{ formatPrice(oneTimeOption.price) }}</span>
+        <span class="plan__note">{{ $t('commerce.oneTime.access') }}</span>
+      </button>
     </div>
     <p class="disclaimer">
       {{ $t('commerce.aiDisclaimer') }}
@@ -50,23 +61,35 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ChatProduct } from '@/api/commerce'
+import type { ChatProduct, MoneyMinor } from '@/api/commerce'
 import { chatServices } from '@/config/chat'
+
 const props = defineProps<{
   product: ChatProduct
   buying?: boolean
 }>()
 
-defineEmits<{ purchase: [] }>()
+defineEmits<{ purchase: [billingMode: 'one_time' | 'subscription'] }>()
 
 const { locale } = useI18n()
 
-const priceLabel = computed(() => {
+const subscriptionOption = computed(() =>
+  props.product.purchase_options?.find(option => option.billing_mode === 'subscription') ?? null,
+)
+
+const oneTimeOption = computed(() =>
+  props.product.purchase_options?.find(option =>
+    option.billing_mode === 'one_time' &&
+    option.price.currency_code === props.product.display_currency,
+  ) ?? props.product.purchase_options?.find(option => option.billing_mode === 'one_time') ?? null,
+)
+
+function formatPrice(price: MoneyMinor) {
   return new Intl.NumberFormat(locale.value, {
     style: 'currency',
-    currency: props.product.display_currency,
-  }).format(props.product.display_amount_minor / 100)
-})
+    currency: price.currency_code,
+  }).format(price.minor_units / 100)
+}
 </script>
 
 <style scoped>
@@ -74,8 +97,17 @@ const priceLabel = computed(() => {
 .header { display: flex; align-items: center; justify-content: space-between; }
 p { color: var(--liki-text-2); margin: 0 0 12px; }
 .skills { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 18px; margin: 0 0 20px; color: var(--liki-text-2); font-size: 13px; }
-.actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.price { font-size: 22px; font-weight: 700; color: var(--liki-ink); font-variant-numeric: tabular-nums; }
+.plans { display: grid; gap: 12px; }
+.plan {
+  display: grid; gap: 4px; padding: 14px 16px; text-align: left; cursor: pointer;
+  background: var(--liki-surface); border: 1px solid var(--liki-line); border-radius: 12px;
+  color: var(--liki-ink); font: inherit;
+}
+.plan--primary { border-color: var(--el-color-primary); box-shadow: 0 0 0 1px var(--el-color-primary) inset; }
+.plan:disabled { opacity: .55; cursor: not-allowed; }
+.plan__name { font-weight: 650; }
+.plan__price { font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.plan__note { color: var(--liki-text-3); font-size: 12px; }
 .disclaimer {
   margin: 14px 0 0;
   color: var(--liki-text-3);
@@ -83,6 +115,6 @@ p { color: var(--liki-text-2); margin: 0 0 12px; }
   line-height: 1.5;
 }
 @media (max-width: 640px) {
-  .actions { align-items: stretch; flex-direction: column; }
+  .plans { grid-template-columns: 1fr; }
 }
 </style>

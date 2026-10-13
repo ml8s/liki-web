@@ -56,7 +56,7 @@
         id="chat-purchase"
         :product="commerce.chatProduct"
         :buying="commerce.buying"
-        @purchase="commerce.buy"
+        @purchase="billingMode => commerce.buy(billingMode)"
       />
 
       <el-card

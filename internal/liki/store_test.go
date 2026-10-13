@@ -76,7 +76,9 @@ INSERT INTO entitlements VALUES
 		t.Fatalf("granted = %+v", granted)
 	}
 
-	orders := NewOrderStore(db)
+	orders := NewOrderStoreWithCatalog(db, NewCommerceCatalog(CommerceCatalogConfig{
+		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
+	}))
 	if err := orders.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}

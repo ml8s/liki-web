@@ -59,7 +59,9 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.Orde
 	if err := events.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	orderStore := liki.NewOrderStore(mainDB)
+	orderStore := liki.NewOrderStoreWithCatalog(mainDB, liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
+		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
+	}))
 	entitlementStore := liki.NewEntitlementStore(mainDB)
 	if err := orderStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
@@ -138,7 +140,7 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 		Provider: payment.ProviderXunhu,
 		Type:     payment.EventPaymentSucceeded,
 		Data: payment.WebhookEventData{
-			OrderID: intentID, Amount: 100, Currency: "CNY", PaymentID: "pay-1",
+			OrderID: intentID, Amount: 7900, Currency: "CNY", PaymentID: "pay-1",
 		},
 	}
 	rec := postJSON(t, mux, "/api/payments/webhook", `signature-body`)
@@ -184,7 +186,7 @@ func TestSharedPaymentWebhookReturnsProviderAck(t *testing.T) {
 		Provider: payment.ProviderXunhu,
 		Type:     payment.EventPaymentSucceeded,
 		Data: payment.WebhookEventData{
-			OrderID: intent.ID, Amount: 100, PaymentID: "pay-ack",
+			OrderID: intent.ID, Amount: 7900, PaymentID: "pay-ack",
 		},
 	}
 

@@ -38,6 +38,7 @@ type Order struct {
 // OrderStore manages the chat_orders table.
 type OrderStore struct {
 	db      *sql.DB
+	catalog *Catalog
 	nowFunc func() time.Time
 	idFunc  func() string
 }
@@ -48,6 +49,12 @@ func NewOrderStore(db *sql.DB) *OrderStore {
 		nowFunc: func() time.Time { return time.Now().UTC() },
 		idFunc:  uuid.NewString,
 	}
+}
+
+func NewOrderStoreWithCatalog(db *sql.DB, catalog *Catalog) *OrderStore {
+	store := NewOrderStore(db)
+	store.catalog = catalog
+	return store
 }
 
 func (s *OrderStore) Migrate(ctx context.Context) error {
@@ -92,10 +99,14 @@ func (s *OrderStore) CreateOrder(ctx context.Context, userID, email string, prod
 	userID = strings.TrimSpace(userID)
 	email = strings.ToLower(strings.TrimSpace(email))
 	currency = strings.ToUpper(strings.TrimSpace(currency))
-	if _, err := DefinitionFor(productID); err != nil {
+	catalog := s.catalog
+	if catalog == nil {
+		catalog = NewCommerceCatalog(CommerceCatalogConfig{})
+	}
+	if _, err := catalog.DefinitionFor(productID); err != nil {
 		return Order{}, err
 	}
-	amount, err := AmountMinor(productID, currency)
+	price, err := catalog.Price(productID, BillingModeOneTime, CurrencyCode(currency))
 	if err != nil {
 		return Order{}, err
 	}
@@ -106,7 +117,7 @@ func (s *OrderStore) CreateOrder(ctx context.Context, userID, email string, prod
 	now := s.nowFunc()
 	order := Order{
 		ID: s.idFunc(), UserID: userID, Email: email, ProductID: productID,
-		AmountMinor: amount, Currency: currency, Status: OrderPending,
+		AmountMinor: price.MinorUnits, Currency: currency, Status: OrderPending,
 		CreatedAt: now, UpdatedAt: now,
 	}
 	_, err = s.db.ExecContext(ctx, `
