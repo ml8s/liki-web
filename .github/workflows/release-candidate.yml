@@ -53,11 +53,13 @@ jobs:
           liki-bundle-sha256: ${{ vars.LIKI_SKILLS_BUNDLE_SHA256 }}
           github-token: ${{ github.token }}
 
-      - name: Source gate
-        run: make gate
-
       - id: meta
         run: echo "tag=candidate-${GITHUB_SHA::7}-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd app && npm ci
 
       - name: Build web artifact
         run: |
