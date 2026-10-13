@@ -57,6 +57,8 @@ test.describe('Authenticated app shell', () => {
       birth_time_known: 'known', birth_place: '上海', note: '', third_party_consent: true,
       last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
     }], next_cursor: '' })));
+    await page.route('**/api/me/subscriptions', async route => route.fulfill(json([])));
+    await page.route('**/api/me/subscription-payments', async route => route.fulfill(json([])));
     await page.route('**/api/me/sessions', async route => route.fulfill(json([])));
     await page.route('**/api/me/auth/identities', async route => route.fulfill(json([])));
 
