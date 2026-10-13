@@ -227,7 +227,6 @@ jobs:
         env:
           JWT_SECRET: liki-ci-e2e-secret-0123456789abcdef
           LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY: liki-ci-e2e-referral-payout-encryption-key-32-bytes
-          LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY: e2e-referral-payout-encryption-key-32-bytes
           LIKI_HTTP_LISTEN_ADDR: :8081
           LIKI_PUBLIC_BASE_URL: http://localhost:8080
           LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS: '7900'
