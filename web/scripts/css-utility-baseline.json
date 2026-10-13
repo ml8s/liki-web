@@ -78,8 +78,5 @@
     "transition-colors",
     "transition-opacity",
     "z-50"
-  ],
-  "console.css": [
-    "hidden"
   ]
 }

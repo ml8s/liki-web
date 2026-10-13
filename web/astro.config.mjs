@@ -5,4 +5,11 @@ export default defineConfig({
     format: 'directory',
     assets: 'assets',
   },
+  vite: {
+    build: {
+      // Keep Astro-processed scripts as external files so the production CSP
+      // can continue to forbid executable inline scripts.
+      assetsInlineLimit: 0,
+    },
+  },
 });

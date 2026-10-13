@@ -1,16 +1,12 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
 import { t, locales } from '../../i18n.js';
-import { v } from '../../version.js';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 
 export function getStaticPaths() {
   return locales.map(locale => ({ params: { locale } }));
 }
 
 const { locale } = Astro.params;
-const demo = locale === 'en' ? null : JSON.parse(readFileSync(join(process.cwd(), 'js/mingshu-report-demo.json'), 'utf-8'));
 const benefits = ['personality', 'career', 'relationship', 'timing'].map(key => `scenario.mingshu.benefit.${key}`);
 const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
 const questions = ['q1', 'q2', 'q3'].map(key => `scenario.mingshu.${key}`);
@@ -49,30 +45,4 @@ const staticSections = ['personality', 'career', 'love', 'health', 'fortune', 'm
       </details>
     ))}
   </div>
-  {demo && (
-    <>
-      <div class="scenario-report-frame" tabindex="0">
-        <p class="scenario-demo-note">{t(locale, 'scenario.demoNote')}</p>
-        <div id="mingshu-report-example"></div>
-      </div>
-      <script is:inline defer src={`/js/marked.min.js?v=${v}`}></script>
-      <script is:inline defer src={`/js/purify.min.js?v=${v}`}></script>
-      <script is:inline defer src={`/js/render-report.js?v=${v}`}></script>
-      <script
-        is:inline
-        type="application/json"
-        id="mingshu-demo-data"
-        data-demo-target="mingshu-report-example"
-        data-data-id="mingshu-demo-data"
-        set:html={JSON.stringify(demo)}
-      ></script>
-      <script
-        is:inline
-        defer
-        src={`/js/report-demo.js?v=${v}`}
-        data-demo-target="mingshu-report-example"
-        data-data-id="mingshu-demo-data"
-      ></script>
-    </>
-  )}
 </ScenarioLanding>

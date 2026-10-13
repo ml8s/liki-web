@@ -49,9 +49,6 @@ export default [
         btoa: "readonly",
         atob: "readonly",
         i18next: "readonly",
-  
-        marked: "readonly",
-        DOMPurify: "readonly",
       },
     },
     rules: {

@@ -29,11 +29,9 @@ capabilities (naming is a current Liki Chat scenario; mingshu/hepan report
 templates serve the CTA page demos). These are skill content, not product
 backends.
 
-## Frozen admin console
+## Admin console
 
-`web/admin.html` plus its `console-core.js`/`console-admin.js` scripts are a
-frozen compatibility surface, not an active product: they keep the legacy
-zh-CN-only chrome and render raw `error.message` from API responses.
-Differences from the SPA (i18n, unified error layer) are accepted; the exit
-condition is the SPA admin surface fully replacing this page, at which point
-the page and its vendored scripts are removed.
+The standalone `admin.html` and its vanilla scripts were replaced by the
+capability-scoped Vue admin at `/app/admin`. Requests to `/admin.html` redirect
+there. Authorization remains server-side capability checks; the SPA navigation
+is only a rendering convenience.

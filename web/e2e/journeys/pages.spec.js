@@ -10,12 +10,12 @@ import { I18N_KEY_RE } from '../helpers.js';
 
 // Pages to test with their framework-specific render marker and i18n content checks.
 const PAGES = [
-  { path: '/zh-Hans/naming', name: 'naming (vanilla)',
+  { path: '/zh-Hans/naming', name: 'naming (static)',
     checks: [
       { selector: '.font-brand', text: 'Liki' },
       { selector: 'h1', text: 'AI 起名与姓名解读' },
     ] },
-  { path: '/zh-Hans/disclaimer', name: 'disclaimer (vanilla)',
+  { path: '/zh-Hans/disclaimer', name: 'disclaimer (static)',
     checks: [
       { selector: 'h1', text: '免责声明' },
     ] },
@@ -43,17 +43,17 @@ const PAGES = [
       { selector: '.install-cmd', text: 'npx skills add ml8s/liki' },
     ] },
   // Legal pages — marker renders, i18n resolves, keys don't leak
-  { path: '/zh-Hans/about',    name: 'about (vanilla)' },
-  { path: '/zh-Hans/contact',  name: 'contact (vanilla)' },
-  { path: '/zh-Hans/privacy',  name: 'privacy (vanilla)' },
-  { path: '/zh-Hans/terms',    name: 'terms (vanilla)' },
+  { path: '/zh-Hans/about',    name: 'about (static)' },
+  { path: '/zh-Hans/contact',  name: 'contact (static)' },
+  { path: '/zh-Hans/privacy',  name: 'privacy (static)' },
+  { path: '/zh-Hans/terms',    name: 'terms (static)' },
   // Static resources
   { path: '/skills/liki/SKILL.md', marker: null,          name: 'skills',   resource: true },
-  { path: '/zh-Hans/mingshu',   name: 'mingshu (vanilla)',
+  { path: '/zh-Hans/mingshu',   name: 'mingshu (static)',
     checks: [
       { selector: 'h1', text: '个人命书与终身运势解读' },
     ] },
-  { path: '/zh-Hans/hepan',    name: 'hepan (vanilla)',
+  { path: '/zh-Hans/hepan',    name: 'hepan (static)',
     checks: [
       { selector: 'h1', text: '八字合盘与感情关系解读' },
     ] },
@@ -63,6 +63,75 @@ const PAGES = [
     ] },
   { path: '/llms.txt',         marker: null,             name: 'llms.txt', resource: true },
 ];
+
+test.describe('Static page interactions', () => {
+  test('home analytics sends a first-party path-only pageview', async ({ page }) => {
+    const pageviews = [];
+    await page.route('**/api/analytics/pageview', async (route) => {
+      pageviews.push(route.request().postDataJSON());
+      await route.fulfill({ status: 204 });
+    });
+
+    await page.goto('/zh-Hans/');
+    await expect.poll(() => pageviews).toHaveLength(1);
+    expect(pageviews[0]).toEqual({ path: '/zh-Hans/' });
+  });
+
+  test('language switcher stores the locale and routes to its static page', async ({ page }) => {
+    await page.route('**/en/', route => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><html lang="en"><title>Liki</title></html>',
+    }));
+
+    await page.goto('/zh-Hans/');
+    await page.click('#lang-toggle');
+    await expect(page.locator('#lang-dropdown')).toBeVisible();
+    await expect(page.locator('#lang-toggle')).toHaveAttribute('aria-expanded', 'true');
+
+    await page.click('[data-lang="en"]');
+    await page.waitForURL('**/en/');
+    const cookies = await page.context().cookies();
+    expect(cookies.find(({ name }) => name === 'liki_locale')).toMatchObject({ value: 'en' });
+  });
+
+  test('free chart form stores an onboarding draft', async ({ page }) => {
+    await page.route('**/app/profiles/new', route => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><html><title>New profile</title></html>',
+    }));
+
+    await page.goto('/zh-Hans/');
+    await page.fill('#paipanHook [name=date]', '2000-01-01');
+    await page.fill('#paipanHook [name=time]', '12:00');
+    await page.selectOption('#paipanHook [name=gender]', 'female');
+    await page.click('#paipanHook button[type=submit]');
+
+    await page.waitForURL('**/app/profiles/new');
+    expect(await page.evaluate(() => sessionStorage.getItem('liki-draft'))).toEqual(JSON.stringify({
+      birth_date: '2000-01-01',
+      birth_time: '12:00',
+      gender: 'female',
+      calendar: 'solar',
+    }));
+  });
+
+  test('skills page copies install commands with temporary feedback', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: (text) => Promise.resolve(text) },
+      });
+    });
+
+    await page.goto('/zh-Hans/skills/');
+    const button = page.locator('.copy-btn').first();
+    const original = await button.innerHTML();
+    await button.click();
+    await expect(button).toHaveText('✓');
+    await expect.poll(() => button.innerHTML()).toBe(original);
+  });
+});
 
 test.describe('Smoke — all pages render without errors or warnings', () => {
   for (const { path, marker, name, checks, resource, skipI18nCheck } of PAGES) {

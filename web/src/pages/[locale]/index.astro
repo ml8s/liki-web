@@ -88,7 +88,9 @@ const homeSchema = {
       <button type="submit" class="btn-purple">{t(locale, 'index.cta.paipan')}</button>
     </form>
     <p class="paipan-hint">{t(locale, 'index.paipan.hint')}</p>
-    <script is:inline defer src={`/js/paipan-hook.js?v=${v}`}></script>
+    <script>
+      import '../../scripts/paipan-hook';
+    </script>
   </section>
 
   <section class="landing-services" id="services">

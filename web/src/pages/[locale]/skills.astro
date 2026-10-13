@@ -80,5 +80,7 @@ const skillSchema = {
     <a href="/llms.txt" class="hover:text-stone-600 transition-colors">llms.txt</a>
     <a href="/skills/liki/SKILL.md" class="hover:text-stone-600 transition-colors">SKILL.md</a>
   </p>
-  <script is:inline defer src={`/js/skills-page.js?v=${v}`}></script>
+  <script>
+    import '../../scripts/skills-page';
+  </script>
 </BaseLayout>

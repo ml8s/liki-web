@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// check-performance.cjs — enforce the small set of mobile/loading contracts we
-// can verify statically: viewport, non-blocking console modules, isolated
-// console CSS, and a CSS budget for shared surfaces.
+// check-performance.cjs — guard the remaining source-level performance/loading
+// contracts that are cheap to enforce before Vite builds the SPA.
 
 const fs = require('fs');
 const path = require('path');
@@ -13,55 +12,24 @@ function read(file, folder = '') {
   return fs.readFileSync(path.join(web, folder, file), 'utf8');
 }
 
-function checkFile(file) {
-  const source = read(file);
-  const rel = `web/${file}`;
-
-  if (!/<meta\s+name="viewport"\s+content="[^"]*width=device-width[^"]*"/i.test(source)) {
-    errors.push(`${rel}: missing mobile viewport`);
-  }
-  if (!/initial-scale=1/i.test(source.match(/<meta\s+name="viewport"[^>]*>/i)?.[0] || '')) {
-    errors.push(`${rel}: viewport must include initial-scale=1`);
-  }
-
-  for (const match of source.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) {
-    const tag = match[0];
-    if (tag.startsWith('<script src=') && !/\b(?:defer|async)\b/i.test(tag)) {
-      errors.push(`${rel}: external script must use defer/async: ${match[1]}`);
-    }
-  }
-
-  if (/^\/(?:kol|scout)$/.test(`/${path.basename(file, '.html')}`) || file === 'admin.html') {
-    if (source.includes('/css/app.css')) {
-      errors.push(`${rel}: console must not load marketing app.css bundle`);
-    }
-    for (const css of ['tokens.css', 'console.css']) {
-      if (!source.includes(`/css/${css}`)) {
-        errors.push(`${rel}: missing required console stylesheet /css/${css}`);
-      }
-    }
-  }
+const appHtml = read('index.html', 'app');
+if (!/<meta\s+name="viewport"\s+content="[^"]*width=device-width[^"]*"/i.test(appHtml)) {
+  errors.push('web/app/index.html: missing mobile viewport');
 }
-
-['admin.html'].forEach(checkFile);
+if (!/initial-scale=1/i.test(appHtml.match(/<meta\s+name="viewport"[^>]*>/i)?.[0] || '')) {
+  errors.push('web/app/index.html: viewport must include initial-scale=1');
+}
+if (!/<meta\s+name="robots"\s+content="noindex"/i.test(appHtml)) {
+  errors.push('web/app/index.html: authenticated shell must be noindex');
+}
 
 const budgets = [
-  ['tokens.css', 5 * 1024],
-  ['console.css', 12 * 1024],
+  ['css/app.css', 40 * 1024],
+  ['app/src/styles/app.css', 20 * 1024],
 ];
 for (const [file, max] of budgets) {
-  const size = fs.statSync(path.join(web, 'css', file)).size;
-  if (size > max) {
-    errors.push(`web/css/${file}: ${size} bytes exceeds ${max} byte budget`);
-  }
-}
-
-const consoleCss = read('console.css', 'css');
-if (!consoleCss.includes('@media (max-width: 640px)')) {
-  errors.push('web/css/console.css: missing primary mobile breakpoint');
-}
-if (!consoleCss.includes('@media (hover: none) and (pointer: coarse)')) {
-  errors.push('web/css/console.css: missing coarse pointer / mobile touch contract');
+  const size = fs.statSync(path.join(web, file)).size;
+  if (size > max) errors.push(`web/${file}: ${size} bytes exceeds ${max} byte budget`);
 }
 
 if (errors.length) {
@@ -70,4 +38,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log('✓ console mobile viewport, CSS isolation, budgets, and deferred modules checked');
+console.log('✓ app shell viewport/noindex and CSS budgets checked');

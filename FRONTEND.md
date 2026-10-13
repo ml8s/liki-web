@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | `web/src` | Astro marketing and locale pages | SEO-first static pages |
 | `web/app` | Vue 3 authenticated product SPA | Primary product surface |
-| `web/js` | legacy vanilla JS product pages | Frozen compatibility surface |
+| `web/js` | static-page interactions and the frozen admin runtime | No new product features |
 
 New product functionality belongs in `web/app` and backing Go APIs.
 
@@ -46,6 +46,13 @@ Authenticated routes live under `/app`:
 /app/partners/kol
 /app/partners/scout
 /app/account
+/app/admin
+/app/admin/entitlements
+/app/admin/referrals
+/app/admin/payouts
+/app/admin/finance
+/app/admin/audit
+/app/admin/administrators
 ```
 
 Router guards call `/api/me`, redirect unauthenticated users to `/login`, and preserve redirect targets.
@@ -127,8 +134,21 @@ exception; do not add new hand-written inline styles.
 2. `scripts/build-web.sh` scans the built HTML and fails if executable inline
    scripts reappear after Astro/Vite processing.
 
-Static browser behavior belongs in `web/js` (mirrored to `web/public/js`), and
-Vue application modules belong under `web/app/src`.
+Static-page browser behavior belongs in `web/src/scripts`, and Vue application
+modules belong under `web/app/src`.
+
+## Frontend module policy
+
+`web/js` is not a product surface. Its remaining browser modules have two
+distinct roles:
+
+| Group | Modules | Policy |
+| --- | --- | --- |
+| static-page interaction | `web/src/scripts/*.ts` | Astro-processed, external, same-origin modules; this is the only supported way to add static-page behavior |
+| admin console | Vue route `/app/admin` | capability-scoped views with a typed API client and E2E coverage |
+
+Do not add product behavior to `web/js`. The vanilla admin console, client-side
+report demo renderer, and vendored Markdown sanitizer dependencies are retired.
 
 ## Payments
 
@@ -198,11 +218,8 @@ The public `/naming`, `/mingshu`, and `/hepan` pages are Liki Chat CTA pages.
 They explain a scenario and send the visitor to `/app?scenario=…`, just as the
 home page sends visitors to the app.
 
-`web/js` retains the report demo renderers used by the Ming Shu and He Pan CTA
-pages. The retired naming activation and chat URLs redirect to the Liki Chat
-scenario; the retired commerce backends have been removed.
-
-`web/js` vendors `marked.min.js` and `purify.min.js` instead of using npm
-packages. They are frozen with the legacy surface: they receive no routine
-dependency updates, and CVE watch for them is owned by liki-web maintainers.
-Replace them with the audited npm stack when the legacy pages retire.
+The retired naming activation and chat URLs redirect to the Liki Chat scenario;
+the retired commerce backends, client-side report demo renderer, and vendored
+Markdown/DOMPurify scripts have been removed. The remaining public scripts are
+small, static-page interactions; the frozen admin console is tracked separately
+for Vue replacement.

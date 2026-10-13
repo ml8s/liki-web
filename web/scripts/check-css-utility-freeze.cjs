@@ -13,7 +13,7 @@ const BASELINE = path.resolve(__dirname, 'css-utility-baseline.json');
 
 const UTILITY_RE = /^(flex|grid|block|inline|hidden|relative|absolute|sticky|fixed|text-|bg-|border|rounded|font-|max-w-|min-w-|w-|h-|gap-|items-|justify-|space-|overflow|opacity|z-|shadow|transition|duration|whitespace|truncate|mx-|my-|mt-|mb-|ml-|mr-|px-|py-|pt-|pb-|pl-|pr-|p-|m-|leading|tracking|object|list|select|pointer|align|self|col|row-|order|sr-only|antialiased|underline|italic|uppercase|lowercase|capitalize)/;
 
-const FILES = ['app.css', 'console.css'];
+const FILES = ['app.css'];
 
 function utilities(file) {
   const classes = new Set();

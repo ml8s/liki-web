@@ -1,17 +1,20 @@
+RELEASE_VERSION ?=
+export RELEASE_VERSION
+
 .DEFAULT_GOAL := help
 # 统一语义（四仓一致）：
 #   make check  纯静态检查（lint+格式+类型+安全+skills；不跑测试、不构建）
 #   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
-#   make gate   check + test ＝ 源码门槛；镜像冒烟只在 release workflow 执行
-#   make build  本仓产物（前端+二进制；镜像由 CI release 构建）
-#   make image  本地候选镜像（local tag；正式镜像由 CI release 发布）
+#   make gate   check + test ＝ 源码门槛；镜像冒烟只在 candidate/release 流程执行
+#   make build  本仓产物（前端+二进制）
+#   make candidate RELEASE_VERSION=... 本地构建并推送 candidate，记录 exact digest
 #   make e2e    浏览器 E2E（本仓视角）
 #   make smoke  本仓镜像启动 + health/page 冒烟
-.PHONY: help check test gate smoke smoke-deploy e2e \
+.PHONY: help check test gate smoke e2e \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
         check-html check-security \
-        build build-skills build-sitemap build-web build-go image \
-        dev clean hooks version version-minor version-major
+        build build-skills build-sitemap build-web build-go image candidate test-go-coverage test-js-coverage \
+        dev clean hooks version
 
 # ── 环境 ──
 NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
@@ -22,9 +25,8 @@ export GOCACHE ?= /tmp/gocache
 export GOLANGCI_LINT_CACHE ?= /tmp/golangci-lint-cache
 export GOTOOLCHAIN ?= go1.26.9
 
-# deployed smoke URL（make smoke-deploy URL=...）
-DOMAIN_US = $(shell /bin/grep -oP '^DOMAIN_US=\K.*' .env 2>/dev/null || echo "liki.hk")
-DOMAIN_CN = $(shell /bin/grep -oP '^DOMAIN_CN=\K.*' .env 2>/dev/null || echo "liki.hk")
+DOMAIN_US = $(shell /bin/grep -oP '^LIKI_DOMAIN_US=\K.*' .env 2>/dev/null || echo "liki.hk")
+DOMAIN_CN = $(shell /bin/grep -oP '^LIKI_DOMAIN_CN=\K.*' .env 2>/dev/null || echo "liki.hk")
 ifeq ($(to),us)
   URL := https://$(DOMAIN_US)
 else ifeq ($(to),cn)
@@ -46,8 +48,22 @@ help: ## 列出所有 target
 check: lint-go fmt-check lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version check-actions ## 静态检查（纯静态，不跑测试、不构建）
 
 test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
+test-go-coverage: ## Run Go tests with the CI coverage policy
+	go test -race -count=1 \
+		-coverprofile=coverage.out \
+		-coverpkg=./internal/... \
+		./...
+	@COV=$$(go tool cover -func=coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
+		echo "Go coverage: $$COV%"; \
+		if awk -v c="$$COV" -v m="65" 'BEGIN {exit !(c < m)}'; then \
+			echo "❌ Go coverage $$COV% < 65%" >&2; exit 1; \
+		fi
 
-gate: check test ## 源码门槛：check + test；镜像冒烟只在发版流程执行
+test-js-coverage: ## Run Vue/TS tests with V8 coverage
+	cd web/app && npx vitest run --coverage
+
+
+gate: check test ## 源码门槛：check + test；镜像冒烟只在 candidate/release 流程执行
 
 check-actions: ## Reject mutable reusable workflow/action references
 	python3 scripts/check_actions_pinned.py
@@ -55,8 +71,8 @@ check-actions: ## Reject mutable reusable workflow/action references
 smoke: image ## 本仓镜像冒烟：health + rendered homepage
 	IMAGE_TAG=$(IMAGE_TAG) scripts/smoke-image.sh
 
-smoke-deploy: ## 部署后冒烟验证（make smoke-deploy URL=...）
-	scripts/smoke.sh $(URL)
+candidate: ## 从干净 worktree 构建、测试并推送 GHCR candidate 镜像
+	scripts/build-candidate.sh
 
 # ── 调试（check / test 失败时隔离定位）──
 
@@ -68,7 +84,6 @@ fmt-check: ## Reject unformatted Go sources
 	@test -z "$$(gofmt -l .)" || { gofmt -l .; exit 1; }
 
 lint-js: ## JS lint
-	cd web && PATH="$(NODE_BIN):$$PATH" npx eslint js/
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npx eslint src/
 
 lint-docs: ## Markdown lint
@@ -94,14 +109,14 @@ test-skills: ## Python skill 测试
 e2e: ## Docker 全栈 E2E（不跑 lint / unit）
 	scripts/e2e.sh
 
-build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）。镜像由 CI release 构建，非本地。
+build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）
 
 # ── 镜像（本地候选，非发布路径）──
-# 生产镜像由 CI release 构建并推送 GHCR；此目标使用明确的 local 候选 tag。
+# 本地开发镜像使用 local tag；发版 candidate 由 make candidate 构建并推送。
 IMAGE_REGISTRY ?= ghcr.io/ml8s
 IMAGE_TAG ?= local
 
-image: build ## Build the local candidate image (production uses CI release)
+image: build ## Build the local development image
 	docker build -t $(IMAGE_REGISTRY)/liki-web:$(IMAGE_TAG) .
 
 # ── 工具 ──
@@ -120,16 +135,6 @@ version: ## bump patch（CalVer date）
 	case "$$CURRENT" in $$DATE.*.*) BUILD=$${CURRENT\#\#*.} ;; *) BUILD=0 ;; esac; \
 	case "$$BUILD" in ''|*[!0-9]*) BUILD=0 ;; esac; \
 	V="$$DATE.$$((BUILD + 1))"; echo "$$V" > $(VERSION_FILE); echo "✅ → $$V"
-
-version-minor: ## bump minor
-	@V=$$(cat $(VERSION_FILE)); NEXT=$$(printf '%s' "$$V" | awk -F. 'NF == 4 && $$1 ~ /^[0-9]+$$/ && $$2 ~ /^[0-9]+$$/ {print $$1 "." $$2 + 1 ".0.0"; ok=1} END {exit !ok}'); \
-	[ -n "$$NEXT" ] || { echo "❌ Expected CalVer version: YYYY.MM.PP.BUILD" >&2; exit 1; }; \
-	echo "$$NEXT" > $(VERSION_FILE); echo "✅ $$V → $$NEXT"
-
-version-major: ## bump major
-	@V=$$(cat $(VERSION_FILE)); NEXT=$$(printf '%s' "$$V" | awk -F. 'NF == 4 && $$1 ~ /^[0-9]+$$/ {print $$1 + 1 ".0.0.0"; ok=1} END {exit !ok}'); \
-	[ -n "$$NEXT" ] || { echo "❌ Expected CalVer version: YYYY.MM.PP.BUILD" >&2; exit 1; }; \
-	echo "$$NEXT" > $(VERSION_FILE); echo "✅ $$V → $$NEXT"
 
 # ════════════════════════════════════════════════════════════
 #  内部依赖（help 不显示）

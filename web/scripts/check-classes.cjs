@@ -5,7 +5,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 
 // ── Load CSS classes via simple line scanning ──
-const css = ['app.css', 'console.css']
+const css = ['app.css']
   .map(f => fs.readFileSync(path.join(ROOT, 'css', f), 'utf-8'))
   .join('\n');
 const cssClasses = new Set();
@@ -73,23 +73,6 @@ function scanDir(dir) {
   }
 }
 scanDir(srcDir);
-
-// ── admin.html is a standalone page outside src/ — same class check. ──
-(function scanAdmin() {
-  const adminHtml = path.join(ROOT, 'admin.html');
-  if (!fs.existsSync(adminHtml)) return;
-  const rel = path.relative(ROOT, adminHtml);
-  const html = fs.readFileSync(adminHtml, 'utf8');
-  const attrRe = /class="([^"]*?)"/g;
-  let m;
-  while ((m = attrRe.exec(html)) !== null) {
-    for (const cls of m[1].split(/\s+/)) {
-      if (!cls || dynamic.has(cls) || cls.includes('{')) continue;
-      if (!cssClasses.has(cls)) errors.push(`${rel}: .${cls}`);
-    }
-  }
-})();
-
 
 // ── Report ──
 if (errors.length > 0) {
