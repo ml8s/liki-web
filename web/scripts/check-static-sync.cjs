@@ -26,7 +26,11 @@ function filesEqual(a, b) {
 
 for (const dir of ['js', 'css']) {
   const a = path.join(web, dir), b = path.join(web, 'public', dir);
-  if (!fs.existsSync(a) || !fs.existsSync(b)) {
+  if (!fs.existsSync(a) && !fs.existsSync(b)) {
+    if (dir === 'js') {
+      console.log(`✓ js/ retired; public/js absent`);
+      continue;
+    }
     console.error(`✗ 缺目录：${dir} 或 public/${dir}`);
     fail = 1;
     continue;
