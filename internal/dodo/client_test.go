@@ -250,7 +250,7 @@ func newTestClientWithURL(apiKey, baseURL string) *Client {
 		checkoutSvc: dodopayments.NewCheckoutSessionService(opts...),
 		webhookSvc:  dodopayments.NewWebhookService(append(opts, option.WithWebhookKey("whsec_test"))...),
 		products: map[string]string{
-			"liki-chat": "pdt_test_liki_chat",
+			"liki-chat:one_time": "pdt_test_liki_chat",
 		},
 	}
 }

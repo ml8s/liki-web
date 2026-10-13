@@ -40,7 +40,7 @@ func New(apiKey, webhookKey string, testMode bool, products map[string]string) *
 
 // CreateCheckout creates a Dodo checkout session from the normalized request.
 func (c *Client) CreateCheckout(ctx context.Context, req payment.CheckoutRequest) (*payment.CheckoutResult, error) {
-	productID, ok := c.products[req.Product]
+	productID, ok := c.products[req.Product+":one_time"]
 	if !ok || productID == "" {
 		return nil, fmt.Errorf("dodo: no product ID configured for %s", req.Product)
 	}

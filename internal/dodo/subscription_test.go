@@ -60,6 +60,35 @@ func TestCreateSubscriptionCheckoutOmitsAmount(t *testing.T) {
 	}
 }
 
+func TestOneTimeCheckoutUsesModeQualifiedProductKey(t *testing.T) {
+	var body map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"session_id": "checkout_one_time", "checkout_url": "https://checkout.example/pay",
+		})
+	}))
+	t.Cleanup(server.Close)
+	client := &Client{
+		checkoutSvc: dodopayments.NewCheckoutSessionService(option.WithBearerToken("test"), option.WithBaseURL(server.URL)),
+		products: map[string]string{
+			"liki-chat:one_time":     "pdt_one_time",
+			"liki-chat:subscription": "pdt_subscription",
+		},
+	}
+	_, err := client.CreateCheckout(context.Background(), payment.CheckoutRequest{
+		Product: "liki-chat", AmountMinor: 2990, Currency: "USD",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cart := body["product_cart"].([]any)[0].(map[string]any)
+	if cart["product_id"] != "pdt_one_time" || cart["amount"] != float64(2990) {
+		t.Fatalf("cart = %#v", cart)
+	}
+}
+
 func TestVerifySubscriptionWebhookNormalizesLifecycle(t *testing.T) {
 	timestamp := time.Date(2026, 10, 13, 12, 0, 0, 0, time.UTC)
 	payload := map[string]any{

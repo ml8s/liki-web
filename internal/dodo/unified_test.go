@@ -27,7 +27,7 @@ func TestCreateCheckoutUnifiedRequest(t *testing.T) {
 	c := &Client{
 		checkoutSvc: dodopayments.NewCheckoutSessionService(option.WithBearerToken("test"), option.WithBaseURL(srv.URL)),
 		products: map[string]string{
-			"liki-chat": "pdt_test_liki_chat",
+			"liki-chat:one_time": "pdt_test_liki_chat",
 		},
 	}
 
