@@ -545,6 +545,8 @@
   },
     "subscriptions": {
       "title": "订阅",
+      "paymentHistory": "扣费记录",
+      "refundedAmount": "已退款 {amount}",
       "activeUntil": "可用至",
       "nextBilling": "下次扣费",
       "endsAtPeriodEnd": "本周期结束后取消",
@@ -558,6 +560,11 @@
         "cancelled": "已取消",
         "expired": "已过期",
         "failed": "已失败"
+      },
+      "paymentStatus": {
+        "paid": "已支付",
+        "partiallyRefunded": "部分退款",
+        "refunded": "已退款"
       }
     },
   "orders": {

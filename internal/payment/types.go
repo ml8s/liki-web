@@ -62,6 +62,8 @@ type WebhookEventData struct {
 	Currency            string
 	Email               string
 	PaymentID           string
+	RefundID            string
+	RefundedPaymentID   string
 	Metadata            map[string]string
 	SubscriptionID      string
 	CustomerID          string

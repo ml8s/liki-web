@@ -37,9 +37,30 @@ export interface ChatSubscription {
   updated_at: string
 }
 
+export interface SubscriptionPayment {
+  id: string
+  subscription_id: string
+  product_id: string
+  provider: 'dodo'
+  provider_payment_id: string
+  amount_minor_units: number
+  refunded_minor_units: number
+  currency_code: 'CNY' | 'USD'
+  status: 'paid' | 'refunded'
+  period_start: string | null
+  period_end: string | null
+  created_at: string
+  updated_at: string
+}
+
 export async function fetchSubscriptions(): Promise<ChatSubscription[]> {
   const payload = await get<{ subscriptions: ChatSubscription[] }>('/api/me/subscriptions')
   return payload.subscriptions ?? []
+}
+
+export async function fetchSubscriptionPayments(): Promise<SubscriptionPayment[]> {
+  const payload = await get<{ payments: SubscriptionPayment[] }>('/api/me/subscription-payments')
+  return payload.payments ?? []
 }
 
 export async function setSubscriptionCancellation(subscriptionId: string, cancel: boolean): Promise<boolean> {

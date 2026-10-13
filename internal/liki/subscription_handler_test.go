@@ -33,7 +33,7 @@ func TestSubscriptionEventHandlerRecordsPaymentAndAppliesLifecycle(t *testing.T)
 	periodStartPtr := &periodStart
 	periodEndPtr := &periodEnd
 	observed := 0
-	handler := NewSubscriptionEventHandler(subscriptions, entitlements, func(_ context.Context, _ payment.WebhookEvent) error {
+	handler := NewSubscriptionEventHandler(subscriptions, entitlements, "pdt_subscription", func(_ context.Context, _ payment.WebhookEvent) error {
 		observed++
 		return nil
 	})
@@ -65,7 +65,7 @@ func TestSubscriptionEventHandlerRecordsPaymentAndAppliesLifecycle(t *testing.T)
 		Provider: payment.ProviderDodo,
 		Type:     payment.EventSubscriptionActive,
 		Data: payment.WebhookEventData{
-			SubscriptionID: "sub_1", Status: "active", Currency: "USD",
+			SubscriptionID: "sub_1", Product: "pdt_subscription", Status: "active", Currency: "USD",
 			PeriodStart: periodStartPtr, PeriodEnd: periodEndPtr,
 			Metadata: map[string]string{"liki_subscription_key": pending.ID},
 		},
@@ -81,3 +81,119 @@ func TestSubscriptionEventHandlerRecordsPaymentAndAppliesLifecycle(t *testing.T)
 		t.Fatalf("allowed = %#v", allowed)
 	}
 }
+
+func TestSubscriptionEventHandlerRoutesSubscriptionRefund(t *testing.T) {
+	ctx := context.Background()
+	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	entitlements := NewEntitlementStore(db)
+	subscriptions := NewSubscriptionStore(db)
+	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
+		if err := migrate(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := subscriptions.AttachCheckout(ctx, "user-1", pending.ID, "checkout-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`UPDATE chat_subscriptions SET provider_subscription_id='sub_1' WHERE id=?`, pending.ID); err != nil {
+		t.Fatal(err)
+	}
+	paid := payment.WebhookEvent{
+		Provider: payment.ProviderDodo,
+		Type:     payment.EventPaymentSucceeded,
+		Data: payment.WebhookEventData{
+			SubscriptionID: "sub_1", PaymentID: "pay_1", Amount: 1990, Currency: "USD",
+			Metadata: map[string]string{"liki_user_id": "user-1"},
+		},
+	}
+	handler := NewSubscriptionEventHandler(subscriptions, entitlements, "pdt_subscription", func(_ context.Context, _ payment.WebhookEvent) error {
+		return nil
+	})
+	refundIntents := make([]payment.PaymentIntent, 0, 1)
+	handler.SetPaymentRefundObserver(func(_ context.Context, _ payment.WebhookEvent, intent payment.PaymentIntent) error {
+		refundIntents = append(refundIntents, intent)
+		return nil
+	})
+	if err := handler.HandleSubscriptionEvent(ctx, paid); err != nil {
+		t.Fatal(err)
+	}
+	refund := payment.WebhookEvent{
+		Provider: payment.ProviderDodo,
+		Type:     payment.EventPaymentRefunded,
+		Data: payment.WebhookEventData{
+			PaymentID: "refund_1", RefundID: "refund_1", RefundedPaymentID: "pay_1", Amount: 1990, Currency: "USD",
+			Metadata: map[string]string{"liki_user_id": "user-1"},
+		},
+	}
+	if err := handler.HandleSubscriptionEvent(ctx, refund); err != nil {
+		t.Fatal(err)
+	}
+	payments, err := subscriptions.ListPaymentsByUser(ctx, "user-1", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(payments) != 1 || payments[0].Status != "refunded" || payments[0].RefundedMinorUnits != 1990 {
+		t.Fatalf("payments = %+v", payments)
+	}
+	if len(refundIntents) != 1 || refundIntents[0].ID != "pay_1" || refundIntents[0].UserID != "user-1" {
+		t.Fatalf("refund intents = %+v", refundIntents)
+	}
+}
+
+func TestSubscriptionEventHandlerRejectsUnexpectedProduct(t *testing.T) {
+	ctx := context.Background()
+	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	entitlements := NewEntitlementStore(db)
+	subscriptions := NewSubscriptionStore(db)
+	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
+		if err := migrate(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewSubscriptionEventHandler(subscriptions, entitlements, "pdt_subscription", nil)
+	err = handler.HandleSubscriptionEvent(ctx, payment.WebhookEvent{
+		Provider: payment.ProviderDodo,
+		Type:     payment.EventSubscriptionActive,
+		Data: payment.WebhookEventData{
+			SubscriptionID: "sub_wrong", Product: "pdt_other", Status: "active",
+			PeriodStart: ptrTime(time.Date(2026, 10, 13, 0, 0, 0, 0, time.UTC)),
+			PeriodEnd:   ptrTime(time.Date(2026, 11, 12, 0, 0, 0, 0, time.UTC)),
+			Metadata:    map[string]string{"liki_subscription_key": pending.ID},
+		},
+	})
+	if err == nil {
+		t.Fatal("unexpected product webhook was accepted")
+	}
+	stored, err := subscriptions.GetByUser(ctx, "user-1", pending.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Status != SubscriptionPending || stored.ProviderSubscriptionID != "" {
+		t.Fatalf("stored = %+v", stored)
+	}
+	grants, err := entitlements.ListActiveByUser(ctx, "user-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(grants) != 0 {
+		t.Fatalf("grants = %+v", grants)
+	}
+}
+
+func ptrTime(value time.Time) *time.Time { return &value }

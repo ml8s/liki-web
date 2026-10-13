@@ -9,10 +9,9 @@ import (
 
 // normalizeSubscription extracts the fields required to maintain local access.
 // The provider object—not webhook event name alone—is authoritative.
-func normalizeSubscription(eventType string, data dodopayments.Subscription) *payment.WebhookEvent {
+func normalizeSubscription(eventType string, data dodopayments.Subscription, eventTime time.Time) *payment.WebhookEvent {
 	previous := data.PreviousBillingDate
 	next := data.NextBillingDate
-	eventTime := data.CreatedAt
 	return &payment.WebhookEvent{
 		Provider: payment.ProviderDodo,
 		Type:     eventType,
@@ -40,4 +39,34 @@ func timePtr(value time.Time) *time.Time {
 	}
 	copied := value
 	return &copied
+}
+
+// normalizeRefund keeps PaymentID as the provider refund ID for the existing
+// one-time refund flow, while retaining the original payment reference needed
+// by subscription payments.
+func normalizeRefund(eventType dodopayments.RefundSucceededWebhookEventType, data dodopayments.Refund, eventTime time.Time) *payment.WebhookEvent {
+	metadata := data.Metadata
+	orderID := metadata["payment_intent_id"]
+	if orderID == "" {
+		orderID = metadata["order_id"]
+	}
+	email := data.Customer.Email
+	if email == "" {
+		email = metadata["email"]
+	}
+	return &payment.WebhookEvent{
+		Provider: payment.ProviderDodo,
+		Type:     payment.EventPaymentRefunded,
+		Data: payment.WebhookEventData{
+			OrderID:           orderID,
+			Amount:            data.Amount,
+			Currency:          string(data.Currency),
+			Email:             email,
+			PaymentID:         data.RefundID,
+			RefundID:          data.RefundID,
+			RefundedPaymentID: data.PaymentID,
+			Metadata:          metadata,
+			ProviderEventTime: timePtr(eventTime),
+		},
+	}
 }

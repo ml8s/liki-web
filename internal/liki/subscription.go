@@ -53,19 +53,20 @@ type Subscription struct {
 }
 
 type SubscriptionPayment struct {
-	ID                string           `json:"id"`
-	SubscriptionID    string           `json:"subscription_id"`
-	UserID            string           `json:"user_id"`
-	ProductID         Product          `json:"product_id"`
-	Provider          payment.Provider `json:"provider"`
-	ProviderPaymentID string           `json:"provider_payment_id"`
-	AmountMinorUnits  int64            `json:"amount_minor_units"`
-	CurrencyCode      CurrencyCode     `json:"currency_code"`
-	Status            string           `json:"status"`
-	PeriodStart       *time.Time       `json:"period_start"`
-	PeriodEnd         *time.Time       `json:"period_end"`
-	CreatedAt         time.Time        `json:"created_at"`
-	UpdatedAt         time.Time        `json:"updated_at"`
+	ID                 string           `json:"id"`
+	SubscriptionID     string           `json:"subscription_id"`
+	UserID             string           `json:"user_id"`
+	ProductID          Product          `json:"product_id"`
+	Provider           payment.Provider `json:"provider"`
+	ProviderPaymentID  string           `json:"provider_payment_id"`
+	AmountMinorUnits   int64            `json:"amount_minor_units"`
+	RefundedMinorUnits int64            `json:"refunded_minor_units"`
+	CurrencyCode       CurrencyCode     `json:"currency_code"`
+	Status             string           `json:"status"`
+	PeriodStart        *time.Time       `json:"period_start"`
+	PeriodEnd          *time.Time       `json:"period_end"`
+	CreatedAt          time.Time        `json:"created_at"`
+	UpdatedAt          time.Time        `json:"updated_at"`
 }
 
 type SubscriptionStore struct {
@@ -136,6 +137,28 @@ CREATE INDEX IF NOT EXISTS idx_chat_subscription_payments_user
 `)
 			return err
 		},
+	}, {
+		ID: "002_chat_subscription_payment_reliability",
+		Up: func(ctx context.Context, tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `
+ALTER TABLE chat_subscription_payments ADD COLUMN refunded_minor_units INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE chat_subscription_payments ADD COLUMN observer_enqueued_at TEXT;
+
+CREATE TABLE IF NOT EXISTS chat_subscription_payment_refunds (
+    id TEXT PRIMARY KEY,
+    payment_id TEXT NOT NULL REFERENCES chat_subscription_payments(id),
+    provider TEXT NOT NULL,
+    provider_refund_id TEXT NOT NULL,
+    amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0),
+    currency_code TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE (provider, provider_refund_id)
+);
+CREATE INDEX IF NOT EXISTS idx_chat_subscription_payment_refunds_payment
+    ON chat_subscription_payment_refunds(payment_id);
+`)
+			return err
+		},
 	}})
 }
 
@@ -200,6 +223,25 @@ FROM chat_subscriptions WHERE id=? AND user_id=?`, subscriptionID, userID)
 	return item, err
 }
 
+// RequireNoBlockingSubscription prevents a second checkout while a paid or
+// recoverable subscription already owns access. Abandoned pending rows do not
+// block a retry.
+func (s *SubscriptionStore) RequireNoBlockingSubscription(ctx context.Context, userID string) error {
+	var count int
+	if err := s.db.QueryRowContext(ctx, `
+SELECT COUNT(1)
+FROM chat_subscriptions
+WHERE user_id=? AND status IN (?,?)`,
+		userID, string(SubscriptionActive), string(SubscriptionOnHold),
+	).Scan(&count); err != nil {
+		return fmt.Errorf("liki: check blocking subscription: %w", err)
+	}
+	if count > 0 {
+		return ErrSubscriptionConflict
+	}
+	return nil
+}
+
 func (s *SubscriptionStore) ListByUser(ctx context.Context, userID string, limit int) ([]Subscription, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
@@ -208,6 +250,30 @@ func (s *SubscriptionStore) ListByUser(ctx context.Context, userID string, limit
 SELECT `+subscriptionColumns()+`
 FROM chat_subscriptions WHERE user_id=?
 ORDER BY created_at DESC LIMIT ?`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	items := make([]Subscription, 0)
+	for rows.Next() {
+		item, scanErr := scanSubscription(rows.Scan)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (s *SubscriptionStore) ListPendingWithCheckoutByUser(ctx context.Context, userID string, limit int) ([]Subscription, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	rows, err := s.db.QueryContext(ctx, `
+SELECT `+subscriptionColumns()+`
+FROM chat_subscriptions
+WHERE user_id=? AND status=? AND provider_checkout_id<>''
+ORDER BY created_at DESC LIMIT ?`, userID, string(SubscriptionPending), limit)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +330,10 @@ func (s *SubscriptionStore) ApplyWebhook(ctx context.Context, entitlements *Enti
 		existing.ID = localKey
 		existing.UserID = userID
 		existing.Email = email
-		existing.ProductID = Product(orDefault(data.Product, string(ProductChat)))
+		existing.ProductID = Product(orDefault(data.Metadata["liki_product"], string(ProductChat)))
+		if _, err := ProductDefinitionFor(existing.ProductID); err != nil {
+			return err
+		}
 		existing.BillingMode = BillingModeSubscription
 		existing.Provider = event.Provider
 		existing.Status = SubscriptionPending
@@ -338,13 +407,158 @@ ON CONFLICT(provider,provider_payment_id) DO NOTHING`,
 		return fmt.Errorf("liki: record subscription payment: %w", err)
 	}
 	inserted, _ := result.RowsAffected()
-	if inserted == 0 {
+	notified, err := s.notifyPaymentObserver(ctx, event, inserted > 0, observer)
+	if err != nil {
+		return err
+	}
+	_ = notified
+	return nil
+}
+
+func (s *SubscriptionStore) notifyPaymentObserver(
+	ctx context.Context,
+	event payment.WebhookEvent,
+	justInserted bool,
+	observer func(context.Context, payment.WebhookEvent) error,
+) (bool, error) {
+	if observer == nil {
+		return false, nil
+	}
+	needsObserver := justInserted
+	if !needsObserver {
+		var notified sql.NullString
+		if err := s.db.QueryRowContext(ctx, `
+SELECT observer_enqueued_at
+FROM chat_subscription_payments
+WHERE provider=? AND provider_payment_id=?`,
+			string(event.Provider), event.Data.PaymentID,
+		).Scan(&notified); err != nil {
+			return false, fmt.Errorf("liki: load subscription payment observer state: %w", err)
+		}
+		needsObserver = !notified.Valid
+	}
+	if !needsObserver {
+		return false, nil
+	}
+	if err := observer(context.WithoutCancel(ctx), event); err != nil {
+		return false, err
+	}
+	now := formatSubscriptionTime(s.nowFunc())
+	if _, err := s.db.ExecContext(ctx, `
+UPDATE chat_subscription_payments
+SET observer_enqueued_at=?,updated_at=?
+WHERE provider=? AND provider_payment_id=? AND observer_enqueued_at IS NULL`,
+		now, now, string(event.Provider), event.Data.PaymentID); err != nil {
+		return true, fmt.Errorf("liki: mark subscription payment observer: %w", err)
+	}
+	return true, nil
+}
+
+func (s *SubscriptionStore) RecordPaymentRefund(
+	ctx context.Context, event payment.WebhookEvent,
+	refundObserver func(context.Context, payment.WebhookEvent, payment.PaymentIntent) error,
+) error {
+	data := event.Data
+	refundID := data.RefundID
+	if refundID == "" {
+		refundID = data.PaymentID
+	}
+	if event.Type != payment.EventPaymentRefunded || refundID == "" || data.RefundedPaymentID == "" || data.Amount <= 0 {
+		return fmt.Errorf("liki: subscription refund payload is incomplete")
+	}
+	var paymentID, subscriptionID, userID, productID, providerPaymentID, currency string
+	var amount, refunded int64
+	var providerSubscriptionID sql.NullString
+	if err := s.db.QueryRowContext(ctx, `
+SELECT p.id,p.subscription_id,p.user_id,p.product_id,p.provider_payment_id,
+       p.amount_minor_units,p.refunded_minor_units,p.currency_code,
+       COALESCE(sub.provider_subscription_id,'')
+FROM chat_subscription_payments p
+       JOIN chat_subscriptions sub ON sub.id=p.subscription_id
+WHERE p.provider=? AND p.provider_payment_id=?`,
+		string(event.Provider), data.RefundedPaymentID,
+	).Scan(
+		&paymentID, &subscriptionID, &userID, &productID, &providerPaymentID,
+		&amount, &refunded, &currency, &providerSubscriptionID,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrSubscriptionNotFound
+		}
+		return fmt.Errorf("liki: load subscription payment for refund: %w", err)
+	}
+	var refundSeen int
+	if err := s.db.QueryRowContext(ctx, `
+SELECT 1
+FROM chat_subscription_payment_refunds
+WHERE provider=? AND provider_refund_id=?`,
+		string(event.Provider), refundID,
+	).Scan(&refundSeen); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("liki: load subscription refund fact: %w", err)
+	}
+	if refundSeen == 1 {
 		return nil
 	}
-	if observer != nil {
-		if err := observer(context.WithoutCancel(ctx), event); err != nil {
+	if refunded+data.Amount > amount {
+		return fmt.Errorf("liki: subscription refund exceeds payment amount: refunded %d requested %d total %d",
+			refunded, data.Amount, amount)
+	}
+	providerSubscriptionIDOrLocal := providerSubscriptionID.String
+	if providerSubscriptionIDOrLocal == "" {
+		providerSubscriptionIDOrLocal = subscriptionID
+	}
+	// Referral intake is idempotent, so calling before the local fact write
+	// makes a crash between the two writes safe to retry.
+	if refundObserver != nil {
+		intent := payment.PaymentIntent{
+			ID:              providerPaymentID,
+			BusinessOrderID: providerSubscriptionIDOrLocal,
+			UserID:          userID,
+			Product:         productID,
+			Provider:        event.Provider,
+			Status:          payment.IntentPaid,
+			AmountMinor:     amount,
+			Currency:        currency,
+		}
+		if err := refundObserver(context.WithoutCancel(ctx), event, intent); err != nil {
 			return err
 		}
+	}
+	now := s.nowFunc()
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("liki: begin subscription refund: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	refundResult, err := tx.ExecContext(ctx, `
+INSERT INTO chat_subscription_payment_refunds
+(id,payment_id,provider,provider_refund_id,amount_minor_units,currency_code,created_at)
+VALUES (?,?,?,?,?,?,?)
+ON CONFLICT(provider,provider_refund_id) DO NOTHING`,
+		s.idFunc(), paymentID, string(event.Provider), refundID,
+		data.Amount, currency, formatSubscriptionTime(now),
+	)
+	if err != nil {
+		return fmt.Errorf("liki: record subscription refund fact: %w", err)
+	}
+	if inserted, _ := refundResult.RowsAffected(); inserted == 0 {
+		return nil
+	}
+	result, err := tx.ExecContext(ctx, `
+UPDATE chat_subscription_payments
+SET refunded_minor_units=refunded_minor_units+?,
+    status=CASE WHEN refunded_minor_units+? >= amount_minor_units THEN 'refunded' ELSE status END,
+    updated_at=?
+WHERE id=? AND refunded_minor_units+?<=amount_minor_units`,
+		data.Amount, data.Amount, formatSubscriptionTime(now), paymentID, data.Amount,
+	)
+	if err != nil {
+		return fmt.Errorf("liki: update subscription refund: %w", err)
+	}
+	if n, _ := result.RowsAffected(); n == 0 {
+		return fmt.Errorf("liki: subscription refund was not applied")
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("liki: commit subscription refund: %w", err)
 	}
 	return nil
 }
@@ -355,7 +569,8 @@ func (s *SubscriptionStore) ListPaymentsByUser(ctx context.Context, userID strin
 	}
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,subscription_id,user_id,product_id,provider,provider_payment_id,
-       amount_minor_units,currency_code,period_start,period_end,status,created_at,updated_at
+       amount_minor_units,refunded_minor_units,currency_code,period_start,period_end,
+       status,created_at,updated_at
 FROM chat_subscription_payments WHERE user_id=?
 ORDER BY created_at DESC LIMIT ?`, userID, limit)
 	if err != nil {
@@ -369,8 +584,8 @@ ORDER BY created_at DESC LIMIT ?`, userID, limit)
 		var productID, provider, currency, status string
 		if err := rows.Scan(
 			&item.ID, &item.SubscriptionID, &item.UserID, &productID, &provider,
-			&item.ProviderPaymentID, &item.AmountMinorUnits, &currency,
-			&periodStart, &periodEnd, &status, &createdAt, &updatedAt,
+			&item.ProviderPaymentID, &item.AmountMinorUnits, &item.RefundedMinorUnits,
+			&currency, &periodStart, &periodEnd, &status, &createdAt, &updatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -501,7 +716,7 @@ func subscriptionStatusFor(eventType, providerStatus string) SubscriptionStatus 
 		case "active", "on_hold", "cancelled", "expired", "failed":
 			return SubscriptionStatus(providerStatus)
 		default:
-			return SubscriptionActive
+			return SubscriptionOnHold
 		}
 	case payment.EventSubscriptionCancellationScheduled:
 		return SubscriptionActive

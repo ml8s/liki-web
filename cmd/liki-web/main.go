@@ -494,9 +494,10 @@ func main() {
 	paymentRuntime.SetRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
 		return referralStore.EnqueueCommissionRefund(ctx, event, intent)
 	})
-	paymentRuntime.SetSubscriptionHandler(liki.NewSubscriptionEventHandler(
+	subscriptionEventHandler := liki.NewSubscriptionEventHandler(
 		subscriptionStore,
 		entitlements,
+		cfg.DodoProductLikiChatSubscription,
 		func(ctx context.Context, event payment.WebhookEvent) error {
 			// A subscription payment is represented as a durable provider
 			// payment fact; business_order_id is the provider subscription ID.
@@ -514,7 +515,11 @@ func main() {
 			_, _, err := referralStore.EnqueueCommissionIntent(ctx, intent)
 			return err
 		},
-	))
+	)
+	subscriptionEventHandler.SetPaymentRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
+		return referralStore.EnqueueCommissionRefund(ctx, event, intent)
+	})
+	paymentRuntime.SetSubscriptionHandler(subscriptionEventHandler)
 	erasureQueue := account.NewErasureStore(platformDB)
 	if err := erasureQueue.Migrate(ctx); err != nil {
 		slog.Error("account: migrate erasure queue", "err", err)
@@ -584,6 +589,10 @@ func main() {
 				dodoClient,
 				dodoClient,
 				cfg.PublicBaseURL,
+			),
+			liki.WithSubscriptionReconciliation(
+				dodoClient,
+				subscriptionEventHandler.HandleSubscriptionEvent,
 			),
 		),
 		EngineMCP:       enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),

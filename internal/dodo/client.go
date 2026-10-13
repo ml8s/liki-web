@@ -119,6 +119,43 @@ func (c *Client) SetSubscriptionCancellation(ctx context.Context, subscriptionID
 	return nil
 }
 
+// FetchSubscriptionByCheckout heals a lost subscription webhook by following
+// Dodo's authoritative checkout → payment → subscription lookup chain.
+func (c *Client) FetchSubscriptionByCheckout(ctx context.Context, checkoutID string) (*payment.WebhookEvent, error) {
+	session, err := c.checkoutSvc.Get(ctx, checkoutID)
+	if err != nil {
+		return nil, fmt.Errorf("dodo: fetch subscription checkout: %w", err)
+	}
+	if session.PaymentID == "" || session.PaymentStatus != dodopayments.IntentStatusSucceeded {
+		return nil, nil
+	}
+	paymentRecord, err := c.paymentsSvc.Get(ctx, session.PaymentID)
+	if err != nil {
+		return nil, fmt.Errorf("dodo: fetch subscription checkout payment: %w", err)
+	}
+	if paymentRecord.SubscriptionID == "" || paymentRecord.Status != dodopayments.IntentStatusSucceeded {
+		return nil, nil
+	}
+	subscription, err := c.subscriptionSvc.Get(ctx, paymentRecord.SubscriptionID)
+	if err != nil {
+		return nil, fmt.Errorf("dodo: fetch reconciled subscription: %w", err)
+	}
+	eventType := payment.EventSubscriptionUpdated
+	switch subscription.Status {
+	case dodopayments.SubscriptionStatusActive:
+		eventType = payment.EventSubscriptionActive
+	case dodopayments.SubscriptionStatusOnHold:
+		eventType = payment.EventSubscriptionOnHold
+	case dodopayments.SubscriptionStatusCancelled:
+		eventType = payment.EventSubscriptionCancelled
+	case dodopayments.SubscriptionStatusExpired:
+		eventType = payment.EventSubscriptionExpired
+	case dodopayments.SubscriptionStatusFailed:
+		eventType = payment.EventSubscriptionFailed
+	}
+	return normalizeSubscription(eventType, *subscription, subscription.CreatedAt), nil
+}
+
 // VerifyWebhook verifies and normalizes a Dodo webhook event.
 func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.WebhookEvent, error) {
 	event, err := c.webhookSvc.Unwrap(rawBody, headers)
@@ -128,48 +165,28 @@ func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.We
 
 	union := event.AsUnion()
 	if subscriptionEvent, ok := union.(dodopayments.SubscriptionActiveWebhookEvent); ok {
-		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data, subscriptionEvent.Timestamp), nil
 	}
 	if subscriptionEvent, ok := union.(dodopayments.SubscriptionRenewedWebhookEvent); ok {
-		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data, subscriptionEvent.Timestamp), nil
 	}
 	if subscriptionEvent, ok := union.(dodopayments.SubscriptionUpdatedWebhookEvent); ok {
-		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data, subscriptionEvent.Timestamp), nil
 	}
 	if subscriptionEvent, ok := union.(dodopayments.SubscriptionOnHoldWebhookEvent); ok {
-		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data, subscriptionEvent.Timestamp), nil
 	}
 	if subscriptionEvent, ok := union.(dodopayments.SubscriptionFailedWebhookEvent); ok {
-		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data, subscriptionEvent.Timestamp), nil
 	}
 	if subscriptionEvent, ok := union.(dodopayments.SubscriptionCancelledWebhookEvent); ok {
-		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data, subscriptionEvent.Timestamp), nil
 	}
 	if subscriptionEvent, ok := union.(dodopayments.SubscriptionExpiredWebhookEvent); ok {
-		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data), nil
+		return normalizeSubscription(string(subscriptionEvent.Type), subscriptionEvent.Data, subscriptionEvent.Timestamp), nil
 	}
 	if refundEvent, ok := union.(dodopayments.RefundSucceededWebhookEvent); ok {
-		metadata := refundEvent.Data.Metadata
-		orderID := metadata["payment_intent_id"]
-		if orderID == "" {
-			orderID = metadata["order_id"]
-		}
-		email := refundEvent.Data.Customer.Email
-		if email == "" {
-			email = metadata["email"]
-		}
-		return &payment.WebhookEvent{
-			Provider: payment.ProviderDodo,
-			Type:     payment.EventPaymentRefunded,
-			Data: payment.WebhookEventData{
-				OrderID:   orderID,
-				Amount:    refundEvent.Data.Amount,
-				Currency:  string(refundEvent.Data.Currency),
-				Email:     email,
-				PaymentID: refundEvent.Data.RefundID,
-				Metadata:  metadata,
-			},
-		}, nil
+		return normalizeRefund(refundEvent.Type, refundEvent.Data, refundEvent.Timestamp), nil
 	}
 	paymentEvent, ok := union.(dodopayments.PaymentSucceededWebhookEvent)
 	if !ok {
@@ -184,12 +201,13 @@ func (c *Client) VerifyWebhook(rawBody []byte, headers http.Header) (*payment.We
 		Provider: payment.ProviderDodo,
 		Type:     string(event.Type),
 		Data: payment.WebhookEventData{
-			OrderID:        paymentEvent.Data.Metadata["payment_intent_id"],
-			Amount:         int64(paymentEvent.Data.TotalAmount),
-			Email:          email,
-			PaymentID:      paymentEvent.Data.PaymentID,
-			Metadata:       paymentEvent.Data.Metadata,
-			SubscriptionID: paymentEvent.Data.SubscriptionID,
+			OrderID:           paymentEvent.Data.Metadata["payment_intent_id"],
+			Amount:            int64(paymentEvent.Data.TotalAmount),
+			Email:             email,
+			PaymentID:         paymentEvent.Data.PaymentID,
+			Metadata:          paymentEvent.Data.Metadata,
+			SubscriptionID:    paymentEvent.Data.SubscriptionID,
+			ProviderEventTime: timePtr(paymentEvent.Timestamp),
 		},
 	}, nil
 }

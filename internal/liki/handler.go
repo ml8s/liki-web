@@ -18,11 +18,22 @@ import (
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 type LimitFunc func(http.HandlerFunc) http.HandlerFunc
 
+// ErrSubscriptionConflict reports that a blocking subscription already exists.
+var ErrSubscriptionConflict = errors.New("liki: subscription conflict")
+
 // SubscriptionCheckoutCreator is owned by the provider gateway. Keeping it as
 // a local interface avoids coupling the product HTTP layer to Dodo.
 type SubscriptionCheckoutCreator interface {
 	CreateSubscriptionCheckout(context.Context, payment.SubscriptionCheckoutRequest) (*payment.CheckoutResult, error)
 }
+
+// SubscriptionReconciler heals a lost webhook through the provider's
+// authoritative checkout/payment/subscription lookup chain.
+type SubscriptionReconciler interface {
+	FetchSubscriptionByCheckout(context.Context, string) (*payment.WebhookEvent, error)
+}
+
+type SubscriptionEventApplier func(context.Context, payment.WebhookEvent) error
 
 // Handler registers all Liki Chat HTTP routes: entitlement listing,
 // product catalog, checkout, orders, and chat sessions/messages.
@@ -37,6 +48,8 @@ type Handler struct {
 	subscriptions            *SubscriptionStore
 	subscriptionCheckout     SubscriptionCheckoutCreator
 	subscriptionCancellation payment.SubscriptionCancellationGateway
+	subscriptionReconciler   SubscriptionReconciler
+	applySubscriptionEvent   SubscriptionEventApplier
 	publicBaseURL            string
 }
 
@@ -74,6 +87,15 @@ func WithSubscriptionCommerce(
 	}
 }
 
+func WithSubscriptionReconciliation(reconciler SubscriptionReconciler, apply SubscriptionEventApplier) HandlerOption {
+	return func(h *Handler) {
+		if reconciler != nil && apply != nil {
+			h.subscriptionReconciler = reconciler
+			h.applySubscriptionEvent = apply
+		}
+	}
+}
+
 func NewHandler(orders *OrderStore, entitlements *EntitlementStore, service *Service, runtime *payment.Runtime, requireUser RequireUserFunc, options ...HandlerOption) *Handler {
 	h := &Handler{
 		orders:       orders,
@@ -101,6 +123,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 	mux.HandleFunc("GET /api/chat/orders", h.requireUser(h.HandleOrders))
 	if h.subscriptions != nil {
 		mux.HandleFunc("GET /api/me/subscriptions", h.requireUser(h.HandleSubscriptions))
+		mux.HandleFunc("GET /api/me/subscription-payments", h.requireUser(h.HandleSubscriptionPayments))
 		mux.HandleFunc("POST /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleSetCancellation))
 		mux.HandleFunc("DELETE /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleDeleteCancellation))
 	}
@@ -318,6 +341,15 @@ func (h *Handler) handleSubscriptionCheckout(
 		httputil.RespondError(w, http.StatusBadRequest, "subscription_unavailable", "订阅在当前区域不可用")
 		return
 	}
+	if err := h.subscriptions.RequireNoBlockingSubscription(r.Context(), user.ID); err != nil {
+		if errors.Is(err, ErrSubscriptionConflict) {
+			httputil.RespondError(w, http.StatusConflict, "subscription_conflict", "已有有效订阅")
+			return
+		}
+		slog.Error("liki: check blocking subscription", "user_id", user.ID, "err", err)
+		httputil.InternalError(w)
+		return
+	}
 	subscription, err := h.subscriptions.CreatePending(r.Context(), user.ID, user.Email, productID, currency)
 	if err != nil {
 		slog.Error("liki: create subscription", "user_id", user.ID, "err", err)
@@ -360,7 +392,56 @@ func (h *Handler) HandleSubscriptions(w http.ResponseWriter, r *http.Request) {
 		httputil.InternalError(w)
 		return
 	}
+	if h.subscriptionReconciler != nil && h.applySubscriptionEvent != nil {
+		if err := h.reconcilePendingSubscriptions(r.Context(), user.ID); err != nil {
+			slog.Error("liki: reconcile pending subscriptions", "user_id", user.ID, "err", err)
+		}
+		items, err = h.subscriptions.ListByUser(r.Context(), user.ID, 50)
+		if err != nil {
+			httputil.InternalError(w)
+			return
+		}
+	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{"subscriptions": items})
+}
+
+func (h *Handler) reconcilePendingSubscriptions(ctx context.Context, userID string) error {
+	pending, err := h.subscriptions.ListPendingWithCheckoutByUser(ctx, userID, 20)
+	if err != nil {
+		return err
+	}
+	for _, item := range pending {
+		if item.ProviderCheckoutID == "" {
+			continue
+		}
+		event, err := h.subscriptionReconciler.FetchSubscriptionByCheckout(ctx, item.ProviderCheckoutID)
+		if err != nil {
+			slog.Error("liki: fetch pending subscription", "subscription_id", item.ID, "checkout_id", item.ProviderCheckoutID, "err", err)
+			continue
+		}
+		if event == nil {
+			continue
+		}
+		if err := h.applySubscriptionEvent(ctx, *event); err != nil {
+			slog.Error("liki: apply reconciled subscription", "subscription_id", item.ID, "err", err)
+		}
+	}
+	return nil
+}
+
+func (h *Handler) HandleSubscriptionPayments(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.Unauthorized(w)
+		return
+	}
+	items, err := h.subscriptions.ListPaymentsByUser(r.Context(), user.ID, 50)
+	if err != nil {
+		slog.Error("liki: list subscription payments", "user_id", user.ID, "err", err)
+		httputil.InternalError(w)
+		return
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"payments": items})
 }
 
 func (h *Handler) HandleSetCancellation(w http.ResponseWriter, r *http.Request) {

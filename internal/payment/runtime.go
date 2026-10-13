@@ -309,7 +309,8 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 		return nil, fmt.Errorf("%w: %v", ErrWebhookVerification, err)
 	}
 	if r.subscriptionHandler != nil && (IsSubscriptionLifecycle(event.Type) ||
-		((event.Type == EventPaymentSucceeded || event.Type == EventPaymentRefunded) && event.Data.SubscriptionID != "")) {
+		(event.Type == EventPaymentSucceeded && event.Data.SubscriptionID != "") ||
+		(event.Type == EventPaymentRefunded && isSubscriptionRefund(event.Data))) {
 		if err := r.subscriptionHandler.HandleSubscriptionEvent(ctx, *event); err != nil {
 			metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "subscription_failed"})
 			return nil, err
@@ -344,6 +345,12 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 	}
 	metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "captured"})
 	return r.webhookAck(event.Provider)
+}
+
+func isSubscriptionRefund(data WebhookEventData) bool {
+	return data.SubscriptionID != "" ||
+		data.Metadata["liki_billing_mode"] == "subscription" ||
+		data.Metadata["liki_subscription_key"] != ""
 }
 
 func (r *Runtime) webhookAck(provider Provider) ([]byte, error) {

@@ -545,6 +545,8 @@
   },
     "subscriptions": {
       "title": "Subscriptions",
+      "paymentHistory": "Payment history",
+      "refundedAmount": "Refunded {amount}",
       "activeUntil": "Active until",
       "nextBilling": "Next billing",
       "endsAtPeriodEnd": "Ends at period end",
@@ -558,6 +560,11 @@
         "cancelled": "Cancelled",
         "expired": "Expired",
         "failed": "Failed"
+      },
+      "paymentStatus": {
+        "paid": "Paid",
+        "partiallyRefunded": "Partially refunded",
+        "refunded": "Refunded"
       }
     },
   "orders": {

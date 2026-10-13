@@ -109,6 +109,44 @@
           </el-button>
         </div>
       </div>
+      <div
+        v-if="subscriptionPayments.length"
+        class="subscription-payments"
+      >
+        <h3 class="subscription-payments-title">
+          {{ $t('subscriptions.paymentHistory') }}
+        </h3>
+        <div
+          v-for="item in subscriptionPayments"
+          :key="item.id"
+          class="subscription-payment"
+        >
+          <div>
+            <span class="payment-date">{{ formatDateTime(item.created_at) }}</span>
+            <span
+              v-if="item.period_start && item.period_end"
+              class="payment-period"
+            >
+              {{ formatDateTime(item.period_start) }} – {{ formatDateTime(item.period_end) }}
+            </span>
+          </div>
+          <div class="payment-state">
+            <span class="payment-amount">{{ formatMinorUnit(item.amount_minor_units, item.currency_code) }}</span>
+            <span
+              v-if="item.refunded_minor_units > 0"
+              class="payment-refund"
+            >
+              {{ $t('subscriptions.refundedAmount', { amount: formatMinorUnit(item.refunded_minor_units, item.currency_code) }) }}
+            </span>
+            <el-tag
+              :type="subscriptionPaymentStatusType(item)"
+              size="small"
+            >
+              {{ subscriptionPaymentStatusLabel(item) }}
+            </el-tag>
+          </div>
+        </div>
+      </div>
     </el-card>
 
     <!-- 桌面：表格 -->
@@ -224,13 +262,14 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { fetchChatOrders, fetchSubscriptions, setSubscriptionCancellation, type ChatOrder, type ChatSubscription } from '@/api/orders'
+import { fetchChatOrders, fetchSubscriptionPayments, fetchSubscriptions, setSubscriptionCancellation, type ChatOrder, type ChatSubscription, type SubscriptionPayment } from '@/api/orders'
 import { formatDateTime, formatMinorUnit, productName } from '@/utils/format'
 import { useMobile } from '@/composables/useMobile'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
 const orders = ref<ChatOrder[]>([])
 const subscriptions = ref<ChatSubscription[]>([])
+const subscriptionPayments = ref<SubscriptionPayment[]>([])
 const updatingId = ref('')
 const loading = ref(false)
 const error = ref('')
@@ -243,12 +282,14 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [orderItems, subscriptionItems] = await Promise.all([
+    const [orderItems, subscriptionItems, paymentItems] = await Promise.all([
       fetchChatOrders(),
       fetchSubscriptions(),
+      fetchSubscriptionPayments(),
     ])
     orders.value = orderItems
     subscriptions.value = subscriptionItems
+    subscriptionPayments.value = paymentItems
   } catch (err) {
     error.value = toUserMessage(err, t('orders.loadFailed'))
   } finally {
@@ -273,6 +314,18 @@ function subscriptionStatusType(status: ChatSubscription['status']) {
   if (status === 'pending' || status === 'on_hold') return 'warning'
   if (status === 'failed') return 'danger'
   return 'info'
+}
+
+function subscriptionPaymentStatusLabel(payment: SubscriptionPayment) {
+  if (payment.status === 'refunded') return t('subscriptions.paymentStatus.refunded')
+  if (payment.refunded_minor_units > 0) return t('subscriptions.paymentStatus.partiallyRefunded')
+  return t('subscriptions.paymentStatus.paid')
+}
+
+function subscriptionPaymentStatusType(payment: SubscriptionPayment) {
+  if (payment.status === 'refunded') return 'info'
+  if (payment.refunded_minor_units > 0) return 'warning'
+  return 'success'
 }
 
 async function toggleCancellation(subscription: ChatSubscription) {
@@ -320,7 +373,21 @@ onMounted(() => {
 .subscription { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .subscription-title { display: flex; align-items: center; gap: 8px; font-weight: 650; }
 .subscription-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; color: var(--liki-text-2); font-size: 13px; }
+.subscription-payments { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--liki-line); }
+.subscription-payments-title { margin: 0 0 10px; font-size: 14px; font-weight: 650; }
+.subscription-payment {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 8px 0; border-bottom: 1px solid var(--liki-line);
+}
+.subscription-payment:last-child { border-bottom: 0; }
+.payment-date { font-weight: 600; font-size: 13px; }
+.payment-period { margin-left: 10px; color: var(--liki-text-2); font-size: 12px; }
+.payment-state { display: flex; align-items: center; gap: 10px; }
+.payment-amount { font-weight: 600; font-size: 13px; }
+.payment-refund { color: var(--liki-text-2); font-size: 12px; }
 @media (max-width: 640px) { .subscription { align-items: flex-start; flex-direction: column; } }
+.subscription-payment { align-items: flex-start; flex-direction: column; gap: 6px; }
+.payment-state { flex-wrap: wrap; }
 .orders-table { background: var(--liki-surface); border-radius: var(--el-border-radius-base); }
 .order-cards { display: grid; gap: 12px; }
 .order-card {

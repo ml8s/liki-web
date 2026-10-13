@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchSubscriptions, setSubscriptionCancellation } from '@/api/orders'
+import { fetchSubscriptionPayments, fetchSubscriptions, setSubscriptionCancellation } from '@/api/orders'
 
 describe('subscriptions API', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -11,6 +11,15 @@ describe('subscriptions API', () => {
       { status: 200 },
     )))
     await expect(fetchSubscriptions()).resolves.toEqual([subscription])
+  })
+
+  it('lists subscription payments with refund state', async () => {
+    const payment = { id: 'payment-1', amount_minor_units: 1990, refunded_minor_units: 500, status: 'paid' }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ data: { payments: [payment] } }),
+      { status: 200 },
+    )))
+    await expect(fetchSubscriptionPayments()).resolves.toEqual([payment])
   })
 
   it('updates cancellation with POST and DELETE', async () => {
