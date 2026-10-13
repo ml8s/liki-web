@@ -15,7 +15,7 @@
     </AppPageHeader>
 
     <el-result
-      v-if="error && !orders.length"
+      v-if="error && !orders.length && !subscriptions.length"
       icon="warning"
       :title="$t('orders.loadFailed')"
       :sub-title="error"
@@ -38,14 +38,14 @@
     />
 
     <el-skeleton
-      v-else-if="loading && !orders.length"
+      v-else-if="loading && !orders.length && !subscriptions.length"
       :rows="6"
       animated
       aria-busy="true"
     />
 
     <el-empty
-      v-else-if="!loading && !orders.length"
+      v-else-if="!loading && !orders.length && !subscriptions.length"
       :description="$t('orders.empty')"
     >
       <el-button
@@ -56,6 +56,60 @@
         {{ $t('orders.unlock') }}
       </el-button>
     </el-empty>
+
+    <el-card
+      v-if="subscriptions.length"
+      class="app-card subscription-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('subscriptions.title') }}
+        </h2>
+      </template>
+      <div class="subscription-list">
+        <div
+          v-for="subscription in subscriptions"
+          :key="subscription.id"
+          class="subscription"
+        >
+          <div class="subscription-main">
+            <div class="subscription-title">
+              {{ productName(subscription.product_id) }}
+              <el-tag
+                :type="subscriptionStatusType(subscription.status)"
+                size="small"
+              >
+                {{ subscriptionStatusLabel(subscription.status) }}
+              </el-tag>
+              <el-tag
+                v-if="subscription.cancel_at_period_end && subscription.status === 'active'"
+                type="warning"
+                size="small"
+              >
+                {{ $t('subscriptions.endsAtPeriodEnd') }}
+              </el-tag>
+            </div>
+            <div class="subscription-meta">
+              <span v-if="subscription.current_period_end">
+                {{ $t('subscriptions.activeUntil') }} {{ formatDateTime(subscription.current_period_end) }}
+              </span>
+              <span v-if="subscription.next_billing_at">
+                {{ $t('subscriptions.nextBilling') }} {{ formatDateTime(subscription.next_billing_at) }}
+              </span>
+            </div>
+          </div>
+          <el-button
+            v-if="subscription.status === 'active' && subscription.provider_subscription_id"
+            size="small"
+            :loading="updatingId === subscription.id"
+            @click="toggleCancellation(subscription)"
+          >
+            {{ subscription.cancel_at_period_end ? $t('subscriptions.resume') : $t('subscriptions.cancel') }}
+          </el-button>
+        </div>
+      </div>
+    </el-card>
 
     <!-- 桌面：表格 -->
     <el-table
@@ -170,12 +224,14 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { fetchChatOrders, type ChatOrder } from '@/api/orders'
+import { fetchChatOrders, fetchSubscriptions, setSubscriptionCancellation, type ChatOrder, type ChatSubscription } from '@/api/orders'
 import { formatDateTime, formatMinorUnit, productName } from '@/utils/format'
 import { useMobile } from '@/composables/useMobile'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
 const orders = ref<ChatOrder[]>([])
+const subscriptions = ref<ChatSubscription[]>([])
+const updatingId = ref('')
 const loading = ref(false)
 const error = ref('')
 const isMobile = useMobile()
@@ -187,11 +243,48 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    orders.value = await fetchChatOrders()
+    const [orderItems, subscriptionItems] = await Promise.all([
+      fetchChatOrders(),
+      fetchSubscriptions(),
+    ])
+    orders.value = orderItems
+    subscriptions.value = subscriptionItems
   } catch (err) {
     error.value = toUserMessage(err, t('orders.loadFailed'))
   } finally {
     loading.value = false
+  }
+}
+
+function subscriptionStatusLabel(status: ChatSubscription['status']) {
+  const keys: Record<ChatSubscription['status'], string> = {
+    pending: 'subscriptions.status.pending',
+    active: 'subscriptions.status.active',
+    on_hold: 'subscriptions.status.onHold',
+    cancelled: 'subscriptions.status.cancelled',
+    expired: 'subscriptions.status.expired',
+    failed: 'subscriptions.status.failed',
+  }
+  return t(keys[status])
+}
+
+function subscriptionStatusType(status: ChatSubscription['status']) {
+  if (status === 'active') return 'success'
+  if (status === 'pending' || status === 'on_hold') return 'warning'
+  if (status === 'failed') return 'danger'
+  return 'info'
+}
+
+async function toggleCancellation(subscription: ChatSubscription) {
+  updatingId.value = subscription.id
+  error.value = ''
+  try {
+    const cancel = !subscription.cancel_at_period_end
+    subscription.cancel_at_period_end = await setSubscriptionCancellation(subscription.id, cancel)
+  } catch (err) {
+    error.value = toUserMessage(err, t('subscriptions.updateFailed'))
+  } finally {
+    updatingId.value = ''
   }
 }
 
@@ -222,6 +315,12 @@ onMounted(() => {
 
 <style scoped>
 .pending-alert { margin-bottom: 16px; }
+.subscription-card { margin-bottom: 16px; }
+.subscription-list { display: grid; gap: 12px; }
+.subscription { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.subscription-title { display: flex; align-items: center; gap: 8px; font-weight: 650; }
+.subscription-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; color: var(--liki-text-2); font-size: 13px; }
+@media (max-width: 640px) { .subscription { align-items: flex-start; flex-direction: column; } }
 .orders-table { background: var(--liki-surface); border-radius: var(--el-border-radius-base); }
 .order-cards { display: grid; gap: 12px; }
 .order-card {

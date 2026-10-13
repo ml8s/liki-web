@@ -543,6 +543,23 @@
       "disclaimer": "Disclaimer"
     }
   },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "activeUntil": "Active until",
+      "nextBilling": "Next billing",
+      "endsAtPeriodEnd": "Ends at period end",
+      "cancel": "Cancel renewal",
+      "resume": "Resume renewal",
+      "updateFailed": "Could not update subscription",
+      "status": {
+        "pending": "Pending",
+        "active": "Active",
+        "onHold": "Payment on hold",
+        "cancelled": "Cancelled",
+        "expired": "Expired",
+        "failed": "Failed"
+      }
+    },
   "orders": {
     "subtitle": "Your Liki Chat purchase history.",
     "loadFailed": "Failed to load orders",

@@ -1,4 +1,4 @@
-import { get } from './http'
+import { del, get, post } from './http'
 
 export interface ChatOrder {
   id: string
@@ -17,4 +17,34 @@ export interface ChatOrder {
 export async function fetchChatOrders(): Promise<ChatOrder[]> {
   const payload = await get<{ orders: ChatOrder[] }>('/api/chat/orders')
   return payload.orders ?? []
+}
+
+export interface ChatSubscription {
+  id: string
+  user_id: string
+  email: string
+  product_id: string
+  billing_mode: 'subscription'
+  provider: 'dodo'
+  provider_subscription_id: string
+  status: 'pending' | 'active' | 'on_hold' | 'cancelled' | 'expired' | 'failed'
+  currency_code: 'CNY' | 'USD'
+  current_period_start: string | null
+  current_period_end: string | null
+  next_billing_at: string | null
+  cancel_at_period_end: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function fetchSubscriptions(): Promise<ChatSubscription[]> {
+  const payload = await get<{ subscriptions: ChatSubscription[] }>('/api/me/subscriptions')
+  return payload.subscriptions ?? []
+}
+
+export async function setSubscriptionCancellation(subscriptionId: string, cancel: boolean): Promise<boolean> {
+  const payload = cancel
+    ? await post<{ cancel_at_period_end: boolean }>(`/api/me/subscriptions/${subscriptionId}/cancellation`)
+    : await del<{ cancel_at_period_end: boolean }>(`/api/me/subscriptions/${subscriptionId}/cancellation`)
+  return payload.cancel_at_period_end
 }

@@ -543,6 +543,23 @@
       "disclaimer": "免责声明"
     }
   },
+    "subscriptions": {
+      "title": "订阅",
+      "activeUntil": "可用至",
+      "nextBilling": "下次扣费",
+      "endsAtPeriodEnd": "本周期结束后取消",
+      "cancel": "取消续费",
+      "resume": "恢复续费",
+      "updateFailed": "更新订阅失败",
+      "status": {
+        "pending": "待生效",
+        "active": "生效中",
+        "onHold": "扣费异常",
+        "cancelled": "已取消",
+        "expired": "已过期",
+        "failed": "已失败"
+      }
+    },
   "orders": {
     "subtitle": "Liki Chat 购买记录。",
     "loadFailed": "订单加载失败",
