@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import json
+import unittest
 from pathlib import Path
-
-import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,32 +11,35 @@ APP_PACKAGE = json.loads((ROOT / "web/app/package.json").read_text(encoding="utf
 VITE_CONFIG = (ROOT / "web/app/vite.config.ts").read_text(encoding="utf-8")
 
 
-def test_go_coverage_target_matches_ci_policy() -> None:
-    assert "test-go-coverage:" in MAKEFILE
-    assert "go test -race -count=1" in MAKEFILE
-    assert "-coverprofile=coverage.out" in MAKEFILE
-    assert "-coverpkg=./internal/..." in MAKEFILE
-    assert "go tool cover -func=coverage.out" in MAKEFILE
-    assert 'Go coverage $$COV% < 65%' in MAKEFILE
+class FrontendCoverageInfraTest(unittest.TestCase):
+    def test_go_coverage_target_matches_ci_policy(self) -> None:
+        self.assertIn("test-go-coverage:", MAKEFILE)
+        self.assertIn("go test -race -count=1", MAKEFILE)
+        self.assertIn("-coverprofile=coverage.out", MAKEFILE)
+        self.assertIn("-coverpkg=./internal/...", MAKEFILE)
+        self.assertIn("go tool cover -func=coverage.out", MAKEFILE)
+        self.assertIn("Go coverage $$COV% < 65%", MAKEFILE)
+
+    def test_frontend_coverage_target_is_standardized(self) -> None:
+        self.assertIn("test-js-coverage:", MAKEFILE)
+        self.assertEqual(APP_PACKAGE["scripts"]["test:coverage"], "vitest run --coverage")
+
+    def test_vitest_uses_v8_provider_and_reports(self) -> None:
+        package_lock = (ROOT / "web/app/package.json").read_text(encoding="utf-8")
+        self.assertIn('"@vitest/coverage-v8"', package_lock)
+        self.assertIn("provider: 'v8'", VITE_CONFIG)
+        self.assertIn("reportsDirectory", VITE_CONFIG)
+        self.assertIn("text-summary", VITE_CONFIG)
+        self.assertIn("html", VITE_CONFIG)
+        self.assertIn("statements: 29", VITE_CONFIG)
+        self.assertIn("branches: 25", VITE_CONFIG)
+        self.assertIn("functions: 18", VITE_CONFIG)
+        self.assertIn("lines: 30", VITE_CONFIG)
+
+    def test_frontend_domain_sources_are_included(self) -> None:
+        for path in ("src/api/**", "src/stores/**", "src/components/**", "src/utils/**"):
+            self.assertIn(path, VITE_CONFIG)
 
 
-def test_frontend_coverage_target_is_standardized() -> None:
-    assert "test-js-coverage:" in MAKEFILE
-    assert APP_PACKAGE["scripts"]["test:coverage"] == "vitest run --coverage"
-
-
-def test_vitest_uses_v8_provider_and_reports() -> None:
-    assert '"@vitest/coverage-v8"' in (ROOT / "web/app/package.json").read_text(encoding="utf-8")
-    assert "provider: 'v8'" in VITE_CONFIG
-    assert "reportsDirectory" in VITE_CONFIG
-    assert "text-summary" in VITE_CONFIG
-    assert "html" in VITE_CONFIG
-    assert "statements: 29" in VITE_CONFIG
-    assert "branches: 25" in VITE_CONFIG
-    assert "functions: 18" in VITE_CONFIG
-    assert "lines: 30" in VITE_CONFIG
-
-
-def test_frontend_domain_sources_are_included() -> None:
-    for path in ("src/api/**", "src/stores/**", "src/components/**", "src/utils/**"):
-        assert path in VITE_CONFIG
+if __name__ == "__main__":
+    unittest.main()
