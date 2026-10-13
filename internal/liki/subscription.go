@@ -407,6 +407,21 @@ UPDATE chat_subscriptions SET cancel_at_period_end=?,updated_at=? WHERE id=?`,
 	return err
 }
 
+// AnonymizeUser retains provider billing IDs and amounts for audit while
+// removing the local contact email from subscription records.
+func (s *SubscriptionStore) AnonymizeUser(ctx context.Context, userID, oldEmail, tombstone string) (int64, error) {
+	if userID == "" || tombstone == "" {
+		return 0, fmt.Errorf("liki: anonymize subscriptions requires user and tombstone")
+	}
+	res, err := s.db.ExecContext(ctx, `
+UPDATE chat_subscriptions SET email=?
+WHERE user_id=? OR (? != '' AND email=?)`, tombstone, userID, oldEmail, oldEmail)
+	if err != nil {
+		return 0, fmt.Errorf("liki: anonymize subscriptions: %w", err)
+	}
+	return res.RowsAffected()
+}
+
 func (s *SubscriptionStore) findByProviderOrLocalKey(ctx context.Context, providerID, localKey string) (Subscription, error) {
 	if localKey != "" {
 		row := s.db.QueryRowContext(ctx, `SELECT `+subscriptionColumns()+` FROM chat_subscriptions WHERE id=?`, localKey)

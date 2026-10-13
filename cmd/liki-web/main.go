@@ -568,6 +568,7 @@ func main() {
 		erasureQueue,
 		authHandler.RequireUser,
 	)
+	accountHandler.SetSubscriptionEraser(subscriptionStore)
 
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
 		PaymentRuntime:  paymentRuntime,

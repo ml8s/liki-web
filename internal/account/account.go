@@ -32,6 +32,10 @@ type AdminAuditEraser interface {
 	AnonymizeAuditLogs(ctx context.Context, email, tombstone string) (int64, error)
 }
 
+type SubscriptionEraser interface {
+	AnonymizeUser(ctx context.Context, userID, oldEmail, tombstone string) (int64, error)
+}
+
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
@@ -42,6 +46,7 @@ type Handler struct {
 	entitlement   *liki.EntitlementStore
 	payments      *payment.IntentStore
 	notifications *payment.NotificationStore
+	subscriptions SubscriptionEraser
 	referral      ReferralEraser
 	adminAudit    AdminAuditEraser
 	erasureQueue  *ErasureStore
@@ -74,6 +79,12 @@ func NewHandler(
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit func(http.HandlerFunc) http.HandlerFunc) {
 	mux.HandleFunc("POST /api/account/erasure", limit(h.requireUser(h.HandleErasure)))
+}
+
+// SetSubscriptionEraser keeps the existing constructor stable while making the
+// newer commerce domain explicit in production wiring.
+func (h *Handler) SetSubscriptionEraser(subscriptions SubscriptionEraser) {
+	h.subscriptions = subscriptions
 }
 
 // HandleErasure 合规强删（个保法删除权）：匿名化该用户全部档案（清除出生信息等
@@ -155,6 +166,14 @@ func (h *Handler) runErasureSteps(ctx context.Context, user auth.User, tombstone
 			return h.notifications.AnonymizeUser(ctx, user.ID, user.Email, tombstone)
 		}},
 	}
+	if h.subscriptions != nil {
+		domains = append(domains, struct {
+			name  string
+			erase func(context.Context) (int64, error)
+		}{name: "commerce_subscriptions", erase: func(ctx context.Context) (int64, error) {
+			return h.eraseSubscriptions(ctx, user.ID, user.Email, tombstone)
+		}})
+	}
 	for _, domain := range domains {
 		cleared, err := domain.erase(ctx)
 		if err != nil {
@@ -184,4 +203,11 @@ func (h *Handler) runErasureSteps(ctx context.Context, user auth.User, tombstone
 	outcome.AuthResult = authResult
 	mark("auth_identity")
 	return outcome, nil
+}
+
+func (h *Handler) eraseSubscriptions(ctx context.Context, userID, oldEmail, tombstone string) (int64, error) {
+	if h.subscriptions == nil {
+		return 0, nil
+	}
+	return h.subscriptions.AnonymizeUser(ctx, userID, oldEmail, tombstone)
 }
