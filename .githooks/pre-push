@@ -1,6 +1,6 @@
 #!/bin/bash
-# pre-push — 快速静态检查，全量测试由 CI 兜底
+# pre-push — 本地源码门槛：static checks + tests；镜像测试由 release workflow 兜底
 set -eo pipefail
 cd "$(git rev-parse --show-toplevel)"
-make check
+make gate
 echo "✓ pre-push ok"
