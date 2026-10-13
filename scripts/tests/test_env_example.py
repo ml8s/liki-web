@@ -12,7 +12,7 @@ class EnvExampleTest(unittest.TestCase):
     def test_every_runtime_env_var_has_a_template_entry(self):
         source_vars = set()
         env_call = re.compile(
-            r"\b(?:os\.Getenv|envOr(?:Bool|Int)?)\(\s*\"([A-Z][A-Z0-9_]+)\""
+            r"\b(?:os\.Getenv|envOr(?:Bool|Int64|Int)?)\(\s*\"([A-Z][A-Z0-9_]+)\""
         )
         for root in GO_ROOTS:
             for path in root.rglob("*.go"):
@@ -31,10 +31,10 @@ class EnvExampleTest(unittest.TestCase):
     def test_security_sensitive_template_values_stay_empty(self):
         template = ENV_EXAMPLE.read_text(encoding="utf-8")
         for name in (
-            "JWT_SECRET", "REFERRAL_PAYOUT_SECRET", "RESEND_API_KEY",
+            "JWT_SECRET", "LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY", "RESEND_API_KEY",
             "DODO_API_KEY", "DODO_WEBHOOK_KEY", "XUNHU_APPSECRET",
             "ALIPAY_PRIVATE_KEY", "LIKI_AGENTS_INTERNAL_TOKEN",
-            "FEEDBACK_API_KEY", "METRICS_TOKEN",
+            "LIKI_FEEDBACK_API_TOKEN", "LIKI_METRICS_TOKEN",
         ):
             match = re.search(rf"^{name}=(.*)$", template, re.MULTILINE)
             self.assertIsNotNone(match, f".env.example missing {name}")
