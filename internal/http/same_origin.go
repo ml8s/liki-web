@@ -17,11 +17,10 @@ func SameOrigin(devMode bool, next stdhttp.Handler) stdhttp.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if devMode && sameOriginAllowed(r, devOrigins) {
-			next.ServeHTTP(w, r)
-			return
-		}
-		if !devMode && sameOriginExpectedHost(r) {
+		// An exact Origin/Referer + forwarded-host match is safe in every
+		// environment. The dev-origin allowlist is an additional convenience
+		// for direct local servers (for example, Vite on :5173).
+		if sameOriginExpectedHost(r) || (devMode && sameOriginAllowed(r, devOrigins)) {
 			next.ServeHTTP(w, r)
 			return
 		}
