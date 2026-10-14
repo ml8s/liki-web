@@ -36,7 +36,7 @@
     "description": "建立出生檔案，免費查看八字與紫微命盤；需要深入分析時，再進入 Liki Chat。",
     "valueChart": "確定性排盤",
     "valueInterpretation": "專業解讀",
-    "valueProfile": "免費建檔",
+    "valueBirthProfile": "免費建檔",
     "loginTitle": "登入 Liki",
     "slogan": "懂命理，用 Liki",
     "codeHint": "輸入郵箱取得登入驗證碼。",
@@ -130,9 +130,9 @@
       "cta": "看風水",
       "pageTitle": "風水",
       "subtitle": "先看命卦與八宅吉凶方位、流年飛星；布局解讀進對話。",
-      "selectProfile": "選擇檔案（本命）",
-      "noProfilePrefix": "還沒有檔案，先",
-      "noProfileSuffix": "再看風水。",
+      "selectBirthProfile": "選擇檔案（本命）",
+      "noBirthProfilePrefix": "還沒有檔案，先",
+      "noBirthProfileSuffix": "再看風水。",
       "lifeGua": "命卦",
       "lifeGuaDirections": "命卦與吉凶方",
       "element": "五行：",
@@ -190,8 +190,6 @@
       "title": "合盤",
       "subtitle": "用你的檔案與對方資訊，查看兩人的八字合盤。",
       "step1": "第一步 · 選擇檔案（你或對方）",
-      "noProfilePrefix": "還沒有檔案，先",
-      "noProfileSuffix": "再合盤。",
       "step2": "第二步 · 輸入對方資訊",
       "birthPlaceOptional": "出生地（可選）",
       "birthPlacePlaceholder": "用於真太陽時修正，如：上海",
@@ -214,7 +212,9 @@
       "bStarIntoA": "對方的{name}入{a}命盤",
       "aViewB": "{a}{pillar}柱看對方：{value}",
       "bViewA": "對方{pillar}柱看{a}：{value}",
-      "otherProfileSummary": "{gender}，西曆 {date} {time}{place}",
+      "noBirthProfilePrefix": "還沒有檔案，先",
+      "noBirthProfileSuffix": "再看合盤。",
+      "otherBirthProfileSummary": "{gender}，西曆 {date} {time}{place}",
       "otherPlace": "，出生地 {place}",
       "pillarShort": {
         "year": "年",
@@ -225,12 +225,12 @@
     }
   },
   "dashboard": {
-    "noProfile": {
+    "noBirthProfile": {
       "title": "從排盤開始",
       "body": "建立出生檔案後，可免費查看確定性排盤。需要深入解讀時，再進入 Liki Chat。",
       "cta": "建立檔案，免費排盤"
     },
-    "freeProfile": {
+    "freeBirthProfile": {
       "title": "你的排盤已就緒",
       "note": "排盤免費。AI 解讀由 Liki Chat 提供。",
       "viewChart": "查看免費排盤",
@@ -246,13 +246,13 @@
       "cta": "繼續諮詢"
     },
     "state": {
-      "noProfile": "先建立出生檔案，免費查看確定性排盤。",
-      "freeProfile": "排盤免費看。需要深入分析時，進入 Liki Chat 解讀。",
+      "noBirthProfile": "先建立出生檔案，免費查看確定性排盤。",
+      "freeBirthProfile": "排盤免費看。需要深入分析時，進入 Liki Chat 解讀。",
       "paidNoSession": "你的解讀權益已就緒，隨時可以開始諮詢。",
       "paidContinue": "繼續上次話題，或查看檔案後再開啟新諮詢。"
     },
-    "recentProfiles": "最近檔案",
-    "allProfiles": "全部檔案",
+    "recentBirthProfiles": "最近檔案",
+    "allBirthProfiles": "全部檔案",
     "recentSessions": "最近會話",
     "allSessions": "全部會話",
     "moreScenarios": "更多場景"
@@ -428,8 +428,8 @@
     "pendingService": "準備開始：{service}",
     "subtitle": "八字、合盤、起名、問卦、風水——一個入口，專業解讀。",
     "productsFailed": "產品載入失敗",
-    "selectProfile": "選擇檔案",
-    "selectProfileFirst": "請先選擇一個檔案",
+    "selectBirthProfile": "選擇檔案",
+    "selectBirthProfileFirst": "請先選擇一個檔案",
     "selectDomain": "選擇解讀領域",
     "empty": "選擇檔案與解讀領域後，即可開啟第一次對話。",
     "createFailed": "建立會話失敗",
@@ -481,7 +481,7 @@
       "updated": "更新時間",
       "open": "開啟"
     },
-    "systemProfile": {
+    "systemBirthProfile": {
       "title": "已載入檔案",
       "note": "將基於以上出生資訊排盤後解讀。",
       "known": "已知",
@@ -489,7 +489,7 @@
       "unknown": "不確定"
     },
     "skillNotIncluded": "當前訂單未開通該 skill",
-    "sessionTitleWithProfile": "{nickname} · {skill}解讀",
+    "sessionTitleWithBirthProfile": "{nickname} · {skill}解讀",
     "sessionTitle": "{skill}解讀",
     "phase": {
       "thinking": "思考中"
@@ -543,30 +543,30 @@
       "disclaimer": "免責聲明"
     }
   },
-    "subscriptions": {
-      "title": "訂閱",
-      "paymentHistory": "扣費記錄",
-      "refundedAmount": "已退款 {amount}",
-      "activeUntil": "可用至",
-      "nextBilling": "下次扣費",
-      "endsAtPeriodEnd": "本週期結束後取消",
-      "cancel": "取消續費",
-      "resume": "恢復續費",
-      "updateFailed": "更新訂閱失敗",
-      "status": {
-        "pending": "待生效",
-        "active": "生效中",
-        "onHold": "扣費異常",
-        "cancelled": "已取消",
-        "expired": "已過期",
-        "failed": "已失敗"
-      },
-      "paymentStatus": {
-        "paid": "已支付",
-        "partiallyRefunded": "部分退款",
-        "refunded": "已退款"
-      }
+  "subscriptions": {
+    "title": "訂閱",
+    "paymentHistory": "扣費記錄",
+    "refundedAmount": "已退款 {amount}",
+    "activeUntil": "可用至",
+    "nextBilling": "下次扣費",
+    "endsAtPeriodEnd": "本週期結束後取消",
+    "cancel": "取消續費",
+    "resume": "恢復續費",
+    "updateFailed": "更新訂閱失敗",
+    "status": {
+      "pending": "待生效",
+      "active": "生效中",
+      "onHold": "扣費異常",
+      "cancelled": "已取消",
+      "expired": "已過期",
+      "failed": "已失敗"
     },
+    "paymentStatus": {
+      "paid": "已支付",
+      "partiallyRefunded": "部分退款",
+      "refunded": "已退款"
+    }
+  },
   "orders": {
     "subtitle": "Liki Chat 購買記錄。",
     "loadFailed": "訂單載入失敗",

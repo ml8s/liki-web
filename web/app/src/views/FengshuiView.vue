@@ -40,7 +40,9 @@
         v-if="!profiles.list.length"
         class="hint"
       >
-        {{ $t('services.fengshui.noBirthProfilePrefix') }}<a href="/app/birth-profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.fengshui.noBirthProfileSuffix') }}
+        {{ $t('services.fengshui.noBirthProfilePrefix') }}<router-link to="/birth-profiles/new">
+          {{ $t('profiles.create') }}
+        </router-link>{{ $t('services.fengshui.noBirthProfileSuffix') }}
       </p>
     </el-card>
 

@@ -1,14 +1,25 @@
 <template>
   <section>
     <div class="page-heading">
-      <h1>管理记录</h1>
-      <el-button @click="load">
+      <h1>合作伙伴审计</h1>
+      <el-button
+        :loading="actions.loading.value"
+        @click="actions.load"
+      >
         刷新
       </el-button>
     </div>
+    <el-alert
+      v-if="actions.error.value"
+      :title="actions.error.value"
+      type="error"
+      show-icon
+      :closable="false"
+      class="query-error"
+    />
     <el-table
-      v-loading="loading"
-      :data="actions"
+      v-loading="actions.loading.value"
+      :data="actions.data.value"
       row-key="id"
     >
       <el-table-column
@@ -51,29 +62,21 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { onMounted } from 'vue'
 import { fetchAdminActions, type AdminAction } from '@/api/admin'
+import { useAdminResource } from '@/composables/useAdminResource'
 import { formatDateTime } from '@/utils/format'
 
-const loading = ref(false)
-const actions = ref<AdminAction[]>([])
+const actions = useAdminResource<AdminAction>(async () => {
+  const result = await fetchAdminActions()
+  return result.actions ?? []
+})
 
-onMounted(load)
-
-async function load() {
-  loading.value = true
-  try {
-    actions.value = (await fetchAdminActions()).actions ?? []
-  } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询管理记录失败')
-  } finally {
-    loading.value = false
-  }
-}
+onMounted(actions.load)
 </script>
 
 <style scoped>
 .page-heading { display: flex; justify-content: space-between; align-items: center; }
 h1 { margin: 0 0 16px; font-size: 24px; }
+.query-error { margin-bottom: 12px; }
 </style>

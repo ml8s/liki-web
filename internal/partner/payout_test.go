@@ -49,6 +49,33 @@ func TestCreatePayoutLocksPendingCommissions(t *testing.T) {
 	}
 }
 
+func TestListPayoutsIncludesPartnerCode(t *testing.T) {
+	ctx := context.Background()
+	store, commission := newPendingCommissionPayout(t)
+	kol, err := store.PartnerByUser(ctx, commission.ReferrerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payout, err := store.CreatePayout(ctx, commission.ReferrerID, PayoutMethodAlipay, "me@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	items, err := store.ListPayouts(ctx, PayoutRequested, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("payouts = %+v, want one", items)
+	}
+	if items[0].ID != payout.ID || items[0].ReferrerID != kol.UserID {
+		t.Fatalf("payout = %+v, want id=%s referrer=%s", items[0], payout.ID, kol.UserID)
+	}
+	if items[0].ReferrerCode != kol.Code {
+		t.Fatalf("referrer_code = %q, want %q", items[0].ReferrerCode, kol.Code)
+	}
+}
+
 func TestRetiredRoleCanSettleOnlyItsOwnHistory(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)

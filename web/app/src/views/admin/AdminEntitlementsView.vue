@@ -157,7 +157,7 @@
             :type="adminStatusTagType(row.status)"
             size="small"
           >
-            {{ row.status }}
+            {{ adminStatusLabel(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -257,7 +257,7 @@ import {
   type AdminEntitlement,
 } from '@/api/admin'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusTagType } from '@/utils/adminFormat'
+import { adminStatusLabel, adminStatusTagType } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()

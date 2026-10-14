@@ -40,7 +40,9 @@
         v-if="!profiles.list.length"
         class="hint"
       >
-        {{ $t('services.bond.noBirthProfilePrefix') }}<a href="/app/birth-profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.bond.noBirthProfileSuffix') }}
+        {{ $t('services.bond.noBirthProfilePrefix') }}<router-link to="/birth-profiles/new">
+          {{ $t('profiles.create') }}
+        </router-link>{{ $t('services.bond.noBirthProfileSuffix') }}
       </p>
     </el-card>
 

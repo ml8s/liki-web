@@ -10,8 +10,8 @@
           合作申请
           <el-button
             size="small"
-            :loading="loading"
-            @click="load"
+            :loading="applications.loading.value"
+            @click="applications.load"
           >
             刷新
           </el-button>
@@ -19,7 +19,7 @@
       </template>
       <el-form
         inline
-        @submit.prevent="loadApplications"
+        @submit.prevent="applications.load"
       >
         <el-form-item label="角色">
           <el-select
@@ -65,14 +65,22 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="loadApplications"
+          @click="applications.load"
         >
           查询
         </el-button>
       </el-form>
+      <el-alert
+        v-if="applications.error.value"
+        :title="applications.error.value"
+        type="error"
+        show-icon
+        :closable="false"
+        class="block-error"
+      />
       <el-table
-        v-loading="loading"
-        :data="applications"
+        v-loading="applications.loading.value"
+        :data="applications.data.value"
         row-key="id"
       >
         <el-table-column
@@ -100,7 +108,7 @@
               :type="adminStatusTagType(row.status)"
               size="small"
             >
-              {{ row.status }}
+              {{ adminStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -151,7 +159,8 @@
           合作伙伴
           <el-button
             size="small"
-            @click="loadPartners"
+            :loading="partners.loading.value"
+            @click="partners.load"
           >
             筛选
           </el-button>
@@ -159,7 +168,7 @@
       </template>
       <el-form
         inline
-        @submit.prevent="loadPartners"
+        @submit.prevent="partners.load"
       >
         <el-form-item label="角色">
           <el-select
@@ -202,14 +211,17 @@
         <el-form-item label="搜索">
           <el-input
             v-model="partnerQuery"
+            name="partner-search"
+            autocomplete="off"
+            spellcheck="false"
             placeholder="ID / 推广码"
             clearable
           />
         </el-form-item>
       </el-form>
       <el-table
-        v-loading="loading"
-        :data="partners"
+        v-loading="partners.loading.value"
+        :data="partners.data.value"
         row-key="user_id"
       >
         <el-table-column
@@ -237,7 +249,7 @@
               :type="adminStatusTagType(row.status)"
               size="small"
             >
-              {{ row.status }}
+              {{ adminStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -273,49 +285,54 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   decideAdminApplication, fetchAdminApplications, fetchAdminPartners, setAdminPartnerStatus,
   type AdminApplication, type AdminPartner,
 } from '@/api/admin'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusTagType } from '@/utils/adminFormat'
+import { useRoute, useRouter } from 'vue-router'
+import { useAdminResource } from '@/composables/useAdminResource'
+import { adminStatusTagType, adminStatusLabel } from '@/utils/adminFormat'
+import { queryChoice, queryText } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()
-const loading = ref(false)
-const applications = ref<AdminApplication[]>([])
-const partners = ref<AdminPartner[]>([])
-const applicationRole = ref('')
-const applicationStatus = ref('pending')
-const partnerRole = ref('')
-const partnerStatus = ref('')
-const partnerQuery = ref('')
+const route = useRoute()
+const router = useRouter()
+const applicationRole = ref(queryChoice(route.query, 'applicationRole', ['', 'kol', 'scout'], ''))
+const applicationStatus = ref(queryChoice(route.query, 'applicationStatus', ['', 'pending', 'approved', 'rejected'], 'pending'))
+const partnerRole = ref(queryChoice(route.query, 'partnerRole', ['', 'kol', 'scout'], ''))
+const partnerStatus = ref(queryChoice(route.query, 'partnerStatus', ['', 'active', 'frozen'], ''))
+const partnerQuery = ref(queryText(route.query, 'q'))
+const applications = useAdminResource<AdminApplication>(async () => {
+  const result = await fetchAdminApplications(applicationStatus.value, applicationRole.value)
+  return result.applications ?? []
+})
+const partners = useAdminResource<AdminPartner>(async () => {
+  const result = await fetchAdminPartners(partnerRole.value, partnerStatus.value, partnerQuery.value.trim())
+  return result.partners ?? []
+})
+onMounted(() => {
+  void Promise.all([applications.load(), partners.load()])
+})
 
-onMounted(load)
-
-async function load() {
-  loading.value = true
-  await Promise.all([loadApplications(), loadPartners()])
-  loading.value = false
-}
-
-async function loadApplications() {
-  try {
-    applications.value = (await fetchAdminApplications(applicationStatus.value, applicationRole.value)).applications ?? []
-  } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询申请失败')
-  }
-}
-
-async function loadPartners() {
-  try {
-    partners.value = (await fetchAdminPartners(partnerRole.value, partnerStatus.value, partnerQuery.value.trim())).partners ?? []
-  } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询合作伙伴失败')
-  }
-}
+watch(
+  [applicationRole, applicationStatus, partnerRole, partnerStatus, partnerQuery],
+  async ([applicationRole, applicationStatus, partnerRole, partnerStatus, partnerQuery]) => {
+    await router.replace({
+      query: {
+        ...route.query,
+        applicationRole,
+        applicationStatus,
+        partnerRole,
+        partnerStatus,
+        q: partnerQuery || undefined,
+      },
+    })
+  },
+)
 
 async function requireReason(title: string) {
   const { value } = await ElMessageBox.prompt('请输入原因，该操作会写入管理记录。', title, {
@@ -332,7 +349,7 @@ async function decide(row: AdminApplication, approve: boolean) {
   try {
     await decideAdminApplication(row.id, approve, reason)
     ElMessage.success(approve ? '申请已通过' : '申请已拒绝')
-    await load()
+    await applications.load()
   } catch (requestError) {
     ElMessage.error(requestError instanceof Error ? requestError.message : '处理失败')
   }
@@ -345,7 +362,7 @@ async function togglePartner(row: AdminPartner) {
   try {
     await setAdminPartnerStatus(row.user_id, freeze, reason)
     ElMessage.success(freeze ? '已冻结' : '已解冻')
-    await loadPartners()
+    await partners.load()
   } catch (requestError) {
     ElMessage.error(requestError instanceof Error ? requestError.message : '操作失败')
   }
@@ -357,4 +374,5 @@ h1 { margin: 0 0 16px; font-size: 24px; }
 .block { margin-bottom: 18px; }
 .card-heading { display: flex; justify-content: space-between; align-items: center; }
 .muted { color: #6b7280; }
+.block-error { margin-bottom: 12px; }
 </style>

@@ -65,7 +65,7 @@
               :type="adminStatusTagType(row.status)"
               size="small"
             >
-              {{ row.status }}
+              {{ adminStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -144,7 +144,7 @@ import {
   setAdminAccountStatus, type AdminAccount, type AdminCapability,
 } from '@/api/admin'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusTagType, capabilityLabel } from '@/utils/adminFormat'
+import { adminStatusTagType, adminStatusLabel, capabilityLabel } from '@/utils/adminFormat'
 
 const admin = useAdminStore()
 const accounts = ref<AdminAccount[]>([])

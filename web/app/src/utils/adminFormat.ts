@@ -26,6 +26,24 @@ export function capabilityLabel(capability: string): string {
   return labels[capability] ?? capability
 }
 
+export function adminStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    active: '有效',
+    approved: '已批准',
+    disabled: '已禁用',
+    expired: '已过期',
+    failed: '失败',
+    frozen: '已冻结',
+    paid: '已打款',
+    pending: '处理中',
+    rejected: '已拒绝',
+    requested: '待审核',
+    resolved: '已解决',
+    revoked: '已撤销',
+  }
+  return labels[status] ?? status
+}
+
 export function financeTaskTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     commission_refund_clawback: '佣金退款追回',

@@ -2,13 +2,16 @@
   <section>
     <div class="page-heading">
       <h1>提现复核</h1>
-      <el-button @click="load">
+      <el-button
+        :loading="payouts.loading.value"
+        @click="loadPayouts"
+      >
         刷新
       </el-button>
     </div>
     <el-form
       inline
-      @submit.prevent="load"
+      @submit.prevent="loadPayouts"
     >
       <el-form-item label="状态">
         <el-select
@@ -43,15 +46,23 @@
       </el-form-item>
       <el-button
         type="primary"
-        @click="load"
+        @click="loadPayouts"
       >
         查询
       </el-button>
     </el-form>
 
+    <el-alert
+      v-if="payouts.error.value"
+      :title="payouts.error.value"
+      type="error"
+      show-icon
+      :closable="false"
+      class="query-error"
+    />
     <el-table
-      v-loading="loading"
-      :data="payouts"
+      v-loading="payouts.loading.value"
+      :data="payouts.data.value"
       row-key="id"
     >
       <el-table-column
@@ -63,9 +74,15 @@
         </template>
       </el-table-column>
       <el-table-column
-        prop="referrer_id"
+        prop="referrer_code"
         label="推广码"
         min-width="150"
+        show-overflow-tooltip
+      />
+      <el-table-column
+        prop="referrer_id"
+        label="合作伙伴 ID"
+        min-width="180"
         show-overflow-tooltip
       />
       <el-table-column
@@ -93,7 +110,7 @@
             :type="adminStatusTagType(row.status)"
             size="small"
           >
-            {{ row.status }}
+            {{ adminStatusLabel(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -150,33 +167,34 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   actOnAdminPayout, fetchAdminPayouts, revealAdminPayoutAccount, type AdminPayout,
 } from '@/api/admin'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusTagType, formatAdminMoney, maskAdminAccount } from '@/utils/adminFormat'
+import { useRoute, useRouter } from 'vue-router'
+import { useAdminResource } from '@/composables/useAdminResource'
+import { queryChoice } from '@/utils/query'
+import { adminStatusLabel, adminStatusTagType, formatAdminMoney, maskAdminAccount } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()
-const loading = ref(false)
-const status = ref('requested')
-const payouts = ref<AdminPayout[]>([])
+const route = useRoute()
+const router = useRouter()
+const status = ref(queryChoice(route.query, 'status', ['', 'requested', 'approved', 'rejected', 'paid', 'failed'], 'requested'))
+const payouts = useAdminResource<AdminPayout>(async () => {
+  const result = await fetchAdminPayouts(status.value)
+  return result.payouts ?? []
+})
 const revealed = ref('')
+const loadPayouts = payouts.load
 
-onMounted(load)
+onMounted(loadPayouts)
 
-async function load() {
-  loading.value = true
-  try {
-    payouts.value = (await fetchAdminPayouts(status.value)).payouts ?? []
-  } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询提现失败')
-  } finally {
-    loading.value = false
-  }
-}
+watch(status, async (value) => {
+  await router.replace({ query: { ...route.query, status: value || undefined } })
+})
 
 async function requireInput(title: string, label: string) {
   const { value } = await ElMessageBox.prompt(label, title, {
@@ -213,7 +231,7 @@ async function act(row: AdminPayout, action: 'approve' | 'reject' | 'mark-paid')
   try {
     await actOnAdminPayout(row.id, action, body)
     ElMessage.success('提现已更新')
-    await load()
+    await payouts.load()
   } catch (requestError) {
     ElMessage.error(requestError instanceof Error ? requestError.message : '操作失败')
   }
@@ -222,6 +240,7 @@ async function act(row: AdminPayout, action: 'approve' | 'reject' | 'mark-paid')
 
 <style scoped>
 .page-heading { display: flex; justify-content: space-between; align-items: center; }
+.query-error { margin-bottom: 12px; }
 h1 { margin: 0 0 16px; font-size: 24px; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .muted { color: #6b7280; font-size: 12px; }

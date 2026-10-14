@@ -191,6 +191,7 @@ type FinanceTask struct {
 type Payout struct {
 	ID                   string       `json:"id"`
 	ReferrerID           string       `json:"referrer_id"`
+	ReferrerCode         string       `json:"referrer_code"`
 	Role                 PartnerRole  `json:"role"`
 	AmountMinor          int64        `json:"amount_minor"`
 	RequestedAmountMinor int64        `json:"requested_amount_minor"`

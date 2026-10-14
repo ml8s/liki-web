@@ -2,7 +2,7 @@
   <section>
     <div class="page-heading">
       <h1>财务</h1>
-      <el-button @click="load">
+      <el-button @click="loadFinance">
         刷新
       </el-button>
     </div>
@@ -44,6 +44,14 @@
           </el-select>
         </el-form-item>
       </el-form>
+      <el-alert
+        v-if="reportError"
+        :title="reportError"
+        type="error"
+        show-icon
+        :closable="false"
+        class="query-error"
+      />
       <el-table
         v-loading="reportLoading"
         :data="reportRows"
@@ -86,7 +94,7 @@
       </template>
       <el-form
         inline
-        @submit.prevent="loadTasks"
+        @submit.prevent="loadFinance"
       >
         <el-form-item label="状态">
           <el-select
@@ -113,15 +121,22 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="loadTasks"
+          @click="loadFinance"
         >
           查询
         </el-button>
       </el-form>
-
+      <el-alert
+        v-if="tasks.error.value"
+        :title="tasks.error.value"
+        type="error"
+        show-icon
+        :closable="false"
+        class="query-error"
+      />
       <el-table
-        v-loading="loading"
-        :data="tasks"
+        v-loading="tasks.loading.value"
+        :data="tasks.data.value"
         row-key="id"
       >
         <el-table-column
@@ -161,7 +176,7 @@
               :type="adminStatusTagType(row.status)"
               size="small"
             >
-              {{ row.status }}
+              {{ adminStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -209,23 +224,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   fetchAdminFinanceReport, fetchAdminFinanceTasks, resolveAdminFinanceTask,
   type AdminFinanceReport, type AdminFinanceTask,
 } from '@/api/admin'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusTagType, financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { useRoute, useRouter } from 'vue-router'
+import { useAdminResource } from '@/composables/useAdminResource'
+import { adminStatusTagType, adminStatusLabel, financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { queryChoice } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()
-const loading = ref(false)
-const status = ref('pending')
-const tasks = ref<AdminFinanceTask[]>([])
-const reportDays = ref<7 | 30 | 90>(30)
+const route = useRoute()
+const router = useRouter()
+const status = ref(queryChoice(route.query, 'status', ['', 'pending', 'resolved', 'rejected'], 'pending'))
+const tasks = useAdminResource<AdminFinanceTask>(async () => {
+  const result = await fetchAdminFinanceTasks(status.value)
+  return result.tasks ?? []
+})
+const reportDays = ref(Number(queryChoice(route.query, 'days', ['7', '30', '90'], '30')) as 7 | 30 | 90)
 const reportLoading = ref(false)
 const report = ref<AdminFinanceReport | null>(null)
+const reportError = ref('')
 
 const reportRows = computed(() => [
   { label: '一次性收入', values: report.value?.one_time_paid ?? [] },
@@ -239,27 +262,23 @@ const reportRows = computed(() => [
 
 onMounted(load)
 
+watch([status, reportDays], async ([status, days]) => {
+  await router.replace({ query: { ...route.query, status, days: days === 30 ? undefined : days } })
+})
+
 async function load() {
-  await Promise.all([loadTasks(), loadReport()])
+  await Promise.all([tasks.load(), loadReport()])
 }
 
-async function loadTasks() {
-  loading.value = true
-  try {
-    tasks.value = (await fetchAdminFinanceTasks(status.value)).tasks ?? []
-  } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询财务任务失败')
-  } finally {
-    loading.value = false
-  }
-}
+const loadFinance = tasks.load
 
 async function loadReport() {
   reportLoading.value = true
+  reportError.value = ''
   try {
     report.value = await fetchAdminFinanceReport(reportDays.value)
   } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询财务汇总失败')
+    reportError.value = requestError instanceof Error ? requestError.message : '查询财务汇总失败'
   } finally {
     reportLoading.value = false
   }
@@ -286,6 +305,7 @@ async function resolve(row: AdminFinanceTask, result: 'resolved' | 'rejected') {
 <style scoped>
 .page-heading { display: flex; justify-content: space-between; align-items: center; }
 .report-card { margin-bottom: 18px; }
+.query-error { margin-bottom: 12px; }
 .card-heading { display: flex; justify-content: space-between; align-items: center; }
 .money-tag { margin: 0 4px 4px 0; }
 h1 { margin: 0 0 16px; font-size: 24px; }

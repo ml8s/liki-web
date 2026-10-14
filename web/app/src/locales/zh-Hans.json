@@ -36,7 +36,7 @@
     "description": "建立出生档案，免费查看八字与紫微命盘；需要深入分析时，再进入 Liki Chat。",
     "valueChart": "确定性排盘",
     "valueInterpretation": "专业解读",
-    "valueProfile": "免费建档",
+    "valueBirthProfile": "免费建档",
     "loginTitle": "登录 Liki",
     "slogan": "懂命理，用 Liki",
     "codeHint": "输入邮箱获取登录验证码。",
@@ -130,9 +130,9 @@
       "cta": "看风水",
       "pageTitle": "风水",
       "subtitle": "先看命卦与八宅吉凶方位、流年飞星；布局解读进对话。",
-      "selectProfile": "选择档案（本命）",
-      "noProfilePrefix": "还没有档案，先",
-      "noProfileSuffix": "再看风水。",
+      "selectBirthProfile": "选择档案（本命）",
+      "noBirthProfilePrefix": "还没有档案，先",
+      "noBirthProfileSuffix": "再看风水。",
       "lifeGua": "命卦",
       "lifeGuaDirections": "命卦与吉凶方",
       "element": "五行：",
@@ -190,8 +190,6 @@
       "title": "合盘",
       "subtitle": "用你的档案与对方信息，查看两人的八字合盘。",
       "step1": "第一步 · 选择档案（你或对方）",
-      "noProfilePrefix": "还没有档案，先",
-      "noProfileSuffix": "再合盘。",
       "step2": "第二步 · 输入对方信息",
       "birthPlaceOptional": "出生地（可选）",
       "birthPlacePlaceholder": "用于真太阳时修正，如：上海",
@@ -214,7 +212,9 @@
       "bStarIntoA": "对方的{name}入{a}命盘",
       "aViewB": "{a}{pillar}柱看对方：{value}",
       "bViewA": "对方{pillar}柱看{a}：{value}",
-      "otherProfileSummary": "{gender}，公历 {date} {time}{place}",
+      "noBirthProfilePrefix": "还没有档案，先",
+      "noBirthProfileSuffix": "再看合盘。",
+      "otherBirthProfileSummary": "{gender}，公历 {date} {time}{place}",
       "otherPlace": "，出生地 {place}",
       "pillarShort": {
         "year": "年",
@@ -225,12 +225,12 @@
     }
   },
   "dashboard": {
-    "noProfile": {
+    "noBirthProfile": {
       "title": "从排盘开始",
       "body": "创建出生档案后，可免费查看确定性排盘。需要深入解读时，再进入 Liki Chat。",
       "cta": "建立档案，免费排盘"
     },
-    "freeProfile": {
+    "freeBirthProfile": {
       "title": "你的排盘已就绪",
       "note": "排盘免费。AI 解读由 Liki Chat 提供。",
       "viewChart": "查看免费排盘",
@@ -246,13 +246,13 @@
       "cta": "继续咨询"
     },
     "state": {
-      "noProfile": "先建立出生档案，免费查看确定性排盘。",
-      "freeProfile": "排盘免费看。需要深入分析时，进入 Liki Chat 解读。",
+      "noBirthProfile": "先建立出生档案，免费查看确定性排盘。",
+      "freeBirthProfile": "排盘免费看。需要深入分析时，进入 Liki Chat 解读。",
       "paidNoSession": "你的解读权益已就绪，随时可以开始咨询。",
       "paidContinue": "继续上次话题，或查看档案后再开启新咨询。"
     },
-    "recentProfiles": "最近档案",
-    "allProfiles": "全部档案",
+    "recentBirthProfiles": "最近档案",
+    "allBirthProfiles": "全部档案",
     "recentSessions": "最近会话",
     "allSessions": "全部会话",
     "moreScenarios": "更多场景"
@@ -428,8 +428,8 @@
     "pendingService": "准备开始：{service}",
     "subtitle": "八字、合盘、起名、问卦、风水——一个入口，专业解读。",
     "productsFailed": "产品加载失败",
-    "selectProfile": "选择档案",
-    "selectProfileFirst": "请先选择一个档案",
+    "selectBirthProfile": "选择档案",
+    "selectBirthProfileFirst": "请先选择一个档案",
     "selectDomain": "选择解读领域",
     "empty": "选择档案与解读领域后，即可开启第一次对话。",
     "createFailed": "创建会话失败",
@@ -481,7 +481,7 @@
       "updated": "更新时间",
       "open": "打开"
     },
-    "systemProfile": {
+    "systemBirthProfile": {
       "title": "已载入档案",
       "note": "将基于以上出生信息排盘后解读。",
       "known": "已知",
@@ -489,7 +489,7 @@
       "unknown": "不确定"
     },
     "skillNotIncluded": "当前订单未开通该 skill",
-    "sessionTitleWithProfile": "{nickname} · {skill}解读",
+    "sessionTitleWithBirthProfile": "{nickname} · {skill}解读",
     "sessionTitle": "{skill}解读",
     "phase": {
       "thinking": "思考中"
@@ -543,30 +543,30 @@
       "disclaimer": "免责声明"
     }
   },
-    "subscriptions": {
-      "title": "订阅",
-      "paymentHistory": "扣费记录",
-      "refundedAmount": "已退款 {amount}",
-      "activeUntil": "可用至",
-      "nextBilling": "下次扣费",
-      "endsAtPeriodEnd": "本周期结束后取消",
-      "cancel": "取消续费",
-      "resume": "恢复续费",
-      "updateFailed": "更新订阅失败",
-      "status": {
-        "pending": "待生效",
-        "active": "生效中",
-        "onHold": "扣费异常",
-        "cancelled": "已取消",
-        "expired": "已过期",
-        "failed": "已失败"
-      },
-      "paymentStatus": {
-        "paid": "已支付",
-        "partiallyRefunded": "部分退款",
-        "refunded": "已退款"
-      }
+  "subscriptions": {
+    "title": "订阅",
+    "paymentHistory": "扣费记录",
+    "refundedAmount": "已退款 {amount}",
+    "activeUntil": "可用至",
+    "nextBilling": "下次扣费",
+    "endsAtPeriodEnd": "本周期结束后取消",
+    "cancel": "取消续费",
+    "resume": "恢复续费",
+    "updateFailed": "更新订阅失败",
+    "status": {
+      "pending": "待生效",
+      "active": "生效中",
+      "onHold": "扣费异常",
+      "cancelled": "已取消",
+      "expired": "已过期",
+      "failed": "已失败"
     },
+    "paymentStatus": {
+      "paid": "已支付",
+      "partiallyRefunded": "部分退款",
+      "refunded": "已退款"
+    }
+  },
   "orders": {
     "subtitle": "Liki Chat 购买记录。",
     "loadFailed": "订单加载失败",
