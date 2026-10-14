@@ -9,13 +9,13 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("birthbirthprofile: not found")
-	ErrConflict      = errors.New("birthbirthprofile: version conflict")
-	ErrQuotaExceeded = errors.New("birthbirthprofile: quota exceeded")
-	ErrForbidden     = errors.New("birthbirthprofile: forbidden")
+	ErrNotFound      = errors.New("birthprofile: not found")
+	ErrConflict      = errors.New("birthprofile: version conflict")
+	ErrQuotaExceeded = errors.New("birthprofile: quota exceeded")
+	ErrForbidden     = errors.New("birthprofile: forbidden")
 )
 
-type Profile struct {
+type BirthProfile struct {
 	ID                string     `json:"id"`
 	UserID            string     `json:"user_id"`
 	Version           int        `json:"version"`
@@ -35,9 +35,9 @@ type Profile struct {
 	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
-// Input is the mutable user-info subset of a profile. Pure platform data; no
+// BirthProfileInput is the mutable user-info subset of a profile. Pure platform data; no
 // chart/pan fields by design (排盘不落库).
-type Input struct {
+type BirthProfileInput struct {
 	Nickname          string `json:"nickname"`
 	Name              string `json:"name"`
 	Gender            string `json:"gender"`
@@ -58,7 +58,7 @@ var (
 
 // Validate checks user-info fields only. Birth-time rules follow the two-route
 // semantics documented in the FS (known/approximate/unknown).
-func (in Input) Validate(now time.Time) error {
+func (in BirthProfileInput) Validate(now time.Time) error {
 	in.Nickname = strings.TrimSpace(in.Nickname)
 	if in.Nickname == "" {
 		return errors.New("nickname is required")

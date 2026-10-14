@@ -29,8 +29,8 @@ func newStoreFixture(t *testing.T) (*Store, string) {
 	return store, "user_1"
 }
 
-func validInput() Input {
-	return Input{
+func validInput() BirthProfileInput {
+	return BirthProfileInput{
 		Nickname: "妈妈", Gender: "female", Calendar: "lunar",
 		BirthDate: "1958-闰5-12", BirthTime: "06:00", BirthTimeKnown: "known",
 		BirthPlace: "上海",
@@ -44,7 +44,7 @@ func TestStoreCreateGetRoundtrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	if p.Version != 1 || p.Nickname != "妈妈" || p.Gender != "female" {
-		t.Fatalf("unexpected birthprofile: %+v", p)
+		t.Fatalf("unexpected profile: %+v", p)
 	}
 	got, err := store.Get(context.Background(), userID, p.ID)
 	if err != nil {
@@ -149,15 +149,15 @@ func TestStoreQuota(t *testing.T) {
 func TestInputValidation(t *testing.T) {
 	cases := []struct {
 		name string
-		mut  func(*Input)
+		mut  func(*BirthProfileInput)
 	}{
-		{"empty nickname", func(in *Input) { in.Nickname = "" }},
-		{"bad gender", func(in *Input) { in.Gender = "other" }},
-		{"bad calendar", func(in *Input) { in.Calendar = "julian" }},
-		{"bad known", func(in *Input) { in.BirthTimeKnown = "maybe" }},
-		{"bad solar date", func(in *Input) { in.Calendar = "solar"; in.BirthDate = "58-05-12" }},
-		{"future date", func(in *Input) { in.Calendar = "solar"; in.BirthDate = "2999-01-01" }},
-		{"missing time", func(in *Input) { in.BirthTime = "" }},
+		{"empty nickname", func(in *BirthProfileInput) { in.Nickname = "" }},
+		{"bad gender", func(in *BirthProfileInput) { in.Gender = "other" }},
+		{"bad calendar", func(in *BirthProfileInput) { in.Calendar = "julian" }},
+		{"bad known", func(in *BirthProfileInput) { in.BirthTimeKnown = "maybe" }},
+		{"bad solar date", func(in *BirthProfileInput) { in.Calendar = "solar"; in.BirthDate = "58-05-12" }},
+		{"future date", func(in *BirthProfileInput) { in.Calendar = "solar"; in.BirthDate = "2999-01-01" }},
+		{"missing time", func(in *BirthProfileInput) { in.BirthTime = "" }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

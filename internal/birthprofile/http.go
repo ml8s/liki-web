@@ -37,11 +37,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 }
 
 type createRequest struct {
-	Input
+	BirthProfileInput
 }
 
 type updateRequest struct {
-	Input
+	BirthProfileInput
 	ExpectedVersion int `json:"expected_version"`
 }
 
@@ -66,13 +66,13 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		validation(w, err.Error())
 		return
 	}
-	p, err := h.store.Create(r.Context(), user.ID, req.Input)
+	p, err := h.store.Create(r.Context(), user.ID, req.BirthProfileInput)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrQuotaExceeded):
 			httputil.RespondError(w, http.StatusTooManyRequests, "quota_exceeded", "档案数量已达上限")
 		default:
-			slog.Error("birthprofile: create", "user_id", user.ID, "err", err)
+			slog.Error("profile: create", "user_id", user.ID, "err", err)
 			httputil.InternalError(w)
 		}
 		return
@@ -90,12 +90,12 @@ func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 	cursor := r.URL.Query().Get("cursor")
 	items, nextCursor, err := h.store.List(r.Context(), user.ID, cursor, limit)
 	if err != nil {
-		slog.Error("birthprofile: list", "user_id", user.ID, "err", err)
+		slog.Error("profile: list", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
 	if items == nil {
-		items = []Profile{}
+		items = []BirthProfile{}
 	}
 	httputil.RespondRawJSON(w, http.StatusOK, map[string]any{
 		"data": map[string]any{"profiles": items, "next_cursor": nextCursor},
@@ -114,7 +114,7 @@ func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("birthprofile: get", "user_id", user.ID, "err", err)
+		slog.Error("profile: get", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -135,11 +135,11 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		validation(w, err.Error())
 		return
 	}
-	if err := req.Input.Validate(time.Now()); err != nil {
+	if err := req.BirthProfileInput.Validate(time.Now()); err != nil {
 		validation(w, err.Error())
 		return
 	}
-	p, err := h.store.Update(r.Context(), user.ID, r.PathValue("id"), req.ExpectedVersion, req.Input)
+	p, err := h.store.Update(r.Context(), user.ID, r.PathValue("id"), req.ExpectedVersion, req.BirthProfileInput)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrNotFound):
@@ -147,7 +147,7 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrConflict):
 			httputil.RespondError(w, http.StatusConflict, "profile_conflict", "档案已被其他设备修改，请刷新后重试")
 		default:
-			slog.Error("birthprofile: update", "user_id", user.ID, "err", err)
+			slog.Error("profile: update", "user_id", user.ID, "err", err)
 			httputil.InternalError(w)
 		}
 		return
@@ -166,7 +166,7 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("birthprofile: delete", "user_id", user.ID, "err", err)
+		slog.Error("profile: delete", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}

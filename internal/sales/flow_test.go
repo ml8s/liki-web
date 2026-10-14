@@ -1,4 +1,4 @@
-package liki
+package sales
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
-func TestFulfillerDisplayName(t *testing.T) {
+func TestFlowDisplayName(t *testing.T) {
 	t.Parallel()
 	fulfiller := NewFlow(nil, nil, product.Chat, 0)
 	if got := fulfiller.DisplayName("zh-Hant"); got != "Liki Chat" {
@@ -20,7 +20,7 @@ func TestFulfillerDisplayName(t *testing.T) {
 	}
 }
 
-func TestFulfillerOnPaidGrantsEntitlementIdempotently(t *testing.T) {
+func TestFlowOnPaidGrantsEntitlementIdempotently(t *testing.T) {
 	ctx := context.Background()
 	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))
 	if err != nil {

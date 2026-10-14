@@ -133,7 +133,7 @@ func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
 	service, chats, remote := newAgentModeTestService(t)
 	ctx := context.Background()
 	profileStore := service.profiles
-	created, err := profileStore.Create(ctx, "user-1", birthprofile.Input{
+	created, err := profileStore.Create(ctx, "user-1", birthprofile.BirthProfileInput{
 		Nickname:       "Test",
 		Gender:         "male",
 		Calendar:       "solar",

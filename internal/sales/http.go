@@ -1,4 +1,4 @@
-package liki
+package sales
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/ml8s/liki-web/internal/auth"
-	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/product"
@@ -19,9 +18,8 @@ import (
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 type LimitFunc func(http.HandlerFunc) http.HandlerFunc
 
-// ErrSubscriptionConflict reports that a blocking subscription already exists.
 // SubscriptionCheckoutCreator is owned by the provider gateway. Keeping it as
-// a local interface avoids coupling the product HTTP layer to Dodo.
+// a local interface avoids coupling sales HTTP to Dodo.
 type SubscriptionCheckoutCreator interface {
 	CreateSubscriptionCheckout(context.Context, payment.SubscriptionCheckoutRequest) (*payment.CheckoutResult, error)
 }
@@ -34,16 +32,20 @@ type SubscriptionReconciler interface {
 
 type SubscriptionEventApplier func(context.Context, payment.WebhookEvent) error
 
-// Handler registers all Liki Chat HTTP routes: entitlement listing,
-// product catalog, checkout, orders, and chat sessions/messages.
+// SkillAuthorizer reports which skills a buyer may currently use.
+type SkillAuthorizer interface {
+	AllowedSkills(ctx context.Context, userID string) ([]product.Skill, error)
+}
+
+// Handler exposes sales routes.
 type Handler struct {
 	orders                   *OrderStore
-	entitlements             *entitlement.Store
-	service                  *Service
+	catalog                  *product.Catalog
 	runtime                  *payment.Runtime
 	requireUser              RequireUserFunc
+	limit                    LimitFunc
 	currency                 CurrencyResolver
-	catalog                  *Catalog
+	skills                   SkillAuthorizer
 	subscriptions            *SubscriptionStore
 	subscriptionCheckout     SubscriptionCheckoutCreator
 	subscriptionCancellation payment.SubscriptionCancellationGateway
@@ -54,6 +56,14 @@ type Handler struct {
 
 type HandlerOption func(*Handler)
 
+func WithCatalog(catalog *product.Catalog) HandlerOption {
+	return func(h *Handler) {
+		if catalog != nil {
+			h.catalog = catalog
+		}
+	}
+}
+
 func WithCurrencyResolver(resolver CurrencyResolver) HandlerOption {
 	return func(h *Handler) {
 		if resolver != nil {
@@ -62,27 +72,28 @@ func WithCurrencyResolver(resolver CurrencyResolver) HandlerOption {
 	}
 }
 
-func WithCommerceCatalog(catalog *Catalog) HandlerOption {
+func WithSkillAuthorizer(authorizer SkillAuthorizer) HandlerOption {
 	return func(h *Handler) {
-		if catalog != nil {
-			h.catalog = catalog
+		if authorizer != nil {
+			h.skills = authorizer
 		}
 	}
 }
 
-func WithSubscriptionCommerce(
+func WithSubscriptions(
 	subscriptions *SubscriptionStore,
 	checkout SubscriptionCheckoutCreator,
 	cancellation payment.SubscriptionCancellationGateway,
 	publicBaseURL string,
 ) HandlerOption {
 	return func(h *Handler) {
-		if subscriptions != nil && checkout != nil && cancellation != nil {
-			h.subscriptions = subscriptions
-			h.subscriptionCheckout = checkout
-			h.subscriptionCancellation = cancellation
-			h.publicBaseURL = strings.TrimRight(publicBaseURL, "/")
+		if subscriptions == nil || checkout == nil || cancellation == nil {
+			return
 		}
+		h.subscriptions = subscriptions
+		h.subscriptionCheckout = checkout
+		h.subscriptionCancellation = cancellation
+		h.publicBaseURL = strings.TrimRight(publicBaseURL, "/")
 	}
 }
 
@@ -95,14 +106,22 @@ func WithSubscriptionReconciliation(reconciler SubscriptionReconciler, apply Sub
 	}
 }
 
-func NewHandler(orders *OrderStore, entitlements *entitlement.Store, service *Service, runtime *payment.Runtime, requireUser RequireUserFunc, options ...HandlerOption) *Handler {
+func NewHandler(
+	orders *OrderStore,
+	runtime *payment.Runtime,
+	requireUser RequireUserFunc,
+	limit LimitFunc,
+	options ...HandlerOption,
+) *Handler {
+	if limit == nil {
+		limit = func(next http.HandlerFunc) http.HandlerFunc { return next }
+	}
 	h := &Handler{
-		orders:       orders,
-		entitlements: entitlements,
-		service:      service,
-		runtime:      runtime,
-		requireUser:  requireUser,
-		currency:     HeaderCurrencyResolver{},
+		orders:      orders,
+		runtime:     runtime,
+		requireUser: requireUser,
+		limit:       limit,
+		currency:    HeaderCurrencyResolver{},
 	}
 	for _, option := range options {
 		option(h)
@@ -110,59 +129,18 @@ func NewHandler(orders *OrderStore, entitlements *entitlement.Store, service *Se
 	return h
 }
 
-func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
-	if limit == nil {
-		limit = func(next http.HandlerFunc) http.HandlerFunc { return next }
-	}
-	// Entitlement
-	mux.HandleFunc("GET /api/me/entitlements", h.requireUser(h.HandleEntitlements))
-	// Commerce
+func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/chat/products", h.requireUser(h.HandleProducts))
-	mux.HandleFunc("POST /api/chat/products/{id}/checkout", h.requireUser(limit(h.HandleCheckout)))
+	mux.HandleFunc("POST /api/chat/products/{id}/checkout", h.requireUser(h.limit(h.HandleCheckout)))
 	mux.HandleFunc("GET /api/chat/orders", h.requireUser(h.HandleOrders))
-	if h.subscriptions != nil {
-		mux.HandleFunc("GET /api/me/subscriptions", h.requireUser(h.HandleSubscriptions))
-		mux.HandleFunc("GET /api/me/subscription-payments", h.requireUser(h.HandleSubscriptionPayments))
-		mux.HandleFunc("POST /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleSetCancellation))
-		mux.HandleFunc("DELETE /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleDeleteCancellation))
-	}
-	// Chat
-}
-
-// ── Entitlement ──
-
-func (h *Handler) HandleEntitlements(w http.ResponseWriter, r *http.Request) {
-	user, ok := auth.UserFromContext(r.Context())
-	if !ok {
-		httputil.Unauthorized(w)
+	if h.subscriptions == nil {
 		return
 	}
-	items, err := h.entitlements.ListActiveByUser(r.Context(), user.ID)
-	if err != nil {
-		httputil.InternalError(w)
-		return
-	}
-	if items == nil {
-		items = []Entitlement{}
-	}
-	allowed := make(map[string]bool)
-	out := make([]string, 0)
-	for _, item := range items {
-		for _, skill := range item.Skills {
-			value := string(skill)
-			if !allowed[value] {
-				allowed[value] = true
-				out = append(out, value)
-			}
-		}
-	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{
-		"entitlements":   items,
-		"allowed_skills": out,
-	})
+	mux.HandleFunc("GET /api/me/subscriptions", h.requireUser(h.HandleSubscriptions))
+	mux.HandleFunc("GET /api/me/subscription-payments", h.requireUser(h.HandleSubscriptionPayments))
+	mux.HandleFunc("POST /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleSetCancellation))
+	mux.HandleFunc("DELETE /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleDeleteCancellation))
 }
-
-// ── Commerce ──
 
 func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
@@ -170,7 +148,7 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	allowed, err := h.entitlements.AllowedSkills(r.Context(), user.ID)
+	allowed, err := h.skills.AllowedSkills(r.Context(), user.ID)
 	if err != nil {
 		httputil.InternalError(w)
 		return
@@ -179,13 +157,13 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 	for _, skill := range allowed {
 		allowedSet[string(skill)] = true
 	}
-	items := make([]map[string]any, 0, 1)
 	catalog := h.catalog
 	if catalog == nil {
-		catalog = NewCommerceCatalog(CommerceCatalogConfig{})
+		catalog = product.NewCatalog(product.CatalogConfig{})
 	}
+	items := make([]map[string]any, 0, 1)
 	for _, commercial := range catalog.List() {
-		definition, err := ProductDefinitionFor(commercial.ID)
+		definition, err := product.DefinitionFor(commercial.ID)
 		if err != nil {
 			httputil.InternalError(w)
 			return
@@ -195,21 +173,21 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 			skills = append(skills, string(skill))
 		}
 		displayCurrency := h.currency.CurrencyFor(r)
-		displayPrice, priceErr := catalog.Price(commercial.ID, BillingModeOneTime, displayCurrency)
+		displayPrice, priceErr := catalog.Price(commercial.ID, product.BillingModeOneTime, displayCurrency)
 		if priceErr != nil {
 			httputil.InternalError(w)
 			return
 		}
 		options := make([]map[string]any, 0, len(commercial.Offers))
-		for _, purchaseOption := range commercial.Offers {
-			if purchaseOption.BillingMode == product.BillingModeSubscription && h.subscriptionCheckout == nil {
+		for _, offer := range commercial.Offers {
+			if offer.BillingMode == product.BillingModeSubscription && h.subscriptionCheckout == nil {
 				continue
 			}
 			options = append(options, map[string]any{
-				"billing_mode": string(purchaseOption.BillingMode),
+				"billing_mode": string(offer.BillingMode),
 				"price": map[string]any{
-					"currency_code": string(purchaseOption.Price.Currency),
-					"minor_units":   purchaseOption.Price.MinorUnits,
+					"currency_code": string(offer.Price.Currency),
+					"minor_units":   offer.Price.MinorUnits,
 				},
 			})
 		}
@@ -235,8 +213,8 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 type checkoutRequest struct {
-	BillingMode BillingMode `json:"billing_mode"`
-	Locale      string      `json:"locale"`
+	BillingMode product.BillingMode `json:"billing_mode"`
+	Locale      string              `json:"locale"`
 }
 
 func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
@@ -251,13 +229,13 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.BillingMode == "" {
-		req.BillingMode = BillingModeOneTime
+		req.BillingMode = product.BillingModeOneTime
 	}
 	catalog := h.catalog
 	if catalog == nil {
-		catalog = NewCommerceCatalog(CommerceCatalogConfig{})
+		catalog = product.NewCatalog(product.CatalogConfig{})
 	}
-	productID := Product(r.PathValue("id"))
+	productID := product.Product(r.PathValue("id"))
 	if _, err := catalog.OfferingFor(productID); err != nil {
 		httputil.RespondError(w, http.StatusNotFound, "product_not_found", "产品不存在")
 		return
@@ -267,7 +245,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		h.handleSubscriptionCheckout(w, r, user, productID, currency, req.Locale)
 		return
 	}
-	if req.BillingMode != BillingModeOneTime {
+	if req.BillingMode != product.BillingModeOneTime {
 		httputil.RespondError(w, http.StatusBadRequest, "invalid_billing_mode", "unsupported billing mode")
 		return
 	}
@@ -278,7 +256,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 	}
 	intent, err := h.runtime.CreateIntent(r.Context(), payment.CreateIntentInput{
 		Product: string(productID), BusinessOrderID: order.ID, UserID: user.ID,
-		Locale: localeOrDefault(req.Locale),
+		Locale: LocaleOrDefault(req.Locale),
 	})
 	if err == nil {
 		err = h.orders.AttachIntent(r.Context(), user.ID, order.ID, intent.ID)
@@ -299,9 +277,9 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if cancelErr := h.orders.CancelOrder(r.Context(), user.ID, order.ID); cancelErr != nil {
-		slog.Error("liki: cancel failed checkout order", "order_id", order.ID, "err", cancelErr)
+		slog.Error("sales: cancel failed checkout order", "order_id", order.ID, "err", cancelErr)
 	}
-	slog.Error("liki: start checkout", "order_id", order.ID, "product_id", string(productID), "err", err)
+	slog.Error("sales: start checkout", "order_id", order.ID, "err", err)
 	httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
 }
 
@@ -323,13 +301,13 @@ func (h *Handler) handleSubscriptionCheckout(
 	w http.ResponseWriter,
 	r *http.Request,
 	user auth.User,
-	productID Product,
-	currency Currency,
+	productID product.Product,
+	currency product.Currency,
 	locale string,
 ) {
 	catalog := h.catalog
 	if catalog == nil {
-		catalog = NewCommerceCatalog(CommerceCatalogConfig{})
+		catalog = product.NewCatalog(product.CatalogConfig{})
 	}
 	if _, err := catalog.Price(productID, product.BillingModeSubscription, currency); err != nil {
 		httputil.RespondError(w, http.StatusBadRequest, "subscription_unavailable", "订阅在当前区域不可用")
@@ -340,13 +318,13 @@ func (h *Handler) handleSubscriptionCheckout(
 			httputil.RespondError(w, http.StatusConflict, "subscription_conflict", "已有有效订阅")
 			return
 		}
-		slog.Error("liki: check blocking subscription", "user_id", user.ID, "err", err)
+		slog.Error("sales: check blocking subscription", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
 	subscription, err := h.subscriptions.CreatePending(r.Context(), user.ID, user.Email, productID, currency)
 	if err != nil {
-		slog.Error("liki: create subscription", "user_id", user.ID, "err", err)
+		slog.Error("sales: create subscription", "user_id", user.ID, "err", err)
 		httputil.RespondError(w, http.StatusBadRequest, "subscription_failed", "创建订阅失败")
 		return
 	}
@@ -363,7 +341,7 @@ func (h *Handler) handleSubscriptionCheckout(
 		err = h.subscriptions.AttachCheckout(r.Context(), user.ID, subscription.ID, result.CheckoutSessionID)
 	}
 	if err != nil {
-		slog.Error("liki: start subscription checkout", "subscription_id", subscription.ID, "locale", localeOrDefault(locale), "err", err)
+		slog.Error("sales: start subscription checkout", "subscription_id", subscription.ID, "locale", LocaleOrDefault(locale), "err", err)
 		httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起订阅支付失败")
 		return
 	}
@@ -388,7 +366,7 @@ func (h *Handler) HandleSubscriptions(w http.ResponseWriter, r *http.Request) {
 	}
 	if h.subscriptionReconciler != nil && h.applySubscriptionEvent != nil {
 		if err := h.reconcilePendingSubscriptions(r.Context(), user.ID); err != nil {
-			slog.Error("liki: reconcile pending subscriptions", "user_id", user.ID, "err", err)
+			slog.Error("sales: reconcile pending subscriptions", "user_id", user.ID, "err", err)
 		}
 		items, err = h.subscriptions.ListByUser(r.Context(), user.ID, 50)
 		if err != nil {
@@ -410,14 +388,14 @@ func (h *Handler) reconcilePendingSubscriptions(ctx context.Context, userID stri
 		}
 		event, err := h.subscriptionReconciler.FetchSubscriptionByCheckout(ctx, item.ProviderCheckoutSessionID)
 		if err != nil {
-			slog.Error("liki: fetch pending subscription", "subscription_id", item.ID, "checkout_id", item.ProviderCheckoutSessionID, "err", err)
+			slog.Error("sales: fetch pending subscription", "subscription_id", item.ID, "checkout_id", item.ProviderCheckoutSessionID, "err", err)
 			continue
 		}
 		if event == nil {
 			continue
 		}
 		if err := h.applySubscriptionEvent(ctx, *event); err != nil {
-			slog.Error("liki: apply reconciled subscription", "subscription_id", item.ID, "err", err)
+			slog.Error("sales: apply reconciled subscription", "subscription_id", item.ID, "err", err)
 		}
 	}
 	return nil
@@ -431,7 +409,7 @@ func (h *Handler) HandleSubscriptionPayments(w http.ResponseWriter, r *http.Requ
 	}
 	items, err := h.subscriptions.ListPaymentsByUser(r.Context(), user.ID, 50)
 	if err != nil {
-		slog.Error("liki: list subscription payments", "user_id", user.ID, "err", err)
+		slog.Error("sales: list subscription payments", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -457,14 +435,14 @@ func (h *Handler) setCancellation(w http.ResponseWriter, r *http.Request, cancel
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("liki: set subscription cancellation", "user_id", user.ID, "subscription_id", r.PathValue("id"), "cancel", cancel, "err", err)
+		slog.Error("sales: set subscription cancellation", "user_id", user.ID, "subscription_id", r.PathValue("id"), "cancel", cancel, "err", err)
 		httputil.RespondError(w, http.StatusBadGateway, "subscription_update_failed", "更新订阅状态失败")
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{"cancel_at_period_end": cancel})
 }
 
-func localeOrDefault(locale string) string {
+func LocaleOrDefault(locale string) string {
 	normalized := strings.ToLower(strings.TrimSpace(locale))
 	switch {
 	case strings.HasPrefix(normalized, "en"):
@@ -473,37 +451,5 @@ func localeOrDefault(locale string) string {
 		return "zh-Hans"
 	default:
 		return "zh-Hant"
-	}
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if strings.TrimSpace(value) != "" {
-			return value
-		}
-	}
-	return ""
-}
-
-// ── Chat ──
-
-// ── Shared HTTP helpers ──
-
-func userID(r *http.Request) string {
-	user, _ := auth.UserFromContext(r.Context())
-	return user.ID
-}
-
-// writeSessionError maps liki session domain errors onto the canonical
-// HTTP envelope without leaking internal identifiers.
-func writeSessionError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, ErrSkillForbidden):
-		httputil.Forbidden(w)
-	case errors.Is(err, ErrSessionNotFound), errors.Is(err, ErrRunnerUnavailable):
-		httputil.NotFound(w)
-	default:
-		slog.Error("liki: access session", "err", err)
-		httputil.InternalError(w)
 	}
 }

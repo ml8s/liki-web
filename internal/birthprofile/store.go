@@ -109,9 +109,9 @@ CREATE INDEX IF NOT EXISTS idx_profiles_user_created
 	})
 }
 
-func (s *Store) Create(ctx context.Context, userID string, in Input) (Profile, error) {
+func (s *Store) Create(ctx context.Context, userID string, in BirthProfileInput) (BirthProfile, error) {
 	now := formatTime(s.nowFunc())
-	p := Profile{
+	p := BirthProfile{
 		ID: s.idFunc(), UserID: userID, Version: 1,
 		Nickname: strings.TrimSpace(in.Nickname), Name: strings.TrimSpace(in.Name), Gender: in.Gender,
 		Calendar: in.Calendar, BirthDate: in.BirthDate,
@@ -128,26 +128,26 @@ WHERE (SELECT COUNT(1) FROM profiles WHERE user_id=? AND deleted_at IS NULL) < ?
 		p.BirthTime, p.BirthTimeKnown, p.BirthPlace, p.Note, p.ThirdPartyConsent, now, now, userID, MaxProfilesPerUser,
 	)
 	if err != nil {
-		return Profile{}, err
+		return BirthProfile{}, err
 	}
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return Profile{}, ErrQuotaExceeded
+		return BirthProfile{}, ErrQuotaExceeded
 	}
 	var createdAt, updatedAt string
 	err = s.db.QueryRowContext(ctx, `
 SELECT created_at,updated_at FROM profiles WHERE id=? AND user_id=?`,
 		p.ID, userID).Scan(&createdAt, &updatedAt)
 	if err != nil {
-		return Profile{}, err
+		return BirthProfile{}, err
 	}
 	p.CreatedAt = mustTime(createdAt)
 	p.UpdatedAt = mustTime(updatedAt)
 	return p, nil
 }
 
-func (s *Store) Get(ctx context.Context, userID, id string) (Profile, error) {
-	var p Profile
+func (s *Store) Get(ctx context.Context, userID, id string) (BirthProfile, error) {
+	var p BirthProfile
 	var version int
 	var thirdParty, deletedAt, lastUsedAt sql.NullString
 	var createdAt, updatedAt string
@@ -159,10 +159,10 @@ FROM profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID).Scan
 		&lastUsedAt, &deletedAt, &createdAt, &updatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return Profile{}, ErrNotFound
+		return BirthProfile{}, ErrNotFound
 	}
 	if err != nil {
-		return Profile{}, err
+		return BirthProfile{}, err
 	}
 	p.Version = version
 	p.ThirdPartyConsent = thirdParty.Valid && thirdParty.String == "1"
@@ -181,7 +181,7 @@ FROM profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID).Scan
 
 // List returns profiles ordered by (created_at, id) DESC, cursor-exclusive.
 // cursor format: "<created_at>|<id>".
-func (s *Store) List(ctx context.Context, userID, cursor string, limit int) ([]Profile, string, error) {
+func (s *Store) List(ctx context.Context, userID, cursor string, limit int) ([]BirthProfile, string, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
@@ -207,9 +207,9 @@ WHERE user_id=? AND deleted_at IS NULL`
 	}
 	defer func() { _ = rows.Close() }()
 
-	out := make([]Profile, 0, limit)
+	out := make([]BirthProfile, 0, limit)
 	for rows.Next() {
-		var p Profile
+		var p BirthProfile
 		var version int
 		var thirdParty, lastUsedAt, deletedAt sql.NullString
 		var createdAt, updatedAt string
@@ -247,7 +247,7 @@ WHERE user_id=? AND deleted_at IS NULL`
 
 // Update applies a full user-info replacement guarded by an optimistic lock.
 // Returns ErrConflict when expectedVersion does not match the stored version.
-func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion int, in Input) (Profile, error) {
+func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion int, in BirthProfileInput) (BirthProfile, error) {
 	now := formatTime(s.nowFunc())
 	result, err := s.db.ExecContext(ctx, `
 UPDATE profiles SET
@@ -262,18 +262,18 @@ WHERE id=? AND user_id=? AND deleted_at IS NULL AND version=?`,
 		id, userID, expectedVersion,
 	)
 	if err != nil {
-		return Profile{}, err
+		return BirthProfile{}, err
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return Profile{}, err
+		return BirthProfile{}, err
 	}
 	if affected == 0 {
 		_, getErr := s.Get(ctx, userID, id)
 		if getErr != nil {
-			return Profile{}, getErr
+			return BirthProfile{}, getErr
 		}
-		return Profile{}, ErrConflict
+		return BirthProfile{}, ErrConflict
 	}
 	return s.Get(ctx, userID, id)
 }

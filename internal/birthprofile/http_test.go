@@ -60,7 +60,7 @@ func TestHTTPCreateAndGet(t *testing.T) {
 		t.Fatalf("create status=%d body=%s", rr.Code, rr.Body.String())
 	}
 	var env struct {
-		Data Profile `json:"data"`
+		Data BirthProfile `json:"data"`
 	}
 	if err := json.Unmarshal(rr.Body.Bytes(), &env); err != nil {
 		t.Fatal(err)
@@ -94,7 +94,7 @@ func TestHTTPUpdateConflict(t *testing.T) {
 		"birth_date": "1958-闰5-12", "birth_time": "06:00", "birth_time_known": "known",
 	})
 	var env struct {
-		Data Profile `json:"data"`
+		Data BirthProfile `json:"data"`
 	}
 	_ = json.Unmarshal(rr.Body.Bytes(), &env)
 
@@ -121,7 +121,7 @@ func TestHTTPListAndDelete(t *testing.T) {
 	}
 	var list struct {
 		Data struct {
-			Profiles []Profile `json:"profiles"`
+			Profiles []BirthProfile `json:"profiles"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(rr.Body.Bytes(), &list); err != nil {

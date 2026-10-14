@@ -12,9 +12,10 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/sales"
 )
 
 type fakeGateway struct {
@@ -35,7 +36,7 @@ func (g *fakeGateway) FetchPayment(ctx context.Context, intent payment.PaymentIn
 
 func (g *fakeGateway) WebhookAck() []byte { return []byte("success") }
 
-func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.OrderStore, string) {
+func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *sales.OrderStore, string) {
 	t.Helper()
 	ctx := context.Background()
 	mainDB, err := sql.Open("sqlite", t.TempDir()+"/main.db")
@@ -60,10 +61,10 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.Orde
 	if err := events.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	orderStore := liki.NewOrderStoreWithCatalog(mainDB, liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
+	orderStore := sales.NewOrderStoreWithCatalog(mainDB, product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
 	}))
-	entitlementStore := liki.NewStore(mainDB)
+	entitlementStore := entitlement.NewStore(mainDB)
 	if err := orderStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.Orde
 	runtime := payment.NewRuntime(
 		map[payment.Provider]payment.Gateway{payment.ProviderXunhu: gateway},
 		map[string]payment.ProductFlow{
-			string(product.Chat): liki.NewFulfiller(orderStore, entitlementStore, product.Chat, 30*time.Hour),
+			string(product.Chat): sales.NewFlow(orderStore, entitlementStore, product.Chat, 30*time.Hour),
 		},
 		intents,
 		notifications,

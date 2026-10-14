@@ -1,8 +1,10 @@
-package product
+package sales
 
 import (
 	"net/http/httptest"
 	"testing"
+
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 func TestExplicitCurrencyResolverIgnoresSpoofedHeaders(t *testing.T) {
@@ -13,8 +15,7 @@ func TestExplicitCurrencyResolverIgnoresSpoofedHeaders(t *testing.T) {
 	request := httptest.NewRequest("POST", "/", nil)
 	request.Header.Set("CF-IPCountry", "CN")
 	request.Header.Set("X-Geo-Country", "CN")
-
-	if got := resolver.CurrencyFor(request); got != USD {
+	if got := resolver.CurrencyFor(request); got != product.USD {
 		t.Fatalf("currency = %q, want USD", got)
 	}
 }
@@ -26,8 +27,7 @@ func TestTrustedEdgeCurrencyResolverUsesHeaders(t *testing.T) {
 	}
 	request := httptest.NewRequest("POST", "/", nil)
 	request.Header.Set("CF-IPCountry", "CN")
-
-	if got := resolver.CurrencyFor(request); got != CNY {
+	if got := resolver.CurrencyFor(request); got != product.CNY {
 		t.Fatalf("currency = %q, want CNY", got)
 	}
 }

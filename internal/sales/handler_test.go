@@ -1,4 +1,4 @@
-package liki
+package sales
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/entitlement"
+	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -23,12 +24,12 @@ func TestHandleProductsReturnsServerSelectedDisplayCurrency(t *testing.T) {
 	if err := entitlements.Migrate(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	catalog := NewCommerceCatalog(CommerceCatalogConfig{
+	catalog := product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY:      7900,
 		OneTimePriceMinorUSD:      2990,
 		SubscriptionPriceMinorUSD: 1990,
 	})
-	handler := NewHandler(nil, entitlements, nil, nil, nil, WithCommerceCatalog(catalog))
+	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements), WithCatalog(catalog))
 
 	request := httptest.NewRequest(http.MethodGet, "/api/chat/products", nil)
 	request.Header.Set("CF-IPCountry", "US")

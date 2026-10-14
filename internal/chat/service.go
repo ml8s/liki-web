@@ -276,7 +276,7 @@ func assistantContent(messages []llm.Message) string {
 
 // systemProfileContent builds the persisted first message shown as a profile
 // card. Structured JSON so the frontend can render it without parsing prose.
-func systemProfileContent(p birthprofile.Profile) (string, error) {
+func systemProfileContent(p birthprofile.BirthProfile) (string, error) {
 	payload := map[string]any{
 		"nickname":            p.Nickname,
 		"name":                p.Name,

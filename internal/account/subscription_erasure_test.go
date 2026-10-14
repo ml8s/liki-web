@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/sales"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -17,7 +17,7 @@ func TestErasureAnonymizesSubscriptionContact(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	subscriptions := liki.NewSubscriptionStore(db)
+	subscriptions := sales.NewSubscriptionStore(db)
 	if err := subscriptions.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}

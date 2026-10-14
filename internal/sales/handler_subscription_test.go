@@ -1,4 +1,4 @@
-package liki
+package sales
 
 import (
 	"context"
@@ -57,14 +57,14 @@ func TestSubscriptionCheckoutStoresLocalKeyAndOmitsAmount(t *testing.T) {
 		t.Fatal(err)
 	}
 	checkoutGateway := &fakeSubscriptionCheckoutGateway{}
-	catalog := NewCommerceCatalog(CommerceCatalogConfig{
+	catalog := product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY:      7900,
 		OneTimePriceMinorUSD:      2990,
 		SubscriptionPriceMinorUSD: 1990,
 	})
-	handler := NewHandler(nil, entitlements, nil, nil, nil,
-		WithCommerceCatalog(catalog),
-		WithSubscriptionCommerce(subscriptions, checkoutGateway, &fakeSubscriptionGateway{}, "https://liki.hk"),
+	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements),
+		WithCatalog(catalog),
+		WithSubscriptions(subscriptions, checkoutGateway, &fakeSubscriptionGateway{}, "https://liki.hk"),
 	)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/chat/products/liki-chat/checkout",
@@ -132,8 +132,8 @@ WHERE id=?`, pending.ID); err != nil {
 		t.Fatal(err)
 	}
 	cancellationGateway := &fakeSubscriptionGateway{}
-	handler := NewHandler(nil, entitlements, nil, nil, nil,
-		WithSubscriptionCommerce(subscriptions, &fakeSubscriptionCheckoutGateway{}, cancellationGateway, "https://liki.hk"),
+	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements),
+		WithSubscriptions(subscriptions, &fakeSubscriptionCheckoutGateway{}, cancellationGateway, "https://liki.hk"),
 	)
 	request := httptest.NewRequest(http.MethodGet, "/api/me/subscriptions", nil)
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
@@ -206,8 +206,8 @@ func TestSubscriptionPaymentsRouteReturnsRefundState(t *testing.T) {
 	if err := subscriptions.RecordPaymentRefund(ctx, refund, nil); err != nil {
 		t.Fatal(err)
 	}
-	handler := NewHandler(nil, entitlements, nil, nil, nil,
-		WithSubscriptionCommerce(subscriptions, &fakeSubscriptionCheckoutGateway{}, &fakeSubscriptionGateway{}, "https://liki.hk"),
+	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements),
+		WithSubscriptions(subscriptions, &fakeSubscriptionCheckoutGateway{}, &fakeSubscriptionGateway{}, "https://liki.hk"),
 	)
 	request := httptest.NewRequest(http.MethodGet, "/api/me/subscription-payments", nil)
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
@@ -265,8 +265,8 @@ func TestSubscriptionListReconcilesPendingCheckout(t *testing.T) {
 			Metadata: map[string]string{"liki_subscription_key": pending.ID},
 		},
 	}}
-	handler := NewHandler(nil, entitlements, nil, nil, nil,
-		WithSubscriptionCommerce(subscriptions, &fakeSubscriptionCheckoutGateway{}, &fakeSubscriptionGateway{}, "https://liki.hk"),
+	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements),
+		WithSubscriptions(subscriptions, &fakeSubscriptionCheckoutGateway{}, &fakeSubscriptionGateway{}, "https://liki.hk"),
 		WithSubscriptionReconciliation(reconciler, func(ctx context.Context, event payment.WebhookEvent) error {
 			return subscriptions.ApplyWebhook(ctx, entitlements, event)
 		}),
@@ -314,13 +314,13 @@ func TestSubscriptionCheckoutRejectsActiveSubscription(t *testing.T) {
 		t.Fatal(err)
 	}
 	checkoutGateway := &fakeSubscriptionCheckoutGateway{}
-	catalog := NewCommerceCatalog(CommerceCatalogConfig{
+	catalog := product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorUSD:      2990,
 		SubscriptionPriceMinorUSD: 1990,
 	})
-	handler := NewHandler(nil, entitlements, nil, nil, nil,
-		WithCommerceCatalog(catalog),
-		WithSubscriptionCommerce(subscriptions, checkoutGateway, &fakeSubscriptionGateway{}, "https://liki.hk"),
+	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements),
+		WithCatalog(catalog),
+		WithSubscriptions(subscriptions, checkoutGateway, &fakeSubscriptionGateway{}, "https://liki.hk"),
 	)
 	request := httptest.NewRequest(http.MethodPost, "/api/chat/products/liki-chat/checkout",
 		strings.NewReader(`{"billing_mode":"subscription","locale":"en"}`))

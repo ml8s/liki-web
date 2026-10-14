@@ -1,4 +1,4 @@
-package liki
+package sales
 
 import (
 	"context"

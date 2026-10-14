@@ -9,11 +9,14 @@
 | `cmd/liki-web` | Service entrypoint |
 | `internal/http` | HTTP route composition, middleware, security headers, rate limiting |
 | `internal/auth` | email-code identity, sessions, verification codes |
-| `internal/profile` | birth profile aggregate |
+| `internal/birthprofile` | birth profile aggregate |
 | `internal/payment` | provider-neutral payment runtime |
-| `internal/liki` | Liki Chat product, order, entitlement, and chat domain |
+| `internal/product` | product definitions, skills, offers, and pricing |
+| `internal/sales` | checkout, orders, and subscription lifecycle |
+| `internal/entitlement` | user product entitlements |
+| `internal/chat` | Liki Chat sessions, messages, and AG-UI runtime |
+| `internal/partner` | KOL/Scout applications, attribution, commission, and payout domain |
 | `internal/account` | account erasure orchestration |
-| `internal/referral` | KOL/Scout applications, attribution, commission, and payout domain |
 | `internal/admin` | admin operations and audit |
 | `internal/agent` | AG-UI event adapter shared with the liki-agents runtime |
 | `internal/adminauth` | admin console session gate |
@@ -122,3 +125,20 @@ Cross-context writes are orchestrated in application code. There is no ad hoc fo
 
 CSP is owned by the edge. Never duplicate it in the Go service — two
 sources will drift.
+
+## Domain dependency rules
+
+Bounded contexts are enforced by `internal/arch`:
+
+```text
+product      may not import sales, payment, entitlement, chat, partner, or birthprofile
+sales        may import product and payment; must not import entitlement, chat, or partner
+payment      is provider-neutral and must not import product/sales/entitlement/chat/partner
+entitlement  may import product; must not import sales/payment/chat/partner
+chat         may import product and birthprofile; must not import sales/payment/partner
+partner      may import payment; must not import product/sales/chat/entitlement
+```
+
+Cross-context workflows use injected ports in the composition root. Sales hands
+paid facts to an `EntitlementProvisioner`; chat queries an `AccessAuthorizer`.
+Neither imports the concrete entitlement store.

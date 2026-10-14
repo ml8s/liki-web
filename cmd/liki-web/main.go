@@ -29,7 +29,6 @@ import (
 	"github.com/ml8s/liki-web/internal/chat"
 	"github.com/ml8s/liki-web/internal/dodo"
 	"github.com/ml8s/liki-web/internal/entitlement"
-	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/sales"
 	"github.com/ml8s/liki-web/internal/xunhu"
@@ -120,7 +119,7 @@ func LoadConfig() Config {
 		JWTSecret:                        os.Getenv("JWT_SECRET"),
 		HTTPListenAddress:                envOr("LIKI_HTTP_LISTEN_ADDRESS", ":8081"),
 		DevelopmentMode:                  envOrBool("LIKI_DEVELOPMENT_MODE", false),
-		CurrencySource:                   envOr("LIKI_BILLING_CURRENCY_SOURCE", product.CurrencySourceTrustedEdge),
+		CurrencySource:                   envOr("LIKI_BILLING_CURRENCY_SOURCE", sales.CurrencySourceTrustedEdge),
 		BillingRegion:                    envOr("LIKI_BILLING_REGION", "global"),
 		ChatOneTimeAccessDays:            envOrInt("LIKI_CHAT_ONE_TIME_ACCESS_DAYS", 30),
 		ChatOneTimePriceMinorCNY:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS", 100),
@@ -167,7 +166,7 @@ func loadAlipayConfig() aipay.Config {
 func main() {
 	cfg := LoadConfig()
 
-	currencyResolver, err := product.NewCurrencyResolver(cfg.CurrencySource, cfg.BillingRegion)
+	currencyResolver, err := sales.NewCurrencyResolver(cfg.CurrencySource, cfg.BillingRegion)
 	if err != nil {
 		slog.Error("invalid billing currency configuration", "err", err)
 		os.Exit(1)
@@ -581,21 +580,31 @@ func main() {
 		AuthHandler:     authHandler,
 		ReferralHandler: partnerHandler,
 		ReferralStore:   partnerStore,
-		LikiHandler: liki.NewHandler(
-			commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser,
-			liki.WithCurrencyResolver(currencyResolver),
-			liki.WithCommerceCatalog(commerceCatalog),
-			liki.WithSubscriptionCommerce(
+		SalesHandler: sales.NewHandler(
+			commerceOrders,
+			paymentRuntime,
+			authHandler.RequireUser,
+			func(next http.HandlerFunc) http.HandlerFunc {
+				return rateLimiter.Wrap(5.0/60, 6, next)
+			},
+			sales.WithCurrencyResolver(currencyResolver),
+			sales.WithCatalog(commerceCatalog),
+			sales.WithSkillAuthorizer(entitlements),
+			sales.WithSubscriptions(
 				subscriptionStore,
 				dodoClient,
 				dodoClient,
 				cfg.PublicBaseURL,
 			),
-			liki.WithSubscriptionReconciliation(
+			sales.WithSubscriptionReconciliation(
 				dodoClient,
 				subscriptionProcessor.HandleSubscriptionEvent,
 			),
 		),
+		EntitlementHandler: entitlement.NewHandler(entitlements, authHandler.RequireUser),
+		ChatHandler: chat.NewHandler(chatService, authHandler.RequireUser, func(next http.HandlerFunc) http.HandlerFunc {
+			return rateLimiter.Wrap(5.0/60, 6, next)
+		}),
 		EngineMCP:       enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),
 		AipayHandler:    aipayHandler,
 		ProfileHandler:  birthprofile.NewHandler(profileStore, authHandler.RequireUser),

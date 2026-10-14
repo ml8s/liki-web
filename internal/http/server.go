@@ -13,31 +13,35 @@ import (
 	"github.com/ml8s/liki-web/internal/aipay"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/birthprofile"
+	"github.com/ml8s/liki-web/internal/chat"
 	"github.com/ml8s/liki-web/internal/enginemcp"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/feedback"
-	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/sales"
 )
 
 type ServerDeps struct {
-	PaymentRuntime  *payment.Runtime
-	AuthHandler     *auth.Handler
-	ReferralHandler *partner.Handler
-	ReferralStore   *partner.Store
-	LikiHandler     *liki.Handler
-	EngineMCP       *enginemcp.Handler
-	AipayHandler    *aipay.Handler
-	ProfileHandler  *birthprofile.Handler
-	AccountHandler  *account.Handler
-	MetricsHandler  http.HandlerFunc
-	Readiness       ReadinessChecker
-	FeedbackStore   *feedback.Store
-	FeedbackAPIKey  string
-	AdminEmail      string
-	AdminAuthorizer *adminauth.Store
-	PartnerNotifier partner.DecisionNotifier
-	DevMode         bool
+	PaymentRuntime     *payment.Runtime
+	SalesHandler       *sales.Handler
+	EntitlementHandler *entitlement.Handler
+	ChatHandler        *chat.Handler
+	AuthHandler        *auth.Handler
+	ReferralHandler    *partner.Handler
+	ReferralStore      *partner.Store
+	EngineMCP          *enginemcp.Handler
+	AipayHandler       *aipay.Handler
+	ProfileHandler     *birthprofile.Handler
+	AccountHandler     *account.Handler
+	MetricsHandler     http.HandlerFunc
+	Readiness          ReadinessChecker
+	FeedbackStore      *feedback.Store
+	FeedbackAPIKey     string
+	AdminEmail         string
+	AdminAuthorizer    *adminauth.Store
+	PartnerNotifier    partner.DecisionNotifier
+	DevMode            bool
 }
 
 func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version string, rl, verifyRL *RateLimiter) http.Handler {
@@ -71,12 +75,15 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		deps.AuthHandler.RegisterRoutes(mux, authCodeLimit, authVerifyLimit)
 	}
 
-	// ── liki product (entitlements + commerce + chat) ──
-	if deps.LikiHandler != nil {
-		likiLimit := func(next http.HandlerFunc) http.HandlerFunc {
-			return rl.Wrap(5.0/60, 6, next)
-		}
-		deps.LikiHandler.RegisterRoutes(mux, likiLimit)
+	// ── product / sales / entitlement / chat bounded contexts ──
+	if deps.SalesHandler != nil {
+		deps.SalesHandler.RegisterRoutes(mux)
+	}
+	if deps.EntitlementHandler != nil {
+		deps.EntitlementHandler.RegisterRoutes(mux)
+	}
+	if deps.ChatHandler != nil {
+		deps.ChatHandler.RegisterRoutes(mux)
 	}
 	if deps.EngineMCP != nil {
 		engineLimit := func(next http.HandlerFunc) http.HandlerFunc {
