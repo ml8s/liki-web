@@ -158,7 +158,7 @@ SELECT status FROM partner_commission_entries WHERE id=?`, commission.ID+":kol")
 func TestCreatePayoutRejectsMixedCurrencies(t *testing.T) {
 	ctx := context.Background()
 	store, commission := newPendingCommissionPayout(t)
-	kol, err := store.ReferrerByUser(ctx, commission.ReferrerID)
+	kol, err := store.PartnerByUser(ctx, commission.ReferrerID)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -30,7 +30,7 @@ func (s *Store) SubmitApplication(ctx context.Context, role PartnerRole, userID,
 	if userID == "" || (role != RoleKOL && role != RoleScout) {
 		return PartnerApplication{}, ErrInvalidApplication
 	}
-	primary, err := s.ReferrerByUser(ctx, userID)
+	primary, err := s.PartnerByUser(ctx, userID)
 	if err == nil {
 		if primary.Role == role {
 			if role == RoleKOL {
@@ -170,7 +170,7 @@ LEFT JOIN partners r ON r.user_id=a.user_id`
 }
 
 // ListPartners is the admin-facing partner index. Empty filters mean all.
-func (s *Store) ListPartners(ctx context.Context, role PartnerRole, status PartnerStatus, query string, limit int) ([]Referrer, error) {
+func (s *Store) ListPartners(ctx context.Context, role PartnerRole, status PartnerStatus, query string, limit int) ([]Partner, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 100
 	}
@@ -202,9 +202,9 @@ func (s *Store) ListPartners(ctx context.Context, role PartnerRole, status Partn
 		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
-	items := make([]Referrer, 0)
+	items := make([]Partner, 0)
 	for rows.Next() {
-		item, err := scanReferrer(rows.Scan)
+		item, err := scanPartner(rows.Scan)
 		if err != nil {
 			return nil, err
 		}
@@ -403,18 +403,18 @@ FROM partner_admin_actions ORDER BY created_at DESC LIMIT ?`, limit)
 
 // CreateScoutPartner assigns the standalone Scout role. KOL and Scout are
 // separate role assignments; this method never converts a KOL.
-func (s *Store) CreateScoutPartner(ctx context.Context, userID, actor, reason string) (Referrer, error) {
+func (s *Store) CreateScoutPartner(ctx context.Context, userID, actor, reason string) (Partner, error) {
 	if strings.TrimSpace(userID) == "" || strings.TrimSpace(actor) == "" || strings.TrimSpace(reason) == "" {
-		return Referrer{}, errors.New("partner: user, actor, and reason are required")
+		return Partner{}, errors.New("partner: user, actor, and reason are required")
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return Referrer{}, err
+		return Partner{}, err
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	if err := ensurePartnerTx(ctx, tx, s, userID, RoleScout); err != nil {
-		return Referrer{}, err
+		return Partner{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `
 INSERT INTO partner_admin_actions
@@ -422,10 +422,10 @@ INSERT INTO partner_admin_actions
 VALUES (?,?,?,?,?,?,?,?,?)`,
 		s.idFunc(), actor, "partner.scout_assigned", "partner", userID,
 		"", string(RoleScout), reason, formatTime(s.nowFunc())); err != nil {
-		return Referrer{}, err
+		return Partner{}, err
 	}
 	if err := tx.Commit(); err != nil {
-		return Referrer{}, err
+		return Partner{}, err
 	}
-	return s.ReferrerByUser(ctx, userID)
+	return s.PartnerByUser(ctx, userID)
 }

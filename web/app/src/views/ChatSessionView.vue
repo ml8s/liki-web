@@ -99,7 +99,7 @@ function restoreDraft() {
 
 function goBack() {
   const profileId = chat.activeSession?.profile_id
-  void router.push(profileId ? `/profiles/${profileId}` : '/chat')
+  void router.push(profileId ? ` /birth-profiles/${profileId}` : '/chat')
 }
 
 function onThreadScroll() {

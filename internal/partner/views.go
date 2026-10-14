@@ -19,7 +19,7 @@ func (s *Store) KOLOverview(ctx context.Context, userID string) (KOLOverview, er
 		return KOLOverview{}, err
 	}
 	return KOLOverview{
-		Referrer: partner, AttributedUsers: int(attributed), Balances: balances,
+		Partner: partner, AttributedUsers: int(attributed), Balances: balances,
 	}, nil
 }
 

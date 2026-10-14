@@ -29,7 +29,7 @@ func (s *Store) PartnerStates(ctx context.Context, userID string) (PartnerStates
 
 	// Programme participation is intentionally exclusive. This prevents a
 	// person from occupying both roles and recreating a hierarchy.
-	_, err := s.ReferrerByUser(ctx, userID)
+	_, err := s.PartnerByUser(ctx, userID)
 	hasPrimary := err == nil
 	switch {
 	case err == nil:

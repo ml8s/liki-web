@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { checkoutChatProduct, fetchChatProducts, type ChatProduct } from '@/api/commerce'
+import { checkoutProduct, fetchProducts, type Product } from '@/api/sales'
 import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
-import { useProfilesStore } from '@/stores/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { toUserMessage } from '@/utils/errors'
 import { toFirstQueryString } from '@/utils/format'
 import { i18n } from '@/i18n'
@@ -21,8 +21,8 @@ export interface PaymentReturnResult {
   state?: PaymentState
 }
 
-interface CommerceState {
-  products: ChatProduct[]
+interface SalesState {
+  products: Product[]
   productsError: string
   loadingProducts: boolean
   buying: boolean
@@ -32,8 +32,8 @@ interface CommerceState {
   paymentMessage: string
 }
 
-export const useCommerceStore = defineStore('commerce', {
-  state: (): CommerceState => ({
+export const useSalesStore = defineStore('sales', {
+  state: (): SalesState => ({
     products: [],
     productsError: '',
     loadingProducts: false,
@@ -68,7 +68,7 @@ export const useCommerceStore = defineStore('commerce', {
       this.loadingProducts = true
       this.productsError = ''
       try {
-        this.products = await fetchChatProducts()
+        this.products = await fetchProducts()
       } catch (error) {
         this.productsError = toUserMessage(error, t('commerce.productsFailed'))
       } finally {
@@ -81,7 +81,7 @@ export const useCommerceStore = defineStore('commerce', {
       this.buying = true
       this.actionError = ''
       try {
-        const checkout = await checkoutChatProduct(product.id, billingMode, i18n.global.locale.value)
+        const checkout = await checkoutProduct(product.id, billingMode, i18n.global.locale.value)
         // 只跟随相对路径或 https 支付域：防御后端配置错误导致的开放重定向。
         const url = checkout.checkout_url
         if (!url.startsWith('/') && !url.startsWith('https://')) {
@@ -148,7 +148,7 @@ export const useCommerceStore = defineStore('commerce', {
     },
     // V4：支付成功后直达解读——有档案则用默认 skill（八字）建会话并跳转。
     async enterInterpretation(): Promise<string | null> {
-      const profiles = useProfilesStore()
+      const profiles = useBirthProfilesStore()
       if (!profiles.list.length) {
         await profiles.loadList()
       }

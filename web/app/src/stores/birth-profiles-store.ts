@@ -1,18 +1,18 @@
 import { defineStore } from 'pinia'
 import { errorMessage } from '@/utils/errors'
 import {
-  createProfile,
-  deleteProfile,
-  fetchProfile,
-  fetchProfiles,
-  updateProfile,
-  type Profile,
-  type ProfileInput,
-} from '@/api/profiles'
+  createBirthProfile,
+  deleteBirthProfile,
+  fetchBirthProfile,
+  fetchBirthProfiles,
+  updateBirthProfile,
+  type BirthProfile,
+  type BirthProfileInput,
+} from '@/api/birth-profiles'
 
-interface ProfilesState {
-  list: Profile[]
-  detail: Profile | null
+interface BirthProfilesState {
+  list: BirthProfile[]
+  detail: BirthProfile | null
   loading: boolean
   detailLoading: boolean
   error: string
@@ -20,8 +20,8 @@ interface ProfilesState {
   next_cursor: string
 }
 
-export const useProfilesStore = defineStore('profiles', {
-  state: (): ProfilesState => ({
+export const useBirthProfilesStore = defineStore('birth-profiles', {
+  state: (): BirthProfilesState => ({
     list: [],
     detail: null,
     loading: false,
@@ -43,7 +43,7 @@ export const useProfilesStore = defineStore('profiles', {
       this._lastRefresh = now
       this.error = ''
       try {
-        const result = await fetchProfiles(effectiveCursor)
+        const result = await fetchBirthProfiles(effectiveCursor)
         this.list = result.profiles
         // 下一页 cursor（若后端返回非空，则下次传入）
         // 每次以响应为准：空 cursor 表示已到末页，必须重置。
@@ -62,7 +62,7 @@ export const useProfilesStore = defineStore('profiles', {
       this.loading = true
       this.error = ''
       try {
-        const result = await fetchProfiles(this.next_cursor)
+        const result = await fetchBirthProfiles(this.next_cursor)
         this.list = [...this.list, ...result.profiles]
         this.next_cursor = result.next_cursor ?? ''
       } catch (error) {
@@ -75,7 +75,7 @@ export const useProfilesStore = defineStore('profiles', {
       this.detailLoading = true
       this.error = ''
       try {
-        this.detail = await fetchProfile(id)
+        this.detail = await fetchBirthProfile(id)
       } catch (error) {
         this.detail = null
         this.error = errorMessage(error)
@@ -83,20 +83,20 @@ export const useProfilesStore = defineStore('profiles', {
         this.detailLoading = false
       }
     },
-    async create(input: ProfileInput): Promise<Profile> {
-      const profile = await createProfile(input)
+    async create(input: BirthProfileInput): Promise<BirthProfile> {
+      const profile = await createBirthProfile(input)
       this.list.unshift(profile)
       return profile
     },
-    async update(id: string, expectedVersion: number, input: ProfileInput): Promise<Profile> {
-      const profile = await updateProfile(id, expectedVersion, input)
+    async update(id: string, expectedVersion: number, input: BirthProfileInput): Promise<BirthProfile> {
+      const profile = await updateBirthProfile(id, expectedVersion, input)
       const index = this.list.findIndex(item => item.id === id)
       if (index >= 0) this.list[index] = profile
       if (this.detail?.id === id) this.detail = profile
       return profile
     },
     async remove(id: string) {
-      await deleteProfile(id)
+      await deleteBirthProfile(id)
       this.list = this.list.filter(item => item.id !== id)
       if (this.detail?.id === id) this.detail = null
     },

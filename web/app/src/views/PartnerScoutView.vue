@@ -330,7 +330,7 @@ import {
   type ScoutOverview,
   type ScoutRecruit,
   type ScoutSale,
-} from '@/api/referral'
+} from '@/api/partner'
 import { formatDateTime, formatMinorUnit } from '@/utils/format'
 
 const { t } = useI18n()

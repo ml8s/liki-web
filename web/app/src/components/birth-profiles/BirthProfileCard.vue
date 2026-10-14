@@ -2,7 +2,7 @@
   <div class="profile-card">
     <router-link
       class="profile-main"
-      :to="`/profiles/${profile.id}`"
+      :to="` /birth-profiles/${profile.id}`"
     >
       <div class="avatar font-serif">
         {{ initial }}
@@ -46,10 +46,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { birthSummary, type Profile } from '@/api/profiles'
+import { birthSummary, type BirthProfile } from '@/api/birth-profiles'
 
-const props = defineProps<{ profile: Profile }>()
-defineEmits<{ open: [Profile]; edit: [Profile]; remove: [Profile] }>()
+const props = defineProps<{ profile: BirthProfile }>()
+defineEmits<{ open: [BirthProfile]; edit: [BirthProfile]; remove: [BirthProfile] }>()
 
 const initial = computed(() => props.profile.nickname.slice(0, 1))
 </script>

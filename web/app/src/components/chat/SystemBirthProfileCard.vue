@@ -1,14 +1,14 @@
 <template>
   <div class="system-profile">
     <div class="head">
-      <span class="title font-serif">{{ $t('chat.systemProfile.title') }}</span>
+      <span class="title font-serif">{{ $t('chat.systemBirthProfile.title') }}</span>
       <span class="pill">{{ nickname }}</span>
     </div>
     <div class="meta">
       {{ summary }}
     </div>
     <p class="note">
-      {{ $t('chat.systemProfile.note') }}
+      {{ $t('chat.systemBirthProfile.note') }}
     </p>
   </div>
 </template>
@@ -16,14 +16,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { Profile } from '@/api/profiles'
+import type { BirthProfile } from '@/api/birth-profiles'
 
 const props = defineProps<{ content: string }>()
 const { t } = useI18n()
 
-const data = computed<Partial<Profile>>(() => {
+const data = computed<Partial<BirthProfile>>(() => {
   try {
-    return JSON.parse(props.content) as Partial<Profile>
+    return JSON.parse(props.content) as Partial<BirthProfile>
   } catch {
     return {}
   }
@@ -36,9 +36,9 @@ const summary = computed(() => {
   const calendar = d.calendar === 'lunar' ? t('profiles.form.lunar') : t('profiles.form.solar')
   const gender = d.gender === 'male' ? t('profiles.male') : d.gender === 'female' ? t('profiles.female') : ''
   const knownMap: Record<string, string> = {
-    known: t('chat.systemProfile.known'),
-    approximate: t('chat.systemProfile.approximate'),
-    unknown: t('chat.systemProfile.unknown'),
+    known: t('chat.systemBirthProfile.known'),
+    approximate: t('chat.systemBirthProfile.approximate'),
+    unknown: t('chat.systemBirthProfile.unknown'),
   }
   const known = knownMap[d.birth_time_known ?? ''] ?? ''
   const place = d.birth_place ? ` · ${d.birth_place}` : ''

@@ -64,7 +64,7 @@ const (
 	AttributionCookieTTL  = 30 * 24 * time.Hour
 )
 
-type Referrer struct {
+type Partner struct {
 	UserID      string        `json:"user_id"`
 	Code        string        `json:"code"`
 	Role        PartnerRole   `json:"role"`
@@ -235,7 +235,7 @@ type Settlement struct {
 }
 
 type KOLOverview struct {
-	Referrer        Referrer         `json:"referrer"`
+	Partner         Partner          `json:"partner"`
 	AttributedUsers int              `json:"attributed_users"`
 	Balances        []BalanceSummary `json:"balances"`
 }
@@ -249,7 +249,7 @@ type ScoutRecruit struct {
 }
 
 type ScoutOverview struct {
-	Partner      Referrer              `json:"partner"`
+	Partner      Partner               `json:"partner"`
 	LeadCount    int64                 `json:"lead_count"`
 	RecruitCount int64                 `json:"recruit_count"`
 	OrderCount   int64                 `json:"order_count"`
@@ -270,7 +270,7 @@ type ScoutSale struct {
 }
 
 type PartnerStats struct {
-	Referrer        Referrer         `json:"referrer"`
+	Partner         Partner          `json:"partner"`
 	AttributedUsers int              `json:"attributed_users"`
 	Commissions     []Commission     `json:"commissions"`
 	Balances        []BalanceSummary `json:"balances"`

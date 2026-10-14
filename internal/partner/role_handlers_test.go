@@ -12,7 +12,7 @@ import (
 	"github.com/ml8s/liki-web/internal/payment"
 )
 
-func newPartnerJourneyStore(t *testing.T) (*Store, Referrer, Referrer) {
+func newPartnerJourneyStore(t *testing.T) (*Store, Partner, Partner) {
 	t.Helper()
 	ctx := context.Background()
 	store := newAdminStore(t)

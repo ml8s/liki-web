@@ -41,15 +41,15 @@
         class="primary-card guide"
       >
         <div class="primary-copy">
-          <h2>{{ $t('dashboard.noProfile.title') }}</h2>
-          <p>{{ $t('dashboard.noProfile.body') }}</p>
+          <h2>{{ $t('dashboard.noBirthProfile.title') }}</h2>
+          <p>{{ $t('dashboard.noBirthProfile.body') }}</p>
         </div>
         <el-button
           type="primary"
           size="large"
-          @click="router.push('/profiles/new')"
+          @click="router.push(' /birth-profiles/new')"
         >
-          {{ $t('dashboard.noProfile.cta') }}
+          {{ $t('dashboard.noBirthProfile.cta') }}
         </el-button>
       </div>
 
@@ -57,12 +57,12 @@
         <div class="primary-card">
           <div class="primary-copy">
             <template v-if="dashboardState === 'free-profile'">
-              <h2>{{ $t('dashboard.freeProfile.title') }}</h2>
-              <p v-if="primaryProfile">
-                {{ primaryProfile.nickname }} · {{ birthSummary(primaryProfile) }}
+              <h2>{{ $t('dashboard.freeBirthProfile.title') }}</h2>
+              <p v-if="primaryBirthProfile">
+                {{ primaryBirthProfile.nickname }} · {{ birthSummary(primaryBirthProfile) }}
               </p>
               <p class="primary-note">
-                {{ $t('dashboard.freeProfile.note') }}
+                {{ $t('dashboard.freeBirthProfile.note') }}
               </p>
             </template>
 
@@ -74,7 +74,7 @@
             <template v-else-if="latestSession">
               <h2>{{ $t('dashboard.continue.title') }}</h2>
               <p>
-                {{ latestSessionProfileName || latestSession.title }} ·
+                {{ latestSessionBirthProfileName || latestSession.title }} ·
                 {{ skillLabel(latestSession.skill) }} ·
                 {{ formatDateTime(latestSession.last_message_at ?? latestSession.updated_at) }}
               </p>
@@ -87,7 +87,7 @@
               size="large"
               @click="viewChart"
             >
-              {{ $t('dashboard.freeProfile.viewChart') }}
+              {{ $t('dashboard.freeBirthProfile.viewChart') }}
             </el-button>
             <el-button
               v-if="dashboardState === 'free-profile'"
@@ -95,7 +95,7 @@
               size="large"
               @click="startInterpretation"
             >
-              {{ $t('dashboard.freeProfile.start') }}
+              {{ $t('dashboard.freeBirthProfile.start') }}
             </el-button>
 
             <el-button
@@ -119,20 +119,20 @@
         </div>
 
         <div class="section-head">
-          <h2>{{ $t('dashboard.recentProfiles') }}</h2>
+          <h2>{{ $t('dashboard.recentBirthProfiles') }}</h2>
           <router-link
-            to="/profiles"
+            to=" /birth-profiles"
             class="more-link"
           >
-            {{ $t('dashboard.allProfiles') }}
+            {{ $t('dashboard.allBirthProfiles') }}
           </router-link>
         </div>
         <div class="recent-profiles">
           <router-link
-            v-for="profile in recentProfiles"
+            v-for="profile in recentBirthProfiles"
             :key="profile.id"
             class="recent-profile"
-            :to="`/profiles/${profile.id}`"
+            :to="` /birth-profiles/${profile.id}`"
           >
             <span class="rp-avatar font-serif">{{ profile.nickname.slice(0, 1) }}</span>
             <span class="rp-name">{{ profile.nickname }}</span>
@@ -140,7 +140,7 @@
           </router-link>
           <router-link
             class="recent-profile add"
-            to="/profiles/new"
+            to=" /birth-profiles/new"
           >
             ＋ {{ $t('profiles.create') }}
           </router-link>
@@ -213,9 +213,9 @@
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChatStore, skillLabel } from '@/stores/chat'
-import { useProfilesStore } from '@/stores/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
-import { birthSummary, type Profile } from '@/api/profiles'
+import { birthSummary, type BirthProfile } from '@/api/birth-profiles'
 import { resolveDashboardState, type DashboardState } from '@/composables/dashboardState'
 import { normalizeScenario, scenarioService } from '@/composables/scenario'
 import { chatServices, chatUrl, serviceByKey } from '@/config/chat'
@@ -226,13 +226,13 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const chat = useChatStore()
-const profiles = useProfilesStore()
+const profiles = useBirthProfilesStore()
 const entitlements = useEntitlementsStore()
 
 const loading = computed(() =>
   chat.loadingSessions || profiles.loading || entitlements.loading,
 )
-const hasProfile = computed(() => profiles.list.length > 0)
+const hasBirthProfile = computed(() => profiles.list.length > 0)
 
 function startScenario(scenario: string) {
   const service = scenarioService(normalizeScenario(scenario))
@@ -243,14 +243,14 @@ function startScenario(scenario: string) {
   void router.push('/chat')
 }
 const hasEntitlement = computed(() => entitlements.purchased)
-const primaryProfile = computed<Profile | undefined>(() => profiles.list[0])
+const primaryBirthProfile = computed<BirthProfile | undefined>(() => profiles.list[0])
 const latestSession = computed(() => chat.sessions[0])
-const latestSessionProfileName = computed(() =>
+const latestSessionBirthProfileName = computed(() =>
   latestSession.value
     ? profiles.list.find(item => item.id === latestSession.value?.profile_id)?.nickname ?? ''
     : '',
 )
-const recentProfiles = computed(() => profiles.list.slice(0, 3))
+const recentBirthProfiles = computed(() => profiles.list.slice(0, 3))
 const recentSessions = computed(() =>
   chat.sessions.slice(0, 3).map(session => ({
     ...session,
@@ -259,7 +259,7 @@ const recentSessions = computed(() =>
 )
 
 const dashboardState = computed<DashboardState>(() => resolveDashboardState({
-  hasProfile: hasProfile.value,
+  hasBirthProfile: hasBirthProfile.value,
   hasEntitlement: hasEntitlement.value,
   hasSession: Boolean(latestSession.value),
 }))
@@ -268,21 +268,21 @@ const dashboardState = computed<DashboardState>(() => resolveDashboardState({
 const heroSubtitle = computed(
   () =>
     ({
-      'no-profile': t('dashboard.state.noProfile'),
-      'free-profile': t('dashboard.state.freeProfile'),
+      'no-profile': t('dashboard.state.noBirthProfile'),
+      'free-profile': t('dashboard.state.freeBirthProfile'),
       'paid-no-session': t('dashboard.state.paidNoSession'),
       'paid-continue': t('dashboard.state.paidContinue'),
     })[dashboardState.value],
 )
 
 function viewChart() {
-  if (!primaryProfile.value) return
-  void router.push(`/profiles/${primaryProfile.value.id}`)
+  if (!primaryBirthProfile.value) return
+  void router.push(` /birth-profiles/${primaryBirthProfile.value.id}`)
 }
 
 function startInterpretation() {
-  if (!primaryProfile.value) return
-  void router.push(chatUrl(primaryProfile.value.id, 'bazi'))
+  if (!primaryBirthProfile.value) return
+  void router.push(chatUrl(primaryBirthProfile.value.id, 'bazi'))
 }
 
 function startService(key: string) {
@@ -297,7 +297,7 @@ function startService(key: string) {
     return
   }
   if (!profiles.list.length) {
-    void router.push('/profiles/new')
+    void router.push(' /birth-profiles/new')
     return
   }
   const profile = profiles.list[0]

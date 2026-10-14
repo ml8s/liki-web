@@ -7,7 +7,7 @@
       <template #actions>
         <el-button
           type="primary"
-          @click="router.push('/profiles/new')"
+          @click="router.push(' /birth-profiles/new')"
         >
           {{ $t('profiles.create') }}
         </el-button>
@@ -43,13 +43,13 @@
       <el-button
         type="primary"
         tag="a"
-        to="/profiles/new"
+        to=" /birth-profiles/new"
       >
         {{ $t('profiles.create') }}
       </el-button>
     </el-empty>
 
-    <ProfileList
+    <BirthProfileList
       v-else
       :profiles="profiles.list"
       @open="open"
@@ -76,14 +76,14 @@ import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useProfilesStore } from '@/stores/profiles'
-import type { Profile } from '@/api/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
+import type { BirthProfile } from '@/api/birth-profiles'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
-import ProfileList from '@/components/profiles/ProfileList.vue'
+import BirthProfileList from '@/components /birth-profiles/BirthProfileList.vue'
 
 const router = useRouter()
 const { t } = useI18n()
-const profiles = useProfilesStore()
+const profiles = useBirthProfilesStore()
 
 const error = computed(() => profiles.error)
 
@@ -91,11 +91,11 @@ async function load() {
   await profiles.loadList()
 }
 
-function open(profile: Profile) {
-  void router.push(`/profiles/${profile.id}`)
+function open(profile: BirthProfile) {
+  void router.push(` /birth-profiles/${profile.id}`)
 }
 
-async function confirmRemove(profile: Profile) {
+async function confirmRemove(profile: BirthProfile) {
   try {
     await ElMessageBox.confirm(
       t('profiles.list.deleteConfirm', { nickname: profile.nickname }),
@@ -115,7 +115,7 @@ async function confirmRemove(profile: Profile) {
 onMounted(async () => {
   await load()
   if (!profiles.error && !profiles.list.length) {
-    void router.replace('/profiles/new')
+    void router.replace(' /birth-profiles/new')
   }
 })
 </script>

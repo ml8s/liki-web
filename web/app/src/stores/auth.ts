@@ -2,9 +2,9 @@ import { defineStore } from 'pinia'
 import { fetchMe } from '@/api/me'
 import * as authApi from '@/api/auth'
 import { useChatStore } from '@/stores/chat'
-import { useCommerceStore } from '@/stores/commerce'
+import { useSalesStore } from '@/stores/sales-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
-import { useProfilesStore } from '@/stores/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { ApiError } from '@/api/http'
 import type { Me } from '@/api/me'
 import { normalizeUnknownLocale, requestedLocale, savedLocalePreference, setAppLocale } from '@/i18n'
@@ -69,8 +69,8 @@ export const useAuthStore = defineStore('auth', {
       // 登出必须清理整个用户工作区：换号登录不得见到前一用户的缓存。
       useEntitlementsStore().reset()
       useChatStore().reset()
-      useProfilesStore().reset()
-      useCommerceStore().reset()
+      useBirthProfilesStore().reset()
+      useSalesStore().reset()
       sessionStorage.removeItem('likiChatDraft')
     }
   },

@@ -2,7 +2,7 @@
   <section>
     <el-page-header
       class="profile-page-header"
-      @back="router.push('/profiles')"
+      @back="router.push(' /birth-profiles')"
     >
       <template #content>
         <div class="page-heading">
@@ -35,7 +35,7 @@
     </el-result>
 
     <template v-else-if="detail">
-      <ProfileInfo
+      <BirthProfileInfo
         ref="infoRef"
         :profile="detail"
         :submitting="updating"
@@ -92,20 +92,20 @@ import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useProfilesStore } from '@/stores/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
-import type { ProfileInput } from '@/api/profiles'
+import type { BirthProfileInput } from '@/api/birth-profiles'
 import { chatServices, chatUrl, serviceByKey } from '@/config/chat'
-import PaipanPreview from '@/components/profiles/PaipanPreview.vue'
-import ProfileInfo from '@/components/profiles/ProfileInfo.vue'
+import PaipanPreview from '@/components/birth-profiles/PaipanPreview.vue'
+import BirthProfileInfo from '@/components /birth-profiles/BirthProfileInfo.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const profiles = useProfilesStore()
+const profiles = useBirthProfilesStore()
 const entitlements = useEntitlementsStore()
 
-const infoRef = ref<InstanceType<typeof ProfileInfo> | null>(null)
+const infoRef = ref<InstanceType<typeof BirthProfileInfo> | null>(null)
 const updating = ref(false)
 const preselectedKey = ref('')
 const profileId = computed(() => String(route.params.id ?? ''))
@@ -117,7 +117,7 @@ async function load() {
   await profiles.loadDetail(profileId.value)
 }
 
-async function update(input: ProfileInput) {
+async function update(input: BirthProfileInput) {
   if (!detail.value) return
   updating.value = true
   try {
@@ -149,7 +149,7 @@ onMounted(async () => {
   try {
     await Promise.all([load(), entitlements.load()])
   } catch (error) {
-    console.error('[ProfileDetail] 初始化失败:', error)
+    console.error('[BirthProfileDetail] 初始化失败:', error)
   }
 })
 

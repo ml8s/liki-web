@@ -46,7 +46,7 @@ func TestScoutApplicationLifecycle(t *testing.T) {
 	if err := store.DecideApplication(ctx, app.ID, "admin", true, "approved"); err != nil {
 		t.Fatal(err)
 	}
-	partner, err := store.ReferrerByUser(ctx, "startup-blogger")
+	partner, err := store.PartnerByUser(ctx, "startup-blogger")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestScoutApplicationDoesNotUpgradeKOL(t *testing.T) {
 	if err := store.DecideApplication(ctx, "missing-application", "admin", true, "approved"); err != ErrApplicationNotFound {
 		t.Fatal(err)
 	}
-	if partner, err := store.ReferrerByUser(ctx, kol.UserID); err != nil {
+	if partner, err := store.PartnerByUser(ctx, kol.UserID); err != nil {
 		t.Fatal(err)
 	} else if partner.Role != RoleKOL {
 		t.Fatalf("role = %q, want kol", partner.Role)
@@ -150,7 +150,7 @@ func TestKOLApplicationApprovalPreservesScoutAttribution(t *testing.T) {
 	if err := store.DecideApplication(ctx, app.ID, "admin", true, "approved"); err != nil {
 		t.Fatal(err)
 	}
-	partner, err := store.ReferrerByUser(ctx, "applicant")
+	partner, err := store.PartnerByUser(ctx, "applicant")
 	if err != nil {
 		t.Fatal(err)
 	}

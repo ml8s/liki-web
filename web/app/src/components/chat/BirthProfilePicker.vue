@@ -15,7 +15,7 @@
       />
     </el-select>
     <router-link
-      to="/profiles/new"
+      to=" /birth-profiles/new"
       class="new-link"
     >
       ＋ {{ $t('profiles.create') }}
@@ -25,9 +25,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Profile } from '@/api/profiles'
+import type { BirthProfile } from '@/api/birth-profiles'
 
-const props = defineProps<{ profiles: Profile[]; modelValue?: string }>()
+const props = defineProps<{ profiles: BirthProfile[]; modelValue?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [string] }>()
 
 const selectedId = computed({

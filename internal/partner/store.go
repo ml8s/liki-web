@@ -715,12 +715,12 @@ func parseTime(v string) time.Time {
 	return t
 }
 
-func scanReferrer(scan func(dest ...any) error) (Referrer, error) {
-	var item Referrer
+func scanPartner(scan func(dest ...any) error) (Partner, error) {
+	var item Partner
 	var role, status, createdAt, updatedAt string
 	var recruiter sql.NullString
 	if err := scan(&item.UserID, &item.Code, &role, &status, &recruiter, &createdAt, &updatedAt); err != nil {
-		return Referrer{}, err
+		return Partner{}, err
 	}
 	item.Role = PartnerRole(role)
 	item.Status = PartnerStatus(status)
@@ -733,32 +733,32 @@ func scanReferrer(scan func(dest ...any) error) (Referrer, error) {
 // CreateKOLPartner creates the KOL role directly. Production applications use
 // SubmitApplication and admin approval; this helper is available for migrations
 // and trusted seed flows that must bypass an application decision.
-func (s *Store) createKOLPartner(ctx context.Context, userID string) (Referrer, error) {
+func (s *Store) createKOLPartner(ctx context.Context, userID string) (Partner, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return Referrer{}, err
+		return Partner{}, err
 	}
 	defer func() { _ = tx.Rollback() }()
 	if err := ensurePartnerTx(ctx, tx, s, strings.TrimSpace(userID), RoleKOL); err != nil {
-		return Referrer{}, err
+		return Partner{}, err
 	}
 	if err := tx.Commit(); err != nil {
-		return Referrer{}, err
+		return Partner{}, err
 	}
-	return s.ReferrerByUser(ctx, strings.TrimSpace(userID))
+	return s.PartnerByUser(ctx, strings.TrimSpace(userID))
 }
-func (s *Store) ReferrerByUser(ctx context.Context, userID string) (Referrer, error) {
+func (s *Store) PartnerByUser(ctx context.Context, userID string) (Partner, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT user_id,code,role,status,recruiter_id,created_at,updated_at
 FROM partners WHERE user_id=?`, userID)
-	return scanReferrer(row.Scan)
+	return scanPartner(row.Scan)
 }
 
-func (s *Store) ReferrerByCode(ctx context.Context, code string) (Referrer, error) {
+func (s *Store) PartnerByCode(ctx context.Context, code string) (Partner, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT user_id,code,role,status,recruiter_id,created_at,updated_at
 FROM partners WHERE code=? AND status='active'`, strings.ToUpper(strings.TrimSpace(code)))
-	return scanReferrer(row.Scan)
+	return scanPartner(row.Scan)
 }
 
 func (s *Store) Attribute(ctx context.Context, userID, code string) (Attribution, error) {
@@ -767,7 +767,7 @@ func (s *Store) Attribute(ctx context.Context, userID, code string) (Attribution
 	if userID == "" || code == "" {
 		return Attribution{}, ErrInvalidCode
 	}
-	referrer, err := s.ReferrerByCode(ctx, code)
+	referrer, err := s.PartnerByCode(ctx, code)
 	if err != nil {
 		return Attribution{}, err
 	}
@@ -919,7 +919,7 @@ SELECT count(*) FROM partner_attributions WHERE referrer_id=?`, referrerID).Scan
 }
 
 func (s *Store) PartnerStats(ctx context.Context, referrerID string) (PartnerStats, error) {
-	item, err := s.ReferrerByUser(ctx, referrerID)
+	item, err := s.PartnerByUser(ctx, referrerID)
 	if err != nil {
 		return PartnerStats{}, err
 	}
@@ -932,7 +932,7 @@ func (s *Store) PartnerStats(ctx context.Context, referrerID string) (PartnerSta
 		return PartnerStats{}, err
 	}
 	return PartnerStats{
-		Referrer: item, AttributedUsers: int(attributed), Commissions: commissions,
+		Partner: item, AttributedUsers: int(attributed), Commissions: commissions,
 		Balances: balances,
 	}, nil
 }

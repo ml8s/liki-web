@@ -1,5 +1,5 @@
 import { onMounted } from 'vue'
-import { useProfilesStore } from '@/stores/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useChatStore } from '@/stores/chat'
 
@@ -8,7 +8,7 @@ import { useChatStore } from '@/stores/chat'
  * 各视图 onMounted 时调用即可，无需重复 await Promise.all。
  */
 export function useServiceView() {
-  const profiles = useProfilesStore()
+  const profiles = useBirthProfilesStore()
   const entitlements = useEntitlementsStore()
   const chat = useChatStore()
 

@@ -6,7 +6,7 @@ import (
 	"github.com/ml8s/liki-web/internal/money"
 )
 
-func TestCommerceCatalogUsesInjectedMinorUnitPrices(t *testing.T) {
+func TestProductCatalogUsesInjectedMinorUnitPrices(t *testing.T) {
 	catalog := NewCatalog(CatalogConfig{
 		OneTimePriceMinorCNY:      7900,
 		OneTimePriceMinorUSD:      2990,
@@ -34,7 +34,7 @@ func TestCommerceCatalogUsesInjectedMinorUnitPrices(t *testing.T) {
 	}
 }
 
-func TestCommerceCatalogPriceFailsClosed(t *testing.T) {
+func TestProductCatalogPriceFailsClosed(t *testing.T) {
 	catalog := NewCatalog(CatalogConfig{
 		OneTimePriceMinorCNY: 7900,
 		OneTimePriceMinorUSD: 2990,

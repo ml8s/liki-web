@@ -61,11 +61,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ChatProduct, MoneyMinor } from '@/api/commerce'
+import type { Product, MoneyMinor } from '@/api/sales'
 import { chatServices } from '@/config/chat'
 
 const props = defineProps<{
-  product: ChatProduct
+  product: Product
   buying?: boolean
 }>()
 

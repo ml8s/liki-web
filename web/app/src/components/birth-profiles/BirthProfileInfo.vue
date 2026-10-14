@@ -74,10 +74,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { birthSummary, type Profile, type ProfileInput } from '@/api/profiles'
-import BirthForm from '@/components/profiles/BirthForm.vue'
-defineProps<{ profile: Profile; submitting?: boolean }>()
-defineEmits<{ update: [ProfileInput] }>()
+import { birthSummary, type BirthProfile, type BirthProfileInput } from '@/api/birth-profiles'
+import BirthForm from '@/components/birth-profiles/BirthForm.vue'
+defineProps<{ profile: BirthProfile; submitting?: boolean }>()
+defineEmits<{ update: [BirthProfileInput] }>()
 const { t } = useI18n()
 
 const editing = ref(false)

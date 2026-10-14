@@ -255,9 +255,9 @@ import {
 } from '@/api/engine'
 import { resolvePaipanContext } from '@/utils/paipan'
 import { BAZHAI_AUS, LUOSHU_ORDER } from '@/utils/bazhai'
-import type { Profile } from '@/api/profiles'
+import type { BirthProfile } from '@/api/birth-profiles'
 
-const props = defineProps<{ profile: Profile; auto?: boolean }>()
+const props = defineProps<{ profile: BirthProfile; auto?: boolean }>()
 const { t } = useI18n()
 
 const loading = ref(false)

@@ -1,6 +1,6 @@
 <template>
   <div class="profile-list">
-    <ProfileCard
+    <BirthProfileCard
       v-for="profile in profiles"
       :key="profile.id"
       :profile="profile"
@@ -12,11 +12,11 @@
 </template>
 
 <script setup lang="ts">
-import type { Profile } from '@/api/profiles'
-import ProfileCard from '@/components/profiles/ProfileCard.vue'
+import type { BirthProfile } from '@/api/birth-profiles'
+import BirthProfileCard from '@/components /birth-profiles/BirthProfileCard.vue'
 
-defineProps<{ profiles: Profile[] }>()
-defineEmits<{ open: [Profile]; edit: [Profile]; remove: [Profile] }>()
+defineProps<{ profiles: BirthProfile[] }>()
+defineEmits<{ open: [BirthProfile]; edit: [BirthProfile]; remove: [BirthProfile] }>()
 </script>
 
 <style scoped>

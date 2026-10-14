@@ -1,13 +1,13 @@
 import { get, post } from './http'
 
-export interface ChatProduct {
+export interface Product {
   id: string
   name: string
   description: string
   skills: string[]
   display_currency: string
   display_amount_minor: number
-  purchase_options: PurchaseOption[]
+  purchase_options: Offer[]
   purchased: boolean
 }
 
@@ -16,7 +16,7 @@ export interface MoneyMinor {
   minor_units: number
 }
 
-export interface PurchaseOption {
+export interface Offer {
   billing_mode: 'one_time' | 'subscription'
   price: MoneyMinor
 }
@@ -39,12 +39,12 @@ export interface SubscriptionCheckoutResult {
 
 export type CheckoutResult = OneTimeCheckoutResult | SubscriptionCheckoutResult
 
-export async function fetchChatProducts(): Promise<ChatProduct[]> {
-  const payload = await get<{ products: ChatProduct[] }>('/api/sales/products')
+export async function fetchProducts(): Promise<Product[]> {
+  const payload = await get<{ products: Product[] }>('/api/sales/products')
   return payload.products ?? []
 }
 
-export function checkoutChatProduct(
+export function checkoutProduct(
   productId: string,
   billingMode: 'one_time' | 'subscription',
   locale = typeof navigator === 'undefined' ? 'zh-Hant' : navigator.language,

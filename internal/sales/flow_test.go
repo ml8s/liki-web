@@ -14,7 +14,7 @@ import (
 
 func TestFlowDisplayName(t *testing.T) {
 	t.Parallel()
-	fulfiller := NewFlow(nil, nil, product.Chat, 0)
+	fulfiller := NewProductPaymentFlow(nil, nil, product.Chat, 0)
 	if got := fulfiller.DisplayName("zh-Hant"); got != "Liki Chat" {
 		t.Fatalf("DisplayName() = %q, want %q", got, "Liki Chat")
 	}
@@ -46,7 +46,7 @@ func TestFlowOnPaidGrantsEntitlementIdempotently(t *testing.T) {
 	intent := payment.PaymentIntent{
 		ID: "pi-1", BusinessOrderID: order.ID, UserID: "user-1", Product: string(product.Chat),
 	}
-	fulfiller := NewFlow(orders, entitlements, product.Chat, 30*24*time.Hour)
+	fulfiller := NewProductPaymentFlow(orders, entitlements, product.Chat, 30*24*time.Hour)
 	if err := fulfiller.OnPaid(ctx, intent); err != nil {
 		t.Fatalf("first OnPaid: %v", err)
 	}

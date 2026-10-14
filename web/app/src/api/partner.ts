@@ -51,7 +51,7 @@ export interface BalanceSummary {
 }
 
 export interface KOLOverview {
-  referrer: Partner
+  partner: Partner
   attributed_users: number
   balances: BalanceSummary[]
 }
@@ -99,7 +99,7 @@ export interface Settlement {
   payouts: Payout[]
 }
 
-export interface ReferralCommission {
+export interface PartnerCommission {
   id: string
   payment_provider: string
   payment_intent_id: string
@@ -159,7 +159,7 @@ export function fetchKOLSession(): Promise<KOLSession> {
 }
 
 export function fetchKOLCommissions(): Promise<{
-  commissions: ReferralCommission[]
+  commissions: PartnerCommission[]
   balances: BalanceSummary[]
 }> {
   return get('/api/partner-portal/kol/commissions')

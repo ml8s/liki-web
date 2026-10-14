@@ -13,37 +13,37 @@
       show-icon
     />
     <el-alert
-      v-if="commerce.paymentMessage"
-      :title="commerce.paymentMessage"
-      :type="commerce.paymentState === 'confirmed' ? 'success' : commerce.paymentState === 'unpaid' ? 'warning' : 'info'"
+      v-if="sales.paymentMessage"
+      :title="sales.paymentMessage"
+      :type="sales.paymentState === 'confirmed' ? 'success' : sales.paymentState === 'unpaid' ? 'warning' : 'info'"
       :closable="false"
       show-icon
     />
     <el-alert
-      v-if="commerce.actionError"
-      :title="commerce.actionError"
+      v-if="sales.actionError"
+      :title="sales.actionError"
       type="error"
       :closable="false"
       show-icon
     />
 
     <el-skeleton
-      v-if="commerce.initialLoading"
+      v-if="sales.initialLoading"
       :rows="7"
       animated
       aria-busy="true"
     />
 
     <el-result
-      v-else-if="commerce.showProductError"
+      v-else-if="sales.showProductError"
       icon="warning"
       :title="$t('chat.productsFailed')"
-      :sub-title="commerce.productsError"
+      :sub-title="sales.productsError"
     >
       <template #extra>
         <el-button
           type="primary"
-          @click="commerce.loadProducts"
+          @click="sales.loadProducts"
         >
           {{ $t('common.retry') }}
         </el-button>
@@ -52,11 +52,11 @@
 
     <template v-else>
       <ProductPurchaseCard
-        v-if="commerce.chatProduct && !commerce.chatProduct.purchased"
+        v-if="sales.chatProduct && !sales.chatProduct.purchased"
         id="chat-purchase"
-        :product="commerce.chatProduct"
-        :buying="commerce.buying"
-        @purchase="billingMode => commerce.buy(billingMode)"
+        :product="sales.chatProduct"
+        :buying="sales.buying"
+        @purchase="billingMode => sales.buy(billingMode)"
       />
 
       <el-card
@@ -65,19 +65,19 @@
       >
         <template #header>
           <h2 class="app-card__title">
-            {{ $t('chat.selectProfile') }}
+            {{ $t('chat.selectBirthProfile') }}
           </h2>
         </template>
         <div ref="profilePickerEl">
-          <ProfilePicker
+          <BirthProfilePicker
             :profiles="profiles.list"
-            :model-value="activeProfileId"
-            @update:model-value="activeProfileId = $event"
+            :model-value="activeBirthProfileId"
+            @update:model-value="activeBirthProfileId = $event"
           />
         </div>
         <el-alert
-          v-if="!activeProfileId"
-          :title="$t('chat.selectProfileFirst')"
+          v-if="!activeBirthProfileId"
+          :title="$t('chat.selectBirthProfileFirst')"
           type="info"
           class="inline-alert"
           :closable="false"
@@ -136,7 +136,7 @@
           <el-button
             type="primary"
             tag="a"
-            to="/profiles/new"
+            to=" /birth-profiles/new"
           >
             {{ $t('profiles.create') }}
           </el-button>
@@ -159,14 +159,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useChatStore, skillLabel } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
-import { useProfilesStore } from '@/stores/profiles'
-import { useCommerceStore } from '@/stores/commerce'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
+import { useSalesStore } from '@/stores/sales-store'
 import { chatSkills, serviceByIntent, serviceByKey } from '@/config/chat'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
-import ProductPurchaseCard from '@/components/commerce/ProductPurchaseCard.vue'
+import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
 import SessionList from '@/components/chat/SessionList.vue'
 import SkillCard from '@/components/chat/SkillCard.vue'
-import ProfilePicker from '@/components/chat/ProfilePicker.vue'
+import BirthProfilePicker from '@/components/chat/BirthProfilePicker.vue'
 import type { ChatSession } from '@/api/chat'
 
 const route = useRoute()
@@ -174,10 +174,10 @@ const router = useRouter()
 const { t } = useI18n()
 const chat = useChatStore()
 const entitlements = useEntitlementsStore()
-const profiles = useProfilesStore()
-const commerce = useCommerceStore()
+const profiles = useBirthProfilesStore()
+const sales = useSalesStore()
 
-const activeProfileId = ref('')
+const activeBirthProfileId = ref('')
 const creating = ref('')
 
 const chatPurchased = computed(() => entitlements.purchased)
@@ -191,7 +191,7 @@ const displaySessions = computed(() => chat.sessions.map(session => ({
 } satisfies ChatSession & { skillLabel: string })))
 
 function canStart(skill: string) {
-  return chatPurchased.value && entitlements.hasSkill(skill) && !!activeProfileId.value
+  return chatPurchased.value && entitlements.hasSkill(skill) && !!activeBirthProfileId.value
 }
 
 function skillState(skill: string) {
@@ -213,13 +213,13 @@ function skillState(skill: string) {
 	      actionTo: '/orders',
 	    }
   }
-  if (!activeProfileId.value) {
+  if (!activeBirthProfileId.value) {
 	    return {
 	      enabled: false,
 	      reason: t('chat.state.profileRequired'),
 	      status: t('chat.status.profileRequired'),
 	      actionLabel: t('profiles.create'),
-	      actionTo: '/profiles/new',
+	      actionTo: ' /birth-profiles/new',
 	    }
   }
 	  return {
@@ -236,14 +236,14 @@ function openSession(session: ChatSession) {
 }
 
 async function create(skill: string) {
-  if (!activeProfileId.value) return
+  if (!activeBirthProfileId.value) return
   creating.value = skill
-  commerce.actionError = ''
+  sales.actionError = ''
   try {
-    const session = await chat.createSession(activeProfileId.value, skill)
+    const session = await chat.createSession(activeBirthProfileId.value, skill)
     await router.push(`/chat/${session.id}`)
   } catch (error) {
-    commerce.actionError = toUserMessage(error, t('chat.createFailed'))
+    sales.actionError = toUserMessage(error, t('chat.createFailed'))
   } finally {
     creating.value = ''
   }
@@ -251,13 +251,13 @@ async function create(skill: string) {
 
 onMounted(async () => {
   try {
-    await commerce.refresh()
+    await sales.refresh()
     await profiles.loadList()
     const preset = toFirstQueryString(route.query.profile)
     if (preset && profiles.list.some(p => p.id === preset)) {
-      activeProfileId.value = preset
+      activeBirthProfileId.value = preset
     } else if (profiles.list.length) {
-      activeProfileId.value = profiles.list[0].id
+      activeBirthProfileId.value = profiles.list[0].id
     }
     // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
     const presetService = toFirstQueryString(route.query.service)
@@ -265,9 +265,9 @@ onMounted(async () => {
     if (svc) chat.pendingIntent = t(svc.intentKey)
 
     // 支付回调处理：store 返回结果，由 view 决定路由。
-    const paymentResult = await commerce.handlePaymentReturn(route.query)
+    const paymentResult = await sales.handlePaymentReturn(route.query)
     if (paymentResult.action === 'enter_chat') {
-      const sessionId = await commerce.enterInterpretation()
+      const sessionId = await sales.enterInterpretation()
       if (sessionId) {
         await router.replace({ path: '/chat', query: {} })
         await router.push(`/chat/${sessionId}`)

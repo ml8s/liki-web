@@ -2,7 +2,7 @@
   <section class="new-profile">
     <el-page-header
       class="new-profile-header"
-      @back="router.push('/profiles')"
+      @back="router.push(' /birth-profiles')"
     >
       <template #content>
         <div class="page-heading">
@@ -38,16 +38,16 @@ import { toUserMessage } from '@/utils/errors'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useProfilesStore } from '@/stores/profiles'
-import type { ProfileInput } from '@/api/profiles'
-import BirthForm from '@/components/profiles/BirthForm.vue'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
+import type { BirthProfileInput } from '@/api/birth-profiles'
+import BirthForm from '@/components/birth-profiles/BirthForm.vue'
 
 const router = useRouter()
 const { t } = useI18n()
-const profiles = useProfilesStore()
+const profiles = useBirthProfilesStore()
 const submitting = ref(false)
 const error = ref('')
-const draft = ref<Partial<ProfileInput> | null>(null)
+const draft = ref<Partial<BirthProfileInput> | null>(null)
 const draftLoaded = ref(false)
 
 // 主页免费排盘钩子（草稿续算）：同步读 sessionStorage 预填出生信息，读后清除。
@@ -74,12 +74,12 @@ try {
   sessionStorage.removeItem('liki-draft')
 }
 
-async function submit(input: ProfileInput) {
+async function submit(input: BirthProfileInput) {
   submitting.value = true
   error.value = ''
   try {
     const profile = await profiles.create(input)
-    await router.push(`/profiles/${profile.id}`)
+    await router.push(` /birth-profiles/${profile.id}`)
   } catch (err) {
     error.value = toUserMessage(err, t('profiles.saveFailed'))
   } finally {

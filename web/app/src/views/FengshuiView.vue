@@ -19,13 +19,13 @@
     >
       <template #header>
         <h2 class="app-card__title">
-          {{ $t('services.fengshui.selectProfile') }}
+          {{ $t('services.fengshui.selectBirthProfile') }}
         </h2>
       </template>
       <el-select
         v-model="profileId"
-        :aria-label="$t('chat.selectProfile')"
-        :placeholder="$t('chat.selectProfile')"
+        :aria-label="$t('chat.selectBirthProfile')"
+        :placeholder="$t('chat.selectBirthProfile')"
         class="w-full"
         @change="profileId && loadPreview()"
       >
@@ -40,7 +40,7 @@
         v-if="!profiles.list.length"
         class="hint"
       >
-        {{ $t('services.fengshui.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.fengshui.noProfileSuffix') }}
+        {{ $t('services.fengshui.noBirthProfilePrefix') }}<a href="/app/birth-profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.fengshui.noBirthProfileSuffix') }}
       </p>
     </el-card>
 

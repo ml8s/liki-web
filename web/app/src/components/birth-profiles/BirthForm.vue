@@ -177,19 +177,19 @@
 import type { FormInstance, FormRules } from 'element-plus'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ProfileInput } from '@/api/profiles'
+import type { BirthProfileInput } from '@/api/birth-profiles'
 
-const props = withDefaults(defineProps<{ submitting?: boolean; initial?: Partial<ProfileInput> }>(), {})
-const emit = defineEmits<{ submit: [ProfileInput]; dirty: [boolean] }>()
+const props = withDefaults(defineProps<{ submitting?: boolean; initial?: Partial<BirthProfileInput> }>(), {})
+const emit = defineEmits<{ submit: [BirthProfileInput]; dirty: [boolean] }>()
 const { t } = useI18n()
 
-type Gender = ProfileInput['gender'] | ''
-type TimeKnown = ProfileInput['birth_time_known']
+type Gender = BirthProfileInput['gender'] | ''
+type TimeKnown = BirthProfileInput['birth_time_known']
 
 const form = reactive<{
   nickname: string
   gender: Gender
-  calendar: ProfileInput['calendar']
+  calendar: BirthProfileInput['calendar']
   birth_date: string
   birth_time_known: TimeKnown
   birth_time: string

@@ -4,7 +4,7 @@ import { resolveDashboardState } from '@/composables/dashboardState'
 describe('resolveDashboardState', () => {
   it('guides users without a profile to create one', () => {
     expect(resolveDashboardState({
-      hasProfile: false,
+      hasBirthProfile: false,
       hasEntitlement: false,
       hasSession: false,
     })).toBe('no-profile')
@@ -12,7 +12,7 @@ describe('resolveDashboardState', () => {
 
   it('guides profile owners without entitlement to paid interpretation', () => {
     expect(resolveDashboardState({
-      hasProfile: true,
+      hasBirthProfile: true,
       hasEntitlement: false,
       hasSession: false,
     })).toBe('free-profile')
@@ -20,7 +20,7 @@ describe('resolveDashboardState', () => {
 
   it('guides entitled users without a session to start one', () => {
     expect(resolveDashboardState({
-      hasProfile: true,
+      hasBirthProfile: true,
       hasEntitlement: true,
       hasSession: false,
     })).toBe('paid-no-session')
@@ -28,7 +28,7 @@ describe('resolveDashboardState', () => {
 
   it('continues the latest session when one exists', () => {
     expect(resolveDashboardState({
-      hasProfile: true,
+      hasBirthProfile: true,
       hasEntitlement: true,
       hasSession: true,
     })).toBe('paid-continue')

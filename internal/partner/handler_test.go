@@ -55,13 +55,13 @@ func TestKOLApplicationRequiresReview(t *testing.T) {
 	if response.Data.Application.Type != RoleKOL || response.Data.Application.Status != ApplicationPending {
 		t.Fatalf("application = %+v", response.Data.Application)
 	}
-	if _, err := store.ReferrerByUser(context.Background(), "u1"); err == nil {
+	if _, err := store.PartnerByUser(context.Background(), "u1"); err == nil {
 		t.Fatal("application immediately created a partner role")
 	}
 	if err := store.DecideApplication(context.Background(), response.Data.Application.ID, "admin", true, "approved"); err != nil {
 		t.Fatal(err)
 	}
-	partner, err := store.ReferrerByUser(context.Background(), "u1")
+	partner, err := store.PartnerByUser(context.Background(), "u1")
 	if err != nil {
 		t.Fatal(err)
 	}

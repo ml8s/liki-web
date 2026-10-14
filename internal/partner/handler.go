@@ -174,7 +174,7 @@ func (h *Handler) submitApplication(w http.ResponseWriter, r *http.Request, role
 // HandleLink is the only public referral entry point. It validates the link
 // identifier before writing an HttpOnly attribution cookie.
 func (h *Handler) HandleLink(w http.ResponseWriter, r *http.Request) {
-	if _, err := h.store.ReferrerByCode(r.Context(), r.PathValue("code")); err == nil {
+	if _, err := h.store.PartnerByCode(r.Context(), r.PathValue("code")); err == nil {
 		http.SetCookie(w, &http.Cookie{
 			Name:     AttributionCookieName,
 			Value:    strings.ToUpper(strings.TrimSpace(r.PathValue("code"))),

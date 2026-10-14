@@ -79,7 +79,7 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *sales.Ord
 	runtime := payment.NewRuntime(
 		map[payment.Provider]payment.Gateway{payment.ProviderXunhu: gateway},
 		map[string]payment.ProductFlow{
-			string(product.Chat): sales.NewFlow(orderStore, entitlementStore, product.Chat, 30*time.Hour),
+			string(product.Chat): sales.NewProductPaymentFlow(orderStore, entitlementStore, product.Chat, 30*time.Hour),
 		},
 		intents,
 		notifications,

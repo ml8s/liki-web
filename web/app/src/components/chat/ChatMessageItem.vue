@@ -3,7 +3,7 @@
     v-if="message.kind === 'system_profile'"
     class="message system"
   >
-    <SystemProfileCard :content="message.content" />
+    <SystemBirthProfileCard :content="message.content" />
   </article>
   <article
     v-else
@@ -51,7 +51,7 @@
 import { ref } from 'vue'
 import type { ChatMessage } from '@/api/chat'
 import { useClipboard } from '@/composables/useClipboard'
-import SystemProfileCard from '@/components/chat/SystemProfileCard.vue'
+import SystemBirthProfileCard from '@/components/chat/SystemBirthProfileCard.vue'
 import AppMarkdown from '@/components/common/AppMarkdown.vue'
 
 const props = defineProps<{ message: ChatMessage }>()

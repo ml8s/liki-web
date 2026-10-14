@@ -71,7 +71,7 @@ func (s *Store) EnqueueCommissionPayment(ctx context.Context, sale payment.Commi
 		if !attributed {
 			status, reason = IntakeSkipped, "no_attribution"
 		} else {
-			referrer, err := s.ReferrerByUser(ctx, attribution.ReferrerID)
+			referrer, err := s.PartnerByUser(ctx, attribution.ReferrerID)
 			if err != nil {
 				return IntakeQueued, "", fmt.Errorf("partner: load referrer for intake: %w", err)
 			}
@@ -250,7 +250,7 @@ func (s *Store) settleIntake(ctx context.Context, item CommissionIntake) error {
 	if !ok {
 		return fmt.Errorf("partner: attribution disappeared for buyer %s", item.BuyerUserID)
 	}
-	referrer, err := s.ReferrerByUser(ctx, attribution.ReferrerID)
+	referrer, err := s.PartnerByUser(ctx, attribution.ReferrerID)
 	if err != nil {
 		return err
 	}

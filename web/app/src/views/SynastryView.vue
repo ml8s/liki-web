@@ -24,8 +24,8 @@
       </template>
       <el-select
         v-model="profileAId"
-        :aria-label="$t('chat.selectProfile')"
-        :placeholder="$t('chat.selectProfile')"
+        :aria-label="$t('chat.selectBirthProfile')"
+        :placeholder="$t('chat.selectBirthProfile')"
         class="w-full"
         @change="profileAId && loadA()"
       >
@@ -40,7 +40,7 @@
         v-if="!profiles.list.length"
         class="hint"
       >
-        {{ $t('services.bond.noProfilePrefix') }}<a href="/app/profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.bond.noProfileSuffix') }}
+        {{ $t('services.bond.noBirthProfilePrefix') }}<a href="/app/birth-profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.bond.noBirthProfileSuffix') }}
       </p>
     </el-card>
 
@@ -417,12 +417,12 @@ const shiShenRows = computed(() => {
 async function startInterpretation() {
   const p = profileA.value
   if (!p) return
-  const bProfile = b.value
-  const bInfo = t('services.bond.otherProfileSummary', {
-    gender: bProfile.gender === 'male' ? t('profiles.male') : t('profiles.female'),
-    date: bProfile.birth_date,
-    time: bProfile.birth_time,
-    place: bProfile.birth_place ? t('services.bond.otherPlace', { place: bProfile.birth_place }) : '',
+  const bBirthProfile = b.value
+  const bInfo = t('services.bond.otherBirthProfileSummary', {
+    gender: bBirthProfile.gender === 'male' ? t('profiles.male') : t('profiles.female'),
+    date: bBirthProfile.birth_date,
+    time: bBirthProfile.birth_time,
+    place: bBirthProfile.birth_place ? t('services.bond.otherPlace', { place: bBirthProfile.birth_place }) : '',
   })
   chat.pendingIntent = t('services.bond.intent', { a: p.nickname, info: bInfo })
   try {

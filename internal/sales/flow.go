@@ -13,20 +13,20 @@ import (
 
 // Fulfiller adapts a Liki Chat order to the generic payment runtime and
 // grants its entitlement only after a captured payment is durably fulfilled.
-type Flow struct {
+type ProductPaymentFlow struct {
 	orders       *OrderStore
 	entitlements EntitlementProvisioner
 	productID    product.Product
 	duration     time.Duration
 }
 
-func NewFlow(orders *OrderStore, entitlements EntitlementProvisioner, productID product.Product, duration time.Duration) *Flow {
-	return &Flow{orders: orders, entitlements: entitlements, productID: productID, duration: duration}
+func NewProductPaymentFlow(orders *OrderStore, entitlements EntitlementProvisioner, productID product.Product, duration time.Duration) *ProductPaymentFlow {
+	return &ProductPaymentFlow{orders: orders, entitlements: entitlements, productID: productID, duration: duration}
 }
 
-func (f *Flow) Product() string { return string(f.productID) }
+func (f *ProductPaymentFlow) Product() string { return string(f.productID) }
 
-func (f *Flow) DisplayName(locale string) string {
+func (f *ProductPaymentFlow) DisplayName(locale string) string {
 	_ = locale
 	definition, err := product.DefinitionFor(f.productID)
 	if err != nil {
@@ -35,7 +35,7 @@ func (f *Flow) DisplayName(locale string) string {
 	return definition.Name
 }
 
-func (f *Flow) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
+func (f *ProductPaymentFlow) PrepareCheckout(ctx context.Context, businessOrderID string) (payment.BusinessOrder, error) {
 	order, err := f.orders.getOrder(ctx, businessOrderID)
 	if err != nil {
 		return payment.BusinessOrder{}, err
@@ -50,7 +50,7 @@ func (f *Flow) PrepareCheckout(ctx context.Context, businessOrderID string) (pay
 	}, nil
 }
 
-func (f *Flow) OnPaid(ctx context.Context, intent payment.PaymentIntent) error {
+func (f *ProductPaymentFlow) OnPaid(ctx context.Context, intent payment.PaymentIntent) error {
 	order, changed, err := f.orders.MarkPaidByIntent(ctx, intent.ID)
 	if err != nil {
 		return fmt.Errorf("sales: mark order paid: %w", err)
@@ -75,11 +75,11 @@ func (f *Flow) OnPaid(ctx context.Context, intent payment.PaymentIntent) error {
 	return nil
 }
 
-func (f *Flow) SuccessRedirect(intent payment.PaymentIntent) string {
+func (f *ProductPaymentFlow) SuccessRedirect(intent payment.PaymentIntent) string {
 	return appRedirect("/app/chat", intent.BusinessOrderID, "paid")
 }
 
-func (f *Flow) FailureRedirect(intent payment.PaymentIntent) string {
+func (f *ProductPaymentFlow) FailureRedirect(intent payment.PaymentIntent) string {
 	return appRedirect("/app/orders", intent.BusinessOrderID, "unpaid")
 }
 

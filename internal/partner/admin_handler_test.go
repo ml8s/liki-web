@@ -70,7 +70,7 @@ func TestAdminPartnerStatusFreezeAndUnfreeze(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("freeze status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
-	partner, err := store.ReferrerByUser(ctx, kol.UserID)
+	partner, err := store.PartnerByUser(ctx, kol.UserID)
 	if err != nil {
 		t.Fatal(err)
 	}

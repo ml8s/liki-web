@@ -128,7 +128,7 @@ import {
   type PayoutMethod,
   type PayoutStatus,
   type Settlement,
-} from '@/api/referral'
+} from '@/api/partner'
 import { formatDateTime, formatMinorUnit } from '@/utils/format'
 
 const props = defineProps<{ role: PartnerRole }>()

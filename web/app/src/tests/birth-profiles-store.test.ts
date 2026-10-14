@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useProfilesStore } from '@/stores/profiles'
-import type { Profile } from '@/api/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
+import type { BirthProfile } from '@/api/birth-profiles'
 
 const profile = {
   id: 'p_1',
@@ -20,7 +20,7 @@ const profile = {
   last_used_at: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
-} satisfies Profile
+} satisfies BirthProfile
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -34,7 +34,7 @@ describe('profiles store', () => {
       JSON.stringify({ data: { profiles: [profile], next_cursor: '' } }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     ))
-    const store = useProfilesStore()
+    const store = useBirthProfilesStore()
     await store.loadList(undefined, true)
     expect(store.list).toEqual([profile])
     expect(store.error).toBe('')
@@ -45,7 +45,7 @@ describe('profiles store', () => {
       JSON.stringify({ data: profile }),
       { status: 201, headers: { 'Content-Type': 'application/json' } },
     ))
-    const store = useProfilesStore()
+    const store = useBirthProfilesStore()
     const created = await store.create({
       nickname: '妈妈', gender: 'female', calendar: 'lunar',
       birth_date: '1958-闰5-12', birth_time: '06:00', birth_time_known: 'known',
@@ -59,7 +59,7 @@ describe('profiles store', () => {
       JSON.stringify({ data: { status: 'deleted' } }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     ))
-    const store = useProfilesStore()
+    const store = useBirthProfilesStore()
     store.list = [profile]
     await store.remove('p_1')
     expect(store.list).toEqual([])

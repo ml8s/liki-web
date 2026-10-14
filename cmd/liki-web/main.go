@@ -399,14 +399,14 @@ func main() {
 		os.Exit(1)
 	}
 	chatService.SetAgentRunner(agentRunner)
-	commerceCatalog := product.NewCatalog(product.CatalogConfig{
+	productCatalog := product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY:      cfg.ChatOneTimePriceMinorCNY,
 		OneTimePriceMinorUSD:      cfg.ChatOneTimePriceMinorUSD,
 		SubscriptionPriceMinorUSD: cfg.ChatSubscriptionPriceMinorUSD,
 	})
-	commerceOrders := sales.NewOrderStoreWithCatalog(likiDB, commerceCatalog)
-	if err := commerceOrders.Migrate(ctx); err != nil {
-		slog.Error("init commerce schema", "err", err)
+	salesOrders := sales.NewOrderStoreWithCatalog(likiDB, productCatalog)
+	if err := salesOrders.Migrate(ctx); err != nil {
+		slog.Error("init sales schema", "err", err)
 		os.Exit(1)
 	}
 	aipayStore := aipay.NewStore(aipayDB)
@@ -482,7 +482,7 @@ func main() {
 		slog.Warn("xunhu payment provider is not fully configured; it is disabled")
 	}
 	flows := map[string]payment.ProductFlow{
-		string(product.Chat): sales.NewFlow(commerceOrders, entitlements, product.Chat, chatDuration),
+		string(product.Chat): sales.NewProductPaymentFlow(salesOrders, entitlements, product.Chat, chatDuration),
 	}
 	paymentSender := paymentEmailSender{client: emailClient}
 	paymentRuntime := payment.NewRuntime(gateways, flows, intents, notifications, fulfillments, events, paymentSender, payment.RuntimeOptions{
@@ -564,7 +564,7 @@ func main() {
 		profileStore,
 		chatStore,
 		authStore,
-		commerceOrders,
+		salesOrders,
 		entitlements,
 		intents,
 		notifications,
@@ -581,14 +581,14 @@ func main() {
 		ReferralHandler: partnerHandler,
 		ReferralStore:   partnerStore,
 		SalesHandler: sales.NewHandler(
-			commerceOrders,
+			salesOrders,
 			paymentRuntime,
 			authHandler.RequireUser,
 			func(next http.HandlerFunc) http.HandlerFunc {
 				return rateLimiter.Wrap(5.0/60, 6, next)
 			},
 			sales.WithCurrencyResolver(currencyResolver),
-			sales.WithCatalog(commerceCatalog),
+			sales.WithCatalog(productCatalog),
 			sales.WithSkillAuthorizer(entitlements),
 			sales.WithSubscriptions(
 				subscriptionStore,
