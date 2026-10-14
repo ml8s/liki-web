@@ -1,11 +1,9 @@
 <template>
   <section>
-    <div class="page-heading">
-      <div>
-        <h1>用户权益</h1>
-        <p>按邮箱查询支持工单中的访问权限，并保留操作审计。</p>
-      </div>
-    </div>
+    <AdminPageHeader
+      title="用户权益"
+      description="按邮箱查询支持工单中的访问权限，并保留操作审计。"
+    />
 
     <el-card
       v-if="admin.can('entitlement.manage')"
@@ -153,12 +151,7 @@
         width="100"
       >
         <template #default="{ row }">
-          <el-tag
-            :type="adminStatusTagType(row.status)"
-            size="small"
-          >
-            {{ adminStatusLabel(row.status) }}
-          </el-tag>
+          <AdminStatusTag :status="row.status" />
         </template>
       </el-table-column>
       <el-table-column
@@ -256,8 +249,9 @@ import {
   compensateAdminEntitlement, expireAdminEntitlement, fetchAdminEntitlements, revokeAdminEntitlement,
   type AdminEntitlement,
 } from '@/api/admin'
+import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusLabel, adminStatusTagType } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()
@@ -389,12 +383,6 @@ async function compensate() {
 </script>
 
 <style scoped>
-.page-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 16px; }
-h1 { margin: 0 0 4px; font-size: 24px; }
-.page-heading p { margin: 0; color: #6b7280; }
-.filters { margin-bottom: 14px; }
 .compensation-card { margin-bottom: 14px; }
 .skill-tag + .skill-tag { margin-left: 4px; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.muted { color: #6b7280; font-size: 12px; }
 </style>

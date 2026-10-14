@@ -622,7 +622,11 @@ th {
   color: var(--color-text-muted);
   background: var(--color-surface);
   cursor: pointer;
-  transition: all .15s ease;
+  transition:
+    background-color .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    transform .15s ease;
 }
 .copy-btn:hover { background: var(--color-accent-soft); color: var(--color-text); }
 .copy-btn:active { transform: scale(.96); }

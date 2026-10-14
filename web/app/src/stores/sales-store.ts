@@ -4,7 +4,7 @@ import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { toUserMessage } from '@/utils/errors'
-import { toFirstQueryString } from '@/utils/format'
+import { firstQueryValue } from '@/utils/query'
 import { i18n } from '@/i18n'
 
 function t(key: string): string {
@@ -115,9 +115,9 @@ export const useSalesStore = defineStore('sales', {
      * store 不再直接操作 router。
      */
     async handlePaymentReturn(query: Record<string, unknown>): Promise<PaymentReturnResult> {
-      const orderId = toFirstQueryString(query.order_id)
-      const paymentIntentId = toFirstQueryString(query.payment_intent_id)
-      const status = toFirstQueryString(query.status)
+      const orderId = firstQueryValue(query.order_id)
+      const paymentIntentId = firstQueryValue(query.payment_intent_id)
+      const status = firstQueryValue(query.status)
       if (!orderId && !paymentIntentId) return { action: 'none' }
 
       if (status === 'paid') {

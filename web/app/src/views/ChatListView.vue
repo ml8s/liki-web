@@ -153,7 +153,7 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { toFirstQueryString } from '@/utils/format'
+import { firstQueryValue } from '@/utils/query'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -253,14 +253,14 @@ onMounted(async () => {
   try {
     await sales.refresh()
     await profiles.loadList()
-    const preset = toFirstQueryString(route.query.profile)
+    const preset = firstQueryValue(route.query.profile)
     if (preset && profiles.list.some(p => p.id === preset)) {
       activeBirthProfileId.value = preset
     } else if (profiles.list.length) {
       activeBirthProfileId.value = profiles.list[0].id
     }
     // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
-    const presetService = toFirstQueryString(route.query.service)
+    const presetService = firstQueryValue(route.query.service)
     const svc = serviceByKey(presetService)
     if (svc) chat.pendingIntent = t(svc.intentKey)
 

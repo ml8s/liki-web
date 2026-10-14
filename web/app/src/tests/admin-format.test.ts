@@ -24,7 +24,7 @@ describe('admin formatting', () => {
     expect(capabilityLabel('admin.super')).toBe('超级管理员')
     expect(capabilityLabel('custom.new')).toBe('custom.new')
     expect(financeTaskTypeLabel('user_erasure_review')).toBe('注销后待结算')
-    expect(formatAdminMoney(123456, 'CNY')).toBe('CNY 1234.56')
+    expect(formatAdminMoney(123456, 'CNY')).toBe('CNY 1,234.56')
     expect(formatAdminMoney(0, '')).toBe('0.00')
   })
 

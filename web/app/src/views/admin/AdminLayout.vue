@@ -1,5 +1,9 @@
 <template>
   <div class="admin-shell">
+    <a
+      href="#admin-main"
+      class="skip-link"
+    >跳到主要内容</a>
     <header class="admin-topbar">
       <div class="brand">
         Liki <span>Admin</span>
@@ -70,7 +74,11 @@
       </div>
     </header>
 
-    <main class="admin-main">
+    <main
+      id="admin-main"
+      class="admin-main"
+      tabindex="-1"
+    >
       <div
         v-if="admin.status === 'loading' || auth.loading"
         v-loading="true"
@@ -109,9 +117,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { nextTick, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useSalesStore } from '@/stores/sales-store'
@@ -121,6 +130,7 @@ import { preloadRouteComponents, preloadWhenIdle } from '@/utils/routes'
 
 const admin = useAdminStore()
 const auth = useAuthStore()
+const route = useRoute()
 const router = useRouter()
 
 onMounted(() => {
@@ -134,6 +144,16 @@ onMounted(() => {
     )
   })
 })
+
+// Horizontal admin nav collapses on small operators. Keep the active item in
+// view so the current route is never hidden by scroll position.
+watch(() => route.fullPath, async () => {
+  await nextTick()
+  document.querySelector('.admin-nav a.on')?.scrollIntoView({
+    inline: 'center',
+    block: 'nearest',
+  })
+}, { immediate: true })
 
 function clearWorkspace() {
   useEntitlementsStore().reset()
@@ -152,6 +172,18 @@ async function logout() {
 
 <style scoped>
 .admin-shell { min-height: 100vh; min-height: 100dvh; background: var(--liki-paper); color: var(--liki-ink); }
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 0 0 8px 0;
+  background: var(--liki-primary);
+  color: #fff;
+  text-decoration: none;
+}
+.skip-link:focus { left: 0; }
 .admin-topbar {
   min-height: 58px; display: flex; align-items: center; gap: 20px; padding: 10px 18px;
   background: var(--liki-ink); color: #fff; position: sticky; top: 0; z-index: 50;
@@ -170,8 +202,31 @@ async function logout() {
 .admin-nav::-webkit-scrollbar { height: 4px; }
 .admin-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 2px; }
 @media (max-width: 720px) {
-  .admin-topbar { flex-wrap: wrap; gap: 10px; }
-  .admin-nav { order: 3; width: 100%; }
+  .admin-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .brand { order: -2; }
+  .operator { order: -1; }
+
+  .operator { justify-content: flex-end; }
+
+  .operator span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-nav {
+    grid-column: 1 / -1;
+    flex: 0 0 100%;
+    min-width: 100%;
+    scroll-snap-type: x proximity;
+  }
+
+  .admin-nav a { scroll-snap-align: start; }
   .admin-main { padding: 16px 12px 48px; }
 }
 </style>

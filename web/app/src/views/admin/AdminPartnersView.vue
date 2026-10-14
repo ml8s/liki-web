@@ -1,6 +1,6 @@
 <template>
   <section>
-    <h1>合作伙伴</h1>
+    <AdminPageHeader title="合作伙伴" />
     <el-card
       shadow="never"
       class="block"
@@ -76,7 +76,7 @@
         type="error"
         show-icon
         :closable="false"
-        class="block-error"
+        class="query-error"
       />
       <el-table
         v-loading="applications.loading.value"
@@ -104,12 +104,7 @@
           width="100"
         >
           <template #default="{ row }">
-            <el-tag
-              :type="adminStatusTagType(row.status)"
-              size="small"
-            >
-              {{ adminStatusLabel(row.status) }}
-            </el-tag>
+            <AdminStatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column
@@ -245,12 +240,7 @@
           width="100"
         >
           <template #default="{ row }">
-            <el-tag
-              :type="adminStatusTagType(row.status)"
-              size="small"
-            >
-              {{ adminStatusLabel(row.status) }}
-            </el-tag>
+            <AdminStatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column
@@ -291,10 +281,11 @@ import {
   decideAdminApplication, fetchAdminApplications, fetchAdminPartners, setAdminPartnerStatus,
   type AdminApplication, type AdminPartner,
 } from '@/api/admin'
+import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminResource } from '@/composables/useAdminResource'
-import { adminStatusTagType, adminStatusLabel } from '@/utils/adminFormat'
 import { queryChoice, queryText } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
 
@@ -370,9 +361,5 @@ async function togglePartner(row: AdminPartner) {
 </script>
 
 <style scoped>
-h1 { margin: 0 0 16px; font-size: 24px; }
-.block { margin-bottom: 18px; }
-.card-heading { display: flex; justify-content: space-between; align-items: center; }
-.muted { color: #6b7280; }
-.block-error { margin-bottom: 12px; }
+.block { margin-bottom: var(--space-5); }
 </style>

@@ -1,14 +1,15 @@
 <template>
   <section>
-    <div class="page-heading">
-      <h1>合作伙伴审计</h1>
-      <el-button
-        :loading="actions.loading.value"
-        @click="actions.load"
-      >
-        刷新
-      </el-button>
-    </div>
+    <AdminPageHeader title="合作伙伴审计">
+      <template #actions>
+        <el-button
+          :loading="actions.loading.value"
+          @click="actions.load"
+        >
+          刷新
+        </el-button>
+      </template>
+    </AdminPageHeader>
     <el-alert
       v-if="actions.error.value"
       :title="actions.error.value"
@@ -74,9 +75,3 @@ const actions = useAdminResource<AdminAction>(async () => {
 
 onMounted(actions.load)
 </script>
-
-<style scoped>
-.page-heading { display: flex; justify-content: space-between; align-items: center; }
-h1 { margin: 0 0 16px; font-size: 24px; }
-.query-error { margin-bottom: 12px; }
-</style>

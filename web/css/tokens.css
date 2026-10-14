@@ -1,7 +1,14 @@
-/* Liki canonical brand tokens.
- * These are the single source of truth for product, marketing, legal, and
- * console surfaces. app.css may expose compatibility aliases, but new code
- * should consume --brand-* only. */
+/* Liki token contract.
+ *
+ * Layers:
+ * 1. --brand-* / palette values are primitives; never consume them directly
+ *    from components when a semantic token exists.
+ * 2. --color-* and --liki-* are semantic aliases used by marketing and product.
+ * 3. --el-* is a component bridge owned by the Element Plus theme section.
+ *
+ * New component CSS must use a semantic token. Raw values are allowed only in
+ * this primitive layer or a narrow layout measurement that has no token yet.
+ */
 
 :root {
   /* brand palette */

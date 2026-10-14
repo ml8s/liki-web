@@ -210,16 +210,6 @@ p {
   color: var(--liki-text-2);
 }
 
-/* 路由页面切换过渡 */
-.page-fade-enter-active,
-.page-fade-leave-active {
-  transition: opacity var(--liki-dur) var(--liki-ease);
-}
-.page-fade-enter-from,
-.page-fade-leave-to {
-  opacity: 0;
-}
-
 /* ── 服务视图共享排版（看命/起名/问卦/风水/择日/合盘）── */
 .service-view .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .service-view .sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; }

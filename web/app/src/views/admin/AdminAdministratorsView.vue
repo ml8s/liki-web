@@ -1,11 +1,9 @@
 <template>
   <section>
-    <div class="page-heading">
-      <div>
-        <h1>管理员</h1>
-        <p>能力精确授权；admin.super 会获得全部能力。</p>
-      </div>
-    </div>
+    <AdminPageHeader
+      title="管理员"
+      description="能力精确授权；admin.super 会获得全部能力。"
+    />
 
     <el-result
       v-if="!admin.can('admin.user.manage')"
@@ -61,12 +59,7 @@
           width="100"
         >
           <template #default="{ row }">
-            <el-tag
-              :type="adminStatusTagType(row.status)"
-              size="small"
-            >
-              {{ adminStatusLabel(row.status) }}
-            </el-tag>
+            <AdminStatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column
@@ -143,8 +136,10 @@ import {
   createAdminAccount, fetchAdminAccounts, grantAdminCapability, revokeAdminCapability,
   setAdminAccountStatus, type AdminAccount, type AdminCapability,
 } from '@/api/admin'
+import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusTagType, adminStatusLabel, capabilityLabel } from '@/utils/adminFormat'
+import { capabilityLabel } from '@/utils/adminFormat'
 
 const admin = useAdminStore()
 const accounts = ref<AdminAccount[]>([])
@@ -247,9 +242,6 @@ async function revokeCapability(account: AdminAccount, capability: AdminCapabili
 </script>
 
 <style scoped>
-.page-heading { margin-bottom: 16px; }
-h1 { margin: 0 0 4px; font-size: 24px; }
-.page-heading p { margin: 0; color: #6b7280; }
 .toolbar-card { margin-bottom: 16px; }
 .cap-tag { margin: 0 4px 4px 0; }
 .cap-tag { cursor: pointer; }

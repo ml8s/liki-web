@@ -1,11 +1,12 @@
 <template>
   <section>
-    <div class="page-heading">
-      <h1>财务</h1>
-      <el-button @click="loadFinance">
-        刷新
-      </el-button>
-    </div>
+    <AdminPageHeader title="财务">
+      <template #actions>
+        <el-button @click="loadFinance">
+          刷新
+        </el-button>
+      </template>
+    </AdminPageHeader>
     <el-card
       shadow="never"
       class="report-card"
@@ -172,12 +173,7 @@
           width="110"
         >
           <template #default="{ row }">
-            <el-tag
-              :type="adminStatusTagType(row.status)"
-              size="small"
-            >
-              {{ adminStatusLabel(row.status) }}
-            </el-tag>
+            <AdminStatusTag :status="row.status" />
           </template>
         </el-table-column>
         <el-table-column
@@ -230,10 +226,12 @@ import {
   fetchAdminFinanceReport, fetchAdminFinanceTasks, resolveAdminFinanceTask,
   type AdminFinanceReport, type AdminFinanceTask,
 } from '@/api/admin'
+import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminResource } from '@/composables/useAdminResource'
-import { adminStatusTagType, adminStatusLabel, financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
 import { queryChoice } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
 
@@ -303,12 +301,6 @@ async function resolve(row: AdminFinanceTask, result: 'resolved' | 'rejected') {
 </script>
 
 <style scoped>
-.page-heading { display: flex; justify-content: space-between; align-items: center; }
-.report-card { margin-bottom: 18px; }
-.query-error { margin-bottom: 12px; }
-.card-heading { display: flex; justify-content: space-between; align-items: center; }
+.report-card { margin-bottom: var(--space-5); }
 .money-tag { margin: 0 4px 4px 0; }
-h1 { margin: 0 0 16px; font-size: 24px; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.muted { color: #6b7280; font-size: 12px; }
 </style>
