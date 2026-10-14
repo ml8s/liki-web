@@ -190,6 +190,22 @@ Component code should consume a semantic token when one exists. Raw colors are
 allowed only inside the primitive token source; raw spacing values should be
 limited to genuine layout measurements rather than replacing spacing tokens.
 
+### Page typography
+
+Use the existing page-header component for normal product pages. It owns the
+default responsive scale (`26–32px` title and `15px` subtitle). These are the
+only intentional exceptions:
+
+| Context | Title scale | Reason |
+| --- | ---: | --- |
+| Back-navigation flow pages | `24px` | Keep profile creation/detail subordinate to navigation |
+| Chat session header | `20px` | Preserve a long, truncatable session title and maximize workspace height |
+| Admin pages | `24px` | Dense operator surface, owned by `AdminPageHeader` |
+| Long-form legal/static pages | `20px` | Reading-first document layout |
+
+Do not add a new local heading scale for a whole product page. If a new context
+does not fit, extend the shared header contract first.
+
 Admin list state is split into draft filters and applied filters. The URL only
 reflects applied filters, defaults and page 1 are omitted, and changing an
 input does not query until the operator submits that filter block. Entitlement
@@ -222,6 +238,11 @@ mounting so users do not see raw keys or a flash of the wrong language.
 Locale is not part of the authenticated route path. Users can change it in
 Account settings; the public language switcher writes the same cookie before
 entering the app.
+
+Admin console copy is deliberately Simplified Chinese for now: it is an
+internal operator surface, while customer-facing Vue surfaces remain localized.
+Revisit this only when there is an explicit requirement to localize operator
+workflows.
 
 User-visible errors follow the same boundary. HTTP, engine, and stream clients
 preserve stable machine codes such as `generation_failed` and

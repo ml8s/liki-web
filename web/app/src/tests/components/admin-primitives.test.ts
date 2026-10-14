@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
+import PartnerStatGrid from '@/components/partner/PartnerStatGrid.vue'
 
 describe('admin primitives', () => {
   it('maps one status to one operator label and semantic color', () => {
@@ -61,5 +62,21 @@ describe('AdminRecordCard', () => {
     })
     expect(wrapper.find('strong').text()).toBe('partner.read')
     expect(wrapper.text()).toContain('value')
+  })
+})
+
+describe('PartnerStatGrid', () => {
+  it('renders partner metrics as one semantic stat contract', () => {
+    const wrapper = mount(PartnerStatGrid, {
+      props: {
+        stats: [
+          { key: 'leads', label: '线索', value: 12 },
+          { key: 'balance-usd', label: 'USD 余额', value: 'USD 123.00' },
+        ],
+      },
+    })
+
+    expect(wrapper.findAll('dt').map(node => node.text())).toEqual(['线索', 'USD 余额'])
+    expect(wrapper.findAll('dd').map(node => node.text())).toEqual(['12', 'USD 123.00'])
   })
 })

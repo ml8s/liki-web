@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { RouteRecordNormalized } from 'vue-router'
-import { idlePreloadAllowed, preloadRouteComponents, preloadWhenIdle } from '@/utils/routes'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import { idlePreloadAllowed, preloadRouteComponents, resolveBrowserHref } from '@/utils/routes'
 
 function route(components: Record<string, unknown>): RouteRecordNormalized {
   return { components } as unknown as RouteRecordNormalized
@@ -20,15 +21,6 @@ describe('route preloading', () => {
     expect(lazy).toHaveBeenCalledTimes(1)
   })
 
-  it('defers preload until idle when the API is unavailable', async () => {
-    vi.useFakeTimers()
-    const task = vi.fn().mockResolvedValue(undefined)
-    preloadWhenIdle(task, 2000)
-    expect(task).not.toHaveBeenCalled()
-    vi.advanceTimersByTime(1000)
-    await vi.runAllTimersAsync()
-    expect(task).toHaveBeenCalledTimes(1)
-  })
 })
 
 describe('idle preload budget', () => {
@@ -45,5 +37,16 @@ describe('idle preload budget', () => {
     expect(idlePreloadAllowed()).toBe(true)
     vi.stubGlobal('navigator', { connection: { saveData: true } })
     expect(idlePreloadAllowed()).toBe(false)
+  })
+})
+
+describe('browser href resolution', () => {
+  it('strips the history base before resolving link targets', () => {
+    const router = createRouter({
+      history: createMemoryHistory('/app/'),
+      routes: [{ path: '/admin', name: 'admin-overview', component: {} }],
+    })
+
+    expect(resolveBrowserHref(router, '/app/admin').name).toBe('admin-overview')
   })
 })

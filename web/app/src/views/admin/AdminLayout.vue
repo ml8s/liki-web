@@ -16,6 +16,8 @@
         <RouterLink
           to="/admin"
           exact-active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           总览
         </RouterLink>
@@ -23,6 +25,8 @@
           v-if="admin.can('entitlement.read')"
           to="/admin/entitlements"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           权益
         </RouterLink>
@@ -30,6 +34,8 @@
           v-if="admin.can('partner.read')"
           to="/admin/partners"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           合作伙伴
         </RouterLink>
@@ -37,6 +43,8 @@
           v-if="admin.can('payout.read')"
           to="/admin/payouts"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           提现
         </RouterLink>
@@ -44,6 +52,8 @@
           v-if="admin.can('commission.read')"
           to="/admin/finance"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           财务
         </RouterLink>
@@ -51,6 +61,8 @@
           v-if="admin.can('audit.read')"
           to="/admin/audit"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           审计
         </RouterLink>
@@ -58,6 +70,8 @@
           v-if="admin.can('admin.user.manage')"
           to="/admin/administrators"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           管理员
         </RouterLink>
@@ -82,6 +96,7 @@
       <div
         v-if="admin.status === 'loading' || auth.loading"
         v-loading="true"
+        aria-busy="true"
         class="state-card"
       />
       <el-result
@@ -126,7 +141,7 @@ import { useChatStore } from '@/stores/chat'
 import { useSalesStore } from '@/stores/sales-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
-import { idlePreloadAllowed, preloadRouteComponents, preloadWhenIdle } from '@/utils/routes'
+import { idlePreloadAllowed, preloadRouteComponents, resolveBrowserHref } from '@/utils/routes'
 
 const admin = useAdminStore()
 const auth = useAuthStore()
@@ -135,21 +150,29 @@ const router = useRouter()
 
 onMounted(() => {
   if (admin.status === 'unknown') void admin.loadSession(true)
-
-  if (!idlePreloadAllowed()) return
-
-  // Admin pages are intentionally split. Warm their chunks once the shell is
-  // interactive so the first navigation swaps data state, not an empty layout.
-  preloadWhenIdle(async () => {
-    await preloadRouteComponents(
-      router.getRoutes().filter(route => {
-        if (!String(route.name ?? '').startsWith('admin-')) return false
-        const capability = route.meta.adminCapability
-        return !capability || admin.can(capability)
-      }),
-    )
-  })
 })
+
+// Route-level chunks stay unprefetched until the operator expresses intent.
+// This keeps the first Admin screen light without making navigation wait on
+// a network request for a lazy view.
+function preloadNavigation(event: Event) {
+  if (!idlePreloadAllowed()) return
+  const target = event.currentTarget
+  const href = target instanceof Element ? target.getAttribute('href') : null
+  if (!href) return
+
+  const resolved = resolveBrowserHref(router, href)
+  const records = router.getRoutes().filter(candidate =>
+    candidate.name === resolved.name
+    && String(candidate.name ?? '').startsWith('admin-'),
+  )
+  if (records.some(record => {
+    const capability = record.meta.adminCapability
+    return capability && !admin.can(capability)
+  })) return
+
+  void preloadRouteComponents(records)
+}
 
 // Horizontal admin nav collapses on small operators. Keep the active item in
 // view so the current route is never hidden by scroll position.

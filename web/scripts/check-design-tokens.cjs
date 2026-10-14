@@ -13,7 +13,8 @@ const appExpected = [
   '--brand-text',
   '--brand-line',
 ];
-const staticExpected = ['--brand-gold'];
+// Static CSS consumes semantic aliases; primitive values stay in tokens.css.
+const staticExpected = ['--color-gold-light'];
 let failed = false;
 
 for (const token of appExpected) {

@@ -41,6 +41,9 @@
 
 .admin-shell .filters { margin-bottom: var(--space-4); }
 
+.admin-filter-control { width: 160px; }
+.admin-fluid-control { width: 100%; }
+
 .admin-shell .query-error { margin-bottom: var(--space-3); }
 
 .admin-shell .mono {

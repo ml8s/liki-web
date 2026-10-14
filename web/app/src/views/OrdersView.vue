@@ -153,6 +153,7 @@
     <el-table
       v-else-if="!isMobile"
       v-loading="loading"
+      :aria-busy="loading"
       :data="orders"
       class="orders-table"
     >
@@ -213,6 +214,7 @@
     <div
       v-else
       v-loading="loading"
+      :aria-busy="loading"
       class="order-cards"
     >
       <div

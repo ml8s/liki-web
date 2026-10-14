@@ -21,6 +21,7 @@
       <div
         ref="threadElement"
         v-loading="chat.loadingMessages"
+        :aria-busy="chat.loadingMessages"
         class="thread"
         @scroll="onThreadScroll"
       >

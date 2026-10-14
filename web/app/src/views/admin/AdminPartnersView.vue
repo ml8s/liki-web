@@ -24,7 +24,7 @@
         <el-form-item label="角色">
           <el-select
             v-model="draft.applicationRole"
-            style="width: 110px"
+            class="admin-filter-control"
           >
             <el-option
               label="全部"
@@ -43,7 +43,7 @@
         <el-form-item label="状态">
           <el-select
             v-model="draft.applicationStatus"
-            style="width: 130px"
+            class="admin-filter-control"
           >
             <el-option
               label="待审核"
@@ -225,7 +225,7 @@
         <el-form-item label="角色">
           <el-select
             v-model="draft.partnerRole"
-            style="width: 110px"
+            class="admin-filter-control"
           >
             <el-option
               label="全部"
@@ -244,7 +244,7 @@
         <el-form-item label="状态">
           <el-select
             v-model="draft.partnerStatus"
-            style="width: 120px"
+            class="admin-filter-control"
           >
             <el-option
               label="全部"

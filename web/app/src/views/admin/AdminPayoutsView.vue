@@ -17,7 +17,7 @@
       <el-form-item label="状态">
         <el-select
           v-model="draft.status"
-          style="width: 140px"
+          class="admin-filter-control"
         >
           <el-option
             label="待审核"

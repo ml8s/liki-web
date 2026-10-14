@@ -47,7 +47,7 @@
         >
           <el-select
             v-model="compensation.template"
-            style="width: 140px"
+            class="admin-filter-control"
           >
             <el-option
               label="补偿 7 天"
@@ -101,7 +101,7 @@
       <el-form-item label="状态">
         <el-select
           v-model="status"
-          style="width: 130px"
+          class="admin-filter-control"
         >
           <el-option
             label="全部"
@@ -304,7 +304,7 @@
             type="datetime"
             value-format="YYYY-MM-DDTHH:mm:ssZ"
             format="YYYY-MM-DD HH:mm"
-            style="width: 100%"
+            class="admin-fluid-control"
           />
         </el-form-item>
         <el-form-item

@@ -27,7 +27,7 @@
         <el-form-item label="周期">
           <el-select
             v-model="draft.days"
-            style="width: 120px"
+            class="admin-filter-control"
             @change="submitFinanceFilters"
           >
             <el-option
@@ -55,6 +55,7 @@
       />
       <el-table
         v-loading="reportLoading"
+        :aria-busy="reportLoading"
         :data="reportRows"
       >
         <el-table-column
@@ -97,7 +98,7 @@
         <el-form-item label="状态">
           <el-select
             v-model="draft.status"
-            style="width: 140px"
+            class="admin-filter-control"
           >
             <el-option
               label="待处理"

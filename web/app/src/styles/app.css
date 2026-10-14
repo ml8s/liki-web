@@ -232,7 +232,13 @@ p {
 }
 
 /* Element Plus applies type-specific alert title colors after the generic
- * variable override; keep info copy at AA on its tinted background. */
+ * variable override; keep status copy at AA on tinted backgrounds. */
 .el-alert--info .el-alert__title {
   color: var(--liki-text-2);
+}
+.el-alert--error .el-alert__title {
+  color: var(--el-color-danger);
+}
+.el-alert--warning .el-alert__title {
+  color: var(--el-color-warning);
 }
