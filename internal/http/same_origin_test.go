@@ -53,6 +53,37 @@ func TestSameOriginRejectsMissingBrowserContext(t *testing.T) {
 	}
 }
 
+func TestSameOriginAllowsAnonymousFeedbackWithoutBrowserContext(t *testing.T) {
+	handler := SameOrigin(false, stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
+		w.WriteHeader(stdhttp.StatusNoContent)
+	}))
+	request := httptest.NewRequest(stdhttp.MethodPost, "/api/feedback", nil)
+	request.Host = "liki.hk"
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != stdhttp.StatusNoContent {
+		t.Fatalf("status = %d, want %d", recorder.Code, stdhttp.StatusNoContent)
+	}
+}
+
+func TestSameOriginRejectsCrossSiteFeedback(t *testing.T) {
+	handler := SameOrigin(false, stdhttp.HandlerFunc(func(stdhttp.ResponseWriter, *stdhttp.Request) {
+		t.Fatal("handler must not run")
+	}))
+	request := httptest.NewRequest(stdhttp.MethodPost, "/api/feedback", nil)
+	request.Host = "liki.hk"
+	request.Header.Set("Origin", "https://attacker.example")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != stdhttp.StatusForbidden {
+		t.Fatalf("status = %d, want %d", recorder.Code, stdhttp.StatusForbidden)
+	}
+}
+
 func TestSameOriginAllowsSignedWebhookWithoutOrigin(t *testing.T) {
 	handler := SameOrigin(false, stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
 		w.WriteHeader(stdhttp.StatusNoContent)
