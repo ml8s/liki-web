@@ -5,12 +5,18 @@
       :subtitle="$t('account.subtitle')"
     >
       <template #actions>
-        <router-link to="/orders">
-          <el-button>{{ $t('nav.orders') }}</el-button>
-        </router-link>
-        <router-link to="/partners">
-          <el-button>{{ $t('nav.partner') }}</el-button>
-        </router-link>
+        <el-button
+          tag="a"
+          to="/orders"
+        >
+          {{ $t('nav.orders') }}
+        </el-button>
+        <el-button
+          tag="a"
+          to="/partners"
+        >
+          {{ $t('nav.partner') }}
+        </el-button>
         <el-button
           :loading="revoking"
           type="danger"

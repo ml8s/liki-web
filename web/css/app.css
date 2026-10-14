@@ -191,14 +191,6 @@ liki-header { display: block; position: sticky; top: 0; z-index: 50; }
   outline-offset: 2px;
 }
 
-/* ── CTA Section ── */
-.cta-section {
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-8);
-  padding-bottom: var(--space-8);
-}
-
 /* ── Transitions ── */
 .transition-colors { transition: color .15s ease, background-color .15s ease, border-color .15s ease; }
 .hover\:text-stone-600:hover { color: var(--color-stone-600-raw); }
@@ -256,14 +248,11 @@ th {
   text-transform: uppercase;
 }
 
-.footer-groups { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-end; }
 .footer-group { min-width: 0; }
 .footer-group-label { font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 2px; }
 @media (max-width: 640px) { .footer-groups { align-items: flex-start; } }
 
 .footer-groups { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-end; }
-.footer-group-label { font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 2px; }
-@media (max-width: 640px) { .footer-groups { align-items: flex-start; } }
 
 .min-w-\[130px\] { min-width: 130px; }
 
@@ -309,24 +298,6 @@ th {
 
 
 
-/* ── Lifebook Page ── */
-
-
-.lb-form-section { animation: gentleRise 300ms var(--ease-out) both; }
-#form-error { animation: gentleRise 200ms var(--ease-out) both; }
-
-
-/* ── CTA Section (homepage) ── */
-.cta-section {
-  max-width: 32rem;
-  margin: 0 auto;
-  padding-bottom: var(--space-16);
-  text-align: center;
-  border-top: 1px solid var(--color-accent-soft);
-  padding-top: var(--space-12);
-}
-.cta-section h2 { font-family: var(--font-serif); font-size: 1.375rem; font-weight: 600; color: var(--color-text); margin-bottom: var(--space-2); }
-.cta-section p { font-size: .9375rem; color: var(--color-text-muted); margin-bottom: var(--space-6); line-height: 1.7; }
 /* ── Name Preview Cards (homepage) ── */
 .name-preview-card {
   background: var(--color-paper);
@@ -348,15 +319,6 @@ th {
   color: var(--color-text); margin-bottom: var(--space-1); white-space: pre-line;
 }
 .name-preview-gender { font-size: .6875rem; color: var(--color-text-muted); text-align: center; margin-bottom: var(--space-2); }
-.msg-asst blockquote {
-  margin: 0.5rem 0;
-  padding: 0.5rem 0.75rem;
-  border-left: 3px solid var(--color-accent);
-  background: var(--color-accent-soft);
-  border-radius: 0.375rem;
-  font-size: 0.9rem;
-  color: var(--color-accent-hover);
-}
 .name-preview-quote {
   font-family: var(--font-serif); font-style: italic;
   font-size: .9375rem; font-weight: 700; color: var(--color-fire);
@@ -385,12 +347,6 @@ th {
   .name-scroll::before, .name-scroll::after { display: none; }
 }
 
-/* ── Animations ── */
-@keyframes gentleRise {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
@@ -413,13 +369,10 @@ th {
   .hero-brand + section .name-scroll .name-preview-card { flex: 0 0 85vw; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-}
-
 @media print {
   @page { margin: 2cm; }
   body { background: #fff !important; font-size: 12pt; }
-  header, footer, .cta-section { display: none !important; }
+  header, footer { display: none !important; }
   main { max-width: none !important; padding: 0 !important; }
   h2 { break-after: avoid; }
   table { break-inside: avoid; }

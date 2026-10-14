@@ -26,17 +26,15 @@
       {{ blockedReason }}
     </p>
 
-    <router-link
+    <el-button
       v-if="!enabled && actionTo"
+      tag="a"
       :to="actionTo"
+      type="primary"
+      plain
     >
-      <el-button
-        type="primary"
-        plain
-      >
-        {{ actionLabel || $t('chat.action.resolve') }}
-      </el-button>
-    </router-link>
+      {{ actionLabel || $t('chat.action.resolve') }}
+    </el-button>
     <el-button
       type="primary"
       :disabled="!enabled || starting"

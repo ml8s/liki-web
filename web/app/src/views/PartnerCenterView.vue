@@ -69,30 +69,30 @@
         />
 
         <div class="actions">
-          <router-link
+          <el-button
             v-if="program.state.status === 'active' || program.state.status === 'retired'"
+            tag="a"
             :to="program.dashboard"
+            type="primary"
           >
-            <el-button type="primary">
-              {{ $t('partner.openWorkspace') }}
-            </el-button>
-          </router-link>
-          <router-link
+            {{ $t('partner.openWorkspace') }}
+          </el-button>
+          <el-button
             v-else-if="program.canApply"
+            tag="a"
             :to="program.apply"
+            type="primary"
           >
-            <el-button type="primary">
-              {{ $t('partner.applyNow') }}
-            </el-button>
-          </router-link>
-          <router-link
+            {{ $t('partner.applyNow') }}
+          </el-button>
+          <el-button
             v-else-if="program.otherAssigned"
+            tag="a"
             :to="program.role === 'kol' ? '/partners/scout' : '/partners/kol'"
+            text
           >
-            <el-button text>
-              {{ $t('partner.viewRoleDescription') }}
-            </el-button>
-          </router-link>
+            {{ $t('partner.viewRoleDescription') }}
+          </el-button>
         </div>
       </el-card>
     </div>

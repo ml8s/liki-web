@@ -189,6 +189,8 @@ Horizontal admin navigation keeps the active route visible.
 Component code should consume a semantic token when one exists. Raw colors are
 allowed only inside the primitive token source; raw spacing values should be
 limited to genuine layout measurements rather than replacing spacing tokens.
+`check-css-vars.cjs` rejects CSS custom properties that are consumed by source
+but not defined in the shared source layers.
 
 ### Page typography
 

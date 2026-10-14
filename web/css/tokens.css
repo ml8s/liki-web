@@ -70,6 +70,34 @@
   --color-error-border: rgba(217, 45, 32, 0.35);
   --color-danger-surface: #fff8f7;
   --color-success: #067647;
+  --color-text-faint: var(--brand-text-faint);
+
+  /* Product semantic aliases. Keep these in the canonical token layer so
+   * static pages, the Vue app, Admin, and Element Plus resolve one contract. */
+  --liki-primary: var(--brand-primary);
+  --liki-primary-hover: var(--brand-primary-hover);
+  --liki-primary-tint: var(--brand-primary-soft);
+  --liki-primary-border: var(--brand-primary-border);
+  --liki-primary-alpha-10: var(--brand-primary-alpha-10);
+  --liki-primary-alpha-12: var(--brand-primary-alpha-12);
+  --liki-shadow-strong: var(--brand-shadow-strong);
+  --liki-accent-on-ink: var(--brand-accent-on-ink);
+  --liki-ink: var(--brand-ink);
+  --liki-paper: var(--brand-paper);
+  --liki-surface: var(--brand-surface);
+  --liki-surface-cream: var(--brand-surface-cream);
+  --liki-text-2: var(--brand-text-muted);
+  --liki-text-3: var(--brand-text-faint);
+  --liki-line: var(--brand-line);
+  --liki-on-primary: var(--brand-on-primary);
+  --liki-on-ink: var(--brand-on-ink);
+  --liki-on-ink-subtle: var(--brand-on-ink-subtle);
+  --liki-on-ink-link: var(--brand-on-ink-link);
+  --liki-on-ink-muted: var(--brand-on-ink-muted);
+  --liki-on-ink-label: var(--brand-on-ink-label);
+  --liki-on-ink-line: var(--brand-on-ink-line);
+  --liki-on-ink-hover: var(--brand-on-ink-hover);
+  --liki-selected-overlay: var(--brand-selected-overlay);
 
   /* shared radius contract */
   --radius-card: 16px;
@@ -111,6 +139,7 @@
   --duration-sm: 150ms;
   --duration-md: 250ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --color-white: #ffffff;
   --color-error-soft: #fef2f2;
 }
@@ -184,4 +213,10 @@
   --text-3xl: 1.875rem;
   --text-4xl: 2.25rem;
   --font-serif: "Songti SC", "Noto Serif SC", "Noto Serif CJK SC", "STSong", "SimSun", "宋体", "AR PL UMing CN", "Hiragino Mincho Pro", "Noto Serif TC", serif;
+  --liki-font-sans: var(--font-sans);
+  --liki-font-serif: var(--font-serif);
+  --liki-dur: 160ms;
+  --liki-dur-slow: 220ms;
+  --liki-ease: var(--ease-standard);
+  --liki-ease-out: var(--ease-out);
 }
