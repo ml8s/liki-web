@@ -60,8 +60,7 @@ liki release bundle → 校验 SHA256 / archive digest
 `build/candidate/candidate-digests.json`，
 发布时提供 `version`、`source_commit` 和该 JSON。workflow 校验 tag 指向的 commit、
 manifest 来源与 web digest，然后 `docker buildx imagetools create` 将同一 exact
-digest 提升（重新打 tag）为 `liki-web:v<version>`，再执行冒烟、cosign 签名与
-GitHub Release。
+digest 提升（重新打 tag）为 `liki-web:v<version>`，再执行 cosign 签名与签名验证。
 
 - 镜像依赖预构建产物（bin + web/dist + web/app/dist + web/skills）
 - **web/skills 来自 prepare-skills**（消费 liki bundle），非本仓源码
