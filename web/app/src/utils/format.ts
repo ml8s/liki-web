@@ -19,12 +19,3 @@ export function productName(productId: string): string {
   const names: Record<string, string> = { 'liki-chat': 'Liki Chat' }
   return names[productId] ?? productId
 }
-
-/**
- * 从路由 query 中提取第一个字符串值。
- * query 可能是 string | string[] | undefined，统一返回 string。
- */
-export function toFirstQueryString(value: unknown): string {
-  if (Array.isArray(value)) return String(value[0] ?? '')
-  return String(value ?? '')
-}

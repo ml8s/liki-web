@@ -42,16 +42,10 @@
       :closable="false"
     />
     <template v-else>
-      <div class="stat-grid">
-        <div
-          v-for="balance in settlement?.balances ?? []"
-          :key="balance.currency"
-          class="stat"
-        >
-          <span class="label">{{ $t('partner.settlement.balance', { currency: balance.currency }) }}</span>
-          <strong>{{ formatMinorUnit(balance.total_minor, balance.currency) }}</strong>
-        </div>
-      </div>
+      <PartnerStatGrid
+        class="balance-stats"
+        :stats="balanceStats"
+      />
 
       <el-table
         :data="settlement?.payouts ?? []"
@@ -118,6 +112,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import PayoutDialog from '@/components/partner/PayoutDialog.vue'
+import PartnerStatGrid, { type PartnerStat } from '@/components/partner/PartnerStatGrid.vue'
 import {
   fetchKOLSettlement,
   fetchScoutSettlement,
@@ -141,6 +136,11 @@ const error = ref('')
 const settlement = ref<Settlement | null>(null)
 
 const title = computed(() => props.role === 'kol' ? 'KOL' : 'Scout')
+const balanceStats = computed<PartnerStat[]>(() => (settlement.value?.balances ?? []).map(balance => ({
+  key: balance.currency,
+  label: t('partner.settlement.balance', { currency: balance.currency }),
+  value: formatMinorUnit(balance.total_minor, balance.currency),
+})))
 
 async function load() {
   loading.value = true
@@ -195,8 +195,5 @@ onMounted(load)
 <style scoped>
 .head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
 .rules { margin-bottom: 14px; }
-.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 18px; }
-.stat { border: 1px solid var(--liki-line); border-radius: 12px; padding: 14px; background: var(--liki-paper); }
-.stat .label { display: block; margin-bottom: 6px; color: var(--liki-text-2); font-size: 13px; }
-.stat strong { font-size: 20px; }
+.balance-stats { margin-bottom: var(--space-4); }
 </style>

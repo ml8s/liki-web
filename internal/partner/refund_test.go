@@ -125,18 +125,18 @@ SELECT status,refunded_minor FROM partner_commission_entries WHERE id=?`,
 	if status != string(CommissionPaid) || refunded != 5000 {
 		t.Fatalf("paid entry status/refunded=%q/%d", status, refunded)
 	}
-	tasks, err := store.ListFinanceTasks(ctx, FinanceTaskPending, 10)
+	tasks, err := store.ListFinanceTasks(ctx, FinanceTaskPending, AdminPageRequest{Page: 1, PageSize: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tasks) != 1 || tasks[0].EntryID != commission.ID+":kol" ||
-		tasks[0].AmountMinor != 5000 || tasks[0].ProviderRefundID != "refund-after-paid" {
+	if len(tasks.Items) != 1 || tasks.Items[0].EntryID != commission.ID+":kol" ||
+		tasks.Items[0].AmountMinor != 5000 || tasks.Items[0].ProviderRefundID != "refund-after-paid" {
 		t.Fatalf("finance tasks=%+v", tasks)
 	}
-	if err := store.ResolveFinanceTask(ctx, tasks[0].ID, "admin", string(FinanceTaskResolved), "recovered by operations"); err != nil {
+	if err := store.ResolveFinanceTask(ctx, tasks.Items[0].ID, "admin", string(FinanceTaskResolved), "recovered by operations"); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.ResolveFinanceTask(ctx, tasks[0].ID, "admin", string(FinanceTaskResolved), "duplicate"); err != ErrFinanceTaskInvalidTransition {
+	if err := store.ResolveFinanceTask(ctx, tasks.Items[0].ID, "admin", string(FinanceTaskResolved), "duplicate"); err != ErrFinanceTaskInvalidTransition {
 		t.Fatalf("duplicate resolve err=%v", err)
 	}
 }

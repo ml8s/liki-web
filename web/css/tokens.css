@@ -1,7 +1,14 @@
-/* Liki canonical brand tokens.
- * These are the single source of truth for product, marketing, legal, and
- * console surfaces. app.css may expose compatibility aliases, but new code
- * should consume --brand-* only. */
+/* Liki token contract.
+ *
+ * Layers:
+ * 1. --brand-* / palette values are primitives; never consume them directly
+ *    from components when a semantic token exists.
+ * 2. --color-* and --liki-* are semantic aliases used by marketing and product.
+ * 3. --el-* is a component bridge owned by the Element Plus theme section.
+ *
+ * New component CSS must use a semantic token. Raw values are allowed only in
+ * this primitive layer or a narrow layout measurement that has no token yet.
+ */
 
 :root {
   /* brand palette */
@@ -15,6 +22,7 @@
   --brand-gold-hover: #744210;
   --brand-gold-on-dark: #e4c878;
   --brand-gold-tint: #fff7e6;
+  --brand-accent-on-ink: var(--brand-gold-on-dark);
 
   --brand-ink: #0d253d;
   --brand-text: #102a43;
@@ -25,6 +33,23 @@
   --brand-surface: #ffffff;
   --brand-line: #e3e8ee;
   --brand-line-strong: #cbd5e1;
+
+  /* Dark chrome and selected-state colors. Component code consumes the
+   * matching --liki-on-* / --liki-* semantic aliases below. */
+  --brand-on-ink: #ffffff;
+  --brand-on-ink-subtle: rgba(255, 255, 255, 0.78);
+  --brand-on-ink-link: #cfd3db;
+  --brand-on-ink-muted: #c0c5cc;
+  --brand-on-ink-label: #8b93a1;
+  --brand-on-ink-line: rgba(255, 255, 255, 0.12);
+  --brand-on-ink-hover: rgba(255, 255, 255, 0.08);
+  --brand-selected-overlay: rgba(83, 58, 253, 0.32);
+  --brand-surface-cream: #fdfaf3;
+  --brand-primary-alpha-10: rgba(83, 58, 253, 0.10);
+  --brand-primary-alpha-12: rgba(83, 58, 253, 0.12);
+  --brand-shadow-strong: 0 6px 18px rgba(30, 34, 48, 0.08);
+  --brand-success-border: #bfe6bf;
+  --brand-success-surface: #f4faf4;
 
   /* semantic aliases shared by every surface */
   --color-accent: var(--brand-primary);
@@ -88,4 +113,75 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --color-white: #ffffff;
   --color-error-soft: #fef2f2;
+}
+
+/* Static pages retain a few legacy aliases. Product code must use the canonical
+ * shared aliases above; do not add new consumers for these raw names. */
+:root {
+  --color-black: #000;
+  --color-black: #000;
+  --color-paper-raw: var(--brand-paper);
+  --color-surface-raw: var(--brand-surface);
+  --color-text-raw: var(--brand-text);
+  --color-muted-raw: var(--brand-text-muted);
+  --color-border-raw: var(--brand-line);
+  --color-border-hover-raw: var(--brand-line-strong);
+  --color-accent-raw: var(--brand-primary);
+  --color-accent-hover-raw: var(--brand-primary-hover);
+  --color-accent-soft-raw: var(--brand-primary-soft);
+  --color-fire-raw: #b85450;
+  --color-fire-hover-raw: #8c3b39;
+  --color-gold-raw: var(--brand-gold);
+  --color-gold-light-raw: var(--brand-gold-on-dark);
+  --color-error-raw: var(--color-error);
+  --color-error-soft-raw: #fef6f2;
+  --color-success-raw: var(--color-success);
+  --color-chat-bg-raw: #f5f5f7;
+  --color-chat-user-raw: #fde8d0;
+  --color-chat-asst-raw: #e9e9ed;
+  --color-chat-stop-raw: #8e8e93;
+  --color-chat-stop-hover-raw: #6d6d72;
+  --color-stone-50-raw: #fafaf9;
+  --color-stone-200-raw: #e7e5e4;
+  --color-stone-400-raw: #a8a29e;
+  --color-stone-500-raw: #78716c;
+  --color-stone-600-raw: #57534e;
+  --color-stone-700-raw: #44403c;
+  --color-blue-500-raw: #3b82f6;
+  --color-blue-900-raw: #1e3a5f;
+  --color-wood: var(--color-accent-raw);
+  --color-wood-hover: var(--color-accent-hover-raw);
+  --color-wood-soft: var(--color-accent-soft-raw);
+  --color-chat-bg: var(--color-chat-bg-raw);
+  --color-chat-user: var(--color-chat-user-raw);
+  --color-chat-asst: var(--color-chat-asst-raw);
+  --color-chat-stop: var(--color-chat-stop-raw);
+  --color-chat-stop-hover: var(--color-chat-stop-hover-raw);
+  --color-chat-input-bg: rgba(245,245,247,.88);
+  --color-backdrop: rgba(0,0,0,.3);
+  --color-overlay-light: rgba(255,255,255,.92);
+  --color-gold-alpha-10: rgba(255,255,255,.1);
+  --color-shadow-line: rgba(0,0,0,.06);
+  --color-header-bg: rgba(17, 31, 46, 0.82);
+  --color-header-border: rgba(255,255,255,.15);
+  --color-toast-info-bg: rgba(59,130,246,.88);
+  --color-toast-error-bg: rgba(254,246,242,.88);
+  --color-toast-error-border: rgba(194,65,12,.25);
+  --color-gold-alpha-20: rgba(228,200,120,.2);
+  --color-paper-light: rgba(240,216,144,1);
+  --color-white-alpha-92: rgba(255,255,255,.92);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.08), 0 8px 10px -6px rgba(0,0,0,.04);
+  --shadow-input: 0 -1px 6px rgba(0,0,0,.06);
+  --ease-enter: cubic-bezier(0, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.2, 0, 0.4, 1);
+  --ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --duration-lg: 350ms;
+  --duration-xl: 400ms;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --font-serif: "Songti SC", "Noto Serif SC", "Noto Serif CJK SC", "STSong", "SimSun", "宋体", "AR PL UMing CN", "Hiragino Mincho Pro", "Noto Serif TC", serif;
 }

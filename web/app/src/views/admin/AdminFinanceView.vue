@@ -1,11 +1,12 @@
 <template>
   <section>
-    <div class="page-heading">
-      <h1>财务</h1>
-      <el-button @click="load">
-        刷新
-      </el-button>
-    </div>
+    <AdminPageHeader title="财务">
+      <template #actions>
+        <el-button @click="reloadTaskPage">
+          刷新
+        </el-button>
+      </template>
+    </AdminPageHeader>
     <el-card
       shadow="never"
       class="report-card"
@@ -16,7 +17,7 @@
           <el-button
             size="small"
             :loading="reportLoading"
-            @click="loadReport"
+            @click="loadAppliedReport"
           >
             刷新
           </el-button>
@@ -25,9 +26,9 @@
       <el-form inline>
         <el-form-item label="周期">
           <el-select
-            v-model="reportDays"
-            style="width: 120px"
-            @change="loadReport"
+            v-model="draft.days"
+            class="admin-filter-control"
+            @change="submitFinanceFilters"
           >
             <el-option
               :value="7"
@@ -44,8 +45,17 @@
           </el-select>
         </el-form-item>
       </el-form>
+      <el-alert
+        v-if="reportError"
+        :title="reportError"
+        type="error"
+        show-icon
+        :closable="false"
+        class="query-error"
+      />
       <el-table
         v-loading="reportLoading"
+        :aria-busy="reportLoading"
         :data="reportRows"
       >
         <el-table-column
@@ -75,10 +85,7 @@
       </el-table>
     </el-card>
 
-    <el-card
-      shadow="never"
-      class="report-card"
-    >
+    <el-card shadow="never">
       <template #header>
         <div class="card-heading">
           财务任务
@@ -86,12 +93,12 @@
       </template>
       <el-form
         inline
-        @submit.prevent="loadTasks"
+        @submit.prevent="submitFinanceFilters"
       >
         <el-form-item label="状态">
           <el-select
-            v-model="status"
-            style="width: 140px"
+            v-model="draft.status"
+            class="admin-filter-control"
           >
             <el-option
               label="待处理"
@@ -113,78 +120,131 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="loadTasks"
+          @click="reloadTaskPage"
         >
           查询
         </el-button>
       </el-form>
-
-      <el-table
-        v-loading="loading"
-        :data="tasks"
-        row-key="id"
+      <el-alert
+        v-if="tasks.error.value"
+        :title="tasks.error.value"
+        type="error"
+        show-icon
+        :closable="false"
+        class="query-error"
+      />
+      <div
+        v-loading="tasks.loading.value"
+        :aria-busy="tasks.loading.value"
       >
-        <el-table-column
-          label="类型 / 金额"
-          min-width="220"
+        <el-table
+          v-if="!isMobile"
+          :data="tasks.data.value"
+          row-key="id"
         >
-          <template #default="{ row }">
-            <div>{{ financeTaskTypeLabel(row.type) }}</div>
-            <div class="mono muted">
-              {{ formatAdminMoney(row.amount_minor, row.currency) }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="beneficiary_id"
-          label="受益人"
-          min-width="180"
-          show-overflow-tooltip
-        />
-        <el-table-column
-          label="关联对象"
-          min-width="220"
+          <el-table-column
+            label="类型 / 金额"
+            min-width="220"
+          >
+            <template #default="{ row }">
+              <div>{{ financeTaskTypeLabel(row.type) }}</div>
+              <div class="mono muted">
+                {{ formatAdminMoney(row.amount_minor, row.currency) }}
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="beneficiary_id"
+            label="受益人"
+            min-width="180"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            label="关联对象"
+            min-width="220"
+          >
+            <template #default="{ row }">
+              <div>{{ row.provider }}</div>
+              <div class="mono muted">
+                {{ row.provider_refund_id || row.payment_intent_id }}
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="状态"
+            width="110"
+          >
+            <template #default="{ row }">
+              <AdminStatusTag :status="row.status" />
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="时间"
+            width="180"
+          >
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            v-if="admin.can('commission.void')"
+            label="操作"
+            width="180"
+            fixed="right"
+          >
+            <template #default="{ row }">
+              <template v-if="row.status === 'pending'">
+                <el-button
+                  size="small"
+                  type="primary"
+                  @click="resolve(row as AdminFinanceTask, 'resolved')"
+                >
+                  追回
+                </el-button>
+                <el-button
+                  size="small"
+                  type="warning"
+                  plain
+                  @click="resolve(row as AdminFinanceTask, 'rejected')"
+                >
+                  豁免
+                </el-button>
+              </template>
+              <span
+                v-else
+                class="muted"
+              >已处理</span>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div
+          v-if="isMobile && !tasks.loading.value && !tasks.data.value.length"
         >
-          <template #default="{ row }">
-            <div>{{ row.provider }}</div>
-            <div class="mono muted">
-              {{ row.provider_refund_id || row.payment_intent_id }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="状态"
-          width="110"
-        >
-          <template #default="{ row }">
-            <el-tag
-              :type="adminStatusTagType(row.status)"
-              size="small"
+          <el-empty description="暂无财务任务" />
+        </div>
+        <div v-if="isMobile">
+          <AdminRecordCard
+            v-for="row in tasks.data.value"
+            :key="row.id"
+            :fields="[
+              { key: 'type', label: '类型', value: financeTaskTypeLabel(row.type) },
+              { key: 'amount', label: '金额', value: row.amount_minor, kind: 'money', currency: row.currency },
+              { key: 'beneficiary', label: '受益人', value: row.beneficiary_id, kind: 'mono' },
+              { key: 'provider', label: 'Provider', value: row.provider },
+              { key: 'reference', label: '关联对象', value: row.provider_refund_id || row.payment_intent_id, kind: 'mono' },
+              { key: 'status', label: '状态', value: row.status, kind: 'status' },
+              { key: 'created', label: '时间', value: formatDateTime(row.created_at) },
+            ]"
+          >
+            <template
+              v-if="admin.can('commission.void') && row.status === 'pending'"
+              #actions
             >
-              {{ row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="时间"
-          width="180"
-        >
-          <template #default="{ row }">
-            {{ formatDateTime(row.created_at) }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="admin.can('commission.void')"
-          label="操作"
-          width="180"
-          fixed="right"
-        >
-          <template #default="{ row }">
-            <template v-if="row.status === 'pending'">
               <el-button
                 size="small"
                 type="primary"
-                @click="resolve(row as AdminFinanceTask, 'resolved')"
+                @click="resolve(row, 'resolved')"
               >
                 追回
               </el-button>
@@ -192,40 +252,65 @@
                 size="small"
                 type="warning"
                 plain
-                @click="resolve(row as AdminFinanceTask, 'rejected')"
+                @click="resolve(row, 'rejected')"
               >
                 豁免
               </el-button>
             </template>
-            <span
-              v-else
-              class="muted"
-            >已处理</span>
-          </template>
-        </el-table-column>
-      </el-table>
+          </AdminRecordCard>
+        </div>
+      </div>
+
+      <el-pagination
+        v-if="(tasks.meta.value?.total ?? 0) > 0"
+        class="admin-pagination"
+        :current-page="pagesState.taskPage"
+        :page-size="tasks.meta.value?.page_size ?? 100"
+        :total="tasks.meta.value?.total ?? 0"
+        layout="prev, pager, next, total"
+        background
+        hide-on-single-page
+        @current-change="setTaskPage"
+      />
     </el-card>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   fetchAdminFinanceReport, fetchAdminFinanceTasks, resolveAdminFinanceTask,
   type AdminFinanceReport, type AdminFinanceTask,
 } from '@/api/admin'
+import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
+import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusTagType, financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
+import { financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { useAdminQueryState } from '@/composables/useAdminQueryState'
+import { queryChoice } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
 
+const isMobile = useAdminViewport()
+
 const admin = useAdminStore()
-const loading = ref(false)
-const status = ref('pending')
-const tasks = ref<AdminFinanceTask[]>([])
-const reportDays = ref<7 | 30 | 90>(30)
+
+interface FinanceFilters {
+  [key: string]: string | number
+  status: string
+  days: 7 | 30 | 90
+}
+
+const tasks = useAdminPagedResource<AdminFinanceTask>(async page => {
+  const { status } = query.applied.value
+  return await fetchAdminFinanceTasks(status, page)
+})
 const reportLoading = ref(false)
 const report = ref<AdminFinanceReport | null>(null)
+const reportError = ref('')
+const reportDays = computed(() => query.applied.value.days)
 
 const reportRows = computed(() => [
   { label: '一次性收入', values: report.value?.one_time_paid ?? [] },
@@ -237,29 +322,57 @@ const reportRows = computed(() => [
   { label: '当前待处理提现', values: report.value?.partner_pending_payout ?? [] },
 ])
 
-onMounted(load)
+const query = useAdminQueryState<FinanceFilters>({
+  defaults: { status: 'pending', days: 30 },
+  pageKeys: ['taskPage'],
+  decode: query => ({
+    status: queryChoice(query, 'status', ['', 'pending', 'resolved', 'rejected'], 'pending'),
+    days: queryChoice(query, 'days', ['7', '30', '90'], '30') as unknown as 7 | 30 | 90,
+  }),
+  encode: (filters, pages) => ({
+    status: filters.status === 'pending' ? undefined : filters.status,
+    days: filters.days === 30 ? undefined : filters.days,
+    taskPage: pages.taskPage === 1 ? undefined : pages.taskPage,
+  }),
+  onApplied: async (filters, pages): Promise<void> => {
+    await Promise.all([
+      tasks.load(pages.taskPage),
+      loadReport(filters.days),
+    ])
+  },
+})
+
+const { draft } = query
+const pagesState = query.pages
+void query.initialize()
 
 async function load() {
-  await Promise.all([loadTasks(), loadReport()])
+  await query.submit({ taskPage: 1 })
 }
 
-async function loadTasks() {
-  loading.value = true
-  try {
-    tasks.value = (await fetchAdminFinanceTasks(status.value)).tasks ?? []
-  } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询财务任务失败')
-  } finally {
-    loading.value = false
-  }
+function reloadTaskPage() {
+  void tasks.load(pagesState.value.taskPage)
 }
 
-async function loadReport() {
+function submitFinanceFilters() {
+  void query.submit({ taskPage: 1 })
+}
+
+function setTaskPage(page: number) {
+  void query.setPage('taskPage', page)
+}
+
+async function loadAppliedReport() {
+  await loadReport(reportDays.value)
+}
+
+async function loadReport(days: 7 | 30 | 90 = reportDays.value) {
   reportLoading.value = true
+  reportError.value = ''
   try {
-    report.value = await fetchAdminFinanceReport(reportDays.value)
+    report.value = await fetchAdminFinanceReport(days)
   } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询财务汇总失败')
+    reportError.value = requestError instanceof Error ? requestError.message : '查询财务汇总失败'
   } finally {
     reportLoading.value = false
   }
@@ -284,11 +397,6 @@ async function resolve(row: AdminFinanceTask, result: 'resolved' | 'rejected') {
 </script>
 
 <style scoped>
-.page-heading { display: flex; justify-content: space-between; align-items: center; }
-.report-card { margin-bottom: 18px; }
-.card-heading { display: flex; justify-content: space-between; align-items: center; }
+.report-card { margin-bottom: var(--space-5); }
 .money-tag { margin: 0 4px 4px 0; }
-h1 { margin: 0 0 16px; font-size: 24px; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.muted { color: #6b7280; font-size: 12px; }
 </style>

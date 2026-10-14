@@ -40,7 +40,9 @@
         v-if="!profiles.list.length"
         class="hint"
       >
-        {{ $t('services.fengshui.noBirthProfilePrefix') }}<a href="/app/birth-profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.fengshui.noBirthProfileSuffix') }}
+        {{ $t('services.fengshui.noBirthProfilePrefix') }}<router-link to="/birth-profiles/new">
+          {{ $t('profiles.create') }}
+        </router-link>{{ $t('services.fengshui.noBirthProfileSuffix') }}
       </p>
     </el-card>
 
@@ -139,7 +141,6 @@
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineBazhaiChart, type BazhaiChart } from '@/api/engine'
@@ -147,9 +148,8 @@ import { BAZHAI_AUS, LUOSHU_ORDER } from '@/utils/bazhai'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
-const router = useRouter()
 const { t } = useI18n()
-const { profiles, entitlements, chat } = useServiceView()
+const { profiles, entitlements, chat, openServiceChat } = useServiceView()
 
 const profileId = ref('')
 const bazhai = ref<BazhaiChart | null>(null)
@@ -193,7 +193,7 @@ function startChat() {
   const p = profile.value
   if (!p) return
   chat.pendingIntent = t('services.fengshui.intent')
-  void chat.ensureSession(p.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, t('chat.createFailed')) })
+  void openServiceChat(p.id, message => { error.value = message })
 }
 </script>
 

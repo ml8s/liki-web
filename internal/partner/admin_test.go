@@ -35,11 +35,11 @@ func TestScoutApplicationLifecycle(t *testing.T) {
 		t.Fatalf("duplicate err = %v, want ErrApplicationPending", err)
 	}
 
-	apps, err := store.ListApplications(ctx, ApplicationPending, "", 20)
+	apps, err := store.ListApplications(ctx, ApplicationPending, "", AdminPageRequest{Page: 1, PageSize: 20})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(apps) != 1 || apps[0].ID != app.ID {
+	if len(apps.Items) != 1 || apps.Items[0].ID != app.ID {
 		t.Fatalf("applications = %+v", apps)
 	}
 
@@ -96,17 +96,17 @@ func TestPartnerStatusAndList(t *testing.T) {
 	if err := store.SetPartnerStatus(ctx, kol.UserID, PartnerFrozen, "admin", "manual review"); err != nil {
 		t.Fatal(err)
 	}
-	partners, err := store.ListPartners(ctx, "", PartnerFrozen, "", 20)
+	partners, err := store.ListPartners(ctx, "", PartnerFrozen, "", AdminPageRequest{Page: 1, PageSize: 20})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(partners) != 1 || partners[0].Status != PartnerFrozen {
+	if len(partners.Items) != 1 || partners.Items[0].Status != PartnerFrozen {
 		t.Fatalf("partners = %+v", partners)
 	}
 	if err := store.SetPartnerStatus(ctx, kol.UserID, PartnerActive, "admin", "cleared"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.ListPartners(ctx, "", PartnerFrozen, "", 20); err != nil {
+	if _, err := store.ListPartners(ctx, "", PartnerFrozen, "", AdminPageRequest{Page: 1, PageSize: 20}); err != nil {
 		t.Fatal(err)
 	}
 }

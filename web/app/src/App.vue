@@ -21,14 +21,7 @@
         </el-button>
       </div>
     </div>
-    <router-view
-      v-else
-      v-slot="{ Component }"
-    >
-      <transition name="page-fade">
-        <component :is="Component" />
-      </transition>
-    </router-view>
+    <router-view v-else />
   </el-provider>
 </template>
 

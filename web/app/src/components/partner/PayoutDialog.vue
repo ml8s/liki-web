@@ -22,7 +22,9 @@
       >
         <el-input
           v-model="account"
+          name="payout-account"
           autocomplete="off"
+          spellcheck="false"
         />
       </el-form-item>
     </el-form>

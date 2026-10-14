@@ -46,34 +46,20 @@
           </div>
         </template>
         <el-input
-          :model-value="referralLink"
+          v-model="referralLink"
+          :aria-label="$t('partner.referralLink')"
+          name="scout-referral-link"
+          autocomplete="off"
+          spellcheck="false"
           readonly
         />
         <p class="share-hint">
           {{ $t('partner.scout.shareHint') }}
         </p>
-        <div class="stat-grid">
-          <div class="stat">
-            <span class="label">{{ $t('partner.scout.leads') }}</span>
-            <strong>{{ overview?.lead_count ?? 0 }}</strong>
-          </div>
-          <div class="stat">
-            <span class="label">{{ $t('partner.scout.activeKols') }}</span>
-            <strong>{{ overview?.recruit_count ?? 0 }}</strong>
-          </div>
-          <div class="stat">
-            <span class="label">{{ $t('partner.scout.channelOrders') }}</span>
-            <strong>{{ overview?.order_count ?? 0 }}</strong>
-          </div>
-          <div
-            v-for="balance in overview?.balances ?? []"
-            :key="balance.currency"
-            class="stat"
-          >
-            <span class="label">{{ $t('partner.commissionBalance', { currency: balance.currency }) }}</span>
-            <strong>{{ formatMinorUnit(balance.commission_minor, balance.currency) }}</strong>
-          </div>
-        </div>
+        <PartnerStatGrid
+          class="overview-stats"
+          :stats="overviewStats"
+        />
       </el-card>
 
       <el-card
@@ -280,6 +266,8 @@
         >
           <el-input
             v-model="note"
+            name="scout-application-note"
+            autocomplete="off"
             type="textarea"
             :rows="5"
             maxlength="500"
@@ -314,6 +302,7 @@ import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import PartnerSettlement from '@/components/partner/PartnerSettlement.vue'
+import PartnerStatGrid, { type PartnerStat } from '@/components/partner/PartnerStatGrid.vue'
 import PayoutDialog from '@/components/partner/PayoutDialog.vue'
 import {
   createScoutPayout,
@@ -351,6 +340,16 @@ const referralLink = computed(() => {
   const code = overview.value?.partner.code
   return code ? `${window.location.origin}/r/${code}` : ''
 })
+const overviewStats = computed<PartnerStat[]>(() => [
+  { key: 'leads', label: t('partner.scout.leads'), value: overview.value?.lead_count ?? 0 },
+  { key: 'active-kols', label: t('partner.scout.activeKols'), value: overview.value?.recruit_count ?? 0 },
+  { key: 'channel-orders', label: t('partner.scout.channelOrders'), value: overview.value?.order_count ?? 0 },
+  ...(overview.value?.balances ?? []).map(balance => ({
+    key: `balance-${balance.currency}`,
+    label: t('partner.commissionBalance', { currency: balance.currency }),
+    value: formatMinorUnit(balance.commission_minor, balance.currency),
+  })),
+])
 
 async function load() {
   loading.value = true
@@ -453,8 +452,5 @@ onMounted(load)
 .card-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
 .rules { margin-bottom: 14px; }
 .share-hint { margin: 10px 0 0; color: var(--liki-text-2); font-size: 14px; }
-.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-top: 18px; }
-.stat { border: 1px solid var(--liki-line); border-radius: 12px; padding: 14px; background: var(--liki-paper); }
-.stat .label { display: block; margin-bottom: 6px; color: var(--liki-text-2); font-size: 13px; }
-.stat strong { font-size: 20px; }
+.overview-stats { margin-top: var(--space-4); }
 </style>

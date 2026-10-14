@@ -4,6 +4,10 @@
   /* ── Liki 设计 token（docs/frontend/ux-design.md §5）── */
   --liki-primary: var(--brand-primary);
   --liki-primary-hover: var(--brand-primary-hover);
+  --liki-accent-on-ink: var(--brand-accent-on-ink);
+  --liki-primary-alpha-10: var(--brand-primary-alpha-10);
+  --liki-primary-alpha-12: var(--brand-primary-alpha-12);
+  --liki-shadow-strong: var(--brand-shadow-strong);
   --liki-primary-tint: var(--brand-primary-soft);
   --liki-primary-border: var(--brand-primary-border);
   --liki-ink: var(--brand-ink);
@@ -24,6 +28,7 @@
   --liki-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ── Element Plus 主色覆盖 ── */
+  --el-font-family: var(--liki-font-sans);
   --el-color-primary: var(--liki-primary);
   --el-color-primary-light-3: #8a7bfa;
   --el-color-primary-light-5: #aca5fd;
@@ -104,15 +109,17 @@ p {
   transform: scale(0.96);
 }
 
-/* 卡片：轻投影制造层级，边框留作结构 */
-.el-card {
-  border-color: var(--liki-line);
-  border-radius: var(--radius-card);
+/* Card values stay in Element Plus variables; the repeated selector is only
+ * needed because EP defines its component defaults on .el-card itself. */
+.el-card.el-card {
+  --el-card-bg-color: var(--liki-surface);
+  --el-card-border-color: var(--liki-line);
+  --el-card-border-radius: var(--radius-card);
+  --el-card-padding: var(--space-5);
   box-shadow: var(--el-box-shadow-light);
 }
 .el-card.el-card .el-card__header {
   border-bottom-color: var(--liki-line);
-  padding: 14px 16px;
 }
 
 /* 项目内标准卡片结构：配合 el-card 使用 */
@@ -150,8 +157,6 @@ p {
   border-color: var(--color-error-border);
   background: var(--color-danger-surface);
 }
-
-.el-card__body { padding: var(--space-6); }
 
 .el-button {
   min-height: 36px;
@@ -210,16 +215,6 @@ p {
   color: var(--liki-text-2);
 }
 
-/* 路由页面切换过渡 */
-.page-fade-enter-active,
-.page-fade-leave-active {
-  transition: opacity var(--liki-dur) var(--liki-ease);
-}
-.page-fade-enter-from,
-.page-fade-leave-to {
-  opacity: 0;
-}
-
 /* ── 服务视图共享排版（看命/起名/问卦/风水/择日/合盘）── */
 .service-view .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .service-view .sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; }
@@ -234,4 +229,16 @@ p {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Element Plus applies type-specific alert title colors after the generic
+ * variable override; keep status copy at AA on tinted backgrounds. */
+.el-alert--info .el-alert__title {
+  color: var(--liki-text-2);
+}
+.el-alert--error .el-alert__title {
+  color: var(--el-color-danger);
+}
+.el-alert--warning .el-alert__title {
+  color: var(--el-color-warning);
 }

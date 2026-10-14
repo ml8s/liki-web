@@ -127,90 +127,73 @@ func scanApplication(scan func(dest ...any) error) (PartnerApplication, error) {
 	return item, nil
 }
 
-func (s *Store) ListApplications(ctx context.Context, status ApplicationStatus, role PartnerRole, limit int) ([]PartnerApplication, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 100
+func (s *Store) ListApplications(ctx context.Context, status ApplicationStatus, role PartnerRole, page AdminPageRequest) (AdminPage[PartnerApplication], error) {
+	where := []string{}
+	args := []any{}
+	if status != "" {
+		where = append(where, `a.status=?`)
+		args = append(args, string(status))
 	}
-	query := `
+	if role = normalizeRole(role); role != "" {
+		where = append(where, `a.type=?`)
+		args = append(args, string(role))
+	}
+	whereSQL := ""
+	if len(where) > 0 {
+		whereSQL = ` WHERE ` + strings.Join(where, ` AND `)
+	}
+	countQuery := `
+SELECT COUNT(*)
+FROM partner_applications a
+LEFT JOIN partners r ON r.user_id=a.user_id` + whereSQL
+	listQuery := `
 SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
        COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
        a.created_at,a.reviewed_at
 FROM partner_applications a
-LEFT JOIN partners r ON r.user_id=a.user_id`
-	args := []any{}
-	clauses := make([]string, 0, 2)
-	if status != "" {
-		clauses = append(clauses, `a.status=?`)
-		args = append(args, string(status))
-	}
-	if role = normalizeRole(role); role != "" {
-		clauses = append(clauses, `a.type=?`)
-		args = append(args, string(role))
-	}
-	if len(clauses) > 0 {
-		query += ` WHERE ` + strings.Join(clauses, ` AND `)
-	}
-	query += ` ORDER BY a.created_at DESC LIMIT ?`
-	args = append(args, limit)
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
+LEFT JOIN partners r ON r.user_id=a.user_id` + whereSQL + `
+ORDER BY a.created_at DESC
+LIMIT ? OFFSET ?`
+	result, err := adminPagedQuery(ctx, s.db, countQuery, listQuery, args,
+		page.Limit(), page.Offset(), scanApplication)
 	if err != nil {
-		return nil, err
+		return AdminPage[PartnerApplication]{}, err
 	}
-	defer func() { _ = rows.Close() }()
-	items := make([]PartnerApplication, 0)
-	for rows.Next() {
-		item, err := scanApplication(rows.Scan)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
+	return NewAdminPage(page, result.Items, result.Total), nil
 }
 
 // ListPartners is the admin-facing partner index. Empty filters mean all.
-func (s *Store) ListPartners(ctx context.Context, role PartnerRole, status PartnerStatus, query string, limit int) ([]Partner, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 100
-	}
-	query = strings.TrimSpace(query)
-	clauses := make([]string, 0, 3)
+func (s *Store) ListPartners(ctx context.Context, role PartnerRole, status PartnerStatus, search string, page AdminPageRequest) (AdminPage[Partner], error) {
+	search = strings.TrimSpace(search)
+	where := []string{}
 	args := []any{}
 	if role != "" {
-		clauses = append(clauses, `role=?`)
+		where = append(where, `role=?`)
 		args = append(args, string(role))
 	}
 	if status != "" {
-		clauses = append(clauses, `status=?`)
+		where = append(where, `status=?`)
 		args = append(args, string(status))
 	}
-	if query != "" {
-		clauses = append(clauses, `(user_id LIKE ? OR code LIKE ?)`)
-		like := "%" + query + "%"
+	if search != "" {
+		where = append(where, `(user_id LIKE ? OR code LIKE ?)`)
+		like := "%" + search + "%"
 		args = append(args, like, like)
 	}
-	sqlQuery := `SELECT user_id,code,role,status,recruiter_id,created_at,updated_at FROM partners`
-	if len(clauses) > 0 {
-		sqlQuery += ` WHERE ` + strings.Join(clauses, ` AND `)
+	whereSQL := ""
+	if len(where) > 0 {
+		whereSQL = ` WHERE ` + strings.Join(where, ` AND `)
 	}
-	sqlQuery += ` ORDER BY created_at DESC LIMIT ?`
-	args = append(args, limit)
-
-	rows, err := s.db.QueryContext(ctx, sqlQuery, args...)
+	countQuery := `SELECT COUNT(*) FROM partners` + whereSQL
+	listQuery := `SELECT user_id,code,role,status,recruiter_id,created_at,updated_at FROM partners` + whereSQL + `
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?`
+	result, err := adminPagedQuery(ctx, s.db, countQuery, listQuery, args,
+		page.Limit(), page.Offset(), scanPartner)
 	if err != nil {
-		return nil, err
+		return AdminPage[Partner]{}, err
 	}
-	defer func() { _ = rows.Close() }()
-	items := make([]Partner, 0)
-	for rows.Next() {
-		item, err := scanPartner(rows.Scan)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
+	return NewAdminPage(page, result.Items, result.Total), nil
 }
 
 func (s *Store) SetPartnerStatus(ctx context.Context, userID string, status PartnerStatus, actor, reason string) error {
@@ -375,34 +358,31 @@ VALUES (?,?,?,?,?,?,?,?,?)`,
 	return nil
 }
 
-func (s *Store) ListPartnerAdminActions(ctx context.Context, limit int) ([]PartnerAdminAction, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 100
-	}
-	rows, err := s.db.QueryContext(ctx, `
+func (s *Store) ListPartnerAdminActions(ctx context.Context, page AdminPageRequest) (AdminPage[PartnerAdminAction], error) {
+	countQuery := `SELECT COUNT(*) FROM partner_admin_actions`
+	listQuery := `
 SELECT id,actor,action,target_type,target_id,COALESCE(before,''),
        COALESCE(after,''),COALESCE(reason,''),created_at
-FROM partner_admin_actions ORDER BY created_at DESC LIMIT ?`, limit)
+FROM partner_admin_actions
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?`
+	result, err := adminPagedQuery(ctx, s.db, countQuery, listQuery, []any{},
+		page.Limit(), page.Offset(), func(scan func(dest ...any) error) (PartnerAdminAction, error) {
+			var item PartnerAdminAction
+			var createdAt string
+			if err := scan(&item.ID, &item.Actor, &item.Action, &item.TargetType,
+				&item.TargetID, &item.Before, &item.After, &item.Reason, &createdAt); err != nil {
+				return PartnerAdminAction{}, err
+			}
+			item.CreatedAt = parseTime(createdAt)
+			return item, nil
+		})
 	if err != nil {
-		return nil, err
+		return AdminPage[PartnerAdminAction]{}, err
 	}
-	defer func() { _ = rows.Close() }()
-	items := make([]PartnerAdminAction, 0)
-	for rows.Next() {
-		var item PartnerAdminAction
-		var createdAt string
-		if err := rows.Scan(&item.ID, &item.Actor, &item.Action, &item.TargetType,
-			&item.TargetID, &item.Before, &item.After, &item.Reason, &createdAt); err != nil {
-			return nil, err
-		}
-		item.CreatedAt = parseTime(createdAt)
-		items = append(items, item)
-	}
-	return items, rows.Err()
+	return NewAdminPage(page, result.Items, result.Total), nil
 }
 
-// CreateScoutPartner assigns the standalone Scout role. KOL and Scout are
-// separate role assignments; this method never converts a KOL.
 func (s *Store) CreateScoutPartner(ctx context.Context, userID, actor, reason string) (Partner, error) {
 	if strings.TrimSpace(userID) == "" || strings.TrimSpace(actor) == "" || strings.TrimSpace(reason) == "" {
 		return Partner{}, errors.New("partner: user, actor, and reason are required")

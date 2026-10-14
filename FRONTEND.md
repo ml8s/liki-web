@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | `web/src` | Astro marketing and locale pages | SEO-first static pages |
 | `web/app` | Vue 3 authenticated product SPA | Primary product surface |
-| `web/js` | static-page interactions and the frozen admin runtime | No new product features |
+| `web/js` | retired static-page interaction runtime | No new product behavior |
 
 New product functionality belongs in `web/app` and backing Go APIs.
 
@@ -32,9 +32,9 @@ Authenticated routes live under `/app`:
 
 ```text
 /app
-/app/profiles
-/app/profiles/new
-/app/profiles/:id
+/app/birth-profiles
+/app/birth-profiles/new
+/app/birth-profiles/:id
 /app/synastry
 /app/divination
 /app/fengshui
@@ -48,7 +48,7 @@ Authenticated routes live under `/app`:
 /app/account
 /app/admin
 /app/admin/entitlements
-/app/admin/referrals
+/app/admin/partners
 /app/admin/payouts
 /app/admin/finance
 /app/admin/audit
@@ -70,10 +70,10 @@ Pinia stores are the frontend server-state layer.
 | Store | Responsibility |
 | --- | --- |
 | `auth` | current user and session operations |
-| `profiles` | birth profile list, detail, create, update |
+| `birth-profiles` | birth profile list, detail, create, update |
 | `entitlements` | active skills and purchase state |
 | `chat` | sessions, messages, streaming, generation state |
-| `commerce` | products, checkout, payment return state |
+| `sales` | products, checkout, payment return state |
 
 Stores display server-verified state. They do not grant entitlement or decide price.
 
@@ -172,6 +172,45 @@ Requirements:
 - payment return restores product state;
 - safe-area insets are respected.
 
+The admin console is also responsive, but it uses a different density contract:
+tables remain the desktop view and are replaced by record cards below 720px.
+Horizontal admin navigation keeps the active route visible.
+
+## Design tokens
+
+`web/css/tokens.css` owns the canonical token layers:
+
+| Layer | Prefix | Use |
+| --- | --- | --- |
+| Primitive | `--brand-*` | source palette and value definitions |
+| Semantic | `--color-*`, `--liki-*` | marketing and product component CSS |
+| Component bridge | `--el-*` | Element Plus theme variables |
+
+Component code should consume a semantic token when one exists. Raw colors are
+allowed only inside the primitive token source; raw spacing values should be
+limited to genuine layout measurements rather than replacing spacing tokens.
+
+### Page typography
+
+Use the existing page-header component for normal product pages. It owns the
+default responsive scale (`26–32px` title and `15px` subtitle). These are the
+only intentional exceptions:
+
+| Context | Title scale | Reason |
+| --- | ---: | --- |
+| Back-navigation flow pages | `24px` | Keep profile creation/detail subordinate to navigation |
+| Chat session header | `20px` | Preserve a long, truncatable session title and maximize workspace height |
+| Admin pages | `24px` | Dense operator surface, owned by `AdminPageHeader` |
+| Long-form legal/static pages | `20px` | Reading-first document layout |
+
+Do not add a new local heading scale for a whole product page. If a new context
+does not fit, extend the shared header contract first.
+
+Admin list state is split into draft filters and applied filters. The URL only
+reflects applied filters, defaults and page 1 are omitted, and changing an
+input does not query until the operator submits that filter block. Entitlement
+email is intentionally excluded from the URL because it is customer PII.
+
 ## Internationalization
 
 The Vue app uses `vue-i18n` and Element Plus locale data for:
@@ -199,6 +238,11 @@ mounting so users do not see raw keys or a flash of the wrong language.
 Locale is not part of the authenticated route path. Users can change it in
 Account settings; the public language switcher writes the same cookie before
 entering the app.
+
+Admin console copy is deliberately Simplified Chinese for now: it is an
+internal operator surface, while customer-facing Vue surfaces remain localized.
+Revisit this only when there is an explicit requirement to localize operator
+workflows.
 
 User-visible errors follow the same boundary. HTTP, engine, and stream clients
 preserve stable machine codes such as `generation_failed` and

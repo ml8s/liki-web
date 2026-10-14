@@ -146,6 +146,7 @@ version: ## bump patch（CalVer date）
 check-html:
 	node web/scripts/check-inline-scripts.cjs
 	node web/scripts/check-design-tokens.cjs
+	node web/scripts/check-frontend-tokens.cjs
 	node web/scripts/check-performance.cjs
 	node web/scripts/check-mobile-responsive.cjs
 	node web/scripts/check-html.cjs

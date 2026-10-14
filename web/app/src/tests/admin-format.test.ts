@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  adminStatusLabel,
   adminStatusTagType,
   capabilityLabel,
   financeTaskTypeLabel,
@@ -17,10 +18,13 @@ describe('admin formatting', () => {
   })
 
   it('uses stable labels and money formatting', () => {
+    expect(adminStatusLabel('requested')).toBe('待审核')
+    expect(adminStatusLabel('frozen')).toBe('已冻结')
+    expect(adminStatusLabel('unknown.new')).toBe('unknown.new')
     expect(capabilityLabel('admin.super')).toBe('超级管理员')
     expect(capabilityLabel('custom.new')).toBe('custom.new')
     expect(financeTaskTypeLabel('user_erasure_review')).toBe('注销后待结算')
-    expect(formatAdminMoney(123456, 'CNY')).toBe('CNY 1234.56')
+    expect(formatAdminMoney(123456, 'CNY')).toBe('CNY 1,234.56')
     expect(formatAdminMoney(0, '')).toBe('0.00')
   })
 

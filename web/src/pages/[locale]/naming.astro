@@ -33,7 +33,7 @@ const faqs = ['paid', 'data', 'accuracy'].map(key => ({
   faqTitleKey="scenario.faqTitle"
   faqs={faqs}
 >
-  <div class="name-scroll scenario-name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')}>
+  <div class="name-scroll scenario-name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')} tabindex="0">
     {Array.from({length: 36}, (_, i) => {
       const n = i + 1;
       return (

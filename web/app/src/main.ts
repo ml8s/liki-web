@@ -7,6 +7,7 @@ import router from './router'
 import { i18n, initializeAppLocale } from './i18n'
 import { reportFatal } from './errors'
 import './styles/app.css'
+import './styles/admin.css'
 
 // 异步 rejection（网络超时 / fire-and-forget 失败）→ 记录但**不崩溃**。
 // 工业 AA 标准：fatal boundary 只给渲染错误；异步错误降级为日志 + store 内部 error state。

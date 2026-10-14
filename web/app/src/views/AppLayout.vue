@@ -31,14 +31,7 @@
       class="app-main"
       tabindex="-1"
     >
-      <router-view v-slot="{ Component }">
-        <transition
-          name="page-fade"
-          mode="out-in"
-        >
-          <component :is="Component" />
-        </transition>
-      </router-view>
+      <router-view />
     </main>
 
     <AppTabbar />
@@ -93,14 +86,14 @@ async function logout() {
 
 .skip-link {
   position: absolute; left: -9999px; top: 0; z-index: 100;
-  background: var(--liki-primary); color: #fff;
+  background: var(--liki-primary); color: var(--liki-on-primary);
   padding: 10px 16px; border-radius: 0 0 8px 0; text-decoration: none;
 }
 .skip-link:focus { left: 0; }
 
 .app-topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 16px; background: var(--liki-ink); color: #fff;
+  padding: 10px 16px; background: var(--liki-ink); color: var(--liki-on-ink);
   position: sticky; top: 0; z-index: 40;
 }
 .app-topbar .brand { font-size: 16px; font-weight: 700; letter-spacing: 2px; }
@@ -113,15 +106,15 @@ async function logout() {
 }
 .page-title {
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--liki-on-ink-subtle);
   font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .topbar-meta .el-button {
-  color: #fff;
-  --el-button-text-color: #fff;
-  --el-button-hover-text-color: #fff;
+  color: var(--liki-on-ink);
+  --el-button-text-color: var(--liki-on-ink);
+  --el-button-hover-text-color: var(--liki-on-ink);
 }
 
 .app-main { padding: 24px 16px 88px; }

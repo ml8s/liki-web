@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/ml8s/liki-web/internal/auth"
@@ -27,38 +26,38 @@ func NewAdminHandler(store *Store, notify DecisionNotifier) *AdminHandler {
 
 func (h *AdminHandler) HandleListPartners() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-		items, err := h.store.ListPartners(
+		page := ParseAdminPageRequest(r)
+		pageResult, err := h.store.ListPartners(
 			r.Context(),
 			PartnerRole(r.URL.Query().Get("role")),
 			PartnerStatus(r.URL.Query().Get("status")),
 			strings.TrimSpace(r.URL.Query().Get("q")),
-			limit,
+			page,
 		)
 		if err != nil {
 			slog.Error("admin partner: list partners", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询合作伙伴失败")
 			return
 		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{"partners": items})
+		RespondAdminPage(w, "partners", pageResult)
 	}
 }
 
 func (h *AdminHandler) HandleListApplications() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-		items, err := h.store.ListApplications(
+		page := ParseAdminPageRequest(r)
+		pageResult, err := h.store.ListApplications(
 			r.Context(),
 			ApplicationStatus(r.URL.Query().Get("status")),
 			PartnerRole(r.URL.Query().Get("role")),
-			limit,
+			page,
 		)
 		if err != nil {
 			slog.Error("admin partner: list applications", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询申请失败")
 			return
 		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{"applications": items})
+		RespondAdminPage(w, "applications", pageResult)
 	}
 }
 
@@ -172,30 +171,30 @@ func (h *AdminHandler) handlePartnerStatus(status PartnerStatus) http.HandlerFun
 
 func (h *AdminHandler) HandleAdminActions() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-		items, err := h.store.ListPartnerAdminActions(r.Context(), limit)
+		page := ParseAdminPageRequest(r)
+		pageResult, err := h.store.ListPartnerAdminActions(r.Context(), page)
 		if err != nil {
 			slog.Error("admin partner: list actions", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询管理记录失败")
 			return
 		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{"actions": items})
+		RespondAdminPage(w, "actions", pageResult)
 	}
 }
 
 func (h *AdminHandler) HandleListPayouts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-		items, err := h.store.ListPayouts(r.Context(), PayoutStatus(r.URL.Query().Get("status")), limit)
+		page := ParseAdminPageRequest(r)
+		pageResult, err := h.store.ListPayouts(r.Context(), PayoutStatus(r.URL.Query().Get("status")), page)
 		if err != nil {
 			slog.Error("admin partner: list payouts", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询提现失败")
 			return
 		}
-		for i := range items {
-			items[i].Account = maskPayoutAccount(items[i].Account)
+		for i := range pageResult.Items {
+			pageResult.Items[i].Account = maskPayoutAccount(pageResult.Items[i].Account)
 		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{"payouts": items})
+		RespondAdminPage(w, "payouts", pageResult)
 	}
 }
 
@@ -249,14 +248,14 @@ func (h *AdminHandler) HandlePayoutAction() http.HandlerFunc {
 
 func (h *AdminHandler) HandleListFinanceTasks() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-		items, err := h.store.ListFinanceTasks(r.Context(), FinanceTaskStatus(r.URL.Query().Get("status")), limit)
+		page := ParseAdminPageRequest(r)
+		pageResult, err := h.store.ListFinanceTasks(r.Context(), FinanceTaskStatus(r.URL.Query().Get("status")), page)
 		if err != nil {
 			slog.Error("admin partner: list finance tasks", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询财务任务失败")
 			return
 		}
-		httputil.RespondJSON(w, http.StatusOK, map[string]any{"tasks": items})
+		RespondAdminPage(w, "tasks", pageResult)
 	}
 }
 

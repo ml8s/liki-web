@@ -1,79 +1,119 @@
 <template>
   <section>
-    <div class="page-heading">
-      <h1>管理记录</h1>
-      <el-button @click="load">
-        刷新
-      </el-button>
-    </div>
-    <el-table
-      v-loading="loading"
-      :data="actions"
-      row-key="id"
+    <AdminPageHeader title="合作伙伴审计">
+      <template #actions>
+        <el-button
+          :loading="actions.loading.value"
+          @click="actions.load(1)"
+        >
+          刷新
+        </el-button>
+      </template>
+    </AdminPageHeader>
+    <el-alert
+      v-if="actions.error.value"
+      :title="actions.error.value"
+      type="error"
+      show-icon
+      :closable="false"
+      class="query-error"
+    />
+    <div
+      v-loading="actions.loading.value"
+      :aria-busy="actions.loading.value"
     >
-      <el-table-column
-        label="时间"
-        width="180"
+      <el-table
+        v-if="!isMobile"
+        :data="actions.data.value"
+        row-key="id"
       >
-        <template #default="{ row }">
-          {{ formatDateTime(row.created_at) }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        prop="actor"
-        label="操作人"
-        min-width="180"
-        show-overflow-tooltip
-      />
-      <el-table-column
-        prop="action"
-        label="动作"
-        min-width="170"
-      />
-      <el-table-column
-        prop="target_id"
-        label="对象"
-        min-width="210"
-        show-overflow-tooltip
-      />
-      <el-table-column
-        prop="reason"
-        label="原因"
-        min-width="240"
-        show-overflow-tooltip
+        <el-table-column
+          label="时间"
+          width="180"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime(row.created_at) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="actor"
+          label="操作人"
+          min-width="180"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="action"
+          label="动作"
+          min-width="170"
+        />
+        <el-table-column
+          prop="target_id"
+          label="对象"
+          min-width="210"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="reason"
+          label="原因"
+          min-width="240"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ row.reason || '-' }}
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div
+        v-if="isMobile && !actions.loading.value && !actions.data.value.length"
       >
-        <template #default="{ row }">
-          {{ row.reason || '-' }}
-        </template>
-      </el-table-column>
-    </el-table>
+        <el-empty description="暂无合作伙伴审计记录" />
+      </div>
+      <div v-if="isMobile">
+        <AdminRecordCard
+          v-for="row in actions.data.value"
+          :key="row.id"
+          :fields="[
+            { key: 'created_at', label: '时间', value: formatDateTime(row.created_at) },
+            { key: 'actor', label: '操作人', value: row.actor },
+            { key: 'action', label: '动作', value: row.action },
+            { key: 'target_id', label: '对象', value: row.target_id, kind: 'mono' },
+            { key: 'reason', label: '原因', value: row.reason || '-' },
+          ]"
+        />
+      </div>
+
+      <el-pagination
+        v-if="(actions.meta.value?.total ?? 0) > 0"
+        class="admin-pagination"
+        :current-page="actionPage"
+        :page-size="actions.meta.value?.page_size ?? 100"
+        :total="actions.meta.value?.total ?? 0"
+        layout="prev, pager, next, total"
+        background
+        hide-on-single-page
+        @current-change="setActionPage"
+      />
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { fetchAdminActions, type AdminAction } from '@/api/admin'
+import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
+import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { formatDateTime } from '@/utils/format'
 
-const loading = ref(false)
-const actions = ref<AdminAction[]>([])
+const isMobile = useAdminViewport()
 
-onMounted(load)
+const actionPage = ref(1)
+const actions = useAdminPagedResource<AdminAction>(async page => await fetchAdminActions(page))
 
-async function load() {
-  loading.value = true
-  try {
-    actions.value = (await fetchAdminActions()).actions ?? []
-  } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '查询管理记录失败')
-  } finally {
-    loading.value = false
-  }
+onMounted(() => actions.load(actionPage.value))
+
+function setActionPage(page: number) {
+  actionPage.value = page
+  void actions.load(page)
 }
 </script>
-
-<style scoped>
-.page-heading { display: flex; justify-content: space-between; align-items: center; }
-h1 { margin: 0 0 16px; font-size: 24px; }
-</style>

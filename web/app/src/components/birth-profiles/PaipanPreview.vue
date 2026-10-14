@@ -435,8 +435,18 @@ watch(() => props.profile?.id, () => {
   border-top: 2px solid var(--liki-primary);
 }
 .hint { color: var(--liki-text-2); font-size: 13px; margin: 4px 0 12px; }
-.pan-skeleton .skel { height: 14px; border-radius: 6px; background: linear-gradient(90deg,#f0efeb 25%,#e7e4de 50%,#f0efeb 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; margin-bottom: 10px; }
-@keyframes shimmer { to { background-position: -200% 0; } }
+.pan-skeleton .skel {
+  height: 14px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  background: var(--liki-line);
+  animation: skeleton-pulse 1.2s var(--liki-ease) infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
 
 .pillars {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
@@ -444,7 +454,7 @@ watch(() => props.profile?.id, () => {
   border-radius: 8px; overflow: hidden;
 }
 .pillar { background: var(--liki-surface); padding: 16px 8px; text-align: center; }
-.pillar.self { background: linear-gradient(180deg, var(--liki-primary-tint), #fdfaf3); }
+.pillar.self { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
 .pillar .label { font-size: 12px; color: var(--liki-text-3); margin-bottom: 8px; letter-spacing: 0.08em; }
 .pillar .gl { font-size: 25px; font-weight: 700; letter-spacing: 0.02em; }
 .pillar.self .gl { color: var(--liki-primary); }
@@ -484,7 +494,7 @@ watch(() => props.profile?.id, () => {
   border-radius: 6px; overflow: hidden;
 }
 .palace { background: var(--liki-surface); padding: 10px 4px; text-align: center; min-height: 68px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.palace.ming { background: linear-gradient(180deg, var(--liki-primary-tint), #fdfaf3); }
+.palace.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
 .palace.shen { background: var(--liki-primary-tint); }
 .palace .pname { font-size: 13px; font-weight: 600; }
 .palace.ming .pname, .palace.ming .pstar { color: var(--liki-primary); }
@@ -498,7 +508,7 @@ watch(() => props.profile?.id, () => {
 .dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .dir { border: 1px solid var(--liki-line); border-radius: 6px; padding: 10px; text-align: center; }
 .dir .dg { font-size: 18px; color: var(--liki-primary); }
-.dir.good { border-color: #bfe6bf; background: #f4faf4; }
+.dir.good { border-color: var(--brand-success-border); background: var(--brand-success-surface); }
 .dir.good .dg { color: var(--el-color-success); }
 .dir .dname { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
 

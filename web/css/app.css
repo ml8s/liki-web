@@ -1,144 +1,6 @@
 /* liki.hk — unified design system */
 
 /* @layer order: only tokens is active; base/layout/components/utilities live outside layers for simplicity */
-@layer reset, tokens, base, layout, components, utilities;
-
-/* ── Design Tokens ── */
-/* breakpoints (reference): sm:640  md:768  lg:1024  xl:1280  2xl:1536 */
-@layer tokens {
-:root {
-  /* primitive — do not consume directly */
-  --color-white: #fff;
-  --color-black: #000;
-  --color-paper-raw: var(--brand-paper);
-  --color-surface-raw: var(--brand-surface);
-  --color-text-raw: var(--brand-text);
-  --color-muted-raw: var(--brand-text-muted);
-  --color-border-raw: var(--brand-line);
-  --color-border-hover-raw: var(--brand-line-strong);
-  --color-accent-raw: var(--brand-primary);
-  --color-accent-hover-raw: var(--brand-primary-hover);
-  --color-accent-soft-raw: var(--brand-primary-soft);
-  --color-fire-raw: #b85450;
-  --color-fire-hover-raw: #8c3b39;
-  --color-gold-raw: var(--brand-gold);
-  --color-gold-light-raw: var(--brand-gold-on-dark);
-  --color-error-raw: var(--color-error);
-  --color-error-soft-raw: #fef6f2;
-  --color-success-raw: var(--color-success);
-  --color-chat-bg-raw: #f5f5f7;
-  --color-chat-user-raw: #fde8d0;
-  --color-chat-asst-raw: #e9e9ed;
-  --color-chat-stop-raw: #8e8e93;
-  --color-chat-stop-hover-raw: #6d6d72;
-  --color-stone-50-raw: #fafaf9;
-  --color-stone-200-raw: #e7e5e4;
-  --color-stone-400-raw: #a8a29e;
-  --color-stone-500-raw: #78716c;
-  --color-stone-600-raw: #57534e;
-  --color-stone-700-raw: #44403c;
-  --color-blue-500-raw: #3b82f6;
-  --color-blue-900-raw: #1e3a5f;
-
-  /* semantic — consume these */
-  --color-paper: var(--color-paper-raw);
-  --color-surface: var(--color-surface-raw);
-  --color-text: var(--color-text-raw);
-  --color-text-muted: var(--color-muted-raw);
-  --color-border: var(--color-border-raw);
-  --color-border-hover: var(--color-border-hover-raw);
-  --color-accent: var(--color-accent-raw);
-  --color-accent-hover: var(--color-accent-hover-raw);
-  --color-accent-soft: var(--color-accent-soft-raw);
-  --color-accent-focus: var(--color-accent-focus);
-  /* wood aliases — same as accent, kept for naming clarity */
-  --color-wood: var(--color-accent-raw);
-  --color-wood-hover: var(--color-accent-hover-raw);
-  --color-wood-soft: var(--color-accent-soft-raw);
-  --color-fire: var(--color-fire-raw);
-  --color-fire-hover: var(--color-fire-hover-raw);
-  --color-gold: var(--color-gold-raw);
-  --color-gold-light: var(--color-gold-light-raw);
-  --color-error: var(--color-error-raw);
-  --color-error-soft: var(--color-error-soft-raw);
-  --color-success: var(--color-success-raw);
-
-  /* surfaces */
-  --color-chat-bg: var(--color-chat-bg-raw);
-  --color-chat-user: var(--color-chat-user-raw);
-  --color-chat-asst: var(--color-chat-asst-raw);
-  --color-chat-stop: var(--color-chat-stop-raw);
-  --color-chat-stop-hover: var(--color-chat-stop-hover-raw);
-  --color-chat-input-bg: rgba(245,245,247,.88);
-  --color-backdrop: rgba(0,0,0,.3);
-  --color-overlay-light: rgba(255,255,255,.92);
-  --color-gold-alpha-10: rgba(255,255,255,.1);
-  --color-shadow-line: rgba(0,0,0,.06);
-  --color-header-bg: rgba(17, 31, 46, 0.82);
-  --color-header-border: rgba(255,255,255,.15);
-  --color-toast-info-bg: rgba(59,130,246,.88);
-  --color-toast-error-bg: rgba(254,246,242,.88);
-  --color-toast-error-border: rgba(194,65,12,.25);
-  --color-gold-alpha-20: rgba(228,200,120,.2);
-  --color-paper-light: rgba(240,216,144,1);
-  --color-white-alpha-92: rgba(255,255,255,.92);
-
-  /* shadows */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.07), 0 2px 4px -2px rgba(0,0,0,.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.08), 0 8px 10px -6px rgba(0,0,0,.04);
-  --shadow-input: 0 -1px 6px rgba(0,0,0,.06);
-
-  /* easing */
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --ease-enter: cubic-bezier(0, 0, 0, 1);
-  --ease-exit: cubic-bezier(0.2, 0, 0.4, 1);
-  --ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1); /* kept for compat */
-
-  /* durations */
-  --duration-xs: 100ms;
-  --duration-sm: 150ms;
-  --duration-md: 250ms;
-  --duration-lg: 350ms;
-  --duration-xl: 400ms;
-
-  /* spacing (4pt grid) */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-
-  /* type scale */
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
-  --text-4xl: 2.25rem;
-
-  /* border-radius */
-  --radius-none: 0;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
-
-  --font-serif: "Songti SC", "Noto Serif SC", "Noto Serif CJK SC", "STSong", "SimSun", "宋体", "AR PL UMing CN", "Hiragino Mincho Pro", "Noto Serif TC", serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "微软雅黑", "Noto Sans SC", "Noto Sans CJK SC", "AR PL UKai CN", "Hiragino Sans GB", system-ui, sans-serif;
-}
-}
-
 /* ── Reset & Base ── */
 *, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -584,11 +446,6 @@ th {
 /* Utility classes — must come last to override component display values */
 .hidden { display: none; }
 
-/* ── skeletons ── */
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
 /* ── Tailwind utilities (from Footer.astro) ── */
 .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
 @media (min-width: 768px) {
@@ -622,7 +479,11 @@ th {
   color: var(--color-text-muted);
   background: var(--color-surface);
   cursor: pointer;
-  transition: all .15s ease;
+  transition:
+    background-color .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    transform .15s ease;
 }
 .copy-btn:hover { background: var(--color-accent-soft); color: var(--color-text); }
 .copy-btn:active { transform: scale(.96); }

@@ -22,12 +22,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresAdmin: true, title: 'Admin' },
       children: [
         { path: '', name: 'admin-overview', component: () => import('@/views/admin/AdminOverviewView.vue') },
-        { path: 'entitlements', name: 'admin-entitlements', component: () => import('@/views/admin/AdminEntitlementsView.vue') },
-        { path: 'partners', name: 'admin-partners', component: () => import('@/views/admin/AdminPartnersView.vue') },
-        { path: 'payouts', name: 'admin-payouts', component: () => import('@/views/admin/AdminPayoutsView.vue') },
-        { path: 'finance', name: 'admin-finance', component: () => import('@/views/admin/AdminFinanceView.vue') },
-        { path: 'audit', name: 'admin-audit', component: () => import('@/views/admin/AdminAuditView.vue') },
-        { path: 'administrators', name: 'admin-administrators', component: () => import('@/views/admin/AdminAdministratorsView.vue') },
+        { path: 'entitlements', name: 'admin-entitlements', component: () => import('@/views/admin/AdminEntitlementsView.vue'), meta: { adminCapability: 'entitlement.read' } },
+        { path: 'partners', name: 'admin-partners', component: () => import('@/views/admin/AdminPartnersView.vue'), meta: { adminCapability: 'partner.read' } },
+        { path: 'payouts', name: 'admin-payouts', component: () => import('@/views/admin/AdminPayoutsView.vue'), meta: { adminCapability: 'payout.read' } },
+        { path: 'finance', name: 'admin-finance', component: () => import('@/views/admin/AdminFinanceView.vue'), meta: { adminCapability: 'commission.read' } },
+        { path: 'audit', name: 'admin-audit', component: () => import('@/views/admin/AdminAuditView.vue'), meta: { adminCapability: 'audit.read' } },
+        { path: 'administrators', name: 'admin-administrators', component: () => import('@/views/admin/AdminAdministratorsView.vue'), meta: { adminCapability: 'admin.user.manage' } },
       ],
     },
     {

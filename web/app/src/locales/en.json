@@ -36,7 +36,7 @@
     "description": "Create a birth profile, view BaZi and ZiWei charts for free, and continue in Liki Chat when you need deeper insight.",
     "valueChart": "Deterministic charts",
     "valueInterpretation": "Professional interpretation",
-    "valueProfile": "Free profiles",
+    "valueBirthProfile": "Free profiles",
     "loginTitle": "Sign in to Liki",
     "slogan": "For Chinese Metaphysics, use Liki.",
     "codeHint": "Enter your email to receive a sign-in code.",
@@ -130,9 +130,9 @@
       "cta": "Review Feng Shui",
       "pageTitle": "Feng Shui",
       "subtitle": "View your life trigram, Eight Mansions directions, and annual flying stars before a layout consultation.",
-      "selectProfile": "Select a profile",
-      "noProfilePrefix": "No profile yet—",
-      "noProfileSuffix": " before Feng Shui.",
+      "selectBirthProfile": "Select a profile",
+      "noBirthProfilePrefix": "No profile yet—",
+      "noBirthProfileSuffix": " before Feng Shui.",
       "lifeGua": "Life trigram",
       "lifeGuaDirections": "Life trigram and directions",
       "element": "Element: ",
@@ -190,8 +190,6 @@
       "title": "Compatibility",
       "subtitle": "Use one saved profile and the other person’s information to view a two-person BaZi compatibility chart.",
       "step1": "Step 1 · Select a profile (you or the other person)",
-      "noProfilePrefix": "No profile yet—",
-      "noProfileSuffix": " before comparing charts.",
       "step2": "Step 2 · Enter the other person’s information",
       "birthPlaceOptional": "Birthplace (optional)",
       "birthPlacePlaceholder": "Used for solar-time correction, e.g. Shanghai",
@@ -214,7 +212,9 @@
       "bStarIntoA": "Other person’s {name} enters {a}’s chart",
       "aViewB": "{a}’s {pillar} pillar views the other: {value}",
       "bViewA": "Other person’s {pillar} pillar views {a}: {value}",
-      "otherProfileSummary": "{gender}, solar {date} {time}{place}",
+      "noBirthProfilePrefix": "No profile yet—",
+      "noBirthProfileSuffix": " before compatibility analysis.",
+      "otherBirthProfileSummary": "{gender}, solar {date} {time}{place}",
       "otherPlace": ", birthplace {place}",
       "pillarShort": {
         "year": "year",
@@ -225,12 +225,12 @@
     }
   },
   "dashboard": {
-    "noProfile": {
+    "noBirthProfile": {
       "title": "Start with your chart",
       "body": "Create a birth profile to view deterministic charts for free. Continue in Liki Chat when you need deeper interpretation.",
       "cta": "Create a free profile"
     },
-    "freeProfile": {
+    "freeBirthProfile": {
       "title": "Your chart is ready",
       "note": "Charts are free. AI interpretation is provided by Liki Chat.",
       "viewChart": "View free chart",
@@ -246,13 +246,13 @@
       "cta": "Continue"
     },
     "state": {
-      "noProfile": "Create a birth profile first to view deterministic charts for free.",
-      "freeProfile": "View charts free. Enter Liki Chat when you need deeper analysis.",
+      "noBirthProfile": "Create a birth profile first to view deterministic charts for free.",
+      "freeBirthProfile": "View charts free. Enter Liki Chat when you need deeper analysis.",
       "paidNoSession": "Your consultation access is ready whenever you want to begin.",
       "paidContinue": "Continue the last topic or start a new consultation from a profile."
     },
-    "recentProfiles": "Recent profiles",
-    "allProfiles": "All profiles",
+    "recentBirthProfiles": "Recent profiles",
+    "allBirthProfiles": "All profiles",
     "recentSessions": "Recent sessions",
     "allSessions": "All sessions",
     "moreScenarios": "More scenarios"
@@ -428,8 +428,8 @@
     "pendingService": "Ready to start: {service}",
     "subtitle": "BaZi, compatibility, naming, divination, and Feng Shui—one guided professional consultation.",
     "productsFailed": "Failed to load products",
-    "selectProfile": "Select a profile",
-    "selectProfileFirst": "Select a profile first",
+    "selectBirthProfile": "Select a profile",
+    "selectBirthProfileFirst": "Select a profile first",
     "selectDomain": "Select a consultation domain",
     "empty": "Select a profile and domain to start your first conversation.",
     "createFailed": "Could not create the session",
@@ -481,7 +481,7 @@
       "updated": "Updated",
       "open": "Open"
     },
-    "systemProfile": {
+    "systemBirthProfile": {
       "title": "Profile loaded",
       "note": "Interpretation will be charted from this birth information.",
       "known": "Known",
@@ -489,7 +489,7 @@
       "unknown": "Unknown"
     },
     "skillNotIncluded": "This skill is not included in your current plan.",
-    "sessionTitleWithProfile": "{nickname} · {skill} reading",
+    "sessionTitleWithBirthProfile": "{nickname} · {skill} reading",
     "sessionTitle": "{skill} reading",
     "phase": {
       "thinking": "Thinking"
@@ -543,30 +543,30 @@
       "disclaimer": "Disclaimer"
     }
   },
-    "subscriptions": {
-      "title": "Subscriptions",
-      "paymentHistory": "Payment history",
-      "refundedAmount": "Refunded {amount}",
-      "activeUntil": "Active until",
-      "nextBilling": "Next billing",
-      "endsAtPeriodEnd": "Ends at period end",
-      "cancel": "Cancel renewal",
-      "resume": "Resume renewal",
-      "updateFailed": "Could not update subscription",
-      "status": {
-        "pending": "Pending",
-        "active": "Active",
-        "onHold": "Payment on hold",
-        "cancelled": "Cancelled",
-        "expired": "Expired",
-        "failed": "Failed"
-      },
-      "paymentStatus": {
-        "paid": "Paid",
-        "partiallyRefunded": "Partially refunded",
-        "refunded": "Refunded"
-      }
+  "subscriptions": {
+    "title": "Subscriptions",
+    "paymentHistory": "Payment history",
+    "refundedAmount": "Refunded {amount}",
+    "activeUntil": "Active until",
+    "nextBilling": "Next billing",
+    "endsAtPeriodEnd": "Ends at period end",
+    "cancel": "Cancel renewal",
+    "resume": "Resume renewal",
+    "updateFailed": "Could not update subscription",
+    "status": {
+      "pending": "Pending",
+      "active": "Active",
+      "onHold": "Payment on hold",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "failed": "Failed"
     },
+    "paymentStatus": {
+      "paid": "Paid",
+      "partiallyRefunded": "Partially refunded",
+      "refunded": "Refunded"
+    }
+  },
   "orders": {
     "subtitle": "Your Liki Chat purchase history.",
     "loadFailed": "Failed to load orders",

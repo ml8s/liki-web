@@ -87,25 +87,25 @@ defineEmits<{ logout: [] }>()
   display: flex;
   flex-direction: column;
   background: var(--liki-ink);
-  color: #fff;
+  color: var(--liki-on-ink);
   padding: 24px 16px;
   z-index: 50;
 }
-.side-brand { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: #fff; text-decoration: none; }
+.side-brand { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--liki-on-ink); text-decoration: none; }
 .side-brand em { color: var(--liki-primary); font-style: normal; }
-.side-slogan { font-size: 12px; color: #c0c5cc; margin: 6px 0 24px; }
+.side-slogan { font-size: 12px; color: var(--liki-on-ink-muted); margin: 6px 0 24px; }
 .side-nav { display: flex; flex-direction: column; gap: 20px; flex: 1; }
 .nav-group { display: flex; flex-direction: column; gap: 4px; }
-.nav-group-secondary { border-top: 1px solid rgba(255,255,255,.12); padding-top: 16px; }
-.nav-label { font-size: 12px; color: #8b93a1; letter-spacing: 1px; padding: 0 12px 4px; }
+.nav-group-secondary { border-top: 1px solid var(--liki-on-ink-line); padding-top: 16px; }
+.nav-label { font-size: 12px; color: var(--liki-on-ink-label); letter-spacing: 1px; padding: 0 12px 4px; }
 .side-nav a {
   position: relative;
-  color: #cfd3db; text-decoration: none; padding: 10px 12px;
+  color: var(--liki-on-ink-link); text-decoration: none; padding: 10px 12px;
   border-radius: 8px; font-size: 15px;
   transition: background var(--liki-dur) var(--liki-ease), color var(--liki-dur) var(--liki-ease);
 }
-.side-nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
-.side-nav a.on { background: rgba(109,90,207,.32); color: #fff; }
+.side-nav a:hover { background: var(--liki-on-ink-hover); color: var(--liki-on-ink); }
+.side-nav a.on { background: var(--liki-selected-overlay); color: var(--liki-on-ink); }
 .side-nav a.on::before {
   content: '';
   position: absolute;
@@ -114,7 +114,7 @@ defineEmits<{ logout: [] }>()
   border-radius: 2px;
   background: var(--liki-primary);
 }
-.side-user { border-top: 1px solid rgba(255,255,255,.12); padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.side-user { border-top: 1px solid var(--liki-on-ink-line); padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .email { font-size: 13px; opacity: .85; word-break: break-all; }
 @media (max-width: 1023px) { .app-sidebar { display: none; } }
 </style>

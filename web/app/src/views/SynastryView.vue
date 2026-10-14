@@ -40,7 +40,9 @@
         v-if="!profiles.list.length"
         class="hint"
       >
-        {{ $t('services.bond.noBirthProfilePrefix') }}<a href="/app/birth-profiles/new">{{ $t('profiles.create') }}</a>{{ $t('services.bond.noBirthProfileSuffix') }}
+        {{ $t('services.bond.noBirthProfilePrefix') }}<router-link to="/birth-profiles/new">
+          {{ $t('profiles.create') }}
+        </router-link>{{ $t('services.bond.noBirthProfileSuffix') }}
       </p>
     </el-card>
 
@@ -90,6 +92,8 @@
           <el-form-item :label="$t('services.bond.birthPlaceOptional')">
             <el-input
               v-model="b.birth_place"
+              name="partner-birth-place"
+              autocomplete="off"
               :placeholder="$t('services.bond.birthPlacePlaceholder')"
             />
           </el-form-item>
@@ -257,7 +261,6 @@
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import {
@@ -269,9 +272,8 @@ import { baziChartFor } from '@/utils/paipan'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
-const router = useRouter()
 const { t } = useI18n()
-const { profiles, entitlements, chat } = useServiceView()
+const { profiles, entitlements, chat, openServiceChat } = useServiceView()
 
 interface SynastryInput { gender: string; birth_date: string; birth_time: string; birth_place: string }
 
@@ -425,12 +427,7 @@ async function startInterpretation() {
     place: bBirthProfile.birth_place ? t('services.bond.otherPlace', { place: bBirthProfile.birth_place }) : '',
   })
   chat.pendingIntent = t('services.bond.intent', { a: p.nickname, info: bInfo })
-  try {
-    const session = await chat.ensureSession(p.id)
-    if (session) void router.push(`/chat/${session.id}`)
-  } catch (err) {
-    error.value = toUserMessage(err, t('chat.createFailed'))
-  }
+  await openServiceChat(p.id, message => { error.value = message })
 }
 </script>
 

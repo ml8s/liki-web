@@ -1,0 +1,82 @@
+/* Admin owns a small shared layer instead of repeating page CSS in every view.
+ * Product styles remain separate because admin is an authenticated operator
+ * surface with denser tables and different navigation constraints. */
+.admin-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.admin-page-copy { min-width: 0; }
+
+.admin-page-heading h1 {
+  margin: 0 0 4px;
+  color: var(--liki-ink);
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.admin-page-heading p,
+.admin-shell .muted {
+  margin: 0;
+  color: var(--liki-text-2);
+}
+
+.admin-page-heading p { font-size: 14px; }
+.admin-shell .muted { font-size: 12px; }
+
+.admin-page-actions { flex-shrink: 0; }
+
+.admin-shell .card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.admin-shell .filters { margin-bottom: var(--space-4); }
+
+.admin-filter-control { width: 160px; }
+.admin-fluid-control { width: 100%; }
+
+.admin-shell .query-error { margin-bottom: var(--space-3); }
+
+.admin-shell .mono {
+  color: var(--liki-text-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-shell :is(a, button, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 3px solid var(--liki-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+.admin-main:focus { outline: none; }
+
+/* Element Plus owns card and description styling; these classes only position
+ * the business records and actions. */
+.admin-record-card {
+  margin-bottom: var(--space-3);
+}
+
+.admin-record-strong { font-variant-numeric: tabular-nums; }
+
+.admin-record-actions {
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+}
+
+.admin-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}

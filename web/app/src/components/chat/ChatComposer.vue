@@ -5,6 +5,8 @@
   >
     <el-input
       :model-value="modelValue"
+      name="chat-message"
+      autocomplete="off"
       type="textarea"
       :autosize="{ minRows: 1, maxRows: 5 }"
       resize="none"
