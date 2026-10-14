@@ -7,7 +7,7 @@
       <template #actions>
         <el-button
           type="primary"
-          @click="router.push(' /birth-profiles/new')"
+          @click="router.push('/birth-profiles/new')"
         >
           {{ $t('profiles.create') }}
         </el-button>
@@ -43,7 +43,7 @@
       <el-button
         type="primary"
         tag="a"
-        to=" /birth-profiles/new"
+        to="/birth-profiles/new"
       >
         {{ $t('profiles.create') }}
       </el-button>
@@ -115,7 +115,7 @@ async function confirmRemove(profile: BirthProfile) {
 onMounted(async () => {
   await load()
   if (!profiles.error && !profiles.list.length) {
-    void router.replace(' /birth-profiles/new')
+    void router.replace('/birth-profiles/new')
   }
 })
 </script>

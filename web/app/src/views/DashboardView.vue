@@ -47,7 +47,7 @@
         <el-button
           type="primary"
           size="large"
-          @click="router.push(' /birth-profiles/new')"
+          @click="router.push('/birth-profiles/new')"
         >
           {{ $t('dashboard.noBirthProfile.cta') }}
         </el-button>
@@ -121,7 +121,7 @@
         <div class="section-head">
           <h2>{{ $t('dashboard.recentBirthProfiles') }}</h2>
           <router-link
-            to=" /birth-profiles"
+            to="/birth-profiles"
             class="more-link"
           >
             {{ $t('dashboard.allBirthProfiles') }}
@@ -140,7 +140,7 @@
           </router-link>
           <router-link
             class="recent-profile add"
-            to=" /birth-profiles/new"
+            to="/birth-profiles/new"
           >
             ＋ {{ $t('profiles.create') }}
           </router-link>
@@ -297,7 +297,7 @@ function startService(key: string) {
     return
   }
   if (!profiles.list.length) {
-    void router.push(' /birth-profiles/new')
+    void router.push('/birth-profiles/new')
     return
   }
   const profile = profiles.list[0]

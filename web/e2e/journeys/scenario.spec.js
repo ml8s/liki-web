@@ -67,7 +67,7 @@ test.describe('Authenticated scenario handoff', () => {
   test('mingshu without a profile guides profile creation', async ({ page }) => {
     await mockAuthenticated(page, { profiles: [] })
     await page.goto('/app?scenario=mingshu&locale=en')
-    await expect(page).toHaveURL(/\/app\/profiles\/new/)
+    await expect(page).toHaveURL(/\/app\/birth-profiles\/new/)
     await expect(page.getByRole('heading', { level: 1, name: 'New profile' })).toBeVisible()
     expect(await page.evaluate(() => sessionStorage.getItem('liki-service'))).toBe('bazi')
   })

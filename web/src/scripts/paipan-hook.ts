@@ -21,5 +21,5 @@ form?.addEventListener('submit', (event) => {
     // Private browsing can reject storage; still continue to onboarding.
   }
 
-  location.href = '/app/profiles/new';
+  location.href = '/app/birth-profiles/new';
 });

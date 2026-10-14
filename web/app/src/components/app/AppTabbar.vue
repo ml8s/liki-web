@@ -7,7 +7,7 @@
       <span class="t-label">{{ $t('nav.workspace') }}</span>
     </router-link>
     <router-link
-      to=" /birth-profiles"
+      to="/birth-profiles"
       active-class="on"
     >
       <span class="t-label">{{ $t('nav.profiles') }}</span>

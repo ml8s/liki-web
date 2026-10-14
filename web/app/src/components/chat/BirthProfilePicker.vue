@@ -15,7 +15,7 @@
       />
     </el-select>
     <router-link
-      to=" /birth-profiles/new"
+      to="/birth-profiles/new"
       class="new-link"
     >
       ＋ {{ $t('profiles.create') }}

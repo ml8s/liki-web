@@ -2,7 +2,7 @@
   <section class="new-profile">
     <el-page-header
       class="new-profile-header"
-      @back="router.push(' /birth-profiles')"
+      @back="router.push('/birth-profiles')"
     >
       <template #content>
         <div class="page-heading">

@@ -136,7 +136,7 @@
           <el-button
             type="primary"
             tag="a"
-            to=" /birth-profiles/new"
+            to="/birth-profiles/new"
           >
             {{ $t('profiles.create') }}
           </el-button>
@@ -219,7 +219,7 @@ function skillState(skill: string) {
 	      reason: t('chat.state.profileRequired'),
 	      status: t('chat.status.profileRequired'),
 	      actionLabel: t('profiles.create'),
-	      actionTo: ' /birth-profiles/new',
+	      actionTo: '/birth-profiles/new',
 	    }
   }
 	  return {

@@ -32,7 +32,7 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
   await page.getByLabel(/出生地/).fill('杭州')
   await page.locator('.el-checkbox').last().click()
   await page.getByRole('button', { name: /儲存檔案/ }).click()
-  await page.waitForURL(/\/app\/profiles\/[a-f0-9-]+/, { timeout: 15000 })
+  await page.waitForURL(/\/app\/birth-profiles\/[a-f0-9-]+/, { timeout: 15000 })
 
   // 详情页：档案信息已持久化。排盘渲染依赖 engine 集成，由
   // engine-contract.spec（mock 形状）与 deploy assembly E2E（真实引擎）覆盖，

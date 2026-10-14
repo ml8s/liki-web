@@ -207,7 +207,7 @@
         :purchased="entitlements.purchased && profiles.list.length > 0"
         :action-label="$t('services.divination.consultationTitle')"
         :locked-action-label="profiles.list.length ? $t('commerce.activateNow') : $t('profiles.create')"
-        :to="profiles.list.length ? '/chat' : ' /birth-profiles/new'"
+        :to="profiles.list.length ? '/chat' : '/birth-profiles/new'"
         @action="startChat"
       />
     </template>
