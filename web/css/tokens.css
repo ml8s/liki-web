@@ -33,6 +33,20 @@
   --brand-line: #e3e8ee;
   --brand-line-strong: #cbd5e1;
 
+  /* Dark chrome and selected-state colors. Component code consumes the
+   * matching --liki-on-* / --liki-* semantic aliases below. */
+  --brand-on-ink: #ffffff;
+  --brand-on-ink-subtle: rgba(255, 255, 255, 0.78);
+  --brand-on-ink-link: #cfd3db;
+  --brand-on-ink-muted: #c0c5cc;
+  --brand-on-ink-label: #8b93a1;
+  --brand-on-ink-line: rgba(255, 255, 255, 0.12);
+  --brand-on-ink-hover: rgba(255, 255, 255, 0.08);
+  --brand-selected-overlay: rgba(83, 58, 253, 0.32);
+  --brand-surface-cream: #fdfaf3;
+  --brand-success-border: #bfe6bf;
+  --brand-success-surface: #f4faf4;
+
   /* semantic aliases shared by every surface */
   --color-accent: var(--brand-primary);
   --color-accent-hover: var(--brand-primary-hover);

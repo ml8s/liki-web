@@ -186,27 +186,27 @@ async function logout() {
   padding: 10px 16px;
   border-radius: 0 0 8px 0;
   background: var(--liki-primary);
-  color: #fff;
+  color: var(--liki-on-primary);
   text-decoration: none;
 }
 .skip-link:focus { left: 0; }
 .admin-topbar {
   min-height: 58px; display: flex; align-items: center; gap: 20px; padding: 10px 18px;
-  background: var(--liki-ink); color: #fff; position: sticky; top: 0; z-index: 50;
+  background: var(--liki-ink); color: var(--liki-on-ink); position: sticky; top: 0; z-index: 50;
 }
 .brand { font-weight: 700; font-size: 18px; letter-spacing: 1px; }
 .brand span { color: var(--liki-primary); }
 .admin-nav { display: flex; align-items: center; gap: 4px; flex: 1; overflow-x: auto; }
 .admin-nav a {
-  color: rgba(255,255,255,.76); text-decoration: none; padding: 8px 12px;
+  color: var(--liki-on-ink-subtle); text-decoration: none; padding: 8px 12px;
   border-radius: 8px; white-space: nowrap; font-size: 14px;
 }
-.admin-nav a:hover, .admin-nav a.on { background: rgba(109,90,207,.32); color: #fff; }
+.admin-nav a:hover, .admin-nav a.on { background: var(--liki-selected-overlay); color: var(--liki-on-ink); }
 .operator { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .admin-main { padding: 22px 18px 48px; max-width: 1360px; margin: 0 auto; }
 .state-card { min-height: 240px; }
 .admin-nav::-webkit-scrollbar { height: 4px; }
-.admin-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 2px; }
+.admin-nav::-webkit-scrollbar-thumb { background: var(--liki-on-ink-line); border-radius: 2px; }
 @media (max-width: 720px) {
   .admin-topbar {
     display: grid;

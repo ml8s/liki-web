@@ -81,7 +81,7 @@ defineEmits<{ action: [] }>()
   padding: 0 22px;
   border-radius: var(--radius-full);
   background: var(--liki-primary);
-  color: #fff;
+  color: var(--liki-on-primary);
   font-size: 16px;
   font-weight: 500;
   text-decoration: none;

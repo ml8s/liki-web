@@ -584,11 +584,6 @@ th {
 /* Utility classes — must come last to override component display values */
 .hidden { display: none; }
 
-/* ── skeletons ── */
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
 /* ── Tailwind utilities (from Footer.astro) ── */
 .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
 @media (min-width: 768px) {

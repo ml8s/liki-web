@@ -204,7 +204,6 @@
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineHuangliDays, type HuangliDaysResult } from '@/api/engine'
@@ -217,9 +216,8 @@ const EVENT_KEYS = [
   'medical', 'sacrifice', 'cleaning', 'renovation', 'bed_install', 'income', 'funeral',
 ] as const
 
-const router = useRouter()
 const { t } = useI18n()
-const { profiles, entitlements, chat } = useServiceView()
+const { profiles, entitlements, chat, openServiceChat } = useServiceView()
 
 const event = ref('wedding')
 const startDate = ref('')
@@ -264,7 +262,7 @@ function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
   chat.pendingIntent = t('services.huangli.intent', { event: eventLabel(event.value) })
-  void chat.ensureSession(profile.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, t('chat.createFailed')) })
+  void openServiceChat(profile.id, message => { error.value = message })
 }
 
 </script>

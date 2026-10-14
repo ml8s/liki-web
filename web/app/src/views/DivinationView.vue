@@ -219,16 +219,14 @@
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineLiuyaoQigua, engineLiuyaoChart, engineSolarTime, type LiuyaoChartResult } from '@/api/engine'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
-const router = useRouter()
 const { t } = useI18n()
-const { profiles, entitlements, chat } = useServiceView()
+const { profiles, entitlements, chat, openServiceChat } = useServiceView()
 
 const question = ref('')
 const snapshot = ref<LiuyaoChartResult | null>(null)
@@ -306,7 +304,7 @@ function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
   chat.pendingIntent = t('services.divination.intent', { question: question.value.trim() })
-  void chat.ensureSession(profile.id).then(s => { if (s) void router.push(`/chat/${s.id}`) }).catch(err => { error.value = toUserMessage(err, t('chat.createFailed')) })
+  void openServiceChat(profile.id, message => { error.value = message })
 }
 </script>
 

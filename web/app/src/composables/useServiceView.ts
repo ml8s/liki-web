@@ -1,4 +1,7 @@
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { toUserMessage } from '@/utils/errors'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useChatStore } from '@/stores/chat'
@@ -8,6 +11,8 @@ import { useChatStore } from '@/stores/chat'
  * 各视图 onMounted 时调用即可，无需重复 await Promise.all。
  */
 export function useServiceView() {
+  const router = useRouter()
+  const { t } = useI18n()
   const profiles = useBirthProfilesStore()
   const entitlements = useEntitlementsStore()
   const chat = useChatStore()
@@ -19,5 +24,17 @@ export function useServiceView() {
     chat.loadSessions()
   })
 
-  return { profiles, entitlements, chat }
+  async function openServiceChat(
+    profileId: string,
+    onError: (message: string) => void,
+  ) {
+    try {
+      const session = await chat.ensureSession(profileId)
+      if (session) void router.push(`/chat/${session.id}`)
+    } catch (error) {
+      onError(toUserMessage(error, t('chat.createFailed')))
+    }
+  }
+
+  return { profiles, entitlements, chat, openServiceChat }
 }
