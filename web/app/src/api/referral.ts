@@ -151,30 +151,30 @@ export interface ScoutSale {
 }
 
 export function fetchPartnerStates(): Promise<PartnerStates> {
-  return get('/api/partner')
+  return get('/api/partner-portal')
 }
 
 export function fetchKOLSession(): Promise<KOLSession> {
-  return get('/api/kol/session')
+  return get('/api/partner-portal/kol/session')
 }
 
 export function fetchKOLCommissions(): Promise<{
   commissions: ReferralCommission[]
   balances: BalanceSummary[]
 }> {
-  return get('/api/kol/commissions')
+  return get('/api/partner-portal/kol/commissions')
 }
 
 export function fetchKOLPayouts(): Promise<{ payouts: Payout[] }> {
-  return get('/api/kol/payouts')
+  return get('/api/partner-portal/kol/payouts')
 }
 
 export function fetchKOLSettlement(): Promise<Settlement> {
-  return get('/api/kol/settlement')
+  return get('/api/partner-portal/kol/settlement')
 }
 
 export function createKOLPayout(input: { method: PayoutMethod; account: string }): Promise<{ payout: Payout }> {
-  return post('/api/kol/payouts', input)
+  return post('/api/partner-portal/kol/payouts', input)
 }
 
 export function submitApplication(role: PartnerRole, note: string): Promise<{ application: PartnerApplication }> {
@@ -182,28 +182,28 @@ export function submitApplication(role: PartnerRole, note: string): Promise<{ ap
 }
 
 export function fetchScoutSession(): Promise<ScoutSession> {
-  return get('/api/scout/session')
+  return get('/api/partner-portal/scout/session')
 }
 
 export function fetchScoutRecruits(): Promise<{ recruits: ScoutRecruit[] }> {
-  return get('/api/scout/recruits')
+  return get('/api/partner-portal/scout/recruits')
 }
 
 export function fetchScoutCommissions(): Promise<{
   sales: ScoutSale[]
   balances: Array<{ currency: string; amount_minor: number }>
 }> {
-  return get('/api/scout/commissions')
+  return get('/api/partner-portal/scout/commissions')
 }
 
 export function fetchScoutPayouts(): Promise<{ payouts: Payout[] }> {
-  return get('/api/scout/payouts')
+  return get('/api/partner-portal/scout/payouts')
 }
 
 export function fetchScoutSettlement(): Promise<Settlement> {
-  return get('/api/scout/settlement')
+  return get('/api/partner-portal/scout/settlement')
 }
 
 export function createScoutPayout(input: { method: PayoutMethod; account: string }): Promise<{ payout: Payout }> {
-  return post('/api/scout/payouts', input)
+  return post('/api/partner-portal/scout/payouts', input)
 }

@@ -29,7 +29,7 @@ SELECT currency,
        COALESCE(SUM(amount_minor-refunded_minor),0),
        COALESCE(SUM(CASE WHEN status='pending' THEN amount_minor-refunded_minor ELSE 0 END),0),
        COALESCE(SUM(CASE WHEN status='paid' THEN amount_minor-refunded_minor ELSE 0 END),0)
-FROM referral_commission_entries
+FROM partner_commission_entries
 WHERE beneficiary_id=? AND beneficiary_role='kol'
 GROUP BY currency
 ORDER BY currency`, userID)
@@ -44,9 +44,9 @@ func (s *Store) ScoutRecruits(ctx context.Context, scoutID string) ([]ScoutRecru
 	rows, err := s.db.QueryContext(ctx, `
 SELECT r.user_id,r.code,r.created_at,COALESCE(c.currency,''),
        COALESCE(SUM(e.amount_minor-e.refunded_minor),0),COUNT(DISTINCT c.id)
-FROM referrers r
-LEFT JOIN referral_commissions c ON c.referrer_id=r.user_id
-LEFT JOIN referral_commission_entries e
+FROM partners r
+LEFT JOIN partner_commissions c ON c.referrer_id=r.user_id
+LEFT JOIN partner_commission_entries e
   ON e.commission_id=c.id AND e.beneficiary_role='scout'
 WHERE r.recruiter_id=? AND r.role='kol'
 GROUP BY r.user_id,r.code,r.created_at,c.currency
@@ -90,8 +90,8 @@ func (s *Store) countScoutLeads(ctx context.Context, scoutID string) (int64, err
 	var count int64
 	err := s.db.QueryRowContext(ctx, `
 SELECT COUNT(1)
-FROM referral_attributions a
-LEFT JOIN referrers r ON r.user_id=a.user_id
+FROM partner_attributions a
+LEFT JOIN partners r ON r.user_id=a.user_id
 WHERE a.referrer_id=? AND (r.user_id IS NULL OR r.role<>'kol' OR r.status<>'active')`, scoutID).Scan(&count)
 	return count, err
 }
@@ -111,8 +111,8 @@ SELECT c.currency,
        COALESCE(SUM(e.amount_minor-e.refunded_minor),0),
        COALESCE(SUM(CASE WHEN e.status='pending' THEN e.amount_minor-e.refunded_minor ELSE 0 END),0),
        COALESCE(SUM(CASE WHEN e.status='paid' THEN e.amount_minor-e.refunded_minor ELSE 0 END),0)
-FROM referral_commission_entries e
-JOIN referral_commissions c ON c.id=e.commission_id
+FROM partner_commission_entries e
+JOIN partner_commissions c ON c.id=e.commission_id
 WHERE e.beneficiary_id=? AND e.beneficiary_role='scout'
 GROUP BY c.currency
 ORDER BY c.currency`, partner.UserID)
@@ -165,8 +165,8 @@ func (s *Store) ListScoutCommissions(ctx context.Context, userID string, limit i
 	rows, err := s.db.QueryContext(ctx, `
 SELECT c.id,c.product,c.buyer_user_id,c.amount_minor,c.currency,
        e.amount_minor-e.refunded_minor,e.status,e.refunded_minor,c.created_at
-FROM referral_commission_entries e
-JOIN referral_commissions c ON c.id=e.commission_id
+FROM partner_commission_entries e
+JOIN partner_commissions c ON c.id=e.commission_id
 WHERE e.beneficiary_id=? AND e.beneficiary_role='scout'
 ORDER BY c.created_at DESC LIMIT ?`, partner.UserID, limit)
 	if err != nil {
@@ -191,7 +191,7 @@ ORDER BY c.created_at DESC LIMIT ?`, partner.UserID, limit)
 	}
 	balanceRows, err := s.db.QueryContext(ctx, `
 SELECT currency,COALESCE(SUM(amount_minor-refunded_minor),0)
-FROM referral_commission_entries
+FROM partner_commission_entries
 WHERE beneficiary_id=? AND beneficiary_role='scout'
 GROUP BY currency ORDER BY currency`, partner.UserID)
 	if err != nil {
@@ -211,8 +211,8 @@ SELECT c.id,c.payment_provider,c.payment_intent_id,c.business_order_id,c.product
        c.referrer_id,c.recruiter_id,c.amount_minor,c.currency,c.referrer_rate_bps,
        e.amount_minor-e.refunded_minor,c.recruiter_rate_bps,c.recruiter_commission_minor,
        e.status,c.refunded_minor,c.created_at,c.updated_at,c.paid_at
-FROM referral_commission_entries e
-JOIN referral_commissions c ON c.id=e.commission_id
+FROM partner_commission_entries e
+JOIN partner_commissions c ON c.id=e.commission_id
 WHERE e.beneficiary_id=? AND e.beneficiary_role='kol'
 ORDER BY c.created_at DESC LIMIT ?`, userID, limit)
 	if err != nil {

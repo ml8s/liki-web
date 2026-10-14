@@ -11,7 +11,7 @@ import (
 func TestAdminApplicationDecisionRequiresReason(t *testing.T) {
 	store := newAdminStore(t)
 	handler := NewAdminHandler(store, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/admin/referral/applications/app/decision", strings.NewReader(`{"approve":true}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/admin/partner-applications/app/decision", strings.NewReader(`{"approve":true}`))
 	request.SetPathValue("id", "app")
 	recorder := httptest.NewRecorder()
 	handler.HandleApplicationDecision()(recorder, request)
@@ -46,7 +46,7 @@ func TestAdminApplicationDecisionNotifiesAfterCommit(t *testing.T) {
 func TestAdminPartnerStatusRequiresReason(t *testing.T) {
 	store := newAdminStore(t)
 	handler := NewAdminHandler(store, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/admin/referral/partners/kol/freeze", strings.NewReader(`{}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/admin/partners/kol/freeze", strings.NewReader(`{}`))
 	request.SetPathValue("userId", "kol")
 	recorder := httptest.NewRecorder()
 	handler.HandlePartnerFreeze()(recorder, request)
@@ -63,7 +63,7 @@ func TestAdminPartnerStatusFreezeAndUnfreeze(t *testing.T) {
 		t.Fatal(err)
 	}
 	handler := NewAdminHandler(store, nil)
-	request := httptest.NewRequest(http.MethodPost, "/api/admin/referral/partners/kol/freeze", strings.NewReader(`{"reason":"manual review"}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/admin/partners/kol/freeze", strings.NewReader(`{"reason":"manual review"}`))
 	request.SetPathValue("userId", kol.UserID)
 	recorder := httptest.NewRecorder()
 	handler.HandlePartnerFreeze()(recorder, request)
@@ -77,7 +77,7 @@ func TestAdminPartnerStatusFreezeAndUnfreeze(t *testing.T) {
 	if partner.Status != PartnerFrozen {
 		t.Fatalf("partner = %+v", partner)
 	}
-	unfreeze := httptest.NewRequest(http.MethodPost, "/api/admin/referral/partners/kol/unfreeze", strings.NewReader(`{"reason":"verified"}`))
+	unfreeze := httptest.NewRequest(http.MethodPost, "/api/admin/partners/kol/unfreeze", strings.NewReader(`{"reason":"verified"}`))
 	unfreeze.SetPathValue("userId", kol.UserID)
 	recorder = httptest.NewRecorder()
 	handler.HandlePartnerUnfreeze()(recorder, unfreeze)

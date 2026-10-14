@@ -17,7 +17,7 @@ func TestEraseUserHoldsActivePayout(t *testing.T) {
 	}
 	var account, status string
 	if err := store.db.QueryRowContext(ctx, `
-SELECT account,status FROM referral_payouts WHERE referrer_id=?`, commission.ReferrerID).Scan(&account, &status); err != nil {
+SELECT account,status FROM partner_payouts WHERE referrer_id=?`, commission.ReferrerID).Scan(&account, &status); err != nil {
 		t.Fatal(err)
 	}
 	if status != string(PayoutRequested) || account == "erased" {
@@ -46,7 +46,7 @@ func TestEraseUserFreezesPartnerAndPreservesPendingLedger(t *testing.T) {
 
 	var code, partnerStatus string
 	if err := store.db.QueryRowContext(ctx, `
-SELECT code,status FROM referrers WHERE user_id=?`, commission.ReferrerID).Scan(&code, &partnerStatus); err != nil {
+SELECT code,status FROM partners WHERE user_id=?`, commission.ReferrerID).Scan(&code, &partnerStatus); err != nil {
 		t.Fatal(err)
 	}
 	if partnerStatus != string(PartnerFrozen) || code == commission.ReferrerID {
@@ -55,7 +55,7 @@ SELECT code,status FROM referrers WHERE user_id=?`, commission.ReferrerID).Scan(
 
 	var account, payoutStatus string
 	if err := store.db.QueryRowContext(ctx, `
-SELECT account,status FROM referral_payouts WHERE id=?`, payout.ID).Scan(&account, &payoutStatus); err != nil {
+SELECT account,status FROM partner_payouts WHERE id=?`, payout.ID).Scan(&account, &payoutStatus); err != nil {
 		t.Fatal(err)
 	}
 	if account != "erased" || payoutStatus != string(PayoutRejected) {

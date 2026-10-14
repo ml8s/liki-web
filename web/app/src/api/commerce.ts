@@ -40,7 +40,7 @@ export interface SubscriptionCheckoutResult {
 export type CheckoutResult = OneTimeCheckoutResult | SubscriptionCheckoutResult
 
 export async function fetchChatProducts(): Promise<ChatProduct[]> {
-  const payload = await get<{ products: ChatProduct[] }>('/api/chat/products')
+  const payload = await get<{ products: ChatProduct[] }>('/api/sales/products')
   return payload.products ?? []
 }
 
@@ -49,5 +49,5 @@ export function checkoutChatProduct(
   billingMode: 'one_time' | 'subscription',
   locale = typeof navigator === 'undefined' ? 'zh-Hant' : navigator.language,
 ): Promise<CheckoutResult> {
-  return post<CheckoutResult>(`/api/chat/products/${productId}/checkout`, { billing_mode: billingMode, locale })
+  return post<CheckoutResult>(`/api/sales/checkouts`, { product_id: productId, billing_mode: billingMode, locale })
 }

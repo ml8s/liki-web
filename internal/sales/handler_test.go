@@ -31,7 +31,7 @@ func TestHandleProductsReturnsServerSelectedDisplayCurrency(t *testing.T) {
 	})
 	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements), WithCatalog(catalog))
 
-	request := httptest.NewRequest(http.MethodGet, "/api/chat/products", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/sales/products", nil)
 	request.Header.Set("CF-IPCountry", "US")
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{ID: "user-1"}, auth.AuthSession{}, ""))
 	recorder := httptest.NewRecorder()

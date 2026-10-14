@@ -47,11 +47,11 @@ func TestRuntimeCreateIntentIgnoresProviderHint(t *testing.T) {
 	}
 }
 
-func TestFulfillmentTaskRetriesWithBackoff(t *testing.T) {
+func TestPaymentCompletionTaskRetriesWithBackoff(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := newRuntimeTestDB(t)
-	tasks := NewFulfillmentTaskStore(db)
+	tasks := NewPaymentCompletionTaskStore(db)
 	if err := tasks.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -70,10 +70,10 @@ func TestFulfillmentTaskRetriesWithBackoff(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := tasks.ClaimNext(ctx, time.Now().UTC()); err != ErrNoRunnableFulfillment {
-		t.Fatalf("claim during backoff = %v, want ErrNoRunnableFulfillment", err)
+	if _, err := tasks.ClaimNext(ctx, time.Now().UTC()); err != ErrNoRunnablePaymentCompletion {
+		t.Fatalf("claim during backoff = %v, want ErrNoRunnablePaymentCompletion", err)
 	}
-	if _, err := db.Exec(`UPDATE fulfillment_tasks SET run_at=? WHERE id=?`,
+	if _, err := db.Exec(`UPDATE payment_completion_tasks SET run_at=? WHERE id=?`,
 		time.Now().UTC().Add(-time.Second).Format(time.RFC3339), task.ID); err != nil {
 		t.Fatal(err)
 	}

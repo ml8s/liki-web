@@ -1,12 +1,12 @@
-# Referral DB
+# Partner DB
 
-Owner: referral/partnership domain  
+Owner: partner/partnership domain
 Engine: SQLite (`referral.db`)  
-Migration owner: `internal/referral`
+Migration owner: `internal/partner`
 
 ## Tables
 
-### referrers
+### partners
 
 A partner able to share `/r/{code}`.
 
@@ -38,34 +38,34 @@ Role applications require review and do not require product purchase.
 Settlement is a money-only view: balances and role-scoped payouts, without
 dashboard or recruiting data.
 
-### referral_attributions
+### partner_attributions
 
 Attribution from the latest valid `/r/{code}` visit before a newly created
 account is authenticated.
 
 One row per attributed user.
 
-### referral_applications
+### partner_applications
 
 KOL and Scout applications.
 Status: `pending`, `approved`, `rejected`.
 
 One pending application per user.
 
-### commission_intents
+### partner_commission_intake
 
 Durable intake for fulfilled Dodo/Xunhu payments.  
 Status: `queued`, `running`, `succeeded`, `failed`, `skipped`.
 
 Eligible product is `liki-chat`. Unsupported providers/products remain as auditable `skipped` rows.
 
-### referral_commissions
+### partner_commissions
 
 The original sale-level commission fact: payment identity, referrer/recruiter,
 gross commission rates and cumulative refunded sale amount. It is not the
 payable owner record.
 
-### referral_commission_entries
+### partner_commission_entries
 
 One payable entry per beneficiary. A sale can have an independent KOL entry and
 Scout entry; either can be refunded, locked into a payout, rejected, or marked
@@ -80,12 +80,12 @@ paid without changing the other.
 `amount_minor - refunded_minor` is the currently payable net. `payout_id` locks
 only that beneficiary entry.
 
-### commission_refund_intents
+### partner_commission_refund_intake
 
 Durable hand-off for verified payment refunds. Unique by provider refund ID.
 Status: `queued`, `running`, `succeeded`, `skipped`, `failed`.
 
-### referral_payouts
+### partner_payouts
 
 Partner withdrawal request.
 
@@ -105,16 +105,16 @@ and non-voided entries are released.
 `beneficiary_role` makes the payout owner explicit. `account` stores an AES-GCM
 sealed envelope, never plaintext payment credentials.
 
-### referral_payout_adjustments
+### partner_payout_adjustments
 
 Append-only money movement explanation. Every refund-driven payout change
 records before amount, after amount, reason and actor.
 
-### commission_entry_refunds
+### partner_commission_entry_refunds
 
 Per-entry refund allocation ledger. `(entry_id, provider_refund_id)` is unique.
 
-### finance_tasks
+### partner_finance_tasks
 
 Human finance queue for refunds against paid commission entries.
 
@@ -146,3 +146,4 @@ to `platform.db.users.id`; no cross-database foreign keys are allowed.
 - `010_finance_tasks` creates an explicit queue for paid-entry refund clawback.
 - `011_finance_task_erasure` permits `user_erasure_review`; account erasure freezes partners, redacts payout accounts after settlement, and queues unpaid obligations for finance.
 - `012_application_roles` permits KOL and Scout applications and preserves all historical applications as Scout applications.
+- `013_canonical_partner_tables` renames legacy referral tables to canonical partner-owned names. It is a no-op on fresh databases created by the canonical migrations.

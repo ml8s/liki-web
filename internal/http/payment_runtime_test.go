@@ -53,7 +53,7 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *sales.Ord
 	if err := notifications.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	fulfillments := payment.NewFulfillmentTaskStore(mainDB)
+	fulfillments := payment.NewPaymentCompletionTaskStore(mainDB)
 	events := payment.NewPaymentEventStore(mainDB)
 	if err := fulfillments.Migrate(ctx); err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("webhook = %d %s", rec.Code, rec.Body.String())
 	}
-	if _, err := runtime.ProcessFulfillmentTasks(context.Background(), 10); err != nil {
+	if _, err := runtime.ProcessPaymentCompletionTasks(context.Background(), 10); err != nil {
 		t.Fatal(err)
 	}
 

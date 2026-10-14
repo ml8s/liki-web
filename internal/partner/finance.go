@@ -23,7 +23,7 @@ func (s *Store) ListFinanceTasks(ctx context.Context, status FinanceTaskStatus, 
 SELECT id,type,provider,payment_intent_id,provider_refund_id,entry_id,
        beneficiary_id,beneficiary_role,amount_minor,currency,status,
        COALESCE(assignee,''),COALESCE(resolution_note,''),created_at,updated_at,resolved_at
-FROM finance_tasks`
+FROM partner_finance_tasks`
 	args := []any{}
 	if status != "" {
 		query += ` WHERE status=?`
@@ -62,7 +62,7 @@ func (s *Store) ResolveFinanceTask(ctx context.Context, id, actor, status, note 
 	defer func() { _ = tx.Rollback() }()
 
 	var current string
-	err = tx.QueryRowContext(ctx, `SELECT status FROM finance_tasks WHERE id=?`, id).Scan(&current)
+	err = tx.QueryRowContext(ctx, `SELECT status FROM partner_finance_tasks WHERE id=?`, id).Scan(&current)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrFinanceTaskNotFound
 	}
@@ -74,7 +74,7 @@ func (s *Store) ResolveFinanceTask(ctx context.Context, id, actor, status, note 
 	}
 	now := formatTime(s.nowFunc())
 	res, err := tx.ExecContext(ctx, `
-UPDATE finance_tasks SET status=?,assignee=?,resolution_note=?,updated_at=?,resolved_at=?
+UPDATE partner_finance_tasks SET status=?,assignee=?,resolution_note=?,updated_at=?,resolved_at=?
 WHERE id=? AND status=?`,
 		string(normalized), actor, note, now, now, id, string(FinanceTaskPending))
 	if err != nil {

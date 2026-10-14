@@ -167,6 +167,28 @@ CREATE INDEX IF NOT EXISTS idx_chat_subscription_payment_refunds_payment
 `)
 			return err
 		},
+	}, {
+		ID: "003_canonical_sales_tables",
+		Up: func(ctx context.Context, tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `
+ALTER TABLE chat_subscriptions RENAME TO sales_subscriptions;
+ALTER TABLE chat_subscription_payments RENAME TO sales_subscription_payments;
+ALTER TABLE chat_subscription_payment_refunds RENAME TO sales_subscription_payment_refunds;
+DROP INDEX IF EXISTS idx_chat_subscriptions_user;
+DROP INDEX IF EXISTS idx_chat_subscriptions_status;
+CREATE INDEX idx_sales_subscriptions_user
+    ON sales_subscriptions(user_id, created_at DESC);
+CREATE INDEX idx_sales_subscriptions_status
+    ON sales_subscriptions(status, current_period_end);
+DROP INDEX IF EXISTS idx_chat_subscription_payments_user;
+CREATE INDEX idx_sales_subscription_payments_user
+    ON sales_subscription_payments(user_id, created_at DESC);
+DROP INDEX IF EXISTS idx_chat_subscription_payment_refunds_payment;
+CREATE INDEX idx_sales_subscription_payment_refunds_payment
+    ON sales_subscription_payment_refunds(payment_id);
+`)
+			return err
+		},
 	}})
 }
 
@@ -192,7 +214,7 @@ func (s *SubscriptionStore) CreatePending(
 		CreatedAt: now, UpdatedAt: now,
 	}
 	_, err := s.db.ExecContext(ctx, `
-INSERT INTO chat_subscriptions
+INSERT INTO sales_subscriptions
 (id,user_id,email,product_id,billing_mode,provider,status,currency_code,
  cancel_at_period_end,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?, ?,0,?,?)`,
@@ -207,7 +229,7 @@ VALUES (?,?,?,?,?,?,?, ?,0,?,?)`,
 
 func (s *SubscriptionStore) AttachCheckout(ctx context.Context, userID, subscriptionID, checkoutID string) error {
 	res, err := s.db.ExecContext(ctx, `
-UPDATE chat_subscriptions
+UPDATE sales_subscriptions
 SET provider_checkout_id=?,updated_at=?
 WHERE id=? AND user_id=? AND status=?`,
 		checkoutID, formatSubscriptionTime(s.nowFunc()), subscriptionID, userID, string(SubscriptionPending))
@@ -223,7 +245,7 @@ WHERE id=? AND user_id=? AND status=?`,
 func (s *SubscriptionStore) GetByUser(ctx context.Context, userID, subscriptionID string) (Subscription, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT `+subscriptionColumns()+`
-FROM chat_subscriptions WHERE id=? AND user_id=?`, subscriptionID, userID)
+FROM sales_subscriptions WHERE id=? AND user_id=?`, subscriptionID, userID)
 	item, err := scanSubscription(row.Scan)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Subscription{}, ErrSubscriptionNotFound
@@ -238,7 +260,7 @@ func (s *SubscriptionStore) RequireNoBlockingSubscription(ctx context.Context, u
 	var count int
 	if err := s.db.QueryRowContext(ctx, `
 SELECT COUNT(1)
-FROM chat_subscriptions
+FROM sales_subscriptions
 WHERE user_id=? AND status IN (?,?)`,
 		userID, string(SubscriptionActive), string(SubscriptionOnHold),
 	).Scan(&count); err != nil {
@@ -256,7 +278,7 @@ func (s *SubscriptionStore) ListByUser(ctx context.Context, userID string, limit
 	}
 	rows, err := s.db.QueryContext(ctx, `
 SELECT `+subscriptionColumns()+`
-FROM chat_subscriptions WHERE user_id=?
+FROM sales_subscriptions WHERE user_id=?
 ORDER BY created_at DESC LIMIT ?`, userID, limit)
 	if err != nil {
 		return nil, err
@@ -279,7 +301,7 @@ func (s *SubscriptionStore) ListPendingWithCheckoutByUser(ctx context.Context, u
 	}
 	rows, err := s.db.QueryContext(ctx, `
 SELECT `+subscriptionColumns()+`
-FROM chat_subscriptions
+FROM sales_subscriptions
 WHERE user_id=? AND status=? AND provider_checkout_id<>''
 ORDER BY created_at DESC LIMIT ?`, userID, string(SubscriptionPending), limit)
 	if err != nil {
@@ -351,7 +373,7 @@ func (s *SubscriptionStore) ApplyWebhook(ctx context.Context, entitlements Entit
 
 	if existing.ID != "" {
 		_, err = s.db.ExecContext(ctx, `
-UPDATE chat_subscriptions SET
+UPDATE sales_subscriptions SET
     provider_subscription_id=?,provider_customer_id=?,status=?,email=?,
     current_period_start=?,current_period_end=?,next_billing_at=?,
     cancel_at_period_end=?,cancelled_at=?,provider_synced_at=?,
@@ -401,7 +423,7 @@ func (s *SubscriptionStore) RecordPayment(
 	now := s.nowFunc()
 	id := s.idFunc()
 	result, err := s.db.ExecContext(ctx, `
-INSERT INTO chat_subscription_payments
+INSERT INTO sales_subscription_payments
 (id,subscription_id,user_id,product_id,provider,provider_payment_id,
  amount_minor_units,currency_code,period_start,period_end,status,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
@@ -437,7 +459,7 @@ func (s *SubscriptionStore) notifyPaymentObserver(
 		var notified sql.NullString
 		if err := s.db.QueryRowContext(ctx, `
 SELECT observer_enqueued_at
-FROM chat_subscription_payments
+FROM sales_subscription_payments
 WHERE provider=? AND provider_payment_id=?`,
 			string(event.Provider), event.Data.PaymentID,
 		).Scan(&notified); err != nil {
@@ -453,7 +475,7 @@ WHERE provider=? AND provider_payment_id=?`,
 	}
 	now := formatSubscriptionTime(s.nowFunc())
 	if _, err := s.db.ExecContext(ctx, `
-UPDATE chat_subscription_payments
+UPDATE sales_subscription_payments
 SET observer_enqueued_at=?,updated_at=?
 WHERE provider=? AND provider_payment_id=? AND observer_enqueued_at IS NULL`,
 		now, now, string(event.Provider), event.Data.PaymentID); err != nil {
@@ -481,8 +503,8 @@ func (s *SubscriptionStore) RecordPaymentRefund(
 SELECT p.id,p.subscription_id,p.user_id,p.product_id,p.provider_payment_id,
        p.amount_minor_units,p.refunded_minor_units,p.currency_code,
        COALESCE(sub.provider_subscription_id,'')
-FROM chat_subscription_payments p
-       JOIN chat_subscriptions sub ON sub.id=p.subscription_id
+FROM sales_subscription_payments p
+       JOIN sales_subscriptions sub ON sub.id=p.subscription_id
 WHERE p.provider=? AND p.provider_payment_id=?`,
 		string(event.Provider), data.RefundedPaymentID,
 	).Scan(
@@ -497,7 +519,7 @@ WHERE p.provider=? AND p.provider_payment_id=?`,
 	var refundSeen int
 	if err := s.db.QueryRowContext(ctx, `
 SELECT 1
-FROM chat_subscription_payment_refunds
+FROM sales_subscription_payment_refunds
 WHERE provider=? AND provider_refund_id=?`,
 		string(event.Provider), refundID,
 	).Scan(&refundSeen); err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -537,7 +559,7 @@ WHERE provider=? AND provider_refund_id=?`,
 	}
 	defer func() { _ = tx.Rollback() }()
 	refundResult, err := tx.ExecContext(ctx, `
-INSERT INTO chat_subscription_payment_refunds
+INSERT INTO sales_subscription_payment_refunds
 (id,payment_id,provider,provider_refund_id,amount_minor_units,currency_code,created_at)
 VALUES (?,?,?,?,?,?,?)
 ON CONFLICT(provider,provider_refund_id) DO NOTHING`,
@@ -551,7 +573,7 @@ ON CONFLICT(provider,provider_refund_id) DO NOTHING`,
 		return nil
 	}
 	result, err := tx.ExecContext(ctx, `
-UPDATE chat_subscription_payments
+UPDATE sales_subscription_payments
 SET refunded_minor_units=refunded_minor_units+?,
     status=CASE WHEN refunded_minor_units+? >= amount_minor_units THEN ? ELSE status END,
     updated_at=?
@@ -578,7 +600,7 @@ func (s *SubscriptionStore) ListPaymentsByUser(ctx context.Context, userID strin
 SELECT id,subscription_id,user_id,product_id,provider,provider_payment_id,
        amount_minor_units,refunded_minor_units,currency_code,period_start,period_end,
        status,created_at,updated_at
-FROM chat_subscription_payments WHERE user_id=?
+FROM sales_subscription_payments WHERE user_id=?
 ORDER BY created_at DESC LIMIT ?`, userID, limit)
 	if err != nil {
 		return nil, err
@@ -624,7 +646,7 @@ func (s *SubscriptionStore) SetCancellation(
 		return fmt.Errorf("sales: update provider cancellation: %w", err)
 	}
 	_, err = s.db.ExecContext(ctx, `
-UPDATE chat_subscriptions SET cancel_at_period_end=?,updated_at=? WHERE id=?`,
+UPDATE sales_subscriptions SET cancel_at_period_end=?,updated_at=? WHERE id=?`,
 		boolInt(cancel), formatSubscriptionTime(s.nowFunc()), item.ID)
 	return err
 }
@@ -636,7 +658,7 @@ func (s *SubscriptionStore) AnonymizeUser(ctx context.Context, userID, oldEmail,
 		return 0, fmt.Errorf("sales: anonymize subscriptions requires user and tombstone")
 	}
 	res, err := s.db.ExecContext(ctx, `
-UPDATE chat_subscriptions SET email=?
+UPDATE sales_subscriptions SET email=?
 WHERE user_id=? OR (? != '' AND email=?)`, tombstone, userID, oldEmail, oldEmail)
 	if err != nil {
 		return 0, fmt.Errorf("sales: anonymize subscriptions: %w", err)
@@ -646,7 +668,7 @@ WHERE user_id=? OR (? != '' AND email=?)`, tombstone, userID, oldEmail, oldEmail
 
 func (s *SubscriptionStore) findByProviderOrLocalKey(ctx context.Context, providerID, localKey string) (Subscription, error) {
 	if localKey != "" {
-		row := s.db.QueryRowContext(ctx, `SELECT `+subscriptionColumns()+` FROM chat_subscriptions WHERE id=?`, localKey)
+		row := s.db.QueryRowContext(ctx, `SELECT `+subscriptionColumns()+` FROM sales_subscriptions WHERE id=?`, localKey)
 		item, err := scanSubscription(row.Scan)
 		if err == nil {
 			return item, nil
@@ -655,7 +677,7 @@ func (s *SubscriptionStore) findByProviderOrLocalKey(ctx context.Context, provid
 			return Subscription{}, err
 		}
 	}
-	query := `SELECT ` + subscriptionColumns() + ` FROM chat_subscriptions WHERE provider_subscription_id=?`
+	query := `SELECT ` + subscriptionColumns() + ` FROM sales_subscriptions WHERE provider_subscription_id=?`
 	arg := any(providerID)
 	row := s.db.QueryRowContext(ctx, query, arg)
 	item, err := scanSubscription(row.Scan)

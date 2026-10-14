@@ -42,7 +42,7 @@ func TestSameOriginRejectsMissingBrowserContext(t *testing.T) {
 	handler := SameOrigin(false, stdhttp.HandlerFunc(func(stdhttp.ResponseWriter, *stdhttp.Request) {
 		t.Fatal("handler must not run")
 	}))
-	request := httptest.NewRequest(stdhttp.MethodDelete, "/api/profiles/id", nil)
+	request := httptest.NewRequest(stdhttp.MethodDelete, "/api/birth-profiles/id", nil)
 	request.Host = "liki.hk"
 	recorder := httptest.NewRecorder()
 

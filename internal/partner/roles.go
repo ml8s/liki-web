@@ -18,7 +18,7 @@ func (s *Store) partnerByRole(ctx context.Context, userID string, role PartnerRo
 	}
 	row := s.db.QueryRowContext(ctx, `
 SELECT r.user_id,r.code,pr.role,r.status,r.recruiter_id,r.created_at,r.updated_at
-FROM referrers r
+FROM partners r
 JOIN partner_roles pr ON pr.user_id=r.user_id
 WHERE r.user_id=? AND pr.role=? AND pr.status='active'`,
 		userID, string(normalizeRole(role)))
@@ -50,7 +50,7 @@ func (s *Store) PartnerForPayout(ctx context.Context, userID string, role Partne
 	}
 	row := s.db.QueryRowContext(ctx, `
 SELECT r.user_id,r.code,pr.role,r.status,r.recruiter_id,r.created_at,r.updated_at
-FROM referrers r
+FROM partners r
 JOIN partner_roles pr ON pr.user_id=r.user_id
 WHERE r.user_id=? AND pr.role=? AND r.status='active'
   AND pr.status IN ('active','retired')`,
@@ -64,7 +64,7 @@ func (s *Store) ProgrammeRoleStatus(ctx context.Context, userID string, role Par
 	var status string
 	err := s.db.QueryRowContext(ctx, `
 SELECT pr.status
-FROM referrers r
+FROM partners r
 JOIN partner_roles pr ON pr.user_id=r.user_id
 WHERE r.user_id=? AND pr.role=?`,
 		userID, string(normalizeRole(role))).Scan(&status)

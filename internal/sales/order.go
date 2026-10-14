@@ -60,6 +60,19 @@ func NewOrderStoreWithCatalog(db *sql.DB, catalog *product.Catalog) *OrderStore 
 }
 
 func (s *OrderStore) Migrate(ctx context.Context) error {
+	var canonicalOrders int
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table' AND name='sales_orders'`).Scan(&canonicalOrders); err != nil {
+		return err
+	}
+	if canonicalOrders > 0 {
+		if _, err := s.db.ExecContext(ctx, `
+CREATE INDEX IF NOT EXISTS idx_sales_orders_user_created
+    ON sales_orders(user_id, created_at DESC);
+`); err != nil {
+			return err
+		}
+		return nil
+	}
 	_, err := s.db.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS chat_orders (
     id TEXT PRIMARY KEY,
@@ -78,6 +91,25 @@ CREATE INDEX IF NOT EXISTS idx_chat_orders_user_created
     ON chat_orders(user_id, created_at DESC);
 DROP INDEX IF EXISTS idx_chat_orders_user_pending_product;
 `)
+	if err != nil {
+		return err
+	}
+	var legacyOrders int
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table' AND name='chat_orders'`).Scan(&legacyOrders); err != nil {
+		return err
+	}
+	if legacyOrders == 1 {
+		if _, err := s.db.ExecContext(ctx, `ALTER TABLE chat_orders RENAME TO sales_orders`); err != nil {
+			return err
+		}
+	}
+	if _, err := s.db.ExecContext(ctx, `
+DROP INDEX IF EXISTS idx_chat_orders_user_created;
+CREATE INDEX IF NOT EXISTS idx_sales_orders_user_created
+    ON sales_orders(user_id, created_at DESC);
+`); err != nil {
+		return err
+	}
 	return err
 }
 
@@ -89,7 +121,7 @@ func (s *OrderStore) AnonymizeUser(ctx context.Context, userID, oldEmail, tombst
 		return 0, fmt.Errorf("sales: anonymize requires user and tombstone")
 	}
 	res, err := s.db.ExecContext(ctx, `
-UPDATE chat_orders SET email=?
+UPDATE sales_orders SET email=?
 WHERE user_id=? OR (? != '' AND email=?)`, tombstone, userID, oldEmail, oldEmail)
 	if err != nil {
 		return 0, fmt.Errorf("sales: anonymize orders: %w", err)
@@ -123,7 +155,7 @@ func (s *OrderStore) CreateOrder(ctx context.Context, userID, email string, prod
 		CreatedAt: now, UpdatedAt: now,
 	}
 	_, err = s.db.ExecContext(ctx, `
-INSERT INTO chat_orders
+INSERT INTO sales_orders
 (id,user_id,email,product_id,amount_minor,currency,status,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?)`,
 		order.ID, order.UserID, order.Email, string(order.ProductID), order.AmountMinor,
@@ -152,7 +184,7 @@ func (s *OrderStore) getOrder(ctx context.Context, orderID string) (Order, error
 	var intentID, paidAt sql.NullString
 	err := s.db.QueryRowContext(ctx, `
 SELECT id,user_id,email,product_id,amount_minor,currency,status,payment_intent_id,created_at,updated_at,paid_at
-FROM chat_orders WHERE id=?`, orderID,
+FROM sales_orders WHERE id=?`, orderID,
 	).Scan(&order.ID, &order.UserID, &order.Email, &productID, &order.AmountMinor, &order.Currency,
 		&status, &intentID, &createdAt, &updatedAt, &paidAt)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -182,7 +214,7 @@ FROM chat_orders WHERE id=?`, orderID,
 
 func (s *OrderStore) AttachIntent(ctx context.Context, userID, orderID, intentID string) error {
 	result, err := s.db.ExecContext(ctx, `
-UPDATE chat_orders SET payment_intent_id=?, updated_at=?
+UPDATE sales_orders SET payment_intent_id=?, updated_at=?
 WHERE id=? AND user_id=? AND status='pending'`,
 		intentID, s.nowFunc().Format(time.RFC3339), orderID, userID)
 	if err != nil {
@@ -196,7 +228,7 @@ WHERE id=? AND user_id=? AND status='pending'`,
 
 func (s *OrderStore) CancelOrder(ctx context.Context, userID, orderID string) error {
 	result, err := s.db.ExecContext(ctx, `
-UPDATE chat_orders SET status='canceled', updated_at=?
+UPDATE sales_orders SET status='canceled', updated_at=?
 WHERE id=? AND user_id=? AND status='pending'`,
 		s.nowFunc().Format(time.RFC3339), orderID, userID)
 	if err != nil {
@@ -215,7 +247,7 @@ func (s *OrderStore) MarkPaidByIntent(ctx context.Context, intentID string) (Ord
 	// user retry). Reviving is deliberate: once money moved we must grant
 	// the entitlement rather than silently keep it.
 	result, err := s.db.ExecContext(ctx, `
-UPDATE chat_orders SET status='paid', paid_at=?, updated_at=?
+UPDATE sales_orders SET status='paid', paid_at=?, updated_at=?
 WHERE payment_intent_id=? AND status IN ('pending','canceled')`, now, now, intentID)
 	if err != nil {
 		return Order{}, false, err
@@ -229,7 +261,7 @@ WHERE payment_intent_id=? AND status IN ('pending','canceled')`, now, now, inten
 	var paidAt sql.NullString
 	err = s.db.QueryRowContext(ctx, `
 SELECT id,user_id,email,product_id,amount_minor,currency,status,payment_intent_id,created_at,updated_at,paid_at
-FROM chat_orders WHERE payment_intent_id=?`, intentID,
+FROM sales_orders WHERE payment_intent_id=?`, intentID,
 	).Scan(&order.ID, &order.UserID, &order.Email, &productID, &order.AmountMinor, &order.Currency,
 		&status, &order.PaymentIntentID, &createdAt, &updatedAt, &paidAt)
 	if err != nil {
@@ -257,7 +289,7 @@ func (s *OrderStore) ListOrdersForUser(ctx context.Context, userID string, limit
 	}
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,user_id,email,product_id,amount_minor,currency,status,payment_intent_id,created_at,updated_at,paid_at
-FROM chat_orders WHERE user_id=?
+FROM sales_orders WHERE user_id=?
 ORDER BY created_at DESC LIMIT ?`, userID, limit)
 	if err != nil {
 		return nil, err

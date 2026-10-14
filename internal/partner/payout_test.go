@@ -146,7 +146,7 @@ func TestMarkPayoutPaidMarksCommissions(t *testing.T) {
 	}
 	var entryStatus string
 	err = store.db.QueryRowContext(ctx, `
-SELECT status FROM referral_commission_entries WHERE id=?`, commission.ID+":kol").Scan(&entryStatus)
+SELECT status FROM partner_commission_entries WHERE id=?`, commission.ID+":kol").Scan(&entryStatus)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,10 +240,10 @@ func TestKOLAndScoutPayoutsAreIndependent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var kolStatus, scoutStatus string
-	if err := store.db.QueryRowContext(ctx, `SELECT status FROM referral_commission_entries WHERE beneficiary_role='kol'`).Scan(&kolStatus); err != nil {
+	if err := store.db.QueryRowContext(ctx, `SELECT status FROM partner_commission_entries WHERE beneficiary_role='kol'`).Scan(&kolStatus); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.db.QueryRowContext(ctx, `SELECT status FROM referral_commission_entries WHERE beneficiary_role='scout'`).Scan(&scoutStatus); err != nil {
+	if err := store.db.QueryRowContext(ctx, `SELECT status FROM partner_commission_entries WHERE beneficiary_role='scout'`).Scan(&scoutStatus); err != nil {
 		t.Fatal(err)
 	}
 	if kolStatus != string(CommissionPending) || scoutStatus != string(CommissionPaid) {

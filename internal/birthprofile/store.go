@@ -106,6 +106,21 @@ CREATE INDEX IF NOT EXISTS idx_profiles_user_created
 				return err
 			},
 		},
+		{
+			ID: "004_canonical_birth_profile",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE profiles RENAME TO birth_profiles;
+DROP INDEX IF EXISTS idx_profiles_user_updated;
+DROP INDEX IF EXISTS idx_profiles_user_created;
+CREATE INDEX idx_birth_profiles_user_updated
+    ON birth_profiles(user_id, deleted_at, updated_at DESC);
+CREATE INDEX idx_birth_profiles_user_created
+    ON birth_profiles(user_id, created_at DESC);
+`)
+				return err
+			},
+		},
 	})
 }
 
@@ -120,10 +135,10 @@ func (s *Store) Create(ctx context.Context, userID string, in BirthProfileInput)
 		CreatedAt: mustTime(now), UpdatedAt: mustTime(now),
 	}
 	result, err := s.db.ExecContext(ctx, `
-INSERT INTO profiles
+INSERT INTO birth_profiles
 (id,user_id,version,nickname,name,gender,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
 SELECT ?,?,1,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?
-WHERE (SELECT COUNT(1) FROM profiles WHERE user_id=? AND deleted_at IS NULL) < ?`,
+WHERE (SELECT COUNT(1) FROM birth_profiles WHERE user_id=? AND deleted_at IS NULL) < ?`,
 		p.ID, userID, p.Nickname, p.Name, p.Gender, p.Calendar, p.BirthDate,
 		p.BirthTime, p.BirthTimeKnown, p.BirthPlace, p.Note, p.ThirdPartyConsent, now, now, userID, MaxProfilesPerUser,
 	)
@@ -136,7 +151,7 @@ WHERE (SELECT COUNT(1) FROM profiles WHERE user_id=? AND deleted_at IS NULL) < ?
 	}
 	var createdAt, updatedAt string
 	err = s.db.QueryRowContext(ctx, `
-SELECT created_at,updated_at FROM profiles WHERE id=? AND user_id=?`,
+SELECT created_at,updated_at FROM birth_profiles WHERE id=? AND user_id=?`,
 		p.ID, userID).Scan(&createdAt, &updatedAt)
 	if err != nil {
 		return BirthProfile{}, err
@@ -153,7 +168,7 @@ func (s *Store) Get(ctx context.Context, userID, id string) (BirthProfile, error
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx, `
 SELECT id,user_id,version,nickname,name,gender,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
-FROM profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID).Scan(
+FROM birth_profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID).Scan(
 		&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Gender, &p.Calendar,
 		&p.BirthDate, &p.BirthTime, &p.BirthTimeKnown, &p.BirthPlace, &p.Note, &thirdParty,
 		&lastUsedAt, &deletedAt, &createdAt, &updatedAt,
@@ -187,7 +202,7 @@ func (s *Store) List(ctx context.Context, userID, cursor string, limit int) ([]B
 	}
 	query := `
 SELECT id,user_id,version,nickname,name,gender,calendar,birth_date,birth_time,birth_time_known,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
-FROM profiles
+FROM birth_profiles
 WHERE user_id=? AND deleted_at IS NULL`
 	args := []any{userID}
 	if cursor != "" {
@@ -250,7 +265,7 @@ WHERE user_id=? AND deleted_at IS NULL`
 func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion int, in BirthProfileInput) (BirthProfile, error) {
 	now := formatTime(s.nowFunc())
 	result, err := s.db.ExecContext(ctx, `
-UPDATE profiles SET
+UPDATE birth_profiles SET
   version=version+1,
   nickname=?, name=?, gender=?, calendar=?, birth_date=?,
   birth_time=?, birth_time_known=?, birth_place=?, note=?, third_party_consent=?,
@@ -281,7 +296,7 @@ WHERE id=? AND user_id=? AND deleted_at IS NULL AND version=?`,
 func (s *Store) SoftDelete(ctx context.Context, userID, id string) error {
 	now := formatTime(s.nowFunc())
 	result, err := s.db.ExecContext(ctx, `
-UPDATE profiles SET deleted_at=?, version=version+1, updated_at=?
+UPDATE birth_profiles SET deleted_at=?, version=version+1, updated_at=?
 WHERE id=? AND user_id=? AND deleted_at IS NULL`, now, now, id, userID)
 	if err != nil {
 		return err
@@ -299,7 +314,7 @@ WHERE id=? AND user_id=? AND deleted_at IS NULL`, now, now, id, userID)
 func (s *Store) TouchLastUsed(ctx context.Context, userID, id string) error {
 	now := formatTime(s.nowFunc())
 	_, err := s.db.ExecContext(ctx, `
-UPDATE profiles SET last_used_at=?, updated_at=? WHERE id=? AND user_id=? AND deleted_at IS NULL`,
+UPDATE birth_profiles SET last_used_at=?, updated_at=? WHERE id=? AND user_id=? AND deleted_at IS NULL`,
 		now, now, id, userID)
 	return err
 }
@@ -310,7 +325,7 @@ UPDATE profiles SET last_used_at=?, updated_at=? WHERE id=? AND user_id=? AND de
 func (s *Store) AnonymizeUser(ctx context.Context, userID string) (int64, error) {
 	now := formatTime(s.nowFunc())
 	result, err := s.db.ExecContext(ctx, `
-UPDATE profiles SET
+UPDATE birth_profiles SET
   nickname='', name='', gender='', calendar='', birth_date='',
   birth_time='', birth_time_known='', birth_place='', note='',
   third_party_consent=0,
@@ -326,7 +341,7 @@ WHERE user_id=? AND deleted_at IS NULL`, now, now, userID)
 // (the 30-day recovery window). Returns the number of rows purged.
 func (s *Store) CleanupExpired(ctx context.Context, before time.Time) (int64, error) {
 	result, err := s.db.ExecContext(ctx, `
-DELETE FROM profiles WHERE deleted_at IS NOT NULL AND deleted_at < ?`, formatTime(before))
+DELETE FROM birth_profiles WHERE deleted_at IS NOT NULL AND deleted_at < ?`, formatTime(before))
 	if err != nil {
 		return 0, err
 	}

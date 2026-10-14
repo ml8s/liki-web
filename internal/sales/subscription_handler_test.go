@@ -105,7 +105,7 @@ func TestSubscriptionEventProcessorRoutesSubscriptionRefund(t *testing.T) {
 	if err := subscriptions.AttachCheckout(ctx, "user-1", pending.ID, "checkout-1"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`UPDATE chat_subscriptions SET provider_subscription_id='sub_1' WHERE id=?`, pending.ID); err != nil {
+	if _, err := db.Exec(`UPDATE sales_subscriptions SET provider_subscription_id='sub_1' WHERE id=?`, pending.ID); err != nil {
 		t.Fatal(err)
 	}
 	paid := payment.WebhookEvent{

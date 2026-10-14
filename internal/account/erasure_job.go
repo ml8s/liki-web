@@ -217,7 +217,7 @@ func (w *ErasureWorker) RunPending(ctx context.Context) (int, error) {
 
 func runErrString(err error) string {
 	if errors.Is(err, partner.ErrReferralFinancialHold) {
-		return "referral_financial_hold"
+		return "partner_financial_hold"
 	}
 	return err.Error()
 }

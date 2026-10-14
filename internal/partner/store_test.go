@@ -19,6 +19,20 @@ func newStore(t *testing.T) *Store {
 	if err := store.Migrate(context.Background()); err != nil {
 		t.Fatal(err)
 	}
+	var tables []string
+	rows, err := store.db.Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			t.Fatal(err)
+		}
+		tables = append(tables, name)
+	}
+	_ = rows.Close()
+	t.Logf("tables: %v", tables)
 	return store
 }
 

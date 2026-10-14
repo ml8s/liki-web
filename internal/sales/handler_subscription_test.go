@@ -67,8 +67,8 @@ func TestSubscriptionCheckoutStoresLocalKeyAndOmitsAmount(t *testing.T) {
 		WithSubscriptions(subscriptions, checkoutGateway, &fakeSubscriptionGateway{}, "https://liki.hk"),
 	)
 
-	request := httptest.NewRequest(http.MethodPost, "/api/chat/products/liki-chat/checkout",
-		strings.NewReader(`{"billing_mode":"subscription","locale":"en"}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/sales/checkouts",
+		strings.NewReader(`{"product_id":"liki-chat","billing_mode":"subscription","locale":"en"}`))
 	request.Header.Set("CF-IPCountry", "US")
 	request.SetPathValue("id", string(product.Chat))
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
@@ -126,7 +126,7 @@ func TestSubscriptionRoutesListAndCancel(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`
-UPDATE chat_subscriptions
+UPDATE sales_subscriptions
 SET provider_subscription_id='sub_1', status='active'
 WHERE id=?`, pending.ID); err != nil {
 		t.Fatal(err)
@@ -135,7 +135,7 @@ WHERE id=?`, pending.ID); err != nil {
 	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements),
 		WithSubscriptions(subscriptions, &fakeSubscriptionCheckoutGateway{}, cancellationGateway, "https://liki.hk"),
 	)
-	request := httptest.NewRequest(http.MethodGet, "/api/me/subscriptions", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/sales/subscriptions", nil)
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
 		ID: "user-1", Email: "user@example.com",
 	}, auth.AuthSession{}, ""))
@@ -145,7 +145,7 @@ WHERE id=?`, pending.ID); err != nil {
 		t.Fatalf("list status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
 
-	cancel := httptest.NewRequest(http.MethodPost, "/api/me/subscriptions/"+pending.ID+"/cancellation", nil)
+	cancel := httptest.NewRequest(http.MethodPost, "/api/sales/subscriptions/"+pending.ID+"/cancellation", nil)
 	cancel.SetPathValue("id", pending.ID)
 	cancel = cancel.WithContext(auth.WithAuth(cancel.Context(), auth.User{
 		ID: "user-1", Email: "user@example.com",
@@ -181,7 +181,7 @@ func TestSubscriptionPaymentsRouteReturnsRefundState(t *testing.T) {
 	if err := subscriptions.AttachCheckout(ctx, "user-1", pending.ID, "checkout-1"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`UPDATE chat_subscriptions SET provider_subscription_id='sub_1' WHERE id=?`, pending.ID); err != nil {
+	if _, err := db.Exec(`UPDATE sales_subscriptions SET provider_subscription_id='sub_1' WHERE id=?`, pending.ID); err != nil {
 		t.Fatal(err)
 	}
 	paid := payment.WebhookEvent{
@@ -209,7 +209,7 @@ func TestSubscriptionPaymentsRouteReturnsRefundState(t *testing.T) {
 	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements),
 		WithSubscriptions(subscriptions, &fakeSubscriptionCheckoutGateway{}, &fakeSubscriptionGateway{}, "https://liki.hk"),
 	)
-	request := httptest.NewRequest(http.MethodGet, "/api/me/subscription-payments", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/sales/subscription-payments", nil)
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
 		ID: "user-1", Email: "user@example.com",
 	}, auth.AuthSession{}, ""))
@@ -271,7 +271,7 @@ func TestSubscriptionListReconcilesPendingCheckout(t *testing.T) {
 			return subscriptions.ApplyWebhook(ctx, entitlements, event)
 		}),
 	)
-	request := httptest.NewRequest(http.MethodGet, "/api/me/subscriptions", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/sales/subscriptions", nil)
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
 		ID: "user-1", Email: "user@example.com",
 	}, auth.AuthSession{}, ""))
@@ -310,7 +310,7 @@ func TestSubscriptionCheckoutRejectsActiveSubscription(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`UPDATE chat_subscriptions SET status='active' WHERE id=?`, active.ID); err != nil {
+	if _, err := db.Exec(`UPDATE sales_subscriptions SET status='active' WHERE id=?`, active.ID); err != nil {
 		t.Fatal(err)
 	}
 	checkoutGateway := &fakeSubscriptionCheckoutGateway{}
@@ -322,8 +322,8 @@ func TestSubscriptionCheckoutRejectsActiveSubscription(t *testing.T) {
 		WithCatalog(catalog),
 		WithSubscriptions(subscriptions, checkoutGateway, &fakeSubscriptionGateway{}, "https://liki.hk"),
 	)
-	request := httptest.NewRequest(http.MethodPost, "/api/chat/products/liki-chat/checkout",
-		strings.NewReader(`{"billing_mode":"subscription","locale":"en"}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/sales/checkouts",
+		strings.NewReader(`{"product_id":"liki-chat","billing_mode":"subscription","locale":"en"}`))
 	request.Header.Set("CF-IPCountry", "US")
 	request.SetPathValue("id", string(product.Chat))
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
@@ -335,7 +335,7 @@ func TestSubscriptionCheckoutRejectsActiveSubscription(t *testing.T) {
 		t.Fatalf("status = %d, body = %s, want 409", recorder.Code, recorder.Body.String())
 	}
 	var subscriptionsCount int
-	if err := db.QueryRow(`SELECT COUNT(1) FROM chat_subscriptions WHERE user_id='user-1'`).Scan(&subscriptionsCount); err != nil {
+	if err := db.QueryRow(`SELECT COUNT(1) FROM sales_subscriptions WHERE user_id='user-1'`).Scan(&subscriptionsCount); err != nil {
 		t.Fatal(err)
 	}
 	if subscriptionsCount != 1 {

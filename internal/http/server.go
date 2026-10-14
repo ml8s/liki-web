@@ -59,7 +59,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	// ── unified payment runtime ──
 	if deps.PaymentRuntime != nil {
 		mux.HandleFunc("GET /api/payments/intents/{id}/status", deps.PaymentRuntime.HandleIntentStatus)
-		mux.HandleFunc("GET /api/payments/intents/{id}/fulfillment-status", deps.PaymentRuntime.HandleFulfillmentStatus)
+		mux.HandleFunc("GET /api/payments/intents/{id}/payment-completion-status", deps.PaymentRuntime.HandlePaymentCompletionStatus)
 		mux.HandleFunc("GET /api/payments/return/{id}", deps.PaymentRuntime.HandlePaymentReturn)
 		mux.HandleFunc("POST /api/payments/webhook", webhookLimit(deps.PaymentRuntime.HandleWebhook))
 	}

@@ -59,8 +59,8 @@ type SendMessageResult struct {
 	AssistantMessage Message `json:"assistant_message"`
 }
 
-// ChatStore manages the historical unified_chat_sessions and
-// unified_chat_messages tables. The table names are retained for schema
+// ChatStore manages the historical chat_sessions and
+// chat_messages tables. The table names are retained for schema
 // compatibility; the product is named Liki Chat.
 type ChatStore struct {
 	db      *sql.DB
@@ -126,6 +126,25 @@ CREATE INDEX IF NOT EXISTS idx_unified_chat_sessions_user_profile
 				return err
 			},
 		},
+		{
+			ID: "003_canonical_chat_storage",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE unified_chat_sessions RENAME TO chat_sessions;
+ALTER TABLE unified_chat_messages RENAME TO chat_messages;
+DROP INDEX IF EXISTS idx_unified_chat_sessions_user_updated;
+DROP INDEX IF EXISTS idx_unified_chat_sessions_user_profile;
+DROP INDEX IF EXISTS idx_unified_chat_messages_session_created;
+CREATE INDEX idx_chat_sessions_user_updated
+    ON chat_sessions(user_id, status, updated_at);
+CREATE INDEX idx_chat_sessions_user_profile
+    ON chat_sessions(user_id, profile_id);
+CREATE INDEX idx_chat_messages_session_created
+    ON chat_messages(session_id, created_at);
+`)
+				return err
+			},
+		},
 	})
 }
 
@@ -134,7 +153,7 @@ func (s *ChatStore) CreateSession(ctx context.Context, userID, skill, title, pro
 	session := Session{ID: s.idFunc(), UserID: userID, Skill: skill, Title: title, ProfileID: profileID, Status: SessionActive}
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx, `
-INSERT INTO unified_chat_sessions (id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at)
+INSERT INTO chat_sessions (id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at)
 VALUES (?,?,?,?,?,?,?,?,?)
 RETURNING created_at,updated_at`,
 		session.ID, userID, profileID, skill, title, string(SessionActive), now, now, now,
@@ -168,7 +187,7 @@ func scanSession(scan func(dest ...any) error) (Session, error) {
 func (s *ChatStore) GetSession(ctx context.Context, userID, sessionID string) (Session, error) {
 	session, err := scanSession(s.db.QueryRowContext(ctx, `
 SELECT id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at
-FROM unified_chat_sessions WHERE id=? AND user_id=?`, sessionID, userID).Scan)
+FROM chat_sessions WHERE id=? AND user_id=?`, sessionID, userID).Scan)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Session{}, ErrSessionNotFound
 	}
@@ -178,7 +197,7 @@ FROM unified_chat_sessions WHERE id=? AND user_id=?`, sessionID, userID).Scan)
 func (s *ChatStore) ListSessions(ctx context.Context, userID string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at
-FROM unified_chat_sessions WHERE user_id=? AND status='active'
+FROM chat_sessions WHERE user_id=? AND status='active'
 ORDER BY COALESCE(last_message_at,updated_at) DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -198,8 +217,8 @@ ORDER BY COALESCE(last_message_at,updated_at) DESC`, userID)
 func (s *ChatStore) ListMessages(ctx context.Context, userID, sessionID string) ([]Message, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT m.id,m.session_id,m.user_id,m.role,m.kind,m.content,m.created_at
-FROM unified_chat_messages m
-JOIN unified_chat_sessions s ON s.id=m.session_id
+FROM chat_messages m
+JOIN chat_sessions s ON s.id=m.session_id
 WHERE m.session_id=? AND m.user_id=?
 ORDER BY m.created_at, m.id`, sessionID, userID)
 	if err != nil {
@@ -233,7 +252,7 @@ func (s *ChatStore) AppendMessage(ctx context.Context, userID, sessionID, role s
 	defer func() { _ = tx.Rollback() }()
 	var createdAt string
 	err = tx.QueryRowContext(ctx, `
-INSERT INTO unified_chat_messages (id,session_id,user_id,role,kind,content,created_at)
+INSERT INTO chat_messages (id,session_id,user_id,role,kind,content,created_at)
 VALUES (?,?,?,?,?,?,?)
 RETURNING created_at`, message.ID, sessionID, userID, role, string(kind), content, now,
 	).Scan(&createdAt)
@@ -242,7 +261,7 @@ RETURNING created_at`, message.ID, sessionID, userID, role, string(kind), conten
 	}
 	message.CreatedAt = chatMustTime(createdAt)
 	if _, err := tx.ExecContext(ctx, `
-UPDATE unified_chat_sessions SET updated_at=?, last_message_at=CASE WHEN last_message_at IS NULL OR last_message_at<? THEN ? ELSE last_message_at END
+UPDATE chat_sessions SET updated_at=?, last_message_at=CASE WHEN last_message_at IS NULL OR last_message_at<? THEN ? ELSE last_message_at END
 WHERE id=?`, now, now, now, sessionID); err != nil {
 		return Message{}, err
 	}
@@ -253,7 +272,7 @@ WHERE id=?`, now, now, now, sessionID); err != nil {
 }
 
 func (s *ChatStore) TouchSession(ctx context.Context, sessionID string, now time.Time) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE unified_chat_sessions SET updated_at=? WHERE id=?`, chatFormatTime(now), sessionID)
+	_, err := s.db.ExecContext(ctx, `UPDATE chat_sessions SET updated_at=? WHERE id=?`, chatFormatTime(now), sessionID)
 	return err
 }
 
@@ -266,12 +285,12 @@ func (s *ChatStore) TouchSession(ctx context.Context, sessionID string, now time
 // metadata are preserved for audit continuity.
 func (s *ChatStore) AnonymizeUserMessages(ctx context.Context, userID string) (int64, error) {
 	if _, err := s.db.ExecContext(ctx, `
-UPDATE unified_chat_sessions SET title='', profile_id=''
+UPDATE chat_sessions SET title='', profile_id=''
 WHERE user_id=?`, userID); err != nil {
 		return 0, err
 	}
 	result, err := s.db.ExecContext(ctx, `
-UPDATE unified_chat_messages SET content=''
+UPDATE chat_messages SET content=''
 WHERE user_id=?`, userID)
 	if err != nil {
 		return 0, err

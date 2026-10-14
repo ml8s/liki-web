@@ -130,16 +130,16 @@ func NewHandler(
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/chat/products", h.requireUser(h.HandleProducts))
-	mux.HandleFunc("POST /api/chat/products/{id}/checkout", h.requireUser(h.limit(h.HandleCheckout)))
-	mux.HandleFunc("GET /api/chat/orders", h.requireUser(h.HandleOrders))
+	mux.HandleFunc("GET /api/sales/products", h.requireUser(h.HandleProducts))
+	mux.HandleFunc("POST /api/sales/checkouts", h.requireUser(h.limit(h.HandleCheckout)))
+	mux.HandleFunc("GET /api/sales/orders", h.requireUser(h.HandleOrders))
 	if h.subscriptions == nil {
 		return
 	}
-	mux.HandleFunc("GET /api/me/subscriptions", h.requireUser(h.HandleSubscriptions))
-	mux.HandleFunc("GET /api/me/subscription-payments", h.requireUser(h.HandleSubscriptionPayments))
-	mux.HandleFunc("POST /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleSetCancellation))
-	mux.HandleFunc("DELETE /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleDeleteCancellation))
+	mux.HandleFunc("GET /api/sales/subscriptions", h.requireUser(h.HandleSubscriptions))
+	mux.HandleFunc("GET /api/sales/subscription-payments", h.requireUser(h.HandleSubscriptionPayments))
+	mux.HandleFunc("POST /api/sales/subscriptions/{id}/cancellation", h.requireUser(h.HandleSetCancellation))
+	mux.HandleFunc("DELETE /api/sales/subscriptions/{id}/cancellation", h.requireUser(h.HandleDeleteCancellation))
 }
 
 func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
@@ -213,6 +213,7 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 type checkoutRequest struct {
+	ProductID   string              `json:"product_id"`
 	BillingMode product.BillingMode `json:"billing_mode"`
 	Locale      string              `json:"locale"`
 }
@@ -235,7 +236,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 	if catalog == nil {
 		catalog = product.NewCatalog(product.CatalogConfig{})
 	}
-	productID := product.Product(r.PathValue("id"))
+	productID := product.Product(req.ProductID)
 	if _, err := catalog.OfferingFor(productID); err != nil {
 		httputil.RespondError(w, http.StatusNotFound, "product_not_found", "产品不存在")
 		return

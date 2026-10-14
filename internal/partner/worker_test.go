@@ -101,12 +101,12 @@ CREATE TABLE payment_intents (
  id TEXT PRIMARY KEY,business_order_id TEXT,user_id TEXT,product TEXT,
  provider TEXT,status TEXT,amount_minor INTEGER,currency TEXT,updated_at TEXT
 );
-CREATE TABLE fulfillment_tasks (payment_intent_id TEXT,status TEXT);`); err != nil {
+CREATE TABLE payment_completion_tasks (payment_intent_id TEXT,status TEXT);`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := platformDB.Exec(`
 INSERT INTO payment_intents VALUES ('pi-reconcile','order-r','buyer','liki-chat','xunhu','paid',8800,'CNY','2026-01-01T00:00:00Z');
-INSERT INTO fulfillment_tasks VALUES ('pi-reconcile','succeeded');`); err != nil {
+INSERT INTO payment_completion_tasks VALUES ('pi-reconcile','succeeded');`); err != nil {
 		t.Fatal(err)
 	}
 
@@ -115,7 +115,7 @@ INSERT INTO fulfillment_tasks VALUES ('pi-reconcile','succeeded');`); err != nil
 		t.Fatalf("reconcile=%d err=%v", n, err)
 	}
 	var status, reason string
-	if err := store.db.QueryRow(`SELECT status,skip_reason FROM commission_intents WHERE payment_intent_id='pi-reconcile'`).Scan(&status, &reason); err != nil {
+	if err := store.db.QueryRow(`SELECT status,skip_reason FROM partner_commission_intake WHERE payment_intent_id='pi-reconcile'`).Scan(&status, &reason); err != nil {
 		t.Fatal(err)
 	}
 	if status != string(IntakeSkipped) || reason != "no_attribution" {

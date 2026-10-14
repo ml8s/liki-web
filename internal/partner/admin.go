@@ -52,7 +52,7 @@ func (s *Store) SubmitApplication(ctx context.Context, role PartnerRole, userID,
 	now := formatTime(s.nowFunc())
 	id := s.idFunc()
 	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO referral_applications
+INSERT INTO partner_applications
 (id,user_id,type,status,note,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?)
 ON CONFLICT(user_id) WHERE status='pending' DO NOTHING`,
@@ -71,8 +71,8 @@ func (s *Store) PendingApplicationByUser(ctx context.Context, userID string) (Pa
 SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
        COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
        a.created_at,a.reviewed_at
-FROM referral_applications a
-LEFT JOIN referrers r ON r.user_id=a.user_id
+FROM partner_applications a
+LEFT JOIN partners r ON r.user_id=a.user_id
 WHERE a.user_id=? AND a.status=?`, userID, string(ApplicationPending))
 	return scanApplication(row.Scan)
 }
@@ -82,8 +82,8 @@ func (s *Store) LatestApplicationByUser(ctx context.Context, userID string, role
 SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
        COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
        a.created_at,a.reviewed_at
-FROM referral_applications a
-LEFT JOIN referrers r ON r.user_id=a.user_id
+FROM partner_applications a
+LEFT JOIN partners r ON r.user_id=a.user_id
 WHERE a.user_id=? AND a.type=?
 ORDER BY a.created_at DESC LIMIT 1`, userID, string(normalizeRole(role)))
 	item, err := scanApplication(row.Scan)
@@ -101,8 +101,8 @@ func (s *Store) ApplicationByID(ctx context.Context, id string) (PartnerApplicat
 SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
        COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
        a.created_at,a.reviewed_at
-FROM referral_applications a
-LEFT JOIN referrers r ON r.user_id=a.user_id
+FROM partner_applications a
+LEFT JOIN partners r ON r.user_id=a.user_id
 WHERE a.id=?`, id)
 	return scanApplication(row.Scan)
 }
@@ -135,8 +135,8 @@ func (s *Store) ListApplications(ctx context.Context, status ApplicationStatus, 
 SELECT a.id,a.user_id,a.type,COALESCE(r.code,''),a.status,a.note,
        COALESCE(a.reviewer_id,''),COALESCE(a.decision_reason,''),
        a.created_at,a.reviewed_at
-FROM referral_applications a
-LEFT JOIN referrers r ON r.user_id=a.user_id`
+FROM partner_applications a
+LEFT JOIN partners r ON r.user_id=a.user_id`
 	args := []any{}
 	clauses := make([]string, 0, 2)
 	if status != "" {
@@ -190,7 +190,7 @@ func (s *Store) ListPartners(ctx context.Context, role PartnerRole, status Partn
 		like := "%" + query + "%"
 		args = append(args, like, like)
 	}
-	sqlQuery := `SELECT user_id,code,role,status,recruiter_id,created_at,updated_at FROM referrers`
+	sqlQuery := `SELECT user_id,code,role,status,recruiter_id,created_at,updated_at FROM partners`
 	if len(clauses) > 0 {
 		sqlQuery += ` WHERE ` + strings.Join(clauses, ` AND `)
 	}
@@ -222,7 +222,7 @@ func (s *Store) SetPartnerStatus(ctx context.Context, userID string, status Part
 	}
 	now := formatTime(s.nowFunc())
 	res, err := s.db.ExecContext(ctx, `
-UPDATE referrers SET status=?,updated_at=? WHERE user_id=?`,
+UPDATE partners SET status=?,updated_at=? WHERE user_id=?`,
 		string(status), now, userID)
 	if err != nil {
 		return err
@@ -252,7 +252,7 @@ func (s *Store) DecideApplication(ctx context.Context, applicationID, actor stri
 
 	var userID, applicationType, status string
 	err = tx.QueryRowContext(ctx, `
-SELECT user_id,type,status FROM referral_applications WHERE id=?`, applicationID).
+SELECT user_id,type,status FROM partner_applications WHERE id=?`, applicationID).
 		Scan(&userID, &applicationType, &status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrApplicationNotFound
@@ -277,14 +277,14 @@ SELECT user_id,type,status FROM referral_applications WHERE id=?`, applicationID
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_applications
+UPDATE partner_applications
 SET status=?,reviewer_id=?,decision_reason=?,reviewed_at=?,updated_at=?
 WHERE id=? AND status=?`,
 		string(decision), actor, reason, now, now, applicationID, string(ApplicationPending)); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `
-INSERT INTO referral_admin_actions
+INSERT INTO partner_admin_actions
 (id,actor,action,target_type,target_id,before,after,reason,created_at)
 VALUES (?,?,?,?,?,?,?,?,?)`,
 		s.idFunc(), actor, "partner_application.decided", "partner_application", applicationID,
@@ -300,7 +300,7 @@ VALUES (?,?,?,?,?,?,?,?,?)`,
 func ensurePartnerTx(ctx context.Context, tx *sql.Tx, s *Store, userID string, role PartnerRole) error {
 	var currentRole, currentStatus string
 	err := tx.QueryRowContext(ctx,
-		`SELECT role,status FROM referrers WHERE user_id=?`, userID,
+		`SELECT role,status FROM partners WHERE user_id=?`, userID,
 	).Scan(&currentRole, &currentStatus)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
@@ -309,8 +309,8 @@ func ensurePartnerTx(ctx context.Context, tx *sql.Tx, s *Store, userID string, r
 			var candidate string
 			err := tx.QueryRowContext(ctx, `
 SELECT r.user_id
-FROM referral_attributions a
-JOIN referrers r ON r.user_id=a.referrer_id
+FROM partner_attributions a
+JOIN partners r ON r.user_id=a.referrer_id
 JOIN partner_roles pr ON pr.user_id=r.user_id AND pr.role='scout' AND pr.status='active'
 WHERE a.user_id=? AND a.referrer_id<>?`, userID, userID).Scan(&candidate)
 			if err == nil {
@@ -326,7 +326,7 @@ WHERE a.user_id=? AND a.referrer_id<>?`, userID, userID).Scan(&candidate)
 			}
 			now := formatTime(s.nowFunc())
 			res, insertErr := tx.ExecContext(ctx, `
-INSERT INTO referrers (user_id,code,role,status,recruiter_id,created_at,updated_at)
+INSERT INTO partners (user_id,code,role,status,recruiter_id,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?)
 ON CONFLICT(user_id) DO NOTHING`,
 				userID, code, string(role), string(PartnerActive), recruiterID, now, now)
@@ -338,7 +338,7 @@ ON CONFLICT(user_id) DO NOTHING`,
 			}
 		}
 		if err := tx.QueryRowContext(ctx,
-			`SELECT role FROM referrers WHERE user_id=?`, userID,
+			`SELECT role FROM partners WHERE user_id=?`, userID,
 		).Scan(&currentRole); err != nil {
 			return err
 		}
@@ -365,7 +365,7 @@ ON CONFLICT(user_id,role) DO UPDATE SET
 
 func (s *Store) recordAdminAction(ctx context.Context, actor, action, targetType, targetID, before, after, reason string) error {
 	_, err := s.db.ExecContext(ctx, `
-INSERT INTO referral_admin_actions
+INSERT INTO partner_admin_actions
 (id,actor,action,target_type,target_id,before,after,reason,created_at)
 VALUES (?,?,?,?,?,?,?,?,?)`,
 		s.idFunc(), actor, action, targetType, targetID, before, after, reason, formatTime(s.nowFunc()))
@@ -382,7 +382,7 @@ func (s *Store) ListPartnerAdminActions(ctx context.Context, limit int) ([]Partn
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,actor,action,target_type,target_id,COALESCE(before,''),
        COALESCE(after,''),COALESCE(reason,''),created_at
-FROM referral_admin_actions ORDER BY created_at DESC LIMIT ?`, limit)
+FROM partner_admin_actions ORDER BY created_at DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +417,7 @@ func (s *Store) CreateScoutPartner(ctx context.Context, userID, actor, reason st
 		return Referrer{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `
-INSERT INTO referral_admin_actions
+INSERT INTO partner_admin_actions
 (id,actor,action,target_type,target_id,before,after,reason,created_at)
 VALUES (?,?,?,?,?,?,?,?,?)`,
 		s.idFunc(), actor, "partner.scout_assigned", "partner", userID,

@@ -153,7 +153,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 			AuthSessionsCleared   int64 `json:"auth_sessions_cleared"`
 			AuthCodesCleared      int64 `json:"auth_codes_cleared"`
 
-			ReferralFinanceTasks int64 `json:"referral_finance_tasks"`
+			PartnerFinanceTasks int64 `json:"partner_finance_tasks"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
@@ -161,7 +161,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 	if resp.Data.Status != "erased" || resp.Data.ProfilesCleared != 1 || resp.Data.MessagesCleared != 2 ||
 		resp.Data.AuthIdentitiesCleared != 1 || resp.Data.AuthSessionsCleared != 1 || resp.Data.AuthCodesCleared != 1 ||
-		resp.Data.ReferralFinanceTasks != 0 {
+		resp.Data.PartnerFinanceTasks != 0 {
 		t.Fatalf("bad erasure result: %+v", resp.Data)
 	}
 

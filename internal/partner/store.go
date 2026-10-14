@@ -658,6 +658,32 @@ CREATE INDEX idx_referral_applications_type_status
 `)
 			return err
 		},
+	}, {
+		ID: "013_canonical_partner_tables",
+		Up: func(ctx context.Context, tx *sql.Tx) error {
+			var legacyTables int
+			if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table' AND name='referrers'`).Scan(&legacyTables); err != nil {
+				return err
+			}
+			if legacyTables == 0 {
+				return nil
+			}
+			_, err := tx.ExecContext(ctx, `
+ALTER TABLE referrers RENAME TO partners;
+ALTER TABLE referral_attributions RENAME TO partner_attributions;
+ALTER TABLE referral_applications RENAME TO partner_applications;
+ALTER TABLE referral_admin_actions RENAME TO partner_admin_actions;
+ALTER TABLE referral_commissions RENAME TO partner_commissions;
+ALTER TABLE referral_commission_entries RENAME TO partner_commission_entries;
+ALTER TABLE commission_intents RENAME TO partner_commission_intake;
+ALTER TABLE commission_refund_intents RENAME TO partner_commission_refund_intake;
+ALTER TABLE commission_entry_refunds RENAME TO partner_commission_entry_refunds;
+ALTER TABLE referral_payouts RENAME TO partner_payouts;
+ALTER TABLE referral_payout_adjustments RENAME TO partner_payout_adjustments;
+ALTER TABLE finance_tasks RENAME TO partner_finance_tasks;
+`)
+			return err
+		},
 	}}
 }
 func newPartnerCode() (string, error) {
@@ -724,14 +750,14 @@ func (s *Store) createKOLPartner(ctx context.Context, userID string) (Referrer, 
 func (s *Store) ReferrerByUser(ctx context.Context, userID string) (Referrer, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT user_id,code,role,status,recruiter_id,created_at,updated_at
-FROM referrers WHERE user_id=?`, userID)
+FROM partners WHERE user_id=?`, userID)
 	return scanReferrer(row.Scan)
 }
 
 func (s *Store) ReferrerByCode(ctx context.Context, code string) (Referrer, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT user_id,code,role,status,recruiter_id,created_at,updated_at
-FROM referrers WHERE code=? AND status='active'`, strings.ToUpper(strings.TrimSpace(code)))
+FROM partners WHERE code=? AND status='active'`, strings.ToUpper(strings.TrimSpace(code)))
 	return scanReferrer(row.Scan)
 }
 
@@ -753,7 +779,7 @@ func (s *Store) Attribute(ctx context.Context, userID, code string) (Attribution
 	}
 	now := formatTime(s.nowFunc())
 	_, err = s.db.ExecContext(ctx, `
-INSERT INTO referral_attributions (user_id,referrer_id,code,referred_at)
+INSERT INTO partner_attributions (user_id,referrer_id,code,referred_at)
 VALUES (?,?,?,?)
 ON CONFLICT(user_id) DO NOTHING`,
 		userID, referrer.UserID, referrer.Code, now)
@@ -764,7 +790,7 @@ ON CONFLICT(user_id) DO NOTHING`,
 	var referred string
 	err = s.db.QueryRowContext(ctx, `
 SELECT user_id,referrer_id,code,referred_at
-FROM referral_attributions WHERE user_id=?`, userID).Scan(
+FROM partner_attributions WHERE user_id=?`, userID).Scan(
 		&item.UserID, &item.ReferrerID, &item.Code, &referred)
 	item.ReferredAt = parseTime(referred)
 	return item, err
@@ -775,7 +801,7 @@ func (s *Store) AttributionForUser(ctx context.Context, userID string) (Attribut
 	var referred string
 	err := s.db.QueryRowContext(ctx, `
 SELECT user_id,referrer_id,code,referred_at
-FROM referral_attributions WHERE user_id=?`, userID).Scan(
+FROM partner_attributions WHERE user_id=?`, userID).Scan(
 		&item.UserID, &item.ReferrerID, &item.Code, &referred)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Attribution{}, false, nil
@@ -812,7 +838,7 @@ SELECT id,payment_provider,payment_intent_id,business_order_id,product,buyer_use
        referrer_id,recruiter_id,amount_minor,currency,referrer_rate_bps,
        referrer_commission_minor,recruiter_rate_bps,recruiter_commission_minor,
        status,refunded_minor,created_at,updated_at,paid_at
-FROM referral_commissions
+FROM partner_commissions
 WHERE payment_provider=? AND payment_intent_id=?`, provider, paymentID)
 	return scanCommission(row.Scan)
 }
@@ -851,7 +877,7 @@ SELECT id,payment_provider,payment_intent_id,business_order_id,product,buyer_use
        referrer_id,recruiter_id,amount_minor,currency,referrer_rate_bps,
        referrer_commission_minor,recruiter_rate_bps,recruiter_commission_minor,
        status,refunded_minor,created_at,updated_at,paid_at
-FROM referral_commissions
+FROM partner_commissions
 WHERE referrer_id=? OR recruiter_id=?
 ORDER BY created_at DESC LIMIT ?`, referrerID, referrerID, limit)
 	if err != nil {
@@ -874,7 +900,7 @@ SELECT currency,
        COALESCE(SUM(amount_minor-refunded_minor),0),
        COALESCE(SUM(CASE WHEN status='pending' THEN amount_minor-refunded_minor ELSE 0 END),0),
        COALESCE(SUM(CASE WHEN status='paid' THEN amount_minor-refunded_minor ELSE 0 END),0)
-FROM referral_commission_entries
+FROM partner_commission_entries
 WHERE beneficiary_id=? AND beneficiary_role='kol'
 GROUP BY currency ORDER BY currency`, referrerID)
 	if err != nil {
@@ -888,7 +914,7 @@ GROUP BY currency ORDER BY currency`, referrerID)
 func (s *Store) CountAttributed(ctx context.Context, referrerID string) (int64, error) {
 	var n int64
 	err := s.db.QueryRowContext(ctx, `
-SELECT count(*) FROM referral_attributions WHERE referrer_id=?`, referrerID).Scan(&n)
+SELECT count(*) FROM partner_attributions WHERE referrer_id=?`, referrerID).Scan(&n)
 	return n, err
 }
 

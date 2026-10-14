@@ -112,7 +112,7 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 	outcome, err := h.runErasureSteps(r.Context(), user, tombstone, requestID)
 	if err != nil {
 		if errors.Is(err, partner.ErrReferralFinancialHold) {
-			httputil.RespondError(w, http.StatusConflict, "referral_financial_hold", "存在待结算提现，请先完成资金结算")
+			httputil.RespondError(w, http.StatusConflict, "partner_financial_hold", "存在待结算提现，请先完成资金结算")
 			return
 		}
 		slog.Error("account: erasure", "user_id", user.ID, "request_id", requestID, "err", err)
@@ -126,7 +126,7 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		"auth_sessions_cleared":   outcome.AuthResult.Sessions,
 		"auth_codes_cleared":      outcome.AuthResult.Codes,
 		"domains":                 outcome.Erased,
-		"referral_finance_tasks":  outcome.ReferralResult.FinanceTasks,
+		"partner_finance_tasks":   outcome.ReferralResult.FinanceTasks,
 	})
 }
 

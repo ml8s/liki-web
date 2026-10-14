@@ -52,7 +52,7 @@ func (s *Store) EnqueueCommissionRefund(ctx context.Context, event payment.Webho
 	now := formatTime(s.nowFunc())
 	id := string(event.Provider) + ":" + event.Data.PaymentID
 	res, err := s.db.ExecContext(ctx, `
-INSERT INTO commission_refund_intents
+INSERT INTO partner_commission_refund_intake
 (id,payment_provider,payment_intent_id,provider_refund_id,amount_minor,currency,
  status,attempts,run_at,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,0,?,?,?)
@@ -83,7 +83,7 @@ func (s *Store) claimCommissionRefund(ctx context.Context, now time.Time) (Commi
 	err = tx.QueryRowContext(ctx, `
 SELECT id,payment_provider,payment_intent_id,provider_refund_id,amount_minor,currency,
        status,attempts,run_at,skip_reason,last_error,created_at,updated_at
-FROM commission_refund_intents
+FROM partner_commission_refund_intake
 WHERE status=? AND run_at<=?
 ORDER BY run_at LIMIT 1`, string(IntakeQueued), formatTime(now)).Scan(
 		&item.ID, &provider, &paymentID, &refundID, &amount, &currency,
@@ -95,7 +95,7 @@ ORDER BY run_at LIMIT 1`, string(IntakeQueued), formatTime(now)).Scan(
 		return CommissionRefundIntake{}, err
 	}
 	res, err := tx.ExecContext(ctx, `
-UPDATE commission_refund_intents SET status=?,attempts=attempts+1,updated_at=?
+UPDATE partner_commission_refund_intake SET status=?,attempts=attempts+1,updated_at=?
 WHERE id=? AND status=?`, string(IntakeRunning), formatTime(now), item.ID, string(IntakeQueued))
 	if err != nil {
 		return CommissionRefundIntake{}, err
@@ -169,7 +169,7 @@ func (s *Store) applyCommissionRefund(ctx context.Context, item CommissionRefund
 
 	var applied int64
 	if err := tx.QueryRowContext(ctx, `
-SELECT COUNT(1) FROM commission_entry_refunds WHERE provider_refund_id=?`,
+SELECT COUNT(1) FROM partner_commission_entry_refunds WHERE provider_refund_id=?`,
 		item.ProviderRefundID).Scan(&applied); err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ SELECT COUNT(1) FROM commission_entry_refunds WHERE provider_refund_id=?`,
 	var currency, status string
 	err = tx.QueryRowContext(ctx, `
 SELECT id,amount_minor,refunded_minor,currency,status
-FROM referral_commissions
+FROM partner_commissions
 WHERE payment_provider=? AND payment_intent_id=?`,
 		item.Provider, item.PaymentID).Scan(
 		&commissionID, &saleAmount, &alreadyRefunded, &currency, &status)
@@ -211,7 +211,7 @@ WHERE payment_provider=? AND payment_intent_id=?`,
 	}
 	rows, err := tx.QueryContext(ctx, `
 SELECT id,COALESCE(payout_id,''),beneficiary_id,beneficiary_role,status,amount_minor,refunded_minor
-FROM referral_commission_entries
+FROM partner_commission_entries
 WHERE commission_id=? ORDER BY beneficiary_role`, commissionID)
 	if err != nil {
 		return err
@@ -254,7 +254,7 @@ WHERE commission_id=? ORDER BY beneficiary_role`, commissionID)
 			continue
 		}
 		if _, err := tx.ExecContext(ctx, `
-UPDATE referral_commission_entries
+UPDATE partner_commission_entries
 SET refunded_minor=refunded_minor+?,
     status=CASE
       WHEN status=? AND refunded_minor+?>=amount_minor THEN ?
@@ -267,7 +267,7 @@ WHERE id=?`,
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `
-INSERT INTO commission_entry_refunds
+INSERT INTO partner_commission_entry_refunds
 (id,entry_id,provider_refund_id,amount_minor,created_at)
 VALUES (?,?,?,?,?)`,
 			s.idFunc(), entry.id, item.ProviderRefundID, entry.delta,
@@ -289,7 +289,7 @@ VALUES (?,?,?,?,?)`,
 		sourceStatus = string(CommissionVoided)
 	}
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_commissions SET refunded_minor=?,status=?,updated_at=? WHERE id=?`,
+UPDATE partner_commissions SET refunded_minor=?,status=?,updated_at=? WHERE id=?`,
 		newSaleRefund, sourceStatus, formatTime(s.nowFunc()), commissionID); err != nil {
 		return err
 	}
@@ -315,7 +315,7 @@ UPDATE referral_commissions SET refunded_minor=?,status=?,updated_at=? WHERE id=
 func recalculatePayoutAfterRefundTx(ctx context.Context, tx *sql.Tx, payoutID string) error {
 	var status string
 	var before int64
-	if err := tx.QueryRowContext(ctx, `SELECT status,amount_minor FROM referral_payouts WHERE id=?`, payoutID).Scan(&status, &before); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT status,amount_minor FROM partner_payouts WHERE id=?`, payoutID).Scan(&status, &before); err != nil {
 		return err
 	}
 	if status != string(PayoutRequested) && status != string(PayoutApproved) {
@@ -325,18 +325,18 @@ func recalculatePayoutAfterRefundTx(ctx context.Context, tx *sql.Tx, payoutID st
 	var total int64
 	if err := tx.QueryRowContext(ctx, `
 SELECT COALESCE(SUM(amount_minor-refunded_minor),0),COALESCE(MAX(currency),'')
-FROM referral_commission_entries WHERE payout_id=?`, payoutID).Scan(&total, &currency); err != nil {
+FROM partner_commission_entries WHERE payout_id=?`, payoutID).Scan(&total, &currency); err != nil {
 		return err
 	}
 	now := formatTime(time.Now().UTC())
 	minimum := payoutMinimum(currency)
 	if total <= 0 || total < minimum {
 		if _, err := tx.ExecContext(ctx, `
-UPDATE referral_commission_entries SET payout_id=NULL,updated_at=? WHERE payout_id=?`, now, payoutID); err != nil {
+UPDATE partner_commission_entries SET payout_id=NULL,updated_at=? WHERE payout_id=?`, now, payoutID); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `
-UPDATE referral_payouts SET status=?,rejection_reason=?,updated_at=? WHERE id=?`,
+UPDATE partner_payouts SET status=?,rejection_reason=?,updated_at=? WHERE id=?`,
 			string(PayoutRejected), "payment.refunded", now, payoutID); err != nil {
 			return err
 		}
@@ -345,7 +345,7 @@ UPDATE referral_payouts SET status=?,rejection_reason=?,updated_at=? WHERE id=?`
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `
-INSERT INTO referral_payout_adjustments
+INSERT INTO partner_payout_adjustments
 (id,payout_id,before_minor,after_minor,reason,actor,created_at)
 VALUES (?,?,?,?,?,?,?)`,
 			fmt.Sprintf("adj-%s-%d", payoutID, time.Now().UnixNano()), payoutID, before, total,
@@ -358,11 +358,11 @@ VALUES (?,?,?,?,?,?,?)`,
 		return nil
 	}
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_payouts SET amount_minor=?,updated_at=? WHERE id=?`, total, now, payoutID); err != nil {
+UPDATE partner_payouts SET amount_minor=?,updated_at=? WHERE id=?`, total, now, payoutID); err != nil {
 		return err
 	}
 	_, err := tx.ExecContext(ctx, `
-INSERT INTO referral_payout_adjustments
+INSERT INTO partner_payout_adjustments
 (id,payout_id,before_minor,after_minor,reason,actor,created_at)
 VALUES (?,?,?,?,?,?,?)`,
 		fmt.Sprintf("adj-%s-%d", payoutID, time.Now().UnixNano()), payoutID, before, total, "payment.refunded", "system", now)
@@ -371,7 +371,7 @@ VALUES (?,?,?,?,?,?,?)`,
 
 func (s *Store) markCommissionRefundSucceeded(ctx context.Context, id string) error {
 	_, err := s.db.ExecContext(ctx, `
-UPDATE commission_refund_intents SET status=?,last_error=NULL,updated_at=? WHERE id=?`,
+UPDATE partner_commission_refund_intake SET status=?,last_error=NULL,updated_at=? WHERE id=?`,
 		string(IntakeSuccess), formatTime(s.nowFunc()), id)
 	return err
 }
@@ -380,21 +380,21 @@ func (s *Store) retryCommissionRefund(ctx context.Context, id string, attempt in
 	delays := []time.Duration{time.Minute, 5 * time.Minute, 15 * time.Minute, time.Hour, 4 * time.Hour}
 	runAt := s.nowFunc().Add(delays[min(attempt, len(delays)-1)])
 	_, err := s.db.ExecContext(ctx, `
-UPDATE commission_refund_intents SET status=?,run_at=?,last_error=?,updated_at=? WHERE id=?`,
+UPDATE partner_commission_refund_intake SET status=?,run_at=?,last_error=?,updated_at=? WHERE id=?`,
 		string(IntakeQueued), formatTime(runAt), failure.Error(), formatTime(s.nowFunc()), id)
 	return err
 }
 
 func (s *Store) skipCommissionRefund(ctx context.Context, id, reason string) error {
 	_, err := s.db.ExecContext(ctx, `
-UPDATE commission_refund_intents SET status=?,skip_reason=?,updated_at=? WHERE id=?`,
+UPDATE partner_commission_refund_intake SET status=?,skip_reason=?,updated_at=? WHERE id=?`,
 		string(IntakeSkipped), reason, formatTime(s.nowFunc()), id)
 	return err
 }
 
 func (s *Store) failCommissionRefund(ctx context.Context, id string, failure error) error {
 	_, err := s.db.ExecContext(ctx, `
-UPDATE commission_refund_intents SET status=?,last_error=?,updated_at=? WHERE id=?`,
+UPDATE partner_commission_refund_intake SET status=?,last_error=?,updated_at=? WHERE id=?`,
 		string(IntakeFailed), failure.Error(), formatTime(s.nowFunc()), id)
 	return err
 }
@@ -414,7 +414,7 @@ func (s *Store) ensureFinanceTaskTx(
 	}
 	now := formatTime(s.nowFunc())
 	_, err := tx.ExecContext(ctx, `
-INSERT INTO finance_tasks
+INSERT INTO partner_finance_tasks
 (id,type,provider,payment_intent_id,provider_refund_id,entry_id,
  beneficiary_id,beneficiary_role,amount_minor,currency,status,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)

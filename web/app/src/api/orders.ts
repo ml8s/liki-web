@@ -15,7 +15,7 @@ export interface ChatOrder {
 }
 
 export async function fetchChatOrders(): Promise<ChatOrder[]> {
-  const payload = await get<{ orders: ChatOrder[] }>('/api/chat/orders')
+  const payload = await get<{ orders: ChatOrder[] }>('/api/sales/orders')
   return payload.orders ?? []
 }
 
@@ -54,18 +54,18 @@ export interface SubscriptionPayment {
 }
 
 export async function fetchSubscriptions(): Promise<ChatSubscription[]> {
-  const payload = await get<{ subscriptions: ChatSubscription[] }>('/api/me/subscriptions')
+  const payload = await get<{ subscriptions: ChatSubscription[] }>('/api/sales/subscriptions')
   return payload.subscriptions ?? []
 }
 
 export async function fetchSubscriptionPayments(): Promise<SubscriptionPayment[]> {
-  const payload = await get<{ payments: SubscriptionPayment[] }>('/api/me/subscription-payments')
+  const payload = await get<{ payments: SubscriptionPayment[] }>('/api/sales/subscription-payments')
   return payload.payments ?? []
 }
 
 export async function setSubscriptionCancellation(subscriptionId: string, cancel: boolean): Promise<boolean> {
   const payload = cancel
-    ? await post<{ cancel_at_period_end: boolean }>(`/api/me/subscriptions/${subscriptionId}/cancellation`)
-    : await del<{ cancel_at_period_end: boolean }>(`/api/me/subscriptions/${subscriptionId}/cancellation`)
+    ? await post<{ cancel_at_period_end: boolean }>(`/api/sales/subscriptions/${subscriptionId}/cancellation`)
+    : await del<{ cancel_at_period_end: boolean }>(`/api/sales/subscriptions/${subscriptionId}/cancellation`)
   return payload.cancel_at_period_end
 }

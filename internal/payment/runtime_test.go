@@ -110,7 +110,7 @@ func newRuntimeTestDB(t *testing.T) *sql.DB {
 	for _, migrate := range []func(context.Context) error{
 		NewIntentStore(db).Migrate,
 		NewNotificationStore(db).Migrate,
-		NewFulfillmentTaskStore(db).Migrate,
+		NewPaymentCompletionTaskStore(db).Migrate,
 		NewPaymentEventStore(db).Migrate,
 	} {
 		if err := migrate(context.Background()); err != nil {
@@ -139,7 +139,7 @@ func newTestRuntime(t *testing.T) (*Runtime, *fakeGateway, *fakeFlow, *fakeSende
 		map[string]ProductFlow{"test-product": flow},
 		intents,
 		notifications,
-		NewFulfillmentTaskStore(db),
+		NewPaymentCompletionTaskStore(db),
 		NewPaymentEventStore(db),
 		sender,
 		RuntimeOptions{AdminEmail: "admin@example.com", BaseURL: "https://liki.hk"},
@@ -388,8 +388,8 @@ func TestRuntimeWebhookMarksPaidDispatchesOnceAndQueuesNotifications(t *testing.
 	if flow.onPaid != 0 {
 		t.Fatalf("OnPaid count before worker = %d, want 0", flow.onPaid)
 	}
-	if n, err := runtime.ProcessFulfillmentTasks(ctx, 10); err != nil || n != 1 {
-		t.Fatalf("ProcessFulfillmentTasks = %d, %v; want 1, nil", n, err)
+	if n, err := runtime.ProcessPaymentCompletionTasks(ctx, 10); err != nil || n != 1 {
+		t.Fatalf("ProcessPaymentCompletionTasks = %d, %v; want 1, nil", n, err)
 	}
 	if flow.onPaid != 1 {
 		t.Fatalf("OnPaid count = %d, want 1", flow.onPaid)
@@ -417,7 +417,7 @@ func TestRuntimeWebhookMarksPaidDispatchesOnceAndQueuesNotifications(t *testing.
 	if err := runtime.HandleWebhookEvent(ctx, raw, nil); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := runtime.ProcessFulfillmentTasks(ctx, 10); err != nil || n != 0 {
+	if n, err := runtime.ProcessPaymentCompletionTasks(ctx, 10); err != nil || n != 0 {
 		t.Fatalf("duplicate fulfillment process = %d, %v; want 0, nil", n, err)
 	}
 	if flow.onPaid != 1 {
@@ -509,8 +509,8 @@ func TestRuntimeReconcilePendingIntentMarksPaidOnce(t *testing.T) {
 	if gateway.fetchID != intent.ID {
 		t.Fatalf("fetched intent = %q, want %q", gateway.fetchID, intent.ID)
 	}
-	if n, processErr := runtime.ProcessFulfillmentTasks(ctx, 10); processErr != nil || n != 1 {
-		t.Fatalf("ProcessFulfillmentTasks = %d, %v; want 1, nil", n, processErr)
+	if n, processErr := runtime.ProcessPaymentCompletionTasks(ctx, 10); processErr != nil || n != 1 {
+		t.Fatalf("ProcessPaymentCompletionTasks = %d, %v; want 1, nil", n, processErr)
 	}
 	if flow.onPaid != 1 {
 		t.Fatalf("OnPaid count = %d, want 1", flow.onPaid)
@@ -621,16 +621,16 @@ func TestRuntimeReturnReconcilesCompletedProviderPayment(t *testing.T) {
 		t.Fatalf("return = %+v, %q", returned, location)
 	}
 
-	if _, processErr := runtime.ProcessFulfillmentTasks(ctx, 10); processErr != nil || flow.onPaid != 1 {
-		t.Fatalf("ProcessFulfillmentTasks = %d, %v; want 1, nil", flow.onPaid, processErr)
+	if _, processErr := runtime.ProcessPaymentCompletionTasks(ctx, 10); processErr != nil || flow.onPaid != 1 {
+		t.Fatalf("ProcessPaymentCompletionTasks = %d, %v; want 1, nil", flow.onPaid, processErr)
 	}
 }
 
-func TestFulfillmentObserverCannotFailProductFulfillment(t *testing.T) {
+func TestPaymentCompletionObserverCannotFailProductFulfillment(t *testing.T) {
 	ctx := context.Background()
 	runtime, gateway, flow, _, _, _ := newTestRuntime(t)
 	observed := 0
-	runtime.SetFulfillmentObserver(func(ctx context.Context, intent PaymentIntent) {
+	runtime.SetPaymentCompletionObserver(func(ctx context.Context, intent PaymentIntent) {
 		observed++
 		if intent.Provider != ProviderXunhu {
 			t.Errorf("provider = %q, want xunhu", intent.Provider)
@@ -647,14 +647,14 @@ func TestFulfillmentObserverCannotFailProductFulfillment(t *testing.T) {
 	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := runtime.ProcessFulfillmentTasks(ctx, 10); err != nil || n != 1 {
+	if n, err := runtime.ProcessPaymentCompletionTasks(ctx, 10); err != nil || n != 1 {
 		t.Fatalf("process = %d, %v", n, err)
 	}
 	if flow.onPaid != 1 || observed != 1 {
 		t.Fatalf("flow/observer = %d/%d, want 1/1", flow.onPaid, observed)
 	}
-	task, ok, err := runtime.GetFulfillmentStatus(ctx, intent.ID)
-	if err != nil || !ok || task.Status != FulfillmentSucceeded {
+	task, ok, err := runtime.GetPaymentCompletionStatus(ctx, intent.ID)
+	if err != nil || !ok || task.Status != PaymentCompletionSucceeded {
 		t.Fatalf("task = %+v, %v, %v", task, ok, err)
 	}
 }
@@ -681,10 +681,10 @@ func TestRefundWebhookMarksIntentAndNotifiesObserver(t *testing.T) {
 	if err := runtime.HandleWebhookEvent(ctx, []byte("paid"), nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := runtime.ProcessFulfillmentTasks(ctx, 10); err != nil {
+	if _, err := runtime.ProcessPaymentCompletionTasks(ctx, 10); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := runtime.ProcessFulfillmentTasks(ctx, 10); err != nil {
+	if _, err := runtime.ProcessPaymentCompletionTasks(ctx, 10); err != nil {
 		t.Fatal(err)
 	}
 

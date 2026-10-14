@@ -434,7 +434,7 @@ func main() {
 
 	intents := payment.NewIntentStore(platformDB)
 	notifications := payment.NewNotificationStore(platformDB)
-	fulfillments := payment.NewFulfillmentTaskStore(platformDB)
+	fulfillments := payment.NewPaymentCompletionTaskStore(platformDB)
 	events := payment.NewPaymentEventStore(platformDB)
 	if err := intents.Migrate(ctx); err != nil {
 		slog.Error("init payment intents", "err", err)
@@ -489,7 +489,7 @@ func main() {
 		BaseURL:    cfg.PublicBaseURL,
 		AdminEmail: cfg.AdminEmail,
 	})
-	paymentRuntime.SetFulfillmentObserver(func(ctx context.Context, intent payment.PaymentIntent) {
+	paymentRuntime.SetPaymentCompletionObserver(func(ctx context.Context, intent payment.PaymentIntent) {
 		sale := payment.CommissionablePayment{
 			ID: intent.ID, BusinessOrderID: intent.BusinessOrderID, UserID: intent.UserID,
 			Product: intent.Product, Provider: intent.Provider,
@@ -679,7 +679,7 @@ func main() {
 		paymentRuntime.StartNotificationWorker(ctx, 30*time.Second)
 	})
 	workers.Go(func() {
-		paymentRuntime.StartFulfillmentWorker(ctx, 5*time.Second)
+		paymentRuntime.StartPaymentCompletionWorker(ctx, 5*time.Second)
 	})
 	workers.Go(func() {
 		paymentRuntime.StartReconciliationWorker(ctx, time.Minute)

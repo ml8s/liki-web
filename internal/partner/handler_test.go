@@ -19,7 +19,7 @@ func testUser(id string) auth.User {
 }
 
 func authedRequest(user auth.User) *http.Request {
-	r := httptest.NewRequest(http.MethodPost, "/api/kol/application", strings.NewReader(`{"note":"metaphysics creator"}`))
+	r := httptest.NewRequest(http.MethodPost, "/api/partner-portal/kol/application", strings.NewReader(`{"note":"metaphysics creator"}`))
 	return r.WithContext(auth.WithAuth(r.Context(), user, auth.AuthSession{ID: "session"}, "token"))
 }
 
@@ -102,7 +102,7 @@ func TestScoutApplicationStateAllowsReapplicationAfterRejection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/scout/application", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/partner-portal/scout/application", nil)
 	req = req.WithContext(auth.WithAuth(req.Context(), testUser("applicant"), auth.AuthSession{ID: "session"}, "token"))
 	rec := httptest.NewRecorder()
 	handler.HandleGetScoutApplication(rec, req)

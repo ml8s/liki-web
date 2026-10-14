@@ -86,11 +86,11 @@ func TestRegisterRoutes_Referral(t *testing.T) {
 
 	// The handler reads auth context and returns unauthorized for a test
 	// request. A 404 would mean the public partner routes were never mounted.
-	r := httptest.NewRequest(http.MethodGet, "/api/scout/application", nil)
+	r := httptest.NewRequest(http.MethodGet, "/api/partner-portal/scout/application", nil)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, r)
 	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("GET /api/scout/application: status = %d, want 401", w.Code)
+		t.Fatalf("GET /api/partner-portal/scout/application: status = %d, want 401", w.Code)
 	}
 }
 

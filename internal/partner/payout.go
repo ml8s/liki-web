@@ -49,7 +49,7 @@ func (s *Store) CreatePayoutForRole(ctx context.Context, userID string, role Par
 	var referrerID string
 	err = tx.QueryRowContext(ctx, `
 SELECT r.user_id
-FROM referrers r
+FROM partners r
 WHERE r.user_id=? AND r.status='active'
   AND EXISTS (SELECT 1 FROM partner_roles pr WHERE pr.user_id=r.user_id AND pr.role=? AND pr.status IN ('active','retired'))`,
 		userID, string(role)).Scan(&referrerID)
@@ -62,7 +62,7 @@ WHERE r.user_id=? AND r.status='active'
 
 	rows, err := tx.QueryContext(ctx, `
 SELECT currency,COALESCE(SUM(amount_minor-refunded_minor),0)
-FROM referral_commission_entries
+FROM partner_commission_entries
 WHERE beneficiary_id=? AND beneficiary_role=? AND status=? AND payout_id IS NULL
       AND amount_minor>refunded_minor
 GROUP BY currency`, userID, string(role), string(CommissionPending))
@@ -114,7 +114,7 @@ GROUP BY currency`, userID, string(role), string(CommissionPending))
 		Status: PayoutRequested, CreatedAt: parseTime(now), UpdatedAt: parseTime(now),
 	}
 	if _, err := tx.ExecContext(ctx, `
-INSERT INTO referral_payouts
+INSERT INTO partner_payouts
 (id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
 		payout.ID, payout.ReferrerID, string(payout.Role), payout.AmountMinor,
@@ -123,7 +123,7 @@ VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
 		return Payout{}, err
 	}
 	res, err := tx.ExecContext(ctx, `
-UPDATE referral_commission_entries SET payout_id=?,updated_at=?
+UPDATE partner_commission_entries SET payout_id=?,updated_at=?
 WHERE beneficiary_id=? AND beneficiary_role=? AND status=? AND payout_id IS NULL`,
 		payout.ID, now, userID, string(role), string(CommissionPending))
 	if err != nil {
@@ -148,7 +148,7 @@ func (s *Store) PayoutByID(ctx context.Context, id string) (Payout, error) {
 SELECT id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,
        method,account,status,COALESCE(payment_reference,''),COALESCE(rejection_reason,''),
        created_at,updated_at,paid_at
-FROM referral_payouts WHERE id=?`, id)
+FROM partner_payouts WHERE id=?`, id)
 	return s.scanPayout(row.Scan)
 }
 
@@ -160,7 +160,7 @@ func (s *Store) ListPayoutsForUser(ctx context.Context, userID string, limit int
 SELECT id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,
        method,account,status,COALESCE(payment_reference,''),COALESCE(rejection_reason,''),
        created_at,updated_at,paid_at
-FROM referral_payouts WHERE referrer_id=? ORDER BY created_at DESC LIMIT ?`, userID, limit)
+FROM partner_payouts WHERE referrer_id=? ORDER BY created_at DESC LIMIT ?`, userID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (s *Store) ListPayoutsForRole(ctx context.Context, userID string, role Part
 SELECT id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,
        method,account,status,COALESCE(payment_reference,''),COALESCE(rejection_reason,''),
        created_at,updated_at,paid_at
-FROM referral_payouts
+FROM partner_payouts
 WHERE referrer_id=? AND beneficiary_role=?
 ORDER BY created_at DESC LIMIT ?`, userID, string(normalizeRole(role)), limit)
 	if err != nil {
@@ -210,7 +210,7 @@ func (s *Store) ListPayouts(ctx context.Context, status PayoutStatus, limit int)
 SELECT id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,
        method,account,status,COALESCE(payment_reference,''),COALESCE(rejection_reason,''),
        created_at,updated_at,paid_at
-FROM referral_payouts`
+FROM partner_payouts`
 	args := []any{}
 	if status != "" {
 		query += ` WHERE status=?`
@@ -245,7 +245,7 @@ func (s *Store) DecidePayout(ctx context.Context, payoutID, actor string, approv
 	defer func() { _ = tx.Rollback() }()
 
 	var status string
-	err = tx.QueryRowContext(ctx, `SELECT status FROM referral_payouts WHERE id=?`, payoutID).Scan(&status)
+	err = tx.QueryRowContext(ctx, `SELECT status FROM partner_payouts WHERE id=?`, payoutID).Scan(&status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrPayoutNotFound
 	}
@@ -261,14 +261,14 @@ func (s *Store) DecidePayout(ctx context.Context, payoutID, actor string, approv
 		newStatus = PayoutApproved
 	} else {
 		if _, err := tx.ExecContext(ctx, `
-UPDATE referral_commission_entries SET payout_id=NULL,updated_at=?
+UPDATE partner_commission_entries SET payout_id=NULL,updated_at=?
 WHERE payout_id=? AND status=?`, now, payoutID, string(CommissionPending)); err != nil {
 			return err
 		}
 	}
 	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(newStatus)})
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_payouts SET status=?,rejection_reason=?,updated_at=? WHERE id=?`,
+UPDATE partner_payouts SET status=?,rejection_reason=?,updated_at=? WHERE id=?`,
 		string(newStatus), reason, now, payoutID); err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (s *Store) MarkPayoutPaid(ctx context.Context, payoutID, actor, paymentRefe
 	defer func() { _ = tx.Rollback() }()
 
 	var status string
-	err = tx.QueryRowContext(ctx, `SELECT status FROM referral_payouts WHERE id=?`, payoutID).Scan(&status)
+	err = tx.QueryRowContext(ctx, `SELECT status FROM partner_payouts WHERE id=?`, payoutID).Scan(&status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrPayoutNotFound
 	}
@@ -307,13 +307,13 @@ func (s *Store) MarkPayoutPaid(ctx context.Context, payoutID, actor, paymentRefe
 	now := formatTime(s.nowFunc())
 	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(PayoutPaid)})
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_payouts
+UPDATE partner_payouts
 SET status=?,payment_reference=?,paid_at=?,updated_at=? WHERE id=?`,
 		string(PayoutPaid), paymentReference, now, now, payoutID); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_commission_entries SET status=?,paid_at=?,updated_at=?
+UPDATE partner_commission_entries SET status=?,paid_at=?,updated_at=?
 WHERE payout_id=? AND status=?`,
 		string(CommissionPaid), now, now, payoutID, string(CommissionPending)); err != nil {
 		return err
@@ -354,7 +354,7 @@ func (s *Store) scanPayout(scan func(dest ...any) error) (Payout, error) {
 
 func recordReferralActionTx(ctx context.Context, tx *sql.Tx, id, actor, action, targetType, targetID, before, after, reason string) error {
 	_, err := tx.ExecContext(ctx, `
-INSERT INTO referral_admin_actions
+INSERT INTO partner_admin_actions
 (id,actor,action,target_type,target_id,before,after,reason,created_at)
 VALUES (?,?,?,?,?,?,?,?,?)`,
 		id, actor, action, targetType, targetID, before, string(after), reason, formatTime(time.Now().UTC()))
@@ -371,7 +371,7 @@ func (s *Store) RevealPayoutAccount(ctx context.Context, payoutID, actor, reason
 		return "", errors.New("partner: actor and reason are required")
 	}
 	var sealed string
-	err := s.db.QueryRowContext(ctx, `SELECT account FROM referral_payouts WHERE id=?`, payoutID).Scan(&sealed)
+	err := s.db.QueryRowContext(ctx, `SELECT account FROM partner_payouts WHERE id=?`, payoutID).Scan(&sealed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", ErrPayoutNotFound
 	}

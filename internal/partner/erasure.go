@@ -30,7 +30,7 @@ func (s *Store) EraseUser(ctx context.Context, userID string) (ErasureResult, er
 	defer func() { _ = tx.Rollback() }()
 
 	var partnerCount int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(1) FROM referrers WHERE user_id=?`, userID).Scan(&partnerCount); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(1) FROM partners WHERE user_id=?`, userID).Scan(&partnerCount); err != nil {
 		return ErasureResult{}, err
 	}
 	if partnerCount == 0 {
@@ -39,7 +39,7 @@ func (s *Store) EraseUser(ctx context.Context, userID string) (ErasureResult, er
 
 	var activePayouts int
 	if err := tx.QueryRowContext(ctx, `
-SELECT COUNT(1) FROM referral_payouts
+SELECT COUNT(1) FROM partner_payouts
 WHERE referrer_id=? AND status IN (?,?)`,
 		userID, string(PayoutRequested), string(PayoutApproved)).Scan(&activePayouts); err != nil {
 		return ErasureResult{}, err
@@ -51,14 +51,14 @@ WHERE referrer_id=? AND status IN (?,?)`,
 	now := formatTime(s.nowFunc())
 	erasureRef := "account-erasure"
 	erasedPayouts, err := eraseCount(tx.ExecContext(ctx, `
-UPDATE referral_payouts SET account='erased',updated_at=?
+UPDATE partner_payouts SET account='erased',updated_at=?
 WHERE referrer_id=? AND account!='erased'`, now, userID))
 	if err != nil {
 		return ErasureResult{}, err
 	}
 
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referrers SET status='frozen',code=?,updated_at=?
+UPDATE partners SET status='frozen',code=?,updated_at=?
 WHERE user_id=?`, "erased-"+s.idFunc(), now, userID); err != nil {
 		return ErasureResult{}, err
 	}
@@ -68,21 +68,21 @@ WHERE user_id=? AND status='active'`, now, now, userID); err != nil {
 		return ErasureResult{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_applications
+UPDATE partner_applications
 SET status=?,reviewer_id='system',decision_reason='account erasure',note='',reviewed_at=?,updated_at=?
 WHERE user_id=? AND status=?`,
 		string(ApplicationRejected), now, now, userID, string(ApplicationPending)); err != nil {
 		return ErasureResult{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_applications SET note='',updated_at=?
+UPDATE partner_applications SET note='',updated_at=?
 WHERE user_id=?`, now, userID); err != nil {
 		return ErasureResult{}, err
 	}
 
 	rows, err := tx.QueryContext(ctx, `
 SELECT id,beneficiary_role,amount_minor-refunded_minor,currency
-FROM referral_commission_entries
+FROM partner_commission_entries
 WHERE beneficiary_id=? AND status=? AND amount_minor>refunded_minor`, userID, string(CommissionPending))
 	if err != nil {
 		return ErasureResult{}, err
@@ -111,7 +111,7 @@ WHERE beneficiary_id=? AND status=? AND amount_minor>refunded_minor`, userID, st
 	var createdTasks int64
 	for _, item := range reviews {
 		if _, err := tx.ExecContext(ctx, `
-INSERT INTO finance_tasks
+INSERT INTO partner_finance_tasks
 (id,type,provider,payment_intent_id,provider_refund_id,entry_id,
  beneficiary_id,beneficiary_role,amount_minor,currency,status,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)

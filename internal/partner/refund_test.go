@@ -53,7 +53,7 @@ func TestPartialRefundAdjustsCommissionLedger(t *testing.T) {
 	var refunded int64
 	var status string
 	if err := store.db.QueryRowContext(ctx, `
-SELECT refunded_minor,status FROM referral_commission_entries WHERE id=?`, commission.ID+":kol").Scan(&refunded, &status); err != nil {
+SELECT refunded_minor,status FROM partner_commission_entries WHERE id=?`, commission.ID+":kol").Scan(&refunded, &status); err != nil {
 		t.Fatal(err)
 	}
 	if refunded != 2000 || status != string(CommissionPending) {
@@ -80,7 +80,7 @@ func TestFullRefundVoidsCommissionEntry(t *testing.T) {
 	}
 	var status string
 	if err := store.db.QueryRowContext(ctx, `
-SELECT status FROM referral_commission_entries WHERE id=?`, commission.ID+":kol").Scan(&status); err != nil {
+SELECT status FROM partner_commission_entries WHERE id=?`, commission.ID+":kol").Scan(&status); err != nil {
 		t.Fatal(err)
 	}
 	if status != string(CommissionVoided) {
@@ -118,7 +118,7 @@ func TestRefundDoesNotChangePaidLedgerAutomatically(t *testing.T) {
 	var status string
 	var refunded int64
 	if err := store.db.QueryRowContext(ctx, `
-SELECT status,refunded_minor FROM referral_commission_entries WHERE id=?`,
+SELECT status,refunded_minor FROM partner_commission_entries WHERE id=?`,
 		commission.ID+":kol").Scan(&status, &refunded); err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestRefundRejectsLockedPayoutButPreservesRequestedAmount(t *testing.T) {
 	}
 	var before, after int64
 	if err := store.db.QueryRowContext(ctx, `
-SELECT before_minor,after_minor FROM referral_payout_adjustments WHERE payout_id=?`, payout.ID).Scan(&before, &after); err != nil {
+SELECT before_minor,after_minor FROM partner_payout_adjustments WHERE payout_id=?`, payout.ID).Scan(&before, &after); err != nil {
 		t.Fatal(err)
 	}
 	if before != 5000 || after != 0 {
@@ -176,7 +176,7 @@ SELECT before_minor,after_minor FROM referral_payout_adjustments WHERE payout_id
 	}
 	var allocations int64
 	if err := store.db.QueryRowContext(ctx, `
-SELECT COUNT(1) FROM commission_entry_refunds WHERE provider_refund_id='refund-locked'`).Scan(&allocations); err != nil {
+SELECT COUNT(1) FROM partner_commission_entry_refunds WHERE provider_refund_id='refund-locked'`).Scan(&allocations); err != nil {
 		t.Fatal(err)
 	}
 	if allocations != 1 {
@@ -196,7 +196,7 @@ func TestRecoverCommissionRefundsResumesRunning(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 模拟进程在 claim 后、apply 前崩溃：intake 卡在 running
-	if _, err := store.db.ExecContext(ctx, `UPDATE commission_refund_intents SET status='running'`); err != nil {
+	if _, err := store.db.ExecContext(ctx, `UPDATE partner_commission_refund_intake SET status='running'`); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.recoverCommissionRefunds(ctx); err != nil {

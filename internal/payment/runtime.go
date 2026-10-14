@@ -112,10 +112,10 @@ type RuntimeOptions struct {
 	AdminEmail string
 }
 
-// FulfillmentObserver is a non-critical notification emitted after a product
+// PaymentCompletionObserver is a non-critical notification emitted after a product
 // flow's idempotent OnPaid succeeds and the fulfillment task is terminal.
 // Observers must be idempotent and must not block or fail product fulfillment.
-type FulfillmentObserver func(ctx context.Context, intent PaymentIntent)
+type PaymentCompletionObserver func(ctx context.Context, intent PaymentIntent)
 
 // SubscriptionEventProcessor owns the recurring-payment lifecycle. It is called
 // before intent lookup so provider subscription events cannot be mistaken for
@@ -129,13 +129,13 @@ type Runtime struct {
 	flows                 map[string]ProductFlow
 	intents               *IntentStore
 	notifications         *NotificationStore
-	fulfillments          *FulfillmentTaskStore
+	fulfillments          *PaymentCompletionTaskStore
 	events                *PaymentEventStore
 	routePolicy           ProviderRoutePolicy
 	sender                EmailSender
 	adminEmail            string
 	baseURL               string
-	fulfillmentObserver   FulfillmentObserver
+	fulfillmentObserver   PaymentCompletionObserver
 	refundObserver        func(ctx context.Context, event WebhookEvent, intent PaymentIntent) error
 	subscriptionProcessor SubscriptionEventProcessor
 }
@@ -145,7 +145,7 @@ func NewRuntime(
 	flows map[string]ProductFlow,
 	intents *IntentStore,
 	notifications *NotificationStore,
-	fulfillments *FulfillmentTaskStore,
+	fulfillments *PaymentCompletionTaskStore,
 	events *PaymentEventStore,
 	sender EmailSender,
 	options RuntimeOptions,
@@ -164,7 +164,7 @@ func NewRuntime(
 	}
 }
 
-func (r *Runtime) SetFulfillmentObserver(observer FulfillmentObserver) {
+func (r *Runtime) SetPaymentCompletionObserver(observer PaymentCompletionObserver) {
 	r.fulfillmentObserver = observer
 }
 
@@ -472,16 +472,16 @@ func (r *Runtime) availableProviders() []Provider {
 	return providers
 }
 
-// ProcessFulfillmentTasks executes at most limit queued tasks. Claiming marks a
+// ProcessPaymentCompletionTasks executes at most limit queued tasks. Claiming marks a
 // task running before OnPaid starts; product flows must be idempotent.
-func (r *Runtime) ProcessFulfillmentTasks(ctx context.Context, limit int) (int, error) {
+func (r *Runtime) ProcessPaymentCompletionTasks(ctx context.Context, limit int) (int, error) {
 	if limit <= 0 {
 		limit = 1
 	}
 	processed := 0
 	for processed < limit {
 		task, err := r.fulfillments.ClaimNext(ctx, time.Now().UTC())
-		if errors.Is(err, ErrNoRunnableFulfillment) {
+		if errors.Is(err, ErrNoRunnablePaymentCompletion) {
 			return processed, nil
 		}
 		if err != nil {
@@ -526,7 +526,7 @@ func (r *Runtime) ProcessFulfillmentTasks(ctx context.Context, limit int) (int, 
 	return processed, nil
 }
 
-func (r *Runtime) StartFulfillmentWorker(ctx context.Context, interval time.Duration) {
+func (r *Runtime) StartPaymentCompletionWorker(ctx context.Context, interval time.Duration) {
 	if interval <= 0 {
 		interval = 5 * time.Second
 	}
@@ -540,7 +540,7 @@ func (r *Runtime) StartFulfillmentWorker(ctx context.Context, interval time.Dura
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if _, err := r.ProcessFulfillmentTasks(ctx, 20); err != nil {
+			if _, err := r.ProcessPaymentCompletionTasks(ctx, 20); err != nil {
 				slog.Error("payment: fulfillment worker", "err", err)
 			}
 		}
@@ -609,7 +609,7 @@ func (r *Runtime) RunRetention(ctx context.Context, pendingAfter, sentNotificati
 	return intents, notifications, nil
 }
 
-func (r *Runtime) GetFulfillmentStatus(ctx context.Context, intentID string) (FulfillmentTask, bool, error) {
+func (r *Runtime) GetPaymentCompletionStatus(ctx context.Context, intentID string) (PaymentCompletionTask, bool, error) {
 	return r.fulfillments.GetByIntent(ctx, intentID)
 }
 

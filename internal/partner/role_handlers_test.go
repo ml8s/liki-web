@@ -70,14 +70,14 @@ func TestPartnerHTTPJourneysStayRoleScoped(t *testing.T) {
 
 	// KOL sees only its own ledger balance and can request its own payout.
 	rec := httptest.NewRecorder()
-	handler.HandleKOLCommissions(rec, roleAPIRequest(kolUser, http.MethodGet, "/api/kol/commissions", ""))
+	handler.HandleKOLCommissions(rec, roleAPIRequest(kolUser, http.MethodGet, "/api/partner-portal/kol/commissions", ""))
 	data := decodeAPI(t, rec)
 	balances, _ := data["balances"].([]any)
 	if len(balances) != 1 {
 		t.Fatalf("kol balances=%v", data["balances"])
 	}
 	rec = httptest.NewRecorder()
-	handler.HandleCreateKOLPayout(rec, roleAPIRequest(kolUser, http.MethodPost, "/api/kol/payouts", `{"method":"alipay","account":"kol@example.com"}`))
+	handler.HandleCreateKOLPayout(rec, roleAPIRequest(kolUser, http.MethodPost, "/api/partner-portal/kol/payouts", `{"method":"alipay","account":"kol@example.com"}`))
 	data = decodeAPI(t, rec)
 	payout, _ := data["payout"].(map[string]any)
 	if payout["role"] != string(RoleKOL) || payout["amount_minor"] != float64(25000) || payout["account"] != "k***@example.com" {
@@ -86,14 +86,14 @@ func TestPartnerHTTPJourneysStayRoleScoped(t *testing.T) {
 
 	// Scout sees its own channel balance and can request an independent payout.
 	rec = httptest.NewRecorder()
-	handler.HandleScoutCommissions(rec, roleAPIRequest(scoutUser, http.MethodGet, "/api/scout/commissions", ""))
+	handler.HandleScoutCommissions(rec, roleAPIRequest(scoutUser, http.MethodGet, "/api/partner-portal/scout/commissions", ""))
 	data = decodeAPI(t, rec)
 	balances, _ = data["balances"].([]any)
 	if len(balances) != 1 {
 		t.Fatalf("scout balances=%v", data["balances"])
 	}
 	rec = httptest.NewRecorder()
-	handler.HandleCreateScoutPayout(rec, roleAPIRequest(scoutUser, http.MethodPost, "/api/scout/payouts", `{"method":"paypal","account":"scout@example.com"}`))
+	handler.HandleCreateScoutPayout(rec, roleAPIRequest(scoutUser, http.MethodPost, "/api/partner-portal/scout/payouts", `{"method":"paypal","account":"scout@example.com"}`))
 	data = decodeAPI(t, rec)
 	payout, _ = data["payout"].(map[string]any)
 	if payout["role"] != string(RoleScout) || payout["amount_minor"] != float64(10000) || payout["account"] != "s***@example.com" {
@@ -103,12 +103,12 @@ func TestPartnerHTTPJourneysStayRoleScoped(t *testing.T) {
 	// A request across the role boundary is treated as nonexistent, not as a
 	// recognized role error, so neither surface advertises the other.
 	rec = httptest.NewRecorder()
-	handler.HandleKOLSession(rec, roleAPIRequest(scoutUser, http.MethodGet, "/api/kol/session", ""))
+	handler.HandleKOLSession(rec, roleAPIRequest(scoutUser, http.MethodGet, "/api/partner-portal/kol/session", ""))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("scout -> kol API status=%d body=%s", rec.Code, rec.Body.String())
 	}
 	rec = httptest.NewRecorder()
-	handler.HandleScoutSession(rec, roleAPIRequest(kolUser, http.MethodGet, "/api/scout/session", ""))
+	handler.HandleScoutSession(rec, roleAPIRequest(kolUser, http.MethodGet, "/api/partner-portal/scout/session", ""))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("kol -> scout API status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -123,7 +123,7 @@ func TestRoleScopedHandlerRejectsOtherRole(t *testing.T) {
 	}
 	handler := NewHandler(store, nil, false)
 	user := auth.User{ID: kol.UserID, Email: "kol@example.com", Status: auth.UserActive}
-	request := httptest.NewRequest(http.MethodGet, "/api/scout/session", nil).WithContext(auth.WithAuth(ctx, user, auth.AuthSession{}, ""))
+	request := httptest.NewRequest(http.MethodGet, "/api/partner-portal/scout/session", nil).WithContext(auth.WithAuth(ctx, user, auth.AuthSession{}, ""))
 	recorder := httptest.NewRecorder()
 	called := false
 	handler.requireScout(func(http.ResponseWriter, *http.Request) { called = true })(recorder, request)

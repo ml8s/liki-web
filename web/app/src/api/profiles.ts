@@ -41,26 +41,26 @@ export interface ProfileListResult {
 export function fetchProfiles(cursor?: string): Promise<ProfileListResult> {
   const query = new URLSearchParams({ limit: '50' })
   if (cursor) query.set('cursor', cursor)
-  return get<ProfileListResult>(`/api/profiles?${query.toString()}`)
+  return get<ProfileListResult>(`/api/birth-profiles?${query.toString()}`)
 }
 
 export function fetchProfile(id: string): Promise<Profile> {
-  return get<Profile>(`/api/profiles/${id}`)
+  return get<Profile>(`/api/birth-profiles/${id}`)
 }
 
 export function createProfile(input: ProfileInput): Promise<Profile> {
-  return post<Profile>('/api/profiles', input)
+  return post<Profile>('/api/birth-profiles', input)
 }
 
 export function updateProfile(id: string, expectedVersion: number, input: ProfileInput): Promise<Profile> {
-  return request<Profile>(`/api/profiles/${id}`, {
+  return request<Profile>(`/api/birth-profiles/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ expected_version: expectedVersion, ...input }),
   })
 }
 
 export function deleteProfile(id: string): Promise<{ status: string }> {
-  return request<{ status: string }>(`/api/profiles/${id}`, { method: 'DELETE' })
+  return request<{ status: string }>(`/api/birth-profiles/${id}`, { method: 'DELETE' })
 }
 
 export function birthSummary(profile: Profile): string {

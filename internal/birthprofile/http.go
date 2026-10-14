@@ -29,11 +29,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 	if limit == nil {
 		limit = func(next http.HandlerFunc) http.HandlerFunc { return next }
 	}
-	mux.HandleFunc("POST /api/profiles", h.requireUser(limit(h.HandleCreate)))
-	mux.HandleFunc("GET /api/profiles", h.requireUser(h.HandleList))
-	mux.HandleFunc("GET /api/profiles/{id}", h.requireUser(h.HandleGet))
-	mux.HandleFunc("PATCH /api/profiles/{id}", h.requireUser(limit(h.HandleUpdate)))
-	mux.HandleFunc("DELETE /api/profiles/{id}", h.requireUser(limit(h.HandleDelete)))
+	mux.HandleFunc("POST /api/birth-profiles", h.requireUser(limit(h.HandleCreate)))
+	mux.HandleFunc("GET /api/birth-profiles", h.requireUser(h.HandleList))
+	mux.HandleFunc("GET /api/birth-profiles/{id}", h.requireUser(h.HandleGet))
+	mux.HandleFunc("PATCH /api/birth-profiles/{id}", h.requireUser(limit(h.HandleUpdate)))
+	mux.HandleFunc("DELETE /api/birth-profiles/{id}", h.requireUser(limit(h.HandleDelete)))
 }
 
 type createRequest struct {

@@ -37,7 +37,7 @@ SELECT currency,
        COALESCE(SUM(amount_minor-refunded_minor),0),
        COALESCE(SUM(CASE WHEN status='pending' THEN amount_minor-refunded_minor ELSE 0 END),0),
        COALESCE(SUM(CASE WHEN status='paid' THEN amount_minor-refunded_minor ELSE 0 END),0)
-FROM referral_commission_entries
+FROM partner_commission_entries
 WHERE beneficiary_id=? AND beneficiary_role=?
 GROUP BY currency
 ORDER BY currency`, userID, string(role))

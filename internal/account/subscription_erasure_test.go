@@ -26,7 +26,7 @@ func TestErasureAnonymizesSubscriptionContact(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`
-UPDATE chat_subscriptions
+UPDATE sales_subscriptions
 SET provider_subscription_id='sub_1', status='active'
 WHERE id=?`, pending.ID); err != nil {
 		t.Fatal(err)
@@ -34,7 +34,7 @@ WHERE id=?`, pending.ID); err != nil {
 	paymentEvent := "not-used"
 	_ = paymentEvent
 	if _, err := db.Exec(`
-INSERT INTO chat_subscription_payments
+INSERT INTO sales_subscription_payments
 (id,subscription_id,user_id,product_id,provider,provider_payment_id,amount_minor_units,currency_code,status,created_at,updated_at)
 VALUES ('payment-1',?,'user-1','liki-chat','dodo','pay_1',1990,'USD','paid','2026-10-13T00:00:00Z','2026-10-13T00:00:00Z')`,
 		pending.ID); err != nil {
@@ -53,7 +53,7 @@ VALUES ('payment-1',?,'user-1','liki-chat','dodo','pay_1',1990,'USD','paid','202
 		t.Fatalf("cleared = %d, want 1", cleared)
 	}
 	var email string
-	if err := db.QueryRow(`SELECT email FROM chat_subscriptions WHERE id=?`, pending.ID).Scan(&email); err != nil {
+	if err := db.QueryRow(`SELECT email FROM sales_subscriptions WHERE id=?`, pending.ID).Scan(&email); err != nil {
 		t.Fatal(err)
 	}
 	if email != "erased-user@example.invalid" {

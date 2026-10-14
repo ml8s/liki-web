@@ -86,7 +86,7 @@ func (s *Store) EnqueueCommissionPayment(ctx context.Context, sale payment.Commi
 	now := formatTime(s.nowFunc())
 	id := s.idFunc()
 	_, err := s.db.ExecContext(ctx, `
-INSERT INTO commission_intents
+INSERT INTO partner_commission_intake
 (id,payment_provider,payment_intent_id,business_order_id,product,buyer_user_id,
  amount_minor,currency,status,skip_reason,attempts,run_at,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?,?)
@@ -115,7 +115,7 @@ func (s *Store) ReconcileSuccessfulPayments(ctx context.Context, platformDB *sql
 SELECT pi.id,pi.business_order_id,pi.user_id,pi.product,pi.provider,
        pi.amount_minor,pi.currency
 FROM payment_intents AS pi
-JOIN fulfillment_tasks AS ft ON ft.payment_intent_id=pi.id
+JOIN payment_completion_tasks AS ft ON ft.payment_intent_id=pi.id
 WHERE pi.status=? AND ft.status=?
 ORDER BY pi.updated_at ASC LIMIT ?`, string(payment.IntentPaid), "succeeded", limit)
 	if err != nil {
@@ -141,10 +141,10 @@ ORDER BY pi.updated_at ASC LIMIT ?`, string(payment.IntentPaid), "succeeded", li
 		return enqueued, err
 	}
 	if _, err := s.db.ExecContext(ctx, `
-UPDATE commission_intents AS ci
+UPDATE partner_commission_intake AS ci
 SET status=?,skip_reason=NULL,run_at=?,updated_at=?
 WHERE status=? AND skip_reason='no_attribution'
-  AND EXISTS (SELECT 1 FROM referral_attributions AS a WHERE a.user_id=ci.buyer_user_id)`,
+  AND EXISTS (SELECT 1 FROM partner_attributions AS a WHERE a.user_id=ci.buyer_user_id)`,
 		string(IntakeQueued), formatTime(s.nowFunc()), formatTime(s.nowFunc()), string(IntakeSkipped)); err != nil {
 		return enqueued, fmt.Errorf("partner: requeue attributed skips: %w", err)
 	}
@@ -166,7 +166,7 @@ func (s *Store) claimCommissionIntake(ctx context.Context, now time.Time) (Commi
 	err = tx.QueryRowContext(ctx, `
 SELECT id,payment_provider,payment_intent_id,business_order_id,product,buyer_user_id,
        amount_minor,currency,status,attempts,run_at,skip_reason,last_error,created_at,updated_at
-FROM commission_intents
+FROM partner_commission_intake
 WHERE status=? AND run_at<=?
 ORDER BY run_at LIMIT 1`, string(IntakeQueued), formatTime(now)).Scan(
 		&item.ID, &provider, &paymentID, &businessOrderID, &product,
@@ -179,7 +179,7 @@ ORDER BY run_at LIMIT 1`, string(IntakeQueued), formatTime(now)).Scan(
 		return CommissionIntake{}, err
 	}
 	res, err := tx.ExecContext(ctx, `
-UPDATE commission_intents SET status=?,attempts=attempts+1,updated_at=?
+UPDATE partner_commission_intake SET status=?,attempts=attempts+1,updated_at=?
 WHERE id=? AND status=?`, string(IntakeRunning), formatTime(now), item.ID, string(IntakeQueued))
 	if err != nil {
 		return CommissionIntake{}, err
@@ -210,7 +210,7 @@ func nullable(v string) any {
 
 func (s *Store) markIntakeSucceeded(ctx context.Context, id string) error {
 	_, err := s.db.ExecContext(ctx, `
-UPDATE commission_intents SET status=?,last_error=NULL,updated_at=?
+UPDATE partner_commission_intake SET status=?,last_error=NULL,updated_at=?
 WHERE id=?`, string(IntakeSuccess), formatTime(s.nowFunc()), id)
 	return err
 }
@@ -230,7 +230,7 @@ func (s *Store) markIntakeFailed(ctx context.Context, id string, failure error) 
 		runAt = runAt.Add(delays[min(attempts, len(delays)-1)])
 	}
 	_, err = s.db.ExecContext(ctx, `
-UPDATE commission_intents SET status=?,run_at=?,last_error=?,updated_at=? WHERE id=?`,
+UPDATE partner_commission_intake SET status=?,run_at=?,last_error=?,updated_at=? WHERE id=?`,
 		string(status), formatTime(runAt), failure.Error(), formatTime(s.nowFunc()), id)
 	return err
 }
@@ -238,7 +238,7 @@ UPDATE commission_intents SET status=?,run_at=?,last_error=?,updated_at=? WHERE 
 func (s *Store) intakeAttempts(ctx context.Context, id string) (int, error) {
 	var attempts int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT attempts FROM commission_intents WHERE id=?`, id).Scan(&attempts)
+		`SELECT attempts FROM partner_commission_intake WHERE id=?`, id).Scan(&attempts)
 	return attempts, err
 }
 
@@ -296,7 +296,7 @@ func (s *Store) settleIntake(ctx context.Context, item CommissionIntake) error {
 	defer func() { _ = tx.Rollback() }()
 
 	res, err := tx.ExecContext(ctx, `
-INSERT INTO referral_commissions
+INSERT INTO partner_commissions
 (id,payment_provider,payment_intent_id,business_order_id,product,buyer_user_id,
  referrer_id,recruiter_id,amount_minor,currency,referrer_rate_bps,
  referrer_commission_minor,recruiter_rate_bps,recruiter_commission_minor,
@@ -346,7 +346,7 @@ func ensureCommissionEntriesTx(ctx context.Context, tx *sql.Tx, commission Commi
 			continue
 		}
 		if _, err := tx.ExecContext(ctx, `
-INSERT INTO referral_commission_entries
+INSERT INTO partner_commission_entries
 (id,commission_id,beneficiary_id,beneficiary_role,amount_minor,refunded_minor,
  currency,status,created_at,updated_at)
 VALUES (?,?,?,?,?,0,?,?,?,?)
@@ -361,7 +361,7 @@ ON CONFLICT(commission_id,beneficiary_role) DO NOTHING`,
 
 func (s *Store) markIntakeSkipped(ctx context.Context, id, reason string) error {
 	_, err := s.db.ExecContext(ctx, `
-UPDATE commission_intents SET status=?,skip_reason=?,updated_at=? WHERE id=?`,
+UPDATE partner_commission_intake SET status=?,skip_reason=?,updated_at=? WHERE id=?`,
 		string(IntakeSkipped), reason, formatTime(s.nowFunc()), id)
 	return err
 }
@@ -404,7 +404,7 @@ func (s *Store) ProcessCommissionPayments(ctx context.Context, limit int) (int, 
 
 func (s *Store) recoverCommissionIntakes(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `
-UPDATE commission_intents SET status=?,run_at=?,updated_at=? WHERE status=?`,
+UPDATE partner_commission_intake SET status=?,run_at=?,updated_at=? WHERE status=?`,
 		string(IntakeQueued), formatTime(s.nowFunc()), formatTime(s.nowFunc()), string(IntakeRunning))
 	return err
 }
@@ -414,7 +414,7 @@ UPDATE commission_intents SET status=?,run_at=?,updated_at=? WHERE status=?`,
 // stuck in running forever.
 func (s *Store) recoverCommissionRefunds(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `
-UPDATE commission_refund_intents SET status=?,run_at=?,updated_at=? WHERE status=?`,
+UPDATE partner_commission_refund_intake SET status=?,run_at=?,updated_at=? WHERE status=?`,
 		string(IntakeQueued), formatTime(s.nowFunc()), formatTime(s.nowFunc()), string(IntakeRunning))
 	return err
 }
@@ -481,16 +481,16 @@ func (s *Store) VoidCommissionForPayment(ctx context.Context, provider payment.P
 	defer func() { _ = tx.Rollback() }()
 	now := formatTime(s.nowFunc())
 	_, err = tx.ExecContext(ctx, `
-UPDATE referral_commission_entries
+UPDATE partner_commission_entries
 SET status=?,updated_at=?
-WHERE commission_id=(SELECT id FROM referral_commissions WHERE payment_provider=? AND payment_intent_id=?)
+WHERE commission_id=(SELECT id FROM partner_commissions WHERE payment_provider=? AND payment_intent_id=?)
   AND status=? AND payout_id IS NULL`,
 		string(CommissionVoided), now, providerName, paymentID, string(CommissionPending))
 	if err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `
-UPDATE referral_commissions
+UPDATE partner_commissions
 SET status=?,updated_at=?
 WHERE payment_provider=? AND payment_intent_id=? AND status=?`,
 		string(CommissionVoided), now, providerName, paymentID, string(CommissionPending)); err != nil {
