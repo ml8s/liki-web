@@ -98,7 +98,7 @@ const isMobile = useMobile(640)
 .session-card:hover {
   border-color: var(--liki-primary-border);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(30, 34, 48, 0.08);
+  box-shadow: 0 6px 18px var(--liki-shadow-strong);
 }
 .sc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sc-title { font-weight: 600; }

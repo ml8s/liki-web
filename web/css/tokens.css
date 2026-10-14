@@ -22,6 +22,7 @@
   --brand-gold-hover: #744210;
   --brand-gold-on-dark: #e4c878;
   --brand-gold-tint: #fff7e6;
+  --brand-accent-on-ink: var(--brand-gold-on-dark);
 
   --brand-ink: #0d253d;
   --brand-text: #102a43;
@@ -44,6 +45,9 @@
   --brand-on-ink-hover: rgba(255, 255, 255, 0.08);
   --brand-selected-overlay: rgba(83, 58, 253, 0.32);
   --brand-surface-cream: #fdfaf3;
+  --brand-primary-alpha-10: rgba(83, 58, 253, 0.10);
+  --brand-primary-alpha-12: rgba(83, 58, 253, 0.12);
+  --brand-shadow-strong: 0 6px 18px rgba(30, 34, 48, 0.08);
   --brand-success-border: #bfe6bf;
   --brand-success-surface: #f4faf4;
 

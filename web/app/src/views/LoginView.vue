@@ -243,7 +243,7 @@ onBeforeUnmount(() => {
   margin: 0 auto;
   padding: 32px 24px;
   background:
-    radial-gradient(60% 70% at 10% 0%, rgba(83, 58, 253, 0.10), transparent 65%),
+    radial-gradient(60% 70% at 10% 0%, var(--liki-primary-alpha-10), transparent 65%),
     var(--liki-paper);
 }
 .login-brand { padding: 24px 0; }

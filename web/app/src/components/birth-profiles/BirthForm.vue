@@ -59,6 +59,7 @@
         <el-date-picker
           v-if="form.calendar === 'solar'"
           v-model="form.birth_date"
+          :aria-label="$t('profiles.form.birthDate')"
           type="date"
           value-format="YYYY-MM-DD"
           :placeholder="$t('profiles.form.selectDate')"

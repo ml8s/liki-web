@@ -190,6 +190,11 @@ Component code should consume a semantic token when one exists. Raw colors are
 allowed only inside the primitive token source; raw spacing values should be
 limited to genuine layout measurements rather than replacing spacing tokens.
 
+Admin list state is split into draft filters and applied filters. The URL only
+reflects applied filters, defaults and page 1 are omitted, and changing an
+input does not query until the operator submits that filter block. Entitlement
+email is intentionally excluded from the URL because it is customer PII.
+
 ## Internationalization
 
 The Vue app uses `vue-i18n` and Element Plus locale data for:

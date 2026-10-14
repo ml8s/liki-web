@@ -115,3 +115,11 @@
   .admin-desktop-only { display: none !important; }
   .admin-mobile-only { display: block; }
 }
+
+.admin-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}

@@ -13,11 +13,25 @@
       <template #header>
         客服补偿
       </template>
+      <el-alert
+        v-if="compensationError"
+        :title="compensationError"
+        type="error"
+        show-icon
+        :closable="false"
+        class="query-error"
+      />
       <el-form
+        ref="compensationFormRef"
+        :model="compensation"
+        :rules="compensationRules"
         inline
         @submit.prevent="compensate"
       >
-        <el-form-item label="用户邮箱">
+        <el-form-item
+          label="用户邮箱"
+          prop="email"
+        >
           <el-input
             v-model="compensation.email"
             type="email"
@@ -27,7 +41,10 @@
             placeholder="user@example.com"
           />
         </el-form-item>
-        <el-form-item label="模板">
+        <el-form-item
+          label="模板"
+          prop="template"
+        >
           <el-select
             v-model="compensation.template"
             style="width: 140px"
@@ -42,7 +59,10 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="原因">
+        <el-form-item
+          label="原因"
+          prop="reason"
+        >
           <el-input
             v-model="compensation.reason"
             name="compensation-reason"
@@ -262,8 +282,24 @@
       title="修改权益到期时间"
       width="430px"
     >
-      <el-form label-position="top">
-        <el-form-item label="到期时间">
+      <el-alert
+        v-if="expireError"
+        :title="expireError"
+        type="error"
+        show-icon
+        :closable="false"
+        class="query-error"
+      />
+      <el-form
+        ref="expireFormRef"
+        :model="expireForm"
+        :rules="expireRules"
+        label-position="top"
+      >
+        <el-form-item
+          label="到期时间"
+          prop="expiresAt"
+        >
           <el-date-picker
             v-model="expireForm.expiresAt"
             type="datetime"
@@ -274,7 +310,7 @@
         </el-form-item>
         <el-form-item
           label="操作原因"
-          required
+          prop="reason"
         >
           <el-input
             v-model="expireForm.reason"
@@ -303,7 +339,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import {
   compensateAdminEntitlement, expireAdminEntitlement, fetchAdminEntitlements, revokeAdminEntitlement,
   type AdminEntitlement,
@@ -324,7 +360,24 @@ const entitlements = ref<AdminEntitlement[]>([])
 const expireDialog = ref(false)
 const editing = ref<AdminEntitlement | null>(null)
 const expireForm = ref({ expiresAt: '', reason: '' })
+const compensationFormRef = ref<FormInstance>()
+const expireFormRef = ref<FormInstance>()
+const compensationError = ref('')
+const expireError = ref('')
 const compensating = ref(false)
+const compensationRules: FormRules = {
+  email: [
+    { required: true, whitespace: true, message: '请填写用户邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+  ],
+  reason: [
+    { required: true, whitespace: true, message: '请填写原因或工单编号', trigger: 'blur' },
+  ],
+}
+const expireRules: FormRules = {
+  expiresAt: [{ required: true, message: '请选择到期时间', trigger: 'change' }],
+  reason: [{ required: true, whitespace: true, message: '请填写操作原因', trigger: 'blur' }],
+}
 const compensation = ref({
   email: '',
   template: 'support_7d' as 'support_7d' | 'support_30d',
@@ -371,9 +424,11 @@ function toDatetimeValue(value: string) {
 }
 
 async function saveExpiry() {
-  if (!editing.value) return
-  if (!expireForm.value.expiresAt || !expireForm.value.reason.trim()) {
-    ElMessage.warning('请填写到期时间和原因')
+  if (!editing.value || !expireFormRef.value) return
+  expireError.value = ''
+  try {
+    await expireFormRef.value.validate()
+  } catch {
     return
   }
   saving.value = true
@@ -383,7 +438,7 @@ async function saveExpiry() {
     expireDialog.value = false
     await load()
   } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '保存失败')
+    expireError.value = requestError instanceof Error ? requestError.message : '保存失败'
   } finally {
     saving.value = false
   }
@@ -405,15 +460,18 @@ async function revoke(row: AdminEntitlement) {
 }
 
 async function compensate() {
+  if (!compensationFormRef.value) return
+  compensationError.value = ''
+  try {
+    await compensationFormRef.value.validate()
+  } catch {
+    return
+  }
   const request = {
     email: compensation.value.email.trim(),
     template: compensation.value.template,
     reason: compensation.value.reason.trim(),
     idempotency_key: compensation.value.idempotency_key,
-  }
-  if (!request.email || !request.reason) {
-    ElMessage.warning('请填写用户邮箱和原因')
-    return
   }
   if (!request.idempotency_key) {
     request.idempotency_key = crypto.randomUUID()
@@ -435,7 +493,7 @@ async function compensate() {
     compensation.value.idempotency_key = ''
     await load()
   } catch (requestError) {
-    ElMessage.error(requestError instanceof Error ? requestError.message : '补偿失败')
+    compensationError.value = requestError instanceof Error ? requestError.message : '补偿失败'
   } finally {
     compensating.value = false
   }

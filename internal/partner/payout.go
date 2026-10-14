@@ -207,37 +207,28 @@ ORDER BY p.created_at DESC LIMIT ?`, userID, string(normalizeRole(role)), limit)
 	return items, rows.Err()
 }
 
-func (s *Store) ListPayouts(ctx context.Context, status PayoutStatus, limit int) ([]Payout, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 100
+func (s *Store) ListPayouts(ctx context.Context, status PayoutStatus, page AdminPageRequest) (AdminPage[Payout], error) {
+	whereSQL := ""
+	args := []any{}
+	if status != "" {
+		whereSQL = ` WHERE p.status=?`
+		args = append(args, string(status))
 	}
-	query := `
+	countQuery := `SELECT COUNT(*) FROM partner_payouts p` + whereSQL
+	listQuery := `
 SELECT p.id,p.referrer_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
        p.method,p.account,p.status,COALESCE(p.payment_reference,''),COALESCE(p.rejection_reason,''),
        p.created_at,p.updated_at,p.paid_at
 FROM partner_payouts p
-LEFT JOIN partners partner ON partner.user_id=p.referrer_id`
-	args := []any{}
-	if status != "" {
-		query += ` WHERE p.status=?`
-		args = append(args, string(status))
-	}
-	query += ` ORDER BY p.created_at DESC LIMIT ?`
-	args = append(args, limit)
-	rows, err := s.db.QueryContext(ctx, query, args...)
+LEFT JOIN partners partner ON partner.user_id=p.referrer_id` + whereSQL + `
+ORDER BY p.created_at DESC
+LIMIT ? OFFSET ?`
+	result, err := adminPagedQuery(ctx, s.db, countQuery, listQuery, args,
+		page.Limit(), page.Offset(), s.scanPayout)
 	if err != nil {
-		return nil, err
+		return AdminPage[Payout]{}, err
 	}
-	defer func() { _ = rows.Close() }()
-	items := make([]Payout, 0)
-	for rows.Next() {
-		item, err := s.scanPayout(rows.Scan)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
+	return NewAdminPage(page, result.Items, result.Total), nil
 }
 
 func (s *Store) DecidePayout(ctx context.Context, payoutID, actor string, approved bool, reason string) error {

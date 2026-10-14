@@ -255,3 +255,13 @@ means known product cash receipts less subscription refunds in the period;
 one-time provider refunds are not represented in the sales ledger. The
 pending payout aggregate is a current operational balance, not a period-limited
 total.
+
+Admin list endpoints use offset pagination:
+
+```text
+page=1
+page_size=100
+```
+
+Responses include the original collection key plus `page`, `page_size`,
+`total`, and `has_more`. `page_size` is capped at 100.

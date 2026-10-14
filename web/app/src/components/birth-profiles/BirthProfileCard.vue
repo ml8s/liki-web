@@ -67,7 +67,7 @@ const initial = computed(() => props.profile.nickname.slice(0, 1))
 }
 .profile-card:hover {
   border-color: var(--liki-primary-border);
-  box-shadow: 0 6px 18px rgba(30, 34, 48, 0.08);
+  box-shadow: 0 6px 18px var(--liki-shadow-strong);
   transform: translateY(-1px);
 }
 .avatar {

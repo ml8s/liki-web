@@ -17,3 +17,47 @@ describe('query state', () => {
     expect(queryText({}, 'q')).toBe('')
   })
 })
+
+import { canonicalQuery } from '@/utils/query'
+
+describe('canonical admin query', () => {
+  it('removes defaults, empty values, and first-page state', () => {
+    expect(canonicalQuery({
+      applicationRole: '',
+      applicationStatus: 'pending',
+      partnerRole: '',
+      partnerStatus: '',
+      q: '',
+      page: 1,
+    }, {
+      applicationRole: '',
+      applicationStatus: 'pending',
+      partnerRole: '',
+      partnerStatus: '',
+      q: '',
+      page: 1,
+    })).toEqual({})
+  })
+
+  it('keeps only meaningful differences', () => {
+    expect(canonicalQuery({
+      applicationRole: 'kol',
+      applicationStatus: 'pending',
+      partnerStatus: 'frozen',
+      q: 'KOL-123',
+      page: 3,
+    }, {
+      applicationRole: '',
+      applicationStatus: 'pending',
+      partnerRole: '',
+      partnerStatus: '',
+      q: '',
+      page: 1,
+    })).toEqual({
+      applicationRole: 'kol',
+      partnerStatus: 'frozen',
+      q: 'KOL-123',
+      page: 3,
+    })
+  })
+})

@@ -147,6 +147,45 @@ export interface AdminFinanceReport {
   partner_pending_payout: AdminMoney[]
 }
 
+export interface AdminPageMeta {
+  page: number
+  page_size: number
+  total: number
+  has_more: boolean
+}
+
+export interface AdminPagedResult<T> {
+  items: T[]
+  meta: AdminPageMeta
+}
+
+const defaultPageSize = 100
+
+function pageQuery(
+  params: Record<string, string | number | undefined>,
+  page: number,
+  pageSize = defaultPageSize,
+) {
+  return query({ ...params, page, page_size: pageSize })
+}
+
+function adminPageFrom<T>(payload: unknown, key: string): AdminPagedResult<T> {
+  const value = payload as Partial<AdminPageMeta> & Record<string, T[] | undefined>
+  return adminPage<T>(value[key], value)
+}
+
+function adminPage<T>(items: T[] | undefined, meta: Partial<AdminPageMeta> | undefined): AdminPagedResult<T> {
+  return {
+    items: items ?? [],
+    meta: {
+      page: meta?.page ?? 1,
+      page_size: meta?.page_size ?? defaultPageSize,
+      total: meta?.total ?? 0,
+      has_more: meta?.has_more ?? false,
+    },
+  }
+}
+
 function query(params: Record<string, string | number | undefined>) {
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
@@ -195,24 +234,27 @@ export function setAdminAccountStatus(email: string, status: 'active' | 'disable
   })
 }
 
-export function fetchAdminApplications(status = 'pending', role = ''): Promise<{ applications: AdminApplication[] }> {
-  return get(`/api/admin/partner-applications${query({ status, role, limit: 100 })}`)
+export function fetchAdminApplications(status = 'pending', role = '', page = 1, pageSize = defaultPageSize): Promise<AdminPagedResult<AdminApplication>> {
+  return get(`/api/admin/partner-applications${pageQuery({ status, role }, page, pageSize)}`)
+    .then(payload => adminPageFrom<AdminApplication>(payload, 'applications'))
 }
 
 export function decideAdminApplication(id: string, approve: boolean, reason: string): Promise<{ result: string }> {
   return post(`/api/admin/partner-applications/${encodeURIComponent(id)}/decision`, { approve, reason })
 }
 
-export function fetchAdminPartners(role = '', status = '', q = ''): Promise<{ partners: AdminPartner[] }> {
-  return get(`/api/admin/partners${query({ role, status, q, limit: 100 })}`)
+export function fetchAdminPartners(role = '', status = '', q = '', page = 1, pageSize = defaultPageSize): Promise<AdminPagedResult<AdminPartner>> {
+  return get(`/api/admin/partners${pageQuery({ role, status, q }, page, pageSize)}`)
+    .then(payload => adminPageFrom<AdminPartner>(payload, 'partners'))
 }
 
 export function setAdminPartnerStatus(userId: string, freeze: boolean, reason: string): Promise<{ result: string }> {
   return post(`/api/admin/partners/${encodeURIComponent(userId)}/${freeze ? 'freeze' : 'unfreeze'}`, { reason })
 }
 
-export function fetchAdminPayouts(status = 'requested'): Promise<{ payouts: AdminPayout[] }> {
-  return get(`/api/admin/partner-payouts${query({ status, limit: 100 })}`)
+export function fetchAdminPayouts(status = 'requested', page = 1, pageSize = defaultPageSize): Promise<AdminPagedResult<AdminPayout>> {
+  return get(`/api/admin/partner-payouts${pageQuery({ status }, page, pageSize)}`)
+    .then(payload => adminPageFrom<AdminPayout>(payload, 'payouts'))
 }
 
 export function actOnAdminPayout(id: string, action: 'approve' | 'reject' | 'mark-paid', body: Record<string, string>): Promise<{ result: string }> {
@@ -223,12 +265,14 @@ export function revealAdminPayoutAccount(id: string, reason: string): Promise<{ 
   return post(`/api/admin/partner-payouts/${encodeURIComponent(id)}/reveal-account`, { reason })
 }
 
-export function fetchAdminActions(): Promise<{ actions: AdminAction[] }> {
-  return get('/api/admin/partner-audit-actions?limit=100')
+export function fetchAdminActions(page = 1, pageSize = defaultPageSize): Promise<AdminPagedResult<AdminAction>> {
+  return get(`/api/admin/partner-audit-actions${pageQuery({}, page, pageSize)}`)
+    .then(payload => adminPageFrom<AdminAction>(payload, 'actions'))
 }
 
-export function fetchAdminFinanceTasks(status = 'pending'): Promise<{ tasks: AdminFinanceTask[] }> {
-  return get(`/api/admin/partner-finance-tasks${query({ status, limit: 100 })}`)
+export function fetchAdminFinanceTasks(status = 'pending', page = 1, pageSize = defaultPageSize): Promise<AdminPagedResult<AdminFinanceTask>> {
+  return get(`/api/admin/partner-finance-tasks${pageQuery({ status }, page, pageSize)}`)
+    .then(payload => adminPageFrom<AdminFinanceTask>(payload, 'tasks'))
 }
 
 export function resolveAdminFinanceTask(id: string, status: 'resolved' | 'rejected', note: string): Promise<{ result: string }> {

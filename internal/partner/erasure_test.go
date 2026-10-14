@@ -62,20 +62,20 @@ SELECT account,status FROM partner_payouts WHERE id=?`, payout.ID).Scan(&account
 		t.Fatalf("payout account/status=%q/%q", account, payoutStatus)
 	}
 
-	tasks, err := store.ListFinanceTasks(ctx, FinanceTaskPending, 10)
+	tasks, err := store.ListFinanceTasks(ctx, FinanceTaskPending, AdminPageRequest{Page: 1, PageSize: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tasks) != 1 || tasks[0].Type != FinanceTaskUserErasure ||
-		tasks[0].EntryID != commission.ID+":kol" || tasks[0].AmountMinor != 5000 {
+	if len(tasks.Items) != 1 || tasks.Items[0].Type != FinanceTaskUserErasure ||
+		tasks.Items[0].EntryID != commission.ID+":kol" || tasks.Items[0].AmountMinor != 5000 {
 		t.Fatalf("tasks=%+v", tasks)
 	}
 
 	if _, err := store.EraseUser(ctx, commission.ReferrerID); err != nil {
 		t.Fatalf("repeat erasure err=%v", err)
 	}
-	tasks, err = store.ListFinanceTasks(ctx, FinanceTaskPending, 10)
-	if err != nil || len(tasks) != 1 {
+	tasks, err = store.ListFinanceTasks(ctx, FinanceTaskPending, AdminPageRequest{Page: 1, PageSize: 10})
+	if err != nil || len(tasks.Items) != 1 {
 		t.Fatalf("repeat tasks=%+v err=%v", tasks, err)
 	}
 }

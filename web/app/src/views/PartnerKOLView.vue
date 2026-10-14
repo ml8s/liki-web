@@ -46,6 +46,7 @@
         </template>
         <el-input
           v-model="referralLink"
+          :aria-label="$t('partner.referralLink')"
           name="kol-referral-link"
           autocomplete="off"
           spellcheck="false"

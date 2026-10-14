@@ -2,7 +2,7 @@
   <section>
     <AdminPageHeader title="财务">
       <template #actions>
-        <el-button @click="loadFinance">
+        <el-button @click="reloadTaskPage">
           刷新
         </el-button>
       </template>
@@ -17,7 +17,7 @@
           <el-button
             size="small"
             :loading="reportLoading"
-            @click="loadReport"
+            @click="loadAppliedReport"
           >
             刷新
           </el-button>
@@ -26,9 +26,9 @@
       <el-form inline>
         <el-form-item label="周期">
           <el-select
-            v-model="reportDays"
+            v-model="draft.days"
             style="width: 120px"
-            @change="loadReport"
+            @change="submitFinanceFilters"
           >
             <el-option
               :value="7"
@@ -92,11 +92,11 @@
       </template>
       <el-form
         inline
-        @submit.prevent="loadFinance"
+        @submit.prevent="submitFinanceFilters"
       >
         <el-form-item label="状态">
           <el-select
-            v-model="status"
+            v-model="draft.status"
             style="width: 140px"
           >
             <el-option
@@ -119,7 +119,7 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="loadFinance"
+          @click="reloadTaskPage"
         >
           查询
         </el-button>
@@ -260,12 +260,24 @@
           </AdminRecordCard>
         </div>
       </div>
+
+      <el-pagination
+        v-if="(tasks.meta.value?.total ?? 0) > 0"
+        class="admin-pagination"
+        :current-page="pagesState.taskPage"
+        :page-size="tasks.meta.value?.page_size ?? 100"
+        :total="tasks.meta.value?.total ?? 0"
+        layout="prev, pager, next, total"
+        background
+        hide-on-single-page
+        @current-change="setTaskPage"
+      />
     </el-card>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   fetchAdminFinanceReport, fetchAdminFinanceTasks, resolveAdminFinanceTask,
@@ -275,24 +287,28 @@ import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { useRoute, useRouter } from 'vue-router'
-import { useAdminResource } from '@/composables/useAdminResource'
+import { useAdminPagedResource } from '@/composables/useAdminResource'
 import { financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()
-const route = useRoute()
-const router = useRouter()
-const status = ref(queryChoice(route.query, 'status', ['', 'pending', 'resolved', 'rejected'], 'pending'))
-const tasks = useAdminResource<AdminFinanceTask>(async () => {
-  const result = await fetchAdminFinanceTasks(status.value)
-  return result.tasks ?? []
+
+interface FinanceFilters {
+  [key: string]: string | number
+  status: string
+  days: 7 | 30 | 90
+}
+
+const tasks = useAdminPagedResource<AdminFinanceTask>(async page => {
+  const { status } = query.applied.value
+  return await fetchAdminFinanceTasks(status, page)
 })
-const reportDays = ref(Number(queryChoice(route.query, 'days', ['7', '30', '90'], '30')) as 7 | 30 | 90)
 const reportLoading = ref(false)
 const report = ref<AdminFinanceReport | null>(null)
 const reportError = ref('')
+const reportDays = computed(() => query.applied.value.days)
 
 const reportRows = computed(() => [
   { label: '一次性收入', values: report.value?.one_time_paid ?? [] },
@@ -304,23 +320,55 @@ const reportRows = computed(() => [
   { label: '当前待处理提现', values: report.value?.partner_pending_payout ?? [] },
 ])
 
-onMounted(load)
-
-watch([status, reportDays], async ([status, days]) => {
-  await router.replace({ query: { ...route.query, status, days: days === 30 ? undefined : days } })
+const query = useAdminQueryState<FinanceFilters>({
+  defaults: { status: 'pending', days: 30 },
+  pageKeys: ['taskPage'],
+  decode: query => ({
+    status: queryChoice(query, 'status', ['', 'pending', 'resolved', 'rejected'], 'pending'),
+    days: queryChoice(query, 'days', ['7', '30', '90'], '30') as unknown as 7 | 30 | 90,
+  }),
+  encode: (filters, pages) => ({
+    status: filters.status === 'pending' ? undefined : filters.status,
+    days: filters.days === 30 ? undefined : filters.days,
+    taskPage: pages.taskPage === 1 ? undefined : pages.taskPage,
+  }),
+  onApplied: async (filters, pages): Promise<void> => {
+    await Promise.all([
+      tasks.load(pages.taskPage),
+      loadReport(filters.days),
+    ])
+  },
 })
 
+const { draft } = query
+const pagesState = query.pages
+void query.initialize()
+
 async function load() {
-  await Promise.all([tasks.load(), loadReport()])
+  await query.submit({ taskPage: 1 })
 }
 
-const loadFinance = tasks.load
+function reloadTaskPage() {
+  void tasks.load(pagesState.value.taskPage)
+}
 
-async function loadReport() {
+function submitFinanceFilters() {
+  void query.submit({ taskPage: 1 })
+}
+
+function setTaskPage(page: number) {
+  void query.setPage('taskPage', page)
+}
+
+async function loadAppliedReport() {
+  await loadReport(reportDays.value)
+}
+
+async function loadReport(days: 7 | 30 | 90 = reportDays.value) {
   reportLoading.value = true
   reportError.value = ''
   try {
-    report.value = await fetchAdminFinanceReport(reportDays.value)
+    report.value = await fetchAdminFinanceReport(days)
   } catch (requestError) {
     reportError.value = requestError instanceof Error ? requestError.message : '查询财务汇总失败'
   } finally {

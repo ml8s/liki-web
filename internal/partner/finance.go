@@ -15,36 +15,27 @@ var (
 	ErrFinanceTaskInvalidTransition = errors.New("partner: finance task transition is not allowed")
 )
 
-func (s *Store) ListFinanceTasks(ctx context.Context, status FinanceTaskStatus, limit int) ([]FinanceTask, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 100
+func (s *Store) ListFinanceTasks(ctx context.Context, status FinanceTaskStatus, page AdminPageRequest) (AdminPage[FinanceTask], error) {
+	whereSQL := ""
+	args := []any{}
+	if status != "" {
+		whereSQL = ` WHERE status=?`
+		args = append(args, string(status))
 	}
-	query := `
+	countQuery := `SELECT COUNT(*) FROM partner_finance_tasks` + whereSQL
+	listQuery := `
 SELECT id,type,provider,payment_intent_id,provider_refund_id,entry_id,
        beneficiary_id,beneficiary_role,amount_minor,currency,status,
        COALESCE(assignee,''),COALESCE(resolution_note,''),created_at,updated_at,resolved_at
-FROM partner_finance_tasks`
-	args := []any{}
-	if status != "" {
-		query += ` WHERE status=?`
-		args = append(args, string(status))
-	}
-	query += ` ORDER BY created_at DESC LIMIT ?`
-	args = append(args, limit)
-	rows, err := s.db.QueryContext(ctx, query, args...)
+FROM partner_finance_tasks` + whereSQL + `
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?`
+	result, err := adminPagedQuery(ctx, s.db, countQuery, listQuery, args,
+		page.Limit(), page.Offset(), scanFinanceTask)
 	if err != nil {
-		return nil, err
+		return AdminPage[FinanceTask]{}, err
 	}
-	defer func() { _ = rows.Close() }()
-	items := make([]FinanceTask, 0)
-	for rows.Next() {
-		item, err := scanFinanceTask(rows.Scan)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
+	return NewAdminPage(page, result.Items, result.Total), nil
 }
 
 func (s *Store) ResolveFinanceTask(ctx context.Context, id, actor, status, note string) error {

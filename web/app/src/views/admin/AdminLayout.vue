@@ -145,7 +145,7 @@ onMounted(() => {
       router.getRoutes().filter(route => {
         if (!String(route.name ?? '').startsWith('admin-')) return false
         const capability = route.meta.adminCapability
-        return typeof capability !== 'string' || admin.can(capability as never)
+        return !capability || admin.can(capability)
       }),
     )
   })
@@ -195,7 +195,7 @@ async function logout() {
   background: var(--liki-ink); color: var(--liki-on-ink); position: sticky; top: 0; z-index: 50;
 }
 .brand { font-weight: 700; font-size: 18px; letter-spacing: 1px; }
-.brand span { color: var(--liki-primary); }
+.brand span { color: var(--liki-accent-on-ink); }
 .admin-nav { display: flex; align-items: center; gap: 4px; flex: 1; overflow-x: auto; }
 .admin-nav a {
   color: var(--liki-on-ink-subtle); text-decoration: none; padding: 8px 12px;

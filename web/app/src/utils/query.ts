@@ -17,3 +17,17 @@ export function queryChoice(
 export function queryText(query: Record<string, unknown>, key: string): string {
   return firstQueryValue(query[key]).trim()
 }
+
+export function canonicalQuery(
+  values: Record<string, string | number | undefined>,
+  defaults: Record<string, string | number | undefined>,
+): Record<string, string | number | undefined> {
+  const output: Record<string, string | number | undefined> = {}
+  for (const [key, value] of Object.entries(values).sort(([left], [right]) => left.localeCompare(right))) {
+    const normalized = typeof value === 'string' ? value.trim() : value
+    if (normalized === '' || normalized === undefined) continue
+    if (defaults[key] === normalized) continue
+    output[key] = normalized
+  }
+  return output
+}

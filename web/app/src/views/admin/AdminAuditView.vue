@@ -4,7 +4,7 @@
       <template #actions>
         <el-button
           :loading="actions.loading.value"
-          @click="actions.load"
+          @click="actions.load(1)"
         >
           刷新
         </el-button>
@@ -83,21 +83,36 @@
           ]"
         />
       </div>
+
+      <el-pagination
+        v-if="(actions.meta.value?.total ?? 0) > 0"
+        class="admin-pagination"
+        :current-page="actionPage"
+        :page-size="actions.meta.value?.page_size ?? 100"
+        :total="actions.meta.value?.total ?? 0"
+        layout="prev, pager, next, total"
+        background
+        hide-on-single-page
+        @current-change="setActionPage"
+      />
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { fetchAdminActions, type AdminAction } from '@/api/admin'
 import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
-import { useAdminResource } from '@/composables/useAdminResource'
+import { useAdminPagedResource } from '@/composables/useAdminResource'
 import { formatDateTime } from '@/utils/format'
 
-const actions = useAdminResource<AdminAction>(async () => {
-  const result = await fetchAdminActions()
-  return result.actions ?? []
-})
+const actionPage = ref(1)
+const actions = useAdminPagedResource<AdminAction>(async page => await fetchAdminActions(page))
 
-onMounted(actions.load)
+onMounted(() => actions.load(actionPage.value))
+
+function setActionPage(page: number) {
+  actionPage.value = page
+  void actions.load(page)
+}
 </script>

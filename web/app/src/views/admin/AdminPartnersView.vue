@@ -11,7 +11,7 @@
           <el-button
             size="small"
             :loading="applications.loading.value"
-            @click="applications.load"
+            @click="reloadApplications"
           >
             刷新
           </el-button>
@@ -19,11 +19,11 @@
       </template>
       <el-form
         inline
-        @submit.prevent="applications.load"
+        @submit.prevent="submitApplicationFilters"
       >
         <el-form-item label="角色">
           <el-select
-            v-model="applicationRole"
+            v-model="draft.applicationRole"
             style="width: 110px"
           >
             <el-option
@@ -42,7 +42,7 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select
-            v-model="applicationStatus"
+            v-model="draft.applicationStatus"
             style="width: 130px"
           >
             <el-option
@@ -65,7 +65,7 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="applications.load"
+          @click="submitApplicationFilters"
         >
           查询
         </el-button>
@@ -191,6 +191,18 @@
             </template>
           </AdminRecordCard>
         </div>
+
+        <el-pagination
+          v-if="(applications.meta.value?.total ?? 0) > 0"
+          class="admin-pagination"
+          :current-page="pagesState.applicationPage"
+          :page-size="applications.meta.value?.page_size ?? 100"
+          :total="applications.meta.value?.total ?? 0"
+          layout="prev, pager, next, total"
+          background
+          hide-on-single-page
+          @current-change="setApplicationPage"
+        />
       </div>
     </el-card>
 
@@ -201,7 +213,7 @@
           <el-button
             size="small"
             :loading="partners.loading.value"
-            @click="partners.load"
+            @click="reloadPartners"
           >
             筛选
           </el-button>
@@ -209,11 +221,11 @@
       </template>
       <el-form
         inline
-        @submit.prevent="partners.load"
+        @submit.prevent="submitPartnerFilters"
       >
         <el-form-item label="角色">
           <el-select
-            v-model="partnerRole"
+            v-model="draft.partnerRole"
             style="width: 110px"
           >
             <el-option
@@ -232,7 +244,7 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select
-            v-model="partnerStatus"
+            v-model="draft.partnerStatus"
             style="width: 120px"
           >
             <el-option
@@ -251,7 +263,7 @@
         </el-form-item>
         <el-form-item label="搜索">
           <el-input
-            v-model="partnerQuery"
+            v-model="draft.q"
             name="partner-search"
             autocomplete="off"
             spellcheck="false"
@@ -355,13 +367,24 @@
             </template>
           </AdminRecordCard>
         </div>
+
+        <el-pagination
+          v-if="(partners.meta.value?.total ?? 0) > 0"
+          class="admin-pagination"
+          :current-page="pagesState.partnerPage"
+          :page-size="partners.meta.value?.page_size ?? 100"
+          :total="partners.meta.value?.total ?? 0"
+          layout="prev, pager, next, total"
+          background
+          hide-on-single-page
+          @current-change="setPartnerPage"
+        />
       </div>
     </el-card>
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   decideAdminApplication, fetchAdminApplications, fetchAdminPartners, setAdminPartnerStatus,
@@ -371,47 +394,95 @@ import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { useRoute, useRouter } from 'vue-router'
-import { useAdminResource } from '@/composables/useAdminResource'
+import { useAdminPagedResource, type AdminPagedResource } from '@/composables/useAdminResource'
 import { adminRoleLabel } from '@/utils/adminFormat'
+import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()
-const route = useRoute()
-const router = useRouter()
-const applicationRole = ref(queryChoice(route.query, 'applicationRole', ['', 'kol', 'scout'], ''))
-const applicationStatus = ref(queryChoice(route.query, 'applicationStatus', ['', 'pending', 'approved', 'rejected'], 'pending'))
-const partnerRole = ref(queryChoice(route.query, 'partnerRole', ['', 'kol', 'scout'], ''))
-const partnerStatus = ref(queryChoice(route.query, 'partnerStatus', ['', 'active', 'frozen'], ''))
-const partnerQuery = ref(queryText(route.query, 'q'))
-const applications = useAdminResource<AdminApplication>(async () => {
-  const result = await fetchAdminApplications(applicationStatus.value, applicationRole.value)
-  return result.applications ?? []
+
+interface PartnerFilters {
+  [key: string]: string
+  applicationRole: string
+  applicationStatus: string
+  partnerRole: string
+  partnerStatus: string
+  q: string
+}
+
+type PartnerQueryState = ReturnType<typeof useAdminQueryState<PartnerFilters>>
+
+const partnerDefaults = {
+  applicationRole: '',
+  applicationStatus: 'pending',
+  partnerRole: '',
+  partnerStatus: '',
+  q: '',
+}
+const applications: AdminPagedResource<AdminApplication> = useAdminPagedResource<AdminApplication>(async page => {
+  const { applicationStatus, applicationRole } = query.applied.value
+  return await fetchAdminApplications(applicationStatus, applicationRole, page)
 })
-const partners = useAdminResource<AdminPartner>(async () => {
-  const result = await fetchAdminPartners(partnerRole.value, partnerStatus.value, partnerQuery.value.trim())
-  return result.partners ?? []
-})
-onMounted(() => {
-  void Promise.all([applications.load(), partners.load()])
+const partners: AdminPagedResource<AdminPartner> = useAdminPagedResource<AdminPartner>(async page => {
+  const { partnerStatus, partnerRole, q } = query.applied.value
+  return await fetchAdminPartners(partnerRole, partnerStatus, q.trim(), page)
 })
 
-watch(
-  [applicationRole, applicationStatus, partnerRole, partnerStatus, partnerQuery],
-  async ([applicationRole, applicationStatus, partnerRole, partnerStatus, partnerQuery]) => {
-    await router.replace({
-      query: {
-        ...route.query,
-        applicationRole,
-        applicationStatus,
-        partnerRole,
-        partnerStatus,
-        q: partnerQuery || undefined,
-      },
-    })
+const query: PartnerQueryState = useAdminQueryState<PartnerFilters>({
+  defaults: partnerDefaults,
+  pageKeys: ['applicationPage', 'partnerPage'],
+  decode: query => ({
+    applicationRole: queryChoice(query, 'applicationRole', ['', 'kol', 'scout'], partnerDefaults.applicationRole),
+    applicationStatus: queryChoice(query, 'applicationStatus', ['', 'pending', 'approved', 'rejected'], partnerDefaults.applicationStatus),
+    partnerRole: queryChoice(query, 'partnerRole', ['', 'kol', 'scout'], partnerDefaults.partnerRole),
+    partnerStatus: queryChoice(query, 'partnerStatus', ['', 'active', 'frozen'], partnerDefaults.partnerStatus),
+    q: queryText(query, 'q'),
+  }),
+  encode: (filters, pages) => ({
+    applicationRole: filters.applicationRole || undefined,
+    applicationStatus: filters.applicationStatus === partnerDefaults.applicationStatus ? undefined : filters.applicationStatus,
+    partnerRole: filters.partnerRole || undefined,
+    partnerStatus: filters.partnerStatus || undefined,
+    q: filters.q || undefined,
+    applicationPage: pages.applicationPage === 1 ? undefined : pages.applicationPage,
+    partnerPage: pages.partnerPage === 1 ? undefined : pages.partnerPage,
+  }),
+  onApplied: async (_filters, pages): Promise<void> => {
+    await Promise.all([
+      applications.load(pages.applicationPage),
+      partners.load(pages.partnerPage),
+    ])
   },
-)
+})
+
+const { draft } = query
+const pagesState = query.pages
+void query.initialize()
+
+function submitApplicationFilters() {
+  void query.submit({ applicationPage: 1 })
+}
+
+function submitPartnerFilters() {
+  void query.submit({ partnerPage: 1 })
+}
+
+function reloadApplications() {
+  void applications.load(pagesState.value.applicationPage)
+}
+
+function reloadPartners() {
+  void partners.load(pagesState.value.partnerPage)
+}
+
+function setApplicationPage(page: number) {
+  void query.setPage('applicationPage', page)
+}
+
+function setPartnerPage(page: number) {
+  void query.setPage('partnerPage', page)
+}
 
 async function requireReason(title: string) {
   const { value } = await ElMessageBox.prompt('请输入原因，该操作会写入管理记录。', title, {
@@ -428,7 +499,7 @@ async function decide(row: AdminApplication, approve: boolean) {
   try {
     await decideAdminApplication(row.id, approve, reason)
     ElMessage.success(approve ? '申请已通过' : '申请已拒绝')
-    await applications.load()
+    await applications.load(pagesState.value.applicationPage)
   } catch (requestError) {
     ElMessage.error(requestError instanceof Error ? requestError.message : '处理失败')
   }
@@ -441,7 +512,7 @@ async function togglePartner(row: AdminPartner) {
   try {
     await setAdminPartnerStatus(row.user_id, freeze, reason)
     ElMessage.success(freeze ? '已冻结' : '已解冻')
-    await partners.load()
+    await partners.load(pagesState.value.partnerPage)
   } catch (requestError) {
     ElMessage.error(requestError instanceof Error ? requestError.message : '操作失败')
   }

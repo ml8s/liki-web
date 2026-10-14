@@ -4,7 +4,7 @@
       <template #actions>
         <el-button
           :loading="payouts.loading.value"
-          @click="loadPayouts"
+          @click="reloadCurrentPage"
         >
           刷新
         </el-button>
@@ -12,11 +12,11 @@
     </AdminPageHeader>
     <el-form
       inline
-      @submit.prevent="loadPayouts"
+      @submit.prevent="submitPayoutFilters"
     >
       <el-form-item label="状态">
         <el-select
-          v-model="status"
+          v-model="draft.status"
           style="width: 140px"
         >
           <el-option
@@ -47,7 +47,7 @@
       </el-form-item>
       <el-button
         type="primary"
-        @click="loadPayouts"
+        @click="submitPayoutFilters"
       >
         查询
       </el-button>
@@ -222,11 +222,23 @@
         </AdminRecordCard>
       </div>
     </div>
+
+    <el-pagination
+      v-if="(payouts.meta.value?.total ?? 0) > 0"
+      class="admin-pagination"
+      :current-page="pages.page"
+      :page-size="payouts.meta.value?.page_size ?? 100"
+      :total="payouts.meta.value?.total ?? 0"
+      layout="prev, pager, next, total"
+      background
+      hide-on-single-page
+      @current-change="setPage"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   actOnAdminPayout, fetchAdminPayouts, revealAdminPayoutAccount, type AdminPayout,
@@ -235,28 +247,53 @@ import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { useRoute, useRouter } from 'vue-router'
-import { useAdminResource } from '@/composables/useAdminResource'
+import { useAdminPagedResource } from '@/composables/useAdminResource'
+import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
 import { adminPaymentMethodLabel, adminRoleLabel, formatAdminMoney, maskAdminAccount } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()
-const route = useRoute()
-const router = useRouter()
-const status = ref(queryChoice(route.query, 'status', ['', 'requested', 'approved', 'rejected', 'paid', 'failed'], 'requested'))
-const payouts = useAdminResource<AdminPayout>(async () => {
-  const result = await fetchAdminPayouts(status.value)
-  return result.payouts ?? []
-})
+
+interface PayoutFilters {
+  [key: string]: string
+  status: string
+}
+
+const payoutDefaults = { status: 'requested' }
 const revealed = ref('')
-const loadPayouts = payouts.load
 
-onMounted(loadPayouts)
-
-watch(status, async (value) => {
-  await router.replace({ query: { ...route.query, status: value || undefined } })
+const query = useAdminQueryState<PayoutFilters>({
+  defaults: payoutDefaults,
+  pageKeys: ['page'],
+  decode: query => ({
+    status: queryChoice(query, 'status', ['', 'requested', 'approved', 'rejected', 'paid', 'failed'], payoutDefaults.status),
+  }),
+  encode: (filters, pages) => ({
+    status: filters.status === payoutDefaults.status ? undefined : filters.status,
+    page: pages.page === 1 ? undefined : pages.page,
+  }),
+  onApplied: (_filters, pages): void | Promise<void> => payouts.load(pages.page),
 })
+
+const payouts = useAdminPagedResource<AdminPayout>(async page => {
+  const { status } = query.applied.value
+  return await fetchAdminPayouts(status, page)
+})
+const { draft, pages } = query
+void query.initialize()
+
+function reloadCurrentPage() {
+  void payouts.load(pages.value.page)
+}
+
+function submitPayoutFilters() {
+  void query.submit({ page: 1 })
+}
+
+function setPage(page: number) {
+  void query.setPage('page', page)
+}
 
 async function requireInput(title: string, label: string) {
   const { value } = await ElMessageBox.prompt(label, title, {

@@ -93,6 +93,7 @@
             <template #default="{ row }">
               <el-select
                 :model-value="grantCapability"
+                aria-label="待授予能力"
                 placeholder="选择能力"
                 size="small"
                 @change="(value: string) => grantCapability = value as AdminCapability"
@@ -174,6 +175,7 @@
             <template #actions>
               <el-select
                 :model-value="grantCapability"
+                aria-label="待授予能力"
                 placeholder="选择能力"
                 size="small"
                 @change="(value: string) => grantCapability = value as AdminCapability"

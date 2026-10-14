@@ -4,6 +4,10 @@
   /* ── Liki 设计 token（docs/frontend/ux-design.md §5）── */
   --liki-primary: var(--brand-primary);
   --liki-primary-hover: var(--brand-primary-hover);
+  --liki-accent-on-ink: var(--brand-accent-on-ink);
+  --liki-primary-alpha-10: var(--brand-primary-alpha-10);
+  --liki-primary-alpha-12: var(--brand-primary-alpha-12);
+  --liki-shadow-strong: var(--brand-shadow-strong);
   --liki-primary-tint: var(--brand-primary-soft);
   --liki-primary-border: var(--brand-primary-border);
   --liki-ink: var(--brand-ink);
@@ -224,4 +228,10 @@ p {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Element Plus applies type-specific alert title colors after the generic
+ * variable override; keep info copy at AA on its tinted background. */
+.el-alert--info .el-alert__title {
+  color: var(--liki-text-2);
 }

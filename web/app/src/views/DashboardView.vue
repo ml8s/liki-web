@@ -341,8 +341,8 @@ onMounted(async () => {
   border-radius: var(--radius-card);
   color: var(--liki-ink);
   background:
-    radial-gradient(90% 120% at 88% -20%, rgba(83, 58, 253, 0.10), transparent 62%),
-    linear-gradient(180deg, #ffffff 0%, var(--liki-paper) 100%);
+    radial-gradient(90% 120% at 88% -20%, var(--liki-primary-alpha-10), transparent 62%),
+    linear-gradient(180deg, var(--liki-surface) 0%, var(--liki-paper) 100%);
   box-shadow: var(--shadow-card);
 }
 .hero-accent {
@@ -351,7 +351,7 @@ onMounted(async () => {
   left: 30px;
   right: 30px;
   height: 2px;
-  background: linear-gradient(90deg, var(--liki-primary), rgba(83, 58, 253, 0.12));
+  background: linear-gradient(90deg, var(--liki-primary), var(--liki-primary-alpha-12));
 }
 .hero-kicker {
   margin: 0 0 8px;
@@ -388,7 +388,7 @@ onMounted(async () => {
 }
 .primary-card.guide {
   border-style: dashed;
-  background: linear-gradient(180deg, #ffffff 0%, var(--liki-paper) 100%);
+  background: linear-gradient(180deg, var(--liki-surface) 0%, var(--liki-paper) 100%);
 }
 .primary-copy {
   min-width: 0;
@@ -437,7 +437,7 @@ onMounted(async () => {
 .service-card:hover {
   transform: translateY(-2px);
   border-color: var(--liki-primary-border);
-  box-shadow: 0 6px 18px rgba(30, 34, 48, 0.08);
+  box-shadow: 0 6px 18px var(--liki-shadow-strong);
 }
 .service-card.feature {
   grid-column: span 2;
