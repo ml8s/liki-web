@@ -24,6 +24,7 @@ def generate_manifest(commit: str, candidate_tag: str, image_digest: str, regist
         "repository": "ml8s/liki-web",
         "source_commit": commit,
         "candidate_tag": candidate_tag,
+        "schema_version": "liki.candidate-manifest.v1",
         "images": {"web": image_digest},
     }
 

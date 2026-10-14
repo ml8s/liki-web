@@ -63,25 +63,11 @@ jobs:
             exit 1
           fi
 
-          if ! printf '%s' "$DIGESTS_JSON" | jq -e '
-            .repository == "ml8s/liki-web" and
-            .source_commit == $source_commit and
-            (.images | type == "object" and keys == ["web"])
-          ' --arg source_commit "$SOURCE_COMMIT" >/dev/null; then
-            echo '::error::invalid digest manifest' >&2
-            exit 1
-          fi
-
-          digest="$(printf '%s' "$DIGESTS_JSON" | jq -er '.images.web')"
-          if ! printf '%s' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
-            echo '::error::images.web must be a lowercase sha256 digest' >&2
-            exit 1
-          fi
-
-          {
-            echo "digest=$digest"
-            echo "source_commit=$actual_commit"
-          } >> "$GITHUB_OUTPUT"
+          export DIGESTS_JSON
+          python3 scripts/validate_candidate_manifest.py \
+            --source-commit "$actual_commit" \
+            --output "$GITHUB_OUTPUT"
+          echo "source_commit=$actual_commit" >> "$GITHUB_OUTPUT"
 
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:

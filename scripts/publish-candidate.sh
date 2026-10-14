@@ -30,15 +30,16 @@ if evidence.get("gate") != "liki-deploy/candidate-assembly":
     raise SystemExit("❌ assembly evidence is not from the candidate assembly gate")
 if evidence.get("manifest_sha256") != manifest_sha256:
     raise SystemExit("❌ assembly evidence does not match this candidate manifest")
+if evidence.get("schema_version") != "liki.assembly-evidence.v1":
+    raise SystemExit("❌ assembly evidence contract version is not liki.assembly-evidence.v1")
 print("✓ candidate assembly evidence verified")
 PY
+
+DIGESTS_JSON="$(cat "$MANIFEST")" python3 scripts/validate_candidate_manifest.py --output /dev/null
 
 readarray -t manifest < <(python3 - "$MANIFEST" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
-required = {"registry", "repository", "candidate_tag", "images"}
-if missing := required - data.keys():
-    raise SystemExit(f"missing manifest fields: {', '.join(sorted(missing))}")
 if data["registry"] == "ghcr.io":
     raise SystemExit("candidate is already stored in ghcr.io")
 digest = data["images"]["web"]
