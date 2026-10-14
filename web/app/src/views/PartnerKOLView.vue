@@ -45,7 +45,10 @@
           </div>
         </template>
         <el-input
-          :model-value="referralLink"
+          v-model="referralLink"
+          name="kol-referral-link"
+          autocomplete="off"
+          spellcheck="false"
           readonly
         />
         <div class="stat-grid">
@@ -244,6 +247,8 @@
         >
           <el-input
             v-model="note"
+            name="kol-application-note"
+            autocomplete="off"
             type="textarea"
             :rows="5"
             maxlength="500"

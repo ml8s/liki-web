@@ -29,6 +29,8 @@
         <el-form-item :label="$t('services.divination.questionLabel')">
           <el-input
             v-model="question"
+            name="divination-question"
+            autocomplete="off"
             maxlength="200"
             :placeholder="$t('services.divination.questionPlaceholder')"
             show-word-limit

@@ -56,3 +56,62 @@
 }
 
 .admin-main:focus { outline: none; }
+
+/* Tables remain the dense desktop view. Cards preserve all values and actions
+ * on small operators instead of letting fixed columns crush the data. */
+.admin-mobile-only { display: none; }
+
+.admin-record-card {
+  margin-bottom: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--liki-line);
+  border-radius: var(--radius-card);
+  background: var(--liki-surface);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.admin-record-card dl { margin: 0; }
+
+.admin-record-row + .admin-record-row {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--liki-line);
+}
+
+.admin-record-row {
+  display: grid;
+  grid-template-columns: minmax(82px, 32%) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.admin-record-row dt {
+  color: var(--liki-text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-record-row dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.admin-record-strong { font-variant-numeric: tabular-nums; }
+
+.admin-record-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--liki-line);
+}
+
+@media (max-width: 720px) {
+  .admin-desktop-only { display: none !important; }
+  .admin-mobile-only { display: block; }
+}

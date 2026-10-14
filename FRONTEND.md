@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | `web/src` | Astro marketing and locale pages | SEO-first static pages |
 | `web/app` | Vue 3 authenticated product SPA | Primary product surface |
-| `web/js` | static-page interactions and the frozen admin runtime | No new product features |
+| `web/js` | retired static-page interaction runtime | No new product behavior |
 
 New product functionality belongs in `web/app` and backing Go APIs.
 
@@ -32,9 +32,9 @@ Authenticated routes live under `/app`:
 
 ```text
 /app
-/app/profiles
-/app/profiles/new
-/app/profiles/:id
+/app/birth-profiles
+/app/birth-profiles/new
+/app/birth-profiles/:id
 /app/synastry
 /app/divination
 /app/fengshui
@@ -48,7 +48,7 @@ Authenticated routes live under `/app`:
 /app/account
 /app/admin
 /app/admin/entitlements
-/app/admin/referrals
+/app/admin/partners
 /app/admin/payouts
 /app/admin/finance
 /app/admin/audit
@@ -70,10 +70,10 @@ Pinia stores are the frontend server-state layer.
 | Store | Responsibility |
 | --- | --- |
 | `auth` | current user and session operations |
-| `profiles` | birth profile list, detail, create, update |
+| `birth-profiles` | birth profile list, detail, create, update |
 | `entitlements` | active skills and purchase state |
 | `chat` | sessions, messages, streaming, generation state |
-| `commerce` | products, checkout, payment return state |
+| `sales` | products, checkout, payment return state |
 
 Stores display server-verified state. They do not grant entitlement or decide price.
 
@@ -171,6 +171,24 @@ Requirements:
 - chat output wraps safely;
 - payment return restores product state;
 - safe-area insets are respected.
+
+The admin console is also responsive, but it uses a different density contract:
+tables remain the desktop view and are replaced by record cards below 720px.
+Horizontal admin navigation keeps the active route visible.
+
+## Design tokens
+
+`web/css/tokens.css` owns the canonical token layers:
+
+| Layer | Prefix | Use |
+| --- | --- | --- |
+| Primitive | `--brand-*` | source palette and value definitions |
+| Semantic | `--color-*`, `--liki-*` | marketing and product component CSS |
+| Component bridge | `--el-*` | Element Plus theme variables |
+
+Component code should consume a semantic token when one exists. Raw colors are
+allowed only inside the primitive token source; raw spacing values should be
+limited to genuine layout measurements rather than replacing spacing tokens.
 
 ## Internationalization
 

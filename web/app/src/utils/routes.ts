@@ -22,3 +22,17 @@ export function preloadWhenIdle(task: () => Promise<void>, timeout = 2000): void
   }
   window.setTimeout(() => { void task() }, Math.min(timeout, 1000))
 }
+
+/**
+ * Small operators and data-saver sessions pay a higher cost for speculative
+ * chunks. They still work normally; only background prefetch is skipped.
+ */
+export function idlePreloadAllowed(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
+  if (window.matchMedia('(max-width: 720px)').matches) return false
+
+  const connection = (navigator as Navigator & {
+    connection?: { saveData?: boolean }
+  }).connection
+  return !connection?.saveData
+}

@@ -18,6 +18,8 @@
       <el-input
         v-model="form.nickname"
         name="nickname"
+        autocomplete="off"
+        spellcheck="false"
         :placeholder="$t('profiles.form.nicknamePlaceholder')"
         maxlength="40"
       />
@@ -67,6 +69,8 @@
           v-else
           v-model="form.birth_date"
           name="lunar-birth-date"
+          autocomplete="off"
+          spellcheck="false"
           :placeholder="$t('profiles.form.lunarPlaceholder')"
         />
       </div>
@@ -111,6 +115,8 @@
         <el-input
           v-model="form.birth_place"
           name="birth-place"
+          autocomplete="off"
+          spellcheck="false"
           :placeholder="$t('profiles.form.birthPlacePlaceholder')"
         />
       </el-form-item>
@@ -149,6 +155,7 @@
         type="textarea"
         :rows="2"
         name="note"
+        autocomplete="off"
         :placeholder="$t('profiles.form.notePlaceholder')"
       />
     </el-form-item>

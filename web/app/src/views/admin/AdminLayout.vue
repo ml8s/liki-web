@@ -126,7 +126,7 @@ import { useChatStore } from '@/stores/chat'
 import { useSalesStore } from '@/stores/sales-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
-import { preloadRouteComponents, preloadWhenIdle } from '@/utils/routes'
+import { idlePreloadAllowed, preloadRouteComponents, preloadWhenIdle } from '@/utils/routes'
 
 const admin = useAdminStore()
 const auth = useAuthStore()
@@ -136,11 +136,17 @@ const router = useRouter()
 onMounted(() => {
   if (admin.status === 'unknown') void admin.loadSession(true)
 
+  if (!idlePreloadAllowed()) return
+
   // Admin pages are intentionally split. Warm their chunks once the shell is
   // interactive so the first navigation swaps data state, not an empty layout.
   preloadWhenIdle(async () => {
     await preloadRouteComponents(
-      router.getRoutes().filter(route => String(route.name ?? '').startsWith('admin-')),
+      router.getRoutes().filter(route => {
+        if (!String(route.name ?? '').startsWith('admin-')) return false
+        const capability = route.meta.adminCapability
+        return typeof capability !== 'string' || admin.can(capability as never)
+      }),
     )
   })
 })

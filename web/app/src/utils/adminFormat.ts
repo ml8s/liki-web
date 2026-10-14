@@ -52,6 +52,14 @@ export function adminStatusLabel(status: string): string {
   return adminStatusMeta[status]?.label ?? status
 }
 
+export function adminRoleLabel(role: string): string {
+  return role === 'kol' ? 'KOL' : role === 'scout' ? 'Scout' : role
+}
+
+export function adminPaymentMethodLabel(method: string): string {
+  return method === 'alipay' ? 'Alipay' : method === 'paypal' ? 'PayPal' : method
+}
+
 export function financeTaskTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     commission_refund_clawback: '佣金退款追回',

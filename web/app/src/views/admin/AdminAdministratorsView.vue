@@ -31,6 +31,9 @@
             <el-input
               v-model="newEmail"
               type="email"
+              name="admin-email"
+              autocomplete="off"
+              spellcheck="false"
               placeholder="ops@example.com"
             />
           </el-form-item>
@@ -44,87 +47,164 @@
         </el-form>
       </el-card>
 
-      <el-table
+      <div
         v-loading="loading"
-        :data="accounts"
-        row-key="email"
+        :aria-busy="loading"
       >
-        <el-table-column
-          prop="email"
-          label="邮箱"
-          min-width="210"
-        />
-        <el-table-column
-          label="状态"
-          width="100"
+        <el-table
+          class="admin-desktop-only"
+          :data="accounts"
+          row-key="email"
         >
-          <template #default="{ row }">
-            <AdminStatusTag :status="row.status" />
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="能力"
-          min-width="320"
+          <el-table-column
+            prop="email"
+            label="邮箱"
+            min-width="210"
+          />
+          <el-table-column
+            label="状态"
+            width="100"
+          >
+            <template #default="{ row }">
+              <AdminStatusTag :status="row.status" />
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="能力"
+            min-width="320"
+          >
+            <template #default="{ row }">
+              <el-tag
+                v-for="item in activeCapabilities(row as AdminAccount)"
+                :key="item.capability"
+                size="small"
+                class="cap-tag"
+                closable
+                @close="revokeCapability(row as AdminAccount, item.capability)"
+              >
+                {{ capabilityLabel(item.capability) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="授权"
+            width="220"
+          >
+            <template #default="{ row }">
+              <el-select
+                :model-value="grantCapability"
+                placeholder="选择能力"
+                size="small"
+                @change="(value: string) => grantCapability = value as AdminCapability"
+              >
+                <el-option
+                  v-for="capability in capabilityOptions"
+                  :key="capability"
+                  :label="capabilityLabel(capability)"
+                  :value="capability"
+                />
+              </el-select>
+              <el-button
+                class="grant-btn"
+                size="small"
+                type="primary"
+                plain
+                @click="grant(row as AdminAccount)"
+              >
+                授权
+              </el-button>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="账号"
+            width="150"
+            fixed="right"
+          >
+            <template #default="{ row }">
+              <el-button
+                size="small"
+                :type="row.status === 'active' ? 'danger' : 'primary'"
+                plain
+                @click="toggleStatus(row as AdminAccount)"
+              >
+                {{ row.status === 'active' ? '禁用' : '启用' }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div
+          v-if="!loading && !accounts.length"
+          class="admin-mobile-only"
         >
-          <template #default="{ row }">
-            <el-tag
-              v-for="item in activeCapabilities(row as AdminAccount)"
-              :key="item.capability"
-              size="small"
-              class="cap-tag"
-              closable
-              @close="revokeCapability(row as AdminAccount, item.capability)"
-            >
-              {{ capabilityLabel(item.capability) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="授权"
-          width="220"
-        >
-          <template #default="{ row }">
-            <el-select
-              :model-value="grantCapability"
-              placeholder="选择能力"
-              size="small"
-              @change="(value: string) => grantCapability = value as AdminCapability"
-            >
-              <el-option
-                v-for="capability in capabilityOptions"
-                :key="capability"
-                :label="capabilityLabel(capability)"
-                :value="capability"
-              />
-            </el-select>
-            <el-button
-              class="grant-btn"
-              size="small"
-              type="primary"
-              plain
-              @click="grant(row as AdminAccount)"
-            >
-              授权
-            </el-button>
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="账号"
-          width="150"
-          fixed="right"
-        >
-          <template #default="{ row }">
-            <el-button
-              size="small"
-              :type="row.status === 'active' ? 'danger' : 'primary'"
-              plain
-              @click="toggleStatus(row as AdminAccount)"
-            >
-              {{ row.status === 'active' ? '禁用' : '启用' }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-empty description="暂无管理员" />
+        </div>
+        <div class="admin-mobile-only">
+          <AdminRecordCard
+            v-for="row in accounts"
+            :key="row.email"
+            :fields="[
+              { key: 'email', label: '邮箱', value: row.email },
+              { key: 'status', label: '状态', value: row.status, kind: 'status' },
+              { key: 'capabilities', label: '能力', value: activeCapabilities(row).map(item => capabilityLabel(item.capability)).join(', ') },
+            ]"
+          >
+            <template #field="{ field }">
+              <div
+                v-if="field.key === 'capabilities' && row"
+                class="admin-capability-values"
+              >
+                <el-tag
+                  v-for="item in activeCapabilities(row)"
+                  :key="item.capability"
+                  size="small"
+                  class="cap-tag"
+                  closable
+                  @close="revokeCapability(row, item.capability)"
+                >
+                  {{ capabilityLabel(item.capability) }}
+                </el-tag>
+                <span
+                  v-if="!activeCapabilities(row).length"
+                  class="muted"
+                >-</span>
+              </div>
+              <span v-else>{{ field.value || '-' }}</span>
+            </template>
+            <template #actions>
+              <el-select
+                :model-value="grantCapability"
+                placeholder="选择能力"
+                size="small"
+                @change="(value: string) => grantCapability = value as AdminCapability"
+              >
+                <el-option
+                  v-for="capability in capabilityOptions"
+                  :key="capability"
+                  :label="capabilityLabel(capability)"
+                  :value="capability"
+                />
+              </el-select>
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                @click="grant(row)"
+              >
+                授权
+              </el-button>
+              <el-button
+                size="small"
+                :type="row.status === 'active' ? 'danger' : 'primary'"
+                plain
+                @click="toggleStatus(row)"
+              >
+                {{ row.status === 'active' ? '禁用' : '启用' }}
+              </el-button>
+            </template>
+          </AdminRecordCard>
+        </div>
+      </div>
     </template>
   </section>
 </template>
@@ -136,6 +216,7 @@ import {
   createAdminAccount, fetchAdminAccounts, grantAdminCapability, revokeAdminCapability,
   setAdminAccountStatus, type AdminAccount, type AdminCapability,
 } from '@/api/admin'
+import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'

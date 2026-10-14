@@ -92,6 +92,8 @@
           <el-form-item :label="$t('services.bond.birthPlaceOptional')">
             <el-input
               v-model="b.birth_place"
+              name="partner-birth-place"
+              autocomplete="off"
               :placeholder="$t('services.bond.birthPlacePlaceholder')"
             />
           </el-form-item>

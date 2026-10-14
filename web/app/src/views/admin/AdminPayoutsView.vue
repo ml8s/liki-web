@@ -61,104 +61,167 @@
       :closable="false"
       class="query-error"
     />
-    <el-table
+    <div
       v-loading="payouts.loading.value"
-      :data="payouts.data.value"
-      row-key="id"
+      :aria-busy="payouts.loading.value"
     >
-      <el-table-column
-        label="金额"
-        width="130"
+      <el-table
+        class="admin-desktop-only"
+        :data="payouts.data.value"
+        row-key="id"
       >
-        <template #default="{ row }">
-          {{ formatAdminMoney(row.amount_minor, row.currency) }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        prop="referrer_code"
-        label="推广码"
-        min-width="150"
-        show-overflow-tooltip
-      />
-      <el-table-column
-        prop="referrer_id"
-        label="合作伙伴 ID"
-        min-width="180"
-        show-overflow-tooltip
-      />
-      <el-table-column
-        prop="role"
-        label="角色"
-        width="90"
-      />
-      <el-table-column
-        label="方式 / 账号"
-        min-width="210"
+        <el-table-column
+          label="金额"
+          width="130"
+        >
+          <template #default="{ row }">
+            {{ formatAdminMoney(row.amount_minor, row.currency) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="referrer_code"
+          label="推广码"
+          min-width="150"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="referrer_id"
+          label="合作伙伴 ID"
+          min-width="180"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="role"
+          label="角色"
+          width="90"
+        />
+        <el-table-column
+          label="方式 / 账号"
+          min-width="210"
+        >
+          <template #default="{ row }">
+            <div>{{ row.method }}</div>
+            <div class="mono muted">
+              {{ revealed === row.id ? row.account : maskAdminAccount(row.account) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="状态"
+          width="110"
+        >
+          <template #default="{ row }">
+            <AdminStatusTag :status="row.status" />
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="时间"
+          width="180"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime(row.created_at) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="操作"
+          width="240"
+          fixed="right"
+        >
+          <template #default="{ row }">
+            <el-button
+              v-if="admin.can('payout.mark_paid') && ['requested','approved'].includes(row.status)"
+              size="small"
+              @click="reveal(row as AdminPayout)"
+            >
+              显示账号
+            </el-button>
+            <el-button
+              v-if="admin.can('payout.approve') && row.status === 'requested'"
+              size="small"
+              type="primary"
+              @click="act(row as AdminPayout, 'approve')"
+            >
+              批准
+            </el-button>
+            <el-button
+              v-if="admin.can('payout.reject') && ['requested','approved'].includes(row.status)"
+              size="small"
+              type="danger"
+              plain
+              @click="act(row as AdminPayout, 'reject')"
+            >
+              拒绝
+            </el-button>
+            <el-button
+              v-if="admin.can('payout.mark_paid') && row.status === 'approved'"
+              size="small"
+              type="success"
+              @click="act(row as AdminPayout, 'mark-paid')"
+            >
+              标记打款
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div
+        v-if="!payouts.loading.value && !payouts.data.value.length"
+        class="admin-mobile-only"
       >
-        <template #default="{ row }">
-          <div>{{ row.method }}</div>
-          <div class="mono muted">
-            {{ revealed === row.id ? row.account : maskAdminAccount(row.account) }}
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="状态"
-        width="110"
-      >
-        <template #default="{ row }">
-          <AdminStatusTag :status="row.status" />
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="时间"
-        width="180"
-      >
-        <template #default="{ row }">
-          {{ formatDateTime(row.created_at) }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="操作"
-        width="240"
-        fixed="right"
-      >
-        <template #default="{ row }">
-          <el-button
-            v-if="admin.can('payout.mark_paid') && ['requested','approved'].includes(row.status)"
-            size="small"
-            @click="reveal(row as AdminPayout)"
-          >
-            显示账号
-          </el-button>
-          <el-button
-            v-if="admin.can('payout.approve') && row.status === 'requested'"
-            size="small"
-            type="primary"
-            @click="act(row as AdminPayout, 'approve')"
-          >
-            批准
-          </el-button>
-          <el-button
-            v-if="admin.can('payout.reject') && ['requested','approved'].includes(row.status)"
-            size="small"
-            type="danger"
-            plain
-            @click="act(row as AdminPayout, 'reject')"
-          >
-            拒绝
-          </el-button>
-          <el-button
-            v-if="admin.can('payout.mark_paid') && row.status === 'approved'"
-            size="small"
-            type="success"
-            @click="act(row as AdminPayout, 'mark-paid')"
-          >
-            标记打款
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        <el-empty description="暂无提现记录" />
+      </div>
+      <div class="admin-mobile-only">
+        <AdminRecordCard
+          v-for="row in payouts.data.value"
+          :key="row.id"
+          :fields="[
+            { key: 'amount', label: '金额', value: row.amount_minor, kind: 'money', currency: row.currency },
+            { key: 'code', label: '推广码', value: row.referrer_code },
+            { key: 'partner', label: '合作伙伴 ID', value: row.referrer_id, kind: 'mono' },
+            { key: 'role', label: '角色', value: adminRoleLabel(row.role) },
+            { key: 'method', label: '方式', value: adminPaymentMethodLabel(row.method) },
+            { key: 'account', label: '账号', value: revealed === row.id ? row.account : maskAdminAccount(row.account), kind: 'mono' },
+            { key: 'status', label: '状态', value: row.status, kind: 'status' },
+            { key: 'created', label: '时间', value: formatDateTime(row.created_at) },
+          ]"
+        >
+          <template #actions>
+            <el-button
+              v-if="admin.can('payout.mark_paid') && ['requested','approved'].includes(row.status)"
+              size="small"
+              @click="reveal(row)"
+            >
+              显示账号
+            </el-button>
+            <el-button
+              v-if="admin.can('payout.approve') && row.status === 'requested'"
+              size="small"
+              type="primary"
+              @click="act(row, 'approve')"
+            >
+              批准
+            </el-button>
+            <el-button
+              v-if="admin.can('payout.reject') && ['requested','approved'].includes(row.status)"
+              size="small"
+              type="danger"
+              plain
+              @click="act(row, 'reject')"
+            >
+              拒绝
+            </el-button>
+            <el-button
+              v-if="admin.can('payout.mark_paid') && row.status === 'approved'"
+              size="small"
+              type="success"
+              @click="act(row, 'mark-paid')"
+            >
+              标记打款
+            </el-button>
+          </template>
+        </AdminRecordCard>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -168,13 +231,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   actOnAdminPayout, fetchAdminPayouts, revealAdminPayoutAccount, type AdminPayout,
 } from '@/api/admin'
+import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminResource } from '@/composables/useAdminResource'
 import { queryChoice } from '@/utils/query'
-import { formatAdminMoney, maskAdminAccount } from '@/utils/adminFormat'
+import { adminPaymentMethodLabel, adminRoleLabel, formatAdminMoney, maskAdminAccount } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const admin = useAdminStore()

@@ -78,55 +78,105 @@
         :closable="false"
         class="query-error"
       />
-      <el-table
+      <div
         v-loading="applications.loading.value"
-        :data="applications.data.value"
-        row-key="id"
+        :aria-busy="applications.loading.value"
       >
-        <el-table-column
-          prop="code"
-          label="推广码"
-          min-width="130"
-        />
-        <el-table-column
-          prop="type"
-          label="角色"
-          width="90"
-        />
-        <el-table-column
-          prop="note"
-          label="说明"
-          min-width="220"
-          show-overflow-tooltip
-        />
-        <el-table-column
-          label="状态"
-          width="100"
+        <el-table
+          class="admin-desktop-only"
+          :data="applications.data.value"
+          row-key="id"
         >
-          <template #default="{ row }">
-            <AdminStatusTag :status="row.status" />
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="时间"
-          width="180"
+          <el-table-column
+            prop="code"
+            label="推广码"
+            min-width="130"
+          />
+          <el-table-column
+            prop="type"
+            label="角色"
+            width="90"
+          />
+          <el-table-column
+            prop="note"
+            label="说明"
+            min-width="220"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            label="状态"
+            width="100"
+          >
+            <template #default="{ row }">
+              <AdminStatusTag :status="row.status" />
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="时间"
+            width="180"
+          >
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            v-if="admin.can('partner.approve')"
+            label="操作"
+            width="160"
+            fixed="right"
+          >
+            <template #default="{ row }">
+              <template v-if="row.status === 'pending'">
+                <el-button
+                  size="small"
+                  type="primary"
+                  @click="decide(row as AdminApplication, true)"
+                >
+                  通过
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  @click="decide(row as AdminApplication, false)"
+                >
+                  拒绝
+                </el-button>
+              </template>
+              <span
+                v-else
+                class="muted"
+              >已处理</span>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div
+          v-if="!applications.loading.value && !applications.data.value.length"
+          class="admin-mobile-only"
         >
-          <template #default="{ row }">
-            {{ formatDateTime(row.created_at) }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="admin.can('partner.approve')"
-          label="操作"
-          width="160"
-          fixed="right"
-        >
-          <template #default="{ row }">
-            <template v-if="row.status === 'pending'">
+          <el-empty description="暂无合作申请" />
+        </div>
+        <div class="admin-mobile-only">
+          <AdminRecordCard
+            v-for="row in applications.data.value"
+            :key="row.id"
+            :fields="[
+              { key: 'code', label: '推广码', value: row.code },
+              { key: 'role', label: '角色', value: adminRoleLabel(row.type) },
+              { key: 'note', label: '说明', value: row.note },
+              { key: 'status', label: '状态', value: row.status, kind: 'status' },
+              { key: 'created', label: '时间', value: formatDateTime(row.created_at) },
+            ]"
+          >
+            <template
+              v-if="admin.can('partner.approve') && row.status === 'pending'"
+              #actions
+            >
               <el-button
                 size="small"
                 type="primary"
-                @click="decide(row as AdminApplication, true)"
+                @click="decide(row, true)"
               >
                 通过
               </el-button>
@@ -134,18 +184,14 @@
                 size="small"
                 type="danger"
                 plain
-                @click="decide(row as AdminApplication, false)"
+                @click="decide(row, false)"
               >
                 拒绝
               </el-button>
             </template>
-            <span
-              v-else
-              class="muted"
-            >已处理</span>
-          </template>
-        </el-table-column>
-      </el-table>
+          </AdminRecordCard>
+        </div>
+      </div>
     </el-card>
 
     <el-card shadow="never">
@@ -214,62 +260,102 @@
           />
         </el-form-item>
       </el-form>
-      <el-table
+      <div
         v-loading="partners.loading.value"
-        :data="partners.data.value"
-        row-key="user_id"
+        :aria-busy="partners.loading.value"
       >
-        <el-table-column
-          prop="code"
-          label="推广码"
-          min-width="130"
-        />
-        <el-table-column
-          prop="user_id"
-          label="User ID"
-          min-width="220"
-          show-overflow-tooltip
-        />
-        <el-table-column
-          prop="role"
-          label="角色"
-          width="90"
-        />
-        <el-table-column
-          label="状态"
-          width="100"
+        <el-table
+          class="admin-desktop-only"
+          :data="partners.data.value"
+          row-key="user_id"
         >
-          <template #default="{ row }">
-            <AdminStatusTag :status="row.status" />
-          </template>
-        </el-table-column>
-        <el-table-column
-          label="时间"
-          width="180"
+          <el-table-column
+            prop="code"
+            label="推广码"
+            min-width="130"
+          />
+          <el-table-column
+            prop="user_id"
+            label="User ID"
+            min-width="220"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="role"
+            label="角色"
+            width="90"
+          />
+          <el-table-column
+            label="状态"
+            width="100"
+          >
+            <template #default="{ row }">
+              <AdminStatusTag :status="row.status" />
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="时间"
+            width="180"
+          >
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            v-if="admin.canAny(['partner.freeze','partner.unfreeze'])"
+            label="操作"
+            width="110"
+            fixed="right"
+          >
+            <template #default="{ row }">
+              <el-button
+                size="small"
+                :type="row.status === 'active' ? 'danger' : 'primary'"
+                plain
+                :disabled="row.status === 'active' ? !admin.can('partner.freeze') : !admin.can('partner.unfreeze')"
+                @click="togglePartner(row as AdminPartner)"
+              >
+                {{ row.status === 'active' ? '冻结' : '解冻' }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div
+          v-if="!partners.loading.value && !partners.data.value.length"
+          class="admin-mobile-only"
         >
-          <template #default="{ row }">
-            {{ formatDateTime(row.created_at) }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="admin.canAny(['partner.freeze','partner.unfreeze'])"
-          label="操作"
-          width="110"
-          fixed="right"
-        >
-          <template #default="{ row }">
-            <el-button
-              size="small"
-              :type="row.status === 'active' ? 'danger' : 'primary'"
-              plain
-              :disabled="row.status === 'active' ? !admin.can('partner.freeze') : !admin.can('partner.unfreeze')"
-              @click="togglePartner(row as AdminPartner)"
+          <el-empty description="暂无合作伙伴" />
+        </div>
+        <div class="admin-mobile-only">
+          <AdminRecordCard
+            v-for="row in partners.data.value"
+            :key="row.user_id"
+            :fields="[
+              { key: 'code', label: '推广码', value: row.code },
+              { key: 'user_id', label: 'User ID', value: row.user_id, kind: 'mono' },
+              { key: 'role', label: '角色', value: adminRoleLabel(row.role) },
+              { key: 'status', label: '状态', value: row.status, kind: 'status' },
+              { key: 'created', label: '时间', value: formatDateTime(row.created_at) },
+            ]"
+          >
+            <template
+              v-if="admin.canAny(['partner.freeze','partner.unfreeze'])"
+              #actions
             >
-              {{ row.status === 'active' ? '冻结' : '解冻' }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+              <el-button
+                size="small"
+                :type="row.status === 'active' ? 'danger' : 'primary'"
+                plain
+                :disabled="row.status === 'active' ? !admin.can('partner.freeze') : !admin.can('partner.unfreeze')"
+                @click="togglePartner(row)"
+              >
+                {{ row.status === 'active' ? '冻结' : '解冻' }}
+              </el-button>
+            </template>
+          </AdminRecordCard>
+        </div>
+      </div>
     </el-card>
   </section>
 </template>
@@ -281,11 +367,13 @@ import {
   decideAdminApplication, fetchAdminApplications, fetchAdminPartners, setAdminPartnerStatus,
   type AdminApplication, type AdminPartner,
 } from '@/api/admin'
+import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminResource } from '@/composables/useAdminResource'
+import { adminRoleLabel } from '@/utils/adminFormat'
 import { queryChoice, queryText } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
 

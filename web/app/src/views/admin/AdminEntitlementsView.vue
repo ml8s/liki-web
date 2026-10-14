@@ -21,6 +21,9 @@
           <el-input
             v-model="compensation.email"
             type="email"
+            name="compensation-email"
+            autocomplete="off"
+            spellcheck="false"
             placeholder="user@example.com"
           />
         </el-form-item>
@@ -42,6 +45,8 @@
         <el-form-item label="原因">
           <el-input
             v-model="compensation.reason"
+            name="compensation-reason"
+            autocomplete="off"
             placeholder="服务事故 / 工单编号"
           />
         </el-form-item>
@@ -65,6 +70,9 @@
         <el-input
           v-model="email"
           type="email"
+          name="entitlement-email"
+          autocomplete="off"
+          spellcheck="false"
           placeholder="user@example.com"
           clearable
           @keyup.enter="load"
@@ -114,91 +122,140 @@
       v-else-if="!loading && !entitlements.length"
       description="请输入邮箱后查询"
     />
-    <el-table
+    <div
       v-else
       v-loading="loading"
-      :data="entitlements"
-      row-key="id"
+      :aria-busy="loading"
     >
-      <el-table-column
-        prop="email"
-        label="邮箱"
-        min-width="190"
-        show-overflow-tooltip
-      />
-      <el-table-column
-        prop="product_id"
-        label="产品"
-        width="120"
-      />
-      <el-table-column
-        label="技能"
-        min-width="120"
+      <el-table
+        class="admin-desktop-only"
+        :data="entitlements"
+        row-key="id"
       >
-        <template #default="{ row }">
-          <el-tag
-            v-for="skill in row.skills"
-            :key="skill"
-            size="small"
-            class="skill-tag"
+        <el-table-column
+          prop="email"
+          label="邮箱"
+          min-width="190"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="product_id"
+          label="产品"
+          width="120"
+        />
+        <el-table-column
+          label="技能"
+          min-width="120"
+        >
+          <template #default="{ row }">
+            <el-tag
+              v-for="skill in row.skills"
+              :key="skill"
+              size="small"
+              class="skill-tag"
+            >
+              {{ skill }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="状态"
+          width="100"
+        >
+          <template #default="{ row }">
+            <AdminStatusTag :status="row.status" />
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="有效期"
+          min-width="300"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime(row.starts_at) }} — {{ formatDateTime(row.expires_at) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="来源"
+          min-width="170"
+        >
+          <template #default="{ row }">
+            <div>{{ row.source }}</div>
+            <div class="mono muted">
+              {{ row.source_id }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="admin.can('entitlement.manage')"
+          label="操作"
+          width="170"
+          fixed="right"
+        >
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              :disabled="row.status === 'revoked'"
+              @click="openExpire(row as AdminEntitlement)"
+            >
+              改期
+            </el-button>
+            <el-button
+              size="small"
+              type="danger"
+              plain
+              :disabled="row.status === 'revoked'"
+              @click="revoke(row as AdminEntitlement)"
+            >
+              撤销
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div
+        v-if="!loading && !entitlements.length"
+        class="admin-mobile-only"
+      >
+        <el-empty description="未找到用户权益" />
+      </div>
+      <div class="admin-mobile-only">
+        <AdminRecordCard
+          v-for="row in entitlements"
+          :key="row.id"
+          :fields="[
+            { key: 'email', label: '邮箱', value: row.email },
+            { key: 'product_id', label: '产品', value: row.product_id },
+            { key: 'skills', label: '技能', value: row.skills.join(', ') },
+            { key: 'status', label: '状态', value: row.status, kind: 'status' },
+            { key: 'expires', label: '有效期', value: `${formatDateTime(row.starts_at)} — ${formatDateTime(row.expires_at)}` },
+            { key: 'source', label: '来源', value: row.source },
+            { key: 'source_id', label: '来源 ID', value: row.source_id, kind: 'mono' },
+          ]"
+        >
+          <template
+            v-if="admin.can('entitlement.manage')"
+            #actions
           >
-            {{ skill }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="状态"
-        width="100"
-      >
-        <template #default="{ row }">
-          <AdminStatusTag :status="row.status" />
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="有效期"
-        min-width="300"
-      >
-        <template #default="{ row }">
-          {{ formatDateTime(row.starts_at) }} — {{ formatDateTime(row.expires_at) }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        label="来源"
-        min-width="170"
-      >
-        <template #default="{ row }">
-          <div>{{ row.source }}</div>
-          <div class="mono muted">
-            {{ row.source_id }}
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column
-        v-if="admin.can('entitlement.manage')"
-        label="操作"
-        width="170"
-        fixed="right"
-      >
-        <template #default="{ row }">
-          <el-button
-            size="small"
-            :disabled="row.status === 'revoked'"
-            @click="openExpire(row as AdminEntitlement)"
-          >
-            改期
-          </el-button>
-          <el-button
-            size="small"
-            type="danger"
-            plain
-            :disabled="row.status === 'revoked'"
-            @click="revoke(row as AdminEntitlement)"
-          >
-            撤销
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+            <el-button
+              size="small"
+              :disabled="row.status === 'revoked'"
+              @click="openExpire(row)"
+            >
+              改期
+            </el-button>
+            <el-button
+              size="small"
+              type="danger"
+              plain
+              :disabled="row.status === 'revoked'"
+              @click="revoke(row)"
+            >
+              撤销
+            </el-button>
+          </template>
+        </AdminRecordCard>
+      </div>
+    </div>
 
     <el-dialog
       v-model="expireDialog"
@@ -221,6 +278,8 @@
         >
           <el-input
             v-model="expireForm.reason"
+            name="expire-reason"
+            autocomplete="off"
             type="textarea"
             :rows="3"
           />
@@ -249,6 +308,7 @@ import {
   compensateAdminEntitlement, expireAdminEntitlement, fetchAdminEntitlements, revokeAdminEntitlement,
   type AdminEntitlement,
 } from '@/api/admin'
+import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'

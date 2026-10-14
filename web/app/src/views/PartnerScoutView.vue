@@ -46,7 +46,10 @@
           </div>
         </template>
         <el-input
-          :model-value="referralLink"
+          v-model="referralLink"
+          name="scout-referral-link"
+          autocomplete="off"
+          spellcheck="false"
           readonly
         />
         <p class="share-hint">
@@ -280,6 +283,8 @@
         >
           <el-input
             v-model="note"
+            name="scout-application-note"
+            autocomplete="off"
             type="textarea"
             :rows="5"
             maxlength="500"
