@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ml8s/liki-web/internal/feedback"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/partner"
 
 	_ "modernc.org/sqlite"
 )
@@ -78,7 +78,7 @@ func TestRegisterRoutes_Referral(t *testing.T) {
 	mux := http.NewServeMux()
 	rl := NewRateLimiter()
 	defer rl.Stop()
-	handler := referral.NewHandler(nil, func(next http.HandlerFunc) http.HandlerFunc { return next }, false)
+	handler := partner.NewHandler(nil, func(next http.HandlerFunc) http.HandlerFunc { return next }, false)
 	deps := ServerDeps{
 		ReferralHandler: handler,
 	}

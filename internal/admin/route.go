@@ -6,7 +6,7 @@ import (
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/partner"
 )
 
 type IdentityFunc func(r *http.Request) (auth.User, bool)
@@ -47,10 +47,10 @@ func capabilityGuard(authorizer *adminauth.Store, identity IdentityFunc) func(ad
 
 func RegisterRoutes(
 	mux *http.ServeMux,
-	referralStore *referral.Store,
+	partnerStore *partner.Store,
 	authorizer *adminauth.Store,
 	identity IdentityFunc,
-	partnerDecisionNotifier referral.DecisionNotifier,
+	partnerDecisionNotifier partner.DecisionNotifier,
 ) {
 	h := NewHandler()
 	guard := capabilityGuard(authorizer, identity)
@@ -68,20 +68,20 @@ func RegisterRoutes(
 	mux.HandleFunc("POST /api/admin/admins/{email}/enable", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleEnableAdmin()))
 	mux.HandleFunc("POST /api/admin/admins/{email}/disable", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleDisableAdmin()))
 
-	if referralStore != nil {
-		referralAdmin := referral.NewAdminHandler(referralStore, partnerDecisionNotifier)
-		mux.HandleFunc("GET /api/admin/referral/partners", guard(adminauth.CapabilityPartnerRead)(referralAdmin.HandleListPartners()))
-		mux.HandleFunc("GET /api/admin/referral/applications", guard(adminauth.CapabilityPartnerRead)(referralAdmin.HandleListApplications()))
-		mux.HandleFunc("POST /api/admin/referral/applications/{id}/decision", guard(adminauth.CapabilityPartnerApprove)(referralAdmin.HandleApplicationDecision()))
-		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/freeze", guard(adminauth.CapabilityPartnerFreeze)(referralAdmin.HandlePartnerFreeze()))
-		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/unfreeze", guard(adminauth.CapabilityPartnerUnfreeze)(referralAdmin.HandlePartnerUnfreeze()))
-		mux.HandleFunc("GET /api/admin/referral/payouts", guard(adminauth.CapabilityPayoutRead)(referralAdmin.HandleListPayouts()))
-		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/approve", guard(adminauth.CapabilityPayoutApprove)(referralAdmin.HandlePayoutAction()))
-		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/reject", guard(adminauth.CapabilityPayoutReject)(referralAdmin.HandlePayoutAction()))
-		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/mark-paid", guard(adminauth.CapabilityPayoutMarkPaid)(referralAdmin.HandlePayoutAction()))
-		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/reveal-account", guard(adminauth.CapabilityPayoutMarkPaid)(referralAdmin.HandleRevealPayoutAccount()))
-		mux.HandleFunc("GET /api/admin/referral/actions", guard(adminauth.CapabilityAuditRead)(referralAdmin.HandleAdminActions()))
-		mux.HandleFunc("GET /api/admin/referral/finance-tasks", guard(adminauth.CapabilityCommissionRead)(referralAdmin.HandleListFinanceTasks()))
-		mux.HandleFunc("POST /api/admin/referral/finance-tasks/{id}/resolve", guard(adminauth.CapabilityCommissionVoid)(referralAdmin.HandleResolveFinanceTask()))
+	if partnerStore != nil {
+		partnerAdmin := partner.NewAdminHandler(partnerStore, partnerDecisionNotifier)
+		mux.HandleFunc("GET /api/admin/referral/partners", guard(adminauth.CapabilityPartnerRead)(partnerAdmin.HandleListPartners()))
+		mux.HandleFunc("GET /api/admin/referral/applications", guard(adminauth.CapabilityPartnerRead)(partnerAdmin.HandleListApplications()))
+		mux.HandleFunc("POST /api/admin/referral/applications/{id}/decision", guard(adminauth.CapabilityPartnerApprove)(partnerAdmin.HandleApplicationDecision()))
+		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/freeze", guard(adminauth.CapabilityPartnerFreeze)(partnerAdmin.HandlePartnerFreeze()))
+		mux.HandleFunc("POST /api/admin/referral/partners/{userId}/unfreeze", guard(adminauth.CapabilityPartnerUnfreeze)(partnerAdmin.HandlePartnerUnfreeze()))
+		mux.HandleFunc("GET /api/admin/referral/payouts", guard(adminauth.CapabilityPayoutRead)(partnerAdmin.HandleListPayouts()))
+		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/approve", guard(adminauth.CapabilityPayoutApprove)(partnerAdmin.HandlePayoutAction()))
+		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/reject", guard(adminauth.CapabilityPayoutReject)(partnerAdmin.HandlePayoutAction()))
+		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/mark-paid", guard(adminauth.CapabilityPayoutMarkPaid)(partnerAdmin.HandlePayoutAction()))
+		mux.HandleFunc("POST /api/admin/referral/payouts/{id}/reveal-account", guard(adminauth.CapabilityPayoutMarkPaid)(partnerAdmin.HandleRevealPayoutAccount()))
+		mux.HandleFunc("GET /api/admin/referral/actions", guard(adminauth.CapabilityAuditRead)(partnerAdmin.HandleAdminActions()))
+		mux.HandleFunc("GET /api/admin/referral/finance-tasks", guard(adminauth.CapabilityCommissionRead)(partnerAdmin.HandleListFinanceTasks()))
+		mux.HandleFunc("POST /api/admin/referral/finance-tasks/{id}/resolve", guard(adminauth.CapabilityCommissionVoid)(partnerAdmin.HandleResolveFinanceTask()))
 	}
 }

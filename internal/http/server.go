@@ -12,23 +12,23 @@ import (
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/aipay"
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/birthprofile"
 	"github.com/ml8s/liki-web/internal/enginemcp"
 	"github.com/ml8s/liki-web/internal/feedback"
 	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
-	"github.com/ml8s/liki-web/internal/profile"
-	"github.com/ml8s/liki-web/internal/referral"
 )
 
 type ServerDeps struct {
 	PaymentRuntime  *payment.Runtime
 	AuthHandler     *auth.Handler
-	ReferralHandler *referral.Handler
-	ReferralStore   *referral.Store
+	ReferralHandler *partner.Handler
+	ReferralStore   *partner.Store
 	LikiHandler     *liki.Handler
 	EngineMCP       *enginemcp.Handler
 	AipayHandler    *aipay.Handler
-	ProfileHandler  *profile.Handler
+	ProfileHandler  *birthprofile.Handler
 	AccountHandler  *account.Handler
 	MetricsHandler  http.HandlerFunc
 	Readiness       ReadinessChecker
@@ -36,7 +36,7 @@ type ServerDeps struct {
 	FeedbackAPIKey  string
 	AdminEmail      string
 	AdminAuthorizer *adminauth.Store
-	PartnerNotifier referral.DecisionNotifier
+	PartnerNotifier partner.DecisionNotifier
 	DevMode         bool
 }
 

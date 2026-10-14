@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -46,7 +48,7 @@ func TestSubscriptionCheckoutStoresLocalKeyAndOmitsAmount(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	if err := entitlements.Migrate(ctx); err != nil {
 		t.Fatal(err)
@@ -68,7 +70,7 @@ func TestSubscriptionCheckoutStoresLocalKeyAndOmitsAmount(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/chat/products/liki-chat/checkout",
 		strings.NewReader(`{"billing_mode":"subscription","locale":"en"}`))
 	request.Header.Set("CF-IPCountry", "US")
-	request.SetPathValue("id", string(ProductChat))
+	request.SetPathValue("id", string(product.Chat))
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
 		ID: "user-1", Email: "user@example.com",
 	}, auth.AuthSession{}, ""))
@@ -111,7 +113,7 @@ func TestSubscriptionRoutesListAndCancel(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	if err := entitlements.Migrate(ctx); err != nil {
 		t.Fatal(err)
@@ -119,7 +121,7 @@ func TestSubscriptionRoutesListAndCancel(t *testing.T) {
 	if err := subscriptions.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,14 +167,14 @@ func TestSubscriptionPaymentsRouteReturnsRefundState(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,14 +240,14 @@ func TestSubscriptionListReconcilesPendingCheckout(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,14 +299,14 @@ func TestSubscriptionCheckoutRejectsActiveSubscription(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	active, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	active, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +325,7 @@ func TestSubscriptionCheckoutRejectsActiveSubscription(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/chat/products/liki-chat/checkout",
 		strings.NewReader(`{"billing_mode":"subscription","locale":"en"}`))
 	request.Header.Set("CF-IPCountry", "US")
-	request.SetPathValue("id", string(ProductChat))
+	request.SetPathValue("id", string(product.Chat))
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
 		ID: "user-1", Email: "user@example.com",
 	}, auth.AuthSession{}, ""))

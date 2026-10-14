@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ml8s/liki-web/internal/auth"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/partner"
 )
 
 // ErasureStore persists erasure requests in platform.db. HandleErasure runs
@@ -216,14 +216,14 @@ func (w *ErasureWorker) RunPending(ctx context.Context) (int, error) {
 }
 
 func runErrString(err error) string {
-	if errors.Is(err, referral.ErrReferralFinancialHold) {
+	if errors.Is(err, partner.ErrReferralFinancialHold) {
 		return "referral_financial_hold"
 	}
 	return err.Error()
 }
 
 type erasureOutcome struct {
-	ReferralResult  referral.ErasureResult
+	ReferralResult  partner.ErasureResult
 	ProfilesCleared int64
 	Erased          map[string]int64
 	MessagesCleared int64

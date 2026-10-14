@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/birthprofile"
 	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
-	"github.com/ml8s/liki-web/internal/profile"
-	"github.com/ml8s/liki-web/internal/referral"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 
 	_ "modernc.org/sqlite"
@@ -39,7 +39,7 @@ func openTestDB(t *testing.T) *sql.DB {
 func TestHandleErasure(t *testing.T) {
 	ctx := context.Background()
 	db := openTestDB(t)
-	profileStore := profile.NewStore(db)
+	profileStore := birthprofile.NewStore(db)
 	if err := profileStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestHandleErasure(t *testing.T) {
 	orderStore := liki.NewOrderStoreWithCatalog(db, liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
 		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
 	}))
-	entitlementStore := liki.NewEntitlementStore(db)
+	entitlementStore := liki.NewStore(db)
 	paymentStore := payment.NewIntentStore(db)
 	notificationStore := payment.NewNotificationStore(db)
 	referralDBPath := filepath.Join(t.TempDir(), "referral.db")
@@ -61,7 +61,7 @@ func TestHandleErasure(t *testing.T) {
 	if err := referralDB.Close(); err != nil {
 		t.Fatal(err)
 	}
-	referralStore, err := referral.Open(referralDBPath, []byte("test-referral-payout-secret"))
+	referralStore, err := partner.Open(referralDBPath, []byte("test-referral-payout-secret"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 
 	// user_1 建档案 + 会话 + system_profile 消息（含 PII）
-	p, err := profileStore.Create(ctx, "user_1", profile.Input{
+	p, err := profileStore.Create(ctx, "user_1", birthprofile.Input{
 		Nickname: "妈妈", Gender: "female", Calendar: "lunar",
 		BirthDate: "1958-闰5-12", BirthTime: "06:00", BirthTimeKnown: "known",
 	})
@@ -163,7 +163,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 
 	// 档案 PII 已清 + 软删；会话消息内容已清
-	if _, err := profileStore.Get(ctx, "user_1", p.ID); err != profile.ErrNotFound {
+	if _, err := profileStore.Get(ctx, "user_1", p.ID); err != birthprofile.ErrNotFound {
 		t.Fatalf("profile should be gone, got err=%v", err)
 	}
 	msgs, err := chatStore.ListMessages(ctx, "user_1", session.ID)

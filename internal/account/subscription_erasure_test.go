@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -20,7 +21,7 @@ func TestErasureAnonymizesSubscriptionContact(t *testing.T) {
 	if err := subscriptions.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", liki.ProductChat, liki.CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}

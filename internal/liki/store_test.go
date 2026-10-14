@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -52,7 +53,7 @@ INSERT INTO entitlements VALUES
 		t.Fatal(err)
 	}
 
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	for range 2 {
 		if err := entitlements.Migrate(ctx); err != nil {
 			t.Fatal(err)

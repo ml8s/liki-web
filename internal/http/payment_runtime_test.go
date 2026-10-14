@@ -14,6 +14,7 @@ import (
 
 	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 type fakeGateway struct {
@@ -62,14 +63,14 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.Orde
 	orderStore := liki.NewOrderStoreWithCatalog(mainDB, liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
 		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
 	}))
-	entitlementStore := liki.NewEntitlementStore(mainDB)
+	entitlementStore := liki.NewStore(mainDB)
 	if err := orderStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if err := entitlementStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	order, err := orderStore.CreateOrder(ctx, "user_1", "user@example.com", liki.ProductChat, "CNY")
+	order, err := orderStore.CreateOrder(ctx, "user_1", "user@example.com", product.Chat, "CNY")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +78,7 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.Orde
 	runtime := payment.NewRuntime(
 		map[payment.Provider]payment.Gateway{payment.ProviderXunhu: gateway},
 		map[string]payment.ProductFlow{
-			string(liki.ProductChat): liki.NewFulfiller(orderStore, entitlementStore, liki.ProductChat, 30*time.Hour),
+			string(product.Chat): liki.NewFulfiller(orderStore, entitlementStore, product.Chat, 30*time.Hour),
 		},
 		intents,
 		notifications,
@@ -109,7 +110,7 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 
 	intent, err := runtime.CreateIntent(context.Background(), payment.CreateIntentInput{
-		Product: string(liki.ProductChat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
+		Product: string(product.Chat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -174,7 +175,7 @@ func TestSharedPaymentWebhookReturnsProviderAck(t *testing.T) {
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 
 	intent, err := runtime.CreateIntent(context.Background(), payment.CreateIntentInput{
-		Product: string(liki.ProductChat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
+		Product: string(product.Chat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -25,9 +25,13 @@ import (
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/aipay"
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/birthprofile"
+	"github.com/ml8s/liki-web/internal/chat"
 	"github.com/ml8s/liki-web/internal/dodo"
-	"github.com/ml8s/liki-web/internal/profile"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/entitlement"
+	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/partner"
+	"github.com/ml8s/liki-web/internal/sales"
 	"github.com/ml8s/liki-web/internal/xunhu"
 
 	"github.com/ml8s/liki-web/internal/email"
@@ -35,9 +39,9 @@ import (
 	"github.com/ml8s/liki-web/internal/feedback"
 	apphttp "github.com/ml8s/liki-web/internal/http"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/liki"
 	"github.com/ml8s/liki-web/internal/metrics"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 // Build-time variables injected via -ldflags.
@@ -116,7 +120,7 @@ func LoadConfig() Config {
 		JWTSecret:                        os.Getenv("JWT_SECRET"),
 		HTTPListenAddress:                envOr("LIKI_HTTP_LISTEN_ADDRESS", ":8081"),
 		DevelopmentMode:                  envOrBool("LIKI_DEVELOPMENT_MODE", false),
-		CurrencySource:                   envOr("LIKI_BILLING_CURRENCY_SOURCE", liki.CurrencySourceTrustedEdge),
+		CurrencySource:                   envOr("LIKI_BILLING_CURRENCY_SOURCE", product.CurrencySourceTrustedEdge),
 		BillingRegion:                    envOr("LIKI_BILLING_REGION", "global"),
 		ChatOneTimeAccessDays:            envOrInt("LIKI_CHAT_ONE_TIME_ACCESS_DAYS", 30),
 		ChatOneTimePriceMinorCNY:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS", 100),
@@ -163,7 +167,7 @@ func loadAlipayConfig() aipay.Config {
 func main() {
 	cfg := LoadConfig()
 
-	currencyResolver, err := liki.NewCurrencyResolver(cfg.CurrencySource, cfg.BillingRegion)
+	currencyResolver, err := product.NewCurrencyResolver(cfg.CurrencySource, cfg.BillingRegion)
 	if err != nil {
 		slog.Error("invalid billing currency configuration", "err", err)
 		os.Exit(1)
@@ -209,7 +213,7 @@ func main() {
 	authStore := auth.NewStore(platformDB, []byte(cfg.JWTSecret))
 
 	// ── profiles ──
-	profileStore := profile.NewStore(profilesDB)
+	profileStore := birthprofile.NewStore(profilesDB)
 
 	// ── feedback ──
 	feedbackStore, err := feedback.NewStore(feedbackDB)
@@ -222,8 +226,8 @@ func main() {
 	emailClient := email.New(cfg.ResendAPIKey, cfg.ResendFrom)
 
 	dodoProducts := map[string]string{
-		string(liki.ProductChat) + ":one_time":     cfg.DodoProductLikiChatOneTime,
-		string(liki.ProductChat) + ":subscription": cfg.DodoProductLikiChatSubscription,
+		string(product.Chat) + ":one_time":     cfg.DodoProductLikiChatOneTime,
+		string(product.Chat) + ":subscription": cfg.DodoProductLikiChatSubscription,
 	}
 	dodoClient := dodo.New(cfg.DodoAPIKey, cfg.DodoWebhookKey, cfg.DodoTestMode, dodoProducts)
 
@@ -279,13 +283,13 @@ func main() {
 		}
 		return emailClient.SendReport(ctx, email, subject, body)
 	})
-	partnerDecisionEmail := func(ctx context.Context, item referral.PartnerApplication, approved bool, reason string) error {
+	partnerDecisionEmail := func(ctx context.Context, item partner.PartnerApplication, approved bool, reason string) error {
 		applicant, err := authStore.GetUser(ctx, item.UserID)
 		if err != nil {
 			return err
 		}
 		role := "KOL"
-		if item.Type == referral.RoleScout {
+		if item.Type == partner.RoleScout {
 			role = "Scout"
 		}
 		var subject, opening, noteLabel, next string
@@ -333,7 +337,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	entitlements := liki.NewEntitlementStore(likiDB)
+	entitlements := entitlement.NewStore(likiDB)
 	if err := entitlements.Migrate(ctx); err != nil {
 		slog.Error("init entitlements", "err", err)
 		os.Exit(1)
@@ -341,7 +345,7 @@ func main() {
 	if _, err := entitlements.ExpireDue(ctx); err != nil {
 		slog.Warn("expire entitlements", "err", err)
 	}
-	subscriptionStore := liki.NewSubscriptionStore(likiDB)
+	subscriptionStore := sales.NewSubscriptionStore(likiDB)
 	if err := subscriptionStore.Migrate(ctx); err != nil {
 		slog.Error("init subscription schema", "err", err)
 		os.Exit(1)
@@ -351,28 +355,28 @@ func main() {
 		slog.Error("LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY must contain at least 32 bytes")
 		os.Exit(1)
 	}
-	referralStore, err := referral.Open(filepath.Join(dataDir, "referral.db"), []byte(payoutSecret))
+	partnerStore, err := partner.Open(filepath.Join(dataDir, "referral.db"), []byte(payoutSecret))
 	if err != nil {
-		slog.Error("init referral store", "err", err)
+		slog.Error("init partner store", "err", err)
 		os.Exit(1)
 	}
-	defer func() { _ = referralStore.Close() }()
-	if err := referralStore.Migrate(ctx); err != nil {
-		slog.Error("init referral schema", "err", err)
+	defer func() { _ = partnerStore.Close() }()
+	if err := partnerStore.Migrate(ctx); err != nil {
+		slog.Error("init partner schema", "err", err)
 		os.Exit(1)
 	}
-	referralStore.SetCommissionRates(
+	partnerStore.SetCommissionRates(
 		cfg.KOLRevenueShareBasisPoints,
 		cfg.ScoutRevenueShareBasisPoints,
 	)
-	referralHandler := referral.NewHandler(referralStore, authHandler.RequireUser, !cfg.DevelopmentMode)
-	authHandler.SetPostLoginHook(referralHandler.PostLoginHook)
-	chatStore := liki.NewChatStore(likiDB)
+	partnerHandler := partner.NewHandler(partnerStore, authHandler.RequireUser, !cfg.DevelopmentMode)
+	authHandler.SetPostLoginHook(partnerHandler.PostLoginHook)
+	chatStore := chat.NewChatStore(likiDB)
 	if err := chatStore.Migrate(ctx); err != nil {
 		slog.Error("init chat schema", "err", err)
 		os.Exit(1)
 	}
-	chatService := liki.NewService(chatStore, entitlements, profileStore)
+	chatService := chat.NewService(chatStore, entitlements, profileStore)
 	if cfg.AgentURL == "" {
 		slog.Error("LIKI_AGENTS_URL is required")
 		os.Exit(1)
@@ -385,7 +389,7 @@ func main() {
 	if agentTimeout <= 0 || agentTimeout > maxAgentRunTimeout {
 		agentTimeout = maxAgentRunTimeout
 	}
-	agentRunner, err := liki.NewAgentRunner(liki.AgentRunnerConfig{
+	agentRunner, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
 		BaseURL: cfg.AgentURL,
 		Token:   cfg.AgentInternalToken,
 		Timeout: agentTimeout,
@@ -396,12 +400,12 @@ func main() {
 		os.Exit(1)
 	}
 	chatService.SetAgentRunner(agentRunner)
-	commerceCatalog := liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
+	commerceCatalog := product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY:      cfg.ChatOneTimePriceMinorCNY,
 		OneTimePriceMinorUSD:      cfg.ChatOneTimePriceMinorUSD,
 		SubscriptionPriceMinorUSD: cfg.ChatSubscriptionPriceMinorUSD,
 	})
-	commerceOrders := liki.NewOrderStoreWithCatalog(likiDB, commerceCatalog)
+	commerceOrders := sales.NewOrderStoreWithCatalog(likiDB, commerceCatalog)
 	if err := commerceOrders.Migrate(ctx); err != nil {
 		slog.Error("init commerce schema", "err", err)
 		os.Exit(1)
@@ -479,7 +483,7 @@ func main() {
 		slog.Warn("xunhu payment provider is not fully configured; it is disabled")
 	}
 	flows := map[string]payment.ProductFlow{
-		string(liki.ProductChat): liki.NewFulfiller(commerceOrders, entitlements, liki.ProductChat, chatDuration),
+		string(product.Chat): sales.NewFlow(commerceOrders, entitlements, product.Chat, chatDuration),
 	}
 	paymentSender := paymentEmailSender{client: emailClient}
 	paymentRuntime := payment.NewRuntime(gateways, flows, intents, notifications, fulfillments, events, paymentSender, payment.RuntimeOptions{
@@ -492,7 +496,7 @@ func main() {
 			Product: intent.Product, Provider: intent.Provider,
 			AmountMinor: intent.AmountMinor, Currency: intent.Currency, Email: intent.Email,
 		}
-		if _, _, err := referralStore.EnqueueCommissionPayment(ctx, sale); err != nil {
+		if _, _, err := partnerStore.EnqueueCommissionPayment(ctx, sale); err != nil {
 			slog.Error("referral: enqueue fulfilled payment", "payment_id", sale.ID, "err", err)
 		}
 	})
@@ -502,19 +506,19 @@ func main() {
 			Product: intent.Product, Provider: intent.Provider,
 			AmountMinor: intent.AmountMinor, Currency: intent.Currency, Email: intent.Email,
 		}
-		return referralStore.EnqueueCommissionRefund(ctx, event, sale)
+		return partnerStore.EnqueueCommissionRefund(ctx, event, sale)
 	})
-	subscriptionProcessor := liki.NewSubscriptionEventProcessor(
+	subscriptionProcessor := sales.NewSubscriptionEventProcessor(
 		subscriptionStore,
 		entitlements,
 		cfg.DodoProductLikiChatSubscription,
 		func(ctx context.Context, sale payment.CommissionablePayment) error {
-			_, _, err := referralStore.EnqueueCommissionPayment(ctx, sale)
+			_, _, err := partnerStore.EnqueueCommissionPayment(ctx, sale)
 			return err
 		},
 	)
 	subscriptionProcessor.SetCommissionRefundObserver(func(ctx context.Context, event payment.WebhookEvent, sale payment.CommissionablePayment) error {
-		return referralStore.EnqueueCommissionRefund(ctx, event, sale)
+		return partnerStore.EnqueueCommissionRefund(ctx, event, sale)
 	})
 	paymentRuntime.SetSubscriptionProcessor(subscriptionProcessor)
 	erasureQueue := account.NewErasureStore(platformDB)
@@ -524,7 +528,7 @@ func main() {
 	}
 	workers := new(sync.WaitGroup)
 	workers.Go(func() {
-		referralStore.StartCommissionWorker(ctx, platformDB, 5*time.Second)
+		partnerStore.StartCommissionWorker(ctx, platformDB, 5*time.Second)
 	})
 
 	// Validate JWT_SECRET at startup so config errors fail fast.
@@ -565,7 +569,7 @@ func main() {
 		entitlements,
 		intents,
 		notifications,
-		referralStore,
+		partnerStore,
 		adminAuthorizer,
 		erasureQueue,
 		authHandler.RequireUser,
@@ -575,8 +579,8 @@ func main() {
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
 		PaymentRuntime:  paymentRuntime,
 		AuthHandler:     authHandler,
-		ReferralHandler: referralHandler,
-		ReferralStore:   referralStore,
+		ReferralHandler: partnerHandler,
+		ReferralStore:   partnerStore,
 		LikiHandler: liki.NewHandler(
 			commerceOrders, entitlements, chatService, paymentRuntime, authHandler.RequireUser,
 			liki.WithCurrencyResolver(currencyResolver),
@@ -594,13 +598,13 @@ func main() {
 		),
 		EngineMCP:       enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),
 		AipayHandler:    aipayHandler,
-		ProfileHandler:  profile.NewHandler(profileStore, authHandler.RequireUser),
+		ProfileHandler:  birthprofile.NewHandler(profileStore, authHandler.RequireUser),
 		AccountHandler:  accountHandler,
 		FeedbackStore:   feedbackStore,
 		FeedbackAPIKey:  cfg.FeedbackAPIKey,
 		AdminEmail:      cfg.AdminEmail,
 		AdminAuthorizer: adminAuthorizer,
-		PartnerNotifier: func(ctx context.Context, item referral.PartnerApplication, approved bool, reason string) {
+		PartnerNotifier: func(ctx context.Context, item partner.PartnerApplication, approved bool, reason string) {
 			// The decision is already committed; delivery must not be
 			// cancelled with the request context.
 			ctx = context.WithoutCancel(ctx)

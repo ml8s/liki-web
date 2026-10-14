@@ -4,16 +4,19 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/birthprofile"
+	"github.com/ml8s/liki-web/internal/chat"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
-	"github.com/ml8s/liki-web/internal/profile"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/sales"
 )
 
 type AuthEraser interface {
@@ -21,7 +24,7 @@ type AuthEraser interface {
 }
 
 type ReferralEraser interface {
-	EraseUser(ctx context.Context, userID string) (referral.ErasureResult, error)
+	EraseUser(ctx context.Context, userID string) (partner.ErasureResult, error)
 }
 
 // AdminAuditEraser pseudonymizes the acting admin's email on historical
@@ -39,11 +42,11 @@ type SubscriptionEraser interface {
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
-	profiles      *profile.Store
-	chat          *liki.ChatStore
+	profiles      *birthprofile.Store
+	chat          *chat.ChatStore
 	auth          AuthEraser
-	orders        *liki.OrderStore
-	entitlement   *liki.EntitlementStore
+	orders        *sales.OrderStore
+	entitlement   *entitlement.Store
 	payments      *payment.IntentStore
 	notifications *payment.NotificationStore
 	subscriptions SubscriptionEraser
@@ -54,11 +57,11 @@ type Handler struct {
 }
 
 func NewHandler(
-	profiles *profile.Store,
-	chatStore *liki.ChatStore,
+	profiles *birthprofile.Store,
+	chatStore *chat.ChatStore,
 	authStore AuthEraser,
-	orders *liki.OrderStore,
-	entitlement *liki.EntitlementStore,
+	orders *sales.OrderStore,
+	entitlement *entitlement.Store,
 	payments *payment.IntentStore,
 	notifications *payment.NotificationStore,
 	referral ReferralEraser,
@@ -108,7 +111,7 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 	}
 	outcome, err := h.runErasureSteps(r.Context(), user, tombstone, requestID)
 	if err != nil {
-		if errors.Is(err, referral.ErrReferralFinancialHold) {
+		if errors.Is(err, partner.ErrReferralFinancialHold) {
 			httputil.RespondError(w, http.StatusConflict, "referral_financial_hold", "存在待结算提现，请先完成资金结算")
 			return
 		}

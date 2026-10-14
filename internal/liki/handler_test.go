@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -18,7 +19,7 @@ func TestHandleProductsReturnsServerSelectedDisplayCurrency(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	if err := entitlements.Migrate(context.Background()); err != nil {
 		t.Fatal(err)
 	}

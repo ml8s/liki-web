@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -17,14 +19,14 @@ func TestSubscriptionEventProcessorRecordsPaymentAndAppliesLifecycle(t *testing.
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +79,7 @@ func TestSubscriptionEventProcessorRecordsPaymentAndAppliesLifecycle(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(allowed) != 1 || allowed[0] != SkillLiki {
+	if len(allowed) != 1 || allowed[0] != product.SkillConsultation {
 		t.Fatalf("allowed = %#v", allowed)
 	}
 }
@@ -89,14 +91,14 @@ func TestSubscriptionEventProcessorRoutesSubscriptionRefund(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,14 +157,14 @@ func TestSubscriptionEventProcessorRejectsUnexpectedProduct(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}

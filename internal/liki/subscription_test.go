@@ -7,7 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -19,14 +21,14 @@ func TestSubscriptionStoreLifecycleIsIdempotent(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 	subscriptions := NewSubscriptionStore(db)
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	for _, migrate := range []func(context.Context) error{subscriptions.Migrate, entitlements.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +47,7 @@ func TestSubscriptionStoreLifecycleIsIdempotent(t *testing.T) {
 		Data: payment.WebhookEventData{
 			SubscriptionID:      "sub_1",
 			CustomerID:          "cus_1",
-			ProviderProductID:   string(ProductChat),
+			ProviderProductID:   string(product.Chat),
 			Status:              "active",
 			Currency:            "USD",
 			PeriodStart:         &start,
@@ -97,7 +99,7 @@ func TestSubscriptionStoreRecordsRenewalPaymentOnce(t *testing.T) {
 	if err := subscriptions.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +159,7 @@ func TestSubscriptionStoreRetriesFailedPaymentObserver(t *testing.T) {
 	if err := subscriptions.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +212,7 @@ func TestSubscriptionStoreRecordsRefundOnce(t *testing.T) {
 	if err := subscriptions.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,7 +280,7 @@ func TestSubscriptionCancellationRequiresOwnership(t *testing.T) {
 	if err := subscriptions.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,14 +319,14 @@ func TestSubscriptionStoreUsesWebhookTimeForStaleEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -369,14 +371,14 @@ func TestSubscriptionUpdatedUnknownStatusFailsClosed(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -407,14 +409,14 @@ func TestSubscriptionStoreKeepsLocalProduct(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	subscriptions := NewSubscriptionStore(db)
 	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +435,7 @@ func TestSubscriptionStoreKeepsLocalProduct(t *testing.T) {
 			Metadata: map[string]string{
 				"liki_subscription_key": "missing-local-key",
 				"liki_user_id":          "user-1",
-				"liki_product":          string(ProductChat),
+				"liki_product":          string(product.Chat),
 			},
 		},
 	}); err != nil {
@@ -443,8 +445,8 @@ func TestSubscriptionStoreKeepsLocalProduct(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stored.ProductID != ProductChat {
-		t.Fatalf("product = %q, want local product %q", stored.ProductID, ProductChat)
+	if stored.ProductID != product.Chat {
+		t.Fatalf("product = %q, want local product %q", stored.ProductID, product.Chat)
 	}
 	if stored.ProviderSubscriptionID != "sub_new" {
 		t.Fatalf("provider subscription = %q", stored.ProviderSubscriptionID)
@@ -462,7 +464,7 @@ func TestSubscriptionStoreRecordsPartialRefundsIdempotently(t *testing.T) {
 	if err := subscriptions.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", ProductChat, CurrencyUSD)
+	pending, err := subscriptions.CreatePending(ctx, "user-1", "user@example.com", product.Chat, product.USD)
 	if err != nil {
 		t.Fatal(err)
 	}

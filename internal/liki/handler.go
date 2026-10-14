@@ -10,17 +10,16 @@ import (
 	"strings"
 
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/payment"
-	"github.com/ml8s/liki-web/internal/profile"
+	"github.com/ml8s/liki-web/internal/product"
 )
 
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 type LimitFunc func(http.HandlerFunc) http.HandlerFunc
 
 // ErrSubscriptionConflict reports that a blocking subscription already exists.
-var ErrSubscriptionConflict = errors.New("liki: subscription conflict")
-
 // SubscriptionCheckoutCreator is owned by the provider gateway. Keeping it as
 // a local interface avoids coupling the product HTTP layer to Dodo.
 type SubscriptionCheckoutCreator interface {
@@ -39,7 +38,7 @@ type SubscriptionEventApplier func(context.Context, payment.WebhookEvent) error
 // product catalog, checkout, orders, and chat sessions/messages.
 type Handler struct {
 	orders                   *OrderStore
-	entitlements             *EntitlementStore
+	entitlements             *entitlement.Store
 	service                  *Service
 	runtime                  *payment.Runtime
 	requireUser              RequireUserFunc
@@ -96,7 +95,7 @@ func WithSubscriptionReconciliation(reconciler SubscriptionReconciler, apply Sub
 	}
 }
 
-func NewHandler(orders *OrderStore, entitlements *EntitlementStore, service *Service, runtime *payment.Runtime, requireUser RequireUserFunc, options ...HandlerOption) *Handler {
+func NewHandler(orders *OrderStore, entitlements *entitlement.Store, service *Service, runtime *payment.Runtime, requireUser RequireUserFunc, options ...HandlerOption) *Handler {
 	h := &Handler{
 		orders:       orders,
 		entitlements: entitlements,
@@ -128,11 +127,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 		mux.HandleFunc("DELETE /api/me/subscriptions/{id}/cancellation", h.requireUser(h.HandleDeleteCancellation))
 	}
 	// Chat
-	mux.HandleFunc("GET /api/chat/sessions", h.requireUser(h.HandleSessions))
-	mux.HandleFunc("POST /api/chat/sessions", h.requireUser(limit(h.HandleCreateSession)))
-	mux.HandleFunc("GET /api/chat/sessions/{id}", h.requireUser(h.HandleSession))
-	mux.HandleFunc("GET /api/chat/sessions/{id}/messages", h.requireUser(h.HandleMessages))
-	mux.HandleFunc("POST /api/chat/sessions/{id}/ag-ui", h.requireUser(limit(h.HandleAGUIMessage)))
 }
 
 // ── Entitlement ──
@@ -206,9 +200,9 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 			httputil.InternalError(w)
 			return
 		}
-		options := make([]map[string]any, 0, len(commercial.PurchaseOptions))
-		for _, purchaseOption := range commercial.PurchaseOptions {
-			if purchaseOption.BillingMode == BillingModeSubscription && h.subscriptionCheckout == nil {
+		options := make([]map[string]any, 0, len(commercial.Offers))
+		for _, purchaseOption := range commercial.Offers {
+			if purchaseOption.BillingMode == product.BillingModeSubscription && h.subscriptionCheckout == nil {
 				continue
 			}
 			options = append(options, map[string]any{
@@ -264,12 +258,12 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		catalog = NewCommerceCatalog(CommerceCatalogConfig{})
 	}
 	productID := Product(r.PathValue("id"))
-	if _, err := catalog.DefinitionFor(productID); err != nil {
+	if _, err := catalog.OfferingFor(productID); err != nil {
 		httputil.RespondError(w, http.StatusNotFound, "product_not_found", "产品不存在")
 		return
 	}
 	currency := h.currency.CurrencyFor(r)
-	if req.BillingMode == BillingModeSubscription {
+	if req.BillingMode == product.BillingModeSubscription {
 		h.handleSubscriptionCheckout(w, r, user, productID, currency, req.Locale)
 		return
 	}
@@ -337,7 +331,7 @@ func (h *Handler) handleSubscriptionCheckout(
 	if catalog == nil {
 		catalog = NewCommerceCatalog(CommerceCatalogConfig{})
 	}
-	if _, err := catalog.Price(productID, BillingModeSubscription, currency); err != nil {
+	if _, err := catalog.Price(productID, product.BillingModeSubscription, currency); err != nil {
 		httputil.RespondError(w, http.StatusBadRequest, "subscription_unavailable", "订阅在当前区域不可用")
 		return
 	}
@@ -492,89 +486,6 @@ func firstNonEmpty(values ...string) string {
 }
 
 // ── Chat ──
-
-type createSessionRequest struct {
-	Skill     string `json:"skill"`
-	Title     string `json:"title"`
-	ProfileID string `json:"profile_id"`
-}
-
-func (r createSessionRequest) Validate() error {
-	if strings.TrimSpace(r.Skill) == "" {
-		return errors.New("skill is required")
-	}
-	return nil
-}
-
-func (h *Handler) HandleSessions(w http.ResponseWriter, r *http.Request) {
-	sessions, err := h.service.store.ListSessions(r.Context(), userID(r))
-	if err != nil {
-		httputil.InternalError(w)
-		return
-	}
-	httputil.RespondJSON(w, http.StatusOK, sessions)
-}
-
-func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
-	req, ok := httputil.Decode[createSessionRequest](w, r)
-	if !ok {
-		return
-	}
-	user, ok := auth.UserFromContext(r.Context())
-	if !ok {
-		httputil.Unauthorized(w)
-		return
-	}
-	session, err := h.service.CreateSession(r.Context(), user.ID, req.Skill, req.Title, req.ProfileID)
-	if err != nil {
-		if errors.Is(err, ErrSkillForbidden) {
-			httputil.RespondError(w, http.StatusForbidden, "skill_forbidden", "当前权益不可使用该 skill")
-			return
-		}
-		if errors.Is(err, profile.ErrNotFound) {
-			httputil.NotFound(w)
-			return
-		}
-		slog.Error("liki: create session", "user_id", user.ID, "err", err)
-		httputil.InternalError(w)
-		return
-	}
-	httputil.RespondJSON(w, http.StatusOK, session)
-}
-
-func (h *Handler) HandleMessages(w http.ResponseWriter, r *http.Request) {
-	user, ok := auth.UserFromContext(r.Context())
-	if !ok {
-		httputil.Unauthorized(w)
-		return
-	}
-	sessionID := r.PathValue("id")
-	if _, err := h.service.Session(r.Context(), user.ID, sessionID); err != nil {
-		writeSessionError(w, err)
-		return
-	}
-	messages, err := h.service.store.ListMessages(r.Context(), user.ID, sessionID)
-	if err != nil {
-		slog.Error("liki: list messages", "session_id", sessionID, "err", err)
-		httputil.InternalError(w)
-		return
-	}
-	httputil.RespondJSON(w, http.StatusOK, messages)
-}
-
-func (h *Handler) HandleSession(w http.ResponseWriter, r *http.Request) {
-	user, ok := auth.UserFromContext(r.Context())
-	if !ok {
-		httputil.Unauthorized(w)
-		return
-	}
-	session, err := h.service.Session(r.Context(), user.ID, r.PathValue("id"))
-	if err != nil {
-		writeSessionError(w, err)
-		return
-	}
-	httputil.RespondJSON(w, http.StatusOK, session)
-}
 
 // ── Shared HTTP helpers ──
 

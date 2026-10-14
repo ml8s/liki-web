@@ -6,13 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
 func TestFulfillerDisplayName(t *testing.T) {
 	t.Parallel()
-	fulfiller := NewFulfiller(nil, nil, ProductChat, 0)
+	fulfiller := NewFlow(nil, nil, product.Chat, 0)
 	if got := fulfiller.DisplayName("zh-Hant"); got != "Liki Chat" {
 		t.Fatalf("DisplayName() = %q, want %q", got, "Liki Chat")
 	}
@@ -25,16 +27,16 @@ func TestFulfillerOnPaidGrantsEntitlementIdempotently(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	orders := NewOrderStoreWithCatalog(db, NewCommerceCatalog(CommerceCatalogConfig{
+	orders := NewOrderStoreWithCatalog(db, product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
 	}))
-	entitlements := NewEntitlementStore(db)
+	entitlements := entitlement.NewStore(db)
 	for _, migrate := range []func(context.Context) error{orders.Migrate, entitlements.Migrate} {
 		if err := migrate(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
-	order, err := orders.CreateOrder(ctx, "user-1", "user@example.com", ProductChat, "USD")
+	order, err := orders.CreateOrder(ctx, "user-1", "user@example.com", product.Chat, "USD")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,9 +44,9 @@ func TestFulfillerOnPaidGrantsEntitlementIdempotently(t *testing.T) {
 		t.Fatal(err)
 	}
 	intent := payment.PaymentIntent{
-		ID: "pi-1", BusinessOrderID: order.ID, UserID: "user-1", Product: string(ProductChat),
+		ID: "pi-1", BusinessOrderID: order.ID, UserID: "user-1", Product: string(product.Chat),
 	}
-	fulfiller := NewFulfiller(orders, entitlements, ProductChat, 30*24*time.Hour)
+	fulfiller := NewFlow(orders, entitlements, product.Chat, 30*24*time.Hour)
 	if err := fulfiller.OnPaid(ctx, intent); err != nil {
 		t.Fatalf("first OnPaid: %v", err)
 	}
