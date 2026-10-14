@@ -19,7 +19,7 @@
           {{ $t('nav.workspace') }}
         </router-link>
         <router-link
-          to="/profiles"
+          to=" /birth-profiles"
           active-class="on"
         >
           {{ $t('nav.profiles') }}

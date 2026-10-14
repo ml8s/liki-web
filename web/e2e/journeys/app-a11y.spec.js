@@ -37,9 +37,9 @@ const order = {
 const pages = [
   { path: '/app/login', name: 'login', marker: 'input[type="email"]' },
   { path: '/app/', name: 'dashboard', marker: '.services' },
-  { path: '/app/profiles', name: 'profiles', marker: '.profile-card' },
-  { path: '/app/profiles/new', name: 'profile-new', marker: '.birth-form' },
-  { path: '/app/profiles/p_1', name: 'profile-detail', marker: '.paipan-preview' },
+  { path: '/app/birth-profiles', name: 'profiles', marker: '.profile-card' },
+  { path: '/app/birth-profiles/new', name: 'profile-new', marker: '.birth-form' },
+  { path: '/app/birth-profiles/p_1', name: 'profile-detail', marker: '.paipan-preview' },
   { path: '/app/synastry', name: 'synastry', marker: '.b-form' },
   { path: '/app/divination', name: 'divination', marker: '.el-input' },
   { path: '/app/fengshui', name: 'fengshui', marker: '.el-select' },
@@ -59,26 +59,26 @@ test.describe('App accessibility audit', () => {
     test(`${name}: ${path}`, async ({ page }) => {
       await page.route('**/api/me', r => r.fulfill(json(user)))
       await page.route('**/api/me/entitlements', r => r.fulfill(json(entitlements)))
-      await page.route('**/api/profiles**', r => {
-        if (r.request().url().endsWith('/profiles/p_1')) return r.fulfill(json(profile))
+      await page.route('**/api/birth-profiles**', r => {
+        if (r.request().url().endsWith('/birth-profiles/p_1')) return r.fulfill(json(profile))
         return r.fulfill(json({ profiles: [profile], next_cursor: '' }))
       })
       await page.route('**/api/chat/sessions', r => r.fulfill(json([session])))
       await page.route('**/api/chat/sessions/chat_1', r => r.fulfill(json(session)))
       await page.route('**/api/chat/sessions/chat_1/messages', r => r.fulfill(json([message])))
-      await page.route('**/api/chat/products', r => r.fulfill(json({ products: [product] })))
-      await page.route('**/api/chat/orders', r => r.fulfill(json({ orders: [order] })))
-      await page.route('**/api/me/subscriptions', r => r.fulfill(json([])))
-      await page.route('**/api/me/subscription-payments', r => r.fulfill(json([])))
+      await page.route('**/api/sales/products', r => r.fulfill(json({ products: [product] })))
+      await page.route('**/api/sales/orders', r => r.fulfill(json({ orders: [order] })))
+      await page.route('**/api/sales/subscriptions', r => r.fulfill(json([])))
+      await page.route('**/api/sales/subscription-payments', r => r.fulfill(json([])))
       await page.route('**/api/me/sessions', r => r.fulfill(json([])))
       await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
       // Partner 面：kol/scout 深状态 mock 从简，覆盖骨架的错误/空态即可。
-      await page.route('**/api/partner', r => r.fulfill(json({
+      await page.route('**/api/partner-portal', r => r.fulfill(json({
         kol: { status: '', application: null, can_submit: true },
         scout: { status: '', application: null, can_submit: true },
       })))
-      await page.route('**/api/kol/**', r => r.fulfill(json({})))
-      await page.route('**/api/scout/**', r => r.fulfill(json({})))
+      await page.route('**/api/partner-portal/kol/**', r => r.fulfill(json({})))
+      await page.route('**/api/partner-portal/scout/**', r => r.fulfill(json({})))
 
       await page.goto(path)
       await page.waitForSelector(marker, { timeout: 10000 })

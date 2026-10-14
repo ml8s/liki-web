@@ -1,6 +1,6 @@
 import { del, get, post } from './http'
 
-export interface ChatOrder {
+export interface Order {
   id: string
   user_id: string
   email: string
@@ -14,12 +14,12 @@ export interface ChatOrder {
   paid_at: string | null
 }
 
-export async function fetchChatOrders(): Promise<ChatOrder[]> {
-  const payload = await get<{ orders: ChatOrder[] }>('/api/chat/orders')
+export async function fetchOrders(): Promise<Order[]> {
+  const payload = await get<{ orders: Order[] }>('/api/sales/orders')
   return payload.orders ?? []
 }
 
-export interface ChatSubscription {
+export interface Subscription {
   id: string
   user_id: string
   email: string
@@ -53,19 +53,19 @@ export interface SubscriptionPayment {
   updated_at: string
 }
 
-export async function fetchSubscriptions(): Promise<ChatSubscription[]> {
-  const payload = await get<{ subscriptions: ChatSubscription[] }>('/api/me/subscriptions')
+export async function fetchSubscriptions(): Promise<Subscription[]> {
+  const payload = await get<{ subscriptions: Subscription[] }>('/api/sales/subscriptions')
   return payload.subscriptions ?? []
 }
 
 export async function fetchSubscriptionPayments(): Promise<SubscriptionPayment[]> {
-  const payload = await get<{ payments: SubscriptionPayment[] }>('/api/me/subscription-payments')
+  const payload = await get<{ payments: SubscriptionPayment[] }>('/api/sales/subscription-payments')
   return payload.payments ?? []
 }
 
 export async function setSubscriptionCancellation(subscriptionId: string, cancel: boolean): Promise<boolean> {
   const payload = cancel
-    ? await post<{ cancel_at_period_end: boolean }>(`/api/me/subscriptions/${subscriptionId}/cancellation`)
-    : await del<{ cancel_at_period_end: boolean }>(`/api/me/subscriptions/${subscriptionId}/cancellation`)
+    ? await post<{ cancel_at_period_end: boolean }>(`/api/sales/subscriptions/${subscriptionId}/cancellation`)
+    : await del<{ cancel_at_period_end: boolean }>(`/api/sales/subscriptions/${subscriptionId}/cancellation`)
   return payload.cancel_at_period_end
 }

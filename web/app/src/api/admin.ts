@@ -141,9 +141,9 @@ export interface AdminFinanceReport {
   subscription_paid: AdminMoney[]
   subscription_refunded: AdminMoney[]
   net_product_revenue: AdminMoney[]
-  referral_commission_net: AdminMoney[]
-  referral_payout_paid: AdminMoney[]
-  referral_pending_payout: AdminMoney[]
+  partner_commission_net: AdminMoney[]
+  partner_payout_paid: AdminMoney[]
+  partner_pending_payout: AdminMoney[]
 }
 
 function query(params: Record<string, string | number | undefined>) {
@@ -195,43 +195,43 @@ export function setAdminAccountStatus(email: string, status: 'active' | 'disable
 }
 
 export function fetchAdminApplications(status = 'pending', role = ''): Promise<{ applications: AdminApplication[] }> {
-  return get(`/api/admin/referral/applications${query({ status, role, limit: 100 })}`)
+  return get(`/api/admin/partner-applications${query({ status, role, limit: 100 })}`)
 }
 
 export function decideAdminApplication(id: string, approve: boolean, reason: string): Promise<{ result: string }> {
-  return post(`/api/admin/referral/applications/${encodeURIComponent(id)}/decision`, { approve, reason })
+  return post(`/api/admin/partner-applications/${encodeURIComponent(id)}/decision`, { approve, reason })
 }
 
 export function fetchAdminPartners(role = '', status = '', q = ''): Promise<{ partners: AdminPartner[] }> {
-  return get(`/api/admin/referral/partners${query({ role, status, q, limit: 100 })}`)
+  return get(`/api/admin/partners${query({ role, status, q, limit: 100 })}`)
 }
 
 export function setAdminPartnerStatus(userId: string, freeze: boolean, reason: string): Promise<{ result: string }> {
-  return post(`/api/admin/referral/partners/${encodeURIComponent(userId)}/${freeze ? 'freeze' : 'unfreeze'}`, { reason })
+  return post(`/api/admin/partners/${encodeURIComponent(userId)}/${freeze ? 'freeze' : 'unfreeze'}`, { reason })
 }
 
 export function fetchAdminPayouts(status = 'requested'): Promise<{ payouts: AdminPayout[] }> {
-  return get(`/api/admin/referral/payouts${query({ status, limit: 100 })}`)
+  return get(`/api/admin/partner-payouts${query({ status, limit: 100 })}`)
 }
 
 export function actOnAdminPayout(id: string, action: 'approve' | 'reject' | 'mark-paid', body: Record<string, string>): Promise<{ result: string }> {
-  return post(`/api/admin/referral/payouts/${encodeURIComponent(id)}/${action}`, body)
+  return post(`/api/admin/partner-payouts/${encodeURIComponent(id)}/${action}`, body)
 }
 
 export function revealAdminPayoutAccount(id: string, reason: string): Promise<{ account: string }> {
-  return post(`/api/admin/referral/payouts/${encodeURIComponent(id)}/reveal-account`, { reason })
+  return post(`/api/admin/partner-payouts/${encodeURIComponent(id)}/reveal-account`, { reason })
 }
 
 export function fetchAdminActions(): Promise<{ actions: AdminAction[] }> {
-  return get('/api/admin/referral/actions?limit=100')
+  return get('/api/admin/partner-audit-actions?limit=100')
 }
 
 export function fetchAdminFinanceTasks(status = 'pending'): Promise<{ tasks: AdminFinanceTask[] }> {
-  return get(`/api/admin/referral/finance-tasks${query({ status, limit: 100 })}`)
+  return get(`/api/admin/partner-finance-tasks${query({ status, limit: 100 })}`)
 }
 
 export function resolveAdminFinanceTask(id: string, status: 'resolved' | 'rejected', note: string): Promise<{ result: string }> {
-  return post(`/api/admin/referral/finance-tasks/${encodeURIComponent(id)}/resolve`, { status, note })
+  return post(`/api/admin/partner-finance-tasks/${encodeURIComponent(id)}/resolve`, { status, note })
 }
 
 export function fetchAdminFinanceReport(days: 7 | 30 | 90): Promise<AdminFinanceReport> {

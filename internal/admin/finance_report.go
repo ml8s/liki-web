@@ -1,8 +1,8 @@
 package admin
 
-import "github.com/ml8s/liki-web/internal/liki"
+import "github.com/ml8s/liki-web/internal/sales"
 
-func moneyMap(items []liki.AdminMoney) map[string]int64 {
+func moneyMap(items []sales.AdminMoney) map[string]int64 {
 	values := make(map[string]int64, len(items))
 	for _, item := range items {
 		values[item.Currency] = item.AmountMinor
@@ -20,7 +20,7 @@ func addMoneyMaps(groups ...map[string]int64) map[string]int64 {
 	return merged
 }
 
-func mergeAdminMoney(values ...map[string]int64) []liki.AdminMoney {
+func mergeAdminMoney(values ...map[string]int64) []sales.AdminMoney {
 	merged := make(map[string]int64)
 	for _, group := range values {
 		for currency, amount := range group {
@@ -32,14 +32,14 @@ func mergeAdminMoney(values ...map[string]int64) []liki.AdminMoney {
 		currencies = append(currencies, currency)
 	}
 	sortStrings(currencies)
-	items := make([]liki.AdminMoney, 0, len(currencies))
+	items := make([]sales.AdminMoney, 0, len(currencies))
 	for _, currency := range currencies {
-		items = append(items, liki.AdminMoney{Currency: currency, AmountMinor: merged[currency]})
+		items = append(items, sales.AdminMoney{Currency: currency, AmountMinor: merged[currency]})
 	}
 	return items
 }
 
-func subtractAdminMoney(minuend, subtrahend map[string]int64) []liki.AdminMoney {
+func subtractAdminMoney(minuend, subtrahend map[string]int64) []sales.AdminMoney {
 	values := make(map[string]int64, len(minuend))
 	for currency, amount := range minuend {
 		values[currency] = amount

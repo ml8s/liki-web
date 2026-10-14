@@ -14,8 +14,9 @@ import (
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/liki"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/partner"
+	"github.com/ml8s/liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/sales"
 )
 
 // UserByEmailReader is the minimum identity lookup needed to ensure that a
@@ -24,9 +25,9 @@ type UserByEmailReader interface {
 	GetUserByEmail(context.Context, string) (auth.User, error)
 }
 
-// ReferralFinanceReader decouples the referral bounded context from admin.
-type ReferralFinanceReader interface {
-	AdminFinanceSummary(ctx context.Context, start, end time.Time) (referral.AdminFinanceSummary, error)
+// PartnerFinanceReader decouples the partner bounded context from admin.
+type PartnerFinanceReader interface {
+	AdminFinanceSummary(ctx context.Context, start, end time.Time) (partner.AdminFinanceSummary, error)
 }
 
 type compensationRequest struct {
@@ -78,7 +79,7 @@ func (h *AdminService) HandleCompensateEntitlement() http.HandlerFunc {
 		}
 		sourceID := compensationSourceID(req.IdempotencyKey, user.ID)
 		entitlement, err := h.entitlements.GrantForProduct(
-			r.Context(), user.ID, user.Email, liki.ProductChat,
+			r.Context(), user.ID, user.Email, product.Chat,
 			"admin_compensation", sourceID, duration,
 		)
 		if err != nil {
@@ -143,15 +144,15 @@ func (h *AdminService) auditCompensationNotificationFailure(r *http.Request, ent
 }
 
 type AdminFinanceReport struct {
-	PeriodStart           string            `json:"period_start"`
-	PeriodEnd             string            `json:"period_end"`
-	OneTimePaid           []liki.AdminMoney `json:"one_time_paid"`
-	SubscriptionPaid      []liki.AdminMoney `json:"subscription_paid"`
-	SubscriptionRefunded  []liki.AdminMoney `json:"subscription_refunded"`
-	NetProductRevenue     []liki.AdminMoney `json:"net_product_revenue"`
-	ReferralCommissionNet []liki.AdminMoney `json:"referral_commission_net"`
-	ReferralPayoutPaid    []liki.AdminMoney `json:"referral_payout_paid"`
-	ReferralPendingPayout []liki.AdminMoney `json:"referral_pending_payout"`
+	PeriodStart          string             `json:"period_start"`
+	PeriodEnd            string             `json:"period_end"`
+	OneTimePaid          []sales.AdminMoney `json:"one_time_paid"`
+	SubscriptionPaid     []sales.AdminMoney `json:"subscription_paid"`
+	SubscriptionRefunded []sales.AdminMoney `json:"subscription_refunded"`
+	NetProductRevenue    []sales.AdminMoney `json:"net_product_revenue"`
+	PartnerCommissionNet []sales.AdminMoney `json:"partner_commission_net"`
+	PartnerPayoutPaid    []sales.AdminMoney `json:"partner_payout_paid"`
+	PartnerPendingPayout []sales.AdminMoney `json:"partner_pending_payout"`
 }
 
 func (h *AdminService) HandleFinanceSummary() http.HandlerFunc {
@@ -171,41 +172,41 @@ func (h *AdminService) HandleFinanceSummary() http.HandlerFunc {
 		// second precision in SQLite.
 		end := time.Now().UTC().Truncate(time.Second).Add(time.Second)
 		start := end.AddDate(0, 0, -days)
-		commerce, err := h.commerce.AdminFinanceSummary(r.Context(), start, end)
+		salesSummary, err := h.sales.AdminFinanceSummary(r.Context(), start, end)
 		if err != nil {
-			slog.Error("admin: commerce finance summary", "err", err)
+			slog.Error("admin: sales finance summary", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "生成财务汇总失败")
 			return
 		}
-		partner, err := h.referralFinance.AdminFinanceSummary(r.Context(), start, end)
+		partner, err := h.partnerFinance.AdminFinanceSummary(r.Context(), start, end)
 		if err != nil {
-			slog.Error("admin: referral finance summary", "err", err)
+			slog.Error("admin: partner finance summary", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "生成财务汇总失败")
 			return
 		}
 
 		grossProductPaid := addMoneyMaps(
-			moneyMap(commerce.OneTimePaid), moneyMap(commerce.SubscriptionPaid),
+			moneyMap(salesSummary.OneTimePaid), moneyMap(salesSummary.SubscriptionPaid),
 		)
-		productRefunds := moneyMap(commerce.SubscriptionRefunded)
+		productRefunds := moneyMap(salesSummary.SubscriptionRefunded)
 		httputil.RespondJSON(w, http.StatusOK, AdminFinanceReport{
-			PeriodStart:           start.Format(time.RFC3339),
-			PeriodEnd:             end.Format(time.RFC3339),
-			OneTimePaid:           commerce.OneTimePaid,
-			SubscriptionPaid:      commerce.SubscriptionPaid,
-			SubscriptionRefunded:  commerce.SubscriptionRefunded,
-			NetProductRevenue:     subtractAdminMoney(grossProductPaid, productRefunds),
-			ReferralCommissionNet: referralAdminMoney(partner.CommissionNet),
-			ReferralPayoutPaid:    referralAdminMoney(partner.PayoutPaid),
-			ReferralPendingPayout: referralAdminMoney(partner.PendingPayoutAmount),
+			PeriodStart:          start.Format(time.RFC3339),
+			PeriodEnd:            end.Format(time.RFC3339),
+			OneTimePaid:          salesSummary.OneTimePaid,
+			SubscriptionPaid:     salesSummary.SubscriptionPaid,
+			SubscriptionRefunded: salesSummary.SubscriptionRefunded,
+			NetProductRevenue:    subtractAdminMoney(grossProductPaid, productRefunds),
+			PartnerCommissionNet: partnerAdminMoney(partner.CommissionNet),
+			PartnerPayoutPaid:    partnerAdminMoney(partner.PayoutPaid),
+			PartnerPendingPayout: partnerAdminMoney(partner.PendingPayoutAmount),
 		})
 	}
 }
 
-func referralAdminMoney(items []referral.AdminMoney) []liki.AdminMoney {
-	converted := make([]liki.AdminMoney, 0, len(items))
+func partnerAdminMoney(items []partner.AdminMoney) []sales.AdminMoney {
+	converted := make([]sales.AdminMoney, 0, len(items))
 	for _, item := range items {
-		converted = append(converted, liki.AdminMoney{Currency: item.Currency, AmountMinor: item.AmountMinor})
+		converted = append(converted, sales.AdminMoney{Currency: item.Currency, AmountMinor: item.AmountMinor})
 	}
 	return converted
 }

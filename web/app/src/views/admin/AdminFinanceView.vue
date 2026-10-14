@@ -232,9 +232,9 @@ const reportRows = computed(() => [
   { label: '订阅收入', values: report.value?.subscription_paid ?? [] },
   { label: '订阅退款', values: report.value?.subscription_refunded ?? [] },
   { label: '产品净收入', values: report.value?.net_product_revenue ?? [] },
-  { label: '合作佣金净额', values: report.value?.referral_commission_net ?? [] },
-  { label: '已付提现', values: report.value?.referral_payout_paid ?? [] },
-  { label: '当前待处理提现', values: report.value?.referral_pending_payout ?? [] },
+  { label: '合作佣金净额', values: report.value?.partner_commission_net ?? [] },
+  { label: '已付提现', values: report.value?.partner_payout_paid ?? [] },
+  { label: '当前待处理提现', values: report.value?.partner_pending_payout ?? [] },
 ])
 
 onMounted(load)

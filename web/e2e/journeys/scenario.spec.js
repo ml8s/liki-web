@@ -44,10 +44,10 @@ test.describe('Authenticated scenario handoff', () => {
     await page.route('**/api/me/entitlements', route => route.fulfill(json({
       entitlements: [], allowed_skills: ['liki'],
     })))
-    await page.route('**/api/profiles**', route => route.fulfill(json({ profiles, next_cursor: '' })))
+    await page.route('**/api/birth-profiles**', route => route.fulfill(json({ profiles, next_cursor: '' })))
     await page.route('**/api/chat/sessions', route => route.fulfill(json([])))
-    await page.route('**/api/chat/products', route => route.fulfill(json({ products: [] })))
-    await page.route('**/api/chat/orders', route => route.fulfill(json({ orders: [] })))
+    await page.route('**/api/sales/products', route => route.fulfill(json({ products: [] })))
+    await page.route('**/api/sales/orders', route => route.fulfill(json({ orders: [] })))
     await page.route('**/api/me/sessions', route => route.fulfill(json([])))
     await page.route('**/api/me/auth/identities', route => route.fulfill(json([])))
   }

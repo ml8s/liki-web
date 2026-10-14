@@ -208,7 +208,7 @@ UPDATE payment_refunds SET notified_at=?,updated_at=? WHERE id=?`, now, now, ref
 func (s *IntentStore) ensureColumn(ctx context.Context, table, column, definition string) error {
 	// 白名单校验表名，防止 SQL 注入（虽然当前调用方传硬编码值，但保持防御性）。
 	switch table {
-	case "payment_intents", "fulfillment_tasks":
+	case "payment_intents", "payment_completion_tasks":
 	default:
 		return fmt.Errorf("unexpected table name: %q", table)
 	}

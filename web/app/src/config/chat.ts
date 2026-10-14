@@ -31,7 +31,7 @@ export interface ChatService {
 // 价值入口：按用户场景命名（看命/合盘/起名/问卦/风水），不按引擎 skill。
 // route：每个入口都有免费盘面页（看命/风水→人列表排盘、起名/问卦/合盘→独立预览页）；付费解读统一进 Chat。
 export const chatServices: ChatService[] = [
-  { key: 'bazi', labelKey: 'services.bazi.label', descKey: 'services.bazi.description', intentKey: 'services.bazi.intent', route: '/profiles', ctaKey: 'services.bazi.cta' },
+  { key: 'bazi', labelKey: 'services.bazi.label', descKey: 'services.bazi.description', intentKey: 'services.bazi.intent', route: '/birth-profiles', ctaKey: 'services.bazi.cta' },
   { key: 'divination', labelKey: 'services.divination.label', descKey: 'services.divination.description', intentKey: 'services.divination.intent', route: '/divination', ctaKey: 'services.divination.cta' },
   { key: 'fengshui', labelKey: 'services.fengshui.label', descKey: 'services.fengshui.description', intentKey: 'services.fengshui.intent', route: '/fengshui', ctaKey: 'services.fengshui.cta' },
   { key: 'huangli', labelKey: 'services.huangli.label', descKey: 'services.huangli.description', intentKey: 'services.huangli.intent', route: '/huangli', ctaKey: 'services.huangli.cta' },

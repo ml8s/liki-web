@@ -5,13 +5,13 @@ export type DashboardState =
   | 'paid-continue'
 
 export interface DashboardStateInput {
-  hasProfile: boolean
+  hasBirthProfile: boolean
   hasEntitlement: boolean
   hasSession: boolean
 }
 
 export function resolveDashboardState(input: DashboardStateInput): DashboardState {
-  if (!input.hasProfile) return 'no-profile'
+  if (!input.hasBirthProfile) return 'no-profile'
   if (!input.hasEntitlement) return 'free-profile'
   return input.hasSession ? 'paid-continue' : 'paid-no-session'
 }

@@ -13,7 +13,7 @@
       <ul>
         <li>{{ $t('auth.valueChart') }}</li>
         <li>{{ $t('auth.valueInterpretation') }}</li>
-        <li>{{ $t('auth.valueProfile') }}</li>
+        <li>{{ $t('auth.valueBirthProfile') }}</li>
       </ul>
     </section>
 
@@ -29,7 +29,7 @@
         <div class="values">
           <span class="value">{{ $t('auth.valueChart') }}</span>
           <span class="value">{{ $t('auth.valueInterpretation') }}</span>
-          <span class="value">{{ $t('auth.valueProfile') }}</span>
+          <span class="value">{{ $t('auth.valueBirthProfile') }}</span>
         </div>
         <p class="hint">
           {{ $t('auth.codeHint') }}

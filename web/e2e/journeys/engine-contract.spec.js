@@ -136,13 +136,13 @@ function routeApp(page) {
 
 test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async ({ page }) => {
   await routeApp(page)
-  await page.route('**/api/profiles**', r => (r.request().url().endsWith('/profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
+  await page.route('**/api/birth-profiles**', r => (r.request().url().endsWith('/birth-profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
   await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
   await page.route('**/api/me/sessions', r => r.fulfill(json([])))
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
   await routeEngine(page)
 
-  await page.goto('/app/profiles/p_1')
+  await page.goto('/app/birth-profiles/p_1')
   await page.waitForSelector('.pillars', { timeout: 12000 }) // 自动排盘
   await expect(page.locator('.pillar .gl').first()).toContainText('戊戌')
   await expect(page.locator('.pillar .cang').first()).toContainText('戊 辛 丁') // 藏干
@@ -163,7 +163,7 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
 
 test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await routeApp(page)
-  await page.route('**/api/profiles**', r => (r.request().url().endsWith('/profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
+  await page.route('**/api/birth-profiles**', r => (r.request().url().endsWith('/birth-profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
   await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
   await page.route('**/api/me/sessions', r => r.fulfill(json([])))
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
@@ -188,7 +188,7 @@ test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
 
 test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
   await routeApp(page)
-  await page.route('**/api/profiles**', r => r.fulfill(json({ profiles: [profile], next_cursor: '' })))
+  await page.route('**/api/birth-profiles**', r => r.fulfill(json({ profiles: [profile], next_cursor: '' })))
   await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
   await page.route('**/api/me/sessions', r => r.fulfill(json([])))
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
@@ -206,7 +206,7 @@ test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
 
 test('择日按真实契约渲染（huangli_days）', async ({ page }) => {
   await routeApp(page)
-  await page.route('**/api/profiles**', r => r.fulfill(json({ profiles: [profile], next_cursor: '' })))
+  await page.route('**/api/birth-profiles**', r => r.fulfill(json({ profiles: [profile], next_cursor: '' })))
   await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
   await page.route('**/api/me/sessions', r => r.fulfill(json([])))
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))

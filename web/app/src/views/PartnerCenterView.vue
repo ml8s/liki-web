@@ -116,7 +116,7 @@ import { errorMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
-import { fetchPartnerStates, type PartnerProgramState, type PartnerStates } from '@/api/referral'
+import { fetchPartnerStates, type PartnerProgramState, type PartnerStates } from '@/api/partner'
 
 const loading = ref(true)
 const error = ref('')

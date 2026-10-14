@@ -18,7 +18,7 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
     sameSite: 'Lax',
   }])
 
-  const profileResponse = await page.request.post('/api/profiles', {
+  const profileResponse = await page.request.post('/api/birth-profiles', {
     headers: { Origin: publicUrl, Referer: `${publicUrl}/` },
     data: {
       nickname: 'System E2E',

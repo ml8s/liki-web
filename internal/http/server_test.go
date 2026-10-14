@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ml8s/liki-web/internal/feedback"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/partner"
 
 	_ "modernc.org/sqlite"
 )
@@ -78,19 +78,19 @@ func TestRegisterRoutes_Referral(t *testing.T) {
 	mux := http.NewServeMux()
 	rl := NewRateLimiter()
 	defer rl.Stop()
-	handler := referral.NewHandler(nil, func(next http.HandlerFunc) http.HandlerFunc { return next }, false)
+	handler := partner.NewHandler(nil, func(next http.HandlerFunc) http.HandlerFunc { return next }, false)
 	deps := ServerDeps{
-		ReferralHandler: handler,
+		PartnerHandler: handler,
 	}
 	RegisterRoutes(mux, deps, "test", "dev", rl, rl)
 
 	// The handler reads auth context and returns unauthorized for a test
 	// request. A 404 would mean the public partner routes were never mounted.
-	r := httptest.NewRequest(http.MethodGet, "/api/scout/application", nil)
+	r := httptest.NewRequest(http.MethodGet, "/api/partner-portal/scout/application", nil)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, r)
 	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("GET /api/scout/application: status = %d, want 401", w.Code)
+		t.Fatalf("GET /api/partner-portal/scout/application: status = %d, want 401", w.Code)
 	}
 }
 

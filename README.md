@@ -143,7 +143,10 @@ candidate digest for promotion.
 | [`FRONTEND.md`](./FRONTEND.md) | Astro marketing pages, Vue App, and frontend state |
 | [`LEGACY_PRODUCTS.md`](./LEGACY_PRODUCTS.md) | retired-product compatibility boundary |
 | [`docs/database/overview.md`](./docs/database/overview.md) | SQLite bounded-context inventory |
-| [`docs/mcp.md`](./docs/mcp.md) | Engine/Counsel MCP compatibility boundary |
+| [`docs/database/partner.md`](./docs/database/partner.md) | Partner database schema |
+| [`docs/architecture/system-context.md`](./docs/architecture/system-context.md) | Cross-repository system context |
+| [`docs/integrations/mcp.md`](./docs/integrations/mcp.md) | Engine/Counsel MCP compatibility boundary |
+| [`docs/payments/aipay.md`](./docs/payments/aipay.md) | AI Pay boundary and configuration |
 
 ## Deployment
 

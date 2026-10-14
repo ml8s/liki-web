@@ -12,25 +12,29 @@ import (
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/aipay"
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/birthprofile"
+	"github.com/ml8s/liki-web/internal/chat"
 	"github.com/ml8s/liki-web/internal/enginemcp"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/feedback"
-	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
-	"github.com/ml8s/liki-web/internal/profile"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/sales"
 )
 
 type ServerDeps struct {
 	PaymentRuntime       *payment.Runtime
 	AuthHandler          *auth.Handler
-	ReferralHandler      *referral.Handler
-	ReferralStore        *referral.Store
-	LikiHandler          *liki.Handler
+	PartnerHandler       *partner.Handler
+	PartnerStore         *partner.Store
+	SalesHandler         *sales.Handler
+	EntitlementHandler   *entitlement.Handler
+	ChatHandler          *chat.Handler
 	EngineMCP            *enginemcp.Handler
 	AipayHandler         *aipay.Handler
-	ProfileHandler       *profile.Handler
+	ProfileHandler       *birthprofile.Handler
 	AccountHandler       *account.Handler
-	Entitlements         *liki.EntitlementStore
+	Entitlements         *entitlement.Store
 	MetricsHandler       http.HandlerFunc
 	Readiness            ReadinessChecker
 	FeedbackStore        *feedback.Store
@@ -38,9 +42,9 @@ type ServerDeps struct {
 	AdminEmail           string
 	AdminAuthorizer      *adminauth.Store
 	AuthUsers            *auth.Store
-	CommerceStores       *liki.CommerceStores
+	SalesStores          *sales.SalesStores
 	CompensationNotifier admin.CompensationNotifier
-	PartnerNotifier      referral.DecisionNotifier
+	PartnerNotifier      partner.DecisionNotifier
 	DevMode              bool
 }
 
@@ -59,7 +63,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	// ── unified payment runtime ──
 	if deps.PaymentRuntime != nil {
 		mux.HandleFunc("GET /api/payments/intents/{id}/status", deps.PaymentRuntime.HandleIntentStatus)
-		mux.HandleFunc("GET /api/payments/intents/{id}/fulfillment-status", deps.PaymentRuntime.HandleFulfillmentStatus)
+		mux.HandleFunc("GET /api/payments/intents/{id}/payment-completion-status", deps.PaymentRuntime.HandlePaymentCompletionStatus)
 		mux.HandleFunc("GET /api/payments/return/{id}", deps.PaymentRuntime.HandlePaymentReturn)
 		mux.HandleFunc("POST /api/payments/webhook", webhookLimit(deps.PaymentRuntime.HandleWebhook))
 	}
@@ -75,12 +79,15 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		deps.AuthHandler.RegisterRoutes(mux, authCodeLimit, authVerifyLimit)
 	}
 
-	// ── liki product (entitlements + commerce + chat) ──
-	if deps.LikiHandler != nil {
-		likiLimit := func(next http.HandlerFunc) http.HandlerFunc {
-			return rl.Wrap(5.0/60, 6, next)
-		}
-		deps.LikiHandler.RegisterRoutes(mux, likiLimit)
+	// ── product / sales / entitlement / chat bounded contexts ──
+	if deps.SalesHandler != nil {
+		deps.SalesHandler.RegisterRoutes(mux)
+	}
+	if deps.EntitlementHandler != nil {
+		deps.EntitlementHandler.RegisterRoutes(mux)
+	}
+	if deps.ChatHandler != nil {
+		deps.ChatHandler.RegisterRoutes(mux)
 	}
 	if deps.EngineMCP != nil {
 		engineLimit := func(next http.HandlerFunc) http.HandlerFunc {
@@ -97,17 +104,17 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		deps.AipayHandler.RegisterRoutes(mux, aipayLimit)
 	}
 
-	// ── platform profiles ──
+	// ── birth profiles ──
 	if deps.ProfileHandler != nil {
-		profileLimit := func(next http.HandlerFunc) http.HandlerFunc {
+		birthProfileLimit := func(next http.HandlerFunc) http.HandlerFunc {
 			return rl.Wrap(10.0/60, 12, next)
 		}
-		deps.ProfileHandler.RegisterRoutes(mux, profileLimit)
+		deps.ProfileHandler.RegisterRoutes(mux, birthProfileLimit)
 	}
 
 	// ── partner roles（KOL / Scout 独立角色）──
-	if deps.ReferralHandler != nil {
-		deps.ReferralHandler.RegisterRoutes(mux, rateLimit)
+	if deps.PartnerHandler != nil {
+		deps.PartnerHandler.RegisterRoutes(mux, rateLimit)
 	}
 
 	// ── platform account（合规强删）──
@@ -138,7 +145,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	}
 
 	// ── admin routes (registered here to avoid import cycle) ──
-	if deps.ReferralStore != nil {
+	if deps.PartnerStore != nil {
 		if deps.AuthHandler != nil || deps.AdminEmail != "" {
 			adminIdentity := func(r *http.Request) (auth.User, bool) {
 				if deps.AuthHandler == nil {
@@ -146,9 +153,9 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 				}
 				return deps.AuthHandler.IdentityFromRequest(r)
 			}
-			admin.RegisterRoutes(mux, deps.ReferralStore, deps.AdminAuthorizer, adminIdentity,
-				deps.PartnerNotifier, deps.Entitlements, deps.AuthUsers, deps.CommerceStores,
-				deps.ReferralStore, deps.CompensationNotifier)
+			admin.RegisterRoutes(mux, deps.PartnerStore, deps.AdminAuthorizer, adminIdentity,
+				deps.PartnerNotifier, deps.Entitlements, deps.AuthUsers, deps.SalesStores,
+				deps.PartnerStore, deps.CompensationNotifier)
 		}
 	}
 	// ── admin auth routes（限流：6 位验证码 5 分钟窗口，无限流即可暴力——1/min burst 3）──

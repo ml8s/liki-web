@@ -10,23 +10,23 @@ import (
 	"github.com/google/uuid"
 )
 
-type FulfillmentStatus string
+type PaymentCompletionStatus string
 
 const (
-	FulfillmentQueued    FulfillmentStatus = "queued"
-	FulfillmentRunning   FulfillmentStatus = "running"
-	FulfillmentSucceeded FulfillmentStatus = "succeeded"
-	FulfillmentFailed    FulfillmentStatus = "failed"
+	PaymentCompletionQueued    PaymentCompletionStatus = "queued"
+	PaymentCompletionRunning   PaymentCompletionStatus = "running"
+	PaymentCompletionSucceeded PaymentCompletionStatus = "succeeded"
+	PaymentCompletionFailed    PaymentCompletionStatus = "failed"
 )
 
 const maxFulfillmentAttempts = 5
 
-type FulfillmentTask struct {
+type PaymentCompletionTask struct {
 	ID              string
 	IntentID        string
 	BusinessOrderID string
 	Product         string
-	Status          FulfillmentStatus
+	Status          PaymentCompletionStatus
 	Attempts        int
 	RunAt           time.Time
 	LastError       string
@@ -34,18 +34,32 @@ type FulfillmentTask struct {
 	UpdatedAt       time.Time
 }
 
-var ErrNoRunnableFulfillment = errors.New("payment: no runnable fulfillment task")
+var ErrNoRunnablePaymentCompletion = errors.New("payment: no runnable fulfillment task")
 
-type FulfillmentTaskStore struct {
+type PaymentCompletionTaskStore struct {
 	db *sql.DB
 }
 
-func NewFulfillmentTaskStore(db *sql.DB) *FulfillmentTaskStore {
-	return &FulfillmentTaskStore{db: db}
+func NewPaymentCompletionTaskStore(db *sql.DB) *PaymentCompletionTaskStore {
+	return &PaymentCompletionTaskStore{db: db}
 }
 
-func (s *FulfillmentTaskStore) Migrate(ctx context.Context) error {
-	const schema = `
+func (s *PaymentCompletionTaskStore) Migrate(ctx context.Context) error {
+	var canonicalTables int
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table' AND name='payment_completion_tasks'`).Scan(&canonicalTables); err != nil {
+		return err
+	}
+	if canonicalTables > 0 {
+		if _, err := s.db.ExecContext(ctx, `
+CREATE INDEX IF NOT EXISTS idx_payment_completion_tasks_due
+    ON payment_completion_tasks(status, run_at);
+`); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	const legacySchema = `
 CREATE TABLE IF NOT EXISTS fulfillment_tasks (
     id TEXT PRIMARY KEY,
     payment_intent_id TEXT NOT NULL UNIQUE,
@@ -61,21 +75,33 @@ CREATE TABLE IF NOT EXISTS fulfillment_tasks (
 CREATE INDEX IF NOT EXISTS idx_fulfillment_tasks_due
     ON fulfillment_tasks(status, run_at);
 `
-	_, err := s.db.ExecContext(ctx, schema)
-	return err
+	if _, err := s.db.ExecContext(ctx, legacySchema); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `ALTER TABLE fulfillment_tasks RENAME TO payment_completion_tasks`); err != nil {
+		return err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+DROP INDEX IF EXISTS idx_fulfillment_tasks_due;
+CREATE INDEX IF NOT EXISTS idx_payment_completion_tasks_due
+    ON payment_completion_tasks(status, run_at);
+`); err != nil {
+		return err
+	}
+	return nil
 }
 
 // EnsureQueued creates the one fulfillment task for a paid intent. A terminal
 // or running task is never reset by a duplicate webhook or reconciliation.
-func (s *FulfillmentTaskStore) EnsureQueued(ctx context.Context, intent PaymentIntent) error {
+func (s *PaymentCompletionTaskStore) EnsureQueued(ctx context.Context, intent PaymentIntent) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := s.db.ExecContext(ctx, `
-INSERT INTO fulfillment_tasks
+INSERT INTO payment_completion_tasks
     (id, payment_intent_id, business_order_id, product, status, attempts, run_at, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
 ON CONFLICT(payment_intent_id) DO NOTHING`,
 		uuid.NewString(), intent.ID, intent.BusinessOrderID, string(intent.Product),
-		string(FulfillmentQueued), now, now, now)
+		string(PaymentCompletionQueued), now, now, now)
 	if err != nil {
 		return fmt.Errorf("payment: enqueue fulfillment: %w", err)
 	}
@@ -83,58 +109,58 @@ ON CONFLICT(payment_intent_id) DO NOTHING`,
 }
 
 // RecoverRunning returns tasks orphaned by a process restart to the queue.
-func (s *FulfillmentTaskStore) RecoverRunning(ctx context.Context) error {
+func (s *PaymentCompletionTaskStore) RecoverRunning(ctx context.Context) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := s.db.ExecContext(ctx, `
-UPDATE fulfillment_tasks
+UPDATE payment_completion_tasks
 SET status=?, run_at=?, updated_at=?
-WHERE status=?`, string(FulfillmentQueued), now, now, string(FulfillmentRunning))
+WHERE status=?`, string(PaymentCompletionQueued), now, now, string(PaymentCompletionRunning))
 	return err
 }
 
-func (s *FulfillmentTaskStore) ClaimNext(ctx context.Context, now time.Time) (FulfillmentTask, error) {
+func (s *PaymentCompletionTaskStore) ClaimNext(ctx context.Context, now time.Time) (PaymentCompletionTask, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return FulfillmentTask{}, err
+		return PaymentCompletionTask{}, err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var task FulfillmentTask
+	var task PaymentCompletionTask
 	var productKey, status, runAt, createdAt, updatedAt string
 	var lastError sql.NullString
 	err = tx.QueryRowContext(ctx, `
 SELECT id, payment_intent_id, business_order_id, product, status, attempts, run_at, last_error, created_at, updated_at
-FROM fulfillment_tasks
+FROM payment_completion_tasks
 WHERE status=? AND run_at<=?
 ORDER BY run_at
 LIMIT 1`,
-		string(FulfillmentQueued), now.Format(time.RFC3339),
+		string(PaymentCompletionQueued), now.Format(time.RFC3339),
 	).Scan(&task.ID, &task.IntentID, &task.BusinessOrderID, &productKey, &status, &task.Attempts,
 		&runAt, &lastError, &createdAt, &updatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return FulfillmentTask{}, ErrNoRunnableFulfillment
+		return PaymentCompletionTask{}, ErrNoRunnablePaymentCompletion
 	}
 	if err != nil {
-		return FulfillmentTask{}, err
+		return PaymentCompletionTask{}, err
 	}
 
 	claimedAt := now.Format(time.RFC3339)
 	res, err := tx.ExecContext(ctx, `
-UPDATE fulfillment_tasks
+UPDATE payment_completion_tasks
 SET status=?, attempts=attempts+1, updated_at=?
-WHERE id=? AND status=?`, string(FulfillmentRunning), claimedAt, task.ID, string(FulfillmentQueued))
+WHERE id=? AND status=?`, string(PaymentCompletionRunning), claimedAt, task.ID, string(PaymentCompletionQueued))
 	if err != nil {
-		return FulfillmentTask{}, err
+		return PaymentCompletionTask{}, err
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		return FulfillmentTask{}, ErrNoRunnableFulfillment
+		return PaymentCompletionTask{}, ErrNoRunnablePaymentCompletion
 	}
 	if err := tx.Commit(); err != nil {
-		return FulfillmentTask{}, err
+		return PaymentCompletionTask{}, err
 	}
 
 	task.Product = string(productKey)
-	task.Status = FulfillmentRunning
+	task.Status = PaymentCompletionRunning
 	task.Attempts++
 	task.LastError = lastError.String
 	task.RunAt = parseTime(runAt)
@@ -143,23 +169,23 @@ WHERE id=? AND status=?`, string(FulfillmentRunning), claimedAt, task.ID, string
 	return task, nil
 }
 
-func (s *FulfillmentTaskStore) GetByIntent(ctx context.Context, intentID string) (FulfillmentTask, bool, error) {
+func (s *PaymentCompletionTaskStore) GetByIntent(ctx context.Context, intentID string) (PaymentCompletionTask, bool, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT id, payment_intent_id, business_order_id, product, status, attempts, run_at, last_error, created_at, updated_at
-FROM fulfillment_tasks WHERE payment_intent_id=?`, intentID)
-	var task FulfillmentTask
+FROM payment_completion_tasks WHERE payment_intent_id=?`, intentID)
+	var task PaymentCompletionTask
 	var productKey, status, runAt, createdAt, updatedAt string
 	var lastError sql.NullString
 	err := row.Scan(&task.ID, &task.IntentID, &task.BusinessOrderID, &productKey, &status, &task.Attempts,
 		&runAt, &lastError, &createdAt, &updatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return FulfillmentTask{}, false, nil
+		return PaymentCompletionTask{}, false, nil
 	}
 	if err != nil {
-		return FulfillmentTask{}, false, err
+		return PaymentCompletionTask{}, false, err
 	}
 	task.Product = string(productKey)
-	task.Status = FulfillmentStatus(status)
+	task.Status = PaymentCompletionStatus(status)
 	task.LastError = lastError.String
 	task.RunAt = parseTime(runAt)
 	task.CreatedAt = parseTime(createdAt)
@@ -167,31 +193,31 @@ FROM fulfillment_tasks WHERE payment_intent_id=?`, intentID)
 	return task, true, nil
 }
 
-func (s *FulfillmentTaskStore) MarkSucceeded(ctx context.Context, id string) error {
+func (s *PaymentCompletionTaskStore) MarkSucceeded(ctx context.Context, id string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err := s.db.ExecContext(ctx, `
-UPDATE fulfillment_tasks SET status=?, last_error=NULL, updated_at=? WHERE id=?`,
-		string(FulfillmentSucceeded), now, id)
+UPDATE payment_completion_tasks SET status=?, last_error=NULL, updated_at=? WHERE id=?`,
+		string(PaymentCompletionSucceeded), now, id)
 	return err
 }
 
-func (s *FulfillmentTaskStore) MarkFailed(ctx context.Context, id string, failure error) error {
+func (s *PaymentCompletionTaskStore) MarkFailed(ctx context.Context, id string, failure error) error {
 	now := time.Now().UTC()
-	status := FulfillmentQueued
+	status := PaymentCompletionQueued
 	attempts, err := s.attempts(ctx, id)
 	if err != nil {
 		return err
 	}
 	if attempts >= maxFulfillmentAttempts {
-		status = FulfillmentFailed
+		status = PaymentCompletionFailed
 	}
 	runAt := now
-	if status != FulfillmentFailed {
+	if status != PaymentCompletionFailed {
 		delays := []time.Duration{time.Minute, 5 * time.Minute, 15 * time.Minute, time.Hour, 4 * time.Hour}
 		runAt = now.Add(delays[min(attempts, len(delays)-1)])
 	}
 	_, err = s.db.ExecContext(ctx, `
-UPDATE fulfillment_tasks
+UPDATE payment_completion_tasks
 SET status=?, run_at=?, last_error=?, updated_at=?
 WHERE id=?`,
 		string(status), runAt.Format(time.RFC3339),
@@ -199,10 +225,10 @@ WHERE id=?`,
 	return err
 }
 
-func (s *FulfillmentTaskStore) attempts(ctx context.Context, id string) (int, error) {
+func (s *PaymentCompletionTaskStore) attempts(ctx context.Context, id string) (int, error) {
 	var attempts int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT attempts FROM fulfillment_tasks WHERE id=?`, id).Scan(&attempts)
+		`SELECT attempts FROM payment_completion_tasks WHERE id=?`, id).Scan(&attempts)
 	return attempts, err
 }
 

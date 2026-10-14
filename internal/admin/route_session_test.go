@@ -12,7 +12,8 @@ import (
 
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/auth"
-	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/entitlement"
+	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -45,11 +46,11 @@ func TestAdminSessionReturnsCapabilitiesAndEntitlementRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = entitlementDB.Close() })
-	entitlements := liki.NewEntitlementStore(entitlementDB)
+	entitlements := entitlement.NewStore(entitlementDB)
 	if err := entitlements.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	granted, err := entitlements.GrantForProduct(ctx, "user-1", "customer@example.com", liki.ProductChat, "test", "order-1", 24*time.Hour)
+	granted, err := entitlements.GrantForProduct(ctx, "user-1", "customer@example.com", product.Chat, "test", "order-1", 24*time.Hour)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,11 +93,11 @@ func TestAdminSessionReturnsCapabilitiesAndEntitlementRoutes(t *testing.T) {
 		t.Fatalf("entitlements status=%d body=%s", rec.Code, rec.Body.String())
 	}
 	var list struct {
-		Entitlements []liki.Entitlement `json:"entitlements"`
+		Entitlements []entitlement.Entitlement `json:"entitlements"`
 	}
 	var listEnvelope struct {
 		Data struct {
-			Entitlements []liki.Entitlement `json:"entitlements"`
+			Entitlements []entitlement.Entitlement `json:"entitlements"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &listEnvelope); err != nil {
@@ -126,7 +127,7 @@ func TestAdminSessionReturnsCapabilitiesAndEntitlementRoutes(t *testing.T) {
 		t.Fatalf("revoke status=%d body=%s", rec.Code, rec.Body.String())
 	}
 	revoked, err := entitlements.ListForAdmin(ctx, "customer@example.com", "revoked", 10)
-	if err != nil || len(revoked) != 1 || revoked[0].Status != liki.StatusRevoked {
+	if err != nil || len(revoked) != 1 || revoked[0].Status != entitlement.Revoked {
 		t.Fatalf("revoked entitlements: %+v err=%v", revoked, err)
 	}
 }

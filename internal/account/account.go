@@ -4,24 +4,27 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/birthprofile"
+	"github.com/ml8s/liki-web/internal/chat"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
-	"github.com/ml8s/liki-web/internal/profile"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/sales"
 )
 
 type AuthEraser interface {
 	EraseUser(ctx context.Context, userID, tombstone string) (auth.ErasureResult, error)
 }
 
-type ReferralEraser interface {
-	EraseUser(ctx context.Context, userID string) (referral.ErasureResult, error)
+type PartnerEraser interface {
+	EraseUser(ctx context.Context, userID string) (partner.ErasureResult, error)
 }
 
 // AdminAuditEraser pseudonymizes the acting admin's email on historical
@@ -39,29 +42,29 @@ type SubscriptionEraser interface {
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
-	profiles      *profile.Store
-	chat          *liki.ChatStore
+	profiles      *birthprofile.Store
+	chat          *chat.ChatStore
 	auth          AuthEraser
-	orders        *liki.OrderStore
-	entitlement   *liki.EntitlementStore
+	orders        *sales.OrderStore
+	entitlement   *entitlement.Store
 	payments      *payment.IntentStore
 	notifications *payment.NotificationStore
 	subscriptions SubscriptionEraser
-	referral      ReferralEraser
+	partner       PartnerEraser
 	adminAudit    AdminAuditEraser
 	erasureQueue  *ErasureStore
 	requireUser   RequireUserFunc
 }
 
 func NewHandler(
-	profiles *profile.Store,
-	chatStore *liki.ChatStore,
+	profiles *birthprofile.Store,
+	chatStore *chat.ChatStore,
 	authStore AuthEraser,
-	orders *liki.OrderStore,
-	entitlement *liki.EntitlementStore,
+	orders *sales.OrderStore,
+	entitlement *entitlement.Store,
 	payments *payment.IntentStore,
 	notifications *payment.NotificationStore,
-	referral ReferralEraser,
+	partner PartnerEraser,
 	adminAudit AdminAuditEraser,
 	erasureQueue *ErasureStore,
 	requireUser RequireUserFunc,
@@ -70,7 +73,7 @@ func NewHandler(
 		profiles: profiles, chat: chatStore, auth: authStore,
 		orders: orders, entitlement: entitlement, payments: payments,
 		notifications: notifications,
-		referral:      referral,
+		partner:       partner,
 		adminAudit:    adminAudit,
 		erasureQueue:  erasureQueue,
 		requireUser:   requireUser,
@@ -82,7 +85,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit func(http.HandlerFunc
 }
 
 // SetSubscriptionEraser keeps the existing constructor stable while making the
-// newer commerce domain explicit in production wiring.
+// newer sales domain explicit in production wiring.
 func (h *Handler) SetSubscriptionEraser(subscriptions SubscriptionEraser) {
 	h.subscriptions = subscriptions
 }
@@ -108,8 +111,8 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 	}
 	outcome, err := h.runErasureSteps(r.Context(), user, tombstone, requestID)
 	if err != nil {
-		if errors.Is(err, referral.ErrReferralFinancialHold) {
-			httputil.RespondError(w, http.StatusConflict, "referral_financial_hold", "存在待结算提现，请先完成资金结算")
+		if errors.Is(err, partner.ErrPartnerFinancialHold) {
+			httputil.RespondError(w, http.StatusConflict, "partner_financial_hold", "存在待结算提现，请先完成资金结算")
 			return
 		}
 		slog.Error("account: erasure", "user_id", user.ID, "request_id", requestID, "err", err)
@@ -123,7 +126,7 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 		"auth_sessions_cleared":   outcome.AuthResult.Sessions,
 		"auth_codes_cleared":      outcome.AuthResult.Codes,
 		"domains":                 outcome.Erased,
-		"referral_finance_tasks":  outcome.ReferralResult.FinanceTasks,
+		"partner_finance_tasks":   outcome.PartnerResult.FinanceTasks,
 	})
 }
 
@@ -137,12 +140,12 @@ func (h *Handler) runErasureSteps(ctx context.Context, user auth.User, tombstone
 			_ = h.erasureQueue.MarkStep(ctx, requestID, step)
 		}
 	}
-	referralResult, err := h.referral.EraseUser(ctx, user.ID)
+	partnerResult, err := h.partner.EraseUser(ctx, user.ID)
 	if err != nil {
 		return outcome, err
 	}
-	outcome.ReferralResult = referralResult
-	mark("referral")
+	outcome.PartnerResult = partnerResult
+	mark("referral") // historical durable checkpoint token
 	profilesCleared, err := h.profiles.AnonymizeUser(ctx, user.ID)
 	if err != nil {
 		return outcome, err
@@ -153,7 +156,7 @@ func (h *Handler) runErasureSteps(ctx context.Context, user auth.User, tombstone
 		name  string
 		erase func(context.Context) (int64, error)
 	}{
-		{name: "commerce_orders", erase: func(ctx context.Context) (int64, error) {
+		{name: "sales_orders", erase: func(ctx context.Context) (int64, error) {
 			return h.orders.AnonymizeUser(ctx, user.ID, user.Email, tombstone)
 		}},
 		{name: "entitlements", erase: func(ctx context.Context) (int64, error) {
@@ -170,7 +173,7 @@ func (h *Handler) runErasureSteps(ctx context.Context, user auth.User, tombstone
 		domains = append(domains, struct {
 			name  string
 			erase func(context.Context) (int64, error)
-		}{name: "commerce_subscriptions", erase: func(ctx context.Context) (int64, error) {
+		}{name: "sales_subscriptions", erase: func(ctx context.Context) (int64, error) {
 			return h.eraseSubscriptions(ctx, user.ID, user.Email, tombstone)
 		}})
 	}

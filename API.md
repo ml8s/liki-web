@@ -63,15 +63,15 @@ Authentication uses HttpOnly platform session cookies. Ownership and entitlement
 
 Verification codes are rate limited. Production does not return the verification code in the response.
 
-## Profiles
+## Birth profiles
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/profiles` | user | List birth profiles |
-| POST | `/api/profiles` | user | Create birth profile |
-| GET | `/api/profiles/{id}` | owner | Read birth profile |
-| PATCH | `/api/profiles/{id}` | owner | Update profile with expected version |
-| DELETE | `/api/profiles/{id}` | owner | Delete profile |
+| GET | `/api/birth-profiles` | user | List birth profiles |
+| POST | `/api/birth-profiles` | user | Create birth profile |
+| GET | `/api/birth-profiles/{id}` | owner | Read birth profile |
+| PATCH | `/api/birth-profiles/{id}` | owner | Update birth profile with expected version |
+| DELETE | `/api/birth-profiles/{id}` | owner | Delete birth profile |
 
 Profile updates use `expected_version`. Cross-user access does not reveal another user's data.
 
@@ -79,8 +79,8 @@ Profile updates use `expected_version`. Cross-user access does not reveal anothe
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/chat/products` | user | List products and purchase state |
-| POST | `/api/chat/products/{id}/checkout` | user | Create order and provider checkout |
+| GET | `/api/sales/products` | user | List products and purchase state |
+| POST | `/api/sales/checkouts` | user | Create order and provider checkout (`product_id` in body) |
 
 Checkout response:
 
@@ -104,7 +104,7 @@ The product response includes all catalog prices plus `display_currency` and
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/payments/intents/{id}/status` | capability/session | Check payment status |
-| GET | `/api/payments/intents/{id}/fulfillment-status` | capability/session | Check fulfillment status |
+| GET | `/api/payments/intents/{id}/payment-completion-status` | capability/session | Check payment completion status |
 | GET | `/api/payments/return/{id}` | capability/session | Browser return and reconciliation |
 | POST | `/api/payments/webhook` | provider signature | Provider callback |
 | POST | `/api/aipay` | public, rate limited | Redeem an Alipay A2M sandbox payment proof (`Payment-Proof` header, 402 flow); 503 when the channel is not enabled |
@@ -135,7 +135,7 @@ Current canonical skill is `liki`.
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/chat/orders` | user | List chat orders |
+| GET | `/api/sales/orders` | user | List sales orders |
 
 Orders expose user-safe state, not provider secrets or internal metadata.
 
@@ -147,30 +147,30 @@ Orders expose user-safe state, not provider secrets or internal metadata.
 | DELETE | `/api/me/sessions/{id}` | user | Revoke one session |
 | POST | `/api/account/erasure` | user | Erase or anonymize account |
 
-Erasure is rate limited and spans identity, profile, chat, commerce, payment, and referral contexts.
+Erasure is rate limited and spans identity, birth profiles, chat, sales, entitlements, payment, and partner contexts.
 
 ## Partners
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/partner` | user | Read KOL/Scout role and application states |
-| GET | `/api/kol/application` | user | Read KOL application state |
-| POST | `/api/kol/application` | user | Submit a KOL application |
-| GET | `/api/scout/application` | user | Read Scout role/application state |
-| POST | `/api/scout/application` | user | Submit a Scout application |
-| GET | `/api/kol/session` | active KOL | Read KOL dashboard summary |
-| GET | `/api/kol/overview` | active KOL | Alias of `/api/kol/session` |
-| GET | `/api/kol/commissions` | active KOL | List KOL commission entries |
-| GET | `/api/kol/payouts` | active or retired KOL | List payouts |
-| POST | `/api/kol/payouts` | active or retired KOL | Request a payout |
-| GET | `/api/kol/settlement` | active or retired KOL | Read money-only settlement state |
-| GET | `/api/scout/session` | active Scout | Read Scout dashboard summary |
-| GET | `/api/scout/overview` | active Scout | Alias of `/api/scout/session` |
-| GET | `/api/scout/recruits` | active Scout | List recruited KOL partners |
-| GET | `/api/scout/commissions` | active Scout | List Scout commission entries |
-| GET | `/api/scout/payouts` | active or retired Scout | List payouts |
-| POST | `/api/scout/payouts` | active or retired Scout | Request a payout |
-| GET | `/api/scout/settlement` | active or retired Scout | Read money-only settlement state |
+| GET | `/api/partner-portal` | user | Read KOL/Scout role and application states |
+| GET | `/api/partner-portal/kol/application` | user | Read KOL application state |
+| POST | `/api/partner-portal/kol/application` | user | Submit a KOL application |
+| GET | `/api/partner-portal/scout/application` | user | Read Scout role/application state |
+| POST | `/api/partner-portal/scout/application` | user | Submit a Scout application |
+| GET | `/api/partner-portal/kol/session` | active KOL | Read KOL dashboard summary |
+| GET | `/api/partner-portal/kol/overview` | active KOL | Alias of the KOL session route |
+| GET | `/api/partner-portal/kol/commissions` | active KOL | List KOL commission entries |
+| GET | `/api/partner-portal/kol/payouts` | active or retired KOL | List payouts |
+| POST | `/api/partner-portal/kol/payouts` | active or retired KOL | Request a payout |
+| GET | `/api/partner-portal/kol/settlement` | active or retired KOL | Read money-only settlement state |
+| GET | `/api/partner-portal/scout/session` | active Scout | Read Scout dashboard summary |
+| GET | `/api/partner-portal/scout/overview` | active Scout | Alias of the Scout session route |
+| GET | `/api/partner-portal/scout/recruits` | active Scout | List recruited KOL partners |
+| GET | `/api/partner-portal/scout/commissions` | active Scout | List Scout commission entries |
+| GET | `/api/partner-portal/scout/payouts` | active or retired Scout | List payouts |
+| POST | `/api/partner-portal/scout/payouts` | active or retired Scout | Request a payout |
+| GET | `/api/partner-portal/scout/settlement` | active or retired Scout | Read money-only settlement state |
 | GET | `/r/{code}` | public | Store a signed-in-new-account attribution cookie |
 
 KOL and Scout are independent role capabilities, not levels. The public code
@@ -178,6 +178,18 @@ link is the last valid link before a new account is created. A Scout link that
 leads to an approved KOL creates that Scout's direct channel relationship.
 Applications do not require product purchase; platform review controls access.
 A retired role exposes only settlement data and cannot reopen the partner dashboard.
+
+## Subscriptions
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| GET | `/api/sales/subscriptions` | user | List subscriptions |
+| GET | `/api/sales/subscription-payments` | user | List subscription payments |
+| POST | `/api/sales/subscriptions/{id}/cancellation` | owner | Schedule cancellation at period end |
+| DELETE | `/api/sales/subscriptions/{id}/cancellation` | owner | Cancel a scheduled cancellation |
+
+Subscription lifecycle state and money records are separate read models; both
+are scoped to the signed-in user.
 
 ## Feedback
 
@@ -223,14 +235,14 @@ Metrics are disabled when `METRICS_TOKEN` is empty.
 
 ## Admin
 
-21 back-office endpoints live under `/api/admin/*` (administrator and
+25 back-office endpoints live under `/api/admin/*` (administrator and
 capability management, user entitlement support and compensation, finance
-aggregates, referral application decisions, payout approval, and partner freeze
+aggregates, partner application decisions, payout approval, and partner freeze
 controls). They are gated by admin sessions
 and capabilities
 and are intentionally outside this stable product API; their shape may
 change with the back-office without notice. See `internal/admin/` and
-`internal/referral/admin_handler.go` for the authoritative list.
+`internal/partner/admin_handler.go` for the authoritative list.
 
 Compensation accepts `idempotency_key`; an unchanged retry maps to the same
 beneficiary and returns the same entitlement instead of stacking access. The
@@ -240,6 +252,6 @@ notification requires operator follow-up.
 
 Finance aggregates use UTC half-open periods `[start,end)`. `net_product_revenue`
 means known product cash receipts less subscription refunds in the period;
-one-time provider refunds are not represented in the commerce ledger. The
+one-time provider refunds are not represented in the sales ledger. The
 pending payout aggregate is a current operational balance, not a period-limited
 total.

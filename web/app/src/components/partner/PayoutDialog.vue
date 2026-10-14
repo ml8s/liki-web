@@ -45,7 +45,7 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import type { PayoutMethod } from '@/api/referral'
+import type { PayoutMethod } from '@/api/partner'
 
 const { t } = useI18n()
 

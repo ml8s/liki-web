@@ -9,20 +9,21 @@ import (
 
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/auth"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/sales"
 )
 
 type AdminService struct {
 	authorizer           *adminauth.Store
-	entitlements         *liki.EntitlementStore
+	entitlements         *entitlement.Store
 	users                UserByEmailReader
-	commerce             *liki.CommerceStores
-	referralFinance      ReferralFinanceReader
+	sales                *sales.SalesStores
+	partnerFinance       PartnerFinanceReader
 	compensationNotifier CompensationNotifier
 }
 
-func NewHandler(authorizer *adminauth.Store, entitlements *liki.EntitlementStore) *AdminService {
+func NewHandler(authorizer *adminauth.Store, entitlements *entitlement.Store) *AdminService {
 	return &AdminService{authorizer: authorizer, entitlements: entitlements}
 }
 
@@ -118,11 +119,11 @@ func writeEntitlementError(w http.ResponseWriter, err error) bool {
 	switch {
 	case err == nil:
 		return false
-	case errors.Is(err, liki.ErrEntitlementNotFound):
+	case errors.Is(err, entitlement.ErrEntitlementNotFound):
 		httputil.RespondError(w, http.StatusNotFound, "entitlement_not_found", "用户权益不存在")
-	case errors.Is(err, liki.ErrRevokedEntitlementImmutable):
+	case errors.Is(err, entitlement.ErrRevokedEntitlementImmutable):
 		httputil.RespondError(w, http.StatusConflict, "entitlement_revoked", "已撤销的权益不能改期")
-	case errors.Is(err, liki.ErrEntitlementAlreadyRevoked):
+	case errors.Is(err, entitlement.ErrEntitlementAlreadyRevoked):
 		httputil.RespondError(w, http.StatusConflict, "entitlement_already_revoked", "权益已撤销")
 	default:
 		slog.Error("admin: change entitlement", "err", err)

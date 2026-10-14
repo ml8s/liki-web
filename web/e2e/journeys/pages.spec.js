@@ -96,7 +96,7 @@ test.describe('Static page interactions', () => {
   });
 
   test('free chart form stores an onboarding draft', async ({ page }) => {
-    await page.route('**/app/profiles/new', route => route.fulfill({
+    await page.route('**/app/birth-profiles/new', route => route.fulfill({
       status: 200,
       contentType: 'text/html',
       body: '<!doctype html><html><title>New profile</title></html>',
@@ -108,7 +108,7 @@ test.describe('Static page interactions', () => {
     await page.selectOption('#paipanHook [name=gender]', 'female');
     await page.click('#paipanHook button[type=submit]');
 
-    await page.waitForURL('**/app/profiles/new');
+    await page.waitForURL('**/app/birth-profiles/new');
     expect(await page.evaluate(() => sessionStorage.getItem('liki-draft'))).toEqual(JSON.stringify({
       birth_date: '2000-01-01',
       birth_time: '12:00',

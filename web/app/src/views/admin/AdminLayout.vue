@@ -24,7 +24,7 @@
         </RouterLink>
         <RouterLink
           v-if="admin.can('partner.read')"
-          to="/admin/referrals"
+          to="/admin/partners"
           active-class="on"
         >
           合作伙伴
@@ -114,9 +114,9 @@ import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
-import { useCommerceStore } from '@/stores/commerce'
+import { useSalesStore } from '@/stores/sales-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
-import { useProfilesStore } from '@/stores/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 
 const admin = useAdminStore()
 const auth = useAuthStore()
@@ -129,8 +129,8 @@ onMounted(() => {
 function clearWorkspace() {
   useEntitlementsStore().reset()
   useChatStore().reset()
-  useProfilesStore().reset()
-  useCommerceStore().reset()
+  useBirthProfilesStore().reset()
+  useSalesStore().reset()
   admin.reset()
 }
 

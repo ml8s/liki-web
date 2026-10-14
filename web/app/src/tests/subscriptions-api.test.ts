@@ -29,7 +29,7 @@ describe('subscriptions API', () => {
     vi.stubGlobal('fetch', fetchMock)
     await expect(setSubscriptionCancellation('sub-local', true)).resolves.toBe(true)
     await expect(setSubscriptionCancellation('sub-local', false)).resolves.toBe(false)
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/me/subscriptions/sub-local/cancellation')
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/sales/subscriptions/sub-local/cancellation')
     expect(fetchMock.mock.calls[0]?.[1]?.method).toBe('POST')
     expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('DELETE')
   })

@@ -10,7 +10,7 @@ async function chatApiLazy(): Promise<ChatApi> {
   return chatApi
 }
 import { useEntitlementsStore } from '@/stores/entitlements'
-import { useProfilesStore } from '@/stores/profiles'
+import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { errorMessage } from '@/utils/errors'
 import { i18n } from '@/i18n'
 
@@ -68,9 +68,9 @@ export const useChatStore = defineStore('chat', {
       if (!entitlements.hasSkill(skill)) {
         throw new Error(t('chat.skillNotIncluded'))
       }
-      const nickname = useProfilesStore().list.find(p => p.id === profileId)?.nickname ?? ''
+      const nickname = useBirthProfilesStore().list.find(p => p.id === profileId)?.nickname ?? ''
       const title = nickname
-        ? t('chat.sessionTitleWithProfile', { nickname, skill: skillLabel(skill) })
+        ? t('chat.sessionTitleWithBirthProfile', { nickname, skill: skillLabel(skill) })
         : t('chat.sessionTitle', { skill: skillLabel(skill) })
       const session = await (await chatApiLazy()).createChatSession(profileId, skill, title)
       this.sessions.unshift(session)

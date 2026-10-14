@@ -12,10 +12,13 @@ import (
 	"time"
 
 	"github.com/ml8s/liki-web/internal/auth"
-	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/birthprofile"
+	"github.com/ml8s/liki-web/internal/chat"
+	"github.com/ml8s/liki-web/internal/entitlement"
+	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
-	"github.com/ml8s/liki-web/internal/profile"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/sales"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 
 	_ "modernc.org/sqlite"
@@ -39,18 +42,18 @@ func openTestDB(t *testing.T) *sql.DB {
 func TestHandleErasure(t *testing.T) {
 	ctx := context.Background()
 	db := openTestDB(t)
-	profileStore := profile.NewStore(db)
+	profileStore := birthprofile.NewStore(db)
 	if err := profileStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	chatStore := liki.NewChatStore(db)
+	chatStore := chat.NewChatStore(db)
 	if err := chatStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	orderStore := liki.NewOrderStoreWithCatalog(db, liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
+	orderStore := sales.NewOrderStoreWithCatalog(db, product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
 	}))
-	entitlementStore := liki.NewEntitlementStore(db)
+	entitlementStore := entitlement.NewStore(db)
 	paymentStore := payment.NewIntentStore(db)
 	notificationStore := payment.NewNotificationStore(db)
 	referralDBPath := filepath.Join(t.TempDir(), "referral.db")
@@ -61,7 +64,7 @@ func TestHandleErasure(t *testing.T) {
 	if err := referralDB.Close(); err != nil {
 		t.Fatal(err)
 	}
-	referralStore, err := referral.Open(referralDBPath, []byte("test-referral-payout-secret"))
+	referralStore, err := partner.Open(referralDBPath, []byte("test-referral-payout-secret"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +107,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 
 	// user_1 建档案 + 会话 + system_profile 消息（含 PII）
-	p, err := profileStore.Create(ctx, "user_1", profile.Input{
+	p, err := profileStore.Create(ctx, "user_1", birthprofile.BirthProfileInput{
 		Nickname: "妈妈", Gender: "female", Calendar: "lunar",
 		BirthDate: "1958-闰5-12", BirthTime: "06:00", BirthTimeKnown: "known",
 	})
@@ -115,10 +118,10 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "assistant", liki.KindSystemProfile, `{"birth_date":"1958-闰5-12"}`); err != nil {
+	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "assistant", chat.KindSystemProfile, `{"birth_date":"1958-闰5-12"}`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "user", liki.KindText, "我出生于 1958 年闰五月十二，想问婚姻"); err != nil {
+	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "user", chat.KindText, "我出生于 1958 年闰五月十二，想问婚姻"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -150,7 +153,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 			AuthSessionsCleared   int64 `json:"auth_sessions_cleared"`
 			AuthCodesCleared      int64 `json:"auth_codes_cleared"`
 
-			ReferralFinanceTasks int64 `json:"referral_finance_tasks"`
+			PartnerFinanceTasks int64 `json:"partner_finance_tasks"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
@@ -158,12 +161,12 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 	if resp.Data.Status != "erased" || resp.Data.ProfilesCleared != 1 || resp.Data.MessagesCleared != 2 ||
 		resp.Data.AuthIdentitiesCleared != 1 || resp.Data.AuthSessionsCleared != 1 || resp.Data.AuthCodesCleared != 1 ||
-		resp.Data.ReferralFinanceTasks != 0 {
+		resp.Data.PartnerFinanceTasks != 0 {
 		t.Fatalf("bad erasure result: %+v", resp.Data)
 	}
 
 	// 档案 PII 已清 + 软删；会话消息内容已清
-	if _, err := profileStore.Get(ctx, "user_1", p.ID); err != profile.ErrNotFound {
+	if _, err := profileStore.Get(ctx, "user_1", p.ID); err != birthprofile.ErrNotFound {
 		t.Fatalf("profile should be gone, got err=%v", err)
 	}
 	msgs, err := chatStore.ListMessages(ctx, "user_1", session.ID)

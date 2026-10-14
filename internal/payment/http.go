@@ -26,20 +26,20 @@ func (runtime *Runtime) HandleIntentStatus(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-func (runtime *Runtime) HandleFulfillmentStatus(w http.ResponseWriter, r *http.Request) {
+func (runtime *Runtime) HandlePaymentCompletionStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	intent, err := runtime.GetIntent(r.Context(), id)
 	if err != nil || !runtime.authorizeIntentAccess(r, intent) {
 		httputil.RespondAppError(w, httputil.ErrOrderNotFound)
 		return
 	}
-	task, found, err := runtime.GetFulfillmentStatus(r.Context(), id)
+	task, found, err := runtime.GetPaymentCompletionStatus(r.Context(), id)
 	if err != nil {
 		slog.Error("payment: fulfillment status", "intent_id", id, "err", err)
 		httputil.RespondAppError(w, httputil.ErrInternal)
 		return
 	}
-	status := string(FulfillmentQueued)
+	status := string(PaymentCompletionQueued)
 	if found {
 		status = string(task.Status)
 	}

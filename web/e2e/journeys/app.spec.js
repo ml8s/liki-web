@@ -5,7 +5,7 @@ test.use({ locale: 'zh-Hant' });
 
 const protectedPages = [
   { path: '/app/', heading: '工作台' },
-  { path: '/app/profiles', heading: '檔案' },
+  { path: '/app/birth-profiles', heading: '檔案' },
   { path: '/app/synastry', heading: '合盤' },
   { path: '/app/divination', heading: '問卦' },
   { path: '/app/fengshui', heading: '風水' },
@@ -48,17 +48,17 @@ test.describe('Authenticated app shell', () => {
       await route.fulfill(json({ entitlements: [], allowed_skills: ['liki'] }));
     });
     await page.route('**/api/chat/sessions', async route => route.fulfill(json([])));
-    await page.route('**/api/chat/products', async route => route.fulfill(json({ products: [] })));
-    await page.route('**/api/chat/orders', async route => route.fulfill(json({ orders: [] })));
+    await page.route('**/api/sales/products', async route => route.fulfill(json({ products: [] })));
+    await page.route('**/api/sales/orders', async route => route.fulfill(json({ orders: [] })));
     // 工作台对新用户直达建档；给一个档案模拟老用户，验证工作台本体。
-    await page.route('**/api/profiles**', async route => route.fulfill(json({ profiles: [{
+    await page.route('**/api/birth-profiles**', async route => route.fulfill(json({ profiles: [{
       id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female',
       relation: '家人', calendar: 'solar', birth_date: '1958-05-12', birth_time: '06:00',
       birth_time_known: 'known', birth_place: '上海', note: '', third_party_consent: true,
       last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
     }], next_cursor: '' })));
-    await page.route('**/api/me/subscriptions', async route => route.fulfill(json([])));
-    await page.route('**/api/me/subscription-payments', async route => route.fulfill(json([])));
+    await page.route('**/api/sales/subscriptions', async route => route.fulfill(json([])));
+    await page.route('**/api/sales/subscription-payments', async route => route.fulfill(json([])));
     await page.route('**/api/me/sessions', async route => route.fulfill(json([])));
     await page.route('**/api/me/auth/identities', async route => route.fulfill(json([])));
 
@@ -84,7 +84,7 @@ test.describe('Authenticated app shell', () => {
       { id: 'msg_1', session_id: 'chat_1', user_id: 'usr_test', role: 'user', kind: 'text', content: '你好', created_at: '2026-01-01T00:01:00Z' },
       { id: 'msg_2', session_id: 'chat_1', user_id: 'usr_test', role: 'assistant', kind: 'text', content: '你好，请提供信息。', created_at: '2026-01-01T00:02:00Z' },
     ])));
-    await page.route('**/api/chat/products', async route => route.fulfill(json({ products: [] })));
+    await page.route('**/api/sales/products', async route => route.fulfill(json({ products: [] })));
 
     await page.goto('/app/chat/chat_1');
     await expect(page.getByRole('heading', { name: '起名咨询' })).toBeVisible();
@@ -114,7 +114,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
   });
 
   let productRequest = 0;
-  await page.route('**/api/chat/products', route => {
+  await page.route('**/api/sales/products', route => {
     productRequest += 1;
     return route.fulfill(json({ products: [{
       id: 'liki-chat',
@@ -128,7 +128,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
     }] }));
   });
 
-  await page.route('**/api/profiles**', route => route.fulfill(json({ profiles: [profile], next_cursor: '' })));
+  await page.route('**/api/birth-profiles**', route => route.fulfill(json({ profiles: [profile], next_cursor: '' })));
   await page.route('**/api/chat/sessions', route => {
     if (route.request().method() === 'POST') {
       return route.fulfill(json({
@@ -152,7 +152,7 @@ test('profile create form mounts and validates', async ({ page }) => {
   })));
   await page.route('**/api/me/entitlements', route => route.fulfill(json({ entitlements: [], allowed_skills: [] })));
 
-  await page.goto('/app/profiles/new');
+  await page.goto('/app/birth-profiles/new');
   await expect(page.getByRole('heading', { name: '新建檔案' })).toBeVisible();
   await expect(page.getByPlaceholder('如：媽媽 / 我本人')).toBeVisible();
 });

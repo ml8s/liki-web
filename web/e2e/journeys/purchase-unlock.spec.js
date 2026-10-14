@@ -24,11 +24,11 @@ async function mockWorkspace(page, { purchased, productPurchased }) {
     entitlements: purchased ? [{ id: 'ent_1', skill: 'liki', status: 'active' }] : [],
     allowed_skills: purchased ? ['liki'] : [],
   })))
-  await page.route('**/api/chat/products', route => route.fulfill(json({
+  await page.route('**/api/sales/products', route => route.fulfill(json({
     products: [{ ...baseProduct, purchased: productPurchased }],
   })))
   await page.route('**/api/chat/sessions', route => route.fulfill(json([])))
-  await page.route('**/api/chat/orders', route => route.fulfill(json({ orders: [] })))
+  await page.route('**/api/sales/orders', route => route.fulfill(json({ orders: [] })))
   await page.route('**/api/analytics/pageview', route => route.fulfill(json({})))
 }
 

@@ -23,7 +23,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'admin-overview', component: () => import('@/views/admin/AdminOverviewView.vue') },
         { path: 'entitlements', name: 'admin-entitlements', component: () => import('@/views/admin/AdminEntitlementsView.vue') },
-        { path: 'referrals', name: 'admin-referrals', component: () => import('@/views/admin/AdminReferralsView.vue') },
+        { path: 'partners', name: 'admin-partners', component: () => import('@/views/admin/AdminPartnersView.vue') },
         { path: 'payouts', name: 'admin-payouts', component: () => import('@/views/admin/AdminPayoutsView.vue') },
         { path: 'finance', name: 'admin-finance', component: () => import('@/views/admin/AdminFinanceView.vue') },
         { path: 'audit', name: 'admin-audit', component: () => import('@/views/admin/AdminAuditView.vue') },
@@ -36,9 +36,9 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { titleKey: 'router.dashboard' } },
-        { path: 'profiles', name: 'profiles', component: () => import('@/views/ProfileListView.vue'), meta: { titleKey: 'router.profiles' } },
-        { path: 'profiles/new', name: 'profile-new', component: () => import('@/views/ProfileNewView.vue'), meta: { titleKey: 'router.profileNew' } },
-        { path: 'profiles/:id', name: 'profile-detail', component: () => import('@/views/ProfileDetailView.vue'), meta: { titleKey: 'router.profileDetail' } },
+        { path: 'birth-profiles', name: 'birth-profiles', component: () => import('@/views/birth-profiles/BirthProfileListView.vue'), meta: { titleKey: 'router.profiles' } },
+        { path: 'birth-profiles/new', name: 'birth-profile-new', component: () => import('@/views/birth-profiles/BirthProfileNewView.vue'), meta: { titleKey: 'router.profileNew' } },
+        { path: 'birth-profiles/:id', name: 'birth-profile-detail', component: () => import('@/views/birth-profiles/BirthProfileDetailView.vue'), meta: { titleKey: 'router.profileDetail' } },
         { path: 'synastry', name: 'synastry', component: () => import('@/views/SynastryView.vue'), meta: { titleKey: 'router.synastry' } },
         { path: 'divination', name: 'divination', component: () => import('@/views/DivinationView.vue'), meta: { titleKey: 'router.divination' } },
         { path: 'fengshui', name: 'fengshui', component: () => import('@/views/FengshuiView.vue'), meta: { titleKey: 'router.fengshui' } },

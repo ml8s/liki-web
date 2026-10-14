@@ -22,7 +22,7 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
   await page.waitForURL(url => !url.href.includes('/login'), { timeout: 15000 })
 
   // 新建档案。
-  await page.goto('/app/profiles/new')
+  await page.goto('/app/birth-profiles/new')
   await page.getByLabel(/稱呼/).fill('旅程測試')
   // Element Plus renders native radios visually covered by styled spans;
   // click the visible control instead of the hidden original input.
@@ -41,6 +41,6 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
   await expect(page.getByText(/出生|上海/).first()).toBeVisible()
 
   // 列表页可见该档案。
-  await page.goto('/app/profiles')
+  await page.goto('/app/birth-profiles')
   await expect(page.getByText('旅程測試').first()).toBeVisible()
 })

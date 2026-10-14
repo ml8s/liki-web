@@ -262,13 +262,13 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { fetchChatOrders, fetchSubscriptionPayments, fetchSubscriptions, setSubscriptionCancellation, type ChatOrder, type ChatSubscription, type SubscriptionPayment } from '@/api/orders'
+import { fetchOrders, fetchSubscriptionPayments, fetchSubscriptions, setSubscriptionCancellation, type Order, type Subscription, type SubscriptionPayment } from '@/api/orders'
 import { formatDateTime, formatMinorUnit, productName } from '@/utils/format'
 import { useMobile } from '@/composables/useMobile'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 
-const orders = ref<ChatOrder[]>([])
-const subscriptions = ref<ChatSubscription[]>([])
+const orders = ref<Order[]>([])
+const subscriptions = ref<Subscription[]>([])
 const subscriptionPayments = ref<SubscriptionPayment[]>([])
 const updatingId = ref('')
 const loading = ref(false)
@@ -283,7 +283,7 @@ async function load() {
   error.value = ''
   try {
     const [orderItems, subscriptionItems, paymentItems] = await Promise.all([
-      fetchChatOrders(),
+      fetchOrders(),
       fetchSubscriptions(),
       fetchSubscriptionPayments(),
     ])
@@ -297,8 +297,8 @@ async function load() {
   }
 }
 
-function subscriptionStatusLabel(status: ChatSubscription['status']) {
-  const keys: Record<ChatSubscription['status'], string> = {
+function subscriptionStatusLabel(status: Subscription['status']) {
+  const keys: Record<Subscription['status'], string> = {
     pending: 'subscriptions.status.pending',
     active: 'subscriptions.status.active',
     on_hold: 'subscriptions.status.onHold',
@@ -309,7 +309,7 @@ function subscriptionStatusLabel(status: ChatSubscription['status']) {
   return t(keys[status])
 }
 
-function subscriptionStatusType(status: ChatSubscription['status']) {
+function subscriptionStatusType(status: Subscription['status']) {
   if (status === 'active') return 'success'
   if (status === 'pending' || status === 'on_hold') return 'warning'
   if (status === 'failed') return 'danger'
@@ -328,7 +328,7 @@ function subscriptionPaymentStatusType(payment: SubscriptionPayment) {
   return 'success'
 }
 
-async function toggleCancellation(subscription: ChatSubscription) {
+async function toggleCancellation(subscription: Subscription) {
   updatingId.value = subscription.id
   error.value = ''
   try {
@@ -341,8 +341,8 @@ async function toggleCancellation(subscription: ChatSubscription) {
   }
 }
 
-function asOrder(row: Record<string, unknown>): ChatOrder {
-  return row as unknown as ChatOrder
+function asOrder(row: Record<string, unknown>): Order {
+  return row as unknown as Order
 }
 
 function formatAmount(row: Record<string, unknown>) {
@@ -350,12 +350,12 @@ function formatAmount(row: Record<string, unknown>) {
   return formatMinorUnit(order.amount_minor, order.currency)
 }
 
-function statusLabel(status: ChatOrder['status']) {
+function statusLabel(status: Order['status']) {
   const labels = { pending: t('orders.statusPending'), paid: t('orders.statusPaid'), canceled: t('orders.statusCanceled') }
   return labels[status]
 }
 
-function statusType(status: ChatOrder['status']) {
+function statusType(status: Order['status']) {
   if (status === 'paid') return 'success'
   if (status === 'canceled') return 'info'
   return 'warning'

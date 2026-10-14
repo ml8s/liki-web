@@ -13,8 +13,9 @@ import (
 
 	"github.com/ml8s/liki-web/internal/adminauth"
 	"github.com/ml8s/liki-web/internal/auth"
-	"github.com/ml8s/liki-web/internal/liki"
-	"github.com/ml8s/liki-web/internal/referral"
+	"github.com/ml8s/liki-web/internal/entitlement"
+	"github.com/ml8s/liki-web/internal/partner"
+	"github.com/ml8s/liki-web/internal/sales"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
@@ -52,7 +53,7 @@ VALUES('user-deleted','deleted@example.com','deleted','zh-Hans',?,?,'2026-01-01T
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = entitlementDB.Close() })
-	entitlements := liki.NewEntitlementStore(entitlementDB)
+	entitlements := entitlement.NewStore(entitlementDB)
 	if err := entitlements.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +98,7 @@ VALUES('user-deleted','deleted@example.com','deleted','zh-Hans',?,?,'2026-01-01T
 	if err != nil || len(items) != 1 {
 		t.Fatalf("entitlements=%+v err=%v", items, err)
 	}
-	if items[0].Source != "admin_compensation" || items[0].Status != liki.StatusActive {
+	if items[0].Source != "admin_compensation" || items[0].Status != entitlement.Active {
 		t.Fatalf("unexpected entitlement: %+v", items[0])
 	}
 	if got := items[0].ExpiresAt.Sub(items[0].StartsAt); got < 29*24*time.Hour || got > 31*24*time.Hour {
@@ -152,7 +153,7 @@ VALUES('user-1','customer@example.com','active','en',?,?)`, now, now); err != ni
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = entitlementDB.Close() })
-	entitlements := liki.NewEntitlementStore(entitlementDB)
+	entitlements := entitlement.NewStore(entitlementDB)
 	if err := entitlements.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +163,7 @@ VALUES('user-1','customer@example.com','active','en',?,?)`, now, now); err != ni
 
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, nil, authorizer, identityFor(activeAdmin()), nil,
-		entitlements, users, nil, nil, func(context.Context, auth.User, liki.Entitlement, string) error {
+		entitlements, users, nil, nil, func(context.Context, auth.User, entitlement.Entitlement, string) error {
 			return errors.New("outbox unavailable")
 		})
 	recorder := httptest.NewRecorder()
@@ -199,7 +200,7 @@ VALUES('user-1','customer@example.com','active','en',?,?)`, now, now); err != ni
 	}
 }
 
-func TestFinanceSummaryCombinesCommerceAndReferralTotals(t *testing.T) {
+func TestFinanceSummaryCombinesSalesAndPartnerTotals(t *testing.T) {
 	ctx := context.Background()
 	authorizer := openAdminAuth(t)
 
@@ -208,8 +209,8 @@ func TestFinanceSummaryCombinesCommerceAndReferralTotals(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = commerceDB.Close() })
-	orders := liki.NewOrderStore(commerceDB)
-	subscriptions := liki.NewSubscriptionStore(commerceDB)
+	orders := sales.NewOrderStore(commerceDB)
+	subscriptions := sales.NewSubscriptionStore(commerceDB)
 	if err := orders.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -218,27 +219,27 @@ func TestFinanceSummaryCombinesCommerceAndReferralTotals(t *testing.T) {
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	if _, err := commerceDB.Exec(`
-INSERT INTO chat_orders(id,user_id,email,product_id,amount_minor,currency,status,payment_intent_id,created_at,updated_at,paid_at)
+INSERT INTO sales_orders(id,user_id,email,product_id,amount_minor,currency,status,payment_intent_id,created_at,updated_at,paid_at)
 VALUES('order-1','user-1','customer@example.com','liki-chat',1000,'USD','paid','intent-1',?, ?,?)`, now, now, now); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := commerceDB.Exec(`
-INSERT INTO chat_subscription_payments(id,subscription_id,user_id,product_id,provider,provider_payment_id,
+INSERT INTO sales_subscription_payments(id,subscription_id,user_id,product_id,provider,provider_payment_id,
  amount_minor_units,refunded_minor_units,currency_code,status,created_at,updated_at)
 VALUES('payment-1','subscription-1','user-1','liki-chat','dodo','provider-payment',2000,500,'USD','paid',?,?)`, now, now); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := commerceDB.Exec(`
-INSERT INTO chat_subscription_payment_refunds(id,payment_id,provider,provider_refund_id,
+INSERT INTO sales_subscription_payment_refunds(id,payment_id,provider,provider_refund_id,
  amount_minor_units,currency_code,created_at)
 VALUES('refund-1','payment-1','dodo','provider-refund',500,'USD',?)`, now); err != nil {
 		t.Fatal(err)
 	}
 
-	referralSummary := fakeReferralFinance{commission: 200, payoutPaid: 100, payoutPending: 0}
-	commerce := liki.NewCommerceStores(orders, subscriptions)
+	partnerSummary := fakePartnerFinance{commission: 200, payoutPaid: 100, payoutPending: 0}
+	commerce := sales.NewSalesStores(orders, subscriptions)
 	mux := http.NewServeMux()
-	RegisterRoutes(mux, nil, authorizer, identityFor(activeAdmin()), nil, nil, nil, commerce, referralSummary, nil)
+	RegisterRoutes(mux, nil, authorizer, identityFor(activeAdmin()), nil, nil, nil, commerce, partnerSummary, nil)
 
 	recorder := httptest.NewRecorder()
 	mux.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/api/admin/finance/summary?days=30", nil))
@@ -247,13 +248,13 @@ VALUES('refund-1','payment-1','dodo','provider-refund',500,'USD',?)`, now); err 
 	}
 	var response struct {
 		Data struct {
-			OneTimePaid      []liki.AdminMoney `json:"one_time_paid"`
-			SubscriptionPaid []liki.AdminMoney `json:"subscription_paid"`
-			Refunds          []liki.AdminMoney `json:"subscription_refunded"`
-			NetRevenue       []liki.AdminMoney `json:"net_product_revenue"`
-			CommissionNet    []liki.AdminMoney `json:"referral_commission_net"`
-			PayoutPaid       []liki.AdminMoney `json:"referral_payout_paid"`
-			PendingPayout    []liki.AdminMoney `json:"referral_pending_payout"`
+			OneTimePaid      []sales.AdminMoney `json:"one_time_paid"`
+			SubscriptionPaid []sales.AdminMoney `json:"subscription_paid"`
+			Refunds          []sales.AdminMoney `json:"subscription_refunded"`
+			NetRevenue       []sales.AdminMoney `json:"net_product_revenue"`
+			CommissionNet    []sales.AdminMoney `json:"partner_commission_net"`
+			PayoutPaid       []sales.AdminMoney `json:"partner_payout_paid"`
+			PendingPayout    []sales.AdminMoney `json:"partner_pending_payout"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
@@ -292,7 +293,7 @@ func identityFor(user auth.User) func(*http.Request) (auth.User, bool) {
 	return func(*http.Request) (auth.User, bool) { return user, true }
 }
 
-func assertMoney(t *testing.T, items []liki.AdminMoney, currency string, amount int64) {
+func assertMoney(t *testing.T, items []sales.AdminMoney, currency string, amount int64) {
 	t.Helper()
 	for _, item := range items {
 		if item.Currency == currency && item.AmountMinor == amount {
@@ -302,19 +303,19 @@ func assertMoney(t *testing.T, items []liki.AdminMoney, currency string, amount 
 	t.Fatalf("missing %s %d in %+v", currency, amount, items)
 }
 
-type fakeReferralFinance struct {
+type fakePartnerFinance struct {
 	commission    int64
 	payoutPaid    int64
 	payoutPending int64
 }
 
-func (f fakeReferralFinance) AdminFinanceSummary(_ context.Context, start, end time.Time) (referral.AdminFinanceSummary, error) {
+func (f fakePartnerFinance) AdminFinanceSummary(_ context.Context, start, end time.Time) (partner.AdminFinanceSummary, error) {
 	_ = start
 	_ = end
-	return referral.AdminFinanceSummary{
-		CommissionNet:       []referral.AdminMoney{{Currency: "USD", AmountMinor: f.commission}},
-		PayoutPaid:          []referral.AdminMoney{{Currency: "USD", AmountMinor: f.payoutPaid}},
-		PendingPayoutAmount: []referral.AdminMoney{{Currency: "USD", AmountMinor: f.payoutPending}},
+	return partner.AdminFinanceSummary{
+		CommissionNet:       []partner.AdminMoney{{Currency: "USD", AmountMinor: f.commission}},
+		PayoutPaid:          []partner.AdminMoney{{Currency: "USD", AmountMinor: f.payoutPaid}},
+		PendingPayoutAmount: []partner.AdminMoney{{Currency: "USD", AmountMinor: f.payoutPending}},
 	}, nil
 }
 
@@ -324,11 +325,11 @@ type compensationNotifications struct {
 
 type compensationNotification struct {
 	user        auth.User
-	entitlement liki.Entitlement
+	entitlement entitlement.Entitlement
 	template    string
 }
 
-func (n *compensationNotifications) record(_ context.Context, user auth.User, entitlement liki.Entitlement, template string) error {
+func (n *compensationNotifications) record(_ context.Context, user auth.User, entitlement entitlement.Entitlement, template string) error {
 	n.items = append(n.items, compensationNotification{user: user, entitlement: entitlement, template: template})
 	return nil
 }

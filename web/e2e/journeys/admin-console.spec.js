@@ -59,8 +59,8 @@ test.describe('Vue admin finance and compensation', () => {
         period_start: '2026-10-06T00:00:00Z', period_end: '2026-10-13T00:00:00Z',
         one_time_paid: [{ currency: 'USD', amount_minor: 1000 }],
         subscription_paid: [], subscription_refunded: [], net_product_revenue: [],
-        referral_commission_net: [{ currency: 'USD', amount_minor: 200 }],
-        referral_payout_paid: [], referral_pending_payout: [],
+        partner_commission_net: [{ currency: 'USD', amount_minor: 200 }],
+        partner_payout_paid: [], partner_pending_payout: [],
       } },
     }))
 

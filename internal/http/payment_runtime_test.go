@@ -12,8 +12,10 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/ml8s/liki-web/internal/liki"
+	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/sales"
 )
 
 type fakeGateway struct {
@@ -34,7 +36,7 @@ func (g *fakeGateway) FetchPayment(ctx context.Context, intent payment.PaymentIn
 
 func (g *fakeGateway) WebhookAck() []byte { return []byte("success") }
 
-func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.OrderStore, string) {
+func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *sales.OrderStore, string) {
 	t.Helper()
 	ctx := context.Background()
 	mainDB, err := sql.Open("sqlite", t.TempDir()+"/main.db")
@@ -51,7 +53,7 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.Orde
 	if err := notifications.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	fulfillments := payment.NewFulfillmentTaskStore(mainDB)
+	fulfillments := payment.NewPaymentCompletionTaskStore(mainDB)
 	events := payment.NewPaymentEventStore(mainDB)
 	if err := fulfillments.Migrate(ctx); err != nil {
 		t.Fatal(err)
@@ -59,17 +61,17 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.Orde
 	if err := events.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	orderStore := liki.NewOrderStoreWithCatalog(mainDB, liki.NewCommerceCatalog(liki.CommerceCatalogConfig{
+	orderStore := sales.NewOrderStoreWithCatalog(mainDB, product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY: 7900, OneTimePriceMinorUSD: 2990, SubscriptionPriceMinorUSD: 1990,
 	}))
-	entitlementStore := liki.NewEntitlementStore(mainDB)
+	entitlementStore := entitlement.NewStore(mainDB)
 	if err := orderStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if err := entitlementStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	order, err := orderStore.CreateOrder(ctx, "user_1", "user@example.com", liki.ProductChat, "CNY")
+	order, err := orderStore.CreateOrder(ctx, "user_1", "user@example.com", product.Chat, "CNY")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +79,7 @@ func newPaymentRuntime(t *testing.T) (*payment.Runtime, *fakeGateway, *liki.Orde
 	runtime := payment.NewRuntime(
 		map[payment.Provider]payment.Gateway{payment.ProviderXunhu: gateway},
 		map[string]payment.ProductFlow{
-			string(liki.ProductChat): liki.NewFulfiller(orderStore, entitlementStore, liki.ProductChat, 30*time.Hour),
+			string(product.Chat): sales.NewProductPaymentFlow(orderStore, entitlementStore, product.Chat, 30*time.Hour),
 		},
 		intents,
 		notifications,
@@ -109,7 +111,7 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 
 	intent, err := runtime.CreateIntent(context.Background(), payment.CreateIntentInput{
-		Product: string(liki.ProductChat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
+		Product: string(product.Chat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -147,7 +149,7 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("webhook = %d %s", rec.Code, rec.Body.String())
 	}
-	if _, err := runtime.ProcessFulfillmentTasks(context.Background(), 10); err != nil {
+	if _, err := runtime.ProcessPaymentCompletionTasks(context.Background(), 10); err != nil {
 		t.Fatal(err)
 	}
 
@@ -174,7 +176,7 @@ func TestSharedPaymentWebhookReturnsProviderAck(t *testing.T) {
 	RegisterRoutes(mux, ServerDeps{PaymentRuntime: runtime}, "test", "test", NewRateLimiter(), NewRateLimiter())
 
 	intent, err := runtime.CreateIntent(context.Background(), payment.CreateIntentInput{
-		Product: string(liki.ProductChat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
+		Product: string(product.Chat), BusinessOrderID: bizOrderID, Provider: payment.ProviderXunhu,
 	})
 	if err != nil {
 		t.Fatal(err)

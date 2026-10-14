@@ -292,8 +292,8 @@ import {
   type PartnerRoleStatus,
   type Payout,
   type PayoutMethod,
-  type ReferralCommission,
-} from '@/api/referral'
+  type PartnerCommission,
+} from '@/api/partner'
 import { formatDateTime, formatMinorUnit } from '@/utils/format'
 
 const { t } = useI18n()
@@ -306,12 +306,12 @@ const otherRoleAssigned = ref(false)
 const application = ref<PartnerApplication | null>(null)
 const note = ref('')
 const overview = ref<KOLOverview | null>(null)
-const commissions = ref<ReferralCommission[]>([])
+const commissions = ref<PartnerCommission[]>([])
 const balances = ref<BalanceSummary[]>([])
 const payouts = ref<Payout[]>([])
 
 const referralLink = computed(() => {
-  const code = overview.value?.referrer.code
+  const code = overview.value?.partner.code
   return code ? `${window.location.origin}/r/${code}` : ''
 })
 
@@ -382,12 +382,12 @@ async function submitPayout(payload: { method: PayoutMethod; account: string }) 
   }
 }
 
-function commissionLabel(status: ReferralCommission['status']) {
+function commissionLabel(status: PartnerCommission['status']) {
   const labels = { pending: t('partner.commissionStatus.pending'), paid: t('partner.commissionStatus.paid'), voided: t('partner.commissionStatus.voided') }
   return labels[status]
 }
 
-function commissionTagType(status: ReferralCommission['status']) {
+function commissionTagType(status: PartnerCommission['status']) {
   if (status === 'paid') return 'success'
   if (status === 'voided') return 'danger'
   return 'warning'

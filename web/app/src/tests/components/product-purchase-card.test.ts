@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import ProductPurchaseCard from '@/components/commerce/ProductPurchaseCard.vue'
-import type { ChatProduct } from '@/api/commerce'
+import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
+import type { Product } from '@/api/sales'
 
-const product: ChatProduct = {
+const product: Product = {
   id: 'liki-chat',
   name: 'Liki Chat',
   description: 'Liki Chat.',
