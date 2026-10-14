@@ -52,7 +52,7 @@
         :aria-busy="loading"
       >
         <el-table
-          class="admin-desktop-only"
+          v-if="!isMobile"
           :data="accounts"
           row-key="email"
         >
@@ -135,12 +135,11 @@
         </el-table>
 
         <div
-          v-if="!loading && !accounts.length"
-          class="admin-mobile-only"
+          v-if="isMobile && !loading && !accounts.length"
         >
           <el-empty description="暂无管理员" />
         </div>
-        <div class="admin-mobile-only">
+        <div v-if="isMobile">
           <AdminRecordCard
             v-for="row in accounts"
             :key="row.email"
@@ -223,6 +222,9 @@ import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { capabilityLabel } from '@/utils/adminFormat'
+import { useAdminViewport } from '@/composables/useAdminResource'
+
+const isMobile = useAdminViewport()
 
 const admin = useAdminStore()
 const accounts = ref<AdminAccount[]>([])

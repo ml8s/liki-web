@@ -23,7 +23,7 @@
       :aria-busy="actions.loading.value"
     >
       <el-table
-        class="admin-desktop-only"
+        v-if="!isMobile"
         :data="actions.data.value"
         row-key="id"
       >
@@ -65,12 +65,11 @@
       </el-table>
 
       <div
-        v-if="!actions.loading.value && !actions.data.value.length"
-        class="admin-mobile-only"
+        v-if="isMobile && !actions.loading.value && !actions.data.value.length"
       >
         <el-empty description="暂无合作伙伴审计记录" />
       </div>
-      <div class="admin-mobile-only">
+      <div v-if="isMobile">
         <AdminRecordCard
           v-for="row in actions.data.value"
           :key="row.id"
@@ -103,8 +102,10 @@
 import { onMounted, ref } from 'vue'
 import { fetchAdminActions, type AdminAction } from '@/api/admin'
 import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
-import { useAdminPagedResource } from '@/composables/useAdminResource'
+import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { formatDateTime } from '@/utils/format'
+
+const isMobile = useAdminViewport()
 
 const actionPage = ref(1)
 const actions = useAdminPagedResource<AdminAction>(async page => await fetchAdminActions(page))

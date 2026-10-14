@@ -66,7 +66,7 @@
       :aria-busy="payouts.loading.value"
     >
       <el-table
-        class="admin-desktop-only"
+        v-if="!isMobile"
         :data="payouts.data.value"
         row-key="id"
       >
@@ -165,12 +165,11 @@
       </el-table>
 
       <div
-        v-if="!payouts.loading.value && !payouts.data.value.length"
-        class="admin-mobile-only"
+        v-if="isMobile && !payouts.loading.value && !payouts.data.value.length"
       >
         <el-empty description="暂无提现记录" />
       </div>
-      <div class="admin-mobile-only">
+      <div v-if="isMobile">
         <AdminRecordCard
           v-for="row in payouts.data.value"
           :key="row.id"
@@ -247,11 +246,13 @@ import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { useAdminPagedResource } from '@/composables/useAdminResource'
+import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
 import { adminPaymentMethodLabel, adminRoleLabel, formatAdminMoney, maskAdminAccount } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
+
+const isMobile = useAdminViewport()
 
 const admin = useAdminStore()
 

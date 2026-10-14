@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
 import { toUserMessage } from '@/utils/errors'
 import type { AdminPageMeta, AdminPagedResult } from '@/api/admin'
 
@@ -31,6 +32,11 @@ export function useAdminResource<T>(loader: () => Promise<T[]>): AdminResource<T
   }
 
   return { data, loading, error, load }
+}
+
+/** Delegate responsive behavior to VueUse; admin only names its viewport contract. */
+export function useAdminViewport() {
+  return useMediaQuery('(max-width: 720px)')
 }
 
 export interface AdminPagedResource<T> extends Omit<AdminResource<T>, 'load'> {

@@ -83,7 +83,7 @@
         :aria-busy="applications.loading.value"
       >
         <el-table
-          class="admin-desktop-only"
+          v-if="!isMobile"
           :data="applications.data.value"
           row-key="id"
         >
@@ -152,12 +152,11 @@
         </el-table>
 
         <div
-          v-if="!applications.loading.value && !applications.data.value.length"
-          class="admin-mobile-only"
+          v-if="isMobile && !applications.loading.value && !applications.data.value.length"
         >
           <el-empty description="暂无合作申请" />
         </div>
-        <div class="admin-mobile-only">
+        <div v-if="isMobile">
           <AdminRecordCard
             v-for="row in applications.data.value"
             :key="row.id"
@@ -277,7 +276,7 @@
         :aria-busy="partners.loading.value"
       >
         <el-table
-          class="admin-desktop-only"
+          v-if="!isMobile"
           :data="partners.data.value"
           row-key="user_id"
         >
@@ -334,12 +333,11 @@
         </el-table>
 
         <div
-          v-if="!partners.loading.value && !partners.data.value.length"
-          class="admin-mobile-only"
+          v-if="isMobile && !partners.loading.value && !partners.data.value.length"
         >
           <el-empty description="暂无合作伙伴" />
         </div>
-        <div class="admin-mobile-only">
+        <div v-if="isMobile">
           <AdminRecordCard
             v-for="row in partners.data.value"
             :key="row.user_id"
@@ -394,11 +392,13 @@ import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { useAdminPagedResource, type AdminPagedResource } from '@/composables/useAdminResource'
+import { useAdminPagedResource, useAdminViewport, type AdminPagedResource } from '@/composables/useAdminResource'
 import { adminRoleLabel } from '@/utils/adminFormat'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
+
+const isMobile = useAdminViewport()
 
 const admin = useAdminStore()
 

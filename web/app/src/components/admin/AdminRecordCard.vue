@@ -1,44 +1,49 @@
 <template>
-  <article class="admin-record-card">
-    <dl>
-      <div
+  <el-card
+    class="admin-record-card"
+    shadow="never"
+  >
+    <el-descriptions
+      :column="1"
+      border
+      size="small"
+    >
+      <el-descriptions-item
         v-for="field in fields"
         :key="field.key"
-        class="admin-record-row"
+        :label="field.label"
       >
-        <dt>{{ field.label }}</dt>
-        <dd>
-          <slot
-            name="field"
-            :field="field"
+        <slot
+          name="field"
+          :field="field"
+        >
+          <AdminStatusTag
+            v-if="field.kind === 'status'"
+            :status="field.value"
+          />
+          <span
+            v-else-if="field.kind === 'money'"
+            class="admin-record-strong"
           >
-            <AdminStatusTag
-              v-if="field.kind === 'status'"
-              :status="field.value"
-            />
-            <span
-              v-else-if="field.kind === 'money'"
-              class="admin-record-strong"
-            >
-              {{ formatAdminMoney(Number(field.value || 0), field.currency || '') }}
-            </span>
-            <span
-              v-else
-              :class="{ mono: field.kind === 'mono' }"
-            >
-              {{ field.value || '-' }}
-            </span>
-          </slot>
-        </dd>
-      </div>
-    </dl>
-    <div
+            {{ formatAdminMoney(Number(field.value || 0), field.currency || '') }}
+          </span>
+          <span
+            v-else
+            :class="{ mono: field.kind === 'mono' }"
+          >
+            {{ field.value || '-' }}
+          </span>
+        </slot>
+      </el-descriptions-item>
+    </el-descriptions>
+    <el-space
       v-if="$slots.actions"
+      wrap
       class="admin-record-actions"
     >
       <slot name="actions" />
-    </div>
-  </article>
+    </el-space>
+  </el-card>
 </template>
 
 <script setup lang="ts">

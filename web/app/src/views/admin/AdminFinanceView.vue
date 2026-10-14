@@ -137,7 +137,7 @@
         :aria-busy="tasks.loading.value"
       >
         <el-table
-          class="admin-desktop-only"
+          v-if="!isMobile"
           :data="tasks.data.value"
           row-key="id"
         >
@@ -218,12 +218,11 @@
         </el-table>
 
         <div
-          v-if="!tasks.loading.value && !tasks.data.value.length"
-          class="admin-mobile-only"
+          v-if="isMobile && !tasks.loading.value && !tasks.data.value.length"
         >
           <el-empty description="暂无财务任务" />
         </div>
-        <div class="admin-mobile-only">
+        <div v-if="isMobile">
           <AdminRecordCard
             v-for="row in tasks.data.value"
             :key="row.id"
@@ -287,11 +286,13 @@ import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { useAdminPagedResource } from '@/composables/useAdminResource'
+import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
+
+const isMobile = useAdminViewport()
 
 const admin = useAdminStore()
 

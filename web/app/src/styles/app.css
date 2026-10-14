@@ -28,6 +28,7 @@
   --liki-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ── Element Plus 主色覆盖 ── */
+  --el-font-family: var(--liki-font-sans);
   --el-color-primary: var(--liki-primary);
   --el-color-primary-light-3: #8a7bfa;
   --el-color-primary-light-5: #aca5fd;
@@ -108,15 +109,17 @@ p {
   transform: scale(0.96);
 }
 
-/* 卡片：轻投影制造层级，边框留作结构 */
-.el-card {
-  border-color: var(--liki-line);
-  border-radius: var(--radius-card);
+/* Card values stay in Element Plus variables; the repeated selector is only
+ * needed because EP defines its component defaults on .el-card itself. */
+.el-card.el-card {
+  --el-card-bg-color: var(--liki-surface);
+  --el-card-border-color: var(--liki-line);
+  --el-card-border-radius: var(--radius-card);
+  --el-card-padding: var(--space-5);
   box-shadow: var(--el-box-shadow-light);
 }
 .el-card.el-card .el-card__header {
   border-bottom-color: var(--liki-line);
-  padding: 14px 16px;
 }
 
 /* 项目内标准卡片结构：配合 el-card 使用 */
@@ -154,8 +157,6 @@ p {
   border-color: var(--color-error-border);
   background: var(--color-danger-surface);
 }
-
-.el-card__body { padding: var(--space-6); }
 
 .el-button {
   min-height: 36px;

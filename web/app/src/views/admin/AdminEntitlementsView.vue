@@ -148,7 +148,7 @@
       :aria-busy="loading"
     >
       <el-table
-        class="admin-desktop-only"
+        v-if="!isMobile"
         :data="entitlements"
         row-key="id"
       >
@@ -233,12 +233,11 @@
       </el-table>
 
       <div
-        v-if="!loading && !entitlements.length"
-        class="admin-mobile-only"
+        v-if="isMobile && !loading && !entitlements.length"
       >
         <el-empty description="未找到用户权益" />
       </div>
-      <div class="admin-mobile-only">
+      <div v-if="isMobile">
         <AdminRecordCard
           v-for="row in entitlements"
           :key="row.id"
@@ -349,6 +348,9 @@ import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { formatDateTime } from '@/utils/format'
+import { useAdminViewport } from '@/composables/useAdminResource'
+
+const isMobile = useAdminViewport()
 
 const admin = useAdminStore()
 const email = ref('')

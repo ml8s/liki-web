@@ -159,7 +159,7 @@ export interface AdminPagedResult<T> {
   meta: AdminPageMeta
 }
 
-const defaultPageSize = 100
+const defaultPageSize = 50
 
 function pageQuery(
   params: Record<string, string | number | undefined>,
