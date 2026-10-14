@@ -17,6 +17,16 @@ func SameOrigin(devMode bool, next stdhttp.Handler) stdhttp.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		// Feedback is public anonymous JSON without cookies or sessions. A
+		// non-browser first-party script has no browser-supplied Origin, so the
+		// missing-header case is allowed; cross-site browser headers still fall
+		// through to the checks below. Rate limiting and payload validation
+		// remain the abuse boundary.
+		if publicAnonymousJSON(r.URL.Path) &&
+			r.Header.Get("Origin") == "" && r.Header.Get("Referer") == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		// An exact Origin/Referer + forwarded-host match is safe in every
 		// environment. The dev-origin allowlist is an additional convenience
 		// for direct local servers (for example, Vite on :5173).
@@ -44,6 +54,10 @@ func sameOriginBypass(path string) bool {
 	// is the Payment-Proof header, so same-origin is meaningless there.
 	// Both stay rate limited.
 	return path == "/api/payments/webhook" || path == "/api/aipay"
+}
+
+func publicAnonymousJSON(path string) bool {
+	return path == "/api/feedback"
 }
 
 func sameOriginAllowed(r *stdhttp.Request, allowed map[string]bool) bool {
