@@ -84,7 +84,7 @@ liki release bundle → 校验 SHA256 / archive digest
 ## 六、相关文档
 
 - `ARCHITECTURE.md`：本仓内部架构
-- `docs/mcp.md`、`docs/database/`、`docs/aipay.md`：BFF 实现细节
+- `docs/integrations/mcp.md`、`docs/database/`、`docs/payments/aipay.md`：BFF 实现细节
 - `liki/docs/SYSTEM.md`：内容仓视角的全况
 - `liki-agents/docs/SYSTEM.md`：运行时仓视角的全况
 - `liki-deploy/docs/ARCHITECTURE.md`：系统架构与发布时序

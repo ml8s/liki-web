@@ -78,3 +78,10 @@ LEGACY_PRODUCTS.md
 ## Security
 
 Never commit secrets, private keys, customer data, or production environment files. Report security issues as described in [`SECURITY.md`](./SECURITY.md).
+
+## Documentation naming
+
+- Stable repository-level guides use uppercase names: `README.md`, `API.md`, `ARCHITECTURE.md`.
+- Detailed documents live by domain under `docs/` and use lowercase kebab-case file names.
+- Organize detailed documents by bounded context: `docs/database/`, `docs/payments/`, `docs/integrations/`, `docs/architecture/`.
+- Name files after the domain concept, not the historical implementation.
