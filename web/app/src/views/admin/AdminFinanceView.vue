@@ -101,20 +101,10 @@
             class="admin-filter-control"
           >
             <el-option
-              label="待处理"
-              value="pending"
-            />
-            <el-option
-              label="已追回"
-              value="resolved"
-            />
-            <el-option
-              label="已豁免"
-              value="rejected"
-            />
-            <el-option
-              label="全部"
-              value=""
+              v-for="option in statusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
             />
           </el-select>
         </el-form-item>
@@ -175,7 +165,10 @@
             width="110"
           >
             <template #default="{ row }">
-              <AdminStatusTag :status="row.status" />
+              <AdminStatusTag
+                domain="finance_task"
+                :status="row.status"
+              />
             </template>
           </el-table-column>
           <el-table-column
@@ -227,6 +220,7 @@
           <AdminRecordCard
             v-for="row in tasks.data.value"
             :key="row.id"
+            status-domain="finance_task"
             :fields="[
               { key: 'type', label: '类型', value: financeTaskTypeLabel(row.type) },
               { key: 'amount', label: '金额', value: row.amount_minor, kind: 'money', currency: row.currency },
@@ -288,7 +282,7 @@ import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
-import { financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { adminStatusOptions, financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
@@ -322,11 +316,13 @@ const reportRows = computed(() => [
   { label: '当前待处理提现', values: report.value?.partner_pending_payout ?? [] },
 ])
 
+const statusOptions = adminStatusOptions('finance_task')
+
 const query = useAdminQueryState<FinanceFilters>({
   defaults: { status: 'pending', days: 30 },
   pageKeys: ['taskPage'],
   decode: query => ({
-    status: queryChoice(query, 'status', ['', 'pending', 'resolved', 'rejected'], 'pending'),
+    status: queryChoice(query, 'status', statusOptions.map(option => option.value), 'pending'),
     days: queryChoice(query, 'days', ['7', '30', '90'], '30') as unknown as 7 | 30 | 90,
   }),
   encode: (filters, pages) => ({

@@ -46,20 +46,10 @@
             class="admin-filter-control"
           >
             <el-option
-              label="待审核"
-              value="pending"
-            />
-            <el-option
-              label="已通过"
-              value="approved"
-            />
-            <el-option
-              label="已拒绝"
-              value="rejected"
-            />
-            <el-option
-              label="全部"
-              value=""
+              v-for="option in applicationStatusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
             />
           </el-select>
         </el-form-item>
@@ -108,7 +98,10 @@
             width="100"
           >
             <template #default="{ row }">
-              <AdminStatusTag :status="row.status" />
+              <AdminStatusTag
+                domain="application"
+                :status="row.status"
+              />
             </template>
           </el-table-column>
           <el-table-column
@@ -160,6 +153,7 @@
           <AdminRecordCard
             v-for="row in applications.data.value"
             :key="row.id"
+            status-domain="application"
             :fields="[
               { key: 'code', label: '推广码', value: row.code },
               { key: 'role', label: '角色', value: adminRoleLabel(row.type) },
@@ -247,16 +241,10 @@
             class="admin-filter-control"
           >
             <el-option
-              label="全部"
-              value=""
-            />
-            <el-option
-              label="Active"
-              value="active"
-            />
-            <el-option
-              label="Frozen"
-              value="frozen"
+              v-for="option in partnerStatusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
             />
           </el-select>
         </el-form-item>
@@ -301,7 +289,10 @@
             width="100"
           >
             <template #default="{ row }">
-              <AdminStatusTag :status="row.status" />
+              <AdminStatusTag
+                domain="partner"
+                :status="row.status"
+              />
             </template>
           </el-table-column>
           <el-table-column
@@ -341,6 +332,7 @@
           <AdminRecordCard
             v-for="row in partners.data.value"
             :key="row.user_id"
+            status-domain="partner"
             :fields="[
               { key: 'code', label: '推广码', value: row.code },
               { key: 'user_id', label: 'User ID', value: row.user_id, kind: 'mono' },
@@ -393,7 +385,7 @@ import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAdminPagedResource, useAdminViewport, type AdminPagedResource } from '@/composables/useAdminResource'
-import { adminRoleLabel } from '@/utils/adminFormat'
+import { adminRoleLabel, adminStatusOptions } from '@/utils/adminFormat'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
@@ -420,6 +412,8 @@ const partnerDefaults = {
   partnerStatus: '',
   q: '',
 }
+const applicationStatusOptions = adminStatusOptions('application')
+const partnerStatusOptions = adminStatusOptions('partner')
 const applications: AdminPagedResource<AdminApplication> = useAdminPagedResource<AdminApplication>(async page => {
   const { applicationStatus, applicationRole } = query.applied.value
   return await fetchAdminApplications(applicationStatus, applicationRole, page)
@@ -434,9 +428,9 @@ const query: PartnerQueryState = useAdminQueryState<PartnerFilters>({
   pageKeys: ['applicationPage', 'partnerPage'],
   decode: query => ({
     applicationRole: queryChoice(query, 'applicationRole', ['', 'kol', 'scout'], partnerDefaults.applicationRole),
-    applicationStatus: queryChoice(query, 'applicationStatus', ['', 'pending', 'approved', 'rejected'], partnerDefaults.applicationStatus),
+    applicationStatus: queryChoice(query, 'applicationStatus', applicationStatusOptions.map(option => option.value), partnerDefaults.applicationStatus),
     partnerRole: queryChoice(query, 'partnerRole', ['', 'kol', 'scout'], partnerDefaults.partnerRole),
-    partnerStatus: queryChoice(query, 'partnerStatus', ['', 'active', 'frozen'], partnerDefaults.partnerStatus),
+    partnerStatus: queryChoice(query, 'partnerStatus', partnerStatusOptions.map(option => option.value), partnerDefaults.partnerStatus),
     q: queryText(query, 'q'),
   }),
   encode: (filters, pages) => ({

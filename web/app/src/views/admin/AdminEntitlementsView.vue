@@ -104,20 +104,10 @@
           class="admin-filter-control"
         >
           <el-option
-            label="全部"
-            value=""
-          />
-          <el-option
-            label="有效"
-            value="active"
-          />
-          <el-option
-            label="已过期"
-            value="expired"
-          />
-          <el-option
-            label="已撤销"
-            value="revoked"
+            v-for="option in statusOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
           />
         </el-select>
       </el-form-item>
@@ -183,7 +173,10 @@
           width="100"
         >
           <template #default="{ row }">
-            <AdminStatusTag :status="row.status" />
+            <AdminStatusTag
+              domain="entitlement"
+              :status="row.status"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -241,6 +234,7 @@
         <AdminRecordCard
           v-for="row in entitlements"
           :key="row.id"
+          status-domain="entitlement"
           :fields="[
             { key: 'email', label: '邮箱', value: row.email },
             { key: 'product_id', label: '产品', value: row.product_id },
@@ -347,6 +341,7 @@ import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
+import { adminStatusOptions } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 import { useAdminViewport } from '@/composables/useAdminResource'
 
@@ -355,6 +350,7 @@ const isMobile = useAdminViewport()
 const admin = useAdminStore()
 const email = ref('')
 const status = ref('')
+const statusOptions = adminStatusOptions('entitlement')
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')

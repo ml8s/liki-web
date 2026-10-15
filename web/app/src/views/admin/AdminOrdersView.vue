@@ -21,20 +21,10 @@
           class="admin-filter-control"
         >
           <el-option
-            label="待支付"
-            value="pending"
-          />
-          <el-option
-            label="已支付"
-            value="paid"
-          />
-          <el-option
-            label="已取消"
-            value="canceled"
-          />
-          <el-option
-            label="全部"
-            value=""
+            v-for="option in statusOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
           />
         </el-select>
       </el-form-item>
@@ -103,7 +93,10 @@
           width="110"
         >
           <template #default="{ row }">
-            <AdminStatusTag :status="row.status" />
+            <AdminStatusTag
+              domain="order"
+              :status="row.status"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -142,6 +135,7 @@
         <AdminRecordCard
           v-for="row in orders.data.value"
           :key="row.id"
+          status-domain="order"
           :fields="[
             { key: 'id', label: '订单号', value: row.id, kind: 'mono' },
             { key: 'email', label: '用户邮箱', value: row.email },
@@ -181,7 +175,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
-import { formatAdminMoney } from '@/utils/adminFormat'
+import { adminStatusOptions, formatAdminMoney } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const isMobile = useAdminViewport()
@@ -193,12 +187,13 @@ interface OrderFilters {
 }
 
 const orderDefaults = { status: '', search: '' }
+const statusOptions = adminStatusOptions('order')
 
 const query = useAdminQueryState<OrderFilters>({
   defaults: orderDefaults,
   pageKeys: ['page'],
   decode: query => ({
-    status: queryChoice(query, 'status', ['', 'pending', 'paid', 'canceled'], orderDefaults.status),
+    status: queryChoice(query, 'status', statusOptions.map(option => option.value), orderDefaults.status),
     search: queryText(query, 'search'),
   }),
   encode: (filters, pages) => ({

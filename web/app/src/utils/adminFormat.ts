@@ -2,32 +2,97 @@ import { i18n } from '@/i18n'
 
 type AdminStatusTagType = 'success' | 'danger' | 'info' | 'warning'
 
+/** Records that carry a lifecycle status; wording and color are owned per domain. */
+export type AdminStatusDomain =
+  | 'order'
+  | 'subscription'
+  | 'payout'
+  | 'application'
+  | 'partner'
+  | 'entitlement'
+  | 'finance_task'
+  | 'administrator'
+
 export interface AdminStatusMeta {
   label: string
   tag: AdminStatusTagType
 }
 
-/** One map owns both operator language and status color so states cannot drift. */
-export const adminStatusMeta: Record<string, AdminStatusMeta> = {
-  active: { label: '有效', tag: 'success' },
-  approved: { label: '已批准', tag: 'success' },
-  disabled: { label: '已禁用', tag: 'danger' },
-  expired: { label: '已过期', tag: 'info' },
-  failed: { label: '失败', tag: 'danger' },
-  frozen: { label: '已冻结', tag: 'danger' },
-  paid: { label: '已打款', tag: 'success' },
-  pending: { label: '处理中', tag: 'warning' },
-  rejected: { label: '已拒绝', tag: 'danger' },
-  requested: { label: '待审核', tag: 'warning' },
-  resolved: { label: '已解决', tag: 'success' },
-  revoked: { label: '已撤销', tag: 'info' },
-  canceled: { label: '已取消', tag: 'info' },
-  cancelled: { label: '已取消', tag: 'info' },
-  on_hold: { label: '暂停', tag: 'warning' },
+export interface AdminStatusOption {
+  value: string
+  label: string
 }
 
-export function adminStatusTagType(status: string): AdminStatusTagType {
-  return adminStatusMeta[status]?.tag ?? 'info'
+/**
+ * One dictionary per domain: the same code (paid, pending) means something
+ * different to an operator per record type. Filter options and decode
+ * whitelists derive from these maps so wording cannot drift per view.
+ */
+const adminStatusDomains: Record<AdminStatusDomain, Record<string, AdminStatusMeta>> = {
+  order: {
+    pending: { label: '待支付', tag: 'warning' },
+    paid: { label: '已支付', tag: 'success' },
+    canceled: { label: '已取消', tag: 'info' },
+  },
+  subscription: {
+    pending: { label: '待激活', tag: 'warning' },
+    active: { label: '有效', tag: 'success' },
+    on_hold: { label: '暂停', tag: 'warning' },
+    cancelled: { label: '已取消', tag: 'info' },
+    expired: { label: '已过期', tag: 'info' },
+    failed: { label: '失败', tag: 'danger' },
+  },
+  payout: {
+    requested: { label: '待审核', tag: 'warning' },
+    pending: { label: '处理中', tag: 'warning' },
+    approved: { label: '已批准', tag: 'success' },
+    rejected: { label: '已拒绝', tag: 'danger' },
+    paid: { label: '已打款', tag: 'success' },
+    failed: { label: '失败', tag: 'danger' },
+  },
+  application: {
+    pending: { label: '待审核', tag: 'warning' },
+    approved: { label: '已通过', tag: 'success' },
+    rejected: { label: '已拒绝', tag: 'danger' },
+  },
+  partner: {
+    active: { label: '有效', tag: 'success' },
+    frozen: { label: '已冻结', tag: 'danger' },
+  },
+  entitlement: {
+    active: { label: '有效', tag: 'success' },
+    expired: { label: '已过期', tag: 'info' },
+    revoked: { label: '已撤销', tag: 'info' },
+  },
+  finance_task: {
+    pending: { label: '待处理', tag: 'warning' },
+    resolved: { label: '已追回', tag: 'success' },
+    rejected: { label: '已豁免', tag: 'info' },
+  },
+  administrator: {
+    active: { label: '有效', tag: 'success' },
+    disabled: { label: '已禁用', tag: 'danger' },
+  },
+}
+
+const adminStatusAllOption: AdminStatusOption = { value: '', label: '全部' }
+
+/** Unknown codes stay visible as-is so operators can report them upstream. */
+export function adminStatusMeta(domain: AdminStatusDomain, status: string): AdminStatusMeta {
+  return adminStatusDomains[domain]?.[status] ?? { label: status, tag: 'info' }
+}
+
+export function adminStatusTagType(domain: AdminStatusDomain, status: string): AdminStatusTagType {
+  return adminStatusMeta(domain, status).tag
+}
+
+/** Filter controls and decode whitelists share this list; "全部" always closes it. */
+export function adminStatusOptions(domain: AdminStatusDomain): AdminStatusOption[] {
+  return [
+    ...Object.entries(adminStatusDomains[domain] ?? {})
+      .map(([value, meta]) => ({ value, label: meta.label })),
+    adminStatusAllOption,
+  ]
 }
 
 export function capabilityLabel(capability: string): string {
@@ -52,8 +117,8 @@ export function capabilityLabel(capability: string): string {
   return labels[capability] ?? capability
 }
 
-export function adminStatusLabel(status: string): string {
-  return adminStatusMeta[status]?.label ?? status
+export function adminStatusLabel(domain: AdminStatusDomain, status: string): string {
+  return adminStatusMeta(domain, status).label
 }
 
 export function adminRoleLabel(role: string): string {

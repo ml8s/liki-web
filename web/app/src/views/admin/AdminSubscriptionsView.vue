@@ -21,32 +21,10 @@
           class="admin-filter-control"
         >
           <el-option
-            label="待激活"
-            value="pending"
-          />
-          <el-option
-            label="有效"
-            value="active"
-          />
-          <el-option
-            label="暂停"
-            value="on_hold"
-          />
-          <el-option
-            label="已取消"
-            value="cancelled"
-          />
-          <el-option
-            label="已过期"
-            value="expired"
-          />
-          <el-option
-            label="失败"
-            value="failed"
-          />
-          <el-option
-            label="全部"
-            value=""
+            v-for="option in statusOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
           />
         </el-select>
       </el-form-item>
@@ -107,7 +85,10 @@
           width="110"
         >
           <template #default="{ row }">
-            <AdminStatusTag :status="row.status" />
+            <AdminStatusTag
+              domain="subscription"
+              :status="row.status"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -162,6 +143,7 @@
         <AdminRecordCard
           v-for="row in subscriptions.data.value"
           :key="row.id"
+          status-domain="subscription"
           :fields="[
             { key: 'id', label: '订阅号', value: row.id, kind: 'mono' },
             { key: 'email', label: '用户邮箱', value: row.email },
@@ -202,6 +184,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
+import { adminStatusOptions } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const isMobile = useAdminViewport()
@@ -213,13 +196,13 @@ interface SubscriptionFilters {
 }
 
 const subscriptionDefaults = { status: '', search: '' }
-const subscriptionStatuses = ['', 'pending', 'active', 'on_hold', 'cancelled', 'expired', 'failed']
+const statusOptions = adminStatusOptions('subscription')
 
 const query = useAdminQueryState<SubscriptionFilters>({
   defaults: subscriptionDefaults,
   pageKeys: ['page'],
   decode: query => ({
-    status: queryChoice(query, 'status', subscriptionStatuses, subscriptionDefaults.status),
+    status: queryChoice(query, 'status', statusOptions.map(option => option.value), subscriptionDefaults.status),
     search: queryText(query, 'search'),
   }),
   encode: (filters, pages) => ({

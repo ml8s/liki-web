@@ -66,7 +66,10 @@
             width="100"
           >
             <template #default="{ row }">
-              <AdminStatusTag :status="row.status" />
+              <AdminStatusTag
+                domain="administrator"
+                :status="row.status"
+              />
             </template>
           </el-table-column>
           <el-table-column
@@ -143,6 +146,7 @@
           <AdminRecordCard
             v-for="row in accounts"
             :key="row.email"
+            status-domain="administrator"
             :fields="[
               { key: 'email', label: '邮箱', value: row.email },
               { key: 'status', label: '状态', value: row.status, kind: 'status' },

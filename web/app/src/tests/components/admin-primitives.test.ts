@@ -7,12 +7,17 @@ import PartnerStatGrid from '@/components/partner/PartnerStatGrid.vue'
 import PartnerCardHeader from '@/components/partner/PartnerCardHeader.vue'
 
 describe('admin primitives', () => {
-  it('maps one status to one operator label and semantic color', () => {
-    const requested = mount(AdminStatusTag, { props: { status: 'requested' } })
+  it('maps one status to one operator label and semantic color per domain', () => {
+    const requested = mount(AdminStatusTag, { props: { domain: 'payout', status: 'requested' } })
     expect(requested.text()).toBe('待审核')
     expect(requested.find('.el-tag').classes()).toContain('el-tag--warning')
 
-    const unknown = mount(AdminStatusTag, { props: { status: 'future.state' } })
+    const paid = mount(AdminStatusTag, { props: { domain: 'payout', status: 'paid' } })
+    const orderPaid = mount(AdminStatusTag, { props: { domain: 'order', status: 'paid' } })
+    expect(paid.text()).toBe('已打款')
+    expect(orderPaid.text()).toBe('已支付')
+
+    const unknown = mount(AdminStatusTag, { props: { domain: 'order', status: 'future.state' } })
     expect(unknown.text()).toBe('future.state')
     expect(unknown.find('.el-tag').classes()).toContain('el-tag--info')
   })
@@ -32,6 +37,7 @@ describe('AdminRecordCard', () => {
   it('renders formatted fields and scoped actions', async () => {
     const wrapper = mount(AdminRecordCard, {
       props: {
+        statusDomain: 'payout',
         fields: [
           { key: 'amount', label: '金额', value: 12300, kind: 'money', currency: 'USD' },
           { key: 'status', label: '状态', value: 'requested', kind: 'status' },

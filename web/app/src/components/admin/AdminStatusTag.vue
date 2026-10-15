@@ -9,14 +9,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { adminStatusMeta } from '@/utils/adminFormat'
+import { adminStatusMeta, type AdminStatusDomain } from '@/utils/adminFormat'
 
 const props = defineProps<{
+  domain: AdminStatusDomain
   status: string | number
 }>()
 
-const meta = computed(() => adminStatusMeta[String(props.status)] ?? {
-  label: String(props.status),
-  tag: 'info' as const,
-})
+const meta = computed(() => adminStatusMeta(props.domain, String(props.status)))
 </script>

@@ -20,28 +20,10 @@
           class="admin-filter-control"
         >
           <el-option
-            label="待审核"
-            value="requested"
-          />
-          <el-option
-            label="已批准"
-            value="approved"
-          />
-          <el-option
-            label="已拒绝"
-            value="rejected"
-          />
-          <el-option
-            label="已打款"
-            value="paid"
-          />
-          <el-option
-            label="失败"
-            value="failed"
-          />
-          <el-option
-            label="全部"
-            value=""
+            v-for="option in statusOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
           />
         </el-select>
       </el-form-item>
@@ -111,7 +93,10 @@
           width="110"
         >
           <template #default="{ row }">
-            <AdminStatusTag :status="row.status" />
+            <AdminStatusTag
+              domain="payout"
+              :status="row.status"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -173,6 +158,7 @@
         <AdminRecordCard
           v-for="row in payouts.data.value"
           :key="row.id"
+          status-domain="payout"
           :fields="[
             { key: 'amount', label: '金额', value: row.amount_minor, kind: 'money', currency: row.currency },
             { key: 'code', label: '推广码', value: row.referrer_code },
@@ -249,7 +235,9 @@ import { useAdminStore } from '@/stores/admin'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
-import { adminPaymentMethodLabel, adminRoleLabel, formatAdminMoney, maskAdminAccount } from '@/utils/adminFormat'
+import {
+  adminPaymentMethodLabel, adminRoleLabel, adminStatusOptions, formatAdminMoney, maskAdminAccount,
+} from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const isMobile = useAdminViewport()
@@ -262,13 +250,14 @@ interface PayoutFilters {
 }
 
 const payoutDefaults = { status: 'requested' }
+const statusOptions = adminStatusOptions('payout')
 const revealed = ref('')
 
 const query = useAdminQueryState<PayoutFilters>({
   defaults: payoutDefaults,
   pageKeys: ['page'],
   decode: query => ({
-    status: queryChoice(query, 'status', ['', 'requested', 'approved', 'rejected', 'paid', 'failed'], payoutDefaults.status),
+    status: queryChoice(query, 'status', statusOptions.map(option => option.value), payoutDefaults.status),
   }),
   encode: (filters, pages) => ({
     status: filters.status === payoutDefaults.status ? undefined : filters.status,

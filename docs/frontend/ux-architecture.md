@@ -330,7 +330,11 @@ drift:
 | `ProductPurchaseCard` | purchase options and billing mode |
 
 Partner commission and payout status labels/colors are owned by
-`utils/partnerStatus.ts` so KOL, Scout, and Settlement cannot drift.
+`utils/partnerStatus.ts` so KOL, Scout, and Settlement cannot drift. Admin status
+labels/colors and their filter options are owned per domain by
+`utils/adminFormat.ts`, so one code can read differently per record type (`paid`
+is 已支付 on orders, 已打款 on payouts) and every filter control and URL decode
+whitelist derives from that same map.
 
 Do not create a universal page component. Page-specific rendering stays in the
 page.

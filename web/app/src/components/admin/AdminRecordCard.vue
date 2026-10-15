@@ -18,7 +18,8 @@
           :field="field"
         >
           <AdminStatusTag
-            v-if="field.kind === 'status'"
+            v-if="field.kind === 'status' && statusDomain"
+            :domain="statusDomain"
             :status="field.value"
           />
           <span
@@ -48,7 +49,7 @@
 
 <script setup lang="ts">
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
-import { formatAdminMoney } from '@/utils/adminFormat'
+import { formatAdminMoney, type AdminStatusDomain } from '@/utils/adminFormat'
 
 export interface AdminRecordField {
   key: string
@@ -60,5 +61,7 @@ export interface AdminRecordField {
 
 defineProps<{
   fields: AdminRecordField[]
+  /** Required as soon as a field uses kind: 'status'. */
+  statusDomain?: AdminStatusDomain
 }>()
 </script>

@@ -44,9 +44,8 @@ test('orders list renders rows and follows server pagination', async ({ page }) 
   await page.goto('/app/admin/orders')
   await expect(page.getByRole('heading', { name: '订单', level: 1 })).toBeVisible()
   await expect(page.getByText('order_1_a', { exact: true })).toBeVisible()
-  // 状态文案来自共享的 adminStatusMeta（paid 取打款语义「已打款」）；此处只断言
-  // 渲染结果，术语是否统一是另一个问题。
-  await expect(page.locator('.el-table').getByText('已打款', { exact: true })).toBeVisible()
+  // 回归守卫：order 域里 paid 是「已支付」，只有 payout 域才是「已打款」。
+  await expect(page.locator('.el-table').getByText('已支付', { exact: true })).toBeVisible()
 
   const pager = page.locator('.admin-pagination')
   await expect(pager).toBeVisible()
