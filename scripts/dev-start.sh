@@ -28,9 +28,9 @@ export LIKI_EMAIL_FROM_ADDRESS="${LIKI_EMAIL_FROM_ADDRESS:-Liki <noreply@localho
 export LIKI_PUBLIC_BASE_URL="${LIKI_PUBLIC_BASE_URL:-http://localhost:8080}"
 export LIKI_DATA_DIR="${LIKI_DATA_DIR:-$(pwd)/data}"
 mkdir -p "$LIKI_DATA_DIR"
-export LIKI_HTTP_LISTEN_ADDR="${LIKI_HTTP_LISTEN_ADDR:-:8081}"
+export LIKI_HTTP_LISTEN_ADDRESS="${LIKI_HTTP_LISTEN_ADDRESS:-:8081}"
 # Engine RPC still uses its own conventional LISTEN_ADDR variable.
-LISTEN_ADDR="${LIKI_HTTP_LISTEN_ADDR}"
+LISTEN_ADDR="${LIKI_HTTP_LISTEN_ADDRESS}"
 export LIKI_ENGINE_MCP_URL
 export LIKI_ENGINE_MCP_TOKEN
 export LIKI_AGENTS_URL="${LIKI_AGENTS_URL:-http://127.0.0.1:18083}"
@@ -111,7 +111,7 @@ for i in $(seq 1 30); do
   sleep 0.5
 done
 
-echo "==> Starting web API on $LIKI_HTTP_LISTEN_ADDR"
+echo "==> Starting web API on $LIKI_HTTP_LISTEN_ADDRESS"
 "$WEB_BIN" &
 API_PID=$!
 for i in $(seq 1 30); do

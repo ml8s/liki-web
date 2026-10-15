@@ -24,7 +24,7 @@ services:
     env_file:
       - ${LIKI_TEST_ENV_FILE:-/tmp/liki-web-e2e.env}
     environment:
-      - LIKI_HTTP_LISTEN_ADDR=:8081
+      - LIKI_HTTP_LISTEN_ADDRESS=:8081
       - LIKI_DATA_DIR=/var/lib/liki
       - LIKI_ENGINE_MCP_URL=http://engine-mcp:8085
       - LIKI_ENGINE_MCP_TOKEN=${LIKI_ENGINE_MCP_TOKEN:-}

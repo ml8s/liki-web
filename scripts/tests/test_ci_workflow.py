@@ -59,7 +59,7 @@ class CIWorkflowTest(unittest.TestCase):
         required = {
             "JWT_SECRET",
             "LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY",
-            "LIKI_HTTP_LISTEN_ADDR",
+            "LIKI_HTTP_LISTEN_ADDRESS",
             "LIKI_PUBLIC_BASE_URL",
             "XUNHU_APPID",
             "XUNHU_APPSECRET",
@@ -79,14 +79,20 @@ class CIWorkflowTest(unittest.TestCase):
                 f"missing CI e2e env {name}",
             )
 
-        self.assertIn("LIKI_HTTP_LISTEN_ADDR: :8081", env)
+        self.assertIn("LIKI_HTTP_LISTEN_ADDRESS: :8081", env)
         self.assertIn("LIKI_PUBLIC_BASE_URL: http://localhost:8080", env)
         self.assertIn("LIKI_DEVELOPMENT_MODE: 'true'", env)
         self.assertNotRegex(env, r"^\s*DEV_MODE:", re.MULTILINE)
         self.assertNotRegex(env, r"^\s*RETURN_URL:", re.MULTILINE)
         self.assertIn("LIKI_PAYMENT_WEBHOOK_URL: http://localhost:8081/api/payments/webhook", env)
         self.assertNotRegex(env, r"^\s*PAYMENTS_WEBHOOK_URL:", re.MULTILINE)
-        self.assertNotIn("-addr :8081", text, "liki-web listens through LIKI_HTTP_LISTEN_ADDR, not a CLI flag")
+        self.assertNotIn("-addr :8081", text, "liki-web listens through LIKI_HTTP_LISTEN_ADDRESS, not a CLI flag")
+        for contract_file in ("dev/docker-compose.yml", "scripts/dev-start.sh", "scripts/smoke-image.sh"):
+            self.assertNotRegex(
+                (PROJECT / contract_file).read_text(encoding="utf-8"),
+                r"LIKI_HTTP_LISTEN_ADDR(?!RESS)\s*=",
+                f"{contract_file} must use LIKI_HTTP_LISTEN_ADDRESS",
+            )
 
     def test_docker_entrypoint_does_not_add_removed_addr_flag(self):
         dockerfile = (PROJECT / "Dockerfile").read_text(encoding="utf-8")

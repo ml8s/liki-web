@@ -18,7 +18,7 @@ docker rm -f "$NAME" >/dev/null 2>&1 || true
 docker run -d --name "$NAME" \
   -p "$PORT:8081" \
   --tmpfs /var/lib/liki:uid=1000,gid=1000 \
-  -e LIKI_HTTP_LISTEN_ADDR=:8081 \
+  -e LIKI_HTTP_LISTEN_ADDRESS=:8081 \
   -e JWT_SECRET=web-image-smoke-jwt-secret-0123456789abcdef \
   -e LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY=web-image-smoke-referral-payout-encryption-key-32-bytes \
   -e LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY=web-image-smoke-referral-payout-encryption-key-32-bytes \
