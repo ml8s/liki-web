@@ -361,13 +361,15 @@ cd web && npm run build
 
 Playwright journeys cover current user behavior, including static pages, login,
 profiles, services, chat (including the viewport-bound conversation layout and the
-keyboard-driven viewport shrink), commerce, Admin, accessibility, and mobile smoke.
+keyboard-driven viewport shrink), commerce, Admin (including every admin record
+list rendering the same fields as a table and as a mobile card), accessibility,
+and mobile smoke.
 
 Manual validation is required for:
 
 1. keyboard-only signup through profile creation;
 2. screen-reader feedback for validation and streaming;
 3. mobile Chat with a real iOS keyboard (the emulated viewport shrink is covered);
-4. Admin dialogs and table/card parity;
+4. Admin dialogs (record-list table/card parity is automated);
 5. payment return after refresh or browser back;
 6. Partner role states after approval, freeze, and rejection.
