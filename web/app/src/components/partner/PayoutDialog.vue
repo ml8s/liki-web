@@ -28,7 +28,17 @@
           name="payout-account"
           autocomplete="off"
           spellcheck="false"
+          :aria-invalid="!!accountError || undefined"
+          :aria-describedby="accountError ? 'payout-account-error' : undefined"
         />
+        <p
+          v-if="accountError"
+          id="payout-account-error"
+          class="field-error"
+          role="alert"
+        >
+          {{ accountError }}
+        </p>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -49,7 +59,6 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import type { PayoutMethod } from '@/api/partner'
 
@@ -68,19 +77,30 @@ const emit = defineEmits<{
 
 const method = ref<PayoutMethod>('alipay')
 const account = ref('')
+const accountError = ref('')
 
 watch(() => props.modelValue, (open) => {
   if (open) {
     method.value = 'alipay'
     account.value = ''
+    accountError.value = ''
   }
 })
 
 function submit() {
   if (!account.value.trim()) {
-    ElMessage.warning(t('partner.accountRequired'))
+    accountError.value = t('partner.accountRequired')
     return
   }
+  accountError.value = ''
   emit('submit', { method: method.value, account: account.value.trim() })
 }
 </script>
+
+<style scoped>
+.field-error {
+  margin: 6px 0 0;
+  color: var(--el-color-danger);
+  font-size: var(--font-size-label);
+}
+</style>

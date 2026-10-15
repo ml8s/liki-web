@@ -43,5 +43,6 @@ describe('PayoutDialog', () => {
     await wrapper.find('form').trigger('submit')
 
     expect(wrapper.emitted('submit')).toBeUndefined()
+    expect(wrapper.find('#payout-account-error').text()).toContain('请填写收款账号')
   })
 })
