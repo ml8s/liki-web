@@ -194,8 +194,7 @@ Component code should consume a semantic token when one exists. Raw colors are
 allowed only inside the primitive token source; raw spacing values should be
 limited to genuine layout measurements rather than replacing spacing tokens.
 `check-css-vars.cjs` rejects CSS custom properties that are consumed by source
-but not defined in the shared source layers. `check-css-contracts.cjs` also
-rejects primitive-token consumption and raw colors in static CSS.
+but not defined in the shared source layers.
 
 ### Page typography
 
@@ -219,7 +218,7 @@ Use the shared z-index tokens (`--z-header`, `--z-surface`, and
 `--z-skip-link`) instead of numeric values. The standard responsive
 breakpoints are `480 / 640 / 768 / 1024`. `720` is the Admin-only dense-surface
 exception, and `1023.98` is the max-width edge paired with the `1024`
-sidebar breakpoint. `check-css-contracts.cjs` rejects drift.
+sidebar breakpoint.
 
 Admin list state is split into draft filters and applied filters. The URL only
 reflects applied filters, defaults and page 1 are omitted, and changing an
