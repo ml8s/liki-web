@@ -30,7 +30,6 @@ jobs:
     name: Promote tested digest
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    if: github.ref_type == 'tag' && github.ref_name == format('v{0}', inputs.version)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -52,11 +51,6 @@ jobs:
             exit 1
           fi
           expected_tag="v$VERSION"
-          if [ "${GITHUB_REF_TYPE}" != tag ] || [ "${GITHUB_REF_NAME}" != "$expected_tag" ]; then
-            echo "::error::workflow must be dispatched on tag $expected_tag" >&2
-            exit 1
-          fi
-
           actual_commit="$(git rev-parse 'HEAD^{commit}')"
           if [ "$actual_commit" != "$SOURCE_COMMIT" ]; then
             echo "::error::tag $expected_tag points to $actual_commit, expected $SOURCE_COMMIT" >&2
@@ -81,7 +75,7 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          digest="${{ steps.manifest.outputs.digest }}"
+          digest="${{ steps.manifest.outputs.web_digest }}"
           source="ghcr.io/ml8s/liki-web@$digest"
           target="ghcr.io/ml8s/liki-web:v${VERSION}"
           docker buildx imagetools create -t "$target" "$source"
@@ -112,8 +106,11 @@ jobs:
           VERSION: ${{ inputs.version }}
           IMAGE_DIGEST: ${{ steps.promote.outputs.digest }}
         run: |
+          set -euo pipefail
+          ref="$(printf '%s' "$GITHUB_REF" | sed 's/[][.*^$+?(){}|]/\\&/g')"
+          identity="^https://github\\.com/ml8s/liki-web/\\.github/workflows/promote-release\\.yml@${ref}$"
           cosign verify \
-            --certificate-identity-regexp "^https://github\\.com/ml8s/liki-web/\\.github/workflows/promote-release\\.yml@refs/tags/v${VERSION}$" \
+            --certificate-identity-regexp "$identity" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             "ghcr.io/ml8s/liki-web@$IMAGE_DIGEST"
 
