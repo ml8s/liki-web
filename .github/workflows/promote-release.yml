@@ -107,7 +107,7 @@ jobs:
           IMAGE_DIGEST: ${{ steps.promote.outputs.digest }}
         run: |
           set -euo pipefail
-          ref="$(printf '%s' "$GITHUB_REF" | sed 's/[][.*^$+?(){}|]/\\&/g')"
+          ref="${GITHUB_REF//./\\.}"
           identity="^https://github\\.com/ml8s/liki-web/\\.github/workflows/promote-release\\.yml@${ref}$"
           cosign verify \
             --certificate-identity-regexp "$identity" \
