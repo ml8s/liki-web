@@ -27,7 +27,7 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
   // Element Plus renders native radios visually covered by styled spans;
   // click the visible control instead of the hidden original input.
   await page.locator('.el-radio-button:has-text("男")').click()
-  await page.getByRole('combobox', { name: /選擇日期/ }).fill('1990-06-15')
+  await page.getByRole('combobox', { name: '出生日期' }).fill('1990-06-15')
   await page.getByRole('combobox', { name: /精確時間/ }).fill('08:30')
   await page.getByLabel(/出生地/).fill('杭州')
   await page.locator('.el-checkbox').last().click()
