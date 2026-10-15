@@ -243,6 +243,10 @@ The URL itself is the share artifact. Later pages do not need to keep
 `/r/{code}` in their path. Customer-facing pages must generate links through
 `utils/share.ts`; do not hand-concatenate referral URLs in pages.
 
+Referral links may include `to=` for an allowlisted same-origin marketing path
+or `/app`. The backend rejects external URLs and private App routes; private
+routes are never valid referral targets.
+
 ### Private URL policy
 
 Authenticated app URLs such as profile, chat session, order, account, and Admin

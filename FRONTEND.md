@@ -276,8 +276,9 @@ partner center. There is no separate vanilla-JS partner console.
 
 Partner referral links use `/r/{partner_code}`. This entry point writes the
 30-day attribution cookie and redirects to marketing. Private App URLs are not
-referral targets and must not be used as generic share links. The detailed URL,
-sharing, and result-state policy lives in
+referral targets. Referral redirects support only allowlisted same-origin
+marketing paths or the App home. The detailed URL, sharing, and result-state
+policy lives in
 [`docs/frontend/ux-architecture.md`](docs/frontend/ux-architecture.md).
 
 ## Retired product pages

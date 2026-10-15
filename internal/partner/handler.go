@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -186,7 +187,56 @@ func (h *Handler) HandleLink(w http.ResponseWriter, r *http.Request) {
 			SameSite: http.SameSiteLaxMode,
 		})
 	}
-	http.Redirect(w, r, landingPath(r), http.StatusFound)
+	http.Redirect(w, r, referralRedirectPath(r), http.StatusFound)
+}
+
+// safeReferralTarget only allows same-origin marketing paths and the App home.
+// It deliberately rejects private App routes so referral links cannot become a
+// way to share account, profile, chat, or Admin URLs.
+func safeReferralTarget(rawTarget string) (string, bool) {
+	rawTarget = strings.TrimSpace(rawTarget)
+	if rawTarget == "" || !strings.HasPrefix(rawTarget, "/") || strings.HasPrefix(rawTarget, "//") {
+		return "", false
+	}
+
+	parsed, err := url.Parse(rawTarget)
+	if err != nil || parsed.Host != "" || parsed.Scheme != "" {
+		return "", false
+	}
+
+	cleanPath := path.Clean("/" + strings.TrimPrefix(parsed.Path, "/"))
+	if cleanPath == "/app" {
+		parsed.Path = cleanPath
+		parsed.Fragment = ""
+		return parsed.String(), true
+	}
+
+	allowedPaths := map[string]bool{"/": true, "/app": true}
+	for _, locale := range []string{"zh-Hans", "zh-Hant", "en"} {
+		allowedPaths["/"+locale] = true
+		allowedPaths["/"+locale+"/"] = true
+		for _, slug := range []string{
+			"naming", "mingshu", "hepan", "skills", "partners",
+			"about", "contact", "privacy", "terms", "disclaimer",
+		} {
+			allowedPaths["/"+locale+"/"+slug] = true
+			allowedPaths["/"+locale+"/"+slug+"/"] = true
+		}
+	}
+	if !allowedPaths[cleanPath] {
+		return "", false
+	}
+
+	parsed.Path = cleanPath
+	parsed.Fragment = ""
+	return parsed.String(), true
+}
+
+func referralRedirectPath(r *http.Request) string {
+	if target, ok := safeReferralTarget(r.URL.Query().Get("to")); ok {
+		return target
+	}
+	return landingPath(r)
 }
 
 // landingPath preserves campaign query parameters and selects a supported
@@ -206,6 +256,8 @@ func landingPath(r *http.Request) string {
 	case "zh-hant", "zh-tw", "zh-hk", "zh":
 		locale = "/zh-Hant/"
 	}
-	target := &url.URL{Path: locale, RawQuery: r.URL.RawQuery}
+	query := r.URL.Query()
+	query.Del("to")
+	target := &url.URL{Path: locale, RawQuery: query.Encode()}
 	return target.String()
 }
