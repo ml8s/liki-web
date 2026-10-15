@@ -27,6 +27,7 @@ Liki 是多 Agent 命理专家系统，四仓分工：
 - 用户/认证/权益/订单/支付/档案/会话持久化
 - **Liki Chat 产品**：通过 AG-UI 网关（`/api/chat/sessions/{id}/ag-ui`）调用 liki-agents 运行时
 - 托管客户端 skill（`web/skills/liki`）供终端用户下载
+- Skill 入口分两类：`/{locale}/skills` 是面向人的本地化页面；`/skills/liki/SKILL.md` 是稳定的机器可读产物。裸 `/skills` 按 `Accept-Language` 跳到本地化页面。
 
 **Agent 模式（唯一）**：所有 chat 会话（含 profile-bound）都走 liki-agents，local 进程内 runner 已退役。
 

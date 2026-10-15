@@ -291,8 +291,30 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	redir @termsEn /en/terms 302
 	redir /terms /zh-Hant/terms 302
 
-	# Skills — serve SKILL.md for AI agent discovery
-	redir /skills /skills/liki/SKILL.md 308
+	# /skills is the localized human-facing Skills page.
+	@skillsZhHans {
+		path /skills
+		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
+	}
+	@skillsZhHant {
+		path /skills
+		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
+	}
+	@skillsZh {
+		path /skills
+		expression {header.Accept-Language}.startsWith('zh')
+	}
+	@skillsEn {
+		path /skills
+		expression {header.Accept-Language}.startsWith('en')
+	}
+	redir @skillsZhHans /zh-Hans/skills 302
+	redir @skillsZhHant /zh-Hant/skills 302
+	redir @skillsZh /zh-Hant/skills 302
+	redir @skillsEn /en/skills 302
+	redir /skills /zh-Hant/skills 302
+
+	# Agent artifact — raw SKILL.md remains available at /skills/liki/SKILL.md.
 	header /skills/* Cache-Control "public, max-age=60"
 
 	# All other routes → Go handles API + static files

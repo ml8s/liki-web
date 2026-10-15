@@ -36,8 +36,8 @@ const PAGES = [
       { selector: '.landing-services', text: '六大命理场景' },
       { selector: '.landing-trust', text: '为什么可信' },
     ] },
-  // 开发者 skill 页（原品牌门面迁址）
-  { path: '/zh-Hans/skills/', name: 'skills (developer)',
+  // Skill 能力发现页（保留机器可读 SKILL.md 作为独立入口）
+  { path: '/zh-Hans/skills/', name: 'skills (localized page)',
     checks: [
       { selector: '.scenario-hero h1', text: 'Liki — 专业命理 Skill' },
       { selector: '.install-cmd', text: 'npx skills add ml8s/liki' },
@@ -65,6 +65,24 @@ const PAGES = [
 ];
 
 test.describe('Static page interactions', () => {
+  test('bare skills entry negotiates a localized human-facing page', async ({ request }) => {
+    const cases = [
+      ['zh-Hans,zh;q=0.9', '/zh-Hans/skills'],
+      ['zh-TW,zh;q=0.9', '/zh-Hant/skills'],
+      ['en-US,en;q=0.9', '/en/skills'],
+      ['ko-KR,ko;q=0.9', '/zh-Hant/skills'],
+    ];
+
+    for (const [language, location] of cases) {
+      const response = await request.get('/skills', {
+        headers: { 'Accept-Language': language },
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(302);
+      expect(response.headers().location).toBe(location);
+    }
+  });
+
   test('home analytics sends a first-party path-only pageview', async ({ page }) => {
     const pageviews = [];
     await page.route('**/api/analytics/pageview', async (route) => {
