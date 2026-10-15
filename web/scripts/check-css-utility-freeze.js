@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// check-css-utility-freeze.cjs — Freeze the hand-written utility-class surface.
+// check-css-utility-freeze.js — Freeze the hand-written utility-class surface.
 //
 // web/css historically accumulates Tailwind-named but hand-written utilities
 // (no JIT, incomplete). New code must use semantic classes or brand tokens.
 // The baseline below is the frozen allow-list: additions fail, removals are
 // encouraged (update the baseline when you delete one).
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const CSS_DIR = path.resolve(__dirname, '..', 'css');
-const BASELINE = path.resolve(__dirname, 'css-utility-baseline.json');
+const CSS_DIR = path.resolve(import.meta.dirname, '..', 'css');
+const BASELINE = path.resolve(import.meta.dirname, 'css-utility-baseline.json');
 
 const UTILITY_RE = /^(flex|grid|block|inline|hidden|relative|absolute|sticky|fixed|text-|bg-|border|rounded|font-|max-w-|min-w-|w-|h-|gap-|items-|justify-|space-|overflow|opacity|z-|shadow|transition|duration|whitespace|truncate|mx-|my-|mt-|mb-|ml-|mr-|px-|py-|pt-|pb-|pl-|pr-|p-|m-|leading|tracking|object|list|select|pointer|align|self|col|row-|order|sr-only|antialiased|underline|italic|uppercase|lowercase|capitalize)/;
 

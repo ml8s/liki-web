@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// check-classes.cjs — Validate CSS class names in templates against app.css.
-const fs = require('fs');
-const path = require('path');
-const ROOT = path.resolve(__dirname, '..');
+// check-classes.js — Validate CSS class names in templates against app.css.
+import fs from 'node:fs';
+import path from 'node:path';
+const ROOT = path.resolve(import.meta.dirname, '..');
 
 // ── Load CSS classes via simple line scanning ──
 const css = ['app.css']

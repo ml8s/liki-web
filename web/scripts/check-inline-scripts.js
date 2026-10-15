@@ -3,11 +3,11 @@
 // baseline. Migration should shrink this baseline; it should never be raised
 // to admit a new executable inline script.
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const WEB_DIR = path.resolve(__dirname, '..');
-const BASELINE = path.join(__dirname, 'inline-scripts-baseline.json');
+const WEB_DIR = path.resolve(import.meta.dirname, '..');
+const BASELINE = path.join(import.meta.dirname, 'inline-scripts-baseline.json');
 const ROOTS = [path.join(WEB_DIR, 'src'), path.join(WEB_DIR, 'app', 'index.html')];
 const distIndex = process.argv.indexOf('--dist');
 const DIST_DIR = distIndex === -1 ? null : path.resolve(WEB_DIR, process.argv[distIndex + 1]);

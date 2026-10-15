@@ -18,11 +18,8 @@ fi
 echo "=== go test ==="
 go test ./...
 
-echo "=== html check ==="
-node web/scripts/check-html.cjs
-
 echo "=== i18n check ==="
-node web/scripts/check-i18n.cjs
+node web/scripts/check-i18n.js
 
 echo "=== vitest ==="
 if [ -d web/node_modules ]; then

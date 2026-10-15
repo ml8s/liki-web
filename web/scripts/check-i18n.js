@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// check-i18n.cjs — Validate i18n consistency across locales.
+// check-i18n.js — Validate i18n consistency across locales.
 // Checks: key alignment, price format consistency, untranslated fallbacks.
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const I18N_DIR = path.resolve(__dirname, '..', 'i18n');
-const APP_I18N_DIR = path.resolve(__dirname, '..', 'app', 'src', 'locales');
-const SHARED_LOCALES = require('../shared/locales.json');
+const I18N_DIR = path.resolve(import.meta.dirname, '..', 'i18n');
+const APP_I18N_DIR = path.resolve(import.meta.dirname, '..', 'app', 'src', 'locales');
+import SHARED_LOCALES from '../shared/locales.json' with { type: 'json' };
 const errors = [];
 
 function loadJSON(filepath) {
@@ -131,7 +131,7 @@ function checkHtmlKeys(locales) {
 }
 
 function gatherAstroFiles() {
-  const webDir = path.resolve(__dirname, '..');
+  const webDir = path.resolve(import.meta.dirname, '..');
   const pagesDir = path.join(webDir, 'src', 'pages');
   const componentsDir = path.join(webDir, 'src', 'components');
   const layoutsDir = path.join(webDir, 'src', 'layouts');
@@ -148,14 +148,14 @@ function walkDir(dir, files) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) { walkDir(full, files); }
     else if (entry.name.endsWith('.astro')) {
-      files.push({ file: path.relative(path.resolve(__dirname, '..'), full), filepath: full });
+      files.push({ file: path.relative(path.resolve(import.meta.dirname, '..'), full), filepath: full });
     }
   }
 }
 
 // Page names used by BaseLayout's dynamic keys: t(locale, `${page}.meta.ogTitle`).
 // The source of truth is the pages directory itself; never keep a second copy.
-const PAGES_DIR = path.resolve(__dirname, '../src/pages/[locale]');
+const PAGES_DIR = path.resolve(import.meta.dirname, '../src/pages/[locale]');
 const KNOWN_PAGES = fs.readdirSync(PAGES_DIR)
   .filter(f => f.endsWith('.astro'))
   .map(f => (f === 'index.astro' ? 'index' : path.basename(f, '.astro')));
@@ -307,7 +307,7 @@ function addKnownCompoundKeys(used) {
 }
 
 function checkUnusedKeys(locales) {
-  const webDir = path.resolve(__dirname, '..');
+  const webDir = path.resolve(import.meta.dirname, '..');
   const used = new Set();
 
   const keyPatterns = [

@@ -1,21 +1,21 @@
 #!/usr/bin/env node
-// build-sitemap.cjs — 生成 sitemap.xml，lastmod 基于 git 最后一次修改时间
-const fs = require('fs');
-const { execSync } = require('child_process');
-const path = require('path');
+// build-sitemap.js — 生成 sitemap.xml，lastmod 基于 git 最后一次修改时间
+import fs from 'node:fs';
+import { execSync } from 'node:child_process';
+import path from 'node:path';
 
-const PROJECT = path.resolve(__dirname, '../..');
+const PROJECT = path.resolve(import.meta.dirname, '../..');
 const OUT = path.resolve(PROJECT, 'web/sitemap.xml');
 
 // Derived from the single source of truth shared with marketing + SPA.
-const localeConfig = require('../shared/locales.json');
+import localeConfig from '../shared/locales.json' with { type: 'json' };
 const LOCALES = localeConfig.locales;
 const DEFAULT_LOCALE = localeConfig.defaultLocale;
 
 // Structure (which pages exist) is derived from the pages directory — the only
 // copy. Per-page sitemap metadata is configuration: defaults plus overrides,
 // so a new page is included automatically without editing this file.
-const PAGES_DIR = path.resolve(__dirname, '../src/pages/[locale]');
+const PAGES_DIR = path.resolve(import.meta.dirname, '../src/pages/[locale]');
 const DEFAULT_PAGE_META = { freq: 'monthly', priority: '0.5' };
 const PAGE_META = {
   '':          { freq: 'weekly', priority: '1.0' },

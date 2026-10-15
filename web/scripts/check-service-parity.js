@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// check-service-parity.cjs — Marketing CTA parameters must be understood by the app.
+// check-service-parity.js — Marketing CTA parameters must be understood by the app.
 //
 // The marketing site hardcodes scenario=/service= CTA values; the SPA owns the
 // runtime vocabulary (scenario whitelist + service keys). They are related but
 // distinct facts, so we assert a subset invariant instead of merging them:
 // every value marketing emits MUST be recognized by the app.
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const WEB = path.resolve(__dirname, '..');
+const WEB = path.resolve(import.meta.dirname, '..');
 const errors = [];
 
 function walk(dir, exts, files = []) {

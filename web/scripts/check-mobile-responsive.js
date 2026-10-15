@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// check-mobile-responsive.cjs — enforce the shared mobile ergonomics contract.
+// check-mobile-responsive.js — enforce the shared mobile ergonomics contract.
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const web = path.resolve(__dirname, '..');
+const web = path.resolve(import.meta.dirname, '..');
 const errors = [];
 const targets = [
   'app/src/views/AppLayout.vue',

@@ -144,18 +144,17 @@ version: ## bump patch（CalVer date）
 # ════════════════════════════════════════════════════════════
 
 check-html:
-	node web/scripts/check-inline-scripts.cjs
-	node web/scripts/check-design-tokens.cjs
-	node web/scripts/check-frontend-tokens.cjs
-	node web/scripts/check-css-vars.cjs
-	node web/scripts/check-performance.cjs
-	node web/scripts/check-mobile-responsive.cjs
-	node web/scripts/check-html.cjs
-	node web/scripts/check-i18n.cjs
-	node web/scripts/check-service-parity.cjs
-	node web/scripts/check-classes.cjs
-	node web/scripts/check-css-utility-freeze.cjs
-	node web/scripts/check-static-sync.cjs
+	node web/scripts/check-inline-scripts.js
+	node web/scripts/check-design-tokens.js
+	node web/scripts/check-frontend-tokens.js
+	node web/scripts/check-css-vars.js
+	node web/scripts/check-performance.js
+	node web/scripts/check-mobile-responsive.js
+	node web/scripts/check-i18n.js
+	node web/scripts/check-service-parity.js
+	node web/scripts/check-classes.js
+	node web/scripts/check-css-utility-freeze.js
+	node web/scripts/check-static-sync.js
 
 check-security:
 	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
@@ -173,7 +172,7 @@ build-skills:
 	scripts/verify-prepared-skills.sh
 
 build-sitemap:
-	node web/scripts/build-sitemap.cjs
+	node web/scripts/build-sitemap.js
 
 build-web:
 	scripts/build-web.sh

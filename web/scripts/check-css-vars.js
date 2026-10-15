@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const web = path.resolve(__dirname, '..');
+const web = path.resolve(import.meta.dirname, '..');
 const roots = ['css', 'src', path.join('app', 'src')];
 const extensions = new Set(['.astro', '.css', '.vue']);
 const files = [];

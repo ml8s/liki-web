@@ -3,9 +3,9 @@ import { execSync } from 'child_process';
 import path from 'path';
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const SCRIPT = path.join(ROOT, 'web/scripts/check-classes.cjs');
+const SCRIPT = path.join(ROOT, 'web/scripts/check-classes.js');
 
-describe('check-classes.cjs', () => {
+describe('check-classes.js', () => {
   it('exits 0 when all templates use valid CSS classes', () => {
     const out = execSync(`node "${SCRIPT}"`, { cwd: ROOT, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] });
     expect(out).toContain('✓');

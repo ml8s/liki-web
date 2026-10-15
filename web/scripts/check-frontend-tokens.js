@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const root = path.resolve(__dirname, '..', '..');
+const root = path.resolve(import.meta.dirname, '..', '..');
 const directories = ['web/app/src/components', 'web/app/src/views'];
 let failed = false;
 

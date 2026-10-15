@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// check-performance.cjs — guard the remaining source-level performance/loading
+// check-performance.js — guard the remaining source-level performance/loading
 // contracts that are cheap to enforce before Vite builds the SPA.
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const web = path.resolve(__dirname, '..');
+const web = path.resolve(import.meta.dirname, '..');
 const errors = [];
 
 function read(file, folder = '') {
