@@ -40,6 +40,7 @@
         :draft-key="draftKey"
         :profile="detail"
         :submitting="updating"
+        :error="infoError"
         @update="update"
       />
 
@@ -119,6 +120,9 @@ const preselectedService = computed(() => (preselectedKey.value ? serviceByKey(p
 const draftKey = computed(() => auth.user?.id ? `birth-profile:edit:${auth.user.id}:${profileId.value}` : undefined)
 const editingInfo = computed(() => Boolean(infoRef.value?.isEditing && infoRef.value?.isDirty))
 
+// 编辑态下的 error 只可能来自保存（加载失败走上面的 el-result）：版本冲突必须给出原因。
+const infoError = computed(() => (infoRef.value?.isEditing ? error.value : ''))
+
 useUnloadGuard(editingInfo)
 
 async function load() {
@@ -128,6 +132,7 @@ async function load() {
 async function update(input: BirthProfileInput) {
   if (!detail.value) return
   updating.value = true
+  profiles.error = ''
   try {
     await profiles.update(detail.value.id, detail.value.version, input)
     infoRef.value?.closeEdit()

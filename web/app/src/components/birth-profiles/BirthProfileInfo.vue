@@ -30,6 +30,15 @@
       </div>
     </template>
 
+    <el-alert
+      v-if="editing && error"
+      :title="error"
+      type="error"
+      show-icon
+      :closable="false"
+      class="profile-edit-error"
+    />
+
     <BirthForm
       v-if="editing"
       ref="formRef"
@@ -78,7 +87,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { birthSummary, type BirthProfile, type BirthProfileInput } from '@/api/birth-profiles'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
-defineProps<{ profile: BirthProfile; submitting?: boolean; draftKey?: string }>()
+defineProps<{ profile: BirthProfile; submitting?: boolean; draftKey?: string; error?: string }>()
 defineEmits<{ update: [BirthProfileInput] }>()
 const { t } = useI18n()
 
@@ -121,4 +130,5 @@ defineExpose({
 
 <style scoped>
 .profile-info { margin-bottom: 20px; }
+.profile-edit-error { margin-bottom: 12px; }
 </style>
