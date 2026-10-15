@@ -9,6 +9,7 @@ export type AdminCapability =
   | 'partner.unfreeze'
   | 'commission.read'
   | 'commission.void'
+  | 'sales.read'
   | 'payout.read'
   | 'payout.approve'
   | 'payout.reject'
@@ -282,6 +283,26 @@ export function resolveAdminFinanceTask(id: string, status: 'resolved' | 'reject
 export function fetchAdminFinanceReport(days: 7 | 30 | 90): Promise<AdminFinanceReport> {
   return get(`/api/admin/finance/summary?days=${days}`)
 }
+
+export interface AdminOrder {
+  id: string
+  user_id: string
+  email: string
+  product_id: string
+  amount_minor: number
+  currency: string
+  status: 'pending' | 'paid' | 'canceled'
+  payment_intent_id: string
+  created_at: string
+  updated_at: string
+  paid_at?: string | null
+}
+
+export function fetchAdminOrders(filters: { status?: string; search?: string }, page = 1, pageSize = defaultPageSize): Promise<AdminPagedResult<AdminOrder>> {
+  return get(`/api/admin/sales/orders${pageQuery({ status: filters.status, search: filters.search }, page, pageSize)}`)
+    .then(payload => adminPageFrom<AdminOrder>(payload, 'orders'))
+}
+
 
 export function compensateAdminEntitlement(
   email: string,

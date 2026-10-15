@@ -96,6 +96,10 @@ func RegisterRoutes(
 		mux.HandleFunc("GET /api/admin/finance/summary", guard(adminauth.CapabilityCommissionRead)(h.HandleFinanceSummary()))
 	}
 
+	if sales != nil && sales.Orders != nil {
+		mux.HandleFunc("GET /api/admin/sales/orders", guard(adminauth.CapabilitySalesRead)(h.HandleAdminOrders()))
+	}
+
 	mux.HandleFunc("GET /api/admin/admins", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleListAdmins()))
 	mux.HandleFunc("POST /api/admin/admins", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleCreateAdmin()))
 	mux.HandleFunc("POST /api/admin/admins/{email}/capabilities", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleGrantCapability()))

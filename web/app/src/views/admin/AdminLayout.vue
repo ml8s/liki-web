@@ -58,6 +58,15 @@
           财务
         </RouterLink>
         <RouterLink
+          v-if="admin.can('sales.read')"
+          to="/admin/orders"
+          active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
+        >
+          订单
+        </RouterLink>
+        <RouterLink
           v-if="admin.can('audit.read')"
           to="/admin/audit"
           active-class="on"

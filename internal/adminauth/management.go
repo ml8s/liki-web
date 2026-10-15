@@ -31,6 +31,7 @@ func CapabilityRegistry() []Capability {
 		CapabilityPartnerUnfreeze,
 		CapabilityCommissionRead,
 		CapabilityCommissionVoid,
+		CapabilitySalesRead,
 		CapabilityPayoutRead,
 		CapabilityPayoutApprove,
 		CapabilityPayoutReject,

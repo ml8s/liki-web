@@ -28,6 +28,7 @@ const (
 	CapabilityPartnerUnfreeze   Capability = "partner.unfreeze"
 	CapabilityCommissionRead    Capability = "commission.read"
 	CapabilityCommissionVoid    Capability = "commission.void"
+	CapabilitySalesRead         Capability = "sales.read"
 	CapabilityPayoutRead        Capability = "payout.read"
 	CapabilityPayoutApprove     Capability = "payout.approve"
 	CapabilityPayoutReject      Capability = "payout.reject"

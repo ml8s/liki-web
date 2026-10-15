@@ -21,6 +21,7 @@ export const adminStatusMeta: Record<string, AdminStatusMeta> = {
   requested: { label: '待审核', tag: 'warning' },
   resolved: { label: '已解决', tag: 'success' },
   revoked: { label: '已撤销', tag: 'info' },
+  canceled: { label: '已取消', tag: 'info' },
 }
 
 export function adminStatusTagType(status: string): AdminStatusTagType {
@@ -35,8 +36,9 @@ export function capabilityLabel(capability: string): string {
     'partner.approve': '合作伙伴审批',
     'partner.freeze': '合作伙伴冻结',
     'partner.unfreeze': '合作伙伴解冻',
-    'commission.read': '佣金查看',
-    'commission.void': '佣金作废',
+  'commission.read': '佣金查看',
+  'commission.void': '佣金作废',
+  'sales.read': '订单查看',
     'payout.read': '提现查看',
     'payout.approve': '提现批准',
     'payout.reject': '提现拒绝',

@@ -6,7 +6,7 @@ const json = data => ({ status: 200, contentType: 'application/json', body: JSON
 const adminUser = { id: 'usr_admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hant' }
 const capabilities = [
   'entitlement.read', 'entitlement.manage', 'partner.read', 'partner.approve', 'partner.freeze',
-  'partner.unfreeze', 'commission.read', 'commission.void', 'payout.read', 'payout.approve',
+  'partner.unfreeze', 'commission.read', 'commission.void', 'sales.read', 'payout.read', 'payout.approve',
   'payout.reject', 'payout.mark_paid', 'audit.read', 'admin.user.manage', 'admin.super',
 ]
 const meta = { page: 1, page_size: 50, total: 0, has_more: false }
@@ -22,6 +22,7 @@ const pages = [
   { path: '/app/admin/partners', name: 'admin-partners', marker: '.admin-page-heading' },
   { path: '/app/admin/payouts', name: 'admin-payouts', marker: '.admin-page-heading' },
   { path: '/app/admin/finance', name: 'admin-finance', marker: '.admin-shell' },
+  { path: '/app/admin/orders', name: 'admin-orders', marker: '.admin-page-heading' },
   { path: '/app/admin/audit', name: 'admin-audit', marker: '.admin-shell' },
   { path: '/app/admin/administrators', name: 'admin-administrators', marker: '.toolbar-card' },
 ]
