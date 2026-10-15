@@ -1,18 +1,9 @@
 <template>
-  <section class="service-view">
-    <AppPageHeader
-      :title="$t('services.fengshui.pageTitle')"
-      :subtitle="$t('services.fengshui.subtitle')"
-    />
-
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      :closable="false"
-      show-icon
-    />
-
+  <ServicePageShell
+    :title="$t('services.fengshui.pageTitle')"
+    :subtitle="$t('services.fengshui.subtitle')"
+    :error="error"
+  >
     <el-card
       class="app-card"
       shadow="never"
@@ -135,7 +126,7 @@
         @action="startChat"
       />
     </template>
-  </section>
+  </ServicePageShell>
 </template>
 
 <script setup lang="ts">
@@ -146,7 +137,7 @@ import { useServiceView } from '@/composables/useServiceView'
 import { engineBazhaiChart, type BazhaiChart } from '@/api/engine'
 import { BAZHAI_AUS, LUOSHU_ORDER } from '@/utils/bazhai'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
-import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()

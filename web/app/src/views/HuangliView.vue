@@ -1,18 +1,9 @@
 <template>
-  <section class="service-view">
-    <AppPageHeader
-      :title="$t('services.huangli.pageTitle')"
-      :subtitle="$t('services.huangli.subtitle')"
-    />
-
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      :closable="false"
-      show-icon
-    />
-
+  <ServicePageShell
+    :title="$t('services.huangli.pageTitle')"
+    :subtitle="$t('services.huangli.subtitle')"
+    :error="error"
+  >
     <el-card
       class="app-card"
       shadow="never"
@@ -198,7 +189,7 @@
         @action="startChat"
       />
     </template>
-  </section>
+  </ServicePageShell>
 </template>
 
 <script setup lang="ts">
@@ -209,7 +200,7 @@ import { useServiceView } from '@/composables/useServiceView'
 import { engineHuangliDays, type HuangliDaysResult } from '@/api/engine'
 import { huangliApiEventLabel } from '@/utils/huangliEvents'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
-import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
 const EVENT_KEYS = [
   'wedding', 'engage', 'opening', 'sign', 'move', 'travel', 'build', 'exam',

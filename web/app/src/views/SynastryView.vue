@@ -1,18 +1,9 @@
 <template>
-  <section class="service-view">
-    <AppPageHeader
-      :title="$t('services.bond.title')"
-      :subtitle="$t('services.bond.subtitle')"
-    />
-
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      :closable="false"
-      show-icon
-    />
-
+  <ServicePageShell
+    :title="$t('services.bond.title')"
+    :subtitle="$t('services.bond.subtitle')"
+    :error="error"
+  >
     <el-card
       class="app-card"
       shadow="never"
@@ -255,7 +246,7 @@
         @action="startInterpretation"
       />
     </template>
-  </section>
+  </ServicePageShell>
 </template>
 
 <script setup lang="ts">
@@ -270,7 +261,7 @@ import {
 } from '@/api/engine'
 import { baziChartFor } from '@/utils/paipan'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
-import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()

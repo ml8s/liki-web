@@ -1,18 +1,9 @@
 <template>
-  <section class="service-view">
-    <AppPageHeader
-      :title="$t('services.divination.pageTitle')"
-      :subtitle="$t('services.divination.subtitle')"
-    />
-
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      :closable="false"
-      show-icon
-    />
-
+  <ServicePageShell
+    :title="$t('services.divination.pageTitle')"
+    :subtitle="$t('services.divination.subtitle')"
+    :error="error"
+  >
     <el-card
       class="app-card"
       shadow="never"
@@ -213,7 +204,7 @@
         @action="startChat"
       />
     </template>
-  </section>
+  </ServicePageShell>
 </template>
 
 <script setup lang="ts">
@@ -223,7 +214,7 @@ import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineLiuyaoQigua, engineLiuyaoChart, engineSolarTime, type LiuyaoChartResult } from '@/api/engine'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
-import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
