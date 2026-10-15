@@ -184,7 +184,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
-import { adminStatusOptions } from '@/utils/adminFormat'
+import { adminStatusOptions, adminStatusValues } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
 const isMobile = useAdminViewport()
@@ -202,7 +202,7 @@ const query = useAdminQueryState<SubscriptionFilters>({
   defaults: subscriptionDefaults,
   pageKeys: ['page'],
   decode: query => ({
-    status: queryChoice(query, 'status', statusOptions.map(option => option.value), subscriptionDefaults.status),
+    status: queryChoice(query, 'status', adminStatusValues('subscription'), subscriptionDefaults.status),
     search: queryText(query, 'search'),
   }),
   encode: (filters, pages) => ({

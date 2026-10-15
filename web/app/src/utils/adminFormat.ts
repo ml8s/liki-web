@@ -77,22 +77,26 @@ const adminStatusDomains: Record<AdminStatusDomain, Record<string, AdminStatusMe
 
 const adminStatusAllOption: AdminStatusOption = { value: '', label: '全部' }
 
+function statusMetaFor(domain: AdminStatusDomain): Record<string, AdminStatusMeta> {
+  return adminStatusDomains[domain] ?? {}
+}
+
 /** Unknown codes stay visible as-is so operators can report them upstream. */
 export function adminStatusMeta(domain: AdminStatusDomain, status: string): AdminStatusMeta {
-  return adminStatusDomains[domain]?.[status] ?? { label: status, tag: 'info' }
+  return statusMetaFor(domain)[status] ?? { label: status, tag: 'info' }
 }
 
-export function adminStatusTagType(domain: AdminStatusDomain, status: string): AdminStatusTagType {
-  return adminStatusMeta(domain, status).tag
-}
-
-/** Filter controls and decode whitelists share this list; "全部" always closes it. */
+/** Filter controls render these; "全部" always closes the list. */
 export function adminStatusOptions(domain: AdminStatusDomain): AdminStatusOption[] {
   return [
-    ...Object.entries(adminStatusDomains[domain] ?? {})
-      .map(([value, meta]) => ({ value, label: meta.label })),
+    ...Object.entries(statusMetaFor(domain)).map(([value, meta]) => ({ value, label: meta.label })),
     adminStatusAllOption,
   ]
+}
+
+/** The matching decode whitelist, so a filter and its URL values cannot diverge. */
+export function adminStatusValues(domain: AdminStatusDomain): string[] {
+  return adminStatusOptions(domain).map(option => option.value)
 }
 
 export function capabilityLabel(capability: string): string {
@@ -115,10 +119,6 @@ export function capabilityLabel(capability: string): string {
     'admin.super': '超级管理员',
   }
   return labels[capability] ?? capability
-}
-
-export function adminStatusLabel(domain: AdminStatusDomain, status: string): string {
-  return adminStatusMeta(domain, status).label
 }
 
 export function adminRoleLabel(role: string): string {

@@ -282,7 +282,7 @@ import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
-import { adminStatusOptions, financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { adminStatusOptions, adminStatusValues, financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
@@ -322,7 +322,7 @@ const query = useAdminQueryState<FinanceFilters>({
   defaults: { status: 'pending', days: 30 },
   pageKeys: ['taskPage'],
   decode: query => ({
-    status: queryChoice(query, 'status', statusOptions.map(option => option.value), 'pending'),
+    status: queryChoice(query, 'status', adminStatusValues('finance_task'), 'pending'),
     days: queryChoice(query, 'days', ['7', '30', '90'], '30') as unknown as 7 | 30 | 90,
   }),
   encode: (filters, pages) => ({

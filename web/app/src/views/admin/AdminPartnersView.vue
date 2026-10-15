@@ -385,7 +385,7 @@ import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAdminPagedResource, useAdminViewport, type AdminPagedResource } from '@/composables/useAdminResource'
-import { adminRoleLabel, adminStatusOptions } from '@/utils/adminFormat'
+import { adminRoleLabel, adminStatusOptions, adminStatusValues } from '@/utils/adminFormat'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
 import { formatDateTime } from '@/utils/format'
@@ -428,9 +428,9 @@ const query: PartnerQueryState = useAdminQueryState<PartnerFilters>({
   pageKeys: ['applicationPage', 'partnerPage'],
   decode: query => ({
     applicationRole: queryChoice(query, 'applicationRole', ['', 'kol', 'scout'], partnerDefaults.applicationRole),
-    applicationStatus: queryChoice(query, 'applicationStatus', applicationStatusOptions.map(option => option.value), partnerDefaults.applicationStatus),
+    applicationStatus: queryChoice(query, 'applicationStatus', adminStatusValues('application'), partnerDefaults.applicationStatus),
     partnerRole: queryChoice(query, 'partnerRole', ['', 'kol', 'scout'], partnerDefaults.partnerRole),
-    partnerStatus: queryChoice(query, 'partnerStatus', partnerStatusOptions.map(option => option.value), partnerDefaults.partnerStatus),
+    partnerStatus: queryChoice(query, 'partnerStatus', adminStatusValues('partner'), partnerDefaults.partnerStatus),
     q: queryText(query, 'q'),
   }),
   encode: (filters, pages) => ({

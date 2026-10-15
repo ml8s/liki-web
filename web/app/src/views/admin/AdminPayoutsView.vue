@@ -236,7 +236,8 @@ import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminR
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
 import {
-  adminPaymentMethodLabel, adminRoleLabel, adminStatusOptions, formatAdminMoney, maskAdminAccount,
+  adminPaymentMethodLabel, adminRoleLabel, adminStatusOptions, adminStatusValues, formatAdminMoney,
+  maskAdminAccount,
 } from '@/utils/adminFormat'
 import { formatDateTime } from '@/utils/format'
 
@@ -257,7 +258,7 @@ const query = useAdminQueryState<PayoutFilters>({
   defaults: payoutDefaults,
   pageKeys: ['page'],
   decode: query => ({
-    status: queryChoice(query, 'status', statusOptions.map(option => option.value), payoutDefaults.status),
+    status: queryChoice(query, 'status', adminStatusValues('payout'), payoutDefaults.status),
   }),
   encode: (filters, pages) => ({
     status: filters.status === payoutDefaults.status ? undefined : filters.status,
