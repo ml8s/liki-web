@@ -213,7 +213,84 @@ in the URL merely because they are state.
 | Payment return | yes, then cleaned after handling |
 | Birth form while typing | no |
 | Chat composer draft | no |
-| Service result after calculation | no unless sharing becomes a product requirement |
+| Service result after calculation | no; see result state policy below |
+
+## Share links
+
+There are three distinct URL types. Do not mix them.
+
+| URL type | Shape | Audience | Status |
+| --- | --- | --- | --- |
+| Referral share | `/r/{code}` | public marketing traffic | current |
+| App private permalink | `/app/chat/{session_id}` | signed-in owner only | current |
+| Public result share | `/s/{share_token}` | explicit recipient, expirable | deferred |
+
+### Current referral contract
+
+Partner links are generated as:
+
+```text
+https://liki.hk/r/{partner_code}
+```
+
+Visiting the link:
+
+1. validates the partner code;
+2. writes the `liki_ref` attribution cookie for 30 days;
+3. redirects to the locale-appropriate marketing page.
+
+The URL itself is the share artifact. Later pages do not need to keep
+`/r/{code}` in their path. Customer-facing pages must generate links through
+`utils/share.ts`; do not hand-concatenate referral URLs in pages.
+
+### Private URL policy
+
+Authenticated app URLs such as profile, chat session, order, account, and Admin
+pages are private. If a sharing affordance exists on one of these pages, it must
+degrade to a public target such as `/app` or the relevant marketing page. It must
+not expose raw resource IDs or private resource paths.
+
+## Result state policy
+
+The primary paid interpretation lives in a Chat session. Its private permalink
+is:
+
+```text
+/app/chat/{session_id}
+```
+
+That permalink is enough for an owner to return to the conversation after
+sign-in. Chat content is private and conversational, so generic result sharing
+is deferred.
+
+Do not build a public result-sharing page until there is an explicit product
+requirement and the following decisions are made:
+
+1. what fields are safe to expose;
+2. whether the recipient must sign in;
+3. whether the link expires;
+4. whether it can be revoked;
+5. what disclaimer is required.
+
+### Service result state levels
+
+| Level | URL | Scope | Status |
+| --- | --- | --- | --- |
+| Page state | service path only | result disappears on refresh | current |
+| Input state | deterministic input query | restores inputs, then may recompute | optional, service-by-service |
+| Private result permalink | `/app/results/{result_id}` | owner-only saved result | deferred |
+| Public share snapshot | `/s/{share_token}` | explicit, limited share payload | deferred |
+
+If input state is added later, use only low-sensitivity deterministic inputs and
+never place full birth data in the query. Random or conversational results need a
+persisted snapshot and cannot be restored by input query alone.
+
+### Attribution and future result shares
+
+If public result sharing is introduced later, generated links should pass
+through a share resolver rather than appending `referrer_id` to a private app
+URL. The resolver would attribute the referral, validate permission/expiry, and
+then redirect to the authorized target.
 
 ## Component rules
 

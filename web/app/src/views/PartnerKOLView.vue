@@ -297,6 +297,7 @@ import {
   type PartnerCommission,
 } from '@/api/partner'
 import { formatDateTime, formatMinorUnit } from '@/utils/format'
+import { buildReferralLink } from '@/utils/share'
 import {
   partnerCommissionStatus as commissionMeta,
   partnerPayoutStatus as payoutMeta,
@@ -318,7 +319,7 @@ const payouts = ref<Payout[]>([])
 
 const referralLink = computed(() => {
   const code = overview.value?.partner.code
-  return code ? `${window.location.origin}/r/${code}` : ''
+  return code ? buildReferralLink(code) : ''
 })
 const overviewStats = computed<PartnerStat[]>(() => [
   {
