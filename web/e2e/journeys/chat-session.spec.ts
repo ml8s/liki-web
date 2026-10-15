@@ -2,12 +2,12 @@
 // 窄屏下必须能读能发、不横向溢出。这两处在单测里无法覆盖。
 import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
+import { json, mockWorkspace, testUser } from '../mocks'
 
-const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const sse = (events: unknown[]) => events.map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
 const stream = (body: string) => ({ status: 200, contentType: 'text/event-stream', body })
 
-const user = { id: 'usr_chat', email: 'chat@example.com', status: 'active', locale: 'zh-Hant' }
+const user = testUser({ id: 'usr_chat', email: 'chat@example.com' })
 const session = {
   id: 'chat_1', user_id: user.id, profile_id: 'p_1', skill: 'liki', title: '八字諮詢',
   status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
@@ -39,9 +39,7 @@ const successStream = sse([
 ])
 
 async function mockSession(page: Page, messages: unknown[]) {
-  await page.route('**/api/**', route => route.fulfill(json({})))
-  await page.route('**/api/me', route => route.fulfill(json(user)))
-  await page.route('**/api/me/entitlements', route => route.fulfill(json({ entitlements: [], allowed_skills: ['liki'] })))
+  await mockWorkspace(page, { user, allowedSkills: ['liki'] })
   await page.route('**/api/chat/sessions/chat_1', route => route.fulfill(json(session)))
   await page.route('**/api/chat/sessions/chat_1/messages', route => route.fulfill(json(messages)))
 }

@@ -1,11 +1,7 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
+import { json, mockPageview, mockWorkspace, testUser } from '../mocks'
 
-const json = (data: unknown) => ({
-  status: 200,
-  contentType: 'application/json',
-  body: JSON.stringify({ data }),
-})
 
 const pages = [
   { locale: 'zh-Hans', scenario: 'naming', path: '/zh-Hans/naming/', heading: 'AI 起名与姓名解读' },
@@ -14,6 +10,10 @@ const pages = [
 ]
 
 test.describe('Scenario landing pages', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockPageview(page)
+  })
+
   for (const { locale, scenario, path, heading } of pages) {
     test(`${locale}/${scenario} routes to Liki Chat`, async ({ page }) => {
       await page.goto(path)
@@ -28,9 +28,7 @@ test.describe('Scenario landing pages', () => {
 })
 
 test.describe('Authenticated scenario handoff', () => {
-  const user = {
-    id: 'usr_test', email: 'user@example.com', status: 'active', locale: 'zh-Hant',
-  }
+  const user = testUser()
   const profile = {
     id: 'p_1', user_id: 'usr_test', version: 1, nickname: 'Mom', name: '',
     gender: 'female', calendar: 'solar', birth_date: '1990-01-01',
@@ -40,14 +38,7 @@ test.describe('Authenticated scenario handoff', () => {
   }
 
   async function mockAuthenticated(page: Page, { profiles = [profile] }: { profiles?: unknown[] } = {}) {
-    await page.route('**/api/me', route => route.fulfill(json(user)))
-    await page.route('**/api/me/entitlements', route => route.fulfill(json({
-      entitlements: [], allowed_skills: ['liki'],
-    })))
-    await page.route('**/api/birth-profiles**', route => route.fulfill(json({ profiles, next_cursor: '' })))
-    await page.route('**/api/chat/sessions', route => route.fulfill(json([])))
-    await page.route('**/api/sales/products', route => route.fulfill(json({ products: [] })))
-    await page.route('**/api/sales/orders', route => route.fulfill(json({ orders: [] })))
+    await mockWorkspace(page, { user, allowedSkills: ['liki'], profiles })
     await page.route('**/api/me/sessions', route => route.fulfill(json([])))
     await page.route('**/api/me/auth/identities', route => route.fulfill(json([])))
   }

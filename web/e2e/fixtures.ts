@@ -7,17 +7,21 @@
 //
 // 契约挂在 context 而不是 page 上：新开的标签页、弹窗同样受约束。
 // Playwright 先匹配 page 路由，再回落到 context 路由，所以用例自己的 page.route
-// 照常生效；live-system 打的是真实后端，不装这层契约。
+// 照常生效。
+//
+// 打真实后端的 journey 用 `test.use({ liveBackend: true })` 显式退出契约——退出必须
+// 写在用例里，而不是靠「换个 import」或某个全局环境变量悄悄发生。
 import { test as base, expect } from '@playwright/test';
 
 // 匹配用 URL 谓词而不是 `**/api/**` 这类 glob：只认 HTTP API 命名空间，
 // 不会把 dev server 的 /src/api/*.ts 模块请求当成 API 调用。
 const isApiRequest = (url: URL) => url.pathname.startsWith('/api/');
 
-const test = base.extend({
-  context: async ({ context }, use) => {
-    const undeclared = new Set();
-    if (!process.env.LIVE_SYSTEM_E2E) {
+const test = base.extend<{ liveBackend: boolean }>({
+  liveBackend: [false, { option: true }],
+  context: async ({ context, liveBackend }, use) => {
+    const undeclared = new Set<string>();
+    if (!liveBackend) {
       await context.route(isApiRequest, route => {
         undeclared.add(`${route.request().method()} ${route.request().url()}`);
         return route.abort('failed');

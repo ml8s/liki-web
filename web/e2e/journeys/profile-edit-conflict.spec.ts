@@ -2,9 +2,9 @@
 // 加载失败有独立页面态，这里覆盖的是「编辑态内」的失败路径。
 import { test, expect } from '../fixtures'
 import type {Page, Route} from '@playwright/test'
+import { json, mockWorkspace, testUser } from '../mocks'
 
-const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
-const user = { id: 'usr_profile', email: 'profile@example.com', status: 'active', locale: 'zh-Hant' }
+const user = testUser({ id: 'usr_profile', email: 'profile@example.com' })
 const profile = {
   id: 'p_1', user_id: user.id, version: 3, nickname: '媽媽', name: '', gender: 'female',
   calendar: 'solar', birth_date: '1958-05-12', birth_time: '06:00', birth_time_known: 'known',
@@ -13,9 +13,13 @@ const profile = {
 }
 
 async function mockDetail(page: Page, onPatch: (route: Route) => unknown) {
-  await page.route('**/api/**', route => route.fulfill(json({})))
-  await page.route('**/api/me', route => route.fulfill(json(user)))
-  await page.route('**/api/me/entitlements', route => route.fulfill(json({ entitlements: [], allowed_skills: [] })))
+  await mockWorkspace(page, { user })
+  // 详情页会尝试排盘预览。本用例只关心保存反馈，所以让引擎工具显式失败，
+  // 页面走「未找到出生地座標」的降级路径——比用兜底路由假装成功更诚实。
+  await page.route('**/api/engine/tools/*', route => route.fulfill({
+    status: 502,
+    json: { detail: 'engine unavailable in this journey' },
+  }))
   await page.route('**/api/birth-profiles/p_1', route => (
     route.request().method() === 'PATCH' ? onPatch(route) : route.fulfill(json(profile))
   ))

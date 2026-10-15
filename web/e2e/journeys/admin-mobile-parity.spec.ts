@@ -3,17 +3,9 @@
 // 表格显示原始码」这类只在一侧出现的偏差悄悄回归。
 import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
+import { mockAdmin } from '../mocks'
 
-const adminUser = { id: 'user-admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hans' }
 const pageMeta = { page: 1, page_size: 50, total: 1, has_more: false }
-
-async function mockAdmin(page: Page, capabilities: string[]) {
-  await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
-  await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
-  await page.route('**/api/admin/session', route => route.fulfill({
-    json: { data: { email: adminUser.email, capabilities } },
-  }))
-}
 
 async function mockData(page: Page, pattern: string, data: unknown) {
   await page.route(pattern, route => route.fulfill({ json: { data } }))

@@ -1,9 +1,10 @@
-// Accessibility tests — runs axe-core on key pages and reports violations.
-// Does NOT fail the build by default; violations are informational.
+// Accessibility gate — axe-core on the marketing pages. Critical and serious
+// violations fail the run; moderate/minor ones are printed for triage.
 // Run with: npx playwright test --config e2e/playwright.config.ts e2e/journeys/a11y.spec.ts
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 import AxeBuilder from '@axe-core/playwright';
+import { mockPageview } from '../mocks';
 
 // Pages to audit with their framework render marker.
 const PAGES = [
@@ -18,6 +19,10 @@ const PAGES = [
 ];
 
 test.describe('Accessibility audit', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockPageview(page);
+  });
+
   for (const { path, marker, name } of PAGES) {
     test(`${name}: ${path}`, async ({ page }) => {
       await page.goto(path);

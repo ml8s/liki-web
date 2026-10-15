@@ -1,17 +1,11 @@
 // 登录全程旅程：未登录带场景访问 → 邮箱验证码登录 → 应回到原始场景。
 // 防回归：redirect 曾经丢 base 前缀，登录后落到 /app/app（404 视图）。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
+import { json, testUser } from '../mocks'
 
-const json = (data: unknown) => ({
-  status: 200,
-  contentType: 'application/json',
-  body: JSON.stringify({ data }),
-})
 
-const user = {
-  id: 'usr_login_journey', email: 'login-journey@example.com', status: 'active', locale: 'zh-Hant',
-}
+const user = testUser({ id: 'usr_login_journey', email: 'login-journey@example.com' })
 
 async function mockLoginApis(page: Page) {
   await page.route('**/api/me', route => route.fulfill({

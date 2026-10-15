@@ -1,14 +1,9 @@
 import { test, expect } from '../fixtures'
-
-const adminUser = { id: 'user-admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hans' }
+import { mockAdmin } from '../mocks'
 
 test.describe('Vue admin console', () => {
   test('renders capability-scoped workspace and manages entitlement search journey', async ({ page }) => {
-    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
-    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
-    await page.route('**/api/admin/session', route => route.fulfill({
-      json: { data: { email: adminUser.email, capabilities: ['entitlement.read', 'entitlement.manage'] } },
-    }))
+    await mockAdmin(page, ['entitlement.read', 'entitlement.manage'])
     await page.route('**/api/admin/entitlements*', route => route.fulfill({
       json: { data: { entitlements: [{
         id: 'ent_1', user_id: 'user-1', email: 'customer@example.com', product_id: 'liki-chat',
@@ -35,11 +30,7 @@ test.describe('Vue admin console', () => {
   })
 
   test('shows the no-permission state for a signed-in non-admin', async ({ page }) => {
-    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
-    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
-    await page.route('**/api/admin/session', route => route.fulfill({
-      json: { data: { email: adminUser.email, capabilities: [] } },
-    }))
+    await mockAdmin(page, [])
 
     await page.goto('/app/admin')
     await expect(page.getByText('无管理权限')).toBeVisible()
@@ -49,11 +40,7 @@ test.describe('Vue admin console', () => {
 
 test.describe('Vue admin finance and compensation', () => {
   test('shows period finance totals', async ({ page }) => {
-    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
-    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
-    await page.route('**/api/admin/session', route => route.fulfill({
-      json: { data: { email: adminUser.email, capabilities: ['commission.read'] } },
-    }))
+    await mockAdmin(page, ['commission.read'])
     await page.route('**/api/admin/partner-finance-tasks*', route => route.fulfill({
       json: { data: { tasks: [], page: 1, page_size: 50, total: 0, has_more: false } },
     }))
@@ -76,11 +63,7 @@ test.describe('Vue admin finance and compensation', () => {
 
   test('grants a templated entitlement compensation', async ({ page }) => {
     const compensations: unknown[] = []
-    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
-    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
-    await page.route('**/api/admin/session', route => route.fulfill({
-      json: { data: { email: adminUser.email, capabilities: ['entitlement.read', 'entitlement.manage'] } },
-    }))
+    await mockAdmin(page, ['entitlement.read', 'entitlement.manage'])
     await page.route('**/api/admin/entitlements/compensation', async (route) => {
       compensations.push(route.request().postDataJSON())
       await route.fulfill({
@@ -112,11 +95,7 @@ test.describe('Vue admin finance and compensation', () => {
 test.describe('Vue admin administrators', () => {
   test('mobile card renders the status tag instead of the raw code', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
-    await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
-    await page.route('**/api/admin/session', route => route.fulfill({
-      json: { data: { email: adminUser.email, capabilities: ['admin.user.manage'] } },
-    }))
+    await mockAdmin(page, ['admin.user.manage'])
     await page.route('**/api/admin/admins', route => route.fulfill({
       json: { data: { admins: [{
         id: 'admin_1', email: 'ops@example.com', status: 'disabled',

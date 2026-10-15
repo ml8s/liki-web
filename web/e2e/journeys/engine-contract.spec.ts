@@ -3,12 +3,12 @@
 import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
 import { ENGINE_TOOLS } from '../../app/src/api/engine'
+import { json, mockWorkspace, testUser } from '../mocks'
 
 test.use({ locale: 'zh-Hant' })
 
-const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 
-const user = { id: 'usr_test', email: 'user@example.com', status: 'active', locale: 'zh-Hant' }
+const user = testUser()
 const profile = {
   id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female', relation: '家人',
   calendar: 'solar', birth_date: '1958-05-12', birth_time: '06:00', birth_time_known: 'known',
@@ -129,18 +129,17 @@ function routeEngine(page: Page) {
   })
 }
 
-function routeApp(page: Page) {
-  page.route('**/api/me', r => r.fulfill(json(user)))
-  page.route('**/api/me/entitlements', r => r.fulfill(json({ entitlements: [], allowed_skills: ['liki'] })))
+async function routeApp(page: Page) {
+  await mockWorkspace(page, { user, allowedSkills: ['liki'], profiles: [profile] })
+  // 详情页按 id 取单个档案（覆盖壳里的列表响应）。
+  await page.route('**/api/birth-profiles/p_1', r => r.fulfill(json(profile)))
+  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
+  await routeEngine(page)
 }
 
 test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async ({ page }) => {
   await routeApp(page)
-  await page.route('**/api/birth-profiles**', r => (r.request().url().endsWith('/birth-profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
-  await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
-  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
-  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
-  await routeEngine(page)
 
   await page.goto('/app/birth-profiles/p_1')
   await page.waitForSelector('.pillars', { timeout: 12000 }) // 自动排盘
@@ -163,11 +162,6 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
 
 test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await routeApp(page)
-  await page.route('**/api/birth-profiles**', r => (r.request().url().endsWith('/birth-profiles/p_1') ? r.fulfill(json(profile)) : r.fulfill(json({ profiles: [profile], next_cursor: '' }))))
-  await page.route('**/api/chat/sessions', r => r.fulfill(json([])))
-  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
-  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
-  await routeEngine(page)
 
   await page.goto('/app/synastry')
   await page.waitForSelector('.b-form', { timeout: 10000 })

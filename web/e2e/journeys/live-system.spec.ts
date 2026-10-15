@@ -1,5 +1,8 @@
 import { test, expect } from '../fixtures'
 
+// 这条 journey 打的是部署好的真实系统，不是 mock：显式退出 API 契约。
+test.use({ liveBackend: true })
+
 const answer = process.env.LIKI_E2E_ANSWER || 'E2E_FULL_CAPABILITY_ANSWER'
 const publicUrl = new URL(process.env.BASE_URL || 'http://localhost:8080').origin
 

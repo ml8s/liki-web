@@ -2,9 +2,7 @@
 // sales.read 时的能力边界。分页契约（扁平 page/page_size/total）此前与客户端
 // 读取方式不一致，导致页脚永远停在第 1 页——这里守住修复后的行为。
 import { test, expect } from '../fixtures'
-import type {Page} from '@playwright/test'
-
-const adminUser = { id: 'user-admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hans' }
+import { mockAdmin } from '../mocks'
 
 const order = (id: string, status: string) => ({
   id, user_id: 'user-1', email: 'customer@example.com', product_id: 'liki-chat',
@@ -20,14 +18,6 @@ const subscription = (id: string, status: string) => ({
   cancel_at_period_end: true, cancelled_at: null,
   created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z',
 })
-
-async function mockAdmin(page: Page, capabilities: string[]) {
-  await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
-  await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
-  await page.route('**/api/admin/session', route => route.fulfill({
-    json: { data: { email: adminUser.email, capabilities } },
-  }))
-}
 
 test('orders list renders rows and follows server pagination', async ({ page }) => {
   const pages: number[] = []

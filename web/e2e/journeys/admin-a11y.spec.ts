@@ -1,8 +1,7 @@
 import { test, expect } from '../fixtures'
 import AxeBuilder from '@axe-core/playwright'
+import { json, mockAdmin } from '../mocks'
 
-const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
-const adminUser = { id: 'usr_admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hant' }
 const capabilities = [
   'entitlement.read', 'entitlement.manage', 'partner.read', 'partner.approve', 'partner.freeze',
   'partner.unfreeze', 'commission.read', 'commission.void', 'sales.read', 'payout.read', 'payout.approve',
@@ -29,9 +28,7 @@ const pages = [
 test.describe('Admin accessibility audit', () => {
   for (const { path, name, marker } of pages) {
     test(`${name}: ${path}`, async ({ page }) => {
-      await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
-      await page.route('**/api/me', route => route.fulfill(json(adminUser)))
-      await page.route('**/api/admin/session', route => route.fulfill(json({ email: adminUser.email, capabilities })))
+      await mockAdmin(page, capabilities)
       await page.route('**/api/admin/entitlements*', route => route.fulfill(json({ entitlements: [] })))
       await page.route('**/api/admin/partner-applications*', route => route.fulfill(json({ applications: [], ...meta })))
       await page.route('**/api/admin/partners*', route => route.fulfill(json({ partners: [], ...meta })))

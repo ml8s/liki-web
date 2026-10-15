@@ -1,5 +1,5 @@
 // Shared test helpers — regex, assertions, utilities.
-// Mocks go in mocks.js.
+// Route mocks live in mocks.ts.
 
 // i18n key pattern: if a raw key like "site.name" or "services.bazi.label" appears
 // as visible text, the i18n lookup failed and leaked the key.

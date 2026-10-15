@@ -1,6 +1,9 @@
 // 建档主路径：登录 → 新建档案 → 详情排盘 → 列表可见。真实后端（profiles API +
 // engine 排盘），登录走 DEV_MODE 验证码。CI 与本地 e2e 环境均注入 DEV_MODE。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures'
+
+// 真实后端（profiles API + engine 排盘）：显式退出 API 契约。
+test.use({ liveBackend: true })
 
 const email = `profile-journey-${Date.now()}@test.liki`
 

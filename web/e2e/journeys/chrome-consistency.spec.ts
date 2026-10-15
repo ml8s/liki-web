@@ -1,11 +1,16 @@
 // 骨架一致性：全站每个静态页共享同一 header（brand link + slogan，无返回链）
 // 与同一 footer（探索/法律两组）。差异化只允许发生在正文区。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures'
+import { mockPageview } from '../mocks'
 
 const LOCALES = ['zh-Hant', 'zh-Hans', 'en']
 const PAGES = ['', 'skills', 'naming', 'mingshu', 'hepan', 'partners', 'about', 'contact', 'disclaimer', 'privacy', 'terms']
 
 test.describe.configure({ mode: 'serial' })
+
+test.beforeEach(async ({ page }) => {
+  await mockPageview(page)
+})
 
 for (const locale of LOCALES) {
   for (const p of PAGES) {

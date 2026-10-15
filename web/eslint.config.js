@@ -30,6 +30,21 @@ export default [
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
+    // journey 的 test/expect 只能来自 fixtures：那里的 API 契约是强制的。
+    // 直接从 @playwright/test 取会静默绕过契约；打真实后端的用例用
+    // `test.use({ liveBackend: true })` 显式退出。类型导入不受限制。
+    files: ['e2e/journeys/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: '@playwright/test',
+          importNames: ['test', 'expect'],
+          message: '从 ../fixtures 取 test/expect（API 契约在那里生效）；真实后端用例用 test.use({ liveBackend: true })。',
+        }],
+      }],
+    },
+  },
+  {
     files: ['**/*.ts'],
     rules: {
       'no-undef': 'off',

@@ -5,8 +5,13 @@
 
 import { test, expect } from '../fixtures';
 import { I18N_KEY_RE } from '../helpers';
+import { mockPageview } from '../mocks';
 
-// Analytics is non-essential; the shared localhost CI client can hit its rate limit.
+// 每个静态页首屏都会打一次 pageview 信标；声明成 204 空响应。
+// （信标本就是非必需的；CI 共享 localhost 客户端还可能撞上它的限流。）
+test.beforeEach(async ({ page }) => {
+  await mockPageview(page);
+});
 
 // Pages to test with their framework-specific render marker and i18n content checks.
 interface PageCase {
@@ -207,7 +212,6 @@ test.describe('Smoke — all pages render without errors or warnings', () => {
   for (const { path, marker, name, checks, resource, skipI18nCheck } of PAGES) {
     test(`${name}: ${path}`, async ({ page }) => {
       const consoleProblems: string[] = [];
-      await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }));
       page.on('console', msg => {
         if ((msg.type() === 'error' || msg.type() === 'warning') && !(msg.location().url || '').includes('favicon')) {
           consoleProblems.push(`[${msg.type()}] ${msg.text()} (${msg.location().url || 'no-url'})`);
