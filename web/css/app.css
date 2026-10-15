@@ -444,18 +444,18 @@ th {
 
 /* ── C 端着陆页（redesign M2）── */
 .btn-purple { display:inline-flex; align-items:center; justify-content:center; min-height:44px; background:var(--color-accent); color:var(--color-white); padding:.75rem 1.75rem; border-radius:var(--radius-full); font-weight:600; text-decoration:none; transition:background .15s ease, transform .15s ease; }
-.btn-purple:hover { background:var(--brand-primary-hover); }
-.btn-ghost { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border:1px solid var(--color-border); color:var(--brand-text-muted); padding:.75rem 1.75rem; border-radius:var(--radius-full); transition:border-color .15s ease, color .15s ease; }
-.btn-ghost:hover { border-color:var(--brand-primary); color:var(--brand-primary); }
+.btn-purple:hover { background:var(--color-accent-hover); }
+.btn-ghost { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border:1px solid var(--color-border); color:var(--color-text-muted); padding:.75rem 1.75rem; border-radius:var(--radius-full); transition:border-color .15s ease, color .15s ease; }
+.btn-ghost:hover { border-color:var(--color-accent); color:var(--color-accent); }
 .landing-hero { text-align:center; padding:72px 24px 48px; }
 .landing-h1 { font-size:clamp(2rem,6vw,3.25rem); font-weight:650; letter-spacing:-.04em; }
-.landing-sub { color:var(--brand-text-muted); margin-top:14px; font-size:1.125rem; }
+.landing-sub { color:var(--color-text-muted); margin-top:14px; font-size:1.125rem; }
 .landing-actions { display:flex; gap:14px; justify-content:center; margin-top:32px; flex-wrap:wrap; }
 .landing-paipan { background:var(--color-accent); color:var(--color-white); text-align:center; padding:56px 24px; }
 .landing-paipan h2 { font-family:var(--font-serif); font-size:1.75rem; margin-bottom:10px; }
 .landing-paipan p { opacity:.9; margin-bottom:22px; }
 .landing-paipan .btn-purple { background:var(--color-white); color:var(--color-accent); transform:none; }
-.landing-paipan .btn-purple:hover { background:var(--brand-primary-soft); }
+.landing-paipan .btn-purple:hover { background:var(--color-accent-soft); }
 .landing-services,
 .landing-steps,
 .landing-cta { max-width:1200px; margin:0 auto; padding:64px 24px; }
@@ -467,11 +467,11 @@ th {
 .steps-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
 .card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-card); padding:24px; box-shadow:var(--shadow-card); }
 .card h3 { font-size:1.25rem; margin-bottom:8px; }
-.card p { color:var(--brand-text-muted); font-size:.9375rem; }
+.card p { color:var(--color-text-muted); font-size:.9375rem; }
 .trust-item { padding:20px; }
-.trust-item strong { color:var(--brand-primary-soft); font-size:1.0625rem; line-height:1.5; }
+.trust-item strong { color:var(--color-accent-soft); font-size:1.0625rem; line-height:1.5; }
 .step-n { display:inline-grid; place-items:center; width:32px; height:32px; border-radius:50%; background:var(--color-accent); color:var(--color-white); font-weight:700; margin-bottom:10px; }
-.step p { color:var(--brand-text-muted); }
+.step p { color:var(--color-text-muted); }
 .landing-cta { text-align:center; }
 .landing-cta p { font-size:1.5rem; margin-bottom:22px; }
 
@@ -482,16 +482,16 @@ th {
   background:var(--color-white-alpha-92); color:var(--color-input-ink); font-size:.9375rem;
 }
 .paipan-hook .btn-purple { background:var(--color-white); color:var(--color-accent); border:none; cursor:pointer; }
-.paipan-hook .btn-purple:hover { background:var(--brand-primary-soft); }
+.paipan-hook .btn-purple:hover { background:var(--color-accent-soft); }
 .paipan-hint { opacity:.8; font-size:.8125rem; margin-top:14px; }
-.card-link { display:inline-block; margin-top:10px; color:var(--brand-primary); font-size:.875rem; text-decoration:none; }
+.card-link { display:inline-block; margin-top:10px; color:var(--color-accent); font-size:.875rem; text-decoration:none; }
 .card-link:hover { text-decoration:underline; }
-.card-link-secondary { margin-left:14px; color:var(--brand-text-muted); }
-.card-link-secondary:hover { color:var(--brand-primary); text-decoration:underline; }
+.card-link-secondary { margin-left:14px; color:var(--color-text-muted); }
+.card-link-secondary:hover { color:var(--color-accent); text-decoration:underline; }
 
 /* ── Liki Chat 场景引流页 ── */
 .scenario-hero { text-align:center; }
-.landing-kicker { color:var(--brand-primary); font-size:.8125rem; font-weight:600; letter-spacing:.12em; margin-bottom:10px; }
+.landing-kicker { color:var(--color-accent); font-size:.8125rem; font-weight:600; letter-spacing:.12em; margin-bottom:10px; }
 .scenario-section { text-align:start; }
 .scenario-example {
   padding:48px 20px;
@@ -507,10 +507,10 @@ th {
 .scenario-questions blockquote {
   margin:0;
   padding:16px;
-  border-left:3px solid var(--brand-primary);
+  border-left:3px solid var(--color-accent);
   border-radius:0 10px 10px 0;
   background:var(--color-surface);
-  color:var(--brand-text-muted);
+  color:var(--color-text-muted);
 }
 .scenario-faq {
   max-width:760px;
@@ -519,7 +519,7 @@ th {
 }
 .scenario-faq details { padding:14px 0; border-bottom:1px solid var(--color-border); }
 .scenario-faq summary { cursor:pointer; color:var(--color-text); font-weight:600; }
-.scenario-faq p { margin:10px 0 0; color:var(--brand-text-muted); line-height:1.7; }
+.scenario-faq p { margin:10px 0 0; color:var(--color-text-muted); line-height:1.7; }
 .scenario-static-index {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
@@ -536,7 +536,7 @@ th {
 .scenario-static-index summary { cursor:pointer; font-weight:650; }
 .scenario-static-index p {
   margin:10px 0 0;
-  color:var(--brand-text-muted);
+  color:var(--color-text-muted);
   line-height:1.7;
 }
 .scenario-name-scroll {

@@ -14,6 +14,11 @@ function cssSource(file) {
 }
 
 const staticCss = cssSource(path.join('css', 'app.css'));
+const primitiveUses = staticCss.match(/var\(--brand-[a-z0-9-]+\)/g);
+if (primitiveUses?.length) {
+  errors.push(`css/app.css consumes ${primitiveUses.length} primitive token(s); use a semantic alias`);
+}
+
 const rawColor = staticCss.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g);
 if (rawColor?.length) {
   errors.push(`css/app.css has ${rawColor.length} raw color value(s); consume a token from css/tokens.css`);
