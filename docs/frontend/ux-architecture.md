@@ -225,6 +225,7 @@ drift:
 | Component | Owns |
 | --- | --- |
 | `AppPageHeader` | product title/subtitle/action contract |
+| `ServicePageShell` | service header/error/content placement |
 | `AdminPageHeader` | dense operator title contract |
 | `AdminRecordCard` | mobile representation of admin table records |
 | `AdminStatusTag` | admin status label and semantic color |
@@ -233,6 +234,9 @@ drift:
 | `PartnerSettlement` | shared KOL/Scout settlement behavior |
 | `PayoutDialog` | payout method/account form |
 | `ProductPurchaseCard` | purchase options and billing mode |
+
+Partner commission and payout status labels/colors are owned by
+`utils/partnerStatus.ts` so KOL, Scout, and Settlement cannot drift.
 
 Do not create a universal page component. Page-specific rendering stays in the
 page.

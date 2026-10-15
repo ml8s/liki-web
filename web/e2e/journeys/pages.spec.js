@@ -39,7 +39,7 @@ const PAGES = [
   // 开发者 skill 页（原品牌门面迁址）
   { path: '/zh-Hans/skills/', name: 'skills (developer)',
     checks: [
-      { selector: '.hero-brand h1', text: 'Liki — 专业命理 Skill' },
+      { selector: '.scenario-hero h1', text: 'Liki — 专业命理 Skill' },
       { selector: '.install-cmd', text: 'npx skills add ml8s/liki' },
     ] },
   // Legal pages — marker renders, i18n resolves, keys don't leak
