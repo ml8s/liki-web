@@ -103,10 +103,20 @@ function goBack() {
   void router.push(profileId ? `/birth-profiles/${profileId}` : '/chat')
 }
 
-function onThreadScroll() {
+let threadScrollFrame: number | null = null
+
+function measureThreadScroll() {
   const el = threadElement.value
   if (!el) return
   nearBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 40
+}
+
+function onThreadScroll() {
+  if (threadScrollFrame !== null) return
+  threadScrollFrame = requestAnimationFrame(() => {
+    threadScrollFrame = null
+    measureThreadScroll()
+  })
 }
 
 async function scrollToEnd() {
@@ -180,6 +190,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (threadScrollFrame !== null) cancelAnimationFrame(threadScrollFrame)
   document.removeEventListener('keydown', onGlobalKeydown)
   visualViewport?.removeEventListener('resize', onVvResize)
   chat.resetActive()
