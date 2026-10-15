@@ -188,7 +188,7 @@ async function logout() {
   position: absolute;
   left: -9999px;
   top: 0;
-  z-index: 100;
+  z-index: var(--z-skip-link);
   padding: 10px 16px;
   border-radius: 0 0 8px 0;
   background: var(--liki-primary);
@@ -198,7 +198,7 @@ async function logout() {
 .skip-link:focus { left: 0; }
 .admin-topbar {
   min-height: 58px; display: flex; align-items: center; gap: 20px; padding: 10px 18px;
-  background: var(--liki-ink); color: var(--liki-on-ink); position: sticky; top: 0; z-index: 50;
+  background: var(--liki-ink); color: var(--liki-on-ink); position: sticky; top: 0; z-index: var(--z-header);
 }
 .brand { font-weight: 700; font-size: 18px; letter-spacing: 1px; }
 .brand span { color: var(--liki-accent-on-ink); }

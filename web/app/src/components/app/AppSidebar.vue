@@ -107,7 +107,7 @@ const preloadNavigation = createIntentPreloader(router, record => !String(record
   background: var(--liki-ink);
   color: var(--liki-on-ink);
   padding: 24px 16px;
-  z-index: 50;
+  z-index: var(--z-surface);
 }
 .side-brand { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--liki-on-ink); text-decoration: none; }
 .side-brand em { color: var(--liki-primary); font-style: normal; }
@@ -134,5 +134,5 @@ const preloadNavigation = createIntentPreloader(router, record => !String(record
 }
 .side-user { border-top: 1px solid var(--liki-on-ink-line); padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .email { font-size: 13px; opacity: .85; word-break: break-all; }
-@media (max-width: 1023px) { .app-sidebar { display: none; } }
+@media (max-width: 1023.98px) { .app-sidebar { display: none; } }
 </style>

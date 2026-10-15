@@ -587,7 +587,7 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
   .primary-card {
     align-items: stretch;
     flex-direction: column;
@@ -603,7 +603,7 @@ onMounted(async () => {
     margin-left: 0;
   }
 }
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .services {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -611,7 +611,7 @@ onMounted(async () => {
     grid-column: span 2;
   }
 }
-@media (max-width: 520px) {
+@media (max-width: 480px) {
   .services {
     grid-template-columns: 1fr;
   }

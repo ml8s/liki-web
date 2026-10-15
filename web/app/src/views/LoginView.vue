@@ -311,7 +311,7 @@ h1 { margin: 0 0 8px; font-size: 26px; font-weight: 650; letter-spacing: -0.03em
 .error { margin-top: 16px; }
 .dev-code { margin-top: 16px; }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .login-page {
     grid-template-columns: 1fr;
     gap: 28px;

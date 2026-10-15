@@ -66,6 +66,11 @@
   --color-border-hover: var(--brand-line-strong);
   --color-gold: var(--brand-gold);
   --color-gold-light: var(--brand-gold-on-dark);
+  --color-header-text: #f7f6f4;
+  --color-github: #181717;
+  --color-telegram: #26a5e4;
+  --color-on-primary-border: rgba(255, 255, 255, 0.4);
+  --color-input-ink: #232733;
   --color-error: #d92d20;
   --color-error-border: rgba(217, 45, 32, 0.35);
   --color-danger-surface: #fff8f7;
@@ -142,6 +147,9 @@
   --duration-md: 250ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --z-header: 50;
+  --z-surface: 50;
+  --z-skip-link: 100;
   --color-white: #ffffff;
   --color-error-soft: #fef2f2;
 }

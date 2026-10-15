@@ -212,6 +212,14 @@ only intentional exceptions:
 Do not add a new local heading scale for a whole product page. If a new context
 does not fit, extend the shared header contract first.
 
+### Layout contracts
+
+Use the shared z-index tokens (`--z-header`, `--z-surface`, and
+`--z-skip-link`) instead of numeric values. The standard responsive
+breakpoints are `480 / 640 / 768 / 1024`. `720` is the Admin-only dense-surface
+exception, and `1023.98` is the max-width edge paired with the `1024`
+sidebar breakpoint. `check-css-contracts.cjs` rejects drift.
+
 Admin list state is split into draft filters and applied filters. The URL only
 reflects applied filters, defaults and page 1 are omitted, and changing an
 input does not query until the operator submits that filter block. Entitlement

@@ -51,7 +51,7 @@ const preloadNavigation = createIntentPreloader(router, record => !String(record
   background: var(--liki-surface);
   border-top: 1px solid var(--liki-line);
   padding-bottom: env(safe-area-inset-bottom);
-  z-index: 50;
+  z-index: var(--z-surface);
 }
 .app-tabbar a {
   position: relative;
