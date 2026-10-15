@@ -41,6 +41,7 @@ test.describe('Admin accessibility audit', () => {
       await page.route('**/api/admin/partner-finance-tasks*', route => route.fulfill(json({ tasks: [], ...meta })))
       await page.route('**/api/admin/finance/summary*', route => route.fulfill(json(financeReport)))
       await page.route('**/api/admin/admins*', route => route.fulfill(json({ admins: [] })))
+      await page.route('**/api/admin/sales/orders*', route => route.fulfill(json({ orders: [], ...meta })))
 
       await page.goto(path)
       await page.waitForSelector(marker, { timeout: 10000 })

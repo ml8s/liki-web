@@ -54,6 +54,9 @@ test.describe('Vue admin finance and compensation', () => {
     await page.route('**/api/admin/session', route => route.fulfill({
       json: { data: { email: adminUser.email, capabilities: ['commission.read'] } },
     }))
+    await page.route('**/api/admin/partner-finance-tasks*', route => route.fulfill({
+      json: { data: { tasks: [], page: 1, page_size: 50, total: 0, has_more: false } },
+    }))
     await page.route('**/api/admin/finance/summary*', route => route.fulfill({
       json: { data: {
         period_start: '2026-10-06T00:00:00Z', period_end: '2026-10-13T00:00:00Z',

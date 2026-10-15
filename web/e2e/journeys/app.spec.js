@@ -32,6 +32,13 @@ test.describe('Authenticated app shell', () => {
   });
 
   test('protected routes redirect unauthenticated users to login', async ({ page }) => {
+    // 未登录态由接口的 401 造出来，而不是靠「没有服务在监听 /api」这类环境错误。
+    await page.route('**/api/me', route => route.fulfill({
+      status: 401,
+      contentType: 'application/json',
+      body: JSON.stringify({ type: 'about:blank', title: 'unauthenticated', status: 401 }),
+    }));
+
     for (const { path } of protectedPages) {
       await page.goto(path);
       await expect(page).toHaveURL(/\/app\/login/);
