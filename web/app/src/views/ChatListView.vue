@@ -267,7 +267,7 @@ onMounted(async () => {
     // 支付回调处理：store 返回结果，由 view 决定路由。
     const paymentResult = await sales.handlePaymentReturn(route.query)
     if (paymentResult.action === 'enter_chat') {
-      const sessionId = await sales.enterInterpretation()
+      const sessionId = await sales.enterInterpretation(activeBirthProfileId.value)
       if (sessionId) {
         await router.replace({ path: '/chat', query: {} })
         await router.push(`/chat/${sessionId}`)

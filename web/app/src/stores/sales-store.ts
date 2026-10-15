@@ -146,13 +146,13 @@ export const useSalesStore = defineStore('sales', {
       }
       return { action: 'show_message', message: this.paymentMessage, state: this.paymentState }
     },
-    // V4：支付成功后直达解读——有档案则用默认 skill（八字）建会话并跳转。
-    async enterInterpretation(): Promise<string | null> {
+    // 支付成功后直达解读。优先使用用户当前选择的档案；没有选择时才退回第一个档案。
+    async enterInterpretation(preferredProfileId?: string): Promise<string | null> {
       const profiles = useBirthProfilesStore()
       if (!profiles.list.length) {
         await profiles.loadList()
       }
-      const profileId = profiles.list[0]?.id ?? ''
+      const profileId = preferredProfileId || profiles.list[0]?.id || ''
       if (!profileId) return null
       try {
         const session = await useChatStore().createSession(profileId, 'liki')
