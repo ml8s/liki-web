@@ -94,8 +94,11 @@ test('the conversation owns the viewport and follows the keyboard', async ({ pag
     return !!box && box.top >= 0 && box.bottom <= window.innerHeight + 0.5
   })
 
+  // 先等历史渲染完，再断言滚动职责：空列表时 scrollHeight == clientHeight，
+  // 提前断言会把「还没渲染」误判成「没有溢出的滚动容器」。
+  await expect(thread).toContainText('第 40 則訊息')
+  await expect.poll(() => thread.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
   await expect.poll(distanceToEnd).toBeLessThan(40)
-  expect(await thread.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
   expect(await composerFits()).toBe(true)
   expect(await page.evaluate(() => document.scrollingElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(1)
 
