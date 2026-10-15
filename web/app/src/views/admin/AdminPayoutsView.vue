@@ -298,7 +298,7 @@ function setPage(page: number) {
 
 async function requireInput(title: string, label: string) {
   const { value } = await ElMessageBox.prompt(label, title, {
-    confirmButtonText: '确认',
+    confirmButtonText: title,
     cancelButtonText: '取消',
     inputValidator: (input: string) => Boolean(input.trim()) || '必填',
   })

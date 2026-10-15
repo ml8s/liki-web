@@ -486,7 +486,7 @@ function setPartnerPage(page: number) {
 
 async function requireReason(title: string) {
   const { value } = await ElMessageBox.prompt('请输入原因，该操作会写入管理记录。', title, {
-    confirmButtonText: '确认',
+    confirmButtonText: title,
     cancelButtonText: '取消',
     inputValidator: (input: string) => Boolean(input.trim()) || '原因必填',
   })

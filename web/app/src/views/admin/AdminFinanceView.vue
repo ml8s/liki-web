@@ -381,7 +381,7 @@ async function loadReport(days: 7 | 30 | 90 = reportDays.value) {
 async function resolve(row: AdminFinanceTask, result: 'resolved' | 'rejected') {
   const title = result === 'resolved' ? '追回佣金' : '豁免佣金'
   const { value } = await ElMessageBox.prompt('请输入处理说明。', title, {
-    confirmButtonText: '提交',
+    confirmButtonText: title,
     cancelButtonText: '取消',
     inputValidator: (input: string) => Boolean(input.trim()) || '说明必填',
   }).catch(() => ({ value: null }))

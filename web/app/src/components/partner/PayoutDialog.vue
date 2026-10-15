@@ -37,7 +37,7 @@
         :loading="submitting"
         @click="submit"
       >
-        {{ $t('common.submit') }}
+        {{ $t('partner.settlement.requestPayout') }}
       </el-button>
     </template>
   </el-dialog>

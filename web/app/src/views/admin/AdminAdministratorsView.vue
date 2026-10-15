@@ -275,7 +275,7 @@ async function createAdmin() {
 
 async function requireReason(title: string) {
   const { value } = await ElMessageBox.prompt('请输入原因，该操作会写入审计。', title, {
-    confirmButtonText: '确认',
+    confirmButtonText: title,
     cancelButtonText: '取消',
     inputValidator: (input: string) => Boolean(input.trim()) || '原因必填',
   })
@@ -328,7 +328,6 @@ async function revokeCapability(account: AdminAccount, capability: AdminCapabili
 
 <style scoped>
 .toolbar-card { margin-bottom: 16px; }
-.cap-tag { margin: 0 4px 4px 0; }
-.cap-tag { cursor: pointer; }
+.cap-tag { margin: 0 4px 4px 0; cursor: pointer; }
 .grant-btn { margin-left: 6px; }
 </style>
