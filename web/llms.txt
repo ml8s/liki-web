@@ -10,6 +10,10 @@ Liki 提供网页直接使用，也可安装 Liki Skill 到支持 MCP 的 AI Age
 - 起名 / Naming: https://liki.hk/zh-Hant/naming/
 - 命书 / Life book: https://liki.hk/zh-Hant/mingshu/
 - 合盘 / Compatibility: https://liki.hk/zh-Hant/hepan/
+- 八字 / BaZi: https://liki.hk/zh-Hant/bazi/
+- 六爻 / Divination: https://liki.hk/zh-Hant/divination/
+- 风水 / Feng Shui: https://liki.hk/zh-Hant/fengshui/
+- 黄历 / Date selection: https://liki.hk/zh-Hant/huangli/
 
 ## Capabilities
 

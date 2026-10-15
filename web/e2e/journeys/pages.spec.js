@@ -61,6 +61,30 @@ const PAGES = [
     checks: [
       { selector: 'h1', text: 'BaZi compatibility and relationship reading' },
     ] },
+  { path: '/zh-Hans/bazi', name: 'bazi (capability landing)',
+    checks: [
+      { selector: 'h1', text: '八字命盘与流年解读' },
+    ] },
+  { path: '/zh-Hant/bazi', name: 'bazi ZH-Hant',
+    checks: [
+      { selector: 'h1', text: '八字命盤與流年解讀' },
+    ] },
+  { path: '/en/bazi', name: 'bazi EN',
+    checks: [
+      { selector: 'h1', text: 'BaZi chart and annual reading' },
+    ] },
+  { path: '/zh-Hans/divination', name: 'divination (capability landing)',
+    checks: [
+      { selector: 'h1', text: '六爻问卦与应期解读' },
+    ] },
+  { path: '/zh-Hans/fengshui', name: 'fengshui (capability landing)',
+    checks: [
+      { selector: 'h1', text: '风水方位与宅盘解读' },
+    ] },
+  { path: '/zh-Hans/huangli', name: 'huangli (capability landing)',
+    checks: [
+      { selector: 'h1', text: '黄历择日与宜忌解读' },
+    ] },
   { path: '/llms.txt',         marker: null,             name: 'llms.txt', resource: true },
 ];
 
@@ -75,6 +99,25 @@ test.describe('Static page interactions', () => {
 
     for (const [language, location] of cases) {
       const response = await request.get('/skills', {
+        headers: { 'Accept-Language': language },
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(302);
+      expect(response.headers().location).toBe(location);
+    }
+  });
+
+  test('bare capability entries negotiate a localized landing page', async ({ request }) => {
+    const cases = [
+      ['/bazi', 'zh-Hans,zh;q=0.9', '/zh-Hans/bazi'],
+      ['/bazi', 'en-US,en;q=0.9', '/en/bazi'],
+      ['/divination', 'zh-TW,zh;q=0.9', '/zh-Hant/divination'],
+      ['/fengshui', 'ja-JP,ja;q=0.9', '/zh-Hant/fengshui'],
+      ['/huangli', 'zh-Hans,zh;q=0.9', '/zh-Hans/huangli'],
+    ];
+
+    for (const [path, language, location] of cases) {
+      const response = await request.get(path, {
         headers: { 'Accept-Language': language },
         maxRedirects: 0,
       });

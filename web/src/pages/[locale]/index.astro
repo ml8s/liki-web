@@ -43,10 +43,10 @@ const homeSchema = {
       name: t(locale, 'index.services.title'),
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: t(locale, 'index.services.naming.title'), url: `${siteUrl}/${locale}/naming/` },
-        { '@type': 'ListItem', position: 2, name: t(locale, 'index.services.bazi.title') },
+        { '@type': 'ListItem', position: 2, name: t(locale, 'index.services.bazi.title'), url: `${siteUrl}/${locale}/bazi/` },
         { '@type': 'ListItem', position: 3, name: t(locale, 'index.services.mingshu.title'), url: `${siteUrl}/${locale}/mingshu/` },
-        { '@type': 'ListItem', position: 4, name: t(locale, 'index.services.divination.title') },
-        { '@type': 'ListItem', position: 5, name: t(locale, 'index.services.fengshui.title') },
+        { '@type': 'ListItem', position: 4, name: t(locale, 'index.services.divination.title'), url: `${siteUrl}/${locale}/divination/` },
+        { '@type': 'ListItem', position: 5, name: t(locale, 'index.services.fengshui.title'), url: `${siteUrl}/${locale}/fengshui/` },
         { '@type': 'ListItem', position: 6, name: t(locale, 'index.services.bond.title'), url: `${siteUrl}/${locale}/hepan/` },
       ],
     },
@@ -106,6 +106,7 @@ const homeSchema = {
         <h3 class="font-serif">{t(locale, 'index.services.bazi.title')}</h3>
         <p>{t(locale, 'index.services.bazi.desc')}</p>
         <LikiChatCta locale={locale} service="bazi" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/bazi/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.mingshu.title')}</h3>
@@ -117,11 +118,13 @@ const homeSchema = {
         <h3 class="font-serif">{t(locale, 'index.services.divination.title')}</h3>
         <p>{t(locale, 'index.services.divination.desc')}</p>
         <LikiChatCta locale={locale} service="divination" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/divination/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.fengshui.title')}</h3>
         <p>{t(locale, 'index.services.fengshui.desc')}</p>
         <LikiChatCta locale={locale} service="fengshui" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/fengshui/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.bond.title')}</h3>

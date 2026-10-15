@@ -1,0 +1,48 @@
+---
+import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import { t, locales } from '../../i18n.js';
+
+export function getStaticPaths() {
+  return locales.map(locale => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+const ns = 'scenario.divination';
+const benefits = ['structure', 'insight', 'timing', 'action'].map(key => `${ns}.benefit.${key}`);
+const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
+const questions = ['q1', 'q2', 'q3'].map(key => `${ns}.${key}`);
+const faqs = ['paid', 'data', 'accuracy'].map(key => ({
+  questionKey: `scenario.faq.${key}.q`,
+  answerKey: `scenario.faq.${key}.a`,
+}));
+const staticSections = ['focus', 'method', 'output'].map(key => ({
+  title: t(locale, `${ns}.static.${key}.title`),
+  body: t(locale, `${ns}.static.${key}.body`),
+}));
+---
+
+<ScenarioLanding
+  locale={locale}
+  page="divination"
+  service="divination"
+  titleKey={`${ns}.title`}
+  subtitleKey={`${ns}.subtitle`}
+  benefitsTitleKey={`${ns}.benefitsTitle`}
+  benefitKeys={benefits}
+  exampleTitleKey={`${ns}.exampleTitle`}
+  stepsTitleKey="scenario.stepsTitle"
+  stepKeys={steps}
+  questionsTitleKey={`${ns}.questionsTitle`}
+  questionKeys={questions}
+  faqTitleKey="scenario.faqTitle"
+  faqs={faqs}
+>
+  <div class="scenario-static-index">
+    {staticSections.map(section => (
+      <details>
+        <summary>{section.title}</summary>
+        <p>{section.body}</p>
+      </details>
+    ))}
+  </div>
+</ScenarioLanding>

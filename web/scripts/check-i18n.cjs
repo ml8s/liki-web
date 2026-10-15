@@ -271,6 +271,23 @@ function addKnownCompoundKeys(used) {
     used.add(`scenario.hepan.static.${section}.title`);
     used.add(`scenario.hepan.static.${section}.body`);
   }
+  // Capability landing pages share one content shape (see ScenarioLanding.astro):
+  // title/subtitle/benefitsTitle/exampleTitle/questionsTitle, q1..q3, a fixed
+  // benefit set, and the focus/method/output static sections.
+  for (const scenario of ['bazi', 'divination', 'fengshui', 'huangli']) {
+    for (const key of ['title', 'subtitle', 'benefitsTitle', 'exampleTitle', 'questionsTitle']) {
+      used.add(`scenario.${scenario}.${key}`);
+    }
+    for (let n = 1; n <= 3; n++) used.add(`scenario.${scenario}.q${n}`);
+    for (const benefit of ['structure', 'insight', 'timing', 'action']) {
+      used.add(`scenario.${scenario}.benefit.${benefit}.title`);
+      used.add(`scenario.${scenario}.benefit.${benefit}.body`);
+    }
+    for (const section of ['focus', 'method', 'output']) {
+      used.add(`scenario.${scenario}.static.${section}.title`);
+      used.add(`scenario.${scenario}.static.${section}.body`);
+    }
+  }
   for (const f of ['name','gender','quote','source','footer']) {
     for (let n=1;n<=36;n++) used.add(`naming.example.${f}${n}`);
   }

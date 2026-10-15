@@ -81,6 +81,10 @@ Domain-specific states are listed in the route inventory below.
 | `/{locale}/naming` | scenario SEO | open naming scenario | CTA sends `/app?scenario=naming` |
 | `/{locale}/mingshu` | scenario SEO | open mingshu scenario | CTA sends `/app?scenario=mingshu` |
 | `/{locale}/hepan` | scenario SEO | open hepan scenario | CTA sends `/app?scenario=hepan` |
+| `/{locale}/bazi` | capability SEO | open bazi service | CTA sends `/app?service=bazi` |
+| `/{locale}/divination` | capability SEO | open divination service | CTA sends `/app?service=divination` |
+| `/{locale}/fengshui` | capability SEO | open fengshui service | CTA sends `/app?service=fengshui` |
+| `/{locale}/huangli` | capability SEO | open huangli service | CTA sends `/app?service=huangli` |
 | `/{locale}/skills` | capability discovery | install the Liki skill | human-facing localized page; public and SEO-discoverable |
 | `/skills` | localized entry | choose language by `Accept-Language` | redirects to one of the localized Skills pages |
 | `/skills/liki/SKILL.md` | agent artifact | install raw skill metadata | stable resource; not the human-facing page |

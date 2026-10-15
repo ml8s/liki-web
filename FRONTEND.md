@@ -63,9 +63,11 @@ speculative work. There is intentionally no idle preload of every route.
 
 ### Scenario handoff
 
-Marketing pages use `/app?scenario=naming|mingshu|hepan&locale=…`. The app keeps
-the locale, authenticates the user, resolves the scenario after profile data has
-loaded, and falls unknown scenarios back to the general workspace.
+Marketing pages use `/app?scenario=naming|mingshu|hepan&locale=…` for the
+retired report scenarios and `/app?service=bazi|divination|fengshui|huangli&locale=…`
+for the App services. The app keeps the locale, authenticates the user, resolves
+the scenario or service after profile data has loaded, and falls unknown values
+back to the general workspace.
 
 ## State
 
@@ -280,6 +282,15 @@ referral targets. Referral redirects support only allowlisted same-origin
 marketing paths or the App home. The detailed URL, sharing, and result-state
 policy lives in
 [`docs/frontend/ux-architecture.md`](docs/frontend/ux-architecture.md).
+
+## Capability pages
+
+The public `/bazi`, `/divination`, `/fengshui`, and `/huangli` pages are the SEO
+landing pages for the four App services. They share one component
+(`web/src/components/ScenarioLanding.astro`), explain a single service, and send
+the visitor to `/app?service=…`; the home page service cards link to them. The
+raw App routes stay private — these pages exist so each service has a public,
+indexable entry point that ends in the app.
 
 ## Retired product pages
 
