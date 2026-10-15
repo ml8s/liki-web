@@ -32,8 +32,8 @@ test.describe('Accessibility audit', () => {
         .analyze();
 
       // Group violations by impact for readable output.
-      const byImpact = { critical: [], serious: [], moderate: [], minor: [] };
-      const nodeDetails = [];
+      const byImpact: Record<string, string[]> = { critical: [], serious: [], moderate: [], minor: [] };
+      const nodeDetails: string[] = [];
       for (const v of results.violations) {
         byImpact[v.impact || 'minor'].push(`${v.id}: ${v.help} (${v.nodes.length} nodes)`);
         if (v.impact === 'critical' || v.impact === 'serious') {

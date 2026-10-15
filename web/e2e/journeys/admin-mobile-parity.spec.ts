@@ -1,13 +1,13 @@
-// @ts-check
 // 后台的移动端不是另一套页面：桌面表格与移动卡片必须给出同样的关键字段。
 // 这个套件按视图表驱动，用同一份模拟数据分别断言两种形态，避免「卡片漏字段 /
 // 表格显示原始码」这类只在一侧出现的偏差悄悄回归。
-import { test, expect } from '../fixtures.js'
+import { test, expect } from '../fixtures'
+import type {Page} from '@playwright/test'
 
 const adminUser = { id: 'user-admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hans' }
 const pageMeta = { page: 1, page_size: 50, total: 1, has_more: false }
 
-async function mockAdmin(page, capabilities) {
+async function mockAdmin(page: Page, capabilities: string[]) {
   await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
   await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
   await page.route('**/api/admin/session', route => route.fulfill({
@@ -15,14 +15,25 @@ async function mockAdmin(page, capabilities) {
   }))
 }
 
-async function mockData(page, pattern, data) {
+async function mockData(page: Page, pattern: string, data: unknown) {
   await page.route(pattern, route => route.fulfill({ json: { data } }))
 }
 
 // anchor 必须同时出现在表格行与卡片里；texts 只用标识符、金额、状态标签，
 // 不使用日期/时间（随时区与语言变化）。table 默认取页面上所有表格，页面另有
 // 非记录类表格（如财务周期汇总）时按用例收窄。
-const cases = [
+interface AdminCase {
+  name: string
+  path: string
+  capabilities: string[]
+  api: [string, unknown][]
+  anchor: string
+  texts: string[]
+  table?: string
+  prepare?: (page: Page) => Promise<void>
+}
+
+const cases: AdminCase[] = [
   {
     name: '订单',
     path: '/app/admin/orders',

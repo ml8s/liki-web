@@ -1,9 +1,9 @@
-// @ts-check
 // 登录全程旅程：未登录带场景访问 → 邮箱验证码登录 → 应回到原始场景。
 // 防回归：redirect 曾经丢 base 前缀，登录后落到 /app/app（404 视图）。
 import { test, expect } from '@playwright/test'
+import type {Page} from '@playwright/test'
 
-const json = data => ({
+const json = (data: unknown) => ({
   status: 200,
   contentType: 'application/json',
   body: JSON.stringify({ data }),
@@ -13,7 +13,7 @@ const user = {
   id: 'usr_login_journey', email: 'login-journey@example.com', status: 'active', locale: 'zh-Hant',
 }
 
-async function mockLoginApis(page) {
+async function mockLoginApis(page: Page) {
   await page.route('**/api/me', route => route.fulfill({
     status: 401,
     contentType: 'application/json',
@@ -34,7 +34,7 @@ async function mockLoginApis(page) {
   await page.route('**/api/analytics/pageview', route => route.fulfill(json({})))
 }
 
-async function login(page) {
+async function login(page: Page) {
   await page.getByLabel(/郵箱|邮箱|email/i).fill(`journey-${Date.now()}@example.com`)
   await page.getByRole('button', { name: /取得|获取|get code/i }).click()
   await page.getByLabel(/驗證碼|验证码|verification code/i).fill('123456')

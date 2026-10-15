@@ -3,12 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npx astro build",
-    "preview": "npx astro preview",
-    "test:e2e": "npx playwright test --config e2e/playwright.config.js",
-    "test:e2e:ui": "npx playwright test --ui --config e2e/playwright.config.js",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test --ui --config e2e/playwright.config.ts",
     "lint": "eslint .",
-    "typecheck": "astro check",
+    "typecheck": "astro check && tsc --noEmit -p e2e/tsconfig.json",
+    "test": "vitest run test/",
     "check:inline-scripts": "node scripts/check-inline-scripts.js",
     "lint:docs": "npx --yes markdownlint-cli2@0.23.3 --config ../.markdownlint-cli2.jsonc \"../README.md\" \"../ARCHITECTURE.md\" \"../DOMAIN_MODEL.md\" \"../API.md\" \"../FRONTEND.md\" \"../LEGACY_PRODUCTS.md\" \"../CONTRIBUTING.md\" \"../SECURITY.md\" \"../docs/**/*.md\""
   },

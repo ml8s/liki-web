@@ -1,5 +1,4 @@
-// @ts-check
-import { test, expect } from '../fixtures.js';
+import { test, expect } from '../fixtures';
 
 test.use({ locale: 'zh-Hant' });
 
@@ -15,7 +14,7 @@ const protectedPages = [
   { path: '/app/account', heading: '帳戶設定' },
 ];
 
-const json = data => ({
+const json = (data: unknown) => ({
   status: 200,
   contentType: 'application/json',
   body: JSON.stringify({ data }),
@@ -23,7 +22,7 @@ const json = data => ({
 
 test.describe('Authenticated app shell', () => {
   test('login page mounts without runtime errors', async ({ page }) => {
-    const errors = [];
+    const errors: Error[] = [];
     page.on('pageerror', error => errors.push(error));
     await page.goto('/app/login');
     await expect(page).toHaveURL(/\/app\/login$/);

@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures.js'
+import { test, expect } from '../fixtures'
 
 const adminUser = { id: 'user-admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hans' }
 
@@ -75,7 +75,7 @@ test.describe('Vue admin finance and compensation', () => {
   })
 
   test('grants a templated entitlement compensation', async ({ page }) => {
-    const compensations = []
+    const compensations: unknown[] = []
     await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
     await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
     await page.route('**/api/admin/session', route => route.fulfill({

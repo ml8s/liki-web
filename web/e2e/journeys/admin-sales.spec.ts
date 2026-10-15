@@ -1,18 +1,18 @@
-// @ts-check
 // 销售后台（订单 / 订阅）列表：表格数据、状态标签、服务端分页元数据，以及缺少
 // sales.read 时的能力边界。分页契约（扁平 page/page_size/total）此前与客户端
 // 读取方式不一致，导致页脚永远停在第 1 页——这里守住修复后的行为。
-import { test, expect } from '../fixtures.js'
+import { test, expect } from '../fixtures'
+import type {Page} from '@playwright/test'
 
 const adminUser = { id: 'user-admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hans' }
 
-const order = (id, status) => ({
+const order = (id: string, status: string) => ({
   id, user_id: 'user-1', email: 'customer@example.com', product_id: 'liki-chat',
   amount_minor: 1000, currency: 'USD', status, payment_intent_id: `pi_${id}`,
   created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z', paid_at: null,
 })
 
-const subscription = (id, status) => ({
+const subscription = (id: string, status: string) => ({
   id, user_id: 'user-1', email: 'customer@example.com', product_id: 'liki-chat',
   billing_mode: 'subscription', provider: 'dodo', provider_subscription_id: `dodo_${id}`,
   status, currency_code: 'USD', current_period_start: '2026-10-01T00:00:00Z',
@@ -21,7 +21,7 @@ const subscription = (id, status) => ({
   created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z',
 })
 
-async function mockAdmin(page, capabilities) {
+async function mockAdmin(page: Page, capabilities: string[]) {
   await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }))
   await page.route('**/api/me', route => route.fulfill({ json: { data: adminUser } }))
   await page.route('**/api/admin/session', route => route.fulfill({
@@ -30,7 +30,7 @@ async function mockAdmin(page, capabilities) {
 }
 
 test('orders list renders rows and follows server pagination', async ({ page }) => {
-  const pages = []
+  const pages: number[] = []
   await mockAdmin(page, ['sales.read'])
   await page.route('**/api/admin/sales/orders*', route => {
     const current = Number(new URL(route.request().url()).searchParams.get('page') ?? 1)

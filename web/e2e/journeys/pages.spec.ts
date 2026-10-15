@@ -3,13 +3,22 @@
 //          unresolved i18n keys (raw key text leaked to page).
 // Render markers are null for static resources. Framework check uses FOUC guard.
 
-import { test, expect } from '../fixtures.js';
-import { I18N_KEY_RE } from '../helpers.js';
+import { test, expect } from '../fixtures';
+import { I18N_KEY_RE } from '../helpers';
 
 // Analytics is non-essential; the shared localhost CI client can hit its rate limit.
 
 // Pages to test with their framework-specific render marker and i18n content checks.
-const PAGES = [
+interface PageCase {
+  path: string
+  name: string
+  marker?: string | null
+  resource?: boolean
+  skipI18nCheck?: boolean
+  checks?: { selector: string; text: string }[]
+}
+
+const PAGES: PageCase[] = [
   { path: '/zh-Hans/naming', name: 'naming (static)',
     checks: [
       { selector: '.font-brand', text: 'Liki' },
@@ -127,7 +136,7 @@ test.describe('Static page interactions', () => {
   });
 
   test('home analytics sends a first-party path-only pageview', async ({ page }) => {
-    const pageviews = [];
+    const pageviews: unknown[] = [];
     await page.route('**/api/analytics/pageview', async (route) => {
       pageviews.push(route.request().postDataJSON());
       await route.fulfill({ status: 204 });
@@ -181,7 +190,7 @@ test.describe('Static page interactions', () => {
   test('skills page copies install commands with temporary feedback', async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'clipboard', {
-        value: { writeText: (text) => Promise.resolve(text) },
+        value: { writeText: (text: string) => Promise.resolve(text) },
       });
     });
 
@@ -197,7 +206,7 @@ test.describe('Static page interactions', () => {
 test.describe('Smoke — all pages render without errors or warnings', () => {
   for (const { path, marker, name, checks, resource, skipI18nCheck } of PAGES) {
     test(`${name}: ${path}`, async ({ page }) => {
-      const consoleProblems = [];
+      const consoleProblems: string[] = [];
       await page.route('**/api/analytics/pageview', route => route.fulfill({ status: 204 }));
       page.on('console', msg => {
         if ((msg.type() === 'error' || msg.type() === 'warning') && !(msg.location().url || '').includes('favicon')) {
@@ -218,7 +227,7 @@ test.describe('Smoke — all pages render without errors or warnings', () => {
 
       // Static resources: just verify HTTP 200.
       if (resource) {
-        expect(resp.status()).toBe(200);
+        expect(resp?.status()).toBe(200);
         return;
       }
 
@@ -281,8 +290,8 @@ test.describe('OG / Twitter meta tags', () => {
 
   test('OG image is accessible', async ({ page }) => {
     const resp = await page.goto('/img/og-image.png');
-    expect(resp.status()).toBe(200);
-    const ct = resp.headers()['content-type'];
+    expect(resp?.status()).toBe(200);
+    const ct = resp?.headers()['content-type'] ?? '';
     expect(ct).toMatch(/^image\/png/);
   });
 });
@@ -299,7 +308,7 @@ test.describe('Images load without error', () => {
         const img = imgs.nth(i);
         const src = await img.getAttribute('src');
         if (!src || src.startsWith('data:')) continue;
-        const w = await img.evaluate(el => el.naturalWidth);
+        const w = await img.evaluate(el => (el as HTMLImageElement).naturalWidth);
         if (w === 0) throw new Error(`Broken image on /zh-Hans/${page}: src="${src}"`);
       }
     });

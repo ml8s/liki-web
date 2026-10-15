@@ -1,10 +1,10 @@
-// @ts-check
-import { test, expect } from '../fixtures.js'
+import { test, expect } from '../fixtures'
+import type {Page} from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 test.use({ locale: 'zh-Hant' })
 
-const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
+const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 
 const user = { id: 'usr_test', email: 'user@example.com', status: 'active', locale: 'zh-Hant' }
 const entitlements = { entitlements: [], allowed_skills: ['liki'] }
@@ -54,7 +54,7 @@ const pages = [
   { path: '/app/this-route-does-not-exist', name: 'not-found', marker: '.not-found' },
 ]
 
-async function mockProductWorkspace(page) {
+async function mockProductWorkspace(page: Page) {
   await page.route('**/api/me', r => r.fulfill(json(user)))
   await page.route('**/api/me/entitlements', r => r.fulfill(json(entitlements)))
   await page.route('**/api/birth-profiles**', r => {
@@ -79,7 +79,7 @@ async function mockProductWorkspace(page) {
   await page.route('**/api/partner-portal/scout/**', r => r.fulfill(json({})))
 }
 
-async function audit(page, path) {
+async function audit(page: Page, path: string) {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze()

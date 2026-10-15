@@ -264,4 +264,4 @@ jobs:
           if [ "$i" = "30" ]; then echo "Server failed" >&2; exit 1; fi
 
       - name: Run E2E
-        run: cd web && BASE_URL=http://localhost:8080 npx playwright test --config e2e/playwright.config.js --ignore-snapshots
+        run: cd web && BASE_URL=http://localhost:8080 npx playwright test --config e2e/playwright.config.ts --ignore-snapshots

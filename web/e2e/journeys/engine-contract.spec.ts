@@ -1,12 +1,12 @@
-// @ts-check
 // 引擎契约回归：用「真实引擎输出形状」渲染免费排盘与合盘，防止字段漂移被假 mock 掩盖。
 // 排盘/合盘 = 前端调用 web BFF，BFF 服务端调用 engine-mcp（只读）。
-import { test, expect } from '../fixtures.js'
+import { test, expect } from '../fixtures'
+import type {Page} from '@playwright/test'
 import { ENGINE_TOOLS } from '../../app/src/api/engine'
 
 test.use({ locale: 'zh-Hant' })
 
-const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
+const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 
 const user = { id: 'usr_test', email: 'user@example.com', status: 'active', locale: 'zh-Hant' }
 const profile = {
@@ -107,10 +107,10 @@ const huangliDays = {
   unsuitable: [{ date: '2026-10-09', suitability: 'unsuitable', reason: '诸事不宜' }],
 }
 
-function routeEngine(page) {
+function routeEngine(page: Page) {
   return page.route('**/api/engine/tools/*', async route => {
     const tool = new URL(route.request().url()).pathname.split('/').pop()
-    let data
+    let data: unknown
     switch (tool) {
       case ENGINE_TOOLS.CityCoords: data = { longitude: 121.47, latitude: 31.23 }; break
       case ENGINE_TOOLS.TianwenTime: data = { solar: '1958-05-12T06:00:00+08:00', lunar: { year: 1958, month: 4, day: 24 } }; break
@@ -129,7 +129,7 @@ function routeEngine(page) {
   })
 }
 
-function routeApp(page) {
+function routeApp(page: Page) {
   page.route('**/api/me', r => r.fulfill(json(user)))
   page.route('**/api/me/entitlements', r => r.fulfill(json({ entitlements: [], allowed_skills: ['liki'] })))
 }

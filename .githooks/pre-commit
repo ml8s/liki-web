@@ -23,7 +23,7 @@ node web/scripts/check-i18n.js
 
 echo "=== vitest ==="
 if [ -d web/node_modules ]; then
-  (cd web && npx vitest run test/)
+  (cd web && npm run test)
 else
   echo "vitest: skipped (npm install required)"
 fi

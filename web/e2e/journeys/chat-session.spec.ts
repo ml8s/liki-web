@@ -1,11 +1,11 @@
-// @ts-check
 // 会话页的两条体验底线：流式生成失败必须给出可重试的明确反馈（并能真的重发成功）；
 // 窄屏下必须能读能发、不横向溢出。这两处在单测里无法覆盖。
-import { test, expect } from '../fixtures.js'
+import { test, expect } from '../fixtures'
+import type {Page} from '@playwright/test'
 
-const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
-const sse = events => events.map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
-const stream = body => ({ status: 200, contentType: 'text/event-stream', body })
+const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
+const sse = (events: unknown[]) => events.map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
+const stream = (body: string) => ({ status: 200, contentType: 'text/event-stream', body })
 
 const user = { id: 'usr_chat', email: 'chat@example.com', status: 'active', locale: 'zh-Hant' }
 const session = {
@@ -13,7 +13,7 @@ const session = {
   status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   last_message_at: null,
 }
-const message = (id, role, content) => ({
+const message = (id: string, role: string, content: string) => ({
   id, session_id: session.id, user_id: user.id, role, kind: 'text', content,
   created_at: '2026-01-01T00:01:00Z',
 })
@@ -38,7 +38,7 @@ const successStream = sse([
   },
 ])
 
-async function mockSession(page, messages) {
+async function mockSession(page: Page, messages: unknown[]) {
   await page.route('**/api/**', route => route.fulfill(json({})))
   await page.route('**/api/me', route => route.fulfill(json(user)))
   await page.route('**/api/me/entitlements', route => route.fulfill(json({ entitlements: [], allowed_skills: ['liki'] })))
@@ -47,7 +47,7 @@ async function mockSession(page, messages) {
 }
 
 test('a failed stream offers retry and resending succeeds', async ({ page }) => {
-  const sends = []
+  const sends: unknown[] = []
   await mockSession(page, [])
   await page.route('**/api/chat/sessions/chat_1/ag-ui', route => {
     sends.push(route.request().postDataJSON())
@@ -100,7 +100,7 @@ test('the conversation owns the viewport and follows the keyboard', async ({ pag
   await expect.poll(() => thread.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
   await expect.poll(distanceToEnd).toBeLessThan(40)
   expect(await composerFits()).toBe(true)
-  expect(await page.evaluate(() => document.scrollingElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(1)
+  expect(await page.evaluate(() => (document.scrollingElement?.scrollHeight ?? 0) - window.innerHeight)).toBeLessThanOrEqual(1)
 
   await page.setViewportSize({ width: 1280, height: 500 })
   await page.evaluate(() => window.visualViewport?.dispatchEvent(new Event('resize')))

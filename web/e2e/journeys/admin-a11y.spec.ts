@@ -1,8 +1,7 @@
-// @ts-check
-import { test, expect } from '../fixtures.js'
+import { test, expect } from '../fixtures'
 import AxeBuilder from '@axe-core/playwright'
 
-const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
+const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const adminUser = { id: 'usr_admin', email: 'admin@example.com', status: 'active', locale: 'zh-Hant' }
 const capabilities = [
   'entitlement.read', 'entitlement.manage', 'partner.read', 'partner.approve', 'partner.freeze',

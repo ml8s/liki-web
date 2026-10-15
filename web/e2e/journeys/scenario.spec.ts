@@ -1,7 +1,7 @@
-// @ts-check
 import { test, expect } from '@playwright/test'
+import type {Page} from '@playwright/test'
 
-const json = data => ({
+const json = (data: unknown) => ({
   status: 200,
   contentType: 'application/json',
   body: JSON.stringify({ data }),
@@ -39,7 +39,7 @@ test.describe('Authenticated scenario handoff', () => {
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   }
 
-  async function mockAuthenticated(page, { profiles = [profile] } = {}) {
+  async function mockAuthenticated(page: Page, { profiles = [profile] }: { profiles?: unknown[] } = {}) {
     await page.route('**/api/me', route => route.fulfill(json(user)))
     await page.route('**/api/me/entitlements', route => route.fulfill(json({
       entitlements: [], allowed_skills: ['liki'],

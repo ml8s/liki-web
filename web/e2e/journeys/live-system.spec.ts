@@ -6,7 +6,7 @@ const publicUrl = new URL(process.env.BASE_URL || 'http://localhost:8080').origi
 test('full system chat journey through Caddy and AG-UI @system', async ({ page }) => {
   test.skip(!process.env.LIVE_SYSTEM_E2E, 'Set LIVE_SYSTEM_E2E=1 for the deployed system journey')
 
-  const sessionValue = process.env.LIKI_E2E_SESSION_VALUE
+  const sessionValue = process.env.LIKI_E2E_SESSION_VALUE ?? ''
   test.skip(!sessionValue, 'A seeded liki_session cookie is required')
 
   await page.context().addCookies([{
@@ -63,7 +63,7 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
 
   const messagesResponse = await page.request.get(`/api/chat/sessions/${session.id}/messages`)
   expect(messagesResponse.ok()).toBe(true)
-  const messages = (await messagesResponse.json()).data
+  const messages: { role: string; content: string }[] = (await messagesResponse.json()).data
   const persisted = messages.filter(item => item.role === 'assistant').some(item => item.content === answer)
   expect(persisted).toBe(true)
 })

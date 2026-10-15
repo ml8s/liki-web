@@ -1,4 +1,3 @@
-// @ts-check
 // 建档主路径：登录 → 新建档案 → 详情排盘 → 列表可见。真实后端（profiles API +
 // engine 排盘），登录走 DEV_MODE 验证码。CI 与本地 e2e 环境均注入 DEV_MODE。
 import { test, expect } from '@playwright/test'

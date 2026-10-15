@@ -1,4 +1,3 @@
-// @ts-check
 // 骨架一致性：全站每个静态页共享同一 header（brand link + slogan，无返回链）
 // 与同一 footer（探索/法律两组）。差异化只允许发生在正文区。
 import { test, expect } from '@playwright/test'

@@ -1,9 +1,9 @@
-// @ts-check
 // 编辑保存的反馈：版本冲突（其他设备已改）必须看到原因且保留草稿；保存成功才关闭表单。
 // 加载失败有独立页面态，这里覆盖的是「编辑态内」的失败路径。
-import { test, expect } from '../fixtures.js'
+import { test, expect } from '../fixtures'
+import type {Page, Route} from '@playwright/test'
 
-const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
+const json = (data: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const user = { id: 'usr_profile', email: 'profile@example.com', status: 'active', locale: 'zh-Hant' }
 const profile = {
   id: 'p_1', user_id: user.id, version: 3, nickname: '媽媽', name: '', gender: 'female',
@@ -12,7 +12,7 @@ const profile = {
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
 
-async function mockDetail(page, onPatch) {
+async function mockDetail(page: Page, onPatch: (route: Route) => unknown) {
   await page.route('**/api/**', route => route.fulfill(json({})))
   await page.route('**/api/me', route => route.fulfill(json(user)))
   await page.route('**/api/me/entitlements', route => route.fulfill(json({ entitlements: [], allowed_skills: [] })))
@@ -21,7 +21,7 @@ async function mockDetail(page, onPatch) {
   ))
 }
 
-async function startEditing(page) {
+async function startEditing(page: Page) {
   await page.goto('/app/birth-profiles/p_1')
   await expect(page.getByRole('heading', { name: '媽媽' })).toBeVisible()
   await page.getByRole('button', { name: '編輯' }).click()
@@ -29,7 +29,7 @@ async function startEditing(page) {
 }
 
 test('a conflicting save keeps the form and explains the conflict', async ({ page }) => {
-  const patches = []
+  const patches: unknown[] = []
   await mockDetail(page, route => {
     patches.push(route.request().postDataJSON())
     return route.fulfill({

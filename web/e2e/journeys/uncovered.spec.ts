@@ -1,13 +1,13 @@
 // E2E smoke tests for previously uncovered pages: the 404 page.
 // Each test verifies: HTTP 200, no i18n key leaks, no console errors.
 
-import { test, expect } from '../fixtures.js';
-import { I18N_KEY_RE } from '../helpers.js';
+import { test, expect } from '../fixtures';
+import { I18N_KEY_RE } from '../helpers';
 
 test.describe('404 page', () => {
   test('renders with heading text', async ({ page }) => {
     const resp = await page.goto('/nonexistent-page');
-    expect(resp.status()).toBe(404);
+    expect(resp?.status()).toBe(404);
 
     await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
     await expect(page.locator('body')).toContainText('404');

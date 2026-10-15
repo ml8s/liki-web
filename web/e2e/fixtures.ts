@@ -1,4 +1,3 @@
-// @ts-check
 // journey 共享的 fixture。
 //
 // 契约：journey 必须显式声明它依赖的接口（用例里的 page.route）。没声明的 /api 请求
@@ -13,7 +12,7 @@ import { test as base, expect } from '@playwright/test';
 
 // 匹配用 URL 谓词而不是 `**/api/**` 这类 glob：只认 HTTP API 命名空间，
 // 不会把 dev server 的 /src/api/*.ts 模块请求当成 API 调用。
-const isApiRequest = url => url.pathname.startsWith('/api/');
+const isApiRequest = (url: URL) => url.pathname.startsWith('/api/');
 
 const test = base.extend({
   context: async ({ context }, use) => {
