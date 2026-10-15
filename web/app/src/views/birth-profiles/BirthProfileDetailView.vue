@@ -98,6 +98,7 @@ import type { BirthProfileInput } from '@/api/birth-profiles'
 import { chatServices, chatUrl, serviceByKey } from '@/config/chat'
 import PaipanPreview from '@/components/birth-profiles/PaipanPreview.vue'
 import BirthProfileInfo from '@/components/birth-profiles/BirthProfileInfo.vue'
+import { useUnloadGuard } from '@/composables/useUnloadGuard'
 
 const route = useRoute()
 const router = useRouter()
@@ -112,6 +113,9 @@ const profileId = computed(() => String(route.params.id ?? ''))
 const detail = computed(() => profiles.detail)
 const error = computed(() => profiles.error)
 const preselectedService = computed(() => (preselectedKey.value ? serviceByKey(preselectedKey.value) : undefined))
+const editingInfo = computed(() => Boolean(infoRef.value?.isEditing && infoRef.value?.isDirty))
+
+useUnloadGuard(editingInfo)
 
 async function load() {
   await profiles.loadDetail(profileId.value)

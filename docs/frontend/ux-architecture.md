@@ -65,6 +65,10 @@ only when the domain cannot produce it.
 | Partial success | preserve user input and explain what failed |
 | Mobile fallback | card/list equivalent with the same critical fields as desktop |
 
+Forms that create or edit durable data must track dirty state. A router guard asks
+the user to confirm in-app navigation, and the browser unload guard protects
+refresh/close.
+
 Domain-specific states are listed in the route inventory below.
 
 ## Route inventory

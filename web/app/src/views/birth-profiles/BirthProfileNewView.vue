@@ -28,6 +28,7 @@
     <BirthForm
       :submitting="submitting"
       :initial="draft ?? undefined"
+      @dirty="isDirty = $event"
       @submit="submit"
     />
   </section>
@@ -36,9 +37,11 @@
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
+import { useUnloadGuard } from '@/composables/useUnloadGuard'
+import { ElMessageBox } from 'element-plus'
 import type { BirthProfileInput } from '@/api/birth-profiles'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
 
@@ -49,6 +52,27 @@ const submitting = ref(false)
 const error = ref('')
 const draft = ref<Partial<BirthProfileInput> | null>(null)
 const draftLoaded = ref(false)
+const isDirty = ref(false)
+
+useUnloadGuard(isDirty)
+
+onBeforeRouteLeave(async () => {
+  if (!isDirty.value) return true
+  try {
+    await ElMessageBox.confirm(
+      t('profiles.detail.unsavedBody'),
+      t('profiles.detail.unsavedTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('profiles.detail.leave'),
+        cancelButtonText: t('profiles.detail.keepEditing'),
+      },
+    )
+    return true
+  } catch {
+    return false
+  }
+})
 
 // 主页免费排盘钩子（草稿续算）：同步读 sessionStorage 预填出生信息，读后清除。
 // 必须在 BirthForm setup 前读到（其内部 ref 从 initial 初始化一次）。
@@ -79,6 +103,7 @@ async function submit(input: BirthProfileInput) {
   error.value = ''
   try {
     const profile = await profiles.create(input)
+    isDirty.value = false
     await router.push(`/birth-profiles/${profile.id}`)
   } catch (err) {
     error.value = toUserMessage(err, t('profiles.saveFailed'))
