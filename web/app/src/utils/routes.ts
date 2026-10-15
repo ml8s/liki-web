@@ -23,6 +23,28 @@ export function resolveBrowserHref(router: Router, href: string): RouteLocationR
 }
 
 /**
+ * Preload one route when an operator expresses intent. This keeps a shared
+ * contract across the product sidebar, mobile tabbar, and capability-scoped
+ * Admin navigation without reintroducing an idle full-route preload.
+ */
+export function createIntentPreloader(
+  router: Router,
+  allow?: (record: RouteRecordNormalized) => boolean,
+): (event: Event) => void {
+  return event => {
+    if (!idlePreloadAllowed()) return
+    const target = event.currentTarget
+    const href = target instanceof Element ? target.getAttribute('href') : null
+    if (!href) return
+
+    const resolved = resolveBrowserHref(router, href)
+    const records = router.getRoutes().filter(record => record.name === resolved.name)
+    if (!records.length || (allow && !records.every(allow))) return
+    void preloadRouteComponents(records)
+  }
+}
+
+/**
  * Small operators and data-saver sessions pay a higher cost for speculative
  * chunks. They still work normally; only background prefetch is skipped.
  */

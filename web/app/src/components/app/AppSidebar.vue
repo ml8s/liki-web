@@ -15,18 +15,24 @@
         <router-link
           to="/"
           exact-active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           {{ $t('nav.workspace') }}
         </router-link>
         <router-link
           to="/birth-profiles"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           {{ $t('nav.profiles') }}
         </router-link>
         <router-link
           to="/chat"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           {{ $t('nav.chat') }}
         </router-link>
@@ -38,12 +44,16 @@
         <router-link
           to="/orders"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           {{ $t('nav.orders') }}
         </router-link>
         <router-link
           to="/account"
           active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           {{ $t('nav.account') }}
         </router-link>
@@ -55,6 +65,8 @@
         <router-link
           to="/partners"
           exact-active-class="on"
+          @pointerenter="preloadNavigation"
+          @focusin="preloadNavigation"
         >
           {{ $t('nav.partner') }}
         </router-link>
@@ -75,8 +87,14 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { createIntentPreloader } from '@/utils/routes'
+
 defineProps<{ email: string }>()
 defineEmits<{ logout: [] }>()
+
+const router = useRouter()
+const preloadNavigation = createIntentPreloader(router, record => !String(record.name ?? '').startsWith('admin-'))
 </script>
 
 <style scoped>

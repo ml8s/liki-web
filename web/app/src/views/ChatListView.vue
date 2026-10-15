@@ -135,7 +135,7 @@
         >
           <el-button
             type="primary"
-            tag="a"
+            tag="router-link"
             to="/birth-profiles/new"
           >
             {{ $t('profiles.create') }}

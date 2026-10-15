@@ -35,15 +35,17 @@
         shadow="never"
       >
         <template #header>
-          <div class="card-head">
-            <span>{{ $t('partner.scout.inviteLink') }}</span>
-            <el-button
-              size="small"
-              @click="copy(referralLink)"
-            >
-              {{ $t('common.copy') }}
-            </el-button>
-          </div>
+          <PartnerCardHeader>
+            {{ $t('partner.scout.inviteLink') }}
+            <template #actions>
+              <el-button
+                size="small"
+                @click="copy(referralLink)"
+              >
+                {{ $t('common.copy') }}
+              </el-button>
+            </template>
+          </PartnerCardHeader>
         </template>
         <el-input
           v-model="referralLink"
@@ -155,16 +157,18 @@
         shadow="never"
       >
         <template #header>
-          <div class="card-head">
-            <span>{{ $t('partner.payouts') }}</span>
-            <el-button
-              type="primary"
-              size="small"
-              @click="payoutVisible = true"
-            >
-              {{ $t('partner.settlement.requestPayout') }}
-            </el-button>
-          </div>
+          <PartnerCardHeader>
+            {{ $t('partner.payouts') }}
+            <template #actions>
+              <el-button
+                type="primary"
+                size="small"
+                @click="payoutVisible = true"
+              >
+                {{ $t('partner.settlement.requestPayout') }}
+              </el-button>
+            </template>
+          </PartnerCardHeader>
         </template>
         <el-alert
           :title="$t('partner.payoutRules')"
@@ -302,6 +306,7 @@ import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import PartnerSettlement from '@/components/partner/PartnerSettlement.vue'
+import PartnerCardHeader from '@/components/partner/PartnerCardHeader.vue'
 import PartnerStatGrid, { type PartnerStat } from '@/components/partner/PartnerStatGrid.vue'
 import PayoutDialog from '@/components/partner/PayoutDialog.vue'
 import {
@@ -449,7 +454,6 @@ onMounted(load)
 .apply-card h2 { margin: 0 0 8px; font-size: 22px; font-weight: 700; }
 .apply-card p { margin: 0 0 18px; color: var(--liki-text-2); }
 .section-card { margin-bottom: 20px; }
-.card-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
 .rules { margin-bottom: 14px; }
 .share-hint { margin: 10px 0 0; color: var(--liki-text-2); font-size: 14px; }
 .overview-stats { margin-top: var(--space-4); }

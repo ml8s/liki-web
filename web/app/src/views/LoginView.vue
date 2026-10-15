@@ -83,7 +83,7 @@
           </el-form-item>
           <div class="code-actions">
             <el-button
-              text
+              link
               :disabled="resendIn > 0 || sending"
               :loading="sending"
               @click="resend"
@@ -91,7 +91,7 @@
               {{ resendIn > 0 ? $t('auth.resendIn', { seconds: resendIn }) : $t('auth.resend') }}
             </el-button>
             <el-button
-              text
+              link
               type="primary"
               @click="unlockEmail"
             >

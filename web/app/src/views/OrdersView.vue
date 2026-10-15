@@ -50,7 +50,7 @@
     >
       <el-button
         type="primary"
-        tag="a"
+        tag="router-link"
         to="/chat"
       >
         {{ $t('orders.unlock') }}

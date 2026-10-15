@@ -17,7 +17,7 @@
         <span class="page-title">{{ pageTitle }}</span>
         <el-button
           size="small"
-          text
+          link
           @click="logout"
         >
           {{ $t('nav.logout') }}
@@ -79,6 +79,8 @@ async function logout() {
 
 <style scoped>
 .app-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--liki-paper);
@@ -117,7 +119,13 @@ async function logout() {
   --el-button-hover-text-color: var(--liki-on-ink);
 }
 
-.app-main { padding: 24px 16px 88px; }
+.app-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 24px 16px 88px;
+}
 .app-main:focus { outline: none; }
 
 @media (min-width: 1024px) {

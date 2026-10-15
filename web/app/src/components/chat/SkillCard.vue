@@ -28,7 +28,7 @@
 
     <el-button
       v-if="!enabled && actionTo"
-      tag="a"
+      tag="router-link"
       :to="actionTo"
       type="primary"
       plain

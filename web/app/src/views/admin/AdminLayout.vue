@@ -141,38 +141,21 @@ import { useChatStore } from '@/stores/chat'
 import { useSalesStore } from '@/stores/sales-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
-import { idlePreloadAllowed, preloadRouteComponents, resolveBrowserHref } from '@/utils/routes'
+import { createIntentPreloader } from '@/utils/routes'
 
 const admin = useAdminStore()
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
+const preloadNavigation = createIntentPreloader(router, record => {
+  if (!String(record.name ?? '').startsWith('admin-')) return false
+  const capability = record.meta.adminCapability
+  return !capability || admin.can(capability)
+})
 
 onMounted(() => {
   if (admin.status === 'unknown') void admin.loadSession(true)
 })
-
-// Route-level chunks stay unprefetched until the operator expresses intent.
-// This keeps the first Admin screen light without making navigation wait on
-// a network request for a lazy view.
-function preloadNavigation(event: Event) {
-  if (!idlePreloadAllowed()) return
-  const target = event.currentTarget
-  const href = target instanceof Element ? target.getAttribute('href') : null
-  if (!href) return
-
-  const resolved = resolveBrowserHref(router, href)
-  const records = router.getRoutes().filter(candidate =>
-    candidate.name === resolved.name
-    && String(candidate.name ?? '').startsWith('admin-'),
-  )
-  if (records.some(record => {
-    const capability = record.meta.adminCapability
-    return capability && !admin.can(capability)
-  })) return
-
-  void preloadRouteComponents(records)
-}
 
 // Horizontal admin nav collapses on small operators. Keep the active item in
 // view so the current route is never hidden by scroll position.

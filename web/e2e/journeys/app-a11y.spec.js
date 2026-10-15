@@ -54,43 +54,67 @@ const pages = [
   { path: '/app/this-route-does-not-exist', name: 'not-found', marker: '.not-found' },
 ]
 
+async function mockProductWorkspace(page) {
+  await page.route('**/api/me', r => r.fulfill(json(user)))
+  await page.route('**/api/me/entitlements', r => r.fulfill(json(entitlements)))
+  await page.route('**/api/birth-profiles**', r => {
+    if (r.request().url().endsWith('/birth-profiles/p_1')) return r.fulfill(json(profile))
+    return r.fulfill(json({ profiles: [profile], next_cursor: '' }))
+  })
+  await page.route('**/api/chat/sessions', r => r.fulfill(json([session])))
+  await page.route('**/api/chat/sessions/chat_1', r => r.fulfill(json(session)))
+  await page.route('**/api/chat/sessions/chat_1/messages', r => r.fulfill(json([message])))
+  await page.route('**/api/sales/products', r => r.fulfill(json({ products: [product] })))
+  await page.route('**/api/sales/orders', r => r.fulfill(json({ orders: [order] })))
+  await page.route('**/api/sales/subscriptions', r => r.fulfill(json([])))
+  await page.route('**/api/sales/subscription-payments', r => r.fulfill(json([])))
+  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
+  // Partner 面：kol/scout 深状态 mock 从简，覆盖骨架的错误/空态即可。
+  await page.route('**/api/partner-portal', r => r.fulfill(json({
+    kol: { status: '', application: null, can_submit: true },
+    scout: { status: '', application: null, can_submit: true },
+  })))
+  await page.route('**/api/partner-portal/kol/**', r => r.fulfill(json({})))
+  await page.route('**/api/partner-portal/scout/**', r => r.fulfill(json({})))
+}
+
+async function audit(page, path) {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze()
+  const criticalSerious = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious')
+  expect(criticalSerious, `a11y violations on ${path}:\n` + criticalSerious
+    .map(v => `${v.id}: ${v.nodes.length} nodes [${v.nodes.map(n => n.target.join(' ')).join('; ')}]`)
+    .join('\n')).toEqual([])
+}
+
 test.describe('App accessibility audit', () => {
   for (const { path, name, marker } of pages) {
     test(`${name}: ${path}`, async ({ page }) => {
-      await page.route('**/api/me', r => r.fulfill(json(user)))
-      await page.route('**/api/me/entitlements', r => r.fulfill(json(entitlements)))
-      await page.route('**/api/birth-profiles**', r => {
-        if (r.request().url().endsWith('/birth-profiles/p_1')) return r.fulfill(json(profile))
-        return r.fulfill(json({ profiles: [profile], next_cursor: '' }))
-      })
-      await page.route('**/api/chat/sessions', r => r.fulfill(json([session])))
-      await page.route('**/api/chat/sessions/chat_1', r => r.fulfill(json(session)))
-      await page.route('**/api/chat/sessions/chat_1/messages', r => r.fulfill(json([message])))
-      await page.route('**/api/sales/products', r => r.fulfill(json({ products: [product] })))
-      await page.route('**/api/sales/orders', r => r.fulfill(json({ orders: [order] })))
-      await page.route('**/api/sales/subscriptions', r => r.fulfill(json([])))
-      await page.route('**/api/sales/subscription-payments', r => r.fulfill(json([])))
-      await page.route('**/api/me/sessions', r => r.fulfill(json([])))
-      await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
-      // Partner 面：kol/scout 深状态 mock 从简，覆盖骨架的错误/空态即可。
-      await page.route('**/api/partner-portal', r => r.fulfill(json({
-        kol: { status: '', application: null, can_submit: true },
-        scout: { status: '', application: null, can_submit: true },
-      })))
-      await page.route('**/api/partner-portal/kol/**', r => r.fulfill(json({})))
-      await page.route('**/api/partner-portal/scout/**', r => r.fulfill(json({})))
+      await mockProductWorkspace(page)
 
       await page.goto(path)
       await page.waitForSelector(marker, { timeout: 10000 })
       await page.waitForTimeout(200)
 
-      const results = await new AxeBuilder({ page })
-        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-        .analyze()
-      const criticalSerious = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious')
-      expect(criticalSerious, `a11y violations on ${path}:\n` + criticalSerious
-        .map(v => `${v.id}: ${v.nodes.length} nodes [${v.nodes.map(n => n.target.join(' ')).join('; ')}]`)
-        .join('\n')).toEqual([])
+      await audit(page, path)
+    })
+  }
+})
+
+test.describe('App mobile accessibility smoke', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  for (const { path, name, marker } of pages.filter(page => [
+    'dashboard', 'profiles', 'chat-list', 'chat-session', 'orders', 'account', 'partner-center',
+  ].includes(page.name))) {
+    test(`mobile ${name}: ${path}`, async ({ page }) => {
+      await mockProductWorkspace(page)
+      await page.goto(path)
+      await page.waitForSelector(marker, { timeout: 10000 })
+      await page.waitForTimeout(200)
+      await audit(page, path)
     })
   }
 })

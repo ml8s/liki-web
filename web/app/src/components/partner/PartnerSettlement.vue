@@ -1,16 +1,18 @@
 <template>
   <el-card shadow="never">
     <template #header>
-      <div class="head">
-        <span>{{ $t('partner.settlement.title', { role: title }) }}</span>
-        <el-button
-          type="primary"
-          size="small"
-          @click="payoutVisible = true"
-        >
-          {{ $t('partner.settlement.requestPayout') }}
-        </el-button>
-      </div>
+      <PartnerCardHeader>
+        {{ $t('partner.settlement.title', { role: title }) }}
+        <template #actions>
+          <el-button
+            type="primary"
+            size="small"
+            @click="payoutVisible = true"
+          >
+            {{ $t('partner.settlement.requestPayout') }}
+          </el-button>
+        </template>
+      </PartnerCardHeader>
     </template>
 
     <el-alert
@@ -113,6 +115,7 @@ import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import PayoutDialog from '@/components/partner/PayoutDialog.vue'
 import PartnerStatGrid, { type PartnerStat } from '@/components/partner/PartnerStatGrid.vue'
+import PartnerCardHeader from '@/components/partner/PartnerCardHeader.vue'
 import {
   fetchKOLSettlement,
   fetchScoutSettlement,
@@ -193,7 +196,6 @@ onMounted(load)
 </script>
 
 <style scoped>
-.head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
 .rules { margin-bottom: 14px; }
 .balance-stats { margin-bottom: var(--space-4); }
 </style>

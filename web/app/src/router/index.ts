@@ -19,7 +19,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: () => import('@/views/admin/AdminLayout.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true, title: 'Admin' },
+      meta: { requiresAuth: true, requiresAdmin: true, titleKey: 'router.admin' },
       children: [
         { path: '', name: 'admin-overview', component: () => import('@/views/admin/AdminOverviewView.vue') },
         { path: 'entitlements', name: 'admin-entitlements', component: () => import('@/views/admin/AdminEntitlementsView.vue'), meta: { adminCapability: 'entitlement.read' } },

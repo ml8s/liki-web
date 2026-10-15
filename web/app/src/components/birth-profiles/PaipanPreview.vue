@@ -508,7 +508,7 @@ watch(() => props.profile?.id, () => {
 .dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .dir { border: 1px solid var(--liki-line); border-radius: 6px; padding: 10px; text-align: center; }
 .dir .dg { font-size: 18px; color: var(--liki-primary); }
-.dir.good { border-color: var(--brand-success-border); background: var(--brand-success-surface); }
+.dir.good { border-color: var(--color-success-border); background: var(--color-success-surface); }
 .dir.good .dg { color: var(--el-color-success); }
 .dir .dname { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
 

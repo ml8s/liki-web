@@ -5,8 +5,8 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: var(--brand-paper);
-  color: var(--brand-primary);
+  background: var(--color-paper);
+  color: var(--color-accent);
   font-size: 20px;
   letter-spacing: 3px;
 }

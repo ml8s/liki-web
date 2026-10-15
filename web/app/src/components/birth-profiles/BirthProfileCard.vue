@@ -19,7 +19,7 @@
     <div class="actions">
       <el-button
         size="small"
-        text
+        link
         type="primary"
         @click="$emit('open', profile)"
       >
@@ -27,14 +27,14 @@
       </el-button>
       <el-button
         size="small"
-        text
+        link
         @click="$emit('edit', profile)"
       >
         {{ $t('profiles.info.edit') }}
       </el-button>
       <el-button
         size="small"
-        text
+        link
         type="danger"
         @click="$emit('remove', profile)"
       >

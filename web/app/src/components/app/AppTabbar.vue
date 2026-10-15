@@ -3,29 +3,45 @@
     <router-link
       to="/"
       exact-active-class="on"
+      @pointerenter="preloadNavigation"
+      @focusin="preloadNavigation"
     >
       <span class="t-label">{{ $t('nav.workspace') }}</span>
     </router-link>
     <router-link
       to="/birth-profiles"
       active-class="on"
+      @pointerenter="preloadNavigation"
+      @focusin="preloadNavigation"
     >
       <span class="t-label">{{ $t('nav.profiles') }}</span>
     </router-link>
     <router-link
       to="/chat"
       active-class="on"
+      @pointerenter="preloadNavigation"
+      @focusin="preloadNavigation"
     >
       <span class="t-label">{{ $t('nav.chat') }}</span>
     </router-link>
     <router-link
       to="/account"
       active-class="on"
+      @pointerenter="preloadNavigation"
+      @focusin="preloadNavigation"
     >
       <span class="t-label">{{ $t('nav.mine') }}</span>
     </router-link>
   </nav>
 </template>
+
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { createIntentPreloader } from '@/utils/routes'
+
+const router = useRouter()
+const preloadNavigation = createIntentPreloader(router, record => !String(record.name ?? '').startsWith('admin-'))
+</script>
 
 <style scoped>
 .app-tabbar {

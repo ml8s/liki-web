@@ -187,11 +187,17 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.chat-page { min-height: calc(100dvh - 130px); }
+.chat-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
 .chat-main {
   display: flex;
+  flex: 1;
+  min-height: 0;
   flex-direction: column;
-  height: calc(100dvh - 130px);
 }
 .session-header {
   margin-bottom: 16px;

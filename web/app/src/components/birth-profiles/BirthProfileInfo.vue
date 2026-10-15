@@ -12,7 +12,7 @@
           <el-button
             v-if="!editing"
             size="small"
-            text
+            link
             type="primary"
             @click="editing = true"
           >
@@ -21,7 +21,7 @@
           <el-button
             v-else
             size="small"
-            text
+            link
             @click="cancelEdit"
           >
             {{ $t('common.cancel') }}

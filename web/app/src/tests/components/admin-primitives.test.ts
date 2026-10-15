@@ -4,6 +4,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import PartnerStatGrid from '@/components/partner/PartnerStatGrid.vue'
+import PartnerCardHeader from '@/components/partner/PartnerCardHeader.vue'
 
 describe('admin primitives', () => {
   it('maps one status to one operator label and semantic color', () => {
@@ -78,5 +79,19 @@ describe('PartnerStatGrid', () => {
 
     expect(wrapper.findAll('dt').map(node => node.text())).toEqual(['线索', 'USD 余额'])
     expect(wrapper.findAll('dd').map(node => node.text())).toEqual(['12', 'USD 123.00'])
+  })
+})
+
+describe('PartnerCardHeader', () => {
+  it('keeps section titles semantic and actions beside the title', () => {
+    const wrapper = mount(PartnerCardHeader, {
+      slots: {
+        default: '推广余额',
+        actions: '<button type="button">提现</button>',
+      },
+    })
+
+    expect(wrapper.find('h2').text()).toBe('推广余额')
+    expect(wrapper.find('button').text()).toBe('提现')
   })
 })

@@ -57,6 +57,10 @@ Authenticated routes live under `/app`:
 
 Router guards call `/api/me`, redirect unauthenticated users to `/login`, and preserve redirect targets.
 
+Route components stay lazy. Product and Admin navigation preloads one route on
+`pointerenter` or `focusin`; small operators and save-data sessions skip this
+speculative work. There is intentionally no idle preload of every route.
+
 ### Scenario handoff
 
 Marketing pages use `/app?scenario=naming|mingshu|hepan&locale=…`. The app keeps

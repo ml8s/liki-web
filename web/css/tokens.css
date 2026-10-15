@@ -70,6 +70,8 @@
   --color-error-border: rgba(217, 45, 32, 0.35);
   --color-danger-surface: #fff8f7;
   --color-success: #067647;
+  --color-success-border: var(--brand-success-border);
+  --color-success-surface: var(--brand-success-surface);
   --color-text-faint: var(--brand-text-faint);
 
   /* Product semantic aliases. Keep these in the canonical token layer so
@@ -144,79 +146,57 @@
   --color-error-soft: #fef2f2;
 }
 
+/* Element Plus bridge. Keep vendor component variables in the canonical token
+ * source so product components consume semantic aliases only. */
+:root {
+  --el-font-family: var(--liki-font-sans);
+  --el-color-primary: var(--liki-primary);
+  --el-color-primary-light-3: #8a7bfa;
+  --el-color-primary-light-5: #aca5fd;
+  --el-color-primary-light-7: #d3d0fe;
+  --el-color-primary-light-8: #e7e5ff;
+  --el-color-primary-light-9: var(--liki-primary-tint);
+  --el-color-primary-dark-2: var(--liki-primary-hover);
+
+  /* EP defaults are deepened where their light-background contrast misses AA. */
+  --el-color-danger: #b42318;
+  --el-color-danger-dark-2: #93261d;
+  --el-color-danger-light-7: #fbe3e1;
+  --el-color-danger-light-9: #fef2f2;
+  --el-color-warning: #b45309;
+  --el-color-warning-light-9: #fffaeb;
+  --el-color-success: #067647;
+  --el-color-success-dark-2: #04523a;
+  --el-table-header-text-color: #526378;
+  --el-empty-description-color: #526378;
+  --el-alert-title-color: #303133;
+  --el-text-color-secondary: #526378;
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 8px;
+  --el-border-radius-round: 999px;
+  --el-box-shadow: 0 1px 2px rgba(13, 37, 61, 0.04), 0 8px 24px rgba(13, 37, 61, 0.05);
+  --el-box-shadow-light: 0 1px 2px rgba(13, 37, 61, 0.03), 0 6px 18px rgba(13, 37, 61, 0.04);
+}
+
 /* Static pages retain a few legacy aliases. Product code must use the canonical
  * shared aliases above; do not add new consumers for these raw names. */
 :root {
-  --color-black: #000;
-  --color-black: #000;
-  --color-paper-raw: var(--brand-paper);
-  --color-surface-raw: var(--brand-surface);
-  --color-text-raw: var(--brand-text);
-  --color-muted-raw: var(--brand-text-muted);
-  --color-border-raw: var(--brand-line);
-  --color-border-hover-raw: var(--brand-line-strong);
-  --color-accent-raw: var(--brand-primary);
-  --color-accent-hover-raw: var(--brand-primary-hover);
-  --color-accent-soft-raw: var(--brand-primary-soft);
   --color-fire-raw: #b85450;
-  --color-fire-hover-raw: #8c3b39;
-  --color-gold-raw: var(--brand-gold);
-  --color-gold-light-raw: var(--brand-gold-on-dark);
-  --color-error-raw: var(--color-error);
-  --color-error-soft-raw: #fef6f2;
-  --color-success-raw: var(--color-success);
-  --color-chat-bg-raw: #f5f5f7;
-  --color-chat-user-raw: #fde8d0;
-  --color-chat-asst-raw: #e9e9ed;
-  --color-chat-stop-raw: #8e8e93;
-  --color-chat-stop-hover-raw: #6d6d72;
   --color-stone-50-raw: #fafaf9;
-  --color-stone-200-raw: #e7e5e4;
-  --color-stone-400-raw: #a8a29e;
   --color-stone-500-raw: #78716c;
   --color-stone-600-raw: #57534e;
-  --color-stone-700-raw: #44403c;
-  --color-blue-500-raw: #3b82f6;
-  --color-blue-900-raw: #1e3a5f;
-  --color-wood: var(--color-accent-raw);
-  --color-wood-hover: var(--color-accent-hover-raw);
-  --color-wood-soft: var(--color-accent-soft-raw);
-  --color-chat-bg: var(--color-chat-bg-raw);
-  --color-chat-user: var(--color-chat-user-raw);
-  --color-chat-asst: var(--color-chat-asst-raw);
-  --color-chat-stop: var(--color-chat-stop-raw);
-  --color-chat-stop-hover: var(--color-chat-stop-hover-raw);
-  --color-chat-input-bg: rgba(245,245,247,.88);
-  --color-backdrop: rgba(0,0,0,.3);
-  --color-overlay-light: rgba(255,255,255,.92);
-  --color-gold-alpha-10: rgba(255,255,255,.1);
   --color-shadow-line: rgba(0,0,0,.06);
   --color-header-bg: rgba(17, 31, 46, 0.82);
   --color-header-border: rgba(255,255,255,.15);
-  --color-toast-info-bg: rgba(59,130,246,.88);
-  --color-toast-error-bg: rgba(254,246,242,.88);
-  --color-toast-error-border: rgba(194,65,12,.25);
   --color-gold-alpha-20: rgba(228,200,120,.2);
-  --color-paper-light: rgba(240,216,144,1);
   --color-white-alpha-92: rgba(255,255,255,.92);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.08), 0 8px 10px -6px rgba(0,0,0,.04);
-  --shadow-input: 0 -1px 6px rgba(0,0,0,.06);
-  --ease-enter: cubic-bezier(0, 0, 0, 1);
-  --ease-exit: cubic-bezier(0.2, 0, 0.4, 1);
-  --ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
-  --duration-lg: 350ms;
-  --duration-xl: 400ms;
   --space-10: 40px;
   --space-12: 48px;
-  --space-16: 64px;
-  --text-3xl: 1.875rem;
-  --text-4xl: 2.25rem;
   --font-serif: "Songti SC", "Noto Serif SC", "Noto Serif CJK SC", "STSong", "SimSun", "宋体", "AR PL UMing CN", "Hiragino Mincho Pro", "Noto Serif TC", serif;
   --liki-font-sans: var(--font-sans);
   --liki-font-serif: var(--font-serif);
   --liki-dur: 160ms;
-  --liki-dur-slow: 220ms;
   --liki-ease: var(--ease-standard);
-  --liki-ease-out: var(--ease-out);
 }

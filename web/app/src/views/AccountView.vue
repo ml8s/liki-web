@@ -6,13 +6,13 @@
     >
       <template #actions>
         <el-button
-          tag="a"
+          tag="router-link"
           to="/orders"
         >
           {{ $t('nav.orders') }}
         </el-button>
         <el-button
-          tag="a"
+          tag="router-link"
           to="/partners"
         >
           {{ $t('nav.partner') }}
@@ -194,7 +194,7 @@
           <el-button
             v-if="item.is_current"
             size="small"
-            text
+            link
             type="danger"
             :loading="revokingId === item.id"
             @click="logout"
@@ -204,7 +204,7 @@
           <el-button
             v-else
             size="small"
-            text
+            link
             type="danger"
             :loading="revokingId === item.id"
             @click="revoke(item.id)"

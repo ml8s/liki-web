@@ -71,7 +71,7 @@
         <div class="actions">
           <el-button
             v-if="program.state.status === 'active' || program.state.status === 'retired'"
-            tag="a"
+            tag="router-link"
             :to="program.dashboard"
             type="primary"
           >
@@ -79,7 +79,7 @@
           </el-button>
           <el-button
             v-else-if="program.canApply"
-            tag="a"
+            tag="router-link"
             :to="program.apply"
             type="primary"
           >
@@ -87,9 +87,9 @@
           </el-button>
           <el-button
             v-else-if="program.otherAssigned"
-            tag="a"
+            tag="router-link"
             :to="program.role === 'kol' ? '/partners/scout' : '/partners/kol'"
-            text
+            link
           >
             {{ $t('partner.viewRoleDescription') }}
           </el-button>
