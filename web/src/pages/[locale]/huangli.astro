@@ -1,6 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
-import { t, locales } from '../../i18n.js';
+import { t, locales } from '../../i18n.ts';
 
 export function getStaticPaths() {
   return locales.map(locale => ({ params: { locale } }));

@@ -103,7 +103,7 @@ function checkPrices(locales) {
 
 function checkHtmlKeys(locales) {
   const allKeys = new Set();
-  for (const [name, data] of Object.entries(locales)) {
+  for (const data of Object.values(locales)) {
     for (const k of Object.keys(data)) allKeys.add(k);
   }
 
@@ -324,7 +324,7 @@ function checkUnusedKeys(locales) {
     /(?:labelKey|titleKey|subtitleKey|questionKey|answerKey|benefitsTitleKey|exampleTitleKey|stepsTitleKey|questionsTitleKey|faqTitleKey|ctaKey|intentKey|descriptionKey)="([^"]+)"/g,
   ];
 
-  function collectKeys(content, filepath) {
+  function collectKeys(content) {
     for (const re of keyPatterns) {
       let m;
       while ((m = re.exec(content)) !== null) {
@@ -351,7 +351,7 @@ function checkUnusedKeys(locales) {
         }
       } else if (/\.(astro|js|html|cjs|mjs)$/.test(entry.name)) {
         const content = fs.readFileSync(full, 'utf-8');
-        collectKeys(content, full);
+        collectKeys(content);
       }
     }
   }

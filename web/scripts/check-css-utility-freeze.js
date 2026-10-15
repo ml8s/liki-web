@@ -18,7 +18,7 @@ const FILES = ['app.css'];
 function utilities(file) {
   const classes = new Set();
   for (const line of fs.readFileSync(path.join(CSS_DIR, file), 'utf8').split('\n')) {
-    const m = line.trim().match(/^\.([\w-]+(?:\\[\w.:\[\]-]+)*)/);
+    const m = line.trim().match(/^\.([\w-]+(?:\\[\w.:[\]-]+)*)/);
     if (m) {
       const cls = m[1].replace(/\\([:.])/g, '$1').replace(/\\/g, '');
       if (UTILITY_RE.test(cls)) classes.add(cls);

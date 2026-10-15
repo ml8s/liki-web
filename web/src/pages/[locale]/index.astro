@@ -1,8 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import LikiChatCta from '../../components/LikiChatCta.astro';
-import { t, locales } from '../../i18n.js';
-import { v } from '../../version.js';
+import { t, locales } from '../../i18n.ts';
 import keywords from '../../keywords.json' with { type: 'json' };
 
 export function getStaticPaths() {
@@ -10,7 +9,7 @@ export function getStaticPaths() {
 }
 
 const { locale } = Astro.params;
-const pageKeywords = [...new Set(['liki.hk', ...keywords[locale]])].join(', ');
+const pageKeywords = [...new Set(['liki.hk', ...(keywords as Record<string, string[]>)[locale]])].join(', ');
 const siteUrl = 'https://liki.hk';
 const homeSchema = {
   '@context': 'https://schema.org',

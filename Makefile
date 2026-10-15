@@ -86,19 +86,21 @@ lint-go: ## Go lint + vet
 fmt-check: ## Reject unformatted Go sources
 	@test -z "$$(gofmt -l .)" || { gofmt -l .; exit 1; }
 
-lint-js: ## JS lint
+lint-js: ## JS/TS lint（静态站点 + Vue SPA）
+	cd web && PATH="$(NODE_BIN):$$PATH" npx eslint .
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npx eslint src/
 
 lint-docs: ## Markdown lint
 	cd web && PATH="$(NODE_BIN):$$PATH" npm run lint:docs
 
-typecheck: ## vue-tsc
+typecheck: ## astro check + vue-tsc
+	cd web && PATH="$(NODE_BIN):$$PATH" npx astro check
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npx vue-tsc --noEmit
 
 test-go: ## Go 测试
 	go test -race -count=1 ./...
 
-test-js: ## vitest（legacy + Vue SPA）
+test-js: ## vitest（静态站点 + Vue SPA）
 	cd web && PATH="$(NODE_BIN):$$PATH" npx vitest run test/
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npm run test
 

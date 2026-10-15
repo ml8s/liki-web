@@ -7,16 +7,22 @@
     "preview": "npx astro preview",
     "test:e2e": "npx playwright test --config e2e/playwright.config.js",
     "test:e2e:ui": "npx playwright test --ui --config e2e/playwright.config.js",
-    "lint": "eslint js/",
+    "lint": "eslint .",
+    "typecheck": "astro check",
     "check:inline-scripts": "node scripts/check-inline-scripts.js",
     "lint:docs": "npx --yes markdownlint-cli2@0.23.3 --config ../.markdownlint-cli2.jsonc \"../README.md\" \"../ARCHITECTURE.md\" \"../DOMAIN_MODEL.md\" \"../API.md\" \"../FRONTEND.md\" \"../LEGACY_PRODUCTS.md\" \"../CONTRIBUTING.md\" \"../SECURITY.md\" \"../docs/**/*.md\""
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.10",
     "@axe-core/playwright": "^4.12.1",
-    "@eslint/js": "^9.38.0",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
+    "@types/node": "^24.19.2",
     "astro": "^7.3.8",
-    "eslint": "^9.38.0",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "typescript": "~5.6.3",
+    "typescript-eslint": "^8.71.2",
     "vitest": "^4.1.11"
   },
   "engines": {

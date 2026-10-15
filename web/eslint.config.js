@@ -1,60 +1,40 @@
-import js from "@eslint/js";
+import js from '@eslint/js'
+import globals from 'globals'
+import tseslint from 'typescript-eslint'
 
+// web/ 的分层基线（与 web/app 同一条口径：类型检查归 astro check，lint 不做 type-aware）：
+// - .astro 模板由 astro check 负责（eslint-plugin-astro 2.x/3.x 要求 Node >= 24.16，
+//   1.x 带一个无修复版本的 high advisory，会让 CI 的 npm audit 变红），所以 eslint
+//   只覆盖 .ts/.js。
+// - .ts 交给 typescript-eslint；未定义标识符由 astro check 报告，no-undef 关掉
+//   （base 规则会在浏览器/Node 全局上误报）。
 export default [
   {
-    ignores: [
-      "js/__tests__/",
-      "**/*.min.js",
-    ],
+    ignores: ['app/', 'dist/', 'node_modules/', 'public/', 'test-results/', '.astro/'],
   },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: "script",
-      globals: {
-        window: "readonly",
-        Blob: "readonly",
-        document: "readonly",
-        fetch: "readonly",
-        console: "readonly",
-        setTimeout: "readonly",
-        clearTimeout: "readonly",
-        setInterval: "readonly",
-        clearInterval: "readonly",
-        HTMLElement: "readonly",
-        HTMLFormElement: "readonly",
-        HTMLInputElement: "readonly",
-        HTMLSelectElement: "readonly",
-        HTMLTextAreaElement: "readonly",
-        FormData: "readonly",
-        URLSearchParams: "readonly",
-        URL: "readonly",
-        DOMParser: "readonly",
-        MutationObserver: "readonly",
-        IntersectionObserver: "readonly",
-        navigator: "readonly",
-        location: "readonly",
-        history: "readonly",
-        localStorage: "readonly",
-        sessionStorage: "readonly",
-        CustomEvent: "readonly",
-        Event: "readonly",
-        WebSocket: "readonly",
-        AbortController: "readonly",
-        AbortSignal: "readonly",
-        TextDecoder: "readonly",
-        TextEncoder: "readonly",
-        requestAnimationFrame: "readonly",
-        btoa: "readonly",
-        atob: "readonly",
-        i18next: "readonly",
-      },
-    },
+    // 浏览器运行时代码：Astro 静态页的交互脚本。
+    files: ['src/scripts/**/*.ts'],
+    languageOptions: { globals: globals.browser },
+  },
+  {
+    // Node 侧：构建脚本、检查脚本、测试与工具配置。
+    files: ['scripts/**/*.js', 'test/**/*.ts', '**/*.config.{js,mjs,ts}'],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    // Playwright：spec 跑在 Node，page.evaluate 回调跑在浏览器，两套全局都要有。
+    files: ['e2e/**/*.{js,ts}'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
+    files: ['**/*.ts'],
     rules: {
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-      "no-undef": "warn",
-      "no-empty": ["error", { allowEmptyCatch: true }],
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
-];
+]

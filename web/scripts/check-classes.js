@@ -14,7 +14,7 @@ for (const line of css.split('\n')) {
   const trimmed = line.trim();
   // Match lines that start with a CSS class definition.
   // e.g., .foo {  .foo:hover {  .min-w-\[130px\] {  .mt-0\.5 {
-  const m = trimmed.match(/^\.([\w-]+(?:\\[\w.:\[\]-]+)*)/);
+  const m = trimmed.match(/^\.([\w-]+(?:\\[\w.:[\]-]+)*)/);
   if (m) {
     // Normalize escape sequences: \: → :  \. → .  \[ → [  \] → ]
     let cls = m[1].replace(/\\:/g, ':').replace(/\\\./g, '.').replace(/\\\[/g, '[').replace(/\\\]/g, ']');

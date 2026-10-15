@@ -4,7 +4,6 @@
 import { test, expect } from '@playwright/test'
 
 const email = `profile-journey-${Date.now()}@test.liki`
-const H = { Origin: process.env.BASE_URL || 'http://localhost:8080' }
 
 test.describe.configure({ mode: 'serial' })
 

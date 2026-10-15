@@ -120,9 +120,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
     return route.fulfill(json({ entitlements: [], allowed_skills: allowed }));
   });
 
-  let productRequest = 0;
   await page.route('**/api/sales/products', route => {
-    productRequest += 1;
     return route.fulfill(json({ products: [{
       id: 'liki-chat',
       name: 'Liki Chat',

@@ -1,0 +1,18 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    // Node 类型供 web/src/version.ts（构建期读 VERSION 文件）使用。
+    "types": ["astro/client", "node"]
+  },
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*",
+    "scripts/**/*",
+    "test/**/*",
+    "astro.config.mjs",
+    "vitest.config.ts",
+    "eslint.config.js"
+  ],
+  // web/app 有自己的 tsconfig（Vue + vitest），e2e 有自己的 tsconfig（Playwright）。
+  "exclude": ["app", "dist", "e2e", "node_modules", "public", "test-results"]
+}

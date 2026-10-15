@@ -22,7 +22,8 @@ if (toggle && dropdown && switcher) {
   toggle.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
-    dropdown.classList.contains('hidden') ? open() : close();
+    if (dropdown.classList.contains('hidden')) open();
+    else close();
   });
 
   dropdown.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((button) => {
