@@ -5,7 +5,10 @@
     width="420px"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <el-form label-position="top">
+    <el-form
+      label-position="top"
+      @submit.prevent="submit"
+    >
       <el-form-item :label="$t('partner.method')">
         <el-radio-group v-model="method">
           <el-radio-button value="alipay">
@@ -35,6 +38,7 @@
       <el-button
         type="primary"
         :loading="submitting"
+        native-type="submit"
         @click="submit"
       >
         {{ $t('partner.settlement.requestPayout') }}

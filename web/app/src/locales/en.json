@@ -554,6 +554,8 @@
     "endsAtPeriodEnd": "Ends at period end",
     "cancel": "Cancel renewal",
     "resume": "Resume renewal",
+    "cancelConfirmTitle": "Cancel renewal?",
+    "cancelConfirmBody": "Renewal will stop at the end of the current billing period. You can resume before then.",
     "updateFailed": "Could not update subscription",
     "status": {
       "pending": "Pending",

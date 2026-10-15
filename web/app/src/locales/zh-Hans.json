@@ -554,6 +554,8 @@
     "endsAtPeriodEnd": "本周期结束后取消",
     "cancel": "取消续费",
     "resume": "恢复续费",
+    "cancelConfirmTitle": "取消续费？",
+    "cancelConfirmBody": "本计费周期结束后将不再续费；在此之前可以恢复续费。",
     "updateFailed": "更新订阅失败",
     "status": {
       "pending": "待生效",

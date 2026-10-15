@@ -554,6 +554,8 @@
     "endsAtPeriodEnd": "本週期結束後取消",
     "cancel": "取消續費",
     "resume": "恢復續費",
+    "cancelConfirmTitle": "取消續費？",
+    "cancelConfirmBody": "本計費週期結束後將不再續費；在此之前可以恢復續費。",
     "updateFailed": "更新訂閱失敗",
     "status": {
       "pending": "待生效",

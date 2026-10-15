@@ -264,6 +264,7 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessageBox } from 'element-plus'
 import { fetchOrders, fetchSubscriptionPayments, fetchSubscriptions, setSubscriptionCancellation, type Order, type Subscription, type SubscriptionPayment } from '@/api/orders'
 import { formatDateTime, formatMinorUnit, productName } from '@/utils/format'
 import { useMobile } from '@/composables/useMobile'
@@ -331,6 +332,21 @@ function subscriptionPaymentStatusType(payment: SubscriptionPayment) {
 }
 
 async function toggleCancellation(subscription: Subscription) {
+  if (!subscription.cancel_at_period_end) {
+    try {
+      await ElMessageBox.confirm(
+        t('subscriptions.cancelConfirmBody'),
+        t('subscriptions.cancelConfirmTitle'),
+        {
+          type: 'warning',
+          confirmButtonText: t('subscriptions.cancel'),
+          cancelButtonText: t('common.cancel'),
+        },
+      )
+    } catch {
+      return
+    }
+  }
   updatingId.value = subscription.id
   error.value = ''
   try {
