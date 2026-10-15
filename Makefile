@@ -12,7 +12,7 @@ export RELEASE_VERSION
 #   make smoke  本仓镜像启动 + health/page 冒烟
 .PHONY: help check test gate smoke e2e \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
-        check-html check-security \
+        check-web-static check-security \
         build build-skills build-sitemap build-web build-go image candidate test-go-coverage test-js-coverage \
         dev clean hooks version
 
@@ -45,7 +45,7 @@ help: ## 列出所有 target
 
 # ── 质量门槛 ──
 
-check: lint-go fmt-check lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version check-actions ## 静态检查（纯静态，不跑测试、不构建）
+check: lint-go fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-skills check-version check-actions ## 静态检查（纯静态，不跑测试、不构建）
 
 test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
 test-go-coverage: ## Run Go tests with the CI coverage policy
@@ -145,7 +145,7 @@ version: ## bump patch（CalVer date）
 #  内部依赖（help 不显示）
 # ════════════════════════════════════════════════════════════
 
-check-html:
+check-web-static:
 	node web/scripts/check-inline-scripts.js
 	node web/scripts/check-design-tokens.js
 	node web/scripts/check-frontend-tokens.js

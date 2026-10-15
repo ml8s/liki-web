@@ -1,14 +1,16 @@
 # Frontend
 
-`liki-web` has three frontend surfaces with different responsibilities.
+`liki-web` has two frontend surfaces with different responsibilities. Both are
+framework-rendered, and TypeScript is the source language for every
+browser-facing module — the Astro interaction scripts and the Playwright
+journeys included.
 
 ## Surfaces
 
 | Path | Purpose | Policy |
 | --- | --- | --- |
-| `web/src` | Astro marketing and locale pages | SEO-first static pages |
+| `web/src` | Astro marketing and locale pages, page behaviour in `web/src/scripts` | SEO-first static pages |
 | `web/app` | Vue 3 authenticated product SPA | Primary product surface |
-| `web/js` | retired static-page interaction runtime | No new product behavior |
 
 New product functionality belongs in `web/app` and backing Go APIs.
 
@@ -134,7 +136,7 @@ exception because Element Plus writes runtime style attributes for positioning.
 Replacing or configuring that component library is the path to removing this
 exception; do not add new hand-written inline styles.
 
-`web/scripts/check-inline-scripts.cjs` enforces this in two ways:
+`web/scripts/check-inline-scripts.js` enforces this in two ways:
 
 1. source inventory rejects new executable inline scripts;
 2. `scripts/build-web.sh` scans the built HTML and fails if executable inline
@@ -145,16 +147,30 @@ modules belong under `web/app/src`.
 
 ## Frontend module policy
 
-`web/js` is not a product surface. Its remaining browser modules have two
-distinct roles:
+Browser code has exactly two places to live:
 
 | Group | Modules | Policy |
 | --- | --- | --- |
 | static-page interaction | `web/src/scripts/*.ts` | Astro-processed, external, same-origin modules; this is the only supported way to add static-page behavior |
-| admin console | Vue route `/app/admin` | capability-scoped views with a typed API client and E2E coverage |
+| product surface | `web/app/src/**`, including the Vue admin at route `/app/admin` | capability-scoped views with a typed API client and E2E coverage |
 
-Do not add product behavior to `web/js`. The vanilla admin console, client-side
-report demo renderer, and vendored Markdown sanitizer dependencies are retired.
+The former `web/js` runtime — vanilla admin console, client-side report demo
+renderer, vendored Markdown sanitizer — is retired. Do not reintroduce it.
+
+## Checks
+
+`make check` covers every layer:
+
+| Layer | Lint | Types |
+| --- | --- | --- |
+| static pages (`web/src`) | `cd web && npm run lint` | `astro check`, `.astro` templates included |
+| app (`web/app`) | `cd web/app && npm run lint` | `vue-tsc --noEmit` |
+| journeys (`web/e2e`) | the same eslint config as `web/` | `tsc --noEmit -p e2e/tsconfig.json` |
+
+eslint covers `.ts` and `.js` sources under `web/`; `.astro` templates are
+covered by `astro check`. There is no `eslint-plugin-astro` because its 2.x/3.x
+line requires a newer Node than the pinned `.nvmrc`, and 1.x carries an
+unfixable high advisory that would fail the CI dependency audit.
 
 ## Payments
 
@@ -195,7 +211,7 @@ Horizontal admin navigation keeps the active route visible.
 Component code should consume a semantic token when one exists. Raw colors are
 allowed only inside the primitive token source; raw spacing values should be
 limited to genuine layout measurements rather than replacing spacing tokens.
-`check-css-vars.cjs` rejects CSS custom properties that are consumed by source
+`check-css-vars.js` rejects CSS custom properties that are consumed by source
 but not defined in the shared source layers.
 
 The full route inventory, page archetypes, state matrix, URL-state rules, and
@@ -274,7 +290,7 @@ Server-provided diagnostic messages are not treated as UI translations.
 `/app/partners` is the single role-discovery and state-dispatch surface. KOL and
 Scout dashboard routes are intentionally role-specific; applications, review
 states, role conflicts, frozen states, and CTAs are first represented in the
-partner center. There is no separate vanilla-JS partner console.
+partner center. Partner dashboards are routes inside `/app`, not a separate console.
 
 Partner referral links use `/r/{partner_code}`. This entry point writes the
 30-day attribution cookie and redirects to marketing. Private App URLs are not

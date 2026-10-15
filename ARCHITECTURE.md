@@ -34,13 +34,19 @@
 
 ## Frontend modules
 
-| Path | Role |
-| --- | --- |
-| `web/src` | Astro marketing and static locale pages |
-| `web/app` | Vue 3 authenticated product SPA with zh-Hans/zh-Hant/en i18n |
-| `web/js` | static assets for marketing pages (report demo renderers) |
+Every browser surface is framework-rendered and written in TypeScript:
 
-New product functionality belongs in `web/app` and its backing Go APIs.
+| Path | Role | Checked by |
+| --- | --- | --- |
+| `web/src` | Astro marketing and static locale pages; page behaviour in `web/src/scripts` | `astro check` |
+| `web/app` | Vue 3 authenticated product SPA with zh-Hans/zh-Hant/en i18n | `vue-tsc` |
+| `web/e2e` | Playwright journeys against a running stack | `tsc -p e2e/tsconfig.json` |
+| `web/scripts` | static build and consistency checks used by `make check` | eslint (Node ESM) |
+
+New product functionality belongs in `web/app` and its backing Go APIs; new
+static-page behaviour belongs in `web/src/scripts`. There is no vanilla-JS
+browser runtime: the retired `web/js` layer is replaced by those Astro scripts
+and the Vue app.
 
 ## External boundaries
 

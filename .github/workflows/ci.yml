@@ -66,7 +66,7 @@ jobs:
       - name: make check (lint-go skipped, done by action above)
         run: |
           go vet ./...
-          make fmt-check lint-js lint-docs typecheck check-html check-security check-caddy check-skills check-version check-actions
+          make fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-skills check-version check-actions
 
   # ── test：对应 make test-go + test-js + test-python + build + check-packaging（e2e 单独 job）──
   test:

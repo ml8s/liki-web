@@ -45,7 +45,7 @@ make lint-js
 make typecheck
 make test-go
 make test-js
-make check-html
+make check-web-static
 make test-python
 ```
 
@@ -63,7 +63,7 @@ Handlers may return bare `err` only when the call chain is one level deep.
 - New server state belongs in Pinia stores.
 - New raw HTTP calls belong in `web/app/src/api`.
 - New Markdown rendering must use `renderSafeMarkdown`.
-- Legacy vanilla JS pages are frozen compatibility surfaces.
+- New static-page behavior belongs in `web/src/scripts`.
 
 ## Documentation
 

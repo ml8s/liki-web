@@ -1,6 +1,6 @@
 // Accessibility tests — runs axe-core on key pages and reports violations.
 // Does NOT fail the build by default; violations are informational.
-// Run with: npx playwright test --config e2e/playwright.config.js a11y.spec.js
+// Run with: npx playwright test --config e2e/playwright.config.ts e2e/journeys/a11y.spec.ts
 
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';

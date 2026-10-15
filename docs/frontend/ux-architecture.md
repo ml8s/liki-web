@@ -355,7 +355,8 @@ Automated validation checks current behavior:
 
 ```bash
 make gate
-cd web/app && npm run test && npx eslint src/ && npx vue-tsc --noEmit
+cd web && npm run lint && npm run typecheck && npm run test
+cd web/app && npm run lint && npm run typecheck && npm run test
 cd web && npm run build
 ```
 

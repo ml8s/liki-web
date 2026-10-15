@@ -122,7 +122,7 @@ lifecycle webhooks update local state and entitlement. CNY subscription checkout
 make gate
 ```
 
-This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static HTML/i18n checks, and Go race tests. Docker E2E runs separately via `make e2e`; packaging is verified by `make check-packaging`.
+This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static frontend/i18n checks, and Go race tests. Docker E2E runs separately via `make e2e`; packaging is verified by `make check-packaging`.
 
 Release candidates are built locally with:
 
