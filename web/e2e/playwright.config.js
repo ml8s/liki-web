@@ -9,6 +9,8 @@ export default defineConfig({
   expect: { timeout: 10000 },
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:8080',
+    // 本地预览走 http，部署的系统可能是自签证书。
+    ignoreHTTPSErrors: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'on-first-retry',

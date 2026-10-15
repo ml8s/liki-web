@@ -1,7 +1,7 @@
 // @ts-check
 // 引擎契约回归：用「真实引擎输出形状」渲染免费排盘与合盘，防止字段漂移被假 mock 掩盖。
 // 排盘/合盘 = 前端调用 web BFF，BFF 服务端调用 engine-mcp（只读）。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import { ENGINE_TOOLS } from '../../app/src/api/engine'
 
 test.use({ locale: 'zh-Hant' })

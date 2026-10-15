@@ -1,7 +1,7 @@
 // @ts-check
 // 编辑保存的反馈：版本冲突（其他设备已改）必须看到原因且保留草稿；保存成功才关闭表单。
 // 加载失败有独立页面态，这里覆盖的是「编辑态内」的失败路径。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const user = { id: 'usr_profile', email: 'profile@example.com', status: 'active', locale: 'zh-Hant' }

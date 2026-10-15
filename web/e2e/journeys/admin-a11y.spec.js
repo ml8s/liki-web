@@ -1,5 +1,5 @@
 // @ts-check
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import AxeBuilder from '@axe-core/playwright'
 
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })

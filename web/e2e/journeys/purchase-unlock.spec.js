@@ -1,7 +1,7 @@
 // @ts-check
 // 付费解锁的 UI 表现：未购买 → 开通引导可见；已购买 → 引导消失、Chat 可用。
 // 后端支付全链由 payment_runtime_test.go（Go 单测）覆盖；此处保护前端解锁逻辑。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const user = { id: 'usr_unlock', email: 'unlock@example.com', status: 'active', locale: 'zh-Hant' }

@@ -2,7 +2,7 @@
 // 支付返回（/app/chat?order_id=..&status=..）在浏览器的收尾：把一次性回调参数从
 // 地址栏消费掉，并且只按后端确认的状态说话。轮询/退避分支由
 // web/app/src/tests/sales-payment-return.test.ts 用假计时器覆盖。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const user = { id: 'usr_pay', email: 'pay@example.com', status: 'active', locale: 'zh-Hant' }

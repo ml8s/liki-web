@@ -1,7 +1,7 @@
 // @ts-check
 // 会话页的两条体验底线：流式生成失败必须给出可重试的明确反馈（并能真的重发成功）；
 // 窄屏下必须能读能发、不横向溢出。这两处在单测里无法覆盖。
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 
 const json = data => ({ status: 200, contentType: 'application/json', body: JSON.stringify({ data }) })
 const sse = events => events.map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
