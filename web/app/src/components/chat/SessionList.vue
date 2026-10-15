@@ -89,7 +89,7 @@ const isMobile = useMobile(640)
   display: block;
   background: var(--liki-surface);
   border: 1px solid var(--liki-line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 14px 16px;
   text-decoration: none;
   color: inherit;
@@ -102,5 +102,5 @@ const isMobile = useMobile(640)
 }
 .sc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sc-title { font-weight: 600; }
-.sc-time { color: var(--liki-text-2); font-size: 13px; margin-top: 6px; }
+.sc-time { color: var(--liki-text-2); font-size: var(--font-size-label); margin-top: 6px; }
 </style>

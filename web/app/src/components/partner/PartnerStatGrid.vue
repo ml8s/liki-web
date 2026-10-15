@@ -44,12 +44,12 @@ defineProps<{
 .partner-stat dt {
   margin-bottom: var(--space-2);
   color: var(--liki-text-2);
-  font-size: 13px;
+  font-size: var(--font-size-label);
 }
 
 .partner-stat dd {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--font-size-title-md);
   font-variant-numeric: tabular-nums;
 }
 </style>

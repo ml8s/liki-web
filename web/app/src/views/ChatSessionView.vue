@@ -211,7 +211,7 @@ onBeforeUnmount(() => {
 .page-heading h1 {
   margin: 0;
   overflow: hidden;
-  font-size: 20px;
+  font-size: var(--font-size-title-md);
   font-weight: 650;
   letter-spacing: -0.02em;
   text-overflow: ellipsis;

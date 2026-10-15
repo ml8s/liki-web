@@ -50,18 +50,18 @@ h1 {
 .eyebrow {
   margin: 0 0 8px;
   color: var(--liki-primary);
-  font-size: 13px;
+  font-size: var(--font-size-label);
   font-weight: 600;
 }
 .subtitle {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-body-lg);
   color: var(--liki-text-2);
   text-wrap: pretty;
 }
 .actions { display: flex; align-items: center; gap: 10px; }
 @media (max-width: 640px) {
   .app-page-header { align-items: flex-start; flex-direction: column; }
-  h1 { font-size: 27px; }
+  h1 { font-size: var(--font-size-display-sm); }
 }
 </style>

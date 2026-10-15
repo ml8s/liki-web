@@ -19,7 +19,7 @@ defineProps<{ phase: string }>()
   max-width: 820px;
   margin: 0 auto 10px;
   color: var(--liki-text-2);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 .dot {
   display: inline-block;

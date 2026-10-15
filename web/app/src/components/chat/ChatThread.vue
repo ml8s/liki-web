@@ -78,7 +78,7 @@ const suggestions = computed(() => [
   border-radius: var(--radius-full);
   background: var(--liki-surface);
   color: var(--liki-text-2);
-  font-size: 13px;
+  font-size: var(--font-size-label);
   cursor: pointer;
   transition: border-color var(--liki-dur) var(--liki-ease), color var(--liki-dur) var(--liki-ease);
 }

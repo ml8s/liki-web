@@ -67,6 +67,6 @@ p { min-height: 44px; color: var(--liki-text-2); }
   min-height: 0;
   margin: -6px 0 12px;
   color: var(--liki-text-3);
-  font-size: 13px;
+  font-size: var(--font-size-label);
 }
 </style>

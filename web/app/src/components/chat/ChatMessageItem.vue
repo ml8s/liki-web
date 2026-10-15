@@ -72,7 +72,7 @@ async function handleCopy() {
   margin: 0 auto 16px;
   padding: 14px 16px;
   border: 1px solid var(--liki-line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--liki-surface);
 }
 .message.system { background: transparent; border: none; padding: 0; }
@@ -84,7 +84,7 @@ async function handleCopy() {
 }
 .role {
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   color: var(--liki-text-2);
 }
@@ -96,18 +96,18 @@ async function handleCopy() {
   margin-bottom: 10px;
   padding: 8px 12px;
   border: 1px dashed var(--liki-line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--liki-paper);
 }
 .thinking summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--liki-text-2);
   user-select: none;
 }
 .thinking-body {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   line-height: 1.6;
   color: var(--liki-text-2);
   white-space: pre-wrap;
@@ -116,10 +116,10 @@ async function handleCopy() {
   margin: 6px 0 0 -8px;
   padding: 4px 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-small);
   background: transparent;
   color: var(--liki-text-2);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   cursor: pointer;
 }
 .copy:hover { color: var(--liki-primary); }

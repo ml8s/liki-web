@@ -355,21 +355,21 @@ onMounted(async () => {
 }
 .hero-kicker {
   margin: 0 0 8px;
-  font-size: 13px;
+  font-size: var(--font-size-label);
   letter-spacing: 0.14em;
   color: var(--liki-primary);
   font-weight: 600;
 }
 .hero-title {
   margin: 0 0 8px;
-  font-size: 32px;
+  font-size: var(--font-size-display);
   font-weight: 650;
   line-height: 1.15;
   letter-spacing: -0.035em;
 }
 .hero-sub {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-body-lg);
   color: var(--liki-text-2);
   text-wrap: pretty;
 }
@@ -403,11 +403,11 @@ onMounted(async () => {
 .primary-copy p {
   margin: 0 0 4px;
   color: var(--liki-text-2);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 .primary-note {
   color: var(--liki-text-3) !important;
-  font-size: 13px;
+  font-size: var(--font-size-label);
 }
 .primary-actions {
   flex-shrink: 0;
@@ -456,10 +456,10 @@ onMounted(async () => {
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--liki-primary-tint);
   color: var(--liki-primary);
-  font-size: 20px;
+  font-size: var(--font-size-title-md);
   font-weight: 600;
 }
 .sv-copy {
@@ -469,12 +469,12 @@ onMounted(async () => {
   flex: 1;
 }
 .sv-name {
-  font-size: 18px;
+  font-size: var(--font-size-title-xs);
   font-weight: 700;
   line-height: 1.2;
 }
 .sv-desc {
-  font-size: 13px;
+  font-size: var(--font-size-label);
   color: var(--liki-text-2);
 }
 
@@ -486,7 +486,7 @@ onMounted(async () => {
 }
 .section-head h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-size-title-sm);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -494,7 +494,7 @@ onMounted(async () => {
   margin-top: 28px;
 }
 .more-link {
-  font-size: 13px;
+  font-size: var(--font-size-label);
   color: var(--liki-primary);
   text-decoration: none;
 }
@@ -509,7 +509,7 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   border: 1px solid var(--liki-line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 12px 14px;
   cursor: pointer;
   background: var(--liki-surface);
@@ -536,7 +536,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: var(--liki-primary-tint);
   color: var(--liki-primary);
-  font-size: 16px;
+  font-size: var(--font-size-title-sm);
   font-weight: 600;
 }
 .rp-name {
@@ -549,7 +549,7 @@ onMounted(async () => {
 .rp-meta {
   flex-shrink: 0;
   color: var(--liki-text-3);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .recent-sessions {
@@ -563,7 +563,7 @@ onMounted(async () => {
   gap: 12px;
   min-width: 0;
   border: 1px solid var(--liki-line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 13px 14px;
   cursor: pointer;
   background: var(--liki-surface);
@@ -583,7 +583,7 @@ onMounted(async () => {
 .rs-meta {
   flex-shrink: 0;
   color: var(--liki-text-2);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   white-space: nowrap;
 }
 
@@ -622,7 +622,7 @@ onMounted(async () => {
     padding: 26px 22px 24px;
   }
   .hero-title {
-    font-size: 27px;
+    font-size: var(--font-size-display-sm);
   }
 }
 </style>

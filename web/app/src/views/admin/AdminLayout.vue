@@ -200,15 +200,15 @@ async function logout() {
   min-height: 58px; display: flex; align-items: center; gap: 20px; padding: 10px 18px;
   background: var(--liki-ink); color: var(--liki-on-ink); position: sticky; top: 0; z-index: var(--z-header);
 }
-.brand { font-weight: 700; font-size: 18px; letter-spacing: 1px; }
+.brand { font-weight: 700; font-size: var(--font-size-title-xs); letter-spacing: 1px; }
 .brand span { color: var(--liki-accent-on-ink); }
 .admin-nav { display: flex; align-items: center; gap: 4px; flex: 1; overflow-x: auto; }
 .admin-nav a {
   color: var(--liki-on-ink-subtle); text-decoration: none; padding: 8px 12px;
-  border-radius: 8px; white-space: nowrap; font-size: 14px;
+  border-radius: var(--radius-md); white-space: nowrap; font-size: var(--font-size-body);
 }
 .admin-nav a:hover, .admin-nav a.on { background: var(--liki-selected-overlay); color: var(--liki-on-ink); }
-.operator { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.operator { display: flex; align-items: center; gap: 10px; font-size: var(--font-size-label); }
 .admin-main { padding: 22px 18px 48px; max-width: 1360px; margin: 0 auto; }
 .state-card { min-height: 240px; }
 .admin-nav::-webkit-scrollbar { height: 4px; }

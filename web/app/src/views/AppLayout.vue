@@ -98,7 +98,7 @@ async function logout() {
   padding: 10px 16px; background: var(--liki-ink); color: var(--liki-on-ink);
   position: sticky; top: 0; z-index: var(--z-header);
 }
-.app-topbar .brand { font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+.app-topbar .brand { font-size: var(--font-size-title-sm); font-weight: 700; letter-spacing: 2px; }
 .app-topbar .brand em { color: var(--liki-primary); font-style: normal; }
 .topbar-meta {
   display: flex;
@@ -109,7 +109,7 @@ async function logout() {
 .page-title {
   overflow: hidden;
   color: var(--liki-on-ink-subtle);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

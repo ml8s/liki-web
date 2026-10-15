@@ -49,11 +49,11 @@ const summary = computed(() => {
 <style scoped>
 .system-profile {
   border: 1px solid var(--liki-line); border-top: 2px solid var(--liki-primary);
-  border-radius: 12px; background: var(--liki-surface); padding: 14px 18px;
+  border-radius: var(--radius-lg); background: var(--liki-surface); padding: 14px 18px;
 }
 .head { display: flex; align-items: center; gap: 8px; }
-.title { font-size: 15px; font-weight: 700; }
-.pill { font-size: 11px; background: var(--liki-primary-tint); color: var(--liki-primary); padding: 1px 8px; border-radius: 999px; }
-.meta { color: var(--liki-text-2); font-size: 13px; margin-top: 8px; }
-.note { color: var(--liki-text-3); font-size: 12px; margin: 6px 0 0; }
+.title { font-size: var(--font-size-body-lg); font-weight: 700; }
+.pill { font-size: var(--font-size-micro); background: var(--liki-primary-tint); color: var(--liki-primary); padding: 1px 8px; border-radius: var(--radius-full); }
+.meta { color: var(--liki-text-2); font-size: var(--font-size-label); margin-top: 8px; }
+.note { color: var(--liki-text-3); font-size: var(--font-size-caption); margin: 6px 0 0; }
 </style>

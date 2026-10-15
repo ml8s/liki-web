@@ -100,7 +100,7 @@ async function confirmRemove(profile: BirthProfile) {
     await ElMessageBox.confirm(
       t('profiles.list.deleteConfirm', { nickname: profile.nickname }),
       t('profiles.list.deleteTitle'),
-      { type: 'warning', confirmButtonText: t('common.submit'), cancelButtonText: t('common.cancel') },
+      { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') },
     )
   } catch {
     return

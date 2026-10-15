@@ -96,22 +96,22 @@ function formatPrice(price: MoneyMinor) {
 .product-card { margin-bottom: 20px; }
 .header { display: flex; align-items: center; justify-content: space-between; }
 p { color: var(--liki-text-2); margin: 0 0 12px; }
-.skills { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 18px; margin: 0 0 20px; color: var(--liki-text-2); font-size: 13px; }
+.skills { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 18px; margin: 0 0 20px; color: var(--liki-text-2); font-size: var(--font-size-label); }
 .plans { display: grid; gap: 12px; }
 .plan {
   display: grid; gap: 4px; padding: 14px 16px; text-align: left; cursor: pointer;
-  background: var(--liki-surface); border: 1px solid var(--liki-line); border-radius: 12px;
+  background: var(--liki-surface); border: 1px solid var(--liki-line); border-radius: var(--radius-lg);
   color: var(--liki-ink); font: inherit;
 }
 .plan--primary { border-color: var(--el-color-primary); box-shadow: 0 0 0 1px var(--el-color-primary) inset; }
 .plan:disabled { opacity: .55; cursor: not-allowed; }
 .plan__name { font-weight: 650; }
 .plan__price { font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.plan__note { color: var(--liki-text-3); font-size: 12px; }
+.plan__note { color: var(--liki-text-3); font-size: var(--font-size-caption); }
 .disclaimer {
   margin: 14px 0 0;
   color: var(--liki-text-3);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   line-height: 1.5;
 }
 @media (max-width: 640px) {

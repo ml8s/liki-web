@@ -22,7 +22,7 @@
 
 .title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-body-lg);
   font-weight: 600;
   line-height: 1.35;
 }

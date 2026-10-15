@@ -7,6 +7,6 @@
   place-items: center;
   background: var(--color-paper);
   color: var(--color-accent);
-  font-size: 20px;
+  font-size: var(--font-size-title-md);
   letter-spacing: 3px;
 }

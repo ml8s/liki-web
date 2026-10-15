@@ -374,19 +374,19 @@ onMounted(() => {
 .subscription-list { display: grid; gap: 12px; }
 .subscription { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .subscription-title { display: flex; align-items: center; gap: 8px; font-weight: 650; }
-.subscription-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; color: var(--liki-text-2); font-size: 13px; }
+.subscription-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; color: var(--liki-text-2); font-size: var(--font-size-label); }
 .subscription-payments { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--liki-line); }
-.subscription-payments-title { margin: 0 0 10px; font-size: 14px; font-weight: 650; }
+.subscription-payments-title { margin: 0 0 10px; font-size: var(--font-size-body); font-weight: 650; }
 .subscription-payment {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 8px 0; border-bottom: 1px solid var(--liki-line);
 }
 .subscription-payment:last-child { border-bottom: 0; }
-.payment-date { font-weight: 600; font-size: 13px; }
-.payment-period { margin-left: 10px; color: var(--liki-text-2); font-size: 12px; }
+.payment-date { font-weight: 600; font-size: var(--font-size-label); }
+.payment-period { margin-left: 10px; color: var(--liki-text-2); font-size: var(--font-size-caption); }
 .payment-state { display: flex; align-items: center; gap: 10px; }
-.payment-amount { font-weight: 600; font-size: 13px; }
-.payment-refund { color: var(--liki-text-2); font-size: 12px; }
+.payment-amount { font-weight: 600; font-size: var(--font-size-label); }
+.payment-refund { color: var(--liki-text-2); font-size: var(--font-size-caption); }
 @media (max-width: 640px) { .subscription { align-items: flex-start; flex-direction: column; } }
 .subscription-payment { align-items: flex-start; flex-direction: column; gap: 6px; }
 .payment-state { flex-wrap: wrap; }
@@ -394,10 +394,10 @@ onMounted(() => {
 .order-cards { display: grid; gap: 12px; }
 .order-card {
   background: var(--liki-surface); border: 1px solid var(--liki-line);
-  border-radius: 12px; padding: 14px 16px;
+  border-radius: var(--radius-lg); padding: 14px 16px;
 }
 .order-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.order-id { font-weight: 600; font-size: 13px; word-break: break-all; }
-.order-row { display: flex; gap: 8px; font-size: 14px; color: var(--liki-ink); padding: 3px 0; }
+.order-id { font-weight: 600; font-size: var(--font-size-label); word-break: break-all; }
+.order-row { display: flex; gap: 8px; font-size: var(--font-size-body); color: var(--liki-ink); padding: 3px 0; }
 .order-row .k { color: var(--liki-text-2); width: 40px; flex-shrink: 0; }
 </style>

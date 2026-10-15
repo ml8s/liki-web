@@ -14,7 +14,7 @@
 .admin-page-heading h1 {
   margin: 0 0 4px;
   color: var(--liki-ink);
-  font-size: 24px;
+  font-size: var(--font-size-title-lg);
   font-weight: 650;
   letter-spacing: -0.03em;
   line-height: 1.2;
@@ -27,8 +27,8 @@
   color: var(--liki-text-2);
 }
 
-.admin-page-heading p { font-size: 14px; }
-.admin-shell .muted { font-size: 12px; }
+.admin-page-heading p { font-size: var(--font-size-body); }
+.admin-shell .muted { font-size: var(--font-size-caption); }
 
 .admin-page-actions { flex-shrink: 0; }
 

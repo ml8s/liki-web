@@ -268,15 +268,15 @@ function startChat() {
 </script>
 
 <style scoped>
-.range-info { font-size: 13px; color: var(--liki-text-2); margin-bottom: 12px; }
+.range-info { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: 12px; }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 .days { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
-.day { border: 1px solid var(--liki-line); border-radius: 8px; padding: 10px; text-align: center; }
+.day { border: 1px solid var(--liki-line); border-radius: var(--radius-md); padding: 10px; text-align: center; }
 .day.good { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
 .day.possible { border-color: var(--liki-line); background: var(--liki-surface); }
 .day.bad { border-color: var(--el-color-danger-light-7); background: var(--el-color-danger-light-9); }
 .d-date { font-weight: 700; }
-.d-sub { font-size: 12px; color: var(--liki-text-2); margin-top: 4px; }
-.d-warn { font-size: 11px; color: var(--el-color-warning); margin-top: 4px; }
+.d-sub { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 4px; }
+.d-warn { font-size: var(--font-size-micro); color: var(--el-color-warning); margin-top: 4px; }
 .safety-box { margin-top: 14px; }
 </style>

@@ -199,21 +199,21 @@ function startChat() {
 
 <style scoped>
 .mingua-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.mingua { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--liki-primary); font-size: 24px; color: var(--liki-primary); background: var(--liki-primary-tint); }
-.mg-name { font-size: 15px; font-weight: 600; }
-.mg-wuxing { font-size: 13px; color: var(--liki-text-2); margin-top: 2px; }
+.mingua { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--liki-primary); font-size: var(--font-size-title-lg); color: var(--liki-primary); background: var(--liki-primary-tint); }
+.mg-name { font-size: var(--font-size-body-lg); font-weight: 600; }
+.mg-wuxing { font-size: var(--font-size-label); color: var(--liki-text-2); margin-top: 2px; }
 .dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.dir { border: 1px solid var(--liki-line); border-radius: 6px; padding: 10px; text-align: center; }
-.dir .dg { font-size: 16px; color: var(--liki-primary); }
+.dir { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 10px; text-align: center; }
+.dir .dg { font-size: var(--font-size-title-sm); color: var(--liki-primary); }
 .dir.good { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
 .dir.good .dg { color: var(--liki-primary); }
-.dir .dname { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
-.ln-row { font-size: 13px; color: var(--liki-text-2); margin-bottom: 10px; }
-.fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; width: min(240px, 100%); }
+.dir .dname { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 3px; }
+.ln-row { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: 10px; }
+.fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; width: min(240px, 100%); }
 .fly-cell { background: var(--liki-surface); padding: 8px 4px; text-align: center; }
 .fly-cell.center { background: var(--liki-primary-tint); }
 .fly-cell.ru_zhong { border: 2px solid var(--liki-primary); background: var(--liki-primary-tint); }
-.fly-name { font-size: 12px; color: var(--liki-text-2); }
-.fly-wuxing { font-size: 11px; color: var(--liki-text-3); margin-top: 2px; }
+.fly-name { font-size: var(--font-size-caption); color: var(--liki-text-2); }
+.fly-wuxing { font-size: var(--font-size-micro); color: var(--liki-text-3); margin-top: 2px; }
 @media (max-width: 640px) { .dirs { grid-template-columns: repeat(2, 1fr); } }
 </style>

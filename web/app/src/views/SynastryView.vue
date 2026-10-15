@@ -435,17 +435,17 @@ async function startInterpretation() {
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .charts { display: grid; gap: 14px; }
 .chart-row { display: flex; align-items: center; gap: 12px; }
-.person { flex: 0 0 56px; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; flex: 1; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; }
+.person { flex: 0 0 56px; font-weight: 600; font-size: var(--font-size-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; flex: 1; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; }
 .pillar { background: var(--liki-surface); padding: 8px 4px; text-align: center; }
-.pillar .pl { font-size: 11px; color: var(--liki-text-3); }
-.pillar .gl { font-size: 18px; font-weight: 700; }
-.pillar .sub { font-size: 11px; color: var(--liki-text-2); }
+.pillar .pl { font-size: var(--font-size-micro); color: var(--liki-text-3); }
+.pillar .gl { font-size: var(--font-size-title-xs); font-weight: 700; }
+.pillar .sub { font-size: var(--font-size-micro); color: var(--liki-text-2); }
 .rel-sec { margin-top: 16px; }
-.sec-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-.rel-text { font-size: 14px; color: var(--liki-ink); }
+.sec-title { font-size: var(--font-size-label); font-weight: 600; margin-bottom: 8px; }
+.rel-text { font-size: var(--font-size-body); color: var(--liki-ink); }
 .rels { display: flex; flex-wrap: wrap; gap: 8px; }
-.rel-chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--liki-line); background: var(--liki-surface); font-size: 12px; color: var(--liki-text-2); }
+.rel-chip { padding: 4px 10px; border-radius: var(--radius-full); border: 1px solid var(--liki-line); background: var(--liki-surface); font-size: var(--font-size-caption); color: var(--liki-text-2); }
 .rel-chip.nayin { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
 .rel-chip.shensha { border-color: var(--liki-primary-border, var(--liki-primary-border)); background: var(--liki-primary-tint); }
 @media (max-width: 640px) {

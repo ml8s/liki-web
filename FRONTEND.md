@@ -196,6 +196,10 @@ limited to genuine layout measurements rather than replacing spacing tokens.
 `check-css-vars.cjs` rejects CSS custom properties that are consumed by source
 but not defined in the shared source layers.
 
+The full route inventory, page archetypes, state matrix, URL-state rules, and
+component rules live in
+[`docs/frontend/ux-architecture.md`](docs/frontend/ux-architecture.md).
+
 ### Page typography
 
 Use the existing page-header component for normal product pages. It owns the

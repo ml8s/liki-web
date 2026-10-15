@@ -42,5 +42,5 @@ const selectedId = computed({
 .profile-picker { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .label { font-weight: 600; }
 .profile-picker__select { width: 240px; }
-.new-link { display: inline-block; padding: 4px 2px; font-size: 14px; color: var(--liki-primary); text-decoration: none; }
+.new-link { display: inline-block; padding: 4px 2px; font-size: var(--font-size-body); color: var(--liki-primary); text-decoration: none; }
 </style>

@@ -430,15 +430,15 @@ watch(() => props.profile?.id, () => {
 
 <style scoped>
 .paipan-preview {
-  border-radius: 12px; margin-bottom: 20px;
+  border-radius: var(--radius-lg); margin-bottom: 20px;
   position: relative;
   border-top: 2px solid var(--liki-primary);
 }
-.hint { color: var(--liki-text-2); font-size: 13px; margin: 4px 0 12px; }
+.hint { color: var(--liki-text-2); font-size: var(--font-size-label); margin: 4px 0 12px; }
 .pan-skeleton .skel {
   height: 14px;
   margin-bottom: 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-small);
   background: var(--liki-line);
   animation: skeleton-pulse 1.2s var(--liki-ease) infinite;
 }
@@ -451,39 +451,39 @@ watch(() => props.profile?.id, () => {
 .pillars {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
   background: var(--liki-line); border: 1px solid var(--liki-line);
-  border-radius: 8px; overflow: hidden;
+  border-radius: var(--radius-md); overflow: hidden;
 }
 .pillar { background: var(--liki-surface); padding: 16px 8px; text-align: center; }
 .pillar.self { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
-.pillar .label { font-size: 12px; color: var(--liki-text-3); margin-bottom: 8px; letter-spacing: 0.08em; }
+.pillar .label { font-size: var(--font-size-caption); color: var(--liki-text-3); margin-bottom: 8px; letter-spacing: 0.08em; }
 .pillar .gl { font-size: 25px; font-weight: 700; letter-spacing: 0.02em; }
 .pillar.self .gl { color: var(--liki-primary); }
-.pillar .sub { font-size: 12px; color: var(--liki-text-2); margin-top: 4px; }
+.pillar .sub { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 4px; }
 .pillar .nayin { color: var(--liki-text-3); }
-.pillar .cang { color: var(--liki-text-3); font-size: 11px; }
-.void-tag { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 999px; background: var(--liki-primary-tint); color: var(--liki-primary); font-size: 11px; }
+.pillar .cang { color: var(--liki-text-3); font-size: var(--font-size-micro); }
+.void-tag { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: var(--radius-full); background: var(--liki-primary-tint); color: var(--liki-primary); font-size: var(--font-size-micro); }
 
-.san-yuan, .shensha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: 13px; }
+.san-yuan, .shensha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: var(--font-size-label); }
 .sy-label { color: var(--liki-text-3); flex: 0 0 2em; }
 .sy-body { color: var(--liki-ink); }
 .shensha { gap: 6px; }
-.ss-chip { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--liki-line); background: var(--liki-surface); color: var(--liki-text-2); font-size: 12px; }
+.ss-chip { padding: 2px 10px; border-radius: var(--radius-full); border: 1px solid var(--liki-line); background: var(--liki-surface); color: var(--liki-text-2); font-size: var(--font-size-caption); }
 
-.ln-row { font-size: 13px; color: var(--liki-text-2); margin-bottom: 10px; }
-.fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; width: min(320px, 100%); }
+.ln-row { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: 10px; }
+.fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; width: min(320px, 100%); }
 .fly-cell { background: var(--liki-surface); padding: 10px 4px; text-align: center; }
 .fly-cell.center { background: var(--liki-primary-tint); }
-.fly-name { font-size: 12px; color: var(--liki-text-2); }
+.fly-name { font-size: var(--font-size-caption); color: var(--liki-text-2); }
 
-.sec-title { font-size: 13px; font-weight: 600; margin: 16px 0 8px; color: var(--liki-ink); }
+.sec-title { font-size: var(--font-size-label); font-weight: 600; margin: 16px 0 8px; color: var(--liki-ink); }
 .dayun { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
-.dy { border: 1px solid var(--liki-line); border-radius: 6px; padding: 8px 4px; text-align: center; }
+.dy { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 8px 4px; text-align: center; }
 .dy.cur { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
-.dy-name { font-size: 15px; font-weight: 700; }
-.dy-shen { font-size: 11px; color: var(--liki-text-2); margin-top: 2px; }
-.dy-year { font-size: 11px; color: var(--liki-text-3); margin-top: 2px; }
-.ys { border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; }
-.ys-row { display: flex; gap: 10px; padding: 8px 12px; font-size: 13px; }
+.dy-name { font-size: var(--font-size-body-lg); font-weight: 700; }
+.dy-shen { font-size: var(--font-size-micro); color: var(--liki-text-2); margin-top: 2px; }
+.dy-year { font-size: var(--font-size-micro); color: var(--liki-text-3); margin-top: 2px; }
+.ys { border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; }
+.ys-row { display: flex; gap: 10px; padding: 8px 12px; font-size: var(--font-size-label); }
 .ys-row + .ys-row { border-top: 1px solid var(--liki-line); }
 .ys-label { color: var(--liki-text-3); flex: 0 0 3em; }
 .ys-body { color: var(--liki-ink); }
@@ -491,28 +491,28 @@ watch(() => props.profile?.id, () => {
 .palaces {
   display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px;
   background: var(--liki-line); border: 1px solid var(--liki-line);
-  border-radius: 6px; overflow: hidden;
+  border-radius: var(--radius-small); overflow: hidden;
 }
 .palace { background: var(--liki-surface); padding: 10px 4px; text-align: center; min-height: 68px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .palace.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
 .palace.shen { background: var(--liki-primary-tint); }
-.palace .pname { font-size: 13px; font-weight: 600; }
+.palace .pname { font-size: var(--font-size-label); font-weight: 600; }
 .palace.ming .pname, .palace.ming .pstar { color: var(--liki-primary); }
-.palace .pstar { font-size: 12px; color: var(--liki-primary); margin-top: 3px; }
-.palace .pminor { font-size: 11px; color: var(--liki-text-3); margin-top: 2px; }
+.palace .pstar { font-size: var(--font-size-caption); color: var(--liki-primary); margin-top: 3px; }
+.palace .pminor { font-size: var(--font-size-micro); color: var(--liki-text-3); margin-top: 2px; }
 
 .mingua-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
 .mingua { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--liki-primary); font-size: 26px; color: var(--liki-primary); background: var(--liki-primary-tint); }
-.mg-name { font-size: 15px; font-weight: 600; }
-.mg-sub { color: var(--liki-text-2); font-size: 12px; margin-top: 2px; }
+.mg-name { font-size: var(--font-size-body-lg); font-weight: 600; }
+.mg-sub { color: var(--liki-text-2); font-size: var(--font-size-caption); margin-top: 2px; }
 .dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.dir { border: 1px solid var(--liki-line); border-radius: 6px; padding: 10px; text-align: center; }
-.dir .dg { font-size: 18px; color: var(--liki-primary); }
+.dir { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 10px; text-align: center; }
+.dir .dg { font-size: var(--font-size-title-xs); color: var(--liki-primary); }
 .dir.good { border-color: var(--color-success-border); background: var(--color-success-surface); }
 .dir.good .dg { color: var(--el-color-success); }
-.dir .dname { font-size: 12px; color: var(--liki-text-2); margin-top: 3px; }
+.dir .dname { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 3px; }
 
-.correction { margin-top: 12px; font-size: 12px; color: var(--liki-primary); }
+.correction { margin-top: 12px; font-size: var(--font-size-caption); color: var(--liki-primary); }
 @media (max-width: 640px) {
   .pillars { grid-template-columns: repeat(2, 1fr); }
   .palaces { grid-template-columns: repeat(3, 1fr); }

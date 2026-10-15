@@ -60,7 +60,7 @@ const preloadNavigation = createIntentPreloader(router, record => !String(record
   height: 54px;
   color: var(--liki-text-2);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   transition: color var(--liki-dur) var(--liki-ease);
 }
 .app-tabbar a.on { color: var(--liki-primary); font-weight: 600; }

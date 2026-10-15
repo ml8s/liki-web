@@ -251,7 +251,7 @@ onBeforeUnmount(() => {
   margin-bottom: 28px;
   color: var(--liki-ink);
   font-family: var(--liki-font-serif);
-  font-size: 24px;
+  font-size: var(--font-size-title-lg);
   font-weight: 700;
 }
 .brand-mark span { color: var(--liki-primary); font-style: normal; }
@@ -259,7 +259,7 @@ onBeforeUnmount(() => {
   max-width: 390px;
   margin: 0 0 28px;
   color: var(--liki-text-2);
-  font-size: 16px;
+  font-size: var(--font-size-title-sm);
   line-height: 1.7;
   text-wrap: pretty;
 }
@@ -275,7 +275,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 .login-brand li::before {
   content: '';
@@ -303,9 +303,9 @@ h1 { margin: 0 0 8px; font-size: 26px; font-weight: 650; letter-spacing: -0.03em
   letter-spacing: -0.04em;
 }
 .hint { color: var(--liki-text-2); margin: 0 0 20px; }
-.slogan { color: var(--liki-primary); margin: 0 0 4px; font-size: 15px; }
+.slogan { color: var(--liki-primary); margin: 0 0 4px; font-size: var(--font-size-body-lg); }
 .values { display: flex; gap: 8px; justify-content: flex-start; margin: 6px 0 12px; flex-wrap: wrap; }
-.value { font-size: 12px; color: var(--liki-text-2); background: var(--liki-primary-tint); padding: 3px 10px; border-radius: 999px; }
+.value { font-size: var(--font-size-caption); color: var(--liki-text-2); background: var(--liki-primary-tint); padding: 3px 10px; border-radius: var(--radius-full); }
 .wide { width: 100%; }
 .code-actions { display: flex; justify-content: space-between; margin: 0 0 12px; }
 .error { margin-top: 16px; }

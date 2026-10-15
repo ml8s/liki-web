@@ -311,21 +311,21 @@ function startChat() {
 <style scoped>
 .gua-row { display: flex; align-items: baseline; gap: 12px; }
 .gua-name { font-size: 26px; font-weight: 700; }
-.gua-sub { color: var(--liki-text-2); font-size: 13px; }
-.gua-info { margin-top: 8px; font-size: 13px; color: var(--liki-text-2); }
+.gua-sub { color: var(--liki-text-2); font-size: var(--font-size-label); }
+.gua-info { margin-top: 8px; font-size: var(--font-size-label); color: var(--liki-text-2); }
 .lines-sec { margin-top: 14px; }
 .lines-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.lines-table { border: 1px solid var(--liki-line); border-radius: 6px; overflow: hidden; font-size: 12px; min-width: 480px; }
+.lines-table { border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; font-size: var(--font-size-caption); min-width: 480px; }
 .line-row { display: flex; }
 .line-row + .line-row { border-top: 1px solid var(--liki-line); }
 .line-header { background: var(--liki-surface); font-weight: 600; }
 .line-row .lc { flex: 1; padding: 6px 4px; text-align: center; }
 .line-row.dong { background: var(--liki-primary-tint); }
 .rel-sec { margin-top: 14px; }
-.rel-text { font-size: 14px; color: var(--liki-ink); }
-.rel-sub { font-size: 13px; color: var(--liki-text-2); margin-top: 4px; }
+.rel-text { font-size: var(--font-size-body); color: var(--liki-ink); }
+.rel-sub { font-size: var(--font-size-label); color: var(--liki-text-2); margin-top: 4px; }
 .pattern-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
 .pattern-name { font-weight: 600; color: var(--liki-primary); }
-.pattern-desc { font-size: 12px; color: var(--liki-text-3); }
+.pattern-desc { font-size: var(--font-size-caption); color: var(--liki-text-3); }
 .safety-box { margin-top: 14px; }
 </style>

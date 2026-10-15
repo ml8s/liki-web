@@ -73,6 +73,6 @@ function onKeydown(event: Event) {
   justify-content: space-between;
   margin-top: 10px;
   color: var(--liki-text-2);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 </style>

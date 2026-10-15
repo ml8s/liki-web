@@ -56,7 +56,7 @@ const router = useRouter()
 }
 h1 {
   margin: 12px 0 8px;
-  font-size: 24px;
+  font-size: var(--font-size-title-lg);
   font-weight: 650;
   letter-spacing: -0.03em;
 }

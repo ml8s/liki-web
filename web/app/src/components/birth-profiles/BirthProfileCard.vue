@@ -58,7 +58,7 @@ const initial = computed(() => props.profile.nickname.slice(0, 1))
 .profile-card {
   display: flex; align-items: center; gap: 14px;
   background: var(--liki-surface); border: 1px solid var(--liki-line);
-  border-radius: 12px; padding: 16px 18px;
+  border-radius: var(--radius-lg); padding: 16px 18px;
   transition: border-color var(--liki-dur) var(--liki-ease), box-shadow var(--liki-dur) var(--liki-ease), transform var(--liki-dur) var(--liki-ease);
 }
 .profile-main {
@@ -73,12 +73,12 @@ const initial = computed(() => props.profile.nickname.slice(0, 1))
 .avatar {
   width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
   background: var(--liki-primary-tint); color: var(--liki-primary);
-  display: grid; place-items: center; font-size: 18px;
+  display: grid; place-items: center; font-size: var(--font-size-title-xs);
 }
 .info { flex: 1; min-width: 0; }
 .name-row { display: flex; align-items: center; gap: 8px; }
 .name { font-size: 17px; font-weight: 700; }
-.meta { color: var(--liki-text-2); font-size: 13px; margin-top: 3px; }
+.meta { color: var(--liki-text-2); font-size: var(--font-size-label); margin-top: 3px; }
 .actions { display: flex; gap: 4px; }
 @media (max-width: 640px) { .actions { flex-direction: column; } }
 </style>

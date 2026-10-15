@@ -40,12 +40,12 @@ const html = computed(() => renderSafeMarkdown(props.source))
 .app-markdown :deep(h3:first-child) {
   margin-top: 0;
 }
-.app-markdown :deep(h1) { font-size: 24px; }
-.app-markdown :deep(h2) { font-size: 20px; }
-.app-markdown :deep(h3) { font-size: 18px; }
+.app-markdown :deep(h1) { font-size: var(--font-size-title-lg); }
+.app-markdown :deep(h2) { font-size: var(--font-size-title-md); }
+.app-markdown :deep(h3) { font-size: var(--font-size-title-xs); }
 .app-markdown :deep(h4),
 .app-markdown :deep(h5),
-.app-markdown :deep(h6) { font-size: 16px; }
+.app-markdown :deep(h6) { font-size: var(--font-size-title-sm); }
 .app-markdown :deep(p) {
   margin: 0 0 12px;
   text-wrap: pretty;
@@ -79,13 +79,13 @@ const html = computed(() => renderSafeMarkdown(props.source))
   padding: 14px;
   overflow-x: auto;
   border: 1px solid var(--liki-line);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--liki-paper);
 }
 .app-markdown :deep(pre code) {
   padding: 0;
   background: transparent;
-  font-size: 13px;
+  font-size: var(--font-size-label);
   line-height: 1.6;
   white-space: pre;
 }
@@ -93,7 +93,7 @@ const html = computed(() => renderSafeMarkdown(props.source))
   width: 100%;
   margin: 12px 0;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 .app-markdown :deep(th),
 .app-markdown :deep(td) {

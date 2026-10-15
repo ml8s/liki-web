@@ -344,7 +344,7 @@ async function submit() {
 .date-row :deep(.el-date-editor) { flex: 1; }
 .shichen { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .shichen .el-button { margin: 0; }
-.hint { color: var(--liki-text-2); font-size: 13px; margin: 0; }
+.hint { color: var(--liki-text-2); font-size: var(--font-size-label); margin: 0; }
 .submit { width: 100%; }
 @media (max-width: 480px) { .shichen { grid-template-columns: repeat(4, 1fr); } }
 </style>

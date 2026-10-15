@@ -455,6 +455,6 @@ onMounted(load)
 .apply-card p { margin: 0 0 18px; color: var(--liki-text-2); }
 .section-card { margin-bottom: 20px; }
 .rules { margin-bottom: 14px; }
-.share-hint { margin: 10px 0 0; color: var(--liki-text-2); font-size: 14px; }
+.share-hint { margin: 10px 0 0; color: var(--liki-text-2); font-size: var(--font-size-body); }
 .overview-stats { margin-top: var(--space-4); }
 </style>

@@ -82,7 +82,7 @@ defineEmits<{ action: [] }>()
   border-radius: var(--radius-full);
   background: var(--liki-primary);
   color: var(--liki-on-primary);
-  font-size: 16px;
+  font-size: var(--font-size-title-sm);
   font-weight: 500;
   text-decoration: none;
   transition: background var(--liki-dur) var(--liki-ease), transform var(--liki-dur) var(--liki-ease);
@@ -96,6 +96,6 @@ defineEmits<{ action: [] }>()
 .disclaimer {
   margin: var(--space-4) 0 0;
   color: var(--liki-text-3);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 </style>

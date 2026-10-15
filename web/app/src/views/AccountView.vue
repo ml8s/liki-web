@@ -394,7 +394,7 @@ onMounted(load)
   gap: 16px;
   margin-top: 16px;
   color: var(--liki-text-2);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 .language-select { width: 180px; }
 .session-list { list-style: none; margin: 0; padding: 0; }
@@ -404,8 +404,8 @@ onMounted(load)
 }
 .session-item:last-child { border-bottom: none; }
 .session-device { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.session-meta { color: var(--liki-text-2); font-size: 13px; margin-top: 2px; }
+.session-meta { color: var(--liki-text-2); font-size: var(--font-size-label); margin-top: 2px; }
 .legal-links { display: flex; gap: 18px; justify-content: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--liki-line); }
-.legal-links a { color: var(--liki-text-2); font-size: 13px; text-decoration: none; padding: 6px 2px; }
+.legal-links a { color: var(--liki-text-2); font-size: var(--font-size-label); text-decoration: none; padding: 6px 2px; }
 .legal-links a:hover { color: var(--liki-primary); }
 </style>

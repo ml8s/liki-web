@@ -34,6 +34,6 @@ const admin = useAdminStore()
 .capability-grid p {
   margin: 10px 0 0;
   color: var(--liki-text-2);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 </style>

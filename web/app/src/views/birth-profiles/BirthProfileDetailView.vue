@@ -173,14 +173,14 @@ onBeforeRouteLeave(async () => {
 .profile-page-header { margin-bottom: 20px; }
 .page-heading h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--font-size-title-lg);
   font-weight: 650;
   letter-spacing: -0.03em;
 }
 .page-heading p {
   margin: 4px 0 0;
   color: var(--liki-text-2);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .service-chips { display: flex; flex-wrap: wrap; gap: 10px; }
