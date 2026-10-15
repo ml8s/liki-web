@@ -41,11 +41,18 @@ before implementation.
 | Product dashboard | continue the user's next task | state-driven hero, services, recent activity | `/app` |
 | Profile management | manage birth profiles | list/detail/new/edit, confirmation for delete | birth profiles |
 | Form + result | input data and receive a domain result | header, error, input, result, consultation CTA | synastry, divination, fengshui, huangli |
-| Conversation | conduct a consultation | context, stream, composer, status | chat |
+| Conversation | conduct a consultation | context, stream, composer, status, viewport-bound scroll region | chat |
 | Commerce | show ownership and billing | subscription, one-time orders, history | orders |
 | Partner workspace | show partner performance and earnings | role state, stats, lists, settlement | partner center/KOL/Scout |
 | Account & security | manage identity and sessions | profile, locale, sessions, danger zone | account |
 | Operator list | filter, inspect, and act | filter form, table/cards, pagination, dialogs | admin pages |
+
+Only the conversation archetype owns the viewport: `/app/chat/:id` declares
+`meta.viewportBound`, so `AppLayout` locks the app shell to the viewport height and
+the message region — not the document — scrolls. The composer therefore stays
+visible when the keyboard opens, and the newest message is followed on every
+viewport-height change. Content pages keep document scrolling on purpose: URL-bar
+collapse, find-in-page, and pull-to-refresh are platform behaviors tied to it.
 
 ## State matrix
 
@@ -349,13 +356,14 @@ cd web && npm run build
 ```
 
 Playwright journeys cover current user behavior, including static pages, login,
-profiles, services, chat, commerce, Admin, accessibility, and mobile smoke.
+profiles, services, chat (including the viewport-bound conversation layout and the
+keyboard-driven viewport shrink), commerce, Admin, accessibility, and mobile smoke.
 
 Manual validation is required for:
 
 1. keyboard-only signup through profile creation;
 2. screen-reader feedback for validation and streaming;
-3. mobile Chat with the keyboard open;
+3. mobile Chat with a real iOS keyboard (the emulated viewport shrink is covered);
 4. Admin dialogs and table/card parity;
 5. payment return after refresh or browser back;
 6. Partner role states after approval, freeze, and rejection.

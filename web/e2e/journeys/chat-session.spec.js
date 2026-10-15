@@ -77,6 +77,35 @@ test('a failed stream offers retry and resending succeeds', async ({ page }) => 
   expect(sends).toHaveLength(2)
 })
 
+test('the conversation owns the viewport and follows the keyboard', async ({ page }) => {
+  // 会话页独占视口（route meta viewportBound）：文档不滚动，滚动发生在消息区，
+  // 输入框常驻可见；键盘弹起时（visualViewport 变矮）消息区跟到最新一条。
+  const history = Array.from({ length: 40 }, (_, index) => message(`msg_${index}`, 'user', `第 ${index + 1} 則訊息`))
+  await mockSession(page, history)
+  await page.route('**/api/chat/sessions/chat_1/ag-ui', route => route.fulfill(stream(successStream)))
+
+  await page.goto('/app/chat/chat_1')
+
+  // 外层 .thread 才是滚动容器（内层 ChatThread 用同名 class 做 aria-live 列表）。
+  const thread = page.locator('.chat-main > .thread')
+  const distanceToEnd = () => thread.evaluate(el => el.scrollHeight - el.scrollTop - el.clientHeight)
+  const composerFits = () => page.evaluate(() => {
+    const box = document.querySelector('form.composer')?.getBoundingClientRect()
+    return !!box && box.top >= 0 && box.bottom <= window.innerHeight + 0.5
+  })
+
+  await expect.poll(distanceToEnd).toBeLessThan(40)
+  expect(await thread.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
+  expect(await composerFits()).toBe(true)
+  expect(await page.evaluate(() => document.scrollingElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(1)
+
+  await page.setViewportSize({ width: 1280, height: 500 })
+  await page.evaluate(() => window.visualViewport?.dispatchEvent(new Event('resize')))
+
+  await expect.poll(distanceToEnd).toBeLessThan(40)
+  expect(await composerFits()).toBe(true)
+})
+
 test('mobile: a message can be sent in a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mockSession(page, [message('msg_1', 'assistant', '先給我出生資訊。')])

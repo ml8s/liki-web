@@ -1,5 +1,8 @@
 <template>
-  <div class="app-shell">
+  <div
+    class="app-shell"
+    :class="{ 'app-shell-bounded': viewportBound }"
+  >
     <a
       href="#app-main"
       class="skip-link"
@@ -54,6 +57,9 @@ const route = useRoute()
 const { t } = useI18n()
 const mainEl = ref<HTMLElement | null>(null)
 const pageTitle = computed(() => route.meta.titleKey ? t(String(route.meta.titleKey)) : t('router.dashboard'))
+// 内容页保持文档滚动（URL 栏收起、页内查找、下拉刷新都是平台行为）；
+// 只有自称独占视口的视图才把滚动收进页面内部（如会话页的消息区）。
+const viewportBound = computed(() => route.meta.viewportBound === true)
 
 onMounted(async () => {
   try {
@@ -84,6 +90,11 @@ async function logout() {
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--liki-paper);
+}
+.app-shell-bounded {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .skip-link {
