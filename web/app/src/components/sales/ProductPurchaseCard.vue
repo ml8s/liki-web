@@ -73,15 +73,14 @@ defineEmits<{ purchase: [billingMode: 'one_time' | 'subscription'] }>()
 
 const { locale } = useI18n()
 
+// 服务端只下发本区域可结算的选项（币种恒等于 display_currency）：国内是 Xunhu 的按次
+// CNY，境外是 Dodo 的按次 + 订阅 USD。这里按计费模式取用，不再复刻区域规则。
 const subscriptionOption = computed(() =>
   props.product.purchase_options?.find(option => option.billing_mode === 'subscription') ?? null,
 )
 
 const oneTimeOption = computed(() =>
-  props.product.purchase_options?.find(option =>
-    option.billing_mode === 'one_time' &&
-    option.price.currency_code === props.product.display_currency,
-  ) ?? props.product.purchase_options?.find(option => option.billing_mode === 'one_time') ?? null,
+  props.product.purchase_options?.find(option => option.billing_mode === 'one_time') ?? null,
 )
 
 function formatPrice(price: MoneyMinor) {

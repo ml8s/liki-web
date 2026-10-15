@@ -114,7 +114,8 @@ USD one-time checkout requires `DODO_PRODUCT_LIKI_CHAT_ONE_TIME`. Its Dodo price
 
 USD monthly subscription requires `DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION`. The Dodo recurring product owns the charged
 price; `LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS` is the catalog/display price and must match it. Subscription
-lifecycle webhooks update local state and entitlement. CNY subscription checkout is intentionally unavailable.
+lifecycle webhooks update local state and entitlement. CNY subscription is intentionally unavailable: the catalog holds no
+CNY subscription price, so subscription options are never listed for CNY buyers and CNY subscription checkout is rejected.
 
 ## Quality gate
 

@@ -96,8 +96,10 @@ Checkout response:
 ```
 
 The server selects currency, amount, provider, and provider SKU. A client provider value is only a hint.
-The product response includes all catalog prices plus `display_currency` and
-`display_amount_minor`; the UI must render those server-selected display fields.
+The product response carries the server-selected `display_currency` and `display_amount_minor`, and
+`purchase_options` lists only the offers that currency can settle — every option's currency equals
+`display_currency`. The UI renders those fields as-is: a CNY buyer sees Xunhu one-time pricing while an
+overseas buyer sees Dodo one-time and subscription pricing.
 
 ## Payments
 

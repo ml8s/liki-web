@@ -104,7 +104,6 @@ test('paid return confirms entitlement and jumps straight into a session', async
       name: 'Liki Chat',
       description: 'Unified metaphysics chat.',
       skills: ['liki'],
-      prices: { CNY: 100, USD: 100 },
       display_currency: 'CNY',
       display_amount_minor: 100,
       purchased: entitlementRequest > 1,

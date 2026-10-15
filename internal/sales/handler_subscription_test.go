@@ -106,6 +106,66 @@ func TestSubscriptionCheckoutStoresLocalKeyAndOmitsAmount(t *testing.T) {
 	}
 }
 
+// 列表与结算共用同一道闸门：CNY 没有订阅价，所以国内买家直接调用结算接口也拿不到
+// Dodo 结账页，且不会落下本地订阅记录。
+func TestSubscriptionCheckoutRejectsCurrencyWithoutSubscriptionPrice(t *testing.T) {
+	ctx := context.Background()
+	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	entitlements := entitlement.NewStore(db)
+	subscriptions := NewSubscriptionStore(db)
+	for _, migrate := range []func(context.Context) error{entitlements.Migrate, subscriptions.Migrate} {
+		if err := migrate(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	checkoutGateway := &fakeSubscriptionCheckoutGateway{}
+	catalog := product.NewCatalog(product.CatalogConfig{
+		OneTimePriceMinorCNY:      7900,
+		OneTimePriceMinorUSD:      2990,
+		SubscriptionPriceMinorUSD: 1990,
+	})
+	handler := NewHandler(nil, nil, nil, nil, WithSkillAuthorizer(entitlements),
+		WithCatalog(catalog),
+		WithSubscriptions(subscriptions, checkoutGateway, &fakeSubscriptionGateway{}, "https://liki.hk"),
+	)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/sales/checkouts",
+		strings.NewReader(`{"product_id":"liki-chat","billing_mode":"subscription","locale":"zh-Hans"}`))
+	request.Header.Set("CF-IPCountry", "CN")
+	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
+		ID: "user-1", Email: "user@example.com",
+	}, auth.AuthSession{}, ""))
+	recorder := httptest.NewRecorder()
+	handler.HandleCheckout(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s, want 400", recorder.Code, recorder.Body.String())
+	}
+	var problem struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &problem); err != nil {
+		t.Fatal(err)
+	}
+	if problem.Type != "subscription_unavailable" {
+		t.Fatalf("problem type = %q, want subscription_unavailable", problem.Type)
+	}
+	if checkoutGateway.request.SubscriptionKey != "" {
+		t.Fatalf("checkout gateway was called: %+v", checkoutGateway.request)
+	}
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(1) FROM sales_subscriptions WHERE user_id='user-1'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("subscription rows = %d, want 0", count)
+	}
+}
+
 func TestSubscriptionRoutesListAndCancel(t *testing.T) {
 	ctx := context.Background()
 	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "liki.db"))

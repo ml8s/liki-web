@@ -183,6 +183,15 @@ func (h *Handler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 			if offer.BillingMode == product.BillingModeSubscription && h.subscriptionCheckout == nil {
 				continue
 			}
+			// The catalog holds one offer per billing mode and currency, so
+			// matching the offer against the server-selected display currency is
+			// the same gate catalog.Price applies to order creation and
+			// subscription checkout. Advertising another region's offer (for
+			// example the USD-only subscription to a CNY buyer) would only fail
+			// closed on click.
+			if offer.Price.Currency != string(displayCurrency) {
+				continue
+			}
 			options = append(options, map[string]any{
 				"billing_mode": string(offer.BillingMode),
 				"price": map[string]any{

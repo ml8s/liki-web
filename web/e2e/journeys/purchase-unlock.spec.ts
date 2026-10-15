@@ -8,7 +8,7 @@ const user = testUser({ id: 'usr_unlock', email: 'unlock@example.com' })
 
 const baseProduct = {
   id: 'liki-chat', name: 'Liki Chat', description: 'Unified metaphysics chat.',
-  skills: ['liki'], prices: { CNY: 100 }, display_currency: 'CNY', display_amount_minor: 100,
+  skills: ['liki'], display_currency: 'CNY', display_amount_minor: 100,
   purchase_options: [
     { billing_mode: 'one_time', price: { currency_code: 'CNY', minor_units: 100 } },
   ],
