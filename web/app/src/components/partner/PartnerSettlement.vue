@@ -128,6 +128,7 @@ import {
   type Settlement,
 } from '@/api/partner'
 import { formatDateTime, formatMinorUnit } from '@/utils/format'
+import { partnerPayoutStatus as payoutMeta } from '@/utils/partnerStatus'
 
 const props = defineProps<{ role: PartnerRole }>()
 const { t } = useI18n()
@@ -175,21 +176,11 @@ async function submit(payload: { method: PayoutMethod; account: string }) {
 }
 
 function payoutLabel(status: Payout['status']) {
-  const labels: Record<Payout['status'], string> = {
-    requested: t('partner.payoutStatus.requested'),
-    pending: t('partner.payoutStatus.pending'),
-    approved: t('partner.payoutStatus.approved'),
-    rejected: t('partner.payoutStatus.rejected'),
-    paid: t('partner.payoutStatus.paid'),
-    failed: t('partner.payoutStatus.failed'),
-  }
-  return labels[status]
+  return payoutMeta(status).label
 }
 
 function payoutTagType(status: PayoutStatus) {
-  if (status === 'paid') return 'success'
-  if (status === 'rejected' || status === 'failed') return 'danger'
-  return 'warning'
+  return payoutMeta(status).tag
 }
 
 onMounted(load)

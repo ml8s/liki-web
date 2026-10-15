@@ -326,6 +326,10 @@ import {
   type ScoutSale,
 } from '@/api/partner'
 import { formatDateTime, formatMinorUnit } from '@/utils/format'
+import {
+  partnerCommissionStatus as commissionMeta,
+  partnerPayoutStatus as payoutMeta,
+} from '@/utils/partnerStatus'
 
 const { t } = useI18n()
 const loading = ref(true)
@@ -422,28 +426,19 @@ async function submitPayout(payload: { method: PayoutMethod; account: string }) 
 }
 
 function commissionLabel(status: ScoutSale['status']) {
-  const labels = { pending: t('partner.commissionStatus.pending'), paid: t('partner.commissionStatus.paid'), voided: t('partner.commissionStatus.voided') }
-  return labels[status]
+  return commissionMeta(status).label
 }
 
 function commissionTagType(status: ScoutSale['status']) {
-  if (status === 'paid') return 'success'
-  if (status === 'voided') return 'danger'
-  return 'warning'
+  return commissionMeta(status).tag
 }
 
 function payoutLabel(status: Payout['status']) {
-  const labels: Record<Payout['status'], string> = {
-    requested: t('partner.payoutStatus.requested'), pending: t('partner.payoutStatus.pending'), approved: t('partner.payoutStatus.approved'),
-    rejected: t('partner.payoutStatus.rejected'), paid: t('partner.payoutStatus.paid'), failed: t('partner.payoutStatus.failed'),
-  }
-  return labels[status]
+  return payoutMeta(status).label
 }
 
 function payoutTagType(status: Payout['status']) {
-  if (status === 'paid') return 'success'
-  if (status === 'rejected' || status === 'failed') return 'danger'
-  return 'warning'
+  return payoutMeta(status).tag
 }
 
 onMounted(load)
