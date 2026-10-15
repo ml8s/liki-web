@@ -37,6 +37,7 @@
     <template v-else-if="detail">
       <BirthProfileInfo
         ref="infoRef"
+        :draft-key="draftKey"
         :profile="detail"
         :submitting="updating"
         @update="update"
@@ -94,6 +95,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
+import { useAuthStore } from '@/stores/auth'
 import type { BirthProfileInput } from '@/api/birth-profiles'
 import { chatServices, chatUrl, serviceByKey } from '@/config/chat'
 import PaipanPreview from '@/components/birth-profiles/PaipanPreview.vue'
@@ -105,6 +107,7 @@ const router = useRouter()
 const { t } = useI18n()
 const profiles = useBirthProfilesStore()
 const entitlements = useEntitlementsStore()
+const auth = useAuthStore()
 
 const infoRef = ref<InstanceType<typeof BirthProfileInfo> | null>(null)
 const updating = ref(false)
@@ -113,6 +116,7 @@ const profileId = computed(() => String(route.params.id ?? ''))
 const detail = computed(() => profiles.detail)
 const error = computed(() => profiles.error)
 const preselectedService = computed(() => (preselectedKey.value ? serviceByKey(preselectedKey.value) : undefined))
+const draftKey = computed(() => auth.user?.id ? `birth-profile:edit:${auth.user.id}:${profileId.value}` : undefined)
 const editingInfo = computed(() => Boolean(infoRef.value?.isEditing && infoRef.value?.isDirty))
 
 useUnloadGuard(editingInfo)
@@ -165,6 +169,7 @@ onBeforeRouteLeave(async () => {
       t('profiles.detail.unsavedTitle'),
       { type: 'warning', confirmButtonText: t('profiles.detail.leave'), cancelButtonText: t('profiles.detail.keepEditing') },
     )
+    infoRef.value?.clearDraft()
     return true
   } catch {
     return false

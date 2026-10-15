@@ -32,8 +32,10 @@
 
     <BirthForm
       v-if="editing"
+      ref="formRef"
       :submitting="submitting"
       :initial="profile"
+      :draft-key="draftKey"
       @dirty="dirty = $event"
       @submit="$emit('update', $event)"
     />
@@ -76,12 +78,13 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { birthSummary, type BirthProfile, type BirthProfileInput } from '@/api/birth-profiles'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
-defineProps<{ profile: BirthProfile; submitting?: boolean }>()
+defineProps<{ profile: BirthProfile; submitting?: boolean; draftKey?: string }>()
 defineEmits<{ update: [BirthProfileInput] }>()
 const { t } = useI18n()
 
 const editing = ref(false)
 const dirty = ref(false)
+const formRef = ref<InstanceType<typeof BirthForm> | null>(null)
 
 async function cancelEdit() {
   if (!dirty.value) {
@@ -96,6 +99,7 @@ async function cancelEdit() {
     )
     editing.value = false
     dirty.value = false
+    formRef.value?.clearDraft()
   } catch {
     // 用户选择继续编辑。
   }
@@ -104,9 +108,13 @@ async function cancelEdit() {
 defineExpose({
   isEditing: editing,
   isDirty: dirty,
+  clearDraft() {
+    formRef.value?.clearDraft()
+  },
   closeEdit() {
     editing.value = false
     dirty.value = false
+    formRef.value?.clearDraft()
   },
 })
 </script>

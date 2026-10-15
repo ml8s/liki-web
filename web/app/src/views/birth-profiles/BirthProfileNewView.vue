@@ -26,8 +26,10 @@
       show-icon
     />
     <BirthForm
+      ref="birthFormRef"
       :submitting="submitting"
       :initial="draft ?? undefined"
+      :draft-key="draftKey"
       @dirty="isDirty = $event"
       @submit="submit"
     />
@@ -36,16 +38,18 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
+import { useAuthStore } from '@/stores/auth'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'
 import { ElMessageBox } from 'element-plus'
 import type { BirthProfileInput } from '@/api/birth-profiles'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
 const { t } = useI18n()
 const profiles = useBirthProfilesStore()
 const submitting = ref(false)
@@ -53,6 +57,8 @@ const error = ref('')
 const draft = ref<Partial<BirthProfileInput> | null>(null)
 const draftLoaded = ref(false)
 const isDirty = ref(false)
+const birthFormRef = ref<InstanceType<typeof BirthForm> | null>(null)
+const draftKey = computed(() => auth.user?.id ? `birth-profile:new:${auth.user.id}` : undefined)
 
 useUnloadGuard(isDirty)
 
@@ -67,8 +73,9 @@ onBeforeRouteLeave(async () => {
         confirmButtonText: t('profiles.detail.leave'),
         cancelButtonText: t('profiles.detail.keepEditing'),
       },
-    )
-    return true
+      )
+      birthFormRef.value?.clearDraft()
+      return true
   } catch {
     return false
   }
@@ -104,6 +111,7 @@ async function submit(input: BirthProfileInput) {
   try {
     const profile = await profiles.create(input)
     isDirty.value = false
+    birthFormRef.value?.clearDraft()
     await router.push(`/birth-profiles/${profile.id}`)
   } catch (err) {
     error.value = toUserMessage(err, t('profiles.saveFailed'))

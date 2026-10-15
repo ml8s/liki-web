@@ -186,15 +186,19 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BirthProfileInput } from '@/api/birth-profiles'
+import { useFormDraftsStore } from '@/stores/form-drafts-store'
 
-const props = withDefaults(defineProps<{ submitting?: boolean; initial?: Partial<BirthProfileInput> }>(), {})
+const props = withDefaults(defineProps<{
+  submitting?: boolean
+  initial?: Partial<BirthProfileInput>
+  draftKey?: string
+}>(), {})
 const emit = defineEmits<{ submit: [BirthProfileInput]; dirty: [boolean] }>()
 const { t } = useI18n()
 
 type Gender = BirthProfileInput['gender'] | ''
 type TimeKnown = BirthProfileInput['birth_time_known']
-
-const form = reactive<{
+type BirthFormValues = {
   nickname: string
   gender: Gender
   calendar: BirthProfileInput['calendar']
@@ -204,17 +208,51 @@ const form = reactive<{
   birth_place: string
   note: string
   third_party_consent: boolean
-}>({
-  nickname: props.initial?.nickname ?? '',
-  gender: props.initial?.gender ?? '',
-  calendar: props.initial?.calendar ?? 'solar',
-  birth_date: props.initial?.birth_date ?? '',
-  birth_time_known: props.initial?.birth_time_known ?? 'known',
-  birth_time: props.initial?.birth_time ?? '',
-  birth_place: props.initial?.birth_place ?? '',
-  note: props.initial?.note ?? '',
-  third_party_consent: props.initial?.third_party_consent ?? false,
-})
+}
+type BirthFormDraft = Omit<BirthFormValues, 'third_party_consent'>
+
+function formValuesFromInitial(initial?: Partial<BirthProfileInput>): BirthFormValues {
+  return {
+    nickname: initial?.nickname ?? '',
+    gender: initial?.gender ?? '',
+    calendar: initial?.calendar ?? 'solar',
+    birth_date: initial?.birth_date ?? '',
+    birth_time_known: initial?.birth_time_known ?? 'known',
+    birth_time: initial?.birth_time ?? '',
+    birth_place: initial?.birth_place ?? '',
+    note: initial?.note ?? '',
+    third_party_consent: initial?.third_party_consent ?? false,
+  }
+}
+
+function mergeBirthFormDraft(initial?: Partial<BirthProfileInput>, draft?: Partial<BirthFormDraft> | null): BirthFormValues {
+  const values = formValuesFromInitial(initial)
+  if (!draft) return values
+
+  return {
+    ...values,
+    ...Object.fromEntries(Object.entries(draft).filter(([, value]) => value !== undefined)),
+  } as BirthFormValues
+}
+
+function birthFormDraftFromValues(values: BirthFormValues): BirthFormDraft {
+  return {
+    nickname: values.nickname,
+    gender: values.gender,
+    calendar: values.calendar,
+    birth_date: values.birth_date,
+    birth_time_known: values.birth_time_known,
+    birth_time: values.birth_time,
+    birth_place: values.birth_place,
+    note: values.note,
+  }
+}
+
+const drafts = useFormDraftsStore()
+const savedDraft = computed(() => props.draftKey ? drafts.get<BirthFormDraft>(props.draftKey) : null)
+const form = reactive(mergeBirthFormDraft(props.initial, savedDraft.value))
+
+if (savedDraft.value) emit('dirty', true)
 
 const formRef = ref<FormInstance>()
 
@@ -290,9 +328,28 @@ function currentSnapshot() {
   })
 }
 
+const isDirty = computed(() => currentSnapshot() !== initialSnapshot)
+
 watch(form, () => {
-  emit('dirty', currentSnapshot() !== initialSnapshot)
+  const dirty = isDirty.value
+  emit('dirty', dirty)
+
+  if (!props.draftKey) return
+  if (!dirty) {
+    drafts.clear(props.draftKey)
+    return
+  }
+
+  drafts.set(props.draftKey, birthFormDraftFromValues(form))
 }, { deep: true })
+
+function clearDraft() {
+  if (props.draftKey) drafts.clear(props.draftKey)
+}
+
+defineExpose({
+  clearDraft,
+})
 
 async function submit() {
   const valid = await formRef.value?.validate().then(() => true).catch(() => false)
