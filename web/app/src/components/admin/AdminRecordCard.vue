@@ -61,7 +61,8 @@ export interface AdminRecordField {
 
 defineProps<{
   fields: AdminRecordField[]
-  /** Required as soon as a field uses kind: 'status'. */
+  /** Set whenever a field uses kind: 'status'; a caller that replaces the
+   *  field slot renders its own AdminStatusTag instead. */
   statusDomain?: AdminStatusDomain
 }>()
 </script>

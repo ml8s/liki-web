@@ -146,7 +146,6 @@
           <AdminRecordCard
             v-for="row in accounts"
             :key="row.email"
-            status-domain="administrator"
             :fields="[
               { key: 'email', label: '邮箱', value: row.email },
               { key: 'status', label: '状态', value: row.status, kind: 'status' },
@@ -173,6 +172,11 @@
                   class="muted"
                 >-</span>
               </div>
+              <AdminStatusTag
+                v-else-if="field.kind === 'status'"
+                domain="administrator"
+                :status="field.value"
+              />
               <span v-else>{{ field.value || '-' }}</span>
             </template>
             <template #actions>
