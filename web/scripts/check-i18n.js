@@ -101,54 +101,63 @@ function checkPrices(locales) {
   }
 }
 
+// Marketing sources that own the marketing catalog (web/i18n/*.json). The app
+// catalog (web/app/src/locales/*.json) lives on the SPA surface and is validated
+// by web/app/src/tests/i18n.test.ts — two catalogs, two surfaces, two checkers.
+const MARKETING_SRC = path.resolve(import.meta.dirname, '..', 'src');
+const MARKETING_EXTENSIONS = new Set(['.astro', '.ts']);
+
+// Keys are referenced as t(locale, 'key'), t(locale, `template`) or as a
+// key-holding attribute (labelKey="key"). i18next.t() and data-i18n attributes
+// belonged to the retired vanilla runtime; they are not part of the contract.
+const KEY_ATTRIBUTE_RE =
+  /(?:labelKey|titleKey|subtitleKey|questionKey|answerKey|benefitsTitleKey|exampleTitleKey|stepsTitleKey|questionsTitleKey|faqTitleKey|ctaKey|intentKey|descriptionKey)="([^"]+)"/g;
+const LITERAL_KEY_RE = /t\(locale,\s*'([^']+)'\)/g;
+const TEMPLATE_KEY_RE = /t\(locale,\s*`([^`]+)`\)/g;
+
+function walkMarketingFiles(dir = MARKETING_SRC) {
+  const files = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...walkMarketingFiles(full));
+    else if (MARKETING_EXTENSIONS.has(path.extname(entry.name))) files.push(full);
+  }
+  return files;
+}
+
+// Every key the marketing sources reference, paired with the file that
+// references it so failures point at the source rather than the catalog.
+function collectMarketingKeys() {
+  const root = path.resolve(import.meta.dirname, '..');
+  const literal = new Map();
+  const template = new Map();
+  for (const filepath of walkMarketingFiles()) {
+    const file = path.relative(root, filepath);
+    const content = fs.readFileSync(filepath, 'utf-8');
+    for (const re of [LITERAL_KEY_RE, KEY_ATTRIBUTE_RE]) {
+      for (const m of content.matchAll(re)) literal.set(m[1], file);
+    }
+    for (const m of content.matchAll(TEMPLATE_KEY_RE)) template.set(m[1], file);
+  }
+  return { literal, template };
+}
+
 function checkHtmlKeys(locales) {
   const allKeys = new Set();
   for (const data of Object.values(locales)) {
     for (const k of Object.keys(data)) allKeys.add(k);
   }
 
-  const astroFiles = gatherAstroFiles();
-  const tRe = /t\(locale,\s*'([^']+)'\)/g;
+  const { literal, template } = collectMarketingKeys();
 
-  for (const { file, filepath } of astroFiles) {
-    const content = fs.readFileSync(filepath, 'utf-8');
-    let m;
-    while ((m = tRe.exec(content)) !== null) {
-      if (!allKeys.has(m[1])) {
-        errors.push(`${file}: t(locale, '${m[1]}') not found in any locale file`);
-      }
-    }
-    // Check template literal keys
-    const tmplRe = /t\(locale,\s*`([^`]+)`\)/g;
-    while ((m = tmplRe.exec(content)) !== null) {
-      for (const key of expandTemplateKey(m[1])) {
-        if (!allKeys.has(key)) {
-          errors.push(`${file}: t(locale, \`${m[1]}\`) → "${key}" not found in any locale file`);
-        }
-      }
-    }
+  for (const [key, file] of literal) {
+    if (!allKeys.has(key)) errors.push(`${file}: t(locale, '${key}') not found in any locale file`);
   }
-}
-
-function gatherAstroFiles() {
-  const webDir = path.resolve(import.meta.dirname, '..');
-  const pagesDir = path.join(webDir, 'src', 'pages');
-  const componentsDir = path.join(webDir, 'src', 'components');
-  const layoutsDir = path.join(webDir, 'src', 'layouts');
-  const files = [];
-  for (const dir of [pagesDir, componentsDir, layoutsDir]) {
-    walkDir(dir, files);
-  }
-  return files;
-}
-
-function walkDir(dir, files) {
-  if (!fs.existsSync(dir)) return;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) { walkDir(full, files); }
-    else if (entry.name.endsWith('.astro')) {
-      files.push({ file: path.relative(path.resolve(import.meta.dirname, '..'), full), filepath: full });
+  for (const [tmpl, file] of template) {
+    for (const key of expandTemplateKey(tmpl)) {
+      if (!allKeys.has(key)) {
+        errors.push(`${file}: t(locale, \`${tmpl}\`) → "${key}" not found in any locale file`);
+      }
     }
   }
 }
@@ -307,56 +316,11 @@ function addKnownCompoundKeys(used) {
 }
 
 function checkUnusedKeys(locales) {
-  const webDir = path.resolve(import.meta.dirname, '..');
-  const used = new Set();
-
-  const keyPatterns = [
-    /t\(locale,\s*'([^']+)'\)/g,
-    /t\(locale,\s*"([^"]+)"\)/g,
-    /i18next\.t\('([^']+)'\)/g,
-    /i18next\.t\("([^"]+)"\)/g,
-    /\bT\('([^']+)'\)/g,
-    /\bT\("([^"]+)"\)/g,
-    /\bt\('([^']+)'\)/g,
-    /\bt\("([^"]+)"\)/g,
-    /data-i18n(?:-\w+)?="([^"]+)"/g,
-    /data-i18n(?:-\w+)?='([^']+)'/g,
-    /(?:labelKey|titleKey|subtitleKey|questionKey|answerKey|benefitsTitleKey|exampleTitleKey|stepsTitleKey|questionsTitleKey|faqTitleKey|ctaKey|intentKey|descriptionKey)="([^"]+)"/g,
-  ];
-
-  function collectKeys(content) {
-    for (const re of keyPatterns) {
-      let m;
-      while ((m = re.exec(content)) !== null) {
-        used.add(m[1]);
-      }
-    }
-    // Template literal keys: t(locale, `...${n}...`)
-    const tmplRe = /t\(locale,\s*`([^`]+)`\)/g;
-    let tm;
-    while ((tm = tmplRe.exec(content)) !== null) {
-      for (const key of expandTemplateKey(tm[1])) {
-        used.add(key);
-      }
-    }
+  const { literal, template } = collectMarketingKeys();
+  const used = new Set(literal.keys());
+  for (const tmpl of template.keys()) {
+    for (const key of expandTemplateKey(tmpl)) used.add(key);
   }
-
-  function scanDir(dir) {
-    if (!fs.existsSync(dir)) return;
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (!['node_modules', '.git', 'dist', 'i18n'].includes(entry.name)) {
-          scanDir(full);
-        }
-      } else if (/\.(astro|js|html|cjs|mjs)$/.test(entry.name)) {
-        const content = fs.readFileSync(full, 'utf-8');
-        collectKeys(content);
-      }
-    }
-  }
-
-  scanDir(webDir);
 
   // Pre-populate known compound keys that are constructed dynamically at build time
   addKnownCompoundKeys(used);

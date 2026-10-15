@@ -22,7 +22,6 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	# Cache static assets
 	header /assets/* Cache-Control "public, max-age=31536000, immutable"
 	header /css/* Cache-Control "public, max-age=3600, must-revalidate"
-	header /i18n/* Cache-Control "public, max-age=60"
 
 	# Application pages with no indexable content
 	@noindex path_regexp noindex .*/(chat|report)(/.*)?$

@@ -24,26 +24,9 @@ for (const line of css.split('\n')) {
   }
 }
 
-// ── Dynamic classes (applied by JS/Vue, not literal in template) ──
-const dynamic = new Set([
-  'msg-row', 'msg-row-user', 'msg-row-advisor', 'has-error',
-  'login-overlay', 'order-card', 'error-toast', 'expired-banner',
-  'brand', 'skip-link',
-  'msg-asst-wrap', 'msg-asst', 'msg-user', 'msg-time',
-  'chat-shell', 'chat-header', 'chat-input-bar',
-  'btn-send', 'btn-stop', 'btn-chat-circle', 'btn-newchat',
-  'btn-header', 'lang-switcher', 'liki-header', 'liki-footer',
-  'liki-page', 'phase-status',
-  'name-preview-card', 'name-preview-detail', 'name-preview-title',
-  'name-preview-gender', 'name-preview-quote',
-  'skill-icon',
-  'select-overlay', 'login-card', 'select-card',
-  'lb-hero', 'lb-form-section',
-  'hero-brand', 'cta-section', 'page-main', 'page-card',
-  'qr-modal', 'qr-modal-close',
-  'py-2.5', // defined as .py-2\.5 in CSS (backslash-escaped dot)
-  'relative', // Tailwind utility, used in chat.astro for lang-switcher
-]);
+// 契约：字面 class="..." 里的每个类名都必须在 app.css 里定义；含 `{`/`}`/`+`/引号
+// 的模板化 class 属性不参与检查（无法静态求值）。这里没有豁免名单——需要豁免就说明
+// app.css 缺定义，去补定义，而不是放宽检查。
 
 // ── Scan Astro templates ──
 const srcDir = path.join(ROOT, 'src');
@@ -63,7 +46,6 @@ function scanDir(dir) {
         if (/[{{+'"}]/.test(val)) continue;
         for (const cls of val.split(/\s+/)) {
           if (!cls) continue;
-          if (dynamic.has(cls)) continue;
           if (!cssClasses.has(cls)) {
             errors.push(`${path.relative(srcDir, full)}: .${cls}`);
           }

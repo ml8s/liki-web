@@ -52,7 +52,6 @@ coverage.out
 **/skills-lock.json
 
 # Generated / temp
-web/build.txt
 urls.txt
 *.log
 /*.md

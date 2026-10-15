@@ -5,9 +5,9 @@ export type AppLocale = 'zh-Hans' | 'zh-Hant' | 'en'
 
 // Values derive from web/shared/locales.json (single source of truth shared
 // with the marketing site and the sitemap builder).
-export const appLocales = localeConfig.locales as readonly AppLocale[]
+const appLocales = localeConfig.locales as readonly AppLocale[]
 
-export const LOCALE_COOKIE = 'liki_locale'
+const LOCALE_COOKIE = 'liki_locale'
 
 function normalizeLocale(value: unknown): AppLocale | null {
   const locale = String(value ?? '').trim()
@@ -41,7 +41,7 @@ function readBrowserLocale(): AppLocale | null {
   return normalizeLocale(navigator.language)
 }
 
-export function initialLocale(): AppLocale {
+function initialLocale(): AppLocale {
   return readQueryLocale() ?? readCookieLocale() ?? readBrowserLocale() ?? 'zh-Hant'
 }
 
