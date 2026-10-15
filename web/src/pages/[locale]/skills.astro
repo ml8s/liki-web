@@ -52,13 +52,13 @@ const skillSchema = {
     <script type="application/ld+json" set:html={JSON.stringify(skillSchema)} />
   </Fragment>
 
-  <section class="hero-brand mt-8">
-    <h1 class="text-center text-4xl md:text-5xl font-serif font-bold text-stone-800 tracking-tight">{t(locale, 'skills.hero.title')}</h1>
-    <p class="text-center text-3xl font-serif text-stone-600 mt-4">{t(locale, 'site.slogan')}</p>
-    <p class="text-center text-xl md:text-2xl text-stone-400 mt-3">{t(locale, 'skills.hero.subtitle')}</p>
+  <section class="landing-hero scenario-hero">
+    <p class="landing-kicker font-serif">{t(locale, 'site.slogan')}</p>
+    <h1 class="landing-h1">{t(locale, 'skills.hero.title')}</h1>
+    <p class="landing-sub">{t(locale, 'skills.hero.subtitle')}</p>
   </section>
 
-  <div class="max-w-2xl mx-auto px-4 pb-8 text-center space-y-6">
+  <div class="max-w-2xl mx-auto px-4 pb-8 text-center space-y-6 scenario-section">
     <p class="text-xs text-stone-400 mb-2">{t(locale, 'skills.install.method1')}</p>
     <div class="install-block">
       <pre class="install-cmd">npx skills add ml8s/liki</pre>
