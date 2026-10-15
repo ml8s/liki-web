@@ -73,16 +73,19 @@
           show-overflow-tooltip
         />
         <el-table-column
-          prop="role"
           label="角色"
           width="90"
-        />
+        >
+          <template #default="{ row }">
+            {{ adminRoleLabel(row.role) }}
+          </template>
+        </el-table-column>
         <el-table-column
           label="方式 / 账号"
           min-width="210"
         >
           <template #default="{ row }">
-            <div>{{ row.method }}</div>
+            <div>{{ adminPaymentMethodLabel(row.method) }}</div>
             <div class="mono muted">
               {{ revealed === row.id ? row.account : maskAdminAccount(row.account) }}
             </div>

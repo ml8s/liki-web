@@ -83,10 +83,13 @@
             min-width="130"
           />
           <el-table-column
-            prop="type"
             label="角色"
             width="90"
-          />
+          >
+            <template #default="{ row }">
+              {{ adminRoleLabel(row.type) }}
+            </template>
+          </el-table-column>
           <el-table-column
             prop="note"
             label="说明"
@@ -280,10 +283,13 @@
             show-overflow-tooltip
           />
           <el-table-column
-            prop="role"
             label="角色"
             width="90"
-          />
+          >
+            <template #default="{ row }">
+              {{ adminRoleLabel(row.role) }}
+            </template>
+          </el-table-column>
           <el-table-column
             label="状态"
             width="100"
