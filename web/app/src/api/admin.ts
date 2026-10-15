@@ -303,6 +303,30 @@ export function fetchAdminOrders(filters: { status?: string; search?: string }, 
     .then(payload => adminPageFrom<AdminOrder>(payload, 'orders'))
 }
 
+export interface AdminSubscription {
+  id: string
+  user_id: string
+  email: string
+  product_id: string
+  billing_mode: string
+  provider: string
+  provider_subscription_id: string
+  status: 'pending' | 'active' | 'on_hold' | 'cancelled' | 'expired' | 'failed'
+  currency_code: string
+  current_period_start?: string | null
+  current_period_end?: string | null
+  next_billing_at?: string | null
+  cancel_at_period_end: boolean
+  cancelled_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export function fetchAdminSubscriptions(filters: { status?: string; search?: string }, page = 1, pageSize = defaultPageSize): Promise<AdminPagedResult<AdminSubscription>> {
+  return get(`/api/admin/sales/subscriptions${pageQuery({ status: filters.status, search: filters.search }, page, pageSize)}`)
+    .then(payload => adminPageFrom<AdminSubscription>(payload, 'subscriptions'))
+}
+
 
 export function compensateAdminEntitlement(
   email: string,

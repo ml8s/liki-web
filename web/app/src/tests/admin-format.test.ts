@@ -17,6 +17,13 @@ describe('admin formatting', () => {
     expect(adminStatusTagType('unknown')).toBe('info')
   })
 
+  it('labels subscription-only lifecycle states', () => {
+    expect(adminStatusLabel('on_hold')).toBe('暂停')
+    expect(adminStatusLabel('cancelled')).toBe('已取消')
+    expect(adminStatusTagType('on_hold')).toBe('warning')
+    expect(adminStatusTagType('cancelled')).toBe('info')
+  })
+
   it('uses stable labels and money formatting', () => {
     expect(adminStatusLabel('requested')).toBe('待审核')
     expect(adminStatusLabel('frozen')).toBe('已冻结')

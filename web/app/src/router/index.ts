@@ -27,6 +27,7 @@ const router = createRouter({
         { path: 'payouts', name: 'admin-payouts', component: () => import('@/views/admin/AdminPayoutsView.vue'), meta: { adminCapability: 'payout.read' } },
         { path: 'finance', name: 'admin-finance', component: () => import('@/views/admin/AdminFinanceView.vue'), meta: { adminCapability: 'commission.read' } },
         { path: 'orders', name: 'admin-orders', component: () => import('@/views/admin/AdminOrdersView.vue'), meta: { adminCapability: 'sales.read' } },
+        { path: 'subscriptions', name: 'admin-subscriptions', component: () => import('@/views/admin/AdminSubscriptionsView.vue'), meta: { adminCapability: 'sales.read' } },
         { path: 'audit', name: 'admin-audit', component: () => import('@/views/admin/AdminAuditView.vue'), meta: { adminCapability: 'audit.read' } },
         { path: 'administrators', name: 'admin-administrators', component: () => import('@/views/admin/AdminAdministratorsView.vue'), meta: { adminCapability: 'admin.user.manage' } },
       ],

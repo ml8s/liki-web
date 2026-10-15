@@ -22,6 +22,8 @@ export const adminStatusMeta: Record<string, AdminStatusMeta> = {
   resolved: { label: '已解决', tag: 'success' },
   revoked: { label: '已撤销', tag: 'info' },
   canceled: { label: '已取消', tag: 'info' },
+  cancelled: { label: '已取消', tag: 'info' },
+  on_hold: { label: '暂停', tag: 'warning' },
 }
 
 export function adminStatusTagType(status: string): AdminStatusTagType {

@@ -48,10 +48,8 @@ func TestAdminOrdersEndpoint(t *testing.T) {
 				Email  string `json:"email"`
 				Status string `json:"status"`
 			} `json:"orders"`
-			Meta struct {
-				Page  int   `json:"page"`
-				Total int64 `json:"total"`
-			} `json:"meta"`
+			Page  int   `json:"page"`
+			Total int64 `json:"total"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
@@ -60,8 +58,8 @@ func TestAdminOrdersEndpoint(t *testing.T) {
 	if len(response.Data.Orders) != 1 || response.Data.Orders[0].Email != "customer@example.com" {
 		t.Fatalf("unexpected orders: %+v", response.Data.Orders)
 	}
-	if response.Data.Meta.Total != 1 || response.Data.Meta.Page != 1 {
-		t.Fatalf("unexpected meta: %+v", response.Data.Meta)
+	if response.Data.Total != 1 || response.Data.Page != 1 {
+		t.Fatalf("unexpected pagination: page=%d total=%d", response.Data.Page, response.Data.Total)
 	}
 
 	recorder = httptest.NewRecorder()

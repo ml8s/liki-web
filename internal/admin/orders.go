@@ -26,13 +26,11 @@ func (h *AdminService) HandleAdminOrders() http.HandlerFunc {
 			return
 		}
 		httputil.RespondJSON(w, http.StatusOK, map[string]any{
-			"orders": result.Items,
-			"meta": map[string]any{
-				"page":      result.Page,
-				"page_size": result.PageSize,
-				"total":     result.Total,
-				"has_more":  result.HasMore,
-			},
+			"orders":    result.Items,
+			"page":      result.Page,
+			"page_size": result.PageSize,
+			"total":     result.Total,
+			"has_more":  result.HasMore,
 		})
 	}
 }

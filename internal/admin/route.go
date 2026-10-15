@@ -100,6 +100,10 @@ func RegisterRoutes(
 		mux.HandleFunc("GET /api/admin/sales/orders", guard(adminauth.CapabilitySalesRead)(h.HandleAdminOrders()))
 	}
 
+	if sales != nil && sales.Subscriptions != nil {
+		mux.HandleFunc("GET /api/admin/sales/subscriptions", guard(adminauth.CapabilitySalesRead)(h.HandleAdminSubscriptions()))
+	}
+
 	mux.HandleFunc("GET /api/admin/admins", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleListAdmins()))
 	mux.HandleFunc("POST /api/admin/admins", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleCreateAdmin()))
 	mux.HandleFunc("POST /api/admin/admins/{email}/capabilities", guard(adminauth.CapabilityAdminUserManage)(adminAuthHandler.HandleGrantCapability()))
