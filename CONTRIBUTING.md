@@ -49,6 +49,18 @@ make check-web-static
 make test-python
 ```
 
+## Toolchain versions
+
+Versions are declared once and shared by CI and local runs; `make check` fails
+when local runtimes drift:
+
+- Node: `.nvmrc`; Python: `.python-version`; Go: `go.mod`
+- golangci-lint: `deps/golangci-lint.version`, shared by `make lint-go` and CI;
+  `scripts/tests/test_toolchain_parity.py` pins all sides together
+
+GitHub Actions are SHA-pinned; Dependabot opens one grouped weekly PR to follow
+the official latest. Read the release notes before merging major bumps.
+
 ## Code conventions
 
 ### Error wrapping

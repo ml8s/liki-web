@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reject Go toolchains older than the security-supported engine toolchain.
+# Reject Go toolchains that differ from the declared engine toolchain.
 set -eo pipefail
 
 REQUIRED="${LIKI_REQUIRED_GO_VERSION:-1.26.9}"
