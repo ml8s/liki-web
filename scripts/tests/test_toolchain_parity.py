@@ -8,8 +8,6 @@ import re
 import unittest
 from pathlib import Path
 
-import yaml
-
 ROOT = Path(__file__).resolve().parents[2]
 PIN_FILE = ROOT / "deps" / "golangci-lint.version"
 
@@ -21,13 +19,15 @@ def _pin() -> str:
 
 
 def _action_versions(workflow: Path) -> set[str]:
-    document = yaml.safe_load(workflow.read_text(encoding="utf-8"))
-    found = set()
-    for job in (document.get("jobs") or {}).values():
-        for step in job.get("steps") or []:
-            if "golangci/golangci-lint-action" in str(step.get("uses", "")):
-                found.add(str((step.get("with") or {}).get("version")))
-    return found
+    # 正则解析而非 import yaml：CI 的 test-python 环境没有 PyYAML，
+    # 测试自己引入本地/CI 依赖差异，正是本测试要消灭的那类漂移。
+    text = workflow.read_text(encoding="utf-8")
+    return set(
+        re.findall(
+            r"uses: golangci/golangci-lint-action@\S+[^\n]*\n\s+with:\n\s+version:\s*(\S+)",
+            text,
+        )
+    )
 
 
 class ToolchainParityTest(unittest.TestCase):
