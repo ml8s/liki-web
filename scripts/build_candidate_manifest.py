@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-TAG_RE = re.compile(r"^candidate-[0-9a-f]{7}-\d{14}$")
+TAG_RE = re.compile(r"^(?:candidate-[0-9a-f]{7}-\d{14}|v[0-9]{4}\.\d{2}\.\d{2}\.\d+)$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
@@ -14,7 +14,7 @@ def generate_manifest(commit: str, candidate_tag: str, image_digest: str, regist
     if not COMMIT_RE.fullmatch(commit):
         raise ValueError("source_commit must be a full 40-character Git SHA")
     if not TAG_RE.fullmatch(candidate_tag):
-        raise ValueError("candidate_tag must be candidate-<7-char-sha>-<YYYYmmddHHMMSS>")
+        raise ValueError("candidate_tag must be candidate-<7-char-sha>-<YYYYmmddHHMMSS> or vCalVer")
     if not DIGEST_RE.fullmatch(image_digest):
         raise ValueError("image digest must be a sha256 digest")
     if not registry or registry.startswith(("http://", "https://")):

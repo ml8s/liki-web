@@ -48,6 +48,13 @@ class CandidateManifestTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate_tag"):
             generate_manifest("b" * 40, "latest", "sha256:" + "a" * 64, "127.0.0.1:5000")
 
+    def test_accepts_release_tag(self):
+        actual = generate_manifest(
+            "b" * 40, "v2026.10.16.0", "sha256:" + "a" * 64, "ghcr.io",
+        )
+        self.assertEqual(actual["candidate_tag"], "v2026.10.16.0")
+        self.assertEqual(actual["registry"], "ghcr.io")
+
 
 if __name__ == "__main__":
     unittest.main()

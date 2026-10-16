@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-TAG_RE = re.compile(r"^candidate-[0-9a-f]{7}-\d{14}$")
+TAG_RE = re.compile(r"^(?:candidate-[0-9a-f]{7}-\d{14}|v[0-9]{4}\.\d{2}\.\d{2}\.\d+)$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
