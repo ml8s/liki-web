@@ -16,8 +16,10 @@ body {
   scroll-margin-top: var(--scroll-margin-header);
 }
 
-/* 键盘用户的焦点必须始终可见；鼠标点击不触发 focus-visible */
-.app-shell :is(a, button, [tabindex]:not([tabindex="-1"])):focus-visible {
+/* 键盘用户的焦点必须始终可见；鼠标点击不触发 focus-visible。
+ * 原生表单控件除外：EP 会给 .el-input__inner 加 tabindex="0"，命中 [tabindex] 后会在
+ * 组件自己的 ring 里再画一圈 outline，叠成两个框（重影）；输入控件的焦点态由组件负责。 */
+.app-shell :is(a, button, [tabindex]:not([tabindex="-1"]):not(input, textarea, select)):focus-visible {
   outline: 3px solid var(--liki-primary);
   outline-offset: 2px;
   border-radius: var(--radius-control);
@@ -109,14 +111,32 @@ p {
 
 .el-button--large { min-height: 44px; }
 
+/* 输入控件：静止 / 悬停 / 焦点三态交给 Element Plus 自己的组件变量驱动，焦点只在
+ * EP 的 1px 内描边外补一圈光晕。此前用 !important 覆盖静止态 box-shadow，等于把
+ * EP 的 hover 和 .el-textarea__inner:focus 一起压掉——输入框没有悬停反馈，多行
+ * 输入框完全没有焦点反馈。重复选择器同 .el-card：EP 在组件根上定义了同名变量。 */
+.el-input.el-input,
+.el-textarea.el-textarea {
+  --el-input-border-color: var(--liki-line);
+  --el-input-hover-border-color: var(--color-border-hover);
+  --el-input-focus-border-color: var(--liki-primary);
+}
+
+/* el-select 的描边不走 --el-input-*，直接用全局边框变量（作用域限于组件内部，
+ * 下拉浮层被 teleport 到 body，不受影响）。 */
+.el-select.el-select {
+  --el-border-color: var(--liki-line);
+  --el-border-color-hover: var(--color-border-hover);
+}
+
 .el-input__wrapper,
 .el-textarea__inner,
 .el-select__wrapper {
   border-radius: var(--radius-control);
-  box-shadow: 0 0 0 1px var(--liki-line) inset !important;
 }
 
 .el-input__wrapper.is-focus,
+.el-textarea__inner:focus,
 .el-select__wrapper.is-focused {
   box-shadow: 0 0 0 1px var(--liki-primary) inset,
     0 0 0 4px var(--color-accent-focus) !important;

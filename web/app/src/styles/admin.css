@@ -53,7 +53,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.admin-shell :is(a, button, [tabindex]:not([tabindex="-1"])):focus-visible {
+/* 同 app.css：原生表单控件交给 Element Plus 自己的焦点态，避免 outline 与 ring 叠加。 */
+.admin-shell :is(a, button, [tabindex]:not([tabindex="-1"]):not(input, textarea, select)):focus-visible {
   outline: 3px solid var(--liki-primary);
   outline-offset: 2px;
   border-radius: var(--radius-control);
