@@ -63,7 +63,7 @@ jobs:
             --output "$GITHUB_OUTPUT"
           echo "source_commit=$actual_commit" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -124,7 +124,7 @@ jobs:
           printf 'source_commit=%s\nimage_digest=%s\n' "$SOURCE_COMMIT" "$IMAGE_DIGEST" \
             > "release-evidence/liki-web-v${VERSION}.env"
 
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: liki-web-release-evidence-v${{ inputs.version }}
           path: release-evidence/**
