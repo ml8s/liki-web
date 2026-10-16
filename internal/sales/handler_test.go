@@ -20,11 +20,12 @@ import (
 // 按次 + 订阅 USD。币种与可结算性都由服务端决定，客户端只渲染服务端给的结果。
 func TestHandleProductsOffersOnlyRegionPurchasableOptions(t *testing.T) {
 	cases := []struct {
-		name            string
-		country         string
-		wantCurrency    string
-		wantAmountMinor int64
-		wantOptions     []string
+		name                  string
+		country               string
+		noSubscriptionProduct bool
+		wantCurrency          string
+		wantAmountMinor       int64
+		wantOptions           []string
 	}{
 		{
 			name:            "domestic buyer stays on Xunhu one-time",
@@ -39,6 +40,15 @@ func TestHandleProductsOffersOnlyRegionPurchasableOptions(t *testing.T) {
 			wantCurrency:    "USD",
 			wantAmountMinor: 2990,
 			wantOptions:     []string{"one_time/USD/2990", "subscription/USD/1990"},
+		},
+		{
+			// 部署没配订阅商品时不要下发订阅 offer：点下去只会拿到 502。
+			name:                  "unconfigured subscription product is not advertised",
+			country:               "US",
+			noSubscriptionProduct: true,
+			wantCurrency:          "USD",
+			wantAmountMinor:       2990,
+			wantOptions:           []string{"one_time/USD/2990"},
 		},
 	}
 	for _, tc := range cases {
@@ -61,10 +71,14 @@ func TestHandleProductsOffersOnlyRegionPurchasableOptions(t *testing.T) {
 				OneTimePriceMinorUSD:      2990,
 				SubscriptionPriceMinorUSD: 1990,
 			})
+			var subscriptionCheckout SubscriptionCheckoutCreator = &fakeSubscriptionCheckoutGateway{}
+			if tc.noSubscriptionProduct {
+				subscriptionCheckout = nil
+			}
 			handler := NewHandler(nil, nil, nil, nil,
 				WithSkillAuthorizer(entitlements),
 				WithCatalog(catalog),
-				WithSubscriptions(subscriptions, &fakeSubscriptionCheckoutGateway{}, &fakeSubscriptionGateway{}, "https://liki.hk"),
+				WithSubscriptions(subscriptions, subscriptionCheckout, &fakeSubscriptionGateway{}, "https://liki.hk"),
 			)
 
 			request := httptest.NewRequest(http.MethodGet, "/api/sales/products", nil)

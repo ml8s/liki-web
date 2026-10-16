@@ -52,6 +52,9 @@
     "sendCodeFailed": "验证码发送失败",
     "loginFailed": "登录失败"
   },
+  "site": {
+    "name": "Liki"
+  },
   "router": {
     "login": "登录",
     "dashboard": "工作台",
@@ -69,7 +72,6 @@
     "partnerKol": "KOL 合作",
     "partnerScout": "Scout 合作",
     "account": "账户设置",
-    "admin": "管理后台",
     "notFound": "页面不存在"
   },
   "services": {
@@ -418,6 +420,7 @@
     "aiDisclaimer": "内容由 AI 生成，命理解读仅供参考。",
     "productsFailed": "加载产品失败",
     "checkoutFailed": "发起支付失败",
+    "redirectingToCheckout": "正在前往支付页面…",
     "payment": {
       "confirmed": "支付已确认，正在开通 Liki Chat…",
       "active": "支付成功，Liki Chat 已开通。",

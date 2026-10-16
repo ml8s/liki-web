@@ -20,5 +20,5 @@ const locale = normalizeLocale(
 );
 const tail = locale === 'en' ? 'Metaphysics' : '命理';
 document.documentElement.lang = locale;
-document.title = `Liki·${tail}`;
-document.getElementById('app-boot')?.replaceChildren(tail);
+// 启动屏显示加载后 shell 的同一个品牌串；<title> 由 index.html（站点名）与 router 负责。
+document.getElementById('app-boot')?.replaceChildren(`Liki·${tail}`);

@@ -121,15 +121,17 @@ func newPaidOrderNotice(intent PaymentIntent, flow ProductFlow, baseURL string) 
 		Amount:          money.FormatDisplay(intent.AmountMinor, intent.Currency),
 		Provider:        providerDisplayName(intent.Provider),
 		PaidAt:          paidAt.Format("2006-01-02 15:04:05 MST"),
-		ContinueURL:     absoluteNotificationURL(baseURL, flow.SuccessRedirect(intent)),
+		ContinueURL:     absoluteURL(baseURL, flow.SuccessRedirect(intent)),
 		Locale:          notificationLocale(intent.Locale),
 		HomepageURL:     email.HomepageURL(baseURL),
 	}
 }
 
-// absoluteNotificationURL turns a product flow's HTTP redirect into an email-
-// safe absolute URL. SuccessRedirect intentionally remains relative for HTTP.
-func absoluteNotificationURL(baseURL, location string) string {
+// absoluteURL resolves a product flow's in-app redirect against the
+// deployment's public base URL. Product flows deliberately return relative
+// paths (they don't know the host): HTTP handlers resolve them per request,
+// while provider checkouts and emails need an absolute URL.
+func absoluteURL(baseURL, location string) string {
 	if location == "" {
 		return strings.TrimSpace(baseURL)
 	}

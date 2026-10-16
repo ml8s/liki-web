@@ -78,6 +78,25 @@ type CheckoutRequest struct {
 	CancelURL       string
 }
 
+// validateURLs rejects what the providers reject. A relative cancel URL makes
+// Dodo answer 400 INVALID_REQUEST_PARAMETERS ("cancel_url: must be a valid
+// URL") and fails the whole checkout, so the invariant is enforced here instead
+// of being rediscovered from a provider response. Empty URLs mean "omit".
+func (r CheckoutRequest) validateURLs() error {
+	for _, field := range []struct{ name, raw string }{
+		{"return_url", r.ReturnURL},
+		{"cancel_url", r.CancelURL},
+	} {
+		if field.raw == "" {
+			continue
+		}
+		if !strings.HasPrefix(field.raw, "http://") && !strings.HasPrefix(field.raw, "https://") {
+			return fmt.Errorf("payment: checkout %s must be an absolute URL, got %q", field.name, field.raw)
+		}
+	}
+	return nil
+}
+
 type Gateway interface {
 	CreateCheckout(ctx context.Context, req CheckoutRequest) (*CheckoutResult, error)
 	VerifyWebhook(raw []byte, header http.Header) (*WebhookEvent, error)
@@ -266,8 +285,11 @@ func (r *Runtime) StartCheckout(ctx context.Context, intentID string) (*Checkout
 			MetadataBusinessOrderID: intent.BusinessOrderID,
 			MetadataProduct:         string(intent.Product),
 		},
-		ReturnURL: r.baseURL + "/api/payments/return/" + intent.ID,
-		CancelURL: flow.FailureRedirect(intent),
+		ReturnURL: absoluteURL(r.baseURL, "/api/payments/return/"+intent.ID),
+		CancelURL: absoluteURL(r.baseURL, flow.FailureRedirect(intent)),
+	}
+	if err := req.validateURLs(); err != nil {
+		return nil, intent, err
 	}
 	result, err := gateway.CreateCheckout(ctx, req)
 	if err != nil {

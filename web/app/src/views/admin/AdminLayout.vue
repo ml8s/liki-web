@@ -155,10 +155,6 @@ import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useChatStore } from '@/stores/chat'
-import { useSalesStore } from '@/stores/sales-store'
-import { useEntitlementsStore } from '@/stores/entitlements'
-import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { createIntentPreloader } from '@/utils/routes'
 
 const admin = useAdminStore()
@@ -185,17 +181,9 @@ watch(() => route.fullPath, async () => {
   })
 }, { immediate: true })
 
-function clearWorkspace() {
-  useEntitlementsStore().reset()
-  useChatStore().reset()
-  useBirthProfilesStore().reset()
-  useSalesStore().reset()
-  admin.reset()
-}
-
 async function logout() {
+  // auth.logout() 已清理整个工作区（含管理能力缓存），这里不再重复 reset。
   await auth.logout()
-  clearWorkspace()
   await router.push({ name: 'login' })
 }
 </script>

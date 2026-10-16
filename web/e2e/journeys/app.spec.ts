@@ -22,6 +22,8 @@ test.describe('Authenticated app shell', () => {
     page.on('pageerror', error => errors.push(error));
     await page.goto('/app/login');
     await expect(page).toHaveURL(/\/app\/login$/);
+    // 标签标题统一为「<页面名> · Liki」。
+    await expect(page).toHaveTitle('登入 · Liki');
     await expect(page.locator('input[type="email"]')).toBeVisible();
     expect(errors).toEqual([]);
   });
@@ -57,6 +59,8 @@ test.describe('Authenticated app shell', () => {
 
     for (const { path, heading } of protectedPages) {
       await page.goto(path);
+      // 标签标题＝页面名（页名里已含站点名的不再重复追加）＋ 站点名。
+      await expect(page).toHaveTitle(heading.includes('Liki') ? heading : `${heading} · Liki`);
       await expect(page.getByRole('heading', { name: heading, exact: true, level: 1 })).toBeVisible();
     }
   });

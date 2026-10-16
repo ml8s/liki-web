@@ -34,4 +34,38 @@ describe('check-classes.js', () => {
       fs.unlinkSync(INVALID_TEMPLATE);
     }
   });
+
+  // 契约：模板化属性里的字面量也参与检查——`class={`...`}` 只算 `${...}` 之外的片段
+  // （曾经整条跳过，页脚 border-t/py-8 因此长期没定义也没人发现）。
+  it('fails on an undefined class inside a templated class attribute', () => {
+    fs.writeFileSync(INVALID_TEMPLATE, '<footer class={`mt-6 this-class-does-not-exist${x ? " y" : ""}`}></footer>');
+    try {
+      const { status, stderr } = runCheck();
+      expect(status).toBe(1);
+      expect(stderr).toContain('this-class-does-not-exist');
+    } finally {
+      fs.unlinkSync(INVALID_TEMPLATE);
+    }
+  });
+
+  it('fails on an undefined class in a ternary branch too', () => {
+    fs.writeFileSync(INVALID_TEMPLATE, "<main class={kind === 'article' ? 'mt-6 this-class-does-not-exist' : 'mt-6'}></main>");
+    try {
+      const { status, stderr } = runCheck();
+      expect(status).toBe(1);
+      expect(stderr).toContain('this-class-does-not-exist');
+    } finally {
+      fs.unlinkSync(INVALID_TEMPLATE);
+    }
+  });
+
+  // 比较运算里的字符串是数据（kind === 'article'），不是类名：不能误报。
+  it('ignores comparison operands in a templated class attribute', () => {
+    fs.writeFileSync(INVALID_TEMPLATE, "<main class={kind === 'article' ? 'mt-6' : 'mt-6'}></main>");
+    try {
+      expect(runCheck().status).toBe(0);
+    } finally {
+      fs.unlinkSync(INVALID_TEMPLATE);
+    }
+  });
 });

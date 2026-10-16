@@ -25,6 +25,11 @@ const {
 const pagePath = page === 'index' ? '' : page;
 const canonical = `https://liki.hk/${locale}/${pagePath ? pagePath + '/' : ''}`;
 const ogImage = 'https://liki.hk/img/og-image.png';
+// 标题统一为「<页面名> · <站点名>」；页面名里已经带了站点名（首页 slogan）就不再重复追加。
+// SPA 侧同一格式见 web/app/src/utils/documentTitle.ts。
+const pageTitle = t(locale, `${page}.title`);
+const siteName = t(locale, 'site.name');
+const documentTitle = pageTitle.includes(siteName) ? pageTitle : `${pageTitle} · ${siteName}`;
 ---
 
 <!DOCTYPE html>
@@ -55,7 +60,7 @@ const ogImage = 'https://liki.hk/img/og-image.png';
 <meta name="twitter:description" content={t(locale, `${page}.meta.twitterDesc`)}>
 <meta name="twitter:image" content={ogImage}>
 
-<title>{t(locale, `${page}.title`)} · {t(locale, 'site.name')}</title>
+<title>{documentTitle}</title>
 
 <slot name="head" />
 

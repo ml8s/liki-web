@@ -1,12 +1,9 @@
 ---
 import { t } from '../i18n.ts';
-const { locale, hideMobile = false } = Astro.props;
+const { locale } = Astro.props;
 ---
 
-<footer class={`border-t border-stone-100 mt-6 py-8${hideMobile ? ' hide-mobile' : ''}`}>
-  <div class="max-w-3xl mx-auto px-4 mb-6 text-center">
-    <p class="font-serif text-stone-600">{t(locale, 'site.slogan')}</p>
-  </div>
+<footer class="site-footer">
   <div class="max-w-3xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-4">
     <div class="text-left">
       <p class="text-stone-600 text-sm">{t(locale, 'site.slogan')}</p>
@@ -22,22 +19,16 @@ const { locale, hideMobile = false } = Astro.props;
         </a>
       </div>
       <div class="footer-groups">
-        <div class="footer-group">
-          <p class="footer-group-label">{t(locale, 'footer.explore')}</p>
-          <p class="text-xs text-stone-600 flex flex-wrap justify-end gap-3">
-            <a href={`/${locale}/partners/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.partners')}</a>
-            <a href={`/${locale}/skills/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.skill')}</a>
-            <a href={`/${locale}/about/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.about')}</a>
-            <a href={`/${locale}/contact/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.contact')}</a>
-          </p>
+        <div class="footer-group text-xs text-stone-600">
+          <a href={`/${locale}/partners/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.partners')}</a>
+          <a href={`/${locale}/skills/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.skill')}</a>
+          <a href={`/${locale}/about/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.about')}</a>
+          <a href={`/${locale}/contact/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.contact')}</a>
         </div>
-        <div class="footer-group">
-          <p class="footer-group-label">{t(locale, 'footer.legal')}</p>
-          <p class="text-xs text-stone-600 flex flex-wrap justify-end gap-3">
-            <a href={`/${locale}/privacy/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.privacy')}</a>
-            <a href={`/${locale}/terms/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.terms')}</a>
-            <a href={`/${locale}/disclaimer/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.disclaimer')}</a>
-          </p>
+        <div class="footer-group text-xs text-stone-600">
+          <a href={`/${locale}/privacy/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.privacy')}</a>
+          <a href={`/${locale}/terms/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.terms')}</a>
+          <a href={`/${locale}/disclaimer/`} class="hover:text-stone-400 transition-colors">{t(locale, 'footer.disclaimer')}</a>
         </div>
       </div>
     </div>

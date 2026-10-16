@@ -75,9 +75,23 @@ export const useSalesStore = defineStore('sales', {
         this.loadingProducts = false
       }
     },
+    /**
+     * 支付失败后先同步远端状态，再写错误文案。refresh() 会清空 actionError，
+     * 反过来写（先写错误再 refresh）等于把错误吞掉：买家只看到按钮闪一下，
+     * 既没有报错也没有支付页，就是「点了没反应」。
+     */
+    async failCheckout(error: unknown, fallbackKey: string) {
+      const message = toUserMessage(error, t(fallbackKey))
+      try {
+        await this.refresh()
+      } catch {
+        // 刷新失败不该盖掉支付失败的提示。
+      }
+      this.actionError = message
+    },
     async buy(billingMode: 'one_time' | 'subscription' = 'one_time') {
       const product = this.chatProduct
-      if (!product) return
+      if (!product || this.buying) return
       this.buying = true
       this.actionError = ''
       try {
@@ -85,14 +99,12 @@ export const useSalesStore = defineStore('sales', {
         // 只跟随相对路径或 https 支付域：防御后端配置错误导致的开放重定向。
         const url = checkout.checkout_url
         if (!url.startsWith('/') && !url.startsWith('https://')) {
-          this.actionError = t('commerce.checkoutFailed')
-          await this.refresh()
+          await this.failCheckout(new Error('untrusted checkout url'), 'commerce.checkoutFailed')
           return
         }
         window.location.href = url
       } catch (error) {
-        this.actionError = toUserMessage(error, t('commerce.checkoutFailed'))
-        await this.refresh()
+        await this.failCheckout(error, 'commerce.checkoutFailed')
       } finally {
         this.buying = false
       }

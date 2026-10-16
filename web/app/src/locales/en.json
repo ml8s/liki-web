@@ -52,6 +52,9 @@
     "sendCodeFailed": "Could not send the verification code",
     "loginFailed": "Sign-in failed"
   },
+  "site": {
+    "name": "Liki"
+  },
   "router": {
     "login": "Sign in",
     "dashboard": "Workspace",
@@ -69,7 +72,6 @@
     "partnerKol": "KOL partnership",
     "partnerScout": "Scout partnership",
     "account": "Account",
-    "admin": "Admin",
     "notFound": "Page not found"
   },
   "services": {
@@ -418,6 +420,7 @@
     "aiDisclaimer": "AI-generated content. Metaphysical interpretation is for reference only.",
     "productsFailed": "Failed to load products",
     "checkoutFailed": "Could not start checkout",
+    "redirectingToCheckout": "Redirecting to checkout…",
     "payment": {
       "confirmed": "Payment confirmed. Activating Liki Chat…",
       "active": "Payment successful. Liki Chat is active.",

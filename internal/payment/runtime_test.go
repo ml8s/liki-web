@@ -357,6 +357,10 @@ func TestRuntimeStartCheckoutSendsReturnURLAndStoresSession(t *testing.T) {
 	if want := "https://liki.hk/api/payments/return/" + intent.ID; gateway.request.ReturnURL != want {
 		t.Fatalf("return URL = %q, want %q", gateway.request.ReturnURL, want)
 	}
+	// 产品流只回站内路径，交给网关的必须是绝对地址（Dodo 对相对 cancel_url 直接 400）。
+	if want := "https://liki.hk/app?order_id=biz-1"; gateway.request.CancelURL != want {
+		t.Fatalf("cancel URL = %q, want %q", gateway.request.CancelURL, want)
+	}
 	if result.CheckoutURL == "" {
 		t.Fatal("checkout URL is empty")
 	}
@@ -366,6 +370,31 @@ func TestRuntimeStartCheckoutSendsReturnURLAndStoresSession(t *testing.T) {
 	}
 	if got.Status != IntentCheckoutCreated || got.CheckoutURL != result.CheckoutURL {
 		t.Fatalf("intent after checkout = %+v", got)
+	}
+}
+
+func TestCheckoutRequestRejectsRelativeURLs(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		returnURL string
+		cancelURL string
+		wantErr   bool
+	}{
+		{name: "absolute", returnURL: "https://liki.hk/api/payments/return/1", cancelURL: "https://liki.hk/app/orders"},
+		{name: "empty omits", returnURL: "https://liki.hk/api/payments/return/1"},
+		{name: "relative cancel", returnURL: "https://liki.hk/api/payments/return/1", cancelURL: "/app/orders?status=unpaid", wantErr: true},
+		{name: "relative return", returnURL: "/api/payments/return/1", cancelURL: "https://liki.hk/app/orders", wantErr: true},
+		{name: "other scheme", returnURL: "https://liki.hk/api/payments/return/1", cancelURL: "javascript:alert(1)", wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := CheckoutRequest{ReturnURL: tc.returnURL, CancelURL: tc.cancelURL}.validateURLs()
+			if tc.wantErr && err == nil {
+				t.Fatal("validateURLs() accepted an invalid URL")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("validateURLs() = %v", err)
+			}
+		})
 	}
 }
 

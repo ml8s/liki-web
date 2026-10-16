@@ -27,7 +27,10 @@
       </li>
     </ul>
 
-    <div class="plans">
+    <div
+      class="plans"
+      :aria-busy="buying ? 'true' : 'false'"
+    >
       <button
         v-if="subscriptionOption"
         type="button"
@@ -52,6 +55,13 @@
         <span class="plan__note">{{ $t('commerce.oneTime.access') }}</span>
       </button>
     </div>
+    <p
+      v-if="buying"
+      class="plans-pending"
+      role="status"
+    >
+      {{ $t('commerce.redirectingToCheckout') }}
+    </p>
     <p class="disclaimer">
       {{ $t('commerce.aiDisclaimer') }}
     </p>
@@ -107,6 +117,7 @@ p { color: var(--liki-text-2); margin: 0 0 12px; }
 .plan__name { font-weight: 650; }
 .plan__price { font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .plan__note { color: var(--liki-text-3); font-size: var(--font-size-caption); }
+.plans-pending { margin: 10px 0 0; color: var(--liki-text-3); font-size: var(--font-size-caption); }
 .disclaimer {
   margin: 14px 0 0;
   color: var(--liki-text-3);

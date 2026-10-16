@@ -473,7 +473,7 @@ func main() {
 		slog.Warn("dodo one-time product is not configured for liki-chat; USD chat checkout will fail")
 	}
 	if dodoConfigured && cfg.DodoProductLikiChatSubscription == "" {
-		slog.Warn("dodo subscription product is not configured for liki-chat; subscription checkout will fail")
+		slog.Warn("dodo subscription product is not configured for liki-chat; the subscription offer stays disabled")
 	}
 	xunhuConfigured := cfg.XunhuAppID != "" && cfg.XunhuAppSecret != "" && cfg.PaymentWebhookURL != ""
 	if dodoConfigured || xunhuConfigured {
@@ -591,6 +591,14 @@ func main() {
 	)
 	accountHandler.SetSubscriptionEraser(subscriptionStore)
 
+	// 订阅 checkout 只在订阅商品配置好后注册：/api/sales/products 按
+	// subscriptionCheckout 是否可用决定要不要下发订阅 offer，商品缺失时下发等于
+	// 让买家点一个必然 502 的按钮。
+	var subscriptionCheckout sales.SubscriptionCheckoutCreator
+	if cfg.DodoProductLikiChatSubscription != "" {
+		subscriptionCheckout = dodoClient
+	}
+
 	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
 		PaymentRuntime: paymentRuntime,
 		AuthHandler:    authHandler,
@@ -608,7 +616,7 @@ func main() {
 			sales.WithSkillAuthorizer(entitlements),
 			sales.WithSubscriptions(
 				subscriptionStore,
-				dodoClient,
+				subscriptionCheckout,
 				dodoClient,
 				cfg.PublicBaseURL,
 			),

@@ -275,6 +275,11 @@ FROM payment_intents WHERE id=?`, id)
 	return scanIntent(row.Scan)
 }
 
+// ListIntentsForReconciliation returns the open intents a provider can still
+// answer for. Intents without a provider handle (a checkout that never opened)
+// have nothing to fetch: asking anyway produced one ERROR per intent per cycle
+// until the expiry job cleaned them up, and enough of them would starve the
+// intents that do have a provider handle.
 func (s *IntentStore) ListIntentsForReconciliation(ctx context.Context, limit int) ([]PaymentIntent, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, business_order_id, user_id, product, provider, status, amount_minor, currency, email,
@@ -282,6 +287,7 @@ SELECT id, business_order_id, user_id, product, provider, status, amount_minor, 
        return_url, success_url, failure_url, created_at, updated_at, paid_at, refunded_at, refunded_amount_minor
 FROM payment_intents
 WHERE status IN (?,?)
+  AND (provider_session_id <> '' OR provider_payment_id <> '')
 ORDER BY updated_at
 LIMIT ?`, string(IntentCreated), string(IntentCheckoutCreated), limit)
 	if err != nil {

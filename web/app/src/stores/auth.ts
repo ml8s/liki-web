@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { fetchMe } from '@/api/me'
 import * as authApi from '@/api/auth'
+import { useAdminStore } from '@/stores/admin'
 import { useChatStore } from '@/stores/chat'
 import { useSalesStore } from '@/stores/sales-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
@@ -67,10 +68,12 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.status = 'unauthenticated'
       // 登出必须清理整个用户工作区：换号登录不得见到前一用户的缓存。
+      // 管理能力缓存同样要清：它是授权结果，不能跨账号复用。
       useEntitlementsStore().reset()
       useChatStore().reset()
       useBirthProfilesStore().reset()
       useSalesStore().reset()
+      useAdminStore().reset()
       sessionStorage.removeItem('likiChatDraft')
     }
   },

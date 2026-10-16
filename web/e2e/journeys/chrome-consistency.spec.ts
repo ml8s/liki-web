@@ -1,5 +1,5 @@
 // 骨架一致性：全站每个静态页共享同一 header（brand link + slogan，无返回链）
-// 与同一 footer（探索/法律两组）。差异化只允许发生在正文区。
+// 与同一 footer（两列链接：合作 / 法律，无分组标题）。差异化只允许发生在正文区。
 import { test, expect } from '../fixtures'
 import { mockPageview } from '../mocks'
 
@@ -21,10 +21,21 @@ for (const locale of LOCALES) {
       await expect(page.locator('header .brand-link')).toHaveText('Liki')
       await expect(page.locator('.brand-slogan')).toBeVisible()
       await expect(page.locator('.back-link')).toHaveCount(0)
-      // footer：探索/法律两组标题可见，7 个链接齐备。
-      await expect(page.locator('.footer-group-label')).toHaveText([/探索|Explore/i, /法律|Legal/i])
+      // footer：两列链接（无分组标题），7 个链接齐备。
+      await expect(page.locator('footer .footer-group')).toHaveCount(2)
+      await expect(page.locator('footer .footer-group a')).toHaveCount(7)
       await expect(page.locator('footer a[href$="/partners/"], footer a[href$="/partners"]')).toHaveCount(1)
       await expect(page.locator('footer a[href$="/privacy/"], footer a[href$="/privacy"]')).toHaveCount(1)
+      // 标题格式全站统一：`<页面名> · Liki`（静态页与 SPA 同一模式）；
+      // 首页的页面名就是 slogan，已经带了站点名，不再追加后缀。
+      const title = await page.title()
+      if (p === '') {
+        expect(title).toContain('Liki')
+        expect(title.endsWith(' · Liki')).toBe(false)
+      } else {
+        expect(title.endsWith(' · Liki'), title).toBe(true)
+        expect(title.length, title).toBeGreaterThan(' · Liki'.length)
+      }
     })
   }
 }

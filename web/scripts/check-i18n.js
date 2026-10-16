@@ -53,6 +53,8 @@ const TERM_ANCHORS = [
   { name: 'partner program (nav)', marketing: 'footer.partners', app: 'nav.partner' },
   { name: 'partner program (page title)', marketing: 'footer.partners', app: 'router.partnerCenter' },
   { name: 'brand slogan', marketing: 'site.slogan', app: 'auth.slogan' },
+  // 标签标题后缀（「<页面名> · <站点名>」）在两个 surface 上必须是同一个名字。
+  { name: 'site name (tab title)', marketing: 'site.name', app: 'site.name' },
   { name: 'service: bond', marketing: 'index.services.bond.title', app: 'services.bond.label' },
 ];
 

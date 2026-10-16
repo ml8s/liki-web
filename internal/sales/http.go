@@ -80,6 +80,10 @@ func WithSkillAuthorizer(authorizer SkillAuthorizer) HandlerOption {
 	}
 }
 
+// WithSubscriptions wires the subscription surface. The checkout creator is
+// optional: a deployment without a configured recurring product must still list
+// and cancel existing subscriptions, but it must not advertise a new one —
+// HandleProducts only offers a subscription while subscriptionCheckout is set.
 func WithSubscriptions(
 	subscriptions *SubscriptionStore,
 	checkout SubscriptionCheckoutCreator,
@@ -87,7 +91,7 @@ func WithSubscriptions(
 	publicBaseURL string,
 ) HandlerOption {
 	return func(h *Handler) {
-		if subscriptions == nil || checkout == nil || cancellation == nil {
+		if subscriptions == nil || cancellation == nil {
 			return
 		}
 		h.subscriptions = subscriptions

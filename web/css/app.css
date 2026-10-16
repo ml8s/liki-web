@@ -260,11 +260,15 @@ th {
   text-transform: uppercase;
 }
 
-.footer-group { min-width: 0; }
-.footer-group-label { font-size: .6875rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-faint); margin-bottom: 2px; }
-@media (max-width: 640px) { .footer-groups { align-items: flex-start; } }
+/* 页脚：与正文用一条分隔线分开，上下留白；链接两组并列（合作/法律），组内竖排右对齐。 */
+.site-footer {
+  margin-top: var(--space-6);
+  padding-block: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
 
-.footer-groups { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-end; }
+.footer-groups { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2) var(--space-6); }
+.footer-group { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); min-width: 0; }
 
 .min-w-\[130px\] { min-width: 130px; }
 
@@ -370,10 +374,6 @@ th {
 /* ── Responsive ── */
 @media (min-width: 768px) {
   .md\:text-5xl { font-size: 3rem; }
-}
-
-@media (max-width: 640px) {
-  .hide-mobile { display: none; }
 }
 
 @media (max-width: 480px) {

@@ -15,6 +15,8 @@ test.describe('Vue admin console', () => {
 
     await page.goto('/app/admin')
     await expect(page).toHaveURL(/\/app\/admin$/)
+    // 标签标题：后台是中文专用界面，页名用固定中文（路由 meta.title）。
+    await expect(page).toHaveTitle('管理后台 · Liki')
     await expect(page.getByRole('heading', { name: '管理总览' })).toBeVisible()
     await expect(page.locator('.operator').getByText('admin@example.com')).toBeVisible()
     await expect(page.getByText('权益管理')).toBeVisible()
@@ -27,6 +29,39 @@ test.describe('Vue admin console', () => {
     await expect(page.getByText('payment', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: '改期' })).toBeVisible()
     await expect(page.getByRole('button', { name: '撤销' })).toBeVisible()
+  })
+
+  // 菜单之间切换必须原地渲染：曾经每次进后台路由都 loadSession(true)，store 被打回
+  // loading，布局随即把整个 <main> 换成占位卡再换回来——肉眼就是「点菜单闪一下」。
+  test('navigating between menus never falls back to the loading shell', async ({ page }) => {
+    await mockAdmin(page, ['entitlement.read', 'sales.read', 'audit.read'])
+    await page.route('**/api/admin/entitlements*', route => route.fulfill({ json: { data: { entitlements: [] } } }))
+    await page.route('**/api/admin/sales/orders*', route => route.fulfill({ json: { data: { orders: [], page: 1, page_size: 50, total: 0, has_more: false } } }))
+    await page.route('**/api/admin/sales/subscriptions*', route => route.fulfill({ json: { data: { subscriptions: [], page: 1, page_size: 50, total: 0, has_more: false } } }))
+    await page.route('**/api/admin/partner-audit-actions*', route => route.fulfill({ json: { data: { actions: [], page: 1, page_size: 50, total: 0, has_more: false } } }))
+
+    await page.goto('/app/admin')
+    await expect(page.getByRole('heading', { name: '管理总览' })).toBeVisible()
+
+    // 首屏之后才开始观测：占位卡只允许出现在初次装载。
+    await page.evaluate(() => {
+      const state = window as unknown as { __loadingShellSeen?: boolean }
+      state.__loadingShellSeen = false
+      new MutationObserver(() => {
+        if (document.querySelector('.state-card')) state.__loadingShellSeen = true
+      }).observe(document.documentElement, { childList: true, subtree: true })
+    })
+
+    for (const label of ['权益', '订单', '订阅', '审计']) {
+      await page.getByRole('link', { name: label, exact: true }).click()
+      await expect(page.locator('.admin-nav a.on')).toHaveText(label)
+      await expect(page).toHaveTitle(`${label} · Liki`)
+    }
+
+    const sawLoadingShell = await page.evaluate(
+      () => Boolean((window as unknown as { __loadingShellSeen?: boolean }).__loadingShellSeen),
+    )
+    expect(sawLoadingShell).toBe(false)
   })
 
   test('shows the no-permission state for a signed-in non-admin', async ({ page }) => {
