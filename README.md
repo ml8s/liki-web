@@ -30,8 +30,12 @@ liki engine  /  liki-agents  /  payment providers
 Requirements are documented by:
 
 - `.nvmrc` for Node.js;
+- `.python-version` for Python;
 - `go.mod` for Go;
+- `deps/golangci-lint.version` for golangci-lint;
 - a prepared immutable `liki-web-skill-bundle.tar.gz` under `web/skills`.
+
+`make check` fails when your local runtimes differ from those declarations.
 
 ```bash
 make hooks

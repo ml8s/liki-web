@@ -12,7 +12,7 @@ export RELEASE_VERSION
 #   make smoke  本仓镜像启动 + health/page 冒烟
 .PHONY: help check test gate smoke e2e \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
-        check-web-static check-security \
+        check-web-static check-security check-go-version runtime-version-check \
         build build-skills build-sitemap build-web build-go image candidate test-go-coverage test-js-coverage \
         dev clean hooks version
 
@@ -45,7 +45,7 @@ help: ## 列出所有 target
 
 # ── 质量门槛 ──
 
-check: lint-go fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-skills check-version check-actions ## 静态检查（纯静态，不跑测试、不构建）
+check: lint-go fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-skills check-version check-go-version runtime-version-check check-actions ## 静态检查（纯静态，不跑测试、不构建）
 
 test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
 test-go-coverage: ## Run Go tests with the CI coverage policy
@@ -65,6 +65,12 @@ test-js-coverage: ## Run Vue/TS tests with V8 coverage
 
 gate: check test ## 源码门槛：check + test；镜像冒烟只在 candidate/release 流程执行
 
+check-go-version: ## Require the security-supported Go toolchain
+	scripts/check-go-version.sh
+
+runtime-version-check: ## 本地 node/python 必须等于 .nvmrc/.python-version（与 CI 同源）
+	scripts/check-runtime-versions.sh
+
 check-actions: ## Reject mutable reusable workflow/action references
 	python3 scripts/check_actions_pinned.py
 
@@ -79,9 +85,8 @@ candidate-publish: ## 整机 candidate-test 通过后，将同一 digest 推送�
 
 # ── 调试（check / test 失败时隔离定位）──
 
-lint-go: ## Go lint + vet
-	golangci-lint run --timeout=3m
-	go vet ./...
+lint-go: ## Go lint + vet（走 deps/golangci-lint.version pin，与 CI 同版本）
+	scripts/lint-go.sh
 
 fmt-check: ## Reject unformatted Go sources
 	@test -z "$$(gofmt -l .)" || { gofmt -l .; exit 1; }
