@@ -111,7 +111,6 @@
 <script setup lang="ts">
 import { errorMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import PayoutDialog from '@/components/partner/PayoutDialog.vue'
 import PartnerStatGrid, { type PartnerStat } from '@/components/partner/PartnerStatGrid.vue'

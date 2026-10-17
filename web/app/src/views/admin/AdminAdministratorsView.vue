@@ -220,7 +220,6 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   createAdminAccount, fetchAdminAccounts, grantAdminCapability, revokeAdminCapability,
   setAdminAccountStatus, type AdminAccount, type AdminCapability,

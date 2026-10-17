@@ -381,7 +381,6 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   decideAdminApplication, fetchAdminApplications, fetchAdminPartners, setAdminPartnerStatus,
   type AdminApplication, type AdminPartner,

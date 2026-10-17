@@ -274,7 +274,6 @@
 <script setup lang="ts">
 import { errorMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import PartnerSettlement from '@/components/partner/PartnerSettlement.vue'

@@ -44,7 +44,6 @@ import { useI18n } from 'vue-i18n'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useAuthStore } from '@/stores/auth'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'
-import { ElMessageBox } from 'element-plus'
 import type { BirthProfileInput } from '@/api/birth-profiles'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
 

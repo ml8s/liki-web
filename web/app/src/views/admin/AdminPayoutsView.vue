@@ -227,7 +227,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   actOnAdminPayout, fetchAdminPayouts, revealAdminPayoutAccount, type AdminPayout,
 } from '@/api/admin'
