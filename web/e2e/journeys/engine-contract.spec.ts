@@ -1747,15 +1747,22 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
   await page.locator('.el-tabs__item:has-text("紫微")').click()
   await expect(page.locator('.zw-palace')).toHaveCount(12) // 环形十二宫
   await expect(page.locator('.zw-palace').first()).toContainText('紫微庙') // 庙旺平陷（命宫己丑）
+  await expect(page.locator('.zw-palace').first()).toContainText('天德') // 杂曜
+  await expect(page.locator('.zw-palace').first()).toContainText('長生') // 长生神
+  await expect(page.locator('.zw-palace').first()).toHaveAttribute('title', /小限/) // 小限进 tooltip
   await expect(page.locator('.zw-palace.ming .zw-pname')).toHaveText('命宫')
   await expect(page.locator('.zw-palace.shen')).toHaveCount(1) // 身宫角标
   await expect(page.locator('.zw-center')).toContainText('火六局') // 五行局
+  await expect(page.locator('.zw-center')).toContainText('巨门') // 命主
+  await expect(page.locator('.zw-center')).toContainText('庚辰年') // 年干支
   await expect(page.locator('.zw-center .zw-sihua-chip')).toHaveCount(4) // 四化
   await expect(page.locator('.zw-sf')).toHaveCount(4) // 三方四正
   await expect(page.locator('.zw-sf:has-text("武曲")')).toHaveCount(1) // 财帛宫含武曲七杀
   await expect(page.locator('.zw-daxian .dy')).toHaveCount(12) // 大限十二限
   await expect(page.locator('.zw-daxian .dy').first()).toContainText('2005') // golden 首限起始年
+  await expect(page.locator('.zw-daxian .dy').first()).toContainText('6–15') // 虚岁区间
   await expect(page.locator('.zw-daxian .dy.cur')).toHaveCount(1) // 当前大限高亮
+  await expect(page.locator('.zw-liunian .el-input-number')).toBeVisible() // 流年年份控件
   await expect(page.locator('.zw-liunian .zw-sihua-chip')).toHaveCount(4) // 流年四化
   await expect(page.locator('.ln-cell')).toHaveCount(12) // 流年十二宫
   await expect(page.locator('.ln-cell.ming')).toContainText('命宫') // 流年命宫

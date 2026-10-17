@@ -320,7 +320,14 @@ const pendingOrders = computed(() => orders.value.filter(order => order.status =
 /** 行操作标准：按订单+intent 状态派生可用动作（导航类渲染为链接）。 */
 function orderActions(order: Order): RecordAction[] {
   if (order.status === 'pending') {
-    if (order.intent_status === 'expired' || order.intent_status === 'refunded') {
+    if (order.intent_status === 'expired') {
+      // 已过期的订单仍可取消：过期也是未完结，用户需要能整理列表。
+      return [
+        { key: 'repurchase', label: t('orders.repurchase'), to: '/chat' },
+        { key: 'cancel', label: t('orders.cancel'), danger: true },
+      ]
+    }
+    if (order.intent_status === 'refunded') {
       return [{ key: 'repurchase', label: t('orders.repurchase'), to: '/chat' }]
     }
     if (order.intent_status === 'paid') {
