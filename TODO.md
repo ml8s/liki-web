@@ -28,7 +28,7 @@
 订阅入口消失的根因是 `liki-deploy/env/cn.env` 的 `DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION` 为空。
 本机已填，但该文件不进仓，CN 源站需要有 SSH 权限的一方部署。
 
-- [ ] 从有权限的机器部署 web 组件（`make deploy-web-cn` 或等价流程）
+- [ ] 从有权限的机器部署 web 组件（`COMPONENT=web make deploy-cn`）
 - [ ] 验收：CN 源站容器 env 里订阅商品 ID 非空；CNY 买家仍只看到一次性；USD 买家落在任一源站
       都能看到订阅
 
