@@ -263,7 +263,7 @@ import { baziChartFor } from '@/utils/paipan'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
 
 interface SynastryInput { gender: string; birth_date: string; birth_time: string; birth_place: string }
@@ -346,12 +346,12 @@ function relText(rel: { relation?: string; detail?: string; type?: string }): st
 
 const dayMasterRel = computed(() => {
   const pairs = result.value?.zhu_cross?.pairs ?? []
-  const pair = pairs.find(p => p.jia_zhu === 'ri' && p.yi_zhu === 'ri')
+  const pair = pairs.find(p => p.a_zhu === 'ri' && p.b_zhu === 'ri')
   if (!pair) return ''
   return t('services.bond.dayMasterValue', {
     a: aName.value,
-    aPillar: `${pair.jia_gan}${pair.jia_zhi}`,
-    bPillar: `${pair.yi_gan}${pair.yi_zhi}`,
+    aPillar: `${pair.a_gan}${pair.a_zhi}`,
+    bPillar: `${pair.b_gan}${pair.b_zhi}`,
     gan: relText(pair.gan_guan_xi),
     zhi: relText(pair.zhi_guan_xi),
   })
@@ -361,9 +361,9 @@ const keyRels = computed(() => {
   const pairs = result.value?.zhu_cross?.pairs ?? []
   const set = new Set<string>()
   for (const p of pairs) {
-    const t = relText(p.zhi_guan_xi)
-    if (/六合|三合|六冲|六害|相刑/.test(t)) {
-      set.add(`${ZHU_LABELS.value[p.jia_zhu] ?? p.jia_zhu}·${p.jia_gan}${p.jia_zhi} — ${ZHU_LABELS.value[p.yi_zhu] ?? p.yi_zhu}·${p.yi_gan}${p.yi_zhi}：${t}`)
+    // 过滤按 type（六合/三合/六冲/六害/相刑），detail 只做展示（如「辰酉合化金」）。
+    if (/六合|三合|六冲|六害|相刑/.test(p.zhi_guan_xi.type)) {
+      set.add(`${ZHU_LABELS.value[p.a_zhu] ?? p.a_zhu}·${p.a_gan}${p.a_zhi} — ${ZHU_LABELS.value[p.b_zhu] ?? p.b_zhu}·${p.b_gan}${p.b_zhi}：${relText(p.zhi_guan_xi)}`)
     }
   }
   return [...set].slice(0, 8)
@@ -372,7 +372,7 @@ const keyRels = computed(() => {
 const nayinRels = computed(() => {
   const pairs = result.value?.nayin_cross?.pairs ?? []
   return pairs.filter(p => p.relation && p.relation !== '无').map(p =>
-    `${ZHU_LABELS.value[p.jia_zhu] ?? p.jia_zhu}·${p.jia_na_yin} ↔ ${ZHU_LABELS.value[p.yi_zhu] ?? p.yi_zhu}·${p.yi_na_yin}：${p.relation}`
+    `${ZHU_LABELS.value[p.a_zhu] ?? p.a_zhu}·${p.a_na_yin} ↔ ${ZHU_LABELS.value[p.b_zhu] ?? p.b_zhu}·${p.b_na_yin}：${p.relation}`
   )
 })
 
@@ -381,8 +381,11 @@ const shenshaRels = computed(() => {
   if (!cross) return []
   const rows: string[] = []
   for (const [name, info] of Object.entries(cross)) {
-    if (info.jia_ru_yi) rows.push(t('services.bond.aStarIntoB', { name, a: aName.value }))
-    if (info.yi_ru_jia) rows.push(t('services.bond.bStarIntoA', { name, a: aName.value }))
+    // 引擎键是固定标识符（tian_yi/kui_gang…），展示走 locale 标签。
+    const key = `services.bond.shensha.${name}`
+    const label = te(key) ? t(key) : name
+    if (info.a_present_in_b) rows.push(t('services.bond.aStarIntoB', { name: label, a: aName.value }))
+    if (info.b_present_in_a) rows.push(t('services.bond.bStarIntoA', { name: label, a: aName.value }))
   }
   return rows.slice(0, 10)
 })
@@ -398,8 +401,8 @@ const shiShenRows = computed(() => {
     shi: t('services.bond.pillarShort.hour'),
   }
   for (const k of ['nian_gan', 'yue_gan', 'ri_gan', 'shi_gan']) {
-    const a = cross.jia_dui_yi?.[k]
-    const bb = cross.yi_dui_jia?.[k]
+    const a = cross.a_to_b?.[k]
+    const bb = cross.b_to_a?.[k]
     const label = short[k.replace('_gan', '')] ?? k.replace('_gan', '')
     if (a) rows.push(t('services.bond.aViewB', { a: aName.value, pillar: label, value: a }))
     if (bb) rows.push(t('services.bond.bViewA', { a: aName.value, pillar: label, value: bb }))

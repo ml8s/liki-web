@@ -84,14 +84,639 @@ const bazhai = {
   },
 }
 const bond = {
-  zhu_cross: {
-    pairs: [
-      { jia_zhu: 'ri', yi_zhu: 'ri', jia_gan: '壬', yi_gan: '戊', jia_zhi: '申', yi_zhi: '午', gan_guan_xi: { gan_a: '壬', gan_b: '戊', type: '相克', relation: '壬戊相克' }, zhi_guan_xi: { zhi_a: '申', zhi_b: '午', type: '三合', detail: '三合' } },
-      { jia_zhu: 'nian', yi_zhu: 'nian', jia_gan: '戊', yi_gan: '甲', jia_zhi: '戌', yi_zhi: '子', gan_guan_xi: { gan_a: '戊', gan_b: '甲', type: '相生', relation: '戊甲相生' }, zhi_guan_xi: { zhi_a: '戌', zhi_b: '子', type: '六合', detail: '六合' } },
-      { jia_zhu: 'yue', yi_zhu: 'shi', jia_gan: '丁', yi_gan: '壬', jia_zhi: '巳', yi_zhi: '寅', gan_guan_xi: { gan_a: '丁', gan_b: '壬', type: '天干五合', relation: '丁壬合' }, zhi_guan_xi: { zhi_a: '巳', zhi_b: '寅', type: '六冲', detail: '六冲' } },
-    ],
+  'day_master': {
+    'a': {
+      'gan': '甲',
+      'gender': 'male',
+      'wuxing': '木'
+    },
+    'b': {
+      'gan': '辛',
+      'gender': 'female',
+      'wuxing': '金'
+    },
+    'gan_guan_xi': {
+      'gan_a': '甲',
+      'gan_b': '辛',
+      'relation': '辛克甲',
+      'type': '相克'
+    }
   },
-  shi_shen_cross: { jia_dui_yi: { nian_gan: '偏财', ri_gan: '日主' }, yi_dui_jia: { nian_gan: '偏印', ri_gan: '日主' } },
+  'nayin_cross': {
+    'pairs': [
+      {
+        'a_na_yin': '白蜡金',
+        'a_zhu': 'nian',
+        'b_na_yin': '白蜡金',
+        'b_zhu': 'nian',
+        'relation': '相同'
+      },
+      {
+        'a_na_yin': '白蜡金',
+        'a_zhu': 'nian',
+        'b_na_yin': '泉中水',
+        'b_zhu': 'yue',
+        'relation': '相生'
+      },
+      {
+        'a_na_yin': '白蜡金',
+        'a_zhu': 'nian',
+        'b_na_yin': '白蜡金',
+        'b_zhu': 'ri',
+        'relation': '相同'
+      },
+      {
+        'a_na_yin': '白蜡金',
+        'a_zhu': 'nian',
+        'b_na_yin': '长流水',
+        'b_zhu': 'shi',
+        'relation': '相生'
+      },
+      {
+        'a_na_yin': '杨柳木',
+        'a_zhu': 'yue',
+        'b_na_yin': '白蜡金',
+        'b_zhu': 'nian',
+        'relation': '相克'
+      },
+      {
+        'a_na_yin': '杨柳木',
+        'a_zhu': 'yue',
+        'b_na_yin': '泉中水',
+        'b_zhu': 'yue',
+        'relation': '相生'
+      },
+      {
+        'a_na_yin': '杨柳木',
+        'a_zhu': 'yue',
+        'b_na_yin': '白蜡金',
+        'b_zhu': 'ri',
+        'relation': '相克'
+      },
+      {
+        'a_na_yin': '杨柳木',
+        'a_zhu': 'yue',
+        'b_na_yin': '长流水',
+        'b_zhu': 'shi',
+        'relation': '相生'
+      },
+      {
+        'a_na_yin': '覆灯火',
+        'a_zhu': 'ri',
+        'b_na_yin': '白蜡金',
+        'b_zhu': 'nian',
+        'relation': '相克'
+      },
+      {
+        'a_na_yin': '覆灯火',
+        'a_zhu': 'ri',
+        'b_na_yin': '泉中水',
+        'b_zhu': 'yue',
+        'relation': '相克'
+      },
+      {
+        'a_na_yin': '覆灯火',
+        'a_zhu': 'ri',
+        'b_na_yin': '白蜡金',
+        'b_zhu': 'ri',
+        'relation': '相克'
+      },
+      {
+        'a_na_yin': '覆灯火',
+        'a_zhu': 'ri',
+        'b_na_yin': '长流水',
+        'b_zhu': 'shi',
+        'relation': '相克'
+      },
+      {
+        'a_na_yin': '路旁土',
+        'a_zhu': 'shi',
+        'b_na_yin': '白蜡金',
+        'b_zhu': 'nian',
+        'relation': '相生'
+      },
+      {
+        'a_na_yin': '路旁土',
+        'a_zhu': 'shi',
+        'b_na_yin': '泉中水',
+        'b_zhu': 'yue',
+        'relation': '相克'
+      },
+      {
+        'a_na_yin': '路旁土',
+        'a_zhu': 'shi',
+        'b_na_yin': '白蜡金',
+        'b_zhu': 'ri',
+        'relation': '相生'
+      },
+      {
+        'a_na_yin': '路旁土',
+        'a_zhu': 'shi',
+        'b_na_yin': '长流水',
+        'b_zhu': 'shi',
+        'relation': '相克'
+      }
+    ],
+    'wuxing_counts': {
+      'a': {
+        '土': 1,
+        '木': 1,
+        '火': 1,
+        '金': 1
+      },
+      'b': {
+        '水': 2,
+        '金': 2
+      }
+    }
+  },
+  'shensha_cross': {
+    'kong_wang': {
+      'a_present_in_b': false,
+      'b_present_in_a': false
+    },
+    'kui_gang': {
+      'a_present_in_b': true,
+      'b_present_in_a': true
+    },
+    'lu': {
+      'a_present_in_b': false,
+      'b_present_in_a': false
+    },
+    'ri_de': {
+      'a_present_in_b': true,
+      'b_present_in_a': true
+    },
+    'ri_gui': {
+      'a_present_in_b': false,
+      'b_present_in_a': false
+    },
+    'tao_hua': {
+      'a_present_in_b': true,
+      'b_present_in_a': true
+    },
+    'tian_yi': {
+      'a_present_in_b': false,
+      'b_present_in_a': true
+    },
+    'yi_ma': {
+      'a_present_in_b': false,
+      'b_present_in_a': false
+    }
+  },
+  'shi_shen_cross': {
+    'a_to_b': {
+      'nian_gan': '七杀',
+      'ri_gan': '正官',
+      'shi_gan': '偏印',
+      'yue_gan': '劫财'
+    },
+    'b_to_a': {
+      'nian_gan': '劫财',
+      'ri_gan': '正财',
+      'shi_gan': '劫财',
+      'yue_gan': '伤官'
+    }
+  },
+  'spouse_palace': {
+    'a_zhi': '辰',
+    'b_zhi': '巳',
+    'relation': {
+      'detail': '无特殊关系',
+      'type': '无',
+      'zhi_a': '辰',
+      'zhi_b': '巳'
+    }
+  },
+  'spouse_star': {
+    'a': {
+      'gender': 'male',
+      'primary': {
+        'occurrences': [
+          {
+            'branch': '午',
+            'is_void': false,
+            'pillar': 'yue',
+            'source': 'mid_qi',
+            'stem': '己'
+          },
+          {
+            'branch': '午',
+            'is_void': false,
+            'pillar': 'shi',
+            'source': 'mid_qi',
+            'stem': '己'
+          }
+        ],
+        'ten_god': '正财'
+      },
+      'secondary': {
+        'occurrences': [
+          {
+            'branch': '辰',
+            'is_void': false,
+            'pillar': 'nian',
+            'source': 'main_qi',
+            'stem': '戊'
+          },
+          {
+            'branch': '辰',
+            'is_void': false,
+            'pillar': 'ri',
+            'source': 'main_qi',
+            'stem': '戊'
+          }
+        ],
+        'ten_god': '偏财'
+      }
+    },
+    'b': {
+      'gender': 'female',
+      'primary': {
+        'occurrences': [
+          {
+            'branch': '巳',
+            'is_void': false,
+            'pillar': 'ri',
+            'source': 'main_qi',
+            'stem': '丙'
+          }
+        ],
+        'ten_god': '正官'
+      },
+      'secondary': {
+        'occurrences': [],
+        'ten_god': '七杀'
+      }
+    }
+  },
+  'wuxing_cross': {
+    'a': {
+      '土': 4,
+      '木': 3,
+      '水': 3,
+      '火': 2,
+      '金': 2
+    },
+    'b': {
+      '土': 3,
+      '木': 3,
+      '水': 3,
+      '火': 1,
+      '金': 4
+    },
+    'combined': {
+      '土': 7,
+      '木': 6,
+      '水': 6,
+      '火': 3,
+      '金': 6
+    },
+    'fu_yi_in_other': {
+      'a': {
+        'ji': '金',
+        'ji_in_other': 4,
+        'model': 'support_control_with_day_master_strength',
+        'xi': '木',
+        'xi_in_other': 3,
+        'yong': '水',
+        'yong_in_other': 3
+      },
+      'b': {
+        'ji': '土',
+        'ji_in_other': 4,
+        'model': 'support_control_with_day_master_strength',
+        'xi': '木',
+        'xi_in_other': 3,
+        'yong': '火',
+        'yong_in_other': 2
+      }
+    }
+  },
+  'zhu_cross': {
+    'pairs': [
+      {
+        'a_gan': '庚',
+        'a_zhi': '辰',
+        'a_zhu': 'nian',
+        'b_gan': '庚',
+        'b_zhi': '辰',
+        'b_zhu': 'nian',
+        'gan_guan_xi': {
+          'gan_a': '庚',
+          'gan_b': '庚',
+          'relation': '庚庚同气',
+          'type': '相同'
+        },
+        'zhi_guan_xi': {
+          'detail': '辰辰自刑',
+          'type': '相刑',
+          'zhi_a': '辰',
+          'zhi_b': '辰'
+        }
+      },
+      {
+        'a_gan': '庚',
+        'a_zhi': '辰',
+        'a_zhu': 'nian',
+        'b_gan': '乙',
+        'b_zhi': '酉',
+        'b_zhu': 'yue',
+        'gan_guan_xi': {
+          'gan_a': '庚',
+          'gan_b': '乙',
+          'relation': '庚乙合化金',
+          'type': '天干五合'
+        },
+        'zhi_guan_xi': {
+          'detail': '辰酉合化金',
+          'type': '六合',
+          'zhi_a': '辰',
+          'zhi_b': '酉'
+        }
+      },
+      {
+        'a_gan': '庚',
+        'a_zhi': '辰',
+        'a_zhu': 'nian',
+        'b_gan': '辛',
+        'b_zhi': '巳',
+        'b_zhu': 'ri',
+        'gan_guan_xi': {
+          'gan_a': '庚',
+          'gan_b': '辛',
+          'relation': '庚辛同气',
+          'type': '相同'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '辰',
+          'zhi_b': '巳'
+        }
+      },
+      {
+        'a_gan': '庚',
+        'a_zhi': '辰',
+        'a_zhu': 'nian',
+        'b_gan': '壬',
+        'b_zhi': '辰',
+        'b_zhu': 'shi',
+        'gan_guan_xi': {
+          'gan_a': '庚',
+          'gan_b': '壬',
+          'relation': '庚生壬',
+          'type': '相生'
+        },
+        'zhi_guan_xi': {
+          'detail': '辰辰自刑',
+          'type': '相刑',
+          'zhi_a': '辰',
+          'zhi_b': '辰'
+        }
+      },
+      {
+        'a_gan': '壬',
+        'a_zhi': '午',
+        'a_zhu': 'yue',
+        'b_gan': '庚',
+        'b_zhi': '辰',
+        'b_zhu': 'nian',
+        'gan_guan_xi': {
+          'gan_a': '壬',
+          'gan_b': '庚',
+          'relation': '庚生壬',
+          'type': '相生'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '午',
+          'zhi_b': '辰'
+        }
+      },
+      {
+        'a_gan': '壬',
+        'a_zhi': '午',
+        'a_zhu': 'yue',
+        'b_gan': '乙',
+        'b_zhi': '酉',
+        'b_zhu': 'yue',
+        'gan_guan_xi': {
+          'gan_a': '壬',
+          'gan_b': '乙',
+          'relation': '壬生乙',
+          'type': '相生'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '午',
+          'zhi_b': '酉'
+        }
+      },
+      {
+        'a_gan': '壬',
+        'a_zhi': '午',
+        'a_zhu': 'yue',
+        'b_gan': '辛',
+        'b_zhi': '巳',
+        'b_zhu': 'ri',
+        'gan_guan_xi': {
+          'gan_a': '壬',
+          'gan_b': '辛',
+          'relation': '辛生壬',
+          'type': '相生'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '午',
+          'zhi_b': '巳'
+        }
+      },
+      {
+        'a_gan': '壬',
+        'a_zhi': '午',
+        'a_zhu': 'yue',
+        'b_gan': '壬',
+        'b_zhi': '辰',
+        'b_zhu': 'shi',
+        'gan_guan_xi': {
+          'gan_a': '壬',
+          'gan_b': '壬',
+          'relation': '壬壬同气',
+          'type': '相同'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '午',
+          'zhi_b': '辰'
+        }
+      },
+      {
+        'a_gan': '甲',
+        'a_zhi': '辰',
+        'a_zhu': 'ri',
+        'b_gan': '庚',
+        'b_zhi': '辰',
+        'b_zhu': 'nian',
+        'gan_guan_xi': {
+          'gan_a': '甲',
+          'gan_b': '庚',
+          'relation': '庚克甲',
+          'type': '相克'
+        },
+        'zhi_guan_xi': {
+          'detail': '辰辰自刑',
+          'type': '相刑',
+          'zhi_a': '辰',
+          'zhi_b': '辰'
+        }
+      },
+      {
+        'a_gan': '甲',
+        'a_zhi': '辰',
+        'a_zhu': 'ri',
+        'b_gan': '乙',
+        'b_zhi': '酉',
+        'b_zhu': 'yue',
+        'gan_guan_xi': {
+          'gan_a': '甲',
+          'gan_b': '乙',
+          'relation': '甲乙同气',
+          'type': '相同'
+        },
+        'zhi_guan_xi': {
+          'detail': '辰酉合化金',
+          'type': '六合',
+          'zhi_a': '辰',
+          'zhi_b': '酉'
+        }
+      },
+      {
+        'a_gan': '甲',
+        'a_zhi': '辰',
+        'a_zhu': 'ri',
+        'b_gan': '辛',
+        'b_zhi': '巳',
+        'b_zhu': 'ri',
+        'gan_guan_xi': {
+          'gan_a': '甲',
+          'gan_b': '辛',
+          'relation': '辛克甲',
+          'type': '相克'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '辰',
+          'zhi_b': '巳'
+        }
+      },
+      {
+        'a_gan': '甲',
+        'a_zhi': '辰',
+        'a_zhu': 'ri',
+        'b_gan': '壬',
+        'b_zhi': '辰',
+        'b_zhu': 'shi',
+        'gan_guan_xi': {
+          'gan_a': '甲',
+          'gan_b': '壬',
+          'relation': '壬生甲',
+          'type': '相生'
+        },
+        'zhi_guan_xi': {
+          'detail': '辰辰自刑',
+          'type': '相刑',
+          'zhi_a': '辰',
+          'zhi_b': '辰'
+        }
+      },
+      {
+        'a_gan': '庚',
+        'a_zhi': '午',
+        'a_zhu': 'shi',
+        'b_gan': '庚',
+        'b_zhi': '辰',
+        'b_zhu': 'nian',
+        'gan_guan_xi': {
+          'gan_a': '庚',
+          'gan_b': '庚',
+          'relation': '庚庚同气',
+          'type': '相同'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '午',
+          'zhi_b': '辰'
+        }
+      },
+      {
+        'a_gan': '庚',
+        'a_zhi': '午',
+        'a_zhu': 'shi',
+        'b_gan': '乙',
+        'b_zhi': '酉',
+        'b_zhu': 'yue',
+        'gan_guan_xi': {
+          'gan_a': '庚',
+          'gan_b': '乙',
+          'relation': '庚乙合化金',
+          'type': '天干五合'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '午',
+          'zhi_b': '酉'
+        }
+      },
+      {
+        'a_gan': '庚',
+        'a_zhi': '午',
+        'a_zhu': 'shi',
+        'b_gan': '辛',
+        'b_zhi': '巳',
+        'b_zhu': 'ri',
+        'gan_guan_xi': {
+          'gan_a': '庚',
+          'gan_b': '辛',
+          'relation': '庚辛同气',
+          'type': '相同'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '午',
+          'zhi_b': '巳'
+        }
+      },
+      {
+        'a_gan': '庚',
+        'a_zhi': '午',
+        'a_zhu': 'shi',
+        'b_gan': '壬',
+        'b_zhi': '辰',
+        'b_zhu': 'shi',
+        'gan_guan_xi': {
+          'gan_a': '庚',
+          'gan_b': '壬',
+          'relation': '庚生壬',
+          'type': '相生'
+        },
+        'zhi_guan_xi': {
+          'detail': '无特殊关系',
+          'type': '无',
+          'zhi_a': '午',
+          'zhi_b': '辰'
+        }
+      }
+    ]
+  }
 }
 
 const liuyaoSnapshot = {
@@ -101,11 +726,992 @@ const liuyaoSnapshot = {
   focus: { yong_shen: '妻财', yong_line: '三爻', world: '三爻', other: '六爻' },
   timing_candidates: [{ note: '午月' }],
 }
-const huangliDays = {
-  event: 'wedding', event_label: '结婚', range: { start_date: '2026-10-01', end_date: '2026-10-31', days: 31 },
-  recommended: [{ date: '2026-10-06', jian_chu: '除', suitability: 'recommended', reason: '宜嫁娶' }],
-  unsuitable: [{ date: '2026-10-09', suitability: 'unsuitable', reason: '诸事不宜' }],
-}
+const huangliDays = [
+  {
+    'date': '2026-10-06',
+    'ri_zhu': {
+      'gan': '癸',
+      'zhi': '丑',
+      'na_yin': '桑柘木'
+    },
+    'na_yin': '桑柘木',
+    'wuxing': '土',
+    'jian_chu': '定',
+    'huangdao': {
+      'index': 11,
+      'name': '勾陈',
+      'path': '黑道',
+      'sequence': 11
+    },
+    'xi_shen': '东南',
+    'cai_shen': '正南',
+    'fu_shen': '正西',
+    'gan_ji': '癸不词讼理弱敌强',
+    'zhi_ji': '丑不冠带主不还乡',
+    'mansion': {
+      'index': 3,
+      'name': '房日兔',
+      'dong_wu': '兔',
+      'wuxing': '日',
+      'group': '东方青龙',
+      'group_idx': 4
+    },
+    'jie_qi': '秋分',
+    'jie_qi_days': 13,
+    'ren_yuan': '辛',
+    'shi_chen': [
+      {
+        'zhi': '子',
+        'time': '23:00-01:00',
+        'huangdao': '司命',
+        'jian_chu': '定',
+        'suitable': true
+      },
+      {
+        'zhi': '丑',
+        'time': '01:00-03:00',
+        'huangdao': '勾陈',
+        'jian_chu': '执',
+        'suitable': false
+      },
+      {
+        'zhi': '寅',
+        'time': '03:00-05:00',
+        'huangdao': '青龙',
+        'jian_chu': '破',
+        'suitable': true
+      },
+      {
+        'zhi': '卯',
+        'time': '05:00-07:00',
+        'huangdao': '明堂',
+        'jian_chu': '危',
+        'suitable': true
+      },
+      {
+        'zhi': '辰',
+        'time': '07:00-09:00',
+        'huangdao': '天刑',
+        'jian_chu': '成',
+        'suitable': false
+      },
+      {
+        'zhi': '巳',
+        'time': '09:00-11:00',
+        'huangdao': '朱雀',
+        'jian_chu': '收',
+        'suitable': false
+      },
+      {
+        'zhi': '午',
+        'time': '11:00-13:00',
+        'huangdao': '金匮',
+        'jian_chu': '开',
+        'suitable': true
+      },
+      {
+        'zhi': '未',
+        'time': '13:00-15:00',
+        'huangdao': '天德',
+        'jian_chu': '闭',
+        'suitable': true
+      },
+      {
+        'zhi': '申',
+        'time': '15:00-17:00',
+        'huangdao': '白虎',
+        'jian_chu': '建',
+        'suitable': false
+      },
+      {
+        'zhi': '酉',
+        'time': '17:00-19:00',
+        'huangdao': '玉堂',
+        'jian_chu': '除',
+        'suitable': true
+      },
+      {
+        'zhi': '戌',
+        'time': '19:00-21:00',
+        'huangdao': '天牢',
+        'jian_chu': '满',
+        'suitable': false
+      },
+      {
+        'zhi': '亥',
+        'time': '21:00-23:00',
+        'huangdao': '玄武',
+        'jian_chu': '平',
+        'suitable': false
+      }
+    ],
+    'event': 'wedding',
+    'event_label': '嫁娶',
+    'suitability': 'possible',
+    'reason': '建除「定」无明确适配或冲突。'
+  },
+  {
+    'date': '2026-10-07',
+    'ri_zhu': {
+      'gan': '甲',
+      'zhi': '寅',
+      'na_yin': '大溪水'
+    },
+    'na_yin': '大溪水',
+    'wuxing': '木',
+    'jian_chu': '执',
+    'huangdao': {
+      'index': 0,
+      'name': '青龙',
+      'path': '黄道',
+      'sequence': 0
+    },
+    'xi_shen': '东北',
+    'cai_shen': '东北',
+    'fu_shen': '东南',
+    'gan_ji': '甲不开仓财物耗散',
+    'zhi_ji': '寅不祭祀神鬼不尝',
+    'mansion': {
+      'index': 4,
+      'name': '心月狐',
+      'dong_wu': '狐',
+      'wuxing': '月',
+      'group': '东方青龙',
+      'group_idx': 5
+    },
+    'jie_qi': '秋分',
+    'jie_qi_days': 14,
+    'ren_yuan': '辛',
+    'shi_chen': [
+      {
+        'zhi': '子',
+        'time': '23:00-01:00',
+        'huangdao': '司命',
+        'jian_chu': '执',
+        'suitable': true
+      },
+      {
+        'zhi': '丑',
+        'time': '01:00-03:00',
+        'huangdao': '勾陈',
+        'jian_chu': '破',
+        'suitable': false
+      },
+      {
+        'zhi': '寅',
+        'time': '03:00-05:00',
+        'huangdao': '青龙',
+        'jian_chu': '危',
+        'suitable': true
+      },
+      {
+        'zhi': '卯',
+        'time': '05:00-07:00',
+        'huangdao': '明堂',
+        'jian_chu': '成',
+        'suitable': true
+      },
+      {
+        'zhi': '辰',
+        'time': '07:00-09:00',
+        'huangdao': '天刑',
+        'jian_chu': '收',
+        'suitable': false
+      },
+      {
+        'zhi': '巳',
+        'time': '09:00-11:00',
+        'huangdao': '朱雀',
+        'jian_chu': '开',
+        'suitable': false
+      },
+      {
+        'zhi': '午',
+        'time': '11:00-13:00',
+        'huangdao': '金匮',
+        'jian_chu': '闭',
+        'suitable': true
+      },
+      {
+        'zhi': '未',
+        'time': '13:00-15:00',
+        'huangdao': '天德',
+        'jian_chu': '建',
+        'suitable': true
+      },
+      {
+        'zhi': '申',
+        'time': '15:00-17:00',
+        'huangdao': '白虎',
+        'jian_chu': '除',
+        'suitable': false
+      },
+      {
+        'zhi': '酉',
+        'time': '17:00-19:00',
+        'huangdao': '玉堂',
+        'jian_chu': '满',
+        'suitable': true
+      },
+      {
+        'zhi': '戌',
+        'time': '19:00-21:00',
+        'huangdao': '天牢',
+        'jian_chu': '平',
+        'suitable': false
+      },
+      {
+        'zhi': '亥',
+        'time': '21:00-23:00',
+        'huangdao': '玄武',
+        'jian_chu': '定',
+        'suitable': false
+      }
+    ],
+    'event': 'wedding',
+    'event_label': '嫁娶',
+    'suitability': 'possible',
+    'reason': '建除「执」无明确适配或冲突。'
+  },
+  {
+    'date': '2026-10-08',
+    'ri_zhu': {
+      'gan': '乙',
+      'zhi': '卯',
+      'na_yin': '大溪水'
+    },
+    'na_yin': '大溪水',
+    'wuxing': '木',
+    'jian_chu': '破',
+    'huangdao': {
+      'index': 1,
+      'name': '明堂',
+      'path': '黄道',
+      'sequence': 1
+    },
+    'xi_shen': '西北',
+    'cai_shen': '东北',
+    'fu_shen': '东南',
+    'gan_ji': '乙不栽植千株不长',
+    'zhi_ji': '卯不穿井水泉不香',
+    'mansion': {
+      'index': 5,
+      'name': '尾火虎',
+      'dong_wu': '虎',
+      'wuxing': '火',
+      'group': '东方青龙',
+      'group_idx': 6
+    },
+    'jie_qi': '寒露',
+    'jie_qi_days': 0,
+    'ren_yuan': '庚',
+    'shi_chen': [
+      {
+        'zhi': '子',
+        'time': '23:00-01:00',
+        'huangdao': '司命',
+        'jian_chu': '破',
+        'suitable': true
+      },
+      {
+        'zhi': '丑',
+        'time': '01:00-03:00',
+        'huangdao': '勾陈',
+        'jian_chu': '危',
+        'suitable': false
+      },
+      {
+        'zhi': '寅',
+        'time': '03:00-05:00',
+        'huangdao': '青龙',
+        'jian_chu': '成',
+        'suitable': true
+      },
+      {
+        'zhi': '卯',
+        'time': '05:00-07:00',
+        'huangdao': '明堂',
+        'jian_chu': '收',
+        'suitable': true
+      },
+      {
+        'zhi': '辰',
+        'time': '07:00-09:00',
+        'huangdao': '天刑',
+        'jian_chu': '开',
+        'suitable': false
+      },
+      {
+        'zhi': '巳',
+        'time': '09:00-11:00',
+        'huangdao': '朱雀',
+        'jian_chu': '闭',
+        'suitable': false
+      },
+      {
+        'zhi': '午',
+        'time': '11:00-13:00',
+        'huangdao': '金匮',
+        'jian_chu': '建',
+        'suitable': true
+      },
+      {
+        'zhi': '未',
+        'time': '13:00-15:00',
+        'huangdao': '天德',
+        'jian_chu': '除',
+        'suitable': true
+      },
+      {
+        'zhi': '申',
+        'time': '15:00-17:00',
+        'huangdao': '白虎',
+        'jian_chu': '满',
+        'suitable': false
+      },
+      {
+        'zhi': '酉',
+        'time': '17:00-19:00',
+        'huangdao': '玉堂',
+        'jian_chu': '平',
+        'suitable': true
+      },
+      {
+        'zhi': '戌',
+        'time': '19:00-21:00',
+        'huangdao': '天牢',
+        'jian_chu': '定',
+        'suitable': false
+      },
+      {
+        'zhi': '亥',
+        'time': '21:00-23:00',
+        'huangdao': '玄武',
+        'jian_chu': '执',
+        'suitable': false
+      }
+    ],
+    'event': 'wedding',
+    'event_label': '嫁娶',
+    'suitability': 'unsuitable',
+    'reason': '建除「破」忌嫁娶。'
+  },
+  {
+    'date': '2026-10-09',
+    'ri_zhu': {
+      'gan': '丙',
+      'zhi': '辰',
+      'na_yin': '沙中土'
+    },
+    'na_yin': '沙中土',
+    'wuxing': '土',
+    'jian_chu': '破',
+    'huangdao': {
+      'index': 0,
+      'name': '青龙',
+      'path': '黄道',
+      'sequence': 0
+    },
+    'xi_shen': '西南',
+    'cai_shen': '正西',
+    'fu_shen': '西北',
+    'gan_ji': '丙不修灶必见灾殃',
+    'zhi_ji': '辰不哭泣必主重丧',
+    'mansion': {
+      'index': 6,
+      'name': '箕水豹',
+      'dong_wu': '豹',
+      'wuxing': '水',
+      'group': '东方青龙',
+      'group_idx': 7
+    },
+    'jie_qi': '寒露',
+    'jie_qi_days': 1,
+    'ren_yuan': '辛',
+    'shi_chen': [
+      {
+        'zhi': '子',
+        'time': '23:00-01:00',
+        'huangdao': '天牢',
+        'jian_chu': '破',
+        'suitable': false
+      },
+      {
+        'zhi': '丑',
+        'time': '01:00-03:00',
+        'huangdao': '玄武',
+        'jian_chu': '危',
+        'suitable': false
+      },
+      {
+        'zhi': '寅',
+        'time': '03:00-05:00',
+        'huangdao': '司命',
+        'jian_chu': '成',
+        'suitable': true
+      },
+      {
+        'zhi': '卯',
+        'time': '05:00-07:00',
+        'huangdao': '勾陈',
+        'jian_chu': '收',
+        'suitable': false
+      },
+      {
+        'zhi': '辰',
+        'time': '07:00-09:00',
+        'huangdao': '青龙',
+        'jian_chu': '开',
+        'suitable': true
+      },
+      {
+        'zhi': '巳',
+        'time': '09:00-11:00',
+        'huangdao': '明堂',
+        'jian_chu': '闭',
+        'suitable': true
+      },
+      {
+        'zhi': '午',
+        'time': '11:00-13:00',
+        'huangdao': '天刑',
+        'jian_chu': '建',
+        'suitable': false
+      },
+      {
+        'zhi': '未',
+        'time': '13:00-15:00',
+        'huangdao': '朱雀',
+        'jian_chu': '除',
+        'suitable': false
+      },
+      {
+        'zhi': '申',
+        'time': '15:00-17:00',
+        'huangdao': '金匮',
+        'jian_chu': '满',
+        'suitable': true
+      },
+      {
+        'zhi': '酉',
+        'time': '17:00-19:00',
+        'huangdao': '天德',
+        'jian_chu': '平',
+        'suitable': true
+      },
+      {
+        'zhi': '戌',
+        'time': '19:00-21:00',
+        'huangdao': '白虎',
+        'jian_chu': '定',
+        'suitable': false
+      },
+      {
+        'zhi': '亥',
+        'time': '21:00-23:00',
+        'huangdao': '玉堂',
+        'jian_chu': '执',
+        'suitable': true
+      }
+    ],
+    'event': 'wedding',
+    'event_label': '嫁娶',
+    'suitability': 'unsuitable',
+    'reason': '建除「破」忌嫁娶。'
+  },
+  {
+    'date': '2026-10-10',
+    'ri_zhu': {
+      'gan': '丁',
+      'zhi': '巳',
+      'na_yin': '沙中土'
+    },
+    'na_yin': '沙中土',
+    'wuxing': '火',
+    'jian_chu': '危',
+    'huangdao': {
+      'index': 1,
+      'name': '明堂',
+      'path': '黄道',
+      'sequence': 1
+    },
+    'xi_shen': '正南',
+    'cai_shen': '正西',
+    'fu_shen': '正东',
+    'gan_ji': '丁不剃头头必生疮',
+    'zhi_ji': '巳不远行财物伏藏',
+    'mansion': {
+      'index': 7,
+      'name': '斗木獬',
+      'dong_wu': '獬',
+      'wuxing': '木',
+      'group': '北方玄武',
+      'group_idx': 1
+    },
+    'jie_qi': '寒露',
+    'jie_qi_days': 2,
+    'ren_yuan': '辛',
+    'shi_chen': [
+      {
+        'zhi': '子',
+        'time': '23:00-01:00',
+        'huangdao': '天牢',
+        'jian_chu': '危',
+        'suitable': false
+      },
+      {
+        'zhi': '丑',
+        'time': '01:00-03:00',
+        'huangdao': '玄武',
+        'jian_chu': '成',
+        'suitable': false
+      },
+      {
+        'zhi': '寅',
+        'time': '03:00-05:00',
+        'huangdao': '司命',
+        'jian_chu': '收',
+        'suitable': true
+      },
+      {
+        'zhi': '卯',
+        'time': '05:00-07:00',
+        'huangdao': '勾陈',
+        'jian_chu': '开',
+        'suitable': false
+      },
+      {
+        'zhi': '辰',
+        'time': '07:00-09:00',
+        'huangdao': '青龙',
+        'jian_chu': '闭',
+        'suitable': true
+      },
+      {
+        'zhi': '巳',
+        'time': '09:00-11:00',
+        'huangdao': '明堂',
+        'jian_chu': '建',
+        'suitable': true
+      },
+      {
+        'zhi': '午',
+        'time': '11:00-13:00',
+        'huangdao': '天刑',
+        'jian_chu': '除',
+        'suitable': false
+      },
+      {
+        'zhi': '未',
+        'time': '13:00-15:00',
+        'huangdao': '朱雀',
+        'jian_chu': '满',
+        'suitable': false
+      },
+      {
+        'zhi': '申',
+        'time': '15:00-17:00',
+        'huangdao': '金匮',
+        'jian_chu': '平',
+        'suitable': true
+      },
+      {
+        'zhi': '酉',
+        'time': '17:00-19:00',
+        'huangdao': '天德',
+        'jian_chu': '定',
+        'suitable': true
+      },
+      {
+        'zhi': '戌',
+        'time': '19:00-21:00',
+        'huangdao': '白虎',
+        'jian_chu': '执',
+        'suitable': false
+      },
+      {
+        'zhi': '亥',
+        'time': '21:00-23:00',
+        'huangdao': '玉堂',
+        'jian_chu': '破',
+        'suitable': true
+      }
+    ],
+    'event': 'wedding',
+    'event_label': '嫁娶',
+    'suitability': 'possible',
+    'reason': '建除「危」无明确适配或冲突。'
+  },
+  {
+    'date': '2026-10-11',
+    'ri_zhu': {
+      'gan': '戊',
+      'zhi': '午',
+      'na_yin': '天上火'
+    },
+    'na_yin': '天上火',
+    'wuxing': '火',
+    'jian_chu': '成',
+    'huangdao': {
+      'index': 2,
+      'name': '天刑',
+      'path': '黑道',
+      'sequence': 2
+    },
+    'xi_shen': '东南',
+    'cai_shen': '正北',
+    'fu_shen': '正南',
+    'gan_ji': '戊不受田田主不祥',
+    'zhi_ji': '午不苫盖屋主更张',
+    'mansion': {
+      'index': 8,
+      'name': '牛金牛',
+      'dong_wu': '牛',
+      'wuxing': '金',
+      'group': '北方玄武',
+      'group_idx': 2
+    },
+    'jie_qi': '寒露',
+    'jie_qi_days': 3,
+    'ren_yuan': '辛',
+    'shi_chen': [
+      {
+        'zhi': '子',
+        'time': '23:00-01:00',
+        'huangdao': '天牢',
+        'jian_chu': '成',
+        'suitable': false
+      },
+      {
+        'zhi': '丑',
+        'time': '01:00-03:00',
+        'huangdao': '玄武',
+        'jian_chu': '收',
+        'suitable': false
+      },
+      {
+        'zhi': '寅',
+        'time': '03:00-05:00',
+        'huangdao': '司命',
+        'jian_chu': '开',
+        'suitable': true
+      },
+      {
+        'zhi': '卯',
+        'time': '05:00-07:00',
+        'huangdao': '勾陈',
+        'jian_chu': '闭',
+        'suitable': false
+      },
+      {
+        'zhi': '辰',
+        'time': '07:00-09:00',
+        'huangdao': '青龙',
+        'jian_chu': '建',
+        'suitable': true
+      },
+      {
+        'zhi': '巳',
+        'time': '09:00-11:00',
+        'huangdao': '明堂',
+        'jian_chu': '除',
+        'suitable': true
+      },
+      {
+        'zhi': '午',
+        'time': '11:00-13:00',
+        'huangdao': '天刑',
+        'jian_chu': '满',
+        'suitable': false
+      },
+      {
+        'zhi': '未',
+        'time': '13:00-15:00',
+        'huangdao': '朱雀',
+        'jian_chu': '平',
+        'suitable': false
+      },
+      {
+        'zhi': '申',
+        'time': '15:00-17:00',
+        'huangdao': '金匮',
+        'jian_chu': '定',
+        'suitable': true
+      },
+      {
+        'zhi': '酉',
+        'time': '17:00-19:00',
+        'huangdao': '天德',
+        'jian_chu': '执',
+        'suitable': true
+      },
+      {
+        'zhi': '戌',
+        'time': '19:00-21:00',
+        'huangdao': '白虎',
+        'jian_chu': '破',
+        'suitable': false
+      },
+      {
+        'zhi': '亥',
+        'time': '21:00-23:00',
+        'huangdao': '玉堂',
+        'jian_chu': '危',
+        'suitable': true
+      }
+    ],
+    'event': 'wedding',
+    'event_label': '嫁娶',
+    'suitability': 'recommended',
+    'reason': '建除「成」适合嫁娶。'
+  },
+  {
+    'date': '2026-10-12',
+    'ri_zhu': {
+      'gan': '己',
+      'zhi': '未',
+      'na_yin': '天上火'
+    },
+    'na_yin': '天上火',
+    'wuxing': '土',
+    'jian_chu': '收',
+    'huangdao': {
+      'index': 3,
+      'name': '朱雀',
+      'path': '黑道',
+      'sequence': 3
+    },
+    'xi_shen': '东北',
+    'cai_shen': '正北',
+    'fu_shen': '正南',
+    'gan_ji': '己不破券二比并亡',
+    'zhi_ji': '未不服药毒气入肠',
+    'mansion': {
+      'index': 9,
+      'name': '女土蝠',
+      'dong_wu': '蝠',
+      'wuxing': '土',
+      'group': '北方玄武',
+      'group_idx': 3
+    },
+    'jie_qi': '寒露',
+    'jie_qi_days': 4,
+    'ren_yuan': '辛',
+    'shi_chen': [
+      {
+        'zhi': '子',
+        'time': '23:00-01:00',
+        'huangdao': '天牢',
+        'jian_chu': '收',
+        'suitable': false
+      },
+      {
+        'zhi': '丑',
+        'time': '01:00-03:00',
+        'huangdao': '玄武',
+        'jian_chu': '开',
+        'suitable': false
+      },
+      {
+        'zhi': '寅',
+        'time': '03:00-05:00',
+        'huangdao': '司命',
+        'jian_chu': '闭',
+        'suitable': true
+      },
+      {
+        'zhi': '卯',
+        'time': '05:00-07:00',
+        'huangdao': '勾陈',
+        'jian_chu': '建',
+        'suitable': false
+      },
+      {
+        'zhi': '辰',
+        'time': '07:00-09:00',
+        'huangdao': '青龙',
+        'jian_chu': '除',
+        'suitable': true
+      },
+      {
+        'zhi': '巳',
+        'time': '09:00-11:00',
+        'huangdao': '明堂',
+        'jian_chu': '满',
+        'suitable': true
+      },
+      {
+        'zhi': '午',
+        'time': '11:00-13:00',
+        'huangdao': '天刑',
+        'jian_chu': '平',
+        'suitable': false
+      },
+      {
+        'zhi': '未',
+        'time': '13:00-15:00',
+        'huangdao': '朱雀',
+        'jian_chu': '定',
+        'suitable': false
+      },
+      {
+        'zhi': '申',
+        'time': '15:00-17:00',
+        'huangdao': '金匮',
+        'jian_chu': '执',
+        'suitable': true
+      },
+      {
+        'zhi': '酉',
+        'time': '17:00-19:00',
+        'huangdao': '天德',
+        'jian_chu': '破',
+        'suitable': true
+      },
+      {
+        'zhi': '戌',
+        'time': '19:00-21:00',
+        'huangdao': '白虎',
+        'jian_chu': '危',
+        'suitable': false
+      },
+      {
+        'zhi': '亥',
+        'time': '21:00-23:00',
+        'huangdao': '玉堂',
+        'jian_chu': '成',
+        'suitable': true
+      }
+    ],
+    'event': 'wedding',
+    'event_label': '嫁娶',
+    'suitability': 'unsuitable',
+    'reason': '建除「收」忌嫁娶。'
+  },
+  {
+    'date': '2026-10-13',
+    'ri_zhu': {
+      'gan': '庚',
+      'zhi': '申',
+      'na_yin': '石榴木'
+    },
+    'na_yin': '石榴木',
+    'wuxing': '金',
+    'jian_chu': '开',
+    'huangdao': {
+      'index': 4,
+      'name': '金匮',
+      'path': '黄道',
+      'sequence': 4
+    },
+    'xi_shen': '西北',
+    'cai_shen': '正东',
+    'fu_shen': '西南',
+    'gan_ji': '庚不经络织机虚张',
+    'zhi_ji': '申不安床鬼祟入房',
+    'mansion': {
+      'index': 10,
+      'name': '虚日鼠',
+      'dong_wu': '鼠',
+      'wuxing': '日',
+      'group': '北方玄武',
+      'group_idx': 4
+    },
+    'jie_qi': '寒露',
+    'jie_qi_days': 5,
+    'ren_yuan': '辛',
+    'shi_chen': [
+      {
+        'zhi': '子',
+        'time': '23:00-01:00',
+        'huangdao': '天牢',
+        'jian_chu': '开',
+        'suitable': false
+      },
+      {
+        'zhi': '丑',
+        'time': '01:00-03:00',
+        'huangdao': '玄武',
+        'jian_chu': '闭',
+        'suitable': false
+      },
+      {
+        'zhi': '寅',
+        'time': '03:00-05:00',
+        'huangdao': '司命',
+        'jian_chu': '建',
+        'suitable': true
+      },
+      {
+        'zhi': '卯',
+        'time': '05:00-07:00',
+        'huangdao': '勾陈',
+        'jian_chu': '除',
+        'suitable': false
+      },
+      {
+        'zhi': '辰',
+        'time': '07:00-09:00',
+        'huangdao': '青龙',
+        'jian_chu': '满',
+        'suitable': true
+      },
+      {
+        'zhi': '巳',
+        'time': '09:00-11:00',
+        'huangdao': '明堂',
+        'jian_chu': '平',
+        'suitable': true
+      },
+      {
+        'zhi': '午',
+        'time': '11:00-13:00',
+        'huangdao': '天刑',
+        'jian_chu': '定',
+        'suitable': false
+      },
+      {
+        'zhi': '未',
+        'time': '13:00-15:00',
+        'huangdao': '朱雀',
+        'jian_chu': '执',
+        'suitable': false
+      },
+      {
+        'zhi': '申',
+        'time': '15:00-17:00',
+        'huangdao': '金匮',
+        'jian_chu': '破',
+        'suitable': true
+      },
+      {
+        'zhi': '酉',
+        'time': '17:00-19:00',
+        'huangdao': '天德',
+        'jian_chu': '危',
+        'suitable': true
+      },
+      {
+        'zhi': '戌',
+        'time': '19:00-21:00',
+        'huangdao': '白虎',
+        'jian_chu': '成',
+        'suitable': false
+      },
+      {
+        'zhi': '亥',
+        'time': '21:00-23:00',
+        'huangdao': '玉堂',
+        'jian_chu': '收',
+        'suitable': true
+      }
+    ],
+    'event': 'wedding',
+    'event_label': '嫁娶',
+    'suitability': 'recommended',
+    'reason': '建除「开」适合嫁娶。'
+  }
+]
 
 function routeEngine(page: Page) {
   return page.route('**/api/engine/tools/*', async route => {
@@ -174,10 +1780,12 @@ test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await page.getByRole('combobox', { name: '出生時間' }).fill('08:00')
   await page.locator('.b-form button[type="submit"]').click()
   await page.waitForSelector('.rel-sec', { timeout: 12000 })
-  await expect(page.locator('.rel-text')).toContainText('壬申') // 日主
-  await expect(page.locator('.rel-text')).toContainText('三合') // 地支关系（对象 detail）
-  await expect(page.locator('.rel-chip')).toContainText(['六合', '六冲'])
-  await expect(page.locator('.rel-chip')).toContainText(['妈妈年柱看對方：偏财'])
+  await expect(page.locator('.rel-text')).toContainText('甲辰') // 日主（golden a_zhu=b_zhu=ri）
+  await expect(page.locator('.rel-text')).toContainText('辛克甲') // 天干关系
+  await expect(page.locator('.rel-chip')).toContainText(['辰酉合化金', '辰辰自刑']) // 关键地支：按 type 过滤、detail 展示
+  await expect(page.locator('.rel-chip.nayin')).toContainText(['白蜡金']) // 纳音互看
+  await expect(page.locator('.rel-chip.shensha')).toContainText(['天乙貴人']) // 神煞标识符→locale 标签
+  await expect(page.locator('.rel-chip')).toContainText(['妈妈年柱看對方：七杀']) // 十神 a_to_b
 })
 
 test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
@@ -210,12 +1818,13 @@ test('择日按真实契约渲染（huangli_days）', async ({ page }) => {
   await page.waitForSelector('.el-date-editor', { timeout: 10000 })
   await page.locator('.el-select').first().click()
   await page.locator('.el-select-dropdown__item:has-text("結婚")').first().click()
-  await page.getByRole('combobox', { name: '起始日期' }).fill('2026-10-01')
+  await page.getByRole('combobox', { name: '起始日期' }).fill('2026-10-06')
   await page.keyboard.press('Enter')
-  await page.getByRole('combobox', { name: '結束日期' }).fill('2026-10-31')
+  await page.getByRole('combobox', { name: '結束日期' }).fill('2026-10-30')
   await page.keyboard.press('Enter')
   await page.locator('button[type="submit"]').click()
   await page.waitForSelector('.day.good', { timeout: 12000 })
-  await expect(page.locator('.day.good .d-date').first()).toHaveText('2026-10-06') // recommended[].date
-  await expect(page.locator('.day.bad')).toHaveCount(1) // unsuitable
+  await expect(page.locator('.day.good .d-date').first()).toHaveText('2026-10-11') // 引擎真数据首个 recommended
+  await expect(page.locator('.day.possible')).toHaveCount(3)
+  await expect(page.locator('.day.bad')).toHaveCount(3) // unsuitable
 })

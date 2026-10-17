@@ -69,14 +69,14 @@
       >
         <template #header>
           <h2 class="app-card__title">
-            {{ $t('services.huangli.resultTitle', { event: eventLabel(result.event || event) }) }}
+            {{ $t('services.huangli.resultTitle', { event: eventLabel(event) }) }}
           </h2>
         </template>
         <div
-          v-if="result.range"
+          v-if="rangeInfo"
           class="range-info"
         >
-          {{ $t('services.huangli.range', { start: result.range.start_date, end: result.range.end_date, days: result.range.days }) }}
+          {{ $t('services.huangli.range', { start: rangeInfo.start, end: rangeInfo.end, days: rangeInfo.days }) }}
         </div>
         <div
           v-if="recommended.length"
@@ -91,13 +91,7 @@
               {{ d.date }}
             </div>
             <div class="d-sub">
-              {{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}
-            </div>
-            <div
-              v-if="d.warnings?.length"
-              class="d-warn"
-            >
-              {{ d.warnings.join($t('common.listSeparator')) }}
+              {{ d.reason ? `${d.jian_chu} · ${d.reason}` : d.jian_chu }}
             </div>
           </div>
         </div>
@@ -126,13 +120,7 @@
               {{ d.date }}
             </div>
             <div class="d-sub">
-              {{ d.jian_chu ? `${d.jian_chu} · ` : '' }}{{ d.reason || '' }}
-            </div>
-            <div
-              v-if="d.warnings?.length"
-              class="d-warn"
-            >
-              {{ d.warnings.join($t('common.listSeparator')) }}
+              {{ d.reason ? `${d.jian_chu} · ${d.reason}` : d.jian_chu }}
             </div>
           </div>
         </div>
@@ -155,26 +143,9 @@
               {{ d.date }}
             </div>
             <div class="d-sub">
-              {{ d.reason || $t('services.huangli.unsuitable') }}
-            </div>
-            <div
-              v-if="d.warnings?.length"
-              class="d-warn"
-            >
-              {{ d.warnings.join($t('common.listSeparator')) }}
+              {{ d.reason ? `${d.jian_chu} · ${d.reason}` : d.jian_chu }}
             </div>
           </div>
-        </div>
-        <div
-          v-if="result.safety_advisory"
-          class="safety-box"
-        >
-          <el-alert
-            :title="result.safety_advisory"
-            type="warning"
-            :closable="false"
-            show-icon
-          />
         </div>
       </el-card>
 
@@ -197,8 +168,7 @@ import { toUserMessage } from '@/utils/errors'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
-import { engineHuangliDays, type HuangliDaysResult } from '@/api/engine'
-import { huangliApiEventLabel } from '@/utils/huangliEvents'
+import { engineHuangliDays, type HuangliDay } from '@/api/engine'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
@@ -213,19 +183,25 @@ const { profiles, entitlements, chat, openServiceChat } = useServiceView()
 const event = ref('wedding')
 const startDate = ref('')
 const endDate = ref('')
-const result = ref<HuangliDaysResult | null>(null)
+const result = ref<HuangliDay[] | null>(null)
 const loading = ref(false)
 const error = ref('')
 
-const recommended = computed(() => result.value?.recommended ?? [])
-const possible = computed(() => result.value?.candidates?.filter(d => d.suitability === 'possible') ?? [])
-const unsuitable = computed(() => result.value?.unsuitable ?? [])
+const days = computed(() => result.value ?? [])
+const recommended = computed(() => days.value.filter(d => d.suitability === 'recommended'))
+const possible = computed(() => days.value.filter(d => d.suitability === 'possible'))
+const unsuitable = computed(() => days.value.filter(d => d.suitability === 'unsuitable'))
+const rangeInfo = computed(() => {
+  const list = days.value
+  if (!list.length) return null
+  return { start: list[0].date, end: list[list.length - 1].date, days: list.length }
+})
 
 function eventLabel(key: string): string {
   return t(`services.huangli.events.${key}`)
 }
 
-
+// 引擎按 start_date + count 连续取数（count ≤ 30），结束日期只用于算跨度。
 async function calc() {
   if (!event.value || !startDate.value || !endDate.value) return
   if (startDate.value > endDate.value) {
@@ -233,7 +209,7 @@ async function calc() {
     return
   }
   const spanDays = Math.round((new Date(endDate.value).getTime() - new Date(startDate.value).getTime()) / 86400000) + 1
-  if (spanDays > 120) {
+  if (spanDays > 30) {
     error.value = t('services.huangli.rangeTooLong', { days: spanDays })
     return
   }
@@ -241,7 +217,7 @@ async function calc() {
   error.value = ''
   result.value = null
   try {
-    result.value = await engineHuangliDays(huangliApiEventLabel(event.value), event.value, startDate.value, endDate.value)
+    result.value = await engineHuangliDays(event.value, startDate.value, spanDays)
   } catch (err) {
     error.value = toUserMessage(err, t('services.huangli.failed'))
   } finally {
@@ -268,6 +244,4 @@ function startChat() {
 .day.bad { border-color: var(--el-color-danger-light-7); background: var(--el-color-danger-light-9); }
 .d-date { font-weight: 700; }
 .d-sub { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 4px; }
-.d-warn { font-size: var(--font-size-micro); color: var(--el-color-warning); margin-top: 4px; }
-.safety-box { margin-top: 14px; }
 </style>

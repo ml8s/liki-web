@@ -5,6 +5,8 @@ import { ApiError } from './http'
 interface EngineToolEnvelope<T> {
   data?: T
   detail?: string
+  /** RFC 9457 problem 的 type：BFF 机器码（engine_tool_failed / engine_tool_not_found 等）。 */
+  type?: string
 }
 
 /** 免费 Web UI 可用的 engine MCP 工具名（API 层和 E2E mock 共用）。 */
@@ -42,11 +44,12 @@ export async function engineTool<T = unknown>(tool: string, params: unknown): Pr
     }
     throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
   }
+  if (!response.ok) {
+    // BFF 错误按 RFC 9457 返回 problem+json，type 即机器码；直接作为 code 透传。
+    throw new ApiError(response.status, envelope.type || 'engine_unavailable', envelope.detail || `Engine HTTP ${response.status}`)
+  }
   if (envelope.detail) {
     throw new ApiError(response.status, 'engine_tool_failed', envelope.detail)
-  }
-  if (!response.ok) {
-    throw new ApiError(response.status, 'engine_unavailable', `Engine HTTP ${response.status}`)
   }
   if (!envelope || envelope.data === undefined) {
     throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
@@ -478,30 +481,29 @@ export interface BaziZhiRelation {
 
 export interface BaziBondPair {
   /** 柱位键：nian/yue/ri/shi */
-  jia_zhu: string
-  yi_zhu: string
-  jia_gan: string
-  yi_gan: string
-  jia_zhi: string
-  yi_zhi: string
+  a_zhu: string
+  b_zhu: string
+  a_gan: string
+  b_gan: string
+  a_zhi: string
+  b_zhi: string
   gan_guan_xi: BaziGanRelation
   zhi_guan_xi: BaziZhiRelation
 }
 
 export interface BaziBondNayinPair {
-  jia_zhu: string
-  yi_zhu: string
-  jia_na_yin: string
-  yi_na_yin: string
+  a_zhu: string
+  b_zhu: string
+  a_na_yin: string
+  b_na_yin: string
   relation: string
 }
 
 export interface BaziBondResult {
   zhu_cross?: { pairs: BaziBondPair[] }
-  shi_shen_cross?: { jia_dui_yi: Record<string, string>; yi_dui_jia: Record<string, string> }
+  shi_shen_cross?: { a_to_b: Record<string, string>; b_to_a: Record<string, string> }
   nayin_cross?: { pairs: BaziBondNayinPair[] }
-  shensha_cross?: Record<string, { jia_ru_yi: boolean; yi_ru_jia: boolean }>
-  structure?: unknown
+  shensha_cross?: Record<string, { a_present_in_b: boolean; b_present_in_a: boolean }>
 }
 
 /** 八字合盘：输入双方最小命盘（bazi.chart 结果）。 */
@@ -583,25 +585,39 @@ export function engineLiuyaoChart(solarTime: string, casting: LiuyaoCasting, yon
   return engineTool<LiuyaoChartResult>(ENGINE_TOOLS.LiuyaoChart, params)
 }
 
-export interface HuangliCandidate {
-  date: string
-  jian_chu?: string
-  suitability?: 'recommended' | 'possible' | 'unsuitable' | 'unspecified'
-  reason?: string
-  warnings?: string[]
+/** 黄历单日（mcpcontract.HuangliDayOutput 线上形状）。 */
+export interface HuangliShiChen {
+  zhi: string
+  time: string
+  huangdao: string
+  jian_chu: string
+  suitable: boolean
 }
 
-export interface HuangliDaysResult {
+export interface HuangliDay {
+  date: string
+  ri_zhu: { gan: string; zhi: string; na_yin: string }
+  na_yin: string
+  wuxing: string
+  jian_chu: string
+  huangdao: { index: number; name: string; path: string; sequence: number }
+  xi_shen: string
+  cai_shen: string
+  fu_shen: string
+  gan_ji: string
+  zhi_ji: string
+  mansion: { index: number; name: string; dong_wu: string; wuxing: string; group: string; group_idx: number }
+  jie_qi: string
+  jie_qi_days: number
+  ren_yuan: string
+  shi_chen?: HuangliShiChen[]
   event?: string
   event_label?: string
-  range?: { start_date: string; end_date: string; days: number }
-  recommended?: HuangliCandidate[]
-  unsuitable?: HuangliCandidate[]
-  candidates?: HuangliCandidate[]
-  safety_advisory?: string
+  suitability?: 'recommended' | 'possible' | 'unsuitable' | 'unspecified'
+  reason?: string
 }
 
-/** 黄历择日：按事项与日期范围返回推荐/排除候选。 */
-export function engineHuangliDays(question: string, event: string, startDate: string, endDate: string): Promise<HuangliDaysResult> {
-  return engineTool<HuangliDaysResult>(ENGINE_TOOLS.HuangliDays, { question, event, start_date: startDate, end_date: endDate })
+/** 黄历择日：start_date + count（引擎上限 30 天）+ 事项英文键，返回逐日事实数组。 */
+export function engineHuangliDays(event: string, startDate: string, count: number): Promise<HuangliDay[]> {
+  return engineTool<HuangliDay[]>(ENGINE_TOOLS.HuangliDays, { event, start_date: startDate, count })
 }

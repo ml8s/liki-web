@@ -81,6 +81,8 @@ describe('app i18n', () => {
       'generation_cancelled',
       'engine_unavailable',
       'engine_rpc_failed',
+      'engine_tool_failed',
+      'engine_tool_not_found',
     ]
 
     const localizedErrors: Record<string, Record<string, string>> = {
