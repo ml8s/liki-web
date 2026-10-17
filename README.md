@@ -129,14 +129,10 @@ make gate
 
 This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static frontend/i18n checks, and Go race tests. Docker E2E runs separately via `make e2e`; packaging is verified by `make check-packaging`.
 
-Release candidates are built locally with:
-
-```bash
-make candidate RELEASE_VERSION=<YYYY.MM.DD.N>
-```
-
-The command requires a clean worktree and GHCR login, then records the immutable
-candidate digest for promotion.
+Release images are built and signed by `.github/workflows/release.yml` when a
+`vYYYY.MM.DD.N` tag is pushed (gate → buildx push → image smoke → cosign →
+GitHub Release with `candidate-digests.json`); `liki-deploy` then deploys by
+immutable digest. See [Release pipeline](https://github.com/ml8s/liki-deploy/blob/main/docs/RELEASE_RUNBOOK.md).
 
 ## Documentation
 

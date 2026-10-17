@@ -5,15 +5,14 @@ export RELEASE_VERSION
 # 统一语义（四仓一致）：
 #   make check  纯静态检查（lint+格式+类型+安全+skills；不跑测试、不构建）
 #   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
-#   make gate   check + test ＝ 源码门槛；镜像冒烟只在 candidate/release 流程执行
+#   make gate   check + test ＝ 源码门槛；镜像冒烟在 release.yml 发布链执行
 #   make build  本仓产物（前端+二进制）
-#   make candidate RELEASE_VERSION=... 本地构建并冒烟 candidate，通过后推送并记录 exact digest
 #   make e2e    浏览器 E2E（本仓视角）
 #   make smoke  本仓镜像启动 + health/page 冒烟
 .PHONY: help check test gate smoke e2e \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
         check-web-static check-security check-go-version runtime-version-check \
-        build build-skills build-sitemap build-web build-go image candidate test-go-coverage test-js-coverage \
+        build build-skills build-sitemap build-web build-go image test-go-coverage test-js-coverage \
         dev clean hooks version
 
 # ── 环境 ──
@@ -63,7 +62,7 @@ test-js-coverage: ## Run Vue/TS tests with V8 coverage
 	cd web/app && npx vitest run --coverage
 
 
-gate: check test ## 源码门槛：check + test；镜像冒烟只在 candidate/release 流程执行
+gate: check test ## 源码门槛：check + test；镜像冒烟在 release.yml 发布链执行
 
 check-go-version: ## Require the security-supported Go toolchain
 	scripts/check-go-version.sh
@@ -76,12 +75,6 @@ check-actions: ## Reject mutable reusable workflow/action references
 
 smoke: image ## 本仓镜像冒烟：health + rendered homepage
 	IMAGE_TAG=$(IMAGE_TAG) scripts/smoke-image.sh
-
-candidate: ## 从干净 worktree 构建、本地冒烟，并记录 exact digest（不推 GHCR）
-	scripts/build-candidate.sh
-
-candidate-publish: ## 整机 candidate-test 通过后，将同一 digest 推送到 GHCR
-	scripts/publish-candidate.sh
 
 # ── 调试（check / test 失败时隔离定位）──
 
@@ -121,8 +114,8 @@ e2e: ## Docker 全栈 E2E（不跑 lint / unit）
 
 build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）
 
-# ── 镜像（本地候选，非发布路径）──
-# 本地开发镜像使用 local tag；发版 candidate 由 make candidate 构建并推送。
+# ── 镜像（本地开发，非发布路径）──
+# 本地开发镜像使用 local tag；发版镜像由 release.yml 在 v<CalVer> tag 上构建推送。
 IMAGE_REGISTRY ?= ghcr.io/ml8s
 IMAGE_TAG ?= local
 

@@ -16,11 +16,9 @@
 `400 cancel_url: must be a valid URL`，影响收款。
 
 - [ ] bump `cmd/liki-web/VERSION` → `2026.10.16.1`，提交推送
-- [ ] `RELEASE_VERSION=2026.10.16.1 make candidate`
-- [ ] liki-deploy：`CANDIDATE_MANIFESTS=<abs>/liki-web/build/candidate/candidate-digests.json make candidate-test`
-- [ ] `make candidate-publish`；`git tag -a v2026.10.16.1`；dispatch `promote-release.yml`
-- [ ] liki-deploy：`DEPLOY_LOCK=env/us.lock make update-release-lock` → `make check` → 提交 → Config CI 绿
-- [ ] `GHCR_TOKEN="$(gh auth token)" DEPLOY_ENV=env/us.env LOCK_FILE=env/us.lock make deploy-us`
+- [ ] `git tag -a v2026.10.16.1 && git push origin v2026.10.16.1`（release.yml 自动 gate→构建→签名→发布）
+- [ ] liki-deploy dispatch `deploy.yml`（region=us，不带 lock_ref）：自动拉 release 资产组 us.lock →
+      assembly e2e → 部署 → 公网 smoke → lock 回写 main
 - [ ] 终验：`VERIFY_URL=https://liki.hk SMOKE_PROFILE=standard SMOKE_INSECURE=0 make deploy-smoke`
 - [ ] 人工验收：USD 一次性与订阅都能拉起 Dodo 结账页；失败有错误文案而不是无声无响应；
       卡片默认订阅且可切到一次性；页脚与标签标题符合预期
