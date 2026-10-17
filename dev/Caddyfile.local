@@ -46,11 +46,6 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 		}
 	}
 
-	# JSON-RPC
-	handle /jsonrpc {
-		reverse_proxy {$LIKI_ENGINE_HOST:engine}:8082
-	}
-
 	handle /api/* {
 		reverse_proxy {$LIKI_WEB_HOST:web}:8081 {
 			flush_interval -1

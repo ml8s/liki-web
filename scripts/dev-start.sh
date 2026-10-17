@@ -16,7 +16,6 @@ fi
 LIKI_ENGINE_MCP_URL="${LIKI_ENGINE_MCP_URL:-http://localhost:8085}"
 LIKI_ENGINE_MCP_TOKEN="${LIKI_ENGINE_MCP_TOKEN:-}"
 export LIKI_WEB_HOST="${LIKI_WEB_HOST:-localhost}"
-export LIKI_ENGINE_HOST="${LIKI_ENGINE_HOST:-localhost}"
 
 export DODO_API_KEY="${DODO_API_KEY:-}"
 export DODO_WEBHOOK_KEY="${DODO_WEBHOOK_KEY:-}"
@@ -74,7 +73,6 @@ if [ -z "$ENGINE_MCP_BIN" ]; then
   echo "ERROR: set ENGINE_MCP_BIN to an extracted engine-mcp artifact" >&2
   exit 1
 fi
-ENGINE_RPC_BIN="${ENGINE_RPC_BIN:-}"
 
 # Web binary (pre-built by 'make build-go')
 WEB_BIN="${WEB_BIN:-bin/liki-web}"
@@ -84,14 +82,14 @@ if [ ! -x "$WEB_BIN" ]; then
 fi
 
 # Free ports
-for port in 8080 8081 8082 8085; do
+for port in 8080 8081 8085; do
   if fuser "$port/tcp" 2>/dev/null; then
     echo "==> Warning: killing existing process on port $port"
     fuser -k "$port/tcp" 2>/dev/null || true
   fi
 done
 for i in $(seq 1 30); do
-  if ! fuser 8080/tcp 8081/tcp 8082/tcp 8085/tcp 2>/dev/null; then break; fi
+  if ! fuser 8080/tcp 8081/tcp 8085/tcp 2>/dev/null; then break; fi
   sleep 0.5
 done
 
@@ -100,12 +98,6 @@ echo "==> Starting engine MCP on :8085"
 "$ENGINE_MCP_BIN" --addr :8085 &
 ENGINE_MCP_PID=$!
 
-ENGINE_RPC_PID=""
-if [ -n "$ENGINE_RPC_BIN" ]; then
-  echo "==> Starting legacy engine JSON-RPC on :8082"
-  LISTEN_ADDR=:8082 "$ENGINE_RPC_BIN" &
-  ENGINE_RPC_PID=$!
-fi
 for i in $(seq 1 30); do
   curl -sf "$LIKI_ENGINE_MCP_URL/health" >/dev/null 2>&1 && break
   sleep 0.5
@@ -123,10 +115,9 @@ echo "==> Starting Caddy on :8080"
 "$CADDY_BIN" run --config "$PROJECT_DIR/dev/Caddyfile.local" --adapter caddyfile &
 CADDY_PID=$!
 
-trap "kill $ENGINE_MCP_PID $ENGINE_RPC_PID $API_PID $CADDY_PID 2>/dev/null; exit" INT TERM EXIT
+trap "kill $ENGINE_MCP_PID $API_PID $CADDY_PID 2>/dev/null; exit" INT TERM EXIT
 
 echo "==> Ready: http://localhost:8080"
 echo "    Engine MCP: http://localhost:8085/mcp"
-echo "    Legacy Engine JSON-RPC: http://localhost:8080/jsonrpc (requires ENGINE_RPC_BIN)"
 echo "    Press Ctrl+C to stop"
 wait

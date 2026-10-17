@@ -245,7 +245,6 @@ jobs:
           # Email-code login journeys need the local dev code echo.
           LIKI_DEVELOPMENT_MODE: 'true'
           LIKI_WEB_HOST: localhost
-          LIKI_ENGINE_HOST: localhost
         run: |
           mkdir -p /tmp/liki-e2e && chmod 777 /tmp/liki-e2e
           LIKI_DATA_DIR=/tmp/liki-e2e ./bin/liki-web &

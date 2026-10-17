@@ -1,9 +1,9 @@
 # HTTP API
 
 This document describes the stable HTTP API exposed by `liki-web`.
-The deterministic public `/jsonrpc` engine protocol is owned by the `liki`
-engine and documented there; `liki-web` does not proxy or redefine it.
-The browser charting workspace instead uses the same-origin
+The legacy public `/jsonrpc` engine runtime was retired together with the
+engine RPC server; `liki-web` does not proxy it. The browser charting
+workspace uses the same-origin
 `POST /api/engine/tools/{tool}` BFF surface below; the BFF calls engine MCP and
 never exposes the downstream token to a browser.
 

@@ -98,9 +98,8 @@ Vue App sends AG-UI to /api/chat/sessions/{id}/ag-ui
 → liki-web persists the authoritative final answer
 ```
 
-Product browser traffic only talks to `liki-web`. The public deterministic
-`/jsonrpc` surface is a legacy compatibility exception for existing skills.
-The Vue charting workspace calls same-origin web BFF endpoints, and the BFF
+Product browser traffic only talks to `liki-web`. The Vue charting workspace
+calls same-origin web BFF endpoints, and the BFF
 calls engine MCP with a server-side token. Identity, entitlement, payment,
 profile writes, and AI generation never cross the public engine boundary.
 
