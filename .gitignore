@@ -33,7 +33,6 @@ Thumbs.db
 /.alipay-sandbox.json
 
 # Test artifacts
-coverage.out
 test-results/
 web/test-results/
 __pycache__/
@@ -68,6 +67,5 @@ web/.well-known/
 # Coverage artifacts
 coverage.out
 coverage.xml
-coverage.html
 htmlcov/
 web/app/coverage/
