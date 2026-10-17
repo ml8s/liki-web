@@ -181,15 +181,24 @@
       </el-table-column>
       <el-table-column
         :label="$t('orders.status')"
-        width="120"
+        width="150"
       >
         <template #default="{ row }">
-          <el-tag
-            :type="statusType(row.status)"
-            size="small"
-          >
-            {{ statusLabel(row.status) }}
-          </el-tag>
+          <div class="status-cell">
+            <el-tag
+              :type="statusType(row.status)"
+              size="small"
+            >
+              {{ statusLabel(row.status) }}
+            </el-tag>
+            <el-tag
+              v-if="intentBadge(asOrder(row))"
+              type="info"
+              size="small"
+            >
+              {{ intentBadge(asOrder(row)) }}
+            </el-tag>
+          </div>
         </template>
       </el-table-column>
       <el-table-column
@@ -208,6 +217,17 @@
           {{ formatDateTime(row.paid_at) }}
         </template>
       </el-table-column>
+      <el-table-column
+        width="200"
+        align="right"
+      >
+        <template #default="{ row }">
+          <RecordActions
+            :actions="orderActions(asOrder(row))"
+            @action="key => onOrderAction(key, asOrder(row))"
+          />
+        </template>
+      </el-table-column>
     </el-table>
 
     <!-- 移动端：卡片降级 -->
@@ -224,12 +244,21 @@
       >
         <div class="order-top">
           <span class="order-id">{{ order.id }}</span>
-          <el-tag
-            :type="statusType(order.status)"
-            size="small"
-          >
-            {{ statusLabel(order.status) }}
-          </el-tag>
+          <span class="order-tags">
+            <el-tag
+              :type="statusType(order.status)"
+              size="small"
+            >
+              {{ statusLabel(order.status) }}
+            </el-tag>
+            <el-tag
+              v-if="intentBadge(order)"
+              type="info"
+              size="small"
+            >
+              {{ intentBadge(order) }}
+            </el-tag>
+          </span>
         </div>
         <div class="order-row">
           <span class="k">{{ $t('orders.product') }}</span><span>{{ productName(order.product_id) }}</span>
@@ -246,6 +275,11 @@
         >
           <span class="k">{{ $t('orders.paidShort') }}</span><span>{{ formatDateTime(order.paid_at) }}</span>
         </div>
+        <RecordActions
+          class="order-actions"
+          :actions="orderActions(order)"
+          @action="key => onOrderAction(key, order)"
+        />
       </div>
     </div>
     <el-alert
@@ -264,22 +298,102 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
-import { fetchOrders, fetchSubscriptionPayments, fetchSubscriptions, setSubscriptionCancellation, type Order, type Subscription, type SubscriptionPayment } from '@/api/orders'
+import { cancelOrder as apiCancelOrder, fetchOrders, fetchSubscriptionPayments, fetchSubscriptions, resumeOrderCheckout, setSubscriptionCancellation, type Order, type Subscription, type SubscriptionPayment } from '@/api/orders'
+import { ApiError } from '@/api/http'
 import { formatDateTime, formatMinorUnit, productName } from '@/utils/format'
 import { useMobile } from '@/composables/useMobile'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import RecordActions, { type RecordAction } from '@/components/app/RecordActions.vue'
 
 const orders = ref<Order[]>([])
 const subscriptions = ref<Subscription[]>([])
 const subscriptionPayments = ref<SubscriptionPayment[]>([])
 const updatingId = ref('')
+const actingId = ref('')
 const loading = ref(false)
 const error = ref('')
 const isMobile = useMobile()
 const { t } = useI18n()
 
 const pendingOrders = computed(() => orders.value.filter(order => order.status === 'pending'))
+
+/** 行操作标准：按订单+intent 状态派生可用动作（导航类渲染为链接）。 */
+function orderActions(order: Order): RecordAction[] {
+  if (order.status === 'pending') {
+    if (order.intent_status === 'expired' || order.intent_status === 'refunded') {
+      return [{ key: 'repurchase', label: t('orders.repurchase'), to: '/chat' }]
+    }
+    if (order.intent_status === 'paid') {
+      return [{ key: 'refresh', label: t('orders.refresh') }]
+    }
+    return [
+      { key: 'resume', label: t('orders.resume') },
+      { key: 'cancel', label: t('orders.cancel'), danger: true },
+    ]
+  }
+  if (order.status === 'paid') {
+    return [{ key: 'use', label: t('orders.use'), to: '/chat' }]
+  }
+  return [{ key: 'repurchase', label: t('orders.repurchase'), to: '/chat' }]
+}
+
+function intentBadge(order: Order): string {
+  if (order.intent_status === 'refunded') return t('orders.statusRefunded')
+  if (order.status === 'pending' && order.intent_status === 'expired') return t('orders.statusExpired')
+  return ''
+}
+
+function onOrderAction(key: string, order: Order) {
+  if (key === 'resume') void resumeCheckout(order)
+  else if (key === 'cancel') void confirmCancelOrder(order)
+  else if (key === 'refresh') void load()
+}
+
+async function resumeCheckout(order: Order) {
+  if (actingId.value) return
+  actingId.value = order.id
+  error.value = ''
+  try {
+    const result = await resumeOrderCheckout(order.id)
+    // 与购买同规则：只跟随相对路径或 https 支付域，防开放重定向。
+    const url = result.checkout_url
+    if (!url.startsWith('/') && !url.startsWith('https://')) {
+      error.value = t('orders.resumeFailed')
+      return
+    }
+    window.location.href = url
+  } catch (err) {
+    if (err instanceof ApiError && err.code === 'order_expired') order.intent_status = 'expired'
+    if (err instanceof ApiError && err.code === 'order_already_paid') await load()
+    error.value = toUserMessage(err, t('orders.resumeFailed'))
+  } finally {
+    actingId.value = ''
+  }
+}
+
+async function confirmCancelOrder(order: Order) {
+  try {
+    await ElMessageBox.confirm(
+      t('orders.cancelConfirm'),
+      t('orders.cancelTitle'),
+      { type: 'warning', confirmButtonText: t('orders.cancel'), cancelButtonText: t('common.cancel') },
+    )
+  } catch {
+    return
+  }
+  if (actingId.value) return
+  actingId.value = order.id
+  error.value = ''
+  try {
+    await apiCancelOrder(order.id)
+    order.status = 'canceled'
+  } catch (err) {
+    if (err instanceof ApiError && err.code === 'order_not_pending') await load()
+    error.value = toUserMessage(err, t('orders.cancelFailed'))
+  } finally {
+    actingId.value = ''
+  }
+}
 
 async function load() {
   loading.value = true
@@ -412,7 +526,10 @@ onMounted(() => {
   background: var(--liki-surface); border: 1px solid var(--liki-line);
   border-radius: var(--radius-lg); padding: 14px 16px;
 }
-.order-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.order-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.order-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.status-cell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.order-actions { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--liki-line); justify-content: flex-start; }
 .order-id { font-weight: 600; font-size: var(--font-size-label); word-break: break-all; }
 .order-row { display: flex; gap: 8px; font-size: var(--font-size-body); color: var(--liki-ink); padding: 3px 0; }
 .order-row .k { color: var(--liki-text-2); width: 40px; flex-shrink: 0; }

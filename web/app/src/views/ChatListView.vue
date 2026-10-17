@@ -145,6 +145,8 @@
           v-else
           :sessions="displaySessions"
           @open="openSession"
+          @rename="renameSession"
+          @remove="removeSession"
         />
       </el-card>
     </template>
@@ -233,6 +235,56 @@ function skillState(skill: string) {
 
 function openSession(session: ChatSession) {
   void router.push(`/chat/${session.id}`)
+}
+
+async function renameSession(session: ChatSession) {
+  let value: string
+  try {
+    const result = await ElMessageBox.prompt(
+      t('chat.sessions.renamePrompt'),
+      t('chat.sessions.renameTitle'),
+      {
+        inputValue: session.title,
+        inputPlaceholder: t('chat.sessions.renamePlaceholder'),
+        inputValidator: (raw: string) => {
+          const title = raw.trim()
+          if (!title) return t('chat.sessions.renameRequired')
+          if (title.length > 60) return t('chat.sessions.renameTooLong')
+          return true
+        },
+        confirmButtonText: t('common.save'),
+        cancelButtonText: t('common.cancel'),
+      },
+    )
+    value = result.value.trim()
+  } catch (error) {
+    // prompt 取消以 'cancel'/'close' 拒绝，不算错误。
+    if (error === 'cancel' || error === 'close') return
+    chat.error = toUserMessage(error, t('chat.sessions.actionFailed'))
+    return
+  }
+  try {
+    await chat.renameSession(session.id, value)
+  } catch (error) {
+    chat.error = toUserMessage(error, t('chat.sessions.actionFailed'))
+  }
+}
+
+async function removeSession(session: ChatSession) {
+  try {
+    await ElMessageBox.confirm(
+      t('chat.sessions.deleteConfirm', { title: session.title }),
+      t('chat.sessions.deleteTitle'),
+      { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') },
+    )
+  } catch {
+    return
+  }
+  try {
+    await chat.removeSession(session.id)
+  } catch (error) {
+    chat.error = toUserMessage(error, t('chat.sessions.actionFailed'))
+  }
 }
 
 async function create(skill: string) {

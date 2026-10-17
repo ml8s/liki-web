@@ -275,6 +275,38 @@ FROM payment_intents WHERE id=?`, id)
 	return scanIntent(row.Scan)
 }
 
+// GetIntents resolves several intents in one query for read-side annotations
+// (for example decorating a sales order list with its payment status). IDs that
+// do not exist are absent from the result map.
+func (s *IntentStore) GetIntents(ctx context.Context, ids []string) (map[string]PaymentIntent, error) {
+	out := make(map[string]PaymentIntent, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	rows, err := s.db.QueryContext(ctx, `
+SELECT id, business_order_id, user_id, product, provider, status, amount_minor, currency, email,
+       locale, metadata, provider_session_id, provider_payment_id, checkout_url, qr_code_url,
+       return_url, success_url, failure_url, created_at, updated_at, paid_at, refunded_at, refunded_amount_minor
+FROM payment_intents WHERE id IN (`+placeholders+`)`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		intent, scanErr := scanIntent(rows.Scan)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		out[intent.ID] = intent
+	}
+	return out, rows.Err()
+}
+
 // ListIntentsForReconciliation returns the open intents a provider can still
 // answer for. Intents without a provider handle (a checkout that never opened)
 // have nothing to fetch: asking anyway produced one ERROR per intent per cycle

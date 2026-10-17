@@ -82,6 +82,17 @@ export const useChatStore = defineStore('chat', {
       if (existing) return existing
       return this.createSession(profileId, 'liki')
     },
+    async renameSession(sessionId: string, title: string) {
+      const updated = await (await chatApiLazy()).renameChatSession(sessionId, title)
+      const index = this.sessions.findIndex(s => s.id === sessionId)
+      if (index >= 0) this.sessions[index] = updated
+      if (this.activeSession?.id === sessionId) this.activeSession = updated
+    },
+    async removeSession(sessionId: string) {
+      await (await chatApiLazy()).deleteChatSession(sessionId)
+      this.sessions = this.sessions.filter(s => s.id !== sessionId)
+      if (this.activeSession?.id === sessionId) this.activeSession = null
+    },
     async openSession(sessionId: string) {
       // 切换会话即中止进行中的流：旧请求的完成回调不得写入新会话。
       this.stopGeneration()

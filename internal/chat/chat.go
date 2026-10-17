@@ -145,6 +145,17 @@ CREATE INDEX idx_chat_messages_session_created
 				return err
 			},
 		},
+		{
+			// User-initiated deletion keeps rows for audit continuity; every
+			// user-facing query filters deleted_at IS NULL.
+			ID: "004_session_soft_delete",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE chat_sessions ADD COLUMN deleted_at TEXT;
+`)
+				return err
+			},
+		},
 	})
 }
 
@@ -187,7 +198,7 @@ func scanSession(scan func(dest ...any) error) (Session, error) {
 func (s *ChatStore) GetSession(ctx context.Context, userID, sessionID string) (Session, error) {
 	session, err := scanSession(s.db.QueryRowContext(ctx, `
 SELECT id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at
-FROM chat_sessions WHERE id=? AND user_id=?`, sessionID, userID).Scan)
+FROM chat_sessions WHERE id=? AND user_id=? AND deleted_at IS NULL`, sessionID, userID).Scan)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Session{}, ErrSessionNotFound
 	}
@@ -197,7 +208,7 @@ FROM chat_sessions WHERE id=? AND user_id=?`, sessionID, userID).Scan)
 func (s *ChatStore) ListSessions(ctx context.Context, userID string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at
-FROM chat_sessions WHERE user_id=? AND status='active'
+FROM chat_sessions WHERE user_id=? AND status='active' AND deleted_at IS NULL
 ORDER BY COALESCE(last_message_at,updated_at) DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -212,6 +223,45 @@ ORDER BY COALESCE(last_message_at,updated_at) DESC`, userID)
 		out = append(out, session)
 	}
 	return out, rows.Err()
+}
+
+// RenameSession updates a live, user-owned session title. updated_at is
+// intentionally untouched: renaming is metadata, not activity, and the list
+// orders by last activity.
+func (s *ChatStore) RenameSession(ctx context.Context, userID, sessionID, title string) (Session, error) {
+	result, err := s.db.ExecContext(ctx, `
+UPDATE chat_sessions SET title=? WHERE id=? AND user_id=? AND deleted_at IS NULL`, title, sessionID, userID)
+	if err != nil {
+		return Session{}, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return Session{}, err
+	}
+	if affected == 0 {
+		return Session{}, ErrSessionNotFound
+	}
+	return s.GetSession(ctx, userID, sessionID)
+}
+
+// SoftDeleteSession hides a user-owned session from every user-facing query.
+// Messages stay in place for audit continuity; compliance erasure is handled
+// separately by AnonymizeUserMessages.
+func (s *ChatStore) SoftDeleteSession(ctx context.Context, userID, sessionID string) error {
+	result, err := s.db.ExecContext(ctx, `
+UPDATE chat_sessions SET deleted_at=? WHERE id=? AND user_id=? AND deleted_at IS NULL`,
+		chatFormatTime(s.nowFunc()), sessionID, userID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrSessionNotFound
+	}
+	return nil
 }
 
 func (s *ChatStore) ListMessages(ctx context.Context, userID, sessionID string) ([]Message, error) {

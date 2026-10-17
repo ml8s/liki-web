@@ -137,6 +137,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/sales/products", h.requireUser(h.HandleProducts))
 	mux.HandleFunc("POST /api/sales/checkouts", h.requireUser(h.limit(h.HandleCheckout)))
 	mux.HandleFunc("GET /api/sales/orders", h.requireUser(h.HandleOrders))
+	mux.HandleFunc("POST /api/sales/orders/{id}/cancel", h.requireUser(h.limit(h.HandleCancelOrder)))
+	mux.HandleFunc("POST /api/sales/orders/{id}/checkout", h.requireUser(h.limit(h.HandleResumeCheckout)))
 	if h.subscriptions == nil {
 		return
 	}
@@ -285,6 +287,7 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 				"provider":                      intent.Provider,
 				"status":                        intent.Status,
 				"checkout_url":                  result.CheckoutURL,
+				"qr_code_url":                   result.QRCodeURL,
 				"status_token":                  result.StatusToken,
 			})
 			return
@@ -308,7 +311,137 @@ func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 		httputil.InternalError(w)
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{"orders": orders})
+	intentIDs := make([]string, 0, len(orders))
+	for _, order := range orders {
+		if order.PaymentIntentID != "" {
+			intentIDs = append(intentIDs, order.PaymentIntentID)
+		}
+	}
+	intents, err := h.runtime.GetIntents(r.Context(), intentIDs)
+	if err != nil {
+		slog.Error("sales: annotate orders with intents", "user_id", user.ID, "err", err)
+		httputil.InternalError(w)
+		return
+	}
+	// intent_status lets the client distinguish "can still pay" from "expired";
+	// the sales store itself only knows pending/paid/canceled.
+	type orderItem struct {
+		Order
+		IntentStatus string `json:"intent_status,omitempty"`
+	}
+	items := make([]orderItem, 0, len(orders))
+	for _, order := range orders {
+		item := orderItem{Order: order}
+		if intent, found := intents[order.PaymentIntentID]; found {
+			item.IntentStatus = string(intent.Status)
+		}
+		items = append(items, item)
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"orders": items})
+}
+
+func (h *Handler) HandleCancelOrder(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.Unauthorized(w)
+		return
+	}
+	orderID := r.PathValue("id")
+	order, err := h.orders.GetOrderForUser(r.Context(), user.ID, orderID)
+	if err != nil {
+		if errors.Is(err, ErrOrderNotFound) {
+			httputil.NotFound(w)
+			return
+		}
+		slog.Error("sales: load order for cancel", "order_id", orderID, "err", err)
+		httputil.InternalError(w)
+		return
+	}
+	if order.Status != OrderPending {
+		httputil.RespondError(w, http.StatusConflict, "order_not_pending", "订单当前不可取消")
+		return
+	}
+	if err := h.orders.CancelOrder(r.Context(), user.ID, orderID); err != nil {
+		// The pre-check passed, so a losing race against the payment webhook is
+		// the realistic failure; report it as a conflict rather than 404.
+		if errors.Is(err, ErrOrderNotFound) {
+			httputil.RespondError(w, http.StatusConflict, "order_not_pending", "订单当前不可取消")
+			return
+		}
+		slog.Error("sales: cancel order", "order_id", orderID, "err", err)
+		httputil.InternalError(w)
+		return
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": string(OrderCanceled)})
+}
+
+// HandleResumeCheckout re-opens payment for a pending order. Providers expire
+// checkout sessions, so resume always starts a fresh session for the same
+// order and payment intent; the stored intent is what keeps this from creating
+// duplicate orders.
+func (h *Handler) HandleResumeCheckout(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.Unauthorized(w)
+		return
+	}
+	orderID := r.PathValue("id")
+	order, err := h.orders.GetOrderForUser(r.Context(), user.ID, orderID)
+	if err != nil {
+		if errors.Is(err, ErrOrderNotFound) {
+			httputil.NotFound(w)
+			return
+		}
+		slog.Error("sales: load order for resume", "order_id", orderID, "err", err)
+		httputil.InternalError(w)
+		return
+	}
+	if order.Status != OrderPending || order.PaymentIntentID == "" {
+		httputil.RespondError(w, http.StatusConflict, "order_not_pending", "订单当前不可支付")
+		return
+	}
+	intent, err := h.runtime.GetIntent(r.Context(), order.PaymentIntentID)
+	if err != nil {
+		if errors.Is(err, payment.ErrIntentNotFound) {
+			httputil.RespondError(w, http.StatusConflict, "order_expired", "订单已过期，请重新下单")
+			return
+		}
+		slog.Error("sales: load intent for resume", "order_id", orderID, "err", err)
+		httputil.InternalError(w)
+		return
+	}
+	switch intent.Status {
+	case payment.IntentExpired:
+		httputil.RespondError(w, http.StatusConflict, "order_expired", "订单已过期，请重新下单")
+		return
+	case payment.IntentPaid:
+		httputil.RespondError(w, http.StatusConflict, "order_already_paid", "订单已支付，请刷新后查看")
+		return
+	case payment.PaymentStatusRefunded:
+		httputil.RespondError(w, http.StatusConflict, "order_refunded", "订单已退款")
+		return
+	}
+	result, updated, err := h.runtime.StartCheckout(r.Context(), intent.ID)
+	if err != nil {
+		// StartCheckout itself guards paid/expired intents; map its guard
+		// failures back onto the conflict vocabulary above.
+		if errors.Is(err, payment.ErrIntentNotFound) {
+			httputil.RespondError(w, http.StatusConflict, "order_expired", "订单已过期，请重新下单")
+			return
+		}
+		slog.Error("sales: resume checkout", "order_id", orderID, "err", err)
+		httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
+		return
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
+		"order_id":                      order.ID,
+		payment.MetadataPaymentIntentID: intent.ID,
+		"provider":                      updated.Provider,
+		"status":                        updated.Status,
+		"checkout_url":                  result.CheckoutURL,
+		"qr_code_url":                   result.QRCodeURL,
+		"status_token":                  result.StatusToken,
+	})
 }
 
 func (h *Handler) handleSubscriptionCheckout(

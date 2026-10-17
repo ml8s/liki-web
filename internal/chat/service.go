@@ -165,6 +165,19 @@ func (s *Service) CreateSession(ctx context.Context, userID, skill, title, profi
 	return session, nil
 }
 
+// RenameSession renames a user-owned session. Renaming is metadata maintenance
+// and stays available after a product expires: the session list keeps showing
+// past sessions, so users must be able to curate them.
+func (s *Service) RenameSession(ctx context.Context, userID, sessionID, title string) (Session, error) {
+	return s.store.RenameSession(ctx, userID, sessionID, title)
+}
+
+// DeleteSession soft-deletes a user-owned session regardless of entitlement,
+// mirroring RenameSession.
+func (s *Service) DeleteSession(ctx context.Context, userID, sessionID string) error {
+	return s.store.SoftDeleteSession(ctx, userID, sessionID)
+}
+
 func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content string, onEvent func(agent.ChatEvent)) (Message, Message, Session, error) {
 	unlock := s.lockSession(sessionID)
 	defer unlock()

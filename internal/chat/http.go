@@ -35,6 +35,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/chat/sessions", h.requireUser(h.HandleSessions))
 	mux.HandleFunc("POST /api/chat/sessions", h.requireUser(h.limit(h.HandleCreateSession)))
 	mux.HandleFunc("GET /api/chat/sessions/{id}", h.requireUser(h.HandleSession))
+	mux.HandleFunc("PATCH /api/chat/sessions/{id}", h.requireUser(h.limit(h.HandleRenameSession)))
+	mux.HandleFunc("DELETE /api/chat/sessions/{id}", h.requireUser(h.limit(h.HandleDeleteSession)))
 	mux.HandleFunc("GET /api/chat/sessions/{id}/messages", h.requireUser(h.HandleMessages))
 	mux.HandleFunc("POST /api/chat/sessions/{id}/ag-ui", h.requireUser(h.limit(h.HandleAGUIMessage)))
 }
@@ -125,6 +127,48 @@ func (h *Handler) HandleSession(w http.ResponseWriter, r *http.Request) {
 func userID(r *http.Request) string {
 	user, _ := auth.UserFromContext(r.Context())
 	return user.ID
+}
+
+const maxSessionTitleRunes = 60
+
+type renameSessionRequest struct {
+	Title string `json:"title"`
+}
+
+func (h *Handler) HandleRenameSession(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.Unauthorized(w)
+		return
+	}
+	req, ok := httputil.Decode[renameSessionRequest](w, r)
+	if !ok {
+		return
+	}
+	title := strings.TrimSpace(req.Title)
+	if title == "" || len([]rune(title)) > maxSessionTitleRunes {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "会话标题需为 1-60 个字符")
+		return
+	}
+	session, err := h.service.RenameSession(r.Context(), user.ID, r.PathValue("id"), title)
+	if err != nil {
+		writeSessionError(w, err)
+		return
+	}
+	httputil.RespondJSON(w, http.StatusOK, session)
+}
+
+func (h *Handler) HandleDeleteSession(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.Unauthorized(w)
+		return
+	}
+	if err := h.service.DeleteSession(r.Context(), user.ID, r.PathValue("id")); err != nil {
+		writeSessionError(w, err)
+		return
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 func writeSessionError(w http.ResponseWriter, err error) {

@@ -311,6 +311,11 @@ func (r *Runtime) GetIntent(ctx context.Context, id string) (PaymentIntent, erro
 	return r.intents.GetIntent(ctx, id)
 }
 
+// GetIntents resolves several intents in one query for read-side annotations.
+func (r *Runtime) GetIntents(ctx context.Context, ids []string) (map[string]PaymentIntent, error) {
+	return r.intents.GetIntents(ctx, ids)
+}
+
 func (r *Runtime) HandleWebhookEvent(ctx context.Context, raw []byte, header http.Header) error {
 	_, err := r.HandleWebhookEventWithAck(ctx, raw, header)
 	return err

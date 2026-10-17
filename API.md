@@ -128,6 +128,8 @@ Paid chat operations recheck entitlement server-side.
 | GET | `/api/chat/sessions` | user | List sessions |
 | POST | `/api/chat/sessions` | entitled user | Create session |
 | GET | `/api/chat/sessions/{id}` | owner + entitled | Read session |
+| PATCH | `/api/chat/sessions/{id}` | owner | Rename session (title, 1-60 chars) |
+| DELETE | `/api/chat/sessions/{id}` | owner | Soft-delete session |
 | GET | `/api/chat/sessions/{id}/messages` | owner + entitled | Read messages |
 | POST | `/api/chat/sessions/{id}/ag-ui` | owner + entitled | AG-UI/SSE generation |
 
@@ -137,7 +139,9 @@ Current canonical skill is `liki`.
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/sales/orders` | user | List sales orders |
+| GET | `/api/sales/orders` | user | List sales orders (annotated with `intent_status`) |
+| POST | `/api/sales/orders/{id}/cancel` | owner | Cancel a pending order |
+| POST | `/api/sales/orders/{id}/checkout` | owner | Re-open checkout for a pending order (fresh provider session; 409 `order_expired` / `order_already_paid` / `order_refunded`) |
 
 Orders expose user-safe state, not provider secrets or internal metadata.
 

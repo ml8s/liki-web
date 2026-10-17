@@ -27,16 +27,14 @@
       </template>
     </el-table-column>
     <el-table-column
-      width="100"
+      width="180"
       align="right"
     >
       <template #default="{ row }">
-        <router-link
-          :to="`/chat/${row.id}`"
-          class="open-link"
-        >
-          {{ $t('chat.sessions.open') }}
-        </router-link>
+        <RecordActions
+          :actions="desktopActions(asSession(row))"
+          @action="key => emitAction(key, asSession(row))"
+        />
       </template>
     </el-table-column>
   </el-table>
@@ -46,25 +44,34 @@
     v-else
     class="session-cards"
   >
-    <router-link
+    <div
       v-for="s in sessions"
       :key="s.id"
-      :to="`/chat/${s.id}`"
       class="session-card"
     >
-      <div class="sc-top">
-        <span class="sc-title">{{ s.title }}</span>
-        <el-tag
-          size="small"
-          effect="light"
-        >
-          {{ s.skillLabel }}
-        </el-tag>
-      </div>
-      <div class="sc-time">
-        {{ formatDateTime(s.updated_at) }}
-      </div>
-    </router-link>
+      <router-link
+        :to="`/chat/${s.id}`"
+        class="session-card-main"
+      >
+        <div class="sc-top">
+          <span class="sc-title">{{ s.title }}</span>
+          <el-tag
+            size="small"
+            effect="light"
+          >
+            {{ s.skillLabel }}
+          </el-tag>
+        </div>
+        <div class="sc-time">
+          {{ formatDateTime(s.updated_at) }}
+        </div>
+      </router-link>
+      <RecordActions
+        class="sc-actions"
+        :actions="mobileActions()"
+        @action="key => emitAction(key, s)"
+      />
+    </div>
   </div>
 </template>
 
@@ -72,27 +79,50 @@
 import type { ChatSession } from '@/api/chat'
 import { formatDateTime } from '@/utils/format'
 import { useMobile } from '@/composables/useMobile'
+import { useI18n } from 'vue-i18n'
+import RecordActions, { type RecordAction } from '@/components/app/RecordActions.vue'
 
 defineProps<{
   sessions: Array<ChatSession & { skillLabel?: string }>
 }>()
 
-defineEmits<{ open: [session: ChatSession] }>()
+const emit = defineEmits<{ open: [session: ChatSession]; rename: [session: ChatSession]; remove: [session: ChatSession] }>()
 
+const { t } = useI18n()
 const isMobile = useMobile(640)
+
+function asSession(row: Record<string, unknown>): ChatSession {
+  return row as unknown as ChatSession
+}
+
+function desktopActions(session: ChatSession): RecordAction[] {
+  return [
+    { key: 'open', label: t('chat.sessions.open'), to: `/chat/${session.id}` },
+    ...mobileActions(),
+  ]
+}
+
+function mobileActions(): RecordAction[] {
+  return [
+    { key: 'rename', label: t('chat.sessions.rename') },
+    { key: 'remove', label: t('chat.sessions.delete'), danger: true },
+  ]
+}
+
+function emitAction(key: string, session: ChatSession) {
+  if (key === 'rename') emit('rename', session)
+  else if (key === 'remove') emit('remove', session)
+  else if (key === 'open') emit('open', session)
+}
 </script>
 
 <style scoped>
-.open-link { display: inline-block; padding: 4px 2px; }
 .session-cards { display: grid; gap: 12px; }
 .session-card {
-  display: block;
   background: var(--liki-surface);
   border: 1px solid var(--liki-line);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
-  text-decoration: none;
-  color: inherit;
   transition: border-color var(--liki-dur) var(--liki-ease), transform var(--liki-dur) var(--liki-ease), box-shadow var(--liki-dur) var(--liki-ease);
 }
 .session-card:hover {
@@ -100,6 +130,8 @@ const isMobile = useMobile(640)
   transform: translateY(-1px);
   box-shadow: 0 6px 18px var(--liki-shadow-strong);
 }
+.session-card-main { display: block; text-decoration: none; color: inherit; }
+.sc-actions { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--liki-line); justify-content: flex-start; }
 .sc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sc-title { font-weight: 600; }
 .sc-time { color: var(--liki-text-2); font-size: var(--font-size-label); margin-top: 6px; }

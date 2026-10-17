@@ -9,14 +9,37 @@ export interface Order {
   currency: string
   status: 'pending' | 'paid' | 'canceled'
   payment_intent_id: string
+  /** 支付 intent 状态（BFF 注解）：created/checkout_created/paid/refunded/failed/expired。 */
+  intent_status?: OrderIntentStatus
   created_at: string
   updated_at: string
   paid_at: string | null
 }
 
+export type OrderIntentStatus = 'created' | 'checkout_created' | 'paid' | 'refunded' | 'failed' | 'expired'
+
 export async function fetchOrders(): Promise<Order[]> {
   const payload = await get<{ orders: Order[] }>('/api/sales/orders')
   return payload.orders ?? []
+}
+
+export function cancelOrder(orderId: string): Promise<{ status: string }> {
+  return post<{ status: string }>(`/api/sales/orders/${orderId}/cancel`)
+}
+
+export interface OrderCheckoutResult {
+  order_id: string
+  payment_intent_id: string
+  provider: string
+  status: string
+  checkout_url: string
+  qr_code_url?: string
+  status_token: string
+}
+
+/** 未付订单继续支付：同一订单开新支付会话并返回新的收银台链接。 */
+export function resumeOrderCheckout(orderId: string): Promise<OrderCheckoutResult> {
+  return post<OrderCheckoutResult>(`/api/sales/orders/${orderId}/checkout`)
 }
 
 export interface Subscription {

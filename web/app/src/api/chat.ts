@@ -1,5 +1,5 @@
 import { HttpAgent, type AgentSubscriber } from '@ag-ui/client'
-import { get, post, redirectToLogin } from './http'
+import { del, get, patch, post, redirectToLogin } from './http'
 import { i18n } from '../i18n'
 
 export interface SSEError extends Error {
@@ -52,6 +52,14 @@ export function fetchChatSession(sessionId: string): Promise<ChatSession> {
 
 export function createChatSession(profileId: string, skill: string, title?: string): Promise<ChatSession> {
   return post<ChatSession>('/api/chat/sessions', { profile_id: profileId, skill, title })
+}
+
+export function renameChatSession(sessionId: string, title: string): Promise<ChatSession> {
+  return patch<ChatSession>(`/api/chat/sessions/${sessionId}`, { title })
+}
+
+export function deleteChatSession(sessionId: string): Promise<{ status: string }> {
+  return del<{ status: string }>(`/api/chat/sessions/${sessionId}`)
 }
 
 export function fetchChatMessages(sessionId: string): Promise<ChatMessage[]> {
