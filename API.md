@@ -20,8 +20,8 @@ MCP tool result in `data`. The tool name is an explicit allowlist:
 
 ```text
 tianwen_time, city_coords, bazi_chart, bazi_fullchart,
-ziwei_chart, ziwei_fullchart, bazhai_chart, bazi_bond,
-liuyao_qigua, liuyao_chart, huangli_days
+ziwei_chart, ziwei_fullchart, ziwei_daxian, ziwei_liunian,
+bazhai_chart, bazi_bond, liuyao_qigua, liuyao_chart, huangli_days
 ```
 
 Error responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)

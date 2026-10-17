@@ -17,6 +17,8 @@ var freeTools = map[string]struct{}{
 	"bazi_fullchart":  {},
 	"ziwei_chart":     {},
 	"ziwei_fullchart": {},
+	"ziwei_daxian":    {},
+	"ziwei_liunian":   {},
 	"bazhai_chart":    {},
 	"bazi_bond":       {},
 	"liuyao_qigua":    {},

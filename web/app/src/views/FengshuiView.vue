@@ -60,61 +60,11 @@
             {{ $t('services.fengshui.lifeGuaDirections') }}
           </h2>
         </template>
-        <div class="mingua-row">
-          <div class="mingua font-serif">
-            {{ bazhai.ming_gua.gua.name }}
-          </div>
-          <div>
-            <div class="mg-name">
-              {{ bazhai.ming_gua.group }}
-            </div>
-            <div
-              v-if="bazhai.ming_gua.gua.wuxing"
-              class="mg-wuxing"
-            >
-              {{ $t('services.fengshui.element') }}{{ bazhai.ming_gua.gua.wuxing }}
-            </div>
-          </div>
-        </div>
-        <div class="dirs">
-          <div
-            v-for="d in bazhaiDirs"
-            :key="d.key"
-            :class="['dir', { good: d.good }]"
-          >
-            <div class="dg font-serif">
-              {{ d.gua }}
-            </div>
-            <div class="dname">
-              {{ $t(`profiles.chart.direction.${d.key}`) }}
-            </div>
-          </div>
-        </div>
-        <template v-if="liuNianXing">
-          <div class="sec-title">
-            {{ $t('profiles.chart.annualStars', { year: liuNianXing.year }) }}
-          </div>
-          <div class="ln-row">
-            {{ $t('profiles.chart.centerStar') }}<strong>{{ liuNianXing.ru_zhong }}</strong>
-          </div>
-          <div class="fly-grid">
-            <div
-              v-for="f in flyStars"
-              :key="f.gong_num"
-              :class="['fly-cell', { center: f.gong_num === 5, ru_zhong: f.ru_zhong }]"
-            >
-              <div class="fly-name">
-                {{ f.xing_name }}
-              </div>
-              <div
-                v-if="f.wuxing"
-                class="fly-wuxing"
-              >
-                {{ f.wuxing }}
-              </div>
-            </div>
-          </div>
-        </template>
+        <MingGuaSection :bazhai="bazhai" />
+        <LiuNianFlySection
+          v-if="bazhai.liu_nian_xing"
+          :liu-nian="bazhai.liu_nian_xing"
+        />
       </el-card>
 
       <AppConsultationCard
@@ -135,9 +85,10 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineBazhaiChart, type BazhaiChart } from '@/api/engine'
-import { BAZHAI_AUS, LUOSHU_ORDER } from '@/utils/bazhai'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
+import MingGuaSection from '@/components/bazhai/MingGuaSection.vue'
+import LiuNianFlySection from '@/components/bazhai/LiuNianFlySection.vue'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -148,19 +99,6 @@ const loading = ref(false)
 const error = ref('')
 
 const profile = computed(() => profiles.list.find(p => p.id === profileId.value) ?? null)
-
-const bazhaiDirs = computed(() => {
-  if (!bazhai.value) return []
-  return Object.entries(bazhai.value.ba_zhai_dirs).map(([key, values]) => ({
-    key, gua: (values ?? [''])[0], good: BAZHAI_AUS.includes(key),
-  }))
-})
-const liuNianXing = computed(() => bazhai.value?.liu_nian_xing ?? null)
-const flyStars = computed(() => {
-  const gong = liuNianXing.value?.gong_wei
-  if (!gong || gong.length !== 9) return []
-  return LUOSHU_ORDER.map(n => gong.find(g => g.gong_num === n) ?? { gong_num: n, xing_name: '—' })
-})
 
 async function loadPreview() {
   const p = profile.value
@@ -187,24 +125,3 @@ function startChat() {
   void openServiceChat(p.id, message => { error.value = message })
 }
 </script>
-
-<style scoped>
-.mingua-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-.mingua { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--liki-primary); font-size: var(--font-size-title-lg); color: var(--liki-primary); background: var(--liki-primary-tint); }
-.mg-name { font-size: var(--font-size-body-lg); font-weight: 600; }
-.mg-wuxing { font-size: var(--font-size-label); color: var(--liki-text-2); margin-top: 2px; }
-.dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.dir { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 10px; text-align: center; }
-.dir .dg { font-size: var(--font-size-title-sm); color: var(--liki-primary); }
-.dir.good { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
-.dir.good .dg { color: var(--liki-primary); }
-.dir .dname { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 3px; }
-.ln-row { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: 10px; }
-.fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; width: min(240px, 100%); }
-.fly-cell { background: var(--liki-surface); padding: 8px 4px; text-align: center; }
-.fly-cell.center { background: var(--liki-primary-tint); }
-.fly-cell.ru_zhong { border: 2px solid var(--liki-primary); background: var(--liki-primary-tint); }
-.fly-name { font-size: var(--font-size-caption); color: var(--liki-text-2); }
-.fly-wuxing { font-size: var(--font-size-micro); color: var(--liki-text-3); margin-top: 2px; }
-@media (max-width: 640px) { .dirs { grid-template-columns: repeat(2, 1fr); } }
-</style>

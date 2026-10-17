@@ -17,6 +17,8 @@ export const ENGINE_TOOLS = {
   BaziFullChart: 'bazi_fullchart',
   ZiweiChart: 'ziwei_chart',
   ZiweiFullChart: 'ziwei_fullchart',
+  ZiweiDaXian: 'ziwei_daxian',
+  ZiweiLiuNian: 'ziwei_liunian',
   BazhaiChart: 'bazhai_chart',
   BaziBond: 'bazi_bond',
   LiuyaoQigua: 'liuyao_qigua',
@@ -425,6 +427,42 @@ export function engineZiweiChart(lunar: string, gender: string): Promise<ZiweiCh
 
 export function engineZiweiFullChart(chart: unknown): Promise<ZiweiChart> {
   return engineTool<ZiweiChart>(ENGINE_TOOLS.ZiweiFullChart, { chart })
+}
+
+/** 大限（ziwei.daxian 返回数组根）。 */
+export interface ZiweiDaXianItem {
+  name: string
+  gong: string
+  qi_sui: number
+  zhi_sui: number
+  start_year?: number
+  end_year?: number
+}
+
+export function engineZiweiDaXian(chart: unknown): Promise<ZiweiDaXianItem[]> {
+  return engineTool<ZiweiDaXianItem[]>(ENGINE_TOOLS.ZiweiDaXian, { chart })
+}
+
+/** 流年十二宫（ziwei.liunian；gong_wei 为流年盘宫名，ming_gong_name 为流年命宫落本命宫）。 */
+export interface ZiweiLiuNianGong {
+  zhi: string
+  name: string
+  xing_yao?: string[]
+  is_liu_ming?: boolean
+}
+
+export interface ZiweiLiuNianData {
+  ming_gong: string
+  ming_gong_name?: string
+  zhi: string
+  si_hua?: Record<string, string>
+  si_hua_gong?: Record<string, string>
+  fu_xing?: Record<string, string>
+  gong_wei?: ZiweiLiuNianGong[]
+}
+
+export function engineZiweiLiuNian(chart: unknown, lunarYear: number): Promise<ZiweiLiuNianData> {
+  return engineTool<ZiweiLiuNianData>(ENGINE_TOOLS.ZiweiLiuNian, { chart, lunar_year: lunarYear })
 }
 
 export interface BazhaiLiuNianXing {

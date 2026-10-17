@@ -287,6 +287,83 @@
                   >{{ $t('profiles.chart.kongJieValue', { gong: k.gong_name, dui: k.dui_gong, stars: k.jie_xing.join(' ') }) }}</span>
                 </div>
               </div>
+              <div
+                v-if="daXian.length"
+                class="zw-section zw-daxian"
+              >
+                <div class="sec-title">
+                  {{ $t('profiles.chart.daxian') }}
+                </div>
+                <div class="dayun">
+                  <div
+                    v-for="d in daXian"
+                    :key="`${d.name}-${d.qi_sui}`"
+                    :class="['dy', { cur: d.current }]"
+                  >
+                    <div class="dy-name">
+                      {{ d.name }}
+                    </div>
+                    <div class="dy-shen">
+                      {{ $t('profiles.chart.ageRange', { from: d.qi_sui, to: d.zhi_sui }) }}
+                    </div>
+                    <div class="dy-year">
+                      {{ d.yearRange }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="zw-section zw-liunian">
+                <div class="sec-title">
+                  {{ $t('profiles.chart.liunian') }}
+                </div>
+                <div class="ln-pick">
+                  <el-input-number
+                    v-model="liuNianYear"
+                    :min="1900"
+                    :max="2100"
+                    size="small"
+                    @change="loadLiuNian"
+                  />
+                </div>
+                <template v-if="liuNian">
+                  <div class="zwc-sihua ln-sihua">
+                    <span
+                      v-for="(hua, star) in liuNian.si_hua ?? {}"
+                      :key="star"
+                      class="zw-sihua-chip"
+                    >{{ star }}<i
+                      class="zw-si"
+                      :data-hua="hua"
+                    >{{ hua }}</i>{{ liuNian.si_hua_gong?.[star] ? ` ${liuNian.si_hua_gong[star]}` : '' }}</span>
+                  </div>
+                  <div class="ln-grid">
+                    <div
+                      v-for="g in liuNianPlaced"
+                      :key="`${g.name}-${g.zhi}`"
+                      :style="g.style"
+                      :class="['ln-cell', { ming: g.ming }]"
+                    >
+                      <div class="ln-pname">
+                        {{ g.name }}
+                      </div>
+                      <div
+                        v-if="g.stars.length"
+                        class="ln-stars"
+                      >
+                        {{ g.stars.join(' ') }}
+                      </div>
+                    </div>
+                    <div class="ln-center">
+                      <div class="lnc-title">
+                        {{ liuNianYear }}
+                      </div>
+                      <div class="lnc-row">
+                        {{ $t('profiles.chart.liuNianPalace', { name: liuNian.ming_gong_name ?? liuNian.ming_gong }) }}
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
             </template>
           </el-tab-pane>
 
@@ -294,57 +371,12 @@
             :label="$t('profiles.chart.bazhai')"
             name="bazhai"
           >
-            <div
-              v-if="bazhai"
-              class="mingua-row"
-            >
-              <div class="mingua font-serif">
-                {{ bazhai.ming_gua.gua.name }}
-              </div>
-              <div>
-                <div class="mg-name">
-                  {{ bazhai.ming_gua.group }}
-                </div>
-                <div class="mg-sub">
-                  {{ $t('profiles.chart.directions') }}
-                </div>
-              </div>
-            </div>
-            <div
-              v-if="bazhai"
-              class="dirs"
-            >
-              <div
-                v-for="d in bazhaiDirs"
-                :key="d.key"
-                :class="['dir', { good: d.good }]"
-              >
-                <div class="dg font-serif">
-                  {{ d.gua }}
-                </div>
-                <div class="dname">
-                  {{ $t(`profiles.chart.direction.${d.key}`) }}
-                </div>
-              </div>
-            </div>
-            <template v-if="liuNianXing">
-              <div class="sec-title">
-                {{ $t('profiles.chart.annualStars', { year: liuNianXing.year }) }}
-              </div>
-              <div class="ln-row">
-                {{ $t('profiles.chart.centerStar') }}<strong>{{ liuNianXing.ru_zhong }}</strong>
-              </div>
-              <div class="fly-grid">
-                <div
-                  v-for="f in flyStars"
-                  :key="f.gong_num"
-                  :class="['fly-cell', { center: f.gong_num === 5 }]"
-                >
-                  <div class="fly-name">
-                    {{ f.xing_name }}
-                  </div>
-                </div>
-              </div>
+            <template v-if="bazhai">
+              <MingGuaSection :bazhai="bazhai" />
+              <LiuNianFlySection
+                v-if="bazhai.liu_nian_xing"
+                :liu-nian="bazhai.liu_nian_xing"
+              />
             </template>
           </el-tab-pane>
         </el-tabs>
@@ -366,17 +398,22 @@ import {
   engineBaziChart,
   engineBaziFullChart,
   engineZiweiChart,
+  engineZiweiDaXian,
   engineZiweiFullChart,
+  engineZiweiLiuNian,
   type BazhaiChart,
   type BaziChartData,
   type BaziZhuFull,
   type BaziYongShen,
   type ZiweiChart,
+  type ZiweiDaXianItem,
+  type ZiweiLiuNianData,
   type ZiweiStarInfo,
 } from '@/api/engine'
 import { resolvePaipanContext } from '@/utils/paipan'
-import { BAZHAI_AUS, LUOSHU_ORDER } from '@/utils/bazhai'
 import type { BirthProfile } from '@/api/birth-profiles'
+import MingGuaSection from '@/components/bazhai/MingGuaSection.vue'
+import LiuNianFlySection from '@/components/bazhai/LiuNianFlySection.vue'
 
 const props = defineProps<{ profile: BirthProfile; auto?: boolean }>()
 const { t } = useI18n()
@@ -390,6 +427,9 @@ const baziFull = ref<BaziFullChartData | null>(null)
 const ziwei = ref<ZiweiChart | null>(null)
 const bazhai = ref<BazhaiChart | null>(null)
 const yongShen = ref<BaziYongShen | null>(null)
+const daXianRaw = ref<ZiweiDaXianItem[]>([])
+const liuNianYear = ref(new Date().getFullYear())
+const liuNian = ref<ZiweiLiuNianData | null>(null)
 
 const anyResult = computed(() => !!(baziChart.value || ziwei.value || bazhai.value))
 
@@ -528,21 +568,35 @@ const ziweiPlaced = computed<ZiweiPalaceVM[]>(() => {
   })
 })
 
-const bazhaiDirs = computed(() => {
-  if (!bazhai.value) return []
-  const dirs = bazhai.value.ba_zhai_dirs
-  return Object.entries(dirs).map(([key, values]) => ({
-    key, gua: (values ?? [''])[0], good: BAZHAI_AUS.includes(key),
+const daXian = computed(() => {
+  const cy = new Date().getFullYear()
+  return daXianRaw.value.map(d => ({
+    ...d,
+    yearRange: d.start_year != null && d.end_year != null ? `${d.start_year}–${d.end_year}` : '',
+    current: d.start_year != null && d.end_year != null && cy >= d.start_year && cy <= d.end_year,
   }))
 })
 
-const liuNianXing = computed(() => bazhai.value?.liu_nian_xing ?? null)
-const flyStars = computed(() => {
-  const gong = liuNianXing.value?.gong_wei
-  if (!gong || gong.length !== 9) return []
-  // gong_num 1-9：按洛书九宫排 3x3（1下、2右上…按洛书序）
-  return LUOSHU_ORDER.map(n => gong.find(g => g.gong_num === n) ?? { gong_num: n, xing_name: '—' })
+const liuNianPlaced = computed(() => {
+  const data = liuNian.value
+  if (!data?.gong_wei) return []
+  return data.gong_wei.map(g => ({
+    name: g.name,
+    zhi: g.zhi,
+    ming: !!g.is_liu_ming,
+    stars: g.xing_yao ?? [],
+    style: ZHI_POS[g.zhi ?? ''] ?? '',
+  }))
 })
+
+async function loadLiuNian() {
+  if (!ziwei.value) return
+  try {
+    liuNian.value = await engineZiweiLiuNian(ziwei.value, liuNianYear.value)
+  } catch (err) {
+    error.value = toUserMessage(err, t('profiles.chart.failed'))
+  }
+}
 
 async function compute() {
   const p = props.profile
@@ -553,6 +607,8 @@ async function compute() {
   yongShen.value = null
   ziwei.value = null
   bazhai.value = null
+  daXianRaw.value = []
+  liuNian.value = null
   if (p.calendar === 'lunar') return
   if (p.birth_time_known === 'unknown') {
     error.value = t('profiles.chart.errors.unknownTime')
@@ -578,12 +634,19 @@ async function compute() {
     ziwei.value = await engineZiweiFullChart(zwChart)
     const birthYear = baziChart.value.birth_year ?? parseInt(p.birth_date.slice(0, 4), 10)
     bazhai.value = await engineBazhaiChart(birthYear, p.gender)
+    daXianRaw.value = await engineZiweiDaXian(ziwei.value)
+    if (tab.value === 'ziwei') void loadLiuNian()
   } catch (err) {
     error.value = toUserMessage(err, t('profiles.chart.failed'))
   } finally {
     loading.value = false
   }
 }
+
+// 流年懒加载：切到紫微 tab 时按当前年份查询。
+watch(tab, value => {
+  if (value === 'ziwei') void loadLiuNian()
+})
 
 // 自动排盘：进入档案详情（或切换档案）即出盘，免手动点「排盘」。
 watch(() => props.profile?.id, () => {
@@ -632,12 +695,7 @@ watch(() => props.profile?.id, () => {
 .shensha { gap: 6px; }
 .ss-chip { padding: 2px 10px; border-radius: var(--radius-full); border: 1px solid var(--liki-line); background: var(--liki-surface); color: var(--liki-text-2); font-size: var(--font-size-caption); }
 
-.ln-row { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: 10px; }
-.fly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; width: min(320px, 100%); }
-.fly-cell { background: var(--liki-surface); padding: 10px 4px; text-align: center; }
-.fly-cell.center { background: var(--liki-primary-tint); }
-.fly-name { font-size: var(--font-size-caption); color: var(--liki-text-2); }
-
+.correction { margin-top: 12px; font-size: var(--font-size-caption); color: var(--liki-primary); }
 .sec-title { font-size: var(--font-size-label); font-weight: 600; margin: 16px 0 8px; color: var(--liki-ink); }
 .dayun { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
 .dy { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 8px 4px; text-align: center; }
@@ -702,18 +760,28 @@ watch(() => props.profile?.id, () => {
 .zw-sf-name { font-size: var(--font-size-caption); font-weight: 600; color: var(--liki-text-3); }
 .zw-sf-body { font-size: var(--font-size-caption); color: var(--liki-ink); margin-top: 2px; }
 
-.mingua-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
-.mingua { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--liki-primary); font-size: 26px; color: var(--liki-primary); background: var(--liki-primary-tint); }
-.mg-name { font-size: var(--font-size-body-lg); font-weight: 600; }
-.mg-sub { color: var(--liki-text-2); font-size: var(--font-size-caption); margin-top: 2px; }
-.dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.dir { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 10px; text-align: center; }
-.dir .dg { font-size: var(--font-size-title-xs); color: var(--liki-primary); }
-.dir.good { border-color: var(--color-success-border); background: var(--color-success-surface); }
-.dir.good .dg { color: var(--el-color-success); }
-.dir .dname { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 3px; }
+.ln-pick { margin-bottom: 8px; }
+.ln-sihua { justify-content: flex-start; }
+.ln-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, minmax(60px, auto));
+  gap: 1px;
+  background: var(--liki-line);
+  border: 1px solid var(--liki-line);
+  border-radius: var(--radius-small);
+  overflow: hidden;
+  margin-top: 8px;
+}
+.ln-cell { background: var(--liki-surface); padding: 4px 5px; min-width: 0; }
+.ln-cell.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
+.ln-pname { font-size: var(--font-size-micro); font-weight: 600; color: var(--liki-text-2); white-space: nowrap; }
+.ln-cell.ming .ln-pname { color: var(--liki-primary); }
+.ln-stars { font-size: var(--font-size-micro); color: var(--liki-primary); line-height: 1.35; margin-top: 2px; }
+.ln-center { grid-row: 2 / 4; grid-column: 2 / 4; background: var(--liki-surface-cream); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; text-align: center; }
+.lnc-title { font-size: var(--font-size-body-lg); font-weight: 700; color: var(--liki-primary); }
+.lnc-row { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 2px; }
 
-.correction { margin-top: 12px; font-size: var(--font-size-caption); color: var(--liki-primary); }
 @media (max-width: 640px) {
   .pillars { grid-template-columns: repeat(2, 1fr); }
   .zw-grid { grid-template-rows: repeat(4, minmax(88px, auto)); }
@@ -722,6 +790,7 @@ watch(() => props.profile?.id, () => {
   .zw-center { padding: 6px 6px; gap: 4px; }
   .zwc-row { font-size: var(--font-size-micro); }
   .zw-sanfang { grid-template-columns: 1fr; }
-  .dirs { grid-template-columns: repeat(2, 1fr); }
+  .ln-grid { grid-template-rows: repeat(4, minmax(52px, auto)); }
+  .ln-cell { padding: 3px; }
 }
 </style>

@@ -1,7 +1,7 @@
 // 引擎请求/错误契约锁：字段名与引擎 mcpcontract DTO 一字不差，防前端臆造参数。
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/http'
-import { engineBaziBond, engineHuangliDays } from '@/api/engine'
+import { engineBaziBond, engineHuangliDays, engineZiweiDaXian, engineZiweiLiuNian } from '@/api/engine'
 
 function stubFetch(payload: unknown, status = 200): void {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status })))
@@ -26,6 +26,18 @@ describe('engine request contract', () => {
       a: { chart: { nian: { gan: '甲' } } },
       b: { chart: { nian: { gan: '庚' } } },
     })
+  })
+
+  it('ziwei daxian sends {chart} exactly (engine.ziwei.ZiweiDaXianInput)', async () => {
+    stubFetch({ data: [] })
+    await engineZiweiDaXian({ gong_wei: [] })
+    expect(lastRequestBody()).toEqual({ chart: { gong_wei: [] } })
+  })
+
+  it('ziwei liunian sends {chart, lunar_year} exactly (engine.ziwei.ZiweiLiuNianInput)', async () => {
+    stubFetch({ data: {} })
+    await engineZiweiLiuNian({ gong_wei: [] }, 2026)
+    expect(lastRequestBody()).toEqual({ chart: { gong_wei: [] }, lunar_year: 2026 })
   })
 
   it('maps BFF problem+json type to the ApiError code verbatim', async () => {
