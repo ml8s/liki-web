@@ -151,23 +151,143 @@
             :label="$t('profiles.chart.ziwei')"
             name="ziwei"
           >
-            <div class="palaces">
-              <div
-                v-for="g in ziweiGongs"
-                :key="g.name"
-                :class="['palace', { ming: g.name === '命宫', shen: g.is_shen_gong }]"
-              >
-                <div class="pname">
-                  {{ g.name }}
+            <template v-if="ziwei">
+              <div class="zw-grid">
+                <div
+                  v-for="g in ziweiPlaced"
+                  :key="g.name"
+                  :style="g.style"
+                  :class="['zw-palace', { ming: g.ming, shen: g.shen }]"
+                  :title="g.tooltip"
+                >
+                  <div class="zw-head">
+                    <span class="zw-pname">{{ g.name }}</span>
+                    <span class="zw-gz font-serif">{{ g.gan }}{{ g.zhi }}</span>
+                  </div>
+                  <div
+                    v-if="g.main.length"
+                    class="zw-main"
+                  >
+                    <span
+                      v-for="s in g.main"
+                      :key="s.name"
+                      class="zw-star"
+                    >{{ s.name }}{{ s.liang_du }}<i
+                      v-if="s.si_hua"
+                      class="zw-si"
+                      :data-hua="s.si_hua"
+                    >{{ s.si_hua }}</i></span>
+                  </div>
+                  <div
+                    v-if="g.minor.length"
+                    class="zw-minor"
+                  >
+                    <span
+                      v-for="s in g.minor"
+                      :key="s.name"
+                      class="zw-star"
+                    >{{ s.name }}{{ s.liang_du }}<i
+                      v-if="s.si_hua"
+                      class="zw-si"
+                      :data-hua="s.si_hua"
+                    >{{ s.si_hua }}</i></span>
+                  </div>
+                  <div
+                    v-if="g.zaYao.length"
+                    class="zw-za"
+                  >{{ g.zaYao.join(' ') }}</div>
+                  <div class="zw-foot">
+                    <span>{{ $t('profiles.chart.changSheng') }} {{ g.changSheng }}</span>
+                    <b
+                      v-if="g.shen"
+                      class="zw-shen"
+                    >身</b>
+                  </div>
                 </div>
-                <div class="pstar">
-                  {{ mainStars(g) }}
-                </div>
-                <div class="pminor">
-                  {{ minorStars(g) }}
+                <div class="zw-center">
+                  <div class="zwc-title">
+                    {{ ziwei.ju_shu }}
+                  </div>
+                  <div class="zwc-row">
+                    {{ $t('profiles.chart.mingZhu') }} {{ ziwei.ming_zhu }} · {{ $t('profiles.chart.shenZhu') }} {{ ziwei.shen_zhu }}
+                  </div>
+                  <div class="zwc-row">
+                    {{ $t('profiles.chart.ziweiPos') }} {{ ziwei.ziwei_pos }} · {{ $t('profiles.chart.shenGong') }} {{ ziwei.shen_gong }}
+                  </div>
+                  <div class="zwc-row">
+                    {{ $t('profiles.chart.ziweiBirth', { nian: `${ziwei.nian_gan}${ziwei.nian_zhi}`, shi: ziwei.shi_zhi }) }}
+                  </div>
+                  <div class="zwc-sihua">
+                    <span
+                      v-for="(hua, star) in ziwei.si_hua ?? {}"
+                      :key="star"
+                      class="zw-sihua-chip"
+                    >{{ star }}<i
+                      class="zw-si"
+                      :data-hua="hua"
+                    >{{ hua }}</i></span>
+                  </div>
                 </div>
               </div>
-            </div>
+              <div
+                v-if="ziwei.patterns?.length"
+                class="zw-section"
+              >
+                <div class="sec-title">
+                  {{ $t('profiles.chart.patterns') }}
+                </div>
+                <div class="zw-chips">
+                  <span
+                    v-for="p in ziwei.patterns"
+                    :key="p.name"
+                    class="zw-chip"
+                    :title="p.description"
+                  >{{ p.name }}</span>
+                </div>
+              </div>
+              <div
+                v-if="ziwei.san_fang?.length"
+                class="zw-section"
+              >
+                <div class="sec-title">
+                  {{ $t('profiles.chart.sanFang') }}
+                </div>
+                <div class="zw-sanfang">
+                  <div
+                    v-for="s in ziwei.san_fang"
+                    :key="s.name"
+                    class="zw-sf"
+                  >
+                    <div class="zw-sf-name">
+                      {{ s.name }}
+                    </div>
+                    <div class="zw-sf-body">
+                      {{ s.zhu_xing.join(' ') }}<template v-if="s.fu_xing?.length"> · {{ s.fu_xing.join(' ') }}</template><i
+                        v-for="(hua, i) in s.si_hua ?? []"
+                        :key="i"
+                        class="zw-si"
+                        :data-hua="hua"
+                      >{{ hua }}</i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div
+                v-if="ziwei.kong_gong?.length"
+                class="zw-section"
+              >
+                <div class="sec-title">
+                  {{ $t('profiles.chart.kongJie') }}
+                </div>
+                <div class="zw-chips">
+                  <span
+                    v-for="k in ziwei.kong_gong"
+                    :key="k.gong_name"
+                    class="zw-chip"
+                  >{{ $t('profiles.chart.kongJieValue', { gong: k.gong_name, dui: k.dui_gong, stars: k.jie_xing.join(' ') }) }}</span>
+                </div>
+              </div>
+            </template>
           </el-tab-pane>
 
           <el-tab-pane
@@ -252,6 +372,7 @@ import {
   type BaziZhuFull,
   type BaziYongShen,
   type ZiweiChart,
+  type ZiweiStarInfo,
 } from '@/api/engine'
 import { resolvePaipanContext } from '@/utils/paipan'
 import { BAZHAI_AUS, LUOSHU_ORDER } from '@/utils/bazhai'
@@ -357,13 +478,55 @@ const yongShenSummary = computed(() => {
   return rows
 })
 
-const ziweiGongs = computed(() => ziwei.value?.gong_wei ?? [])
-function mainStars(g: { xing_yao: Array<{ name: string; is_zhu_xing?: boolean; liang_du?: string }> }) {
-  return g.xing_yao.filter(s => s.is_zhu_xing).map(s => (s.liang_du ? `${s.name}${s.liang_du}` : s.name)).join(' ')
+const ZHI_POS: Record<string, string> = {
+  巳: 'grid-row:1;grid-column:1',
+  午: 'grid-row:1;grid-column:2',
+  未: 'grid-row:1;grid-column:3',
+  申: 'grid-row:1;grid-column:4',
+  辰: 'grid-row:2;grid-column:1',
+  酉: 'grid-row:2;grid-column:4',
+  卯: 'grid-row:3;grid-column:1',
+  戌: 'grid-row:3;grid-column:4',
+  寅: 'grid-row:4;grid-column:1',
+  丑: 'grid-row:4;grid-column:2',
+  子: 'grid-row:4;grid-column:3',
+  亥: 'grid-row:4;grid-column:4',
 }
-function minorStars(g: { xing_yao: Array<{ name: string; is_zhu_xing?: boolean; liang_du?: string }> }) {
-  return g.xing_yao.filter(s => !s.is_zhu_xing).map(s => (s.liang_du ? `${s.name}${s.liang_du}` : s.name)).join(' ')
+
+interface ZiweiPalaceVM {
+  name: string
+  gan: string
+  zhi: string
+  ming: boolean
+  shen: boolean
+  style: string
+  main: ZiweiStarInfo[]
+  minor: ZiweiStarInfo[]
+  zaYao: string[]
+  changSheng: string
+  tooltip: string
 }
+
+const ziweiPlaced = computed<ZiweiPalaceVM[]>(() => {
+  const chart = ziwei.value
+  if (!chart) return []
+  return (chart.gong_wei ?? []).map(g => {
+    const ages = (g.ages ?? []).join('、')
+    return {
+      name: g.name,
+      gan: g.gan ?? '',
+      zhi: g.zhi ?? '',
+      ming: g.name === chart.ming_gong,
+      shen: !!g.is_shen_gong,
+      style: ZHI_POS[g.zhi ?? ''] ?? '',
+      main: (g.xing_yao ?? []).filter(s => s.is_zhu_xing),
+      minor: (g.xing_yao ?? []).filter(s => !s.is_zhu_xing),
+      zaYao: g.za_yao ?? [],
+      changSheng: g.chang_sheng ?? '',
+      tooltip: ages ? t('profiles.chart.xiaoXian', { ages }) : '',
+    }
+  })
+})
 
 const bazhaiDirs = computed(() => {
   if (!bazhai.value) return []
@@ -488,18 +651,56 @@ watch(() => props.profile?.id, () => {
 .ys-label { color: var(--liki-text-3); flex: 0 0 3em; }
 .ys-body { color: var(--liki-ink); }
 
-.palaces {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px;
-  background: var(--liki-line); border: 1px solid var(--liki-line);
-  border-radius: var(--radius-small); overflow: hidden;
+.zw-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, minmax(100px, auto));
+  gap: 1px;
+  background: var(--liki-line);
+  border: 1px solid var(--liki-line);
+  border-radius: var(--radius-small);
+  overflow: hidden;
 }
-.palace { background: var(--liki-surface); padding: 10px 4px; text-align: center; min-height: 68px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.palace.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
-.palace.shen { background: var(--liki-primary-tint); }
-.palace .pname { font-size: var(--font-size-label); font-weight: 600; }
-.palace.ming .pname, .palace.ming .pstar { color: var(--liki-primary); }
-.palace .pstar { font-size: var(--font-size-caption); color: var(--liki-primary); margin-top: 3px; }
-.palace .pminor { font-size: var(--font-size-micro); color: var(--liki-text-3); margin-top: 2px; }
+.zw-palace { background: var(--liki-surface); padding: 6px 5px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.zw-palace.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
+.zw-palace.ming .zw-pname, .zw-palace.ming .zw-main { color: var(--liki-primary); }
+.zw-palace.shen { box-shadow: inset 0 0 0 1px var(--liki-primary-border); }
+.zw-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; }
+.zw-pname { font-size: var(--font-size-label); font-weight: 600; white-space: nowrap; }
+.zw-gz { font-size: var(--font-size-micro); color: var(--liki-text-3); }
+.zw-main { color: var(--liki-primary); font-size: var(--font-size-caption); line-height: 1.4; }
+.zw-minor { color: var(--liki-text-2); font-size: var(--font-size-micro); line-height: 1.4; }
+.zw-star { white-space: nowrap; margin-right: 4px; display: inline-block; }
+.zw-si {
+  display: inline-block; width: 14px; height: 14px; line-height: 14px; border-radius: var(--radius-full);
+  font-style: normal; font-size: 10px; text-align: center; margin-left: 1px; color: var(--color-white);
+}
+.zw-si[data-hua="禄"] { background: var(--el-color-success); }
+.zw-si[data-hua="权"] { background: var(--el-color-primary); }
+.zw-si[data-hua="科"] { background: var(--el-color-warning); }
+.zw-si[data-hua="忌"] { background: var(--el-color-danger); }
+.zw-za { font-size: var(--font-size-micro); color: var(--liki-text-3); line-height: 1.35; }
+.zw-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: var(--font-size-micro); color: var(--liki-text-3); }
+.zw-shen { color: var(--liki-primary); font-weight: 700; }
+.zw-center {
+  grid-row: 2 / 4; grid-column: 2 / 4;
+  background: var(--liki-surface-cream);
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; justify-content: center; text-align: center;
+}
+.zwc-title { font-size: var(--font-size-body-lg); font-weight: 700; color: var(--liki-primary); }
+.zwc-row { font-size: var(--font-size-caption); color: var(--liki-text-2); }
+.zwc-sihua { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 2px; }
+.zw-sihua-chip {
+  display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border: 1px solid var(--liki-line);
+  border-radius: var(--radius-full); background: var(--liki-surface); font-size: var(--font-size-caption); color: var(--liki-text-2);
+}
+.zw-section { margin-top: 14px; }
+.zw-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.zw-chip { padding: 3px 10px; border: 1px solid var(--liki-line); border-radius: var(--radius-full); background: var(--liki-surface); font-size: var(--font-size-caption); color: var(--liki-text-2); }
+.zw-sanfang { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.zw-sf { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 8px 10px; background: var(--liki-surface); min-width: 0; }
+.zw-sf-name { font-size: var(--font-size-caption); font-weight: 600; color: var(--liki-text-3); }
+.zw-sf-body { font-size: var(--font-size-caption); color: var(--liki-ink); margin-top: 2px; }
 
 .mingua-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
 .mingua { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--liki-primary); font-size: 26px; color: var(--liki-primary); background: var(--liki-primary-tint); }
@@ -515,7 +716,12 @@ watch(() => props.profile?.id, () => {
 .correction { margin-top: 12px; font-size: var(--font-size-caption); color: var(--liki-primary); }
 @media (max-width: 640px) {
   .pillars { grid-template-columns: repeat(2, 1fr); }
-  .palaces { grid-template-columns: repeat(3, 1fr); }
+  .zw-grid { grid-template-rows: repeat(4, minmax(88px, auto)); }
+  .zw-palace { padding: 4px 3px; }
+  .zw-pname { font-size: var(--font-size-micro); }
+  .zw-center { padding: 6px 6px; gap: 4px; }
+  .zwc-row { font-size: var(--font-size-micro); }
+  .zw-sanfang { grid-template-columns: 1fr; }
   .dirs { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

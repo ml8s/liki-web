@@ -343,7 +343,8 @@ export interface ZiweiStarInfo {
 }
 
 export interface ZiweiGong {
-  index: number
+  /** 与 name 同值的宫名（引擎 wire 如 "命宫"）。 */
+  index: string
   name: string
   gan?: string
   zhi?: string
@@ -389,14 +390,15 @@ export interface ZiweiPalaceFact {
   value?: string
 }
 
+/** 紫微命盘（ziwei_chart / ziwei_fullchart 共用同一 wire DTO）。 */
 export interface ZiweiChart {
-  school?: string
+  school?: { leap_month?: string; source?: string }
   gong_wei: ZiweiGong[]
-  ming_gong?: number
-  shen_gong?: number
-  ju_shu?: number
+  ming_gong?: string
+  shen_gong?: string
+  ju_shu?: string
   ju_shu_name?: string
-  ziwei_pos?: number
+  ziwei_pos?: string
   si_hua?: ZiweiSiHuaResult
   palace_facts?: ZiweiPalaceFact[]
   kong_gong?: ZiweiKongGong[]
@@ -415,31 +417,7 @@ export interface ZiweiChart {
   san_fang?: ZiweiSanFang[]
 }
 
-export interface ZiweiChartData {
-  school?: string
-  gong_wei: ZiweiGong[]
-  ming_gong?: number
-  shen_gong?: number
-  ju_shu?: number
-  ju_shu_name?: string
-  ziwei_pos?: number
-  si_hua?: ZiweiSiHuaResult
-  palace_facts?: ZiweiPalaceFact[]
-  kong_gong?: ZiweiKongGong[]
-  nian_gan?: string
-  nian_zhi?: string
-  shi_zhi?: string
-  birth_year?: number
-  lunar_month?: number
-  lunar_day?: number
-  birth_lunar_month?: number
-  birth_is_leap?: boolean
-  gender?: string
-  ming_zhu?: string
-  shen_zhu?: string
-  patterns?: ZiweiPattern[]
-  san_fang?: ZiweiSanFang[]
-}
+export type ZiweiChartData = ZiweiChart
 
 export function engineZiweiChart(lunar: string, gender: string): Promise<ZiweiChartData> {
   return engineTool<ZiweiChartData>(ENGINE_TOOLS.ZiweiChart, { lunar, gender })
