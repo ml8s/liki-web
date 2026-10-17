@@ -112,21 +112,10 @@ jobs:
       - name: Go test + coverage
         run: make test-go-coverage
 
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: go-coverage
-          path: coverage.out
 
       - name: Vitest + coverage
         run: make test-js-coverage
 
-      - name: Upload frontend coverage artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: frontend-coverage
-          path: web/app/coverage
-          if-no-files-found: error
 
       - name: Python helper tests
         run: make test-python
