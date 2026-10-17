@@ -47,7 +47,7 @@ web/node_modules/
 web/skills/
 
 # Generated
-/build/candidate/
+/build/release/
 web/sitemap.xml
 web/dist/
 web/.astro/
