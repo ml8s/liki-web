@@ -34,7 +34,6 @@ const (
 
 var (
 	ErrSubscriptionNotFound = errors.New("sales: subscription not found")
-	ErrSubscriptionExists   = errors.New("sales: subscription payment already recorded")
 )
 
 type Subscription struct {

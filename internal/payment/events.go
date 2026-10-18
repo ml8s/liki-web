@@ -19,17 +19,6 @@ const (
 	PaymentEventReconciliation PaymentEventSource = "reconciliation"
 )
 
-type PaymentEvent struct {
-	ID          string
-	IntentID    string
-	Provider    Provider
-	EventType   string
-	Source      PaymentEventSource
-	PayloadHash string
-	PaymentID   string
-	ReceivedAt  time.Time
-}
-
 type PaymentEventStore struct {
 	db *sql.DB
 }

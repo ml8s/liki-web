@@ -14,7 +14,6 @@ import (
 
 	"github.com/ml8s/liki-web/internal/agent"
 	"github.com/ml8s/liki-web/internal/llm"
-	"github.com/ml8s/liki-web/internal/product"
 )
 
 func newTestAgentRunner(t *testing.T, server *httptest.Server) *AgentRunner {
@@ -233,29 +232,29 @@ func TestServiceRoutesSessionsByExpert(t *testing.T) {
 		ExpertDivination: divination,
 	}, legacy)
 
-	if got, err := service.runnerForSession(product.SkillConsultation, ExpertNatal); err != nil || got != natal {
+	if got, err := service.runnerForSession(ExpertNatal); err != nil || got != natal {
 		t.Fatalf("runnerForSession(natal) = %#v, %v", got, err)
 	}
-	if got, err := service.runnerForSession(product.SkillConsultation, ExpertDivination); err != nil || got != divination {
+	if got, err := service.runnerForSession(ExpertDivination); err != nil || got != divination {
 		t.Fatalf("runnerForSession(divination) = %#v, %v", got, err)
 	}
 	// 历史会话（expert 为空）回退到 legacy runner。
-	if got, err := service.runnerForSession(product.SkillConsultation, ""); err != nil || got != legacy {
+	if got, err := service.runnerForSession(""); err != nil || got != legacy {
 		t.Fatalf("runnerForSession(legacy) = %#v, %v", got, err)
 	}
 	// 未部署的专家明确不可用。
-	if _, err := service.runnerForSession(product.SkillConsultation, ExpertFengshui); err == nil {
+	if _, err := service.runnerForSession(ExpertFengshui); err == nil {
 		t.Fatal("expected ErrRunnerUnavailable for an undeployed expert")
 	}
 }
 
 func TestServiceRejectsWhenNoAgentRunnerConfigured(t *testing.T) {
 	service := NewService(nil, nil, nil)
-	if _, err := service.runnerForSession(product.SkillConsultation, ExpertNatal); err == nil {
+	if _, err := service.runnerForSession(ExpertNatal); err == nil {
 		t.Fatal("expected ErrRunnerUnavailable when agent runner is not configured")
 	}
 	// 无 legacy runner 时，历史会话同样明确不可用。
-	if _, err := service.runnerForSession(product.SkillConsultation, ""); err == nil {
+	if _, err := service.runnerForSession(""); err == nil {
 		t.Fatal("expected ErrRunnerUnavailable for expert-less sessions without a legacy runner")
 	}
 }

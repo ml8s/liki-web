@@ -14,12 +14,6 @@ import (
 	"github.com/ml8s/liki-web/internal/httputil"
 )
 
-// CreateRequest 是 POST /api/feedback 的最小契约：任何合法 JSON 对象都接受，
-// 字段由 payload 内的 schema_version 自描述，后端不解字段——schema 演进不触发后端改动。
-type CreateRequest struct {
-	SchemaVersion string `json:"schema_version"`
-}
-
 type UpdateRequest struct {
 	Status   string `json:"status"`
 	IssueURL string `json:"issue_url,omitempty"`

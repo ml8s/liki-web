@@ -33,14 +33,6 @@ func (s *Store) ScoutByID(ctx context.Context, userID string) (Partner, error) {
 	return s.partnerByRole(ctx, userID, RoleScout)
 }
 
-func (s *Store) RequireKOL(ctx context.Context, userID string) (Partner, error) {
-	return s.KOLByID(ctx, userID)
-}
-
-func (s *Store) RequireScout(ctx context.Context, userID string) (Partner, error) {
-	return s.ScoutByID(ctx, userID)
-}
-
 // PartnerForPayout permits retired role capabilities for settling historical
 // earnings, while the partner-level fraud freeze still blocks withdrawal.
 func (s *Store) PartnerForPayout(ctx context.Context, userID string, role PartnerRole) (Partner, error) {
@@ -75,19 +67,4 @@ WHERE r.user_id=? AND pr.role=?`,
 		return "", false, err
 	}
 	return RoleStatus(status), true, nil
-}
-
-func (s *Store) CountAttributions(ctx context.Context, referrerID string) (int64, error) {
-	return s.CountAttributed(ctx, referrerID)
-}
-
-func (s *Store) HasRole(ctx context.Context, userID string, role PartnerRole) (bool, error) {
-	_, err := s.partnerByRole(ctx, userID, role)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }

@@ -26,9 +26,7 @@ type User struct {
 type AuthProvider string
 
 const (
-	ProviderEmail  AuthProvider = "email"
-	ProviderGoogle AuthProvider = "google"
-	ProviderApple  AuthProvider = "apple"
+	ProviderEmail AuthProvider = "email"
 )
 
 type AuthIdentity struct {

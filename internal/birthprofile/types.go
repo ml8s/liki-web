@@ -12,7 +12,6 @@ var (
 	ErrNotFound      = errors.New("birthprofile: not found")
 	ErrConflict      = errors.New("birthprofile: version conflict")
 	ErrQuotaExceeded = errors.New("birthprofile: quota exceeded")
-	ErrForbidden     = errors.New("birthprofile: forbidden")
 )
 
 type BirthProfile struct {

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"html/template"
 	"net/url"
@@ -47,8 +46,6 @@ type Notification struct {
 	CreatedAt       time.Time
 	SentAt          *time.Time
 }
-
-var ErrNotificationNotFound = errors.New("payment: notification not found")
 
 type NotificationStore struct {
 	db *sql.DB
@@ -204,18 +201,6 @@ func buildAdminNewOrder(notice paidOrderNotice, to string) (EmailMessage, error)
 }
 
 func NewNotificationStore(db *sql.DB) *NotificationStore { return &NotificationStore{db: db} }
-
-func (s *NotificationStore) Enqueue(ctx context.Context, intentID string, kind NotificationKind, msg EmailMessage) error {
-	_, err := s.db.ExecContext(ctx, `
-INSERT INTO payment_notifications (id, payment_intent_id, kind, to_email, subject, body, status, created_at)
-VALUES (?,?,?,?,?,?,'pending',?)`,
-		uuid.NewString(), intentID, string(kind), msg.To, msg.Subject, msg.Body,
-		time.Now().UTC().Format(time.RFC3339))
-	if err != nil {
-		return fmt.Errorf("payment: enqueue notification: %w", err)
-	}
-	return nil
-}
 
 func (s *NotificationStore) EnqueueOnce(ctx context.Context, intentID string, kind NotificationKind, msg EmailMessage) error {
 	// Single statement: the unique index (payment_intent_id, kind) is the

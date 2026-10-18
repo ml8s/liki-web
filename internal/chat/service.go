@@ -44,7 +44,7 @@ func ValidExpert(expert string) bool {
 // service timeout covers local tool loops and remote AG-UI runs alike.
 const chatExecutionTimeout = 600 * time.Second
 
-// Runner abstracts the LLM execution engine for one skill.
+// Runner abstracts the LLM execution engine for one expert deployment.
 type Runner interface {
 	Execute(ctx context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent), phaseMsg func() string) ([]llm.Message, error)
 }
@@ -74,7 +74,7 @@ func (s *Service) SetAgentRunners(runners map[string]Runner, legacy Runner) {
 	s.legacyRunner = legacy
 }
 
-func (s *Service) runnerForSession(skill product.Skill, expert string) (Runner, error) {
+func (s *Service) runnerForSession(expert string) (Runner, error) {
 	if runner, ok := s.agentRunners[expert]; ok && runner != nil {
 		return runner, nil
 	}
@@ -101,7 +101,7 @@ func (s *Service) Session(ctx context.Context, userID, sessionID string) (Sessio
 	if !ok {
 		return Session{}, ErrSkillForbidden
 	}
-	if _, err := s.runnerForSession(product.Skill(session.Skill), session.Expert); err != nil {
+	if _, err := s.runnerForSession(session.Expert); err != nil {
 		return Session{}, err
 	}
 	return session, nil
@@ -229,7 +229,7 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if !ok {
 		return Message{}, Message{}, Session{}, ErrSkillForbidden
 	}
-	chatRunner, err := s.runnerForSession(product.Skill(session.Skill), session.Expert)
+	chatRunner, err := s.runnerForSession(session.Expert)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}

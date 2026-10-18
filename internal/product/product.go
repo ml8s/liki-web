@@ -1,6 +1,6 @@
-// Package liki is the conversational agent product. Users purchase access to
-// Liki — a 命理 consultant — not a report. This package owns the product
-// definition, entitlement grants, order lifecycle, and chat runtime.
+// Package product owns the product catalog: one commercial definition per
+// purchasable product, with its skills, billing modes, and prices. Users
+// purchase access to Liki — a 命理 consultant — not a report.
 package product
 
 import "fmt"

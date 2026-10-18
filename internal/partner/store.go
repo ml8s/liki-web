@@ -16,9 +16,8 @@ import (
 )
 
 var (
-	ErrInvalidCode         = errors.New("partner: invalid referral code")
-	ErrSelfReferral        = errors.New("partner: self referral is not allowed")
-	ErrUnsupportedProvider = errors.New("partner: payment provider is not supported")
+	ErrInvalidCode  = errors.New("partner: invalid referral code")
+	ErrSelfReferral = errors.New("partner: self referral is not allowed")
 )
 
 // referralCommissionProduct is the product sold by the referral programme.

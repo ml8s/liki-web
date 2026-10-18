@@ -21,7 +21,7 @@ VALUES('intent-1','order-1','user-1','liki-chat','dodo','paid',1000,'USD','user@
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := notifications.EnqueueOnce(ctx, "entitlement:ent-1", EntitlementCompensationKind(), EmailMessage{
+	if err := notifications.EnqueueOnce(ctx, "entitlement:ent-1", NotificationEntitlementCompensation, EmailMessage{
 		To: "user@example.com", Subject: "compensation", Body: "<p>compensation</p>",
 	}); err != nil {
 		t.Fatal(err)

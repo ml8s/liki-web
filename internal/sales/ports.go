@@ -26,12 +26,3 @@ type EntitlementProvisioner interface {
 		startsAt, expiresAt time.Time,
 	) error
 }
-
-type NoopEntitlementProvisioner struct{}
-
-func (NoopEntitlementProvisioner) ProvisionProduct(context.Context, string, string, product.Product, string, string, time.Duration) error {
-	return nil
-}
-func (NoopEntitlementProvisioner) ProvisionSubscriptionPeriod(context.Context, string, string, product.Product, string, time.Time, time.Time) error {
-	return nil
-}

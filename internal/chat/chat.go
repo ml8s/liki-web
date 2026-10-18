@@ -17,7 +17,6 @@ type SessionStatus string
 
 const (
 	SessionActive SessionStatus = "active"
-	SessionClosed SessionStatus = "closed"
 )
 
 type Session struct {
@@ -51,8 +50,7 @@ type Message struct {
 }
 
 // SendMessageResult is the canonical completion payload for Liki Chat. The
-// legacy SSE endpoint places it in `done.data`; the AG-UI gateway places it in
-// `RUN_FINISHED.result`.
+// AG-UI gateway places it in `RUN_FINISHED.result`.
 type SendMessageResult struct {
 	Session          Session `json:"session"`
 	ActiveSkill      string  `json:"active_skill"`

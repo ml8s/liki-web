@@ -71,8 +71,6 @@ type AuditItem struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-var ErrAdminDisabled = errors.New("adminauth: admin is disabled")
-
 type Store struct {
 	db  *sql.DB
 	now func() time.Time

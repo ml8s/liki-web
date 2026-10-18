@@ -125,8 +125,8 @@ func LoadConfig() Config {
 		CurrencySource:                   envOr("LIKI_BILLING_CURRENCY_SOURCE", sales.CurrencySourceTrustedEdge),
 		BillingRegion:                    envOr("LIKI_BILLING_REGION", "global"),
 		ChatOneTimeAccessDays:            envOrInt("LIKI_CHAT_ONE_TIME_ACCESS_DAYS", 30),
-		ChatOneTimePriceMinorCNY:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS", 100),
-		ChatOneTimePriceMinorUSD:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS", 100),
+		ChatOneTimePriceMinorCNY:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS", 0),
+		ChatOneTimePriceMinorUSD:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS", 0),
 		ChatSubscriptionPriceMinorUSD:    envOrInt64("LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS", 0),
 		KOLRevenueShareBasisPoints:       envOrInt("LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS", 5000),
 		ScoutRevenueShareBasisPoints:     envOrInt("LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS", 2000),
@@ -373,6 +373,7 @@ func main() {
 		cfg.ScoutRevenueShareBasisPoints,
 	)
 	partnerHandler := partner.NewHandler(partnerStore, authHandler.RequireUser, !cfg.DevelopmentMode)
+	partnerHandler.SetAttributionTTL(time.Duration(cfg.ReferralAttributionTTLDays) * 24 * time.Hour)
 	authHandler.SetPostLoginHook(partnerHandler.PostLoginHook)
 	chatStore := chat.NewChatStore(likiDB)
 	if err := chatStore.Migrate(ctx); err != nil {
@@ -487,7 +488,7 @@ func main() {
 			return err
 		}
 		return notifications.EnqueueOnce(ctx, "entitlement:"+grant.ID,
-			payment.EntitlementCompensationKind(), payment.EmailMessage{
+			payment.NotificationEntitlementCompensation, payment.EmailMessage{
 				To:      user.Email,
 				Subject: message.Subject,
 				Body:    message.Body,
@@ -733,7 +734,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				cutoff := time.Now().UTC().Add(-30 * 24 * time.Hour)
+				cutoff := time.Now().UTC().Add(-time.Duration(cfg.DeletedProfileRetentionDays) * 24 * time.Hour)
 				if n, err := profileStore.CleanupExpired(ctx, cutoff); err != nil {
 					slog.Error("profile cleanup", "err", err)
 				} else if n > 0 {
@@ -762,7 +763,9 @@ func main() {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				intents, notifications, err := paymentRuntime.RunRetention(ctx, 7*24*time.Hour, 90*24*time.Hour)
+				intents, notifications, err := paymentRuntime.RunRetention(ctx,
+					time.Duration(cfg.PaymentIntentExpiryDays)*24*time.Hour,
+					time.Duration(cfg.PaymentNotificationRetentionDays)*24*time.Hour)
 				if err != nil {
 					slog.Error("payment retention", "err", err)
 					continue

@@ -141,8 +141,6 @@ func (g *aguiGateway) translate(event agent.ChatEvent) {
 		g.custom("liki.thinking", "正在推理…")
 	case agent.EventTextDelta:
 		g.text(event.Content)
-	case agent.EventError:
-		g.fail(event.Content)
 	default:
 	}
 }

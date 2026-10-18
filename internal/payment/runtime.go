@@ -23,7 +23,6 @@ const (
 	IntentCheckoutCreated PaymentStatus = "checkout_created"
 	IntentPaid            PaymentStatus = "paid"
 	PaymentStatusRefunded PaymentStatus = "refunded"
-	IntentFailed          PaymentStatus = "failed"
 	IntentExpired         PaymentStatus = "expired"
 )
 
@@ -648,14 +647,6 @@ func (r *Runtime) authorizeIntentAccess(req *http.Request, intent PaymentIntent)
 		return email == intent.Email && orderID == intent.BusinessOrderID
 	}
 	return false
-}
-
-func (r *Runtime) SetWebhookEventForTest(event WebhookEvent) {
-	for _, gateway := range r.gateways {
-		if setter, ok := gateway.(interface{ SetWebhookEvent(event WebhookEvent) }); ok {
-			setter.SetWebhookEvent(event)
-		}
-	}
 }
 
 func (r *Runtime) StartNotificationWorker(ctx context.Context, interval time.Duration) {

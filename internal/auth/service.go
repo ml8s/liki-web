@@ -112,7 +112,7 @@ func (s *Service) RequestEmailCode(ctx context.Context, rawEmail, ip, userAgent,
 	}
 	sendErr := s.mailer.SendAuthCode(ctx, email, code, locale)
 	if sendErr != nil && !s.config.ExposeDevCode {
-		return CodeIssued{}, fmt.Errorf("auth: send email code: %w", sendErr)
+		return CodeIssued{}, fmt.Errorf("%w: %w", ErrMailerUnavailable, sendErr)
 	}
 	issued := CodeIssued{Email: email, ExpiresAt: expires}
 	if s.config.ExposeDevCode {

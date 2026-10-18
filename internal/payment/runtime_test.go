@@ -885,7 +885,7 @@ func TestNotificationQueueProcessesEntitlementCompensation(t *testing.T) {
 	ctx := context.Background()
 	runtime, _, _, sender, _, notifications := newTestRuntime(t)
 	if err := notifications.EnqueueOnce(ctx, "entitlement:test",
-		EntitlementCompensationKind(), EmailMessage{
+		NotificationEntitlementCompensation, EmailMessage{
 			To: "user@example.com", Subject: "Compensation", Body: "<p>7 days</p>",
 		}); err != nil {
 		t.Fatal(err)

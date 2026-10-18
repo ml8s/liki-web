@@ -35,7 +35,6 @@ type RoleStatus string
 
 const (
 	RoleActive  RoleStatus = "active"
-	RoleFrozen  RoleStatus = "frozen"
 	RoleRetired RoleStatus = "retired"
 )
 
@@ -43,11 +42,9 @@ type PayoutStatus string
 
 const (
 	PayoutRequested PayoutStatus = "requested"
-	PayoutPending   PayoutStatus = "pending"
 	PayoutApproved  PayoutStatus = "approved"
 	PayoutRejected  PayoutStatus = "rejected"
 	PayoutPaid      PayoutStatus = "paid"
-	PayoutFailed    PayoutStatus = "failed"
 )
 
 type PayoutMethod string
