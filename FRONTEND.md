@@ -53,11 +53,13 @@ Authenticated routes live under `/app`:
 /app/admin/partners
 /app/admin/payouts
 /app/admin/finance
+/app/admin/orders
+/app/admin/subscriptions
 /app/admin/audit
 /app/admin/administrators
 ```
 
-Router guards call `/api/me`, redirect unauthenticated users to `/login`, and preserve redirect targets.
+Router guards call `/api/me`, redirect unauthenticated users to `/app/login`, and preserve redirect targets.
 
 Route components stay lazy. Product and Admin navigation preloads one route on
 `pointerenter` or `focusin`; small operators and save-data sessions skip this

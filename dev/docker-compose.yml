@@ -17,7 +17,7 @@ services:
   web:
     image: liki-web:local
     build:
-      context: ../../liki-web
+      context: ..
       dockerfile: Dockerfile
     expose: ["8081"]
     restart: "no"
@@ -28,6 +28,7 @@ services:
       - LIKI_DATA_DIR=/var/lib/liki
       - LIKI_ENGINE_MCP_URL=http://engine-mcp:8085
       - LIKI_ENGINE_MCP_TOKEN=${LIKI_ENGINE_MCP_TOKEN:-}
+      # 容器内 127.0.0.1 无 agent：本地 compose 不做真实对话，仅 e2e mock 前端。
       - LIKI_AGENTS_URL=${LIKI_AGENTS_URL:-http://127.0.0.1:18083}
       - LIKI_AGENTS_NATAL_URL=${LIKI_AGENTS_NATAL_URL:-http://127.0.0.1:18083}
       - LIKI_AGENTS_DIVINATION_URL=${LIKI_AGENTS_DIVINATION_URL:-http://127.0.0.1:18083}
@@ -50,7 +51,6 @@ services:
     ports:
       - "8080:80"
     environment:
-      - DOMAIN=localhost
       - CADDY_LISTEN_ADDR=:80
     volumes:
       - ./Caddyfile.local:/etc/caddy/Caddyfile:ro

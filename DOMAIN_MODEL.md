@@ -185,7 +185,7 @@ Notification kinds:
 ```text
 customer_receipt
 admin_new_order
-report_ready
+entitlement_compensation
 ```
 
 Invariants:

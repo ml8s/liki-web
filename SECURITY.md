@@ -24,7 +24,7 @@ In scope:
 - entitlement bypass;
 - exposure of birth profile data;
 - secret leakage;
-- public RPC/MCP abuse that affects production.
+- public MCP abuse that affects production.
 
 Out of scope:
 

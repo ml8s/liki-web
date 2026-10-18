@@ -100,13 +100,13 @@ class CIWorkflowTest(unittest.TestCase):
         self.assertNotIn("--addr", dockerfile)
 
 
+    def test_ci_runs_standardized_coverage_targets_and_uploads_frontend_report(self):
+        text = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("make test-go-coverage", text)
+        self.assertIn("make test-js-coverage", text)
+        self.assertIn("name: frontend-coverage", text)
+        self.assertIn("web/app/coverage", text)
+
+
 if __name__ == "__main__":
     unittest.main()
-
-
-def test_ci_runs_standardized_coverage_targets_and_uploads_frontend_report() -> None:
-    text = WORKFLOW.read_text(encoding="utf-8")
-    assert "make test-go-coverage" in text
-    assert "make test-js-coverage" in text
-    assert "name: frontend-coverage" in text
-    assert "web/app/coverage" in text

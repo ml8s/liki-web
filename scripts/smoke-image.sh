@@ -21,7 +21,6 @@ docker run -d --name "$NAME" \
   -e LIKI_HTTP_LISTEN_ADDRESS=:8081 \
   -e JWT_SECRET=web-image-smoke-jwt-secret-0123456789abcdef \
   -e LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY=web-image-smoke-referral-payout-encryption-key-32-bytes \
-  -e LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY=web-image-smoke-referral-payout-encryption-key-32-bytes \
   -e LIKI_PUBLIC_BASE_URL=http://127.0.0.1:$PORT \
   -e LIKI_PAYMENT_WEBHOOK_URL=http://127.0.0.1:$PORT/api/payments/webhook \
   -e LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS=7900 \

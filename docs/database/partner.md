@@ -146,4 +146,4 @@ to `platform.db.users.id`; no cross-database foreign keys are allowed.
 - `010_finance_tasks` creates an explicit queue for paid-entry refund clawback.
 - `011_finance_task_erasure` permits `user_erasure_review`; account erasure freezes partners, redacts payout accounts after settlement, and queues unpaid obligations for finance.
 - `012_application_roles` permits KOL and Scout applications and preserves all historical applications as Scout applications.
-- `013_canonical_partner_tables` renames legacy referral tables to canonical partner-owned names. It is a no-op on fresh databases created by the canonical migrations.
+- `013_canonical_partner_tables` renames legacy referral tables to canonical partner-owned names. It must still run on fresh databases: migration 001 creates the legacy table names that 013 canonicalizes.

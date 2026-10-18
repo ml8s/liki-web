@@ -6,7 +6,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Use project Node version (defined in .nvmrc)
 source "$SCRIPT_DIR/node-path.sh"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-BUILD_TS="${BUILD_TS:-$(date '+%s')}"
 
 cd "$PROJECT_DIR/web"
 

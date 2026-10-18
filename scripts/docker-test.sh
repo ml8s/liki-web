@@ -55,9 +55,6 @@ XUNHU_APPSECRET=e2e
 LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY=e2e-referral-payout-encryption-key-32-bytes
 DODO_PRODUCT_LIKI_CHAT_ONE_TIME=e2e-one-time-product
 DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION=e2e-subscription-product
-LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY=e2e-referral-payout-encryption-key-32-bytes
-DOMAIN=localhost
-LISTEN_ADDR=:8081
 LIKI_PUBLIC_BASE_URL=http://localhost:8080
 LIKI_PAYMENT_WEBHOOK_URL=http://localhost:8080/api/payments/webhook
 LIKI_AGENTS_INTERNAL_TOKEN=e2e-agent-secret
@@ -70,7 +67,7 @@ LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS=4000
 LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS=1000
 EOF
 
-  DOMAIN=localhost docker compose --env-file "$TEST_ENV_FILE" -f "$COMPOSE_FILE" up -d --build --wait 2>&1 | sed 's/^/    /'
+  docker compose --env-file "$TEST_ENV_FILE" -f "$COMPOSE_FILE" up -d --build --wait 2>&1 | sed 's/^/    /'
 
   # ── Wait ──
   echo -n "==> 等待就绪"

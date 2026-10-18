@@ -12,6 +12,7 @@ export RELEASE_VERSION
 .PHONY: help check test gate smoke e2e \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
         check-web-static check-security check-go-version runtime-version-check \
+        check-version check-actions check-caddy check-skills check-packaging \
         build build-skills build-sitemap build-web build-go image test-go-coverage test-js-coverage \
         dev clean hooks version
 
@@ -23,16 +24,6 @@ export PATH := $(PYTHON_BIN):$(NODE_BIN):$(HOME)/app/go/bin:$(HOME)/app/go-tools
 export GOCACHE ?= /tmp/gocache
 export GOLANGCI_LINT_CACHE ?= /tmp/golangci-lint-cache
 export GOTOOLCHAIN ?= go1.26.9
-
-DOMAIN_US = $(shell /bin/grep -oP '^LIKI_DOMAIN_US=\K.*' .env 2>/dev/null || echo "liki.hk")
-DOMAIN_CN = $(shell /bin/grep -oP '^LIKI_DOMAIN_CN=\K.*' .env 2>/dev/null || echo "liki.hk")
-ifeq ($(to),us)
-  URL := https://$(DOMAIN_US)
-else ifeq ($(to),cn)
-  URL := https://$(DOMAIN_CN)
-else
-  URL ?= http://localhost:8080
-endif
 
 # ════════════════════════════════════════════════════════════
 #  用户面对（help 显示）
@@ -128,7 +119,7 @@ dev: build ## 本地开发
 	scripts/dev-start.sh
 
 clean: ## 清理构建产物
-	rm -rf bin/ web/dist/ web/app/dist/ coverage.out
+	rm -rf bin/ web/dist/ web/app/dist/ coverage.out web/sitemap.xml web/.astro web/app/coverage test-results
 
 hooks: ## 安装 git hooks
 	git config core.hooksPath .githooks

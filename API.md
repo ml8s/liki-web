@@ -249,11 +249,11 @@ they never establish a session or grant an entitlement.
 | GET | `/api/version` | public | Build time and version |
 | GET | `/api/internal/metrics` | token | JSON or Prometheus counters |
 
-Metrics are disabled when `METRICS_TOKEN` is empty.
+Metrics are disabled when `LIKI_METRICS_TOKEN` is empty.
 
 ## Admin
 
-25 back-office endpoints live under `/api/admin/*` (administrator and
+The back-office API lives under `/api/admin/*` (administrator and
 capability management, user entitlement support and compensation, finance
 aggregates, partner application decisions, payout approval, and partner freeze
 controls). They are gated by admin sessions

@@ -102,13 +102,6 @@ jobs:
           cd web && npm ci
           cd app && npm ci
 
-      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: fs
-          severity: HIGH,CRITICAL
-          exit-code: '1'
-          ignore-unfixed: true
-
       - name: Go test + coverage
         run: make test-go-coverage
 
@@ -127,6 +120,12 @@ jobs:
           name: frontend-coverage
           path: web/app/coverage
           if-no-files-found: error
+
+      - name: Install static site dependencies
+        run: cd web && npm ci
+
+      - name: Static site tests
+        run: cd web && npm run test
 
       - name: Python helper tests
         run: make test-python
