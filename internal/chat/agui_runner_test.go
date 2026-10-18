@@ -225,12 +225,11 @@ func (r selectedRunner) Prompt() string { return r.name }
 func TestServiceRoutesSessionsByExpert(t *testing.T) {
 	natal := selectedRunner{name: "natal"}
 	divination := selectedRunner{name: "divination"}
-	legacy := selectedRunner{name: "legacy"}
 	service := NewService(nil, nil, nil)
 	service.SetAgentRunners(map[string]Runner{
 		ExpertNatal:      natal,
 		ExpertDivination: divination,
-	}, legacy)
+	})
 
 	if got, err := service.runnerForSession(ExpertNatal); err != nil || got != natal {
 		t.Fatalf("runnerForSession(natal) = %#v, %v", got, err)
@@ -238,9 +237,9 @@ func TestServiceRoutesSessionsByExpert(t *testing.T) {
 	if got, err := service.runnerForSession(ExpertDivination); err != nil || got != divination {
 		t.Fatalf("runnerForSession(divination) = %#v, %v", got, err)
 	}
-	// 历史会话（expert 为空）回退到 legacy runner。
-	if got, err := service.runnerForSession(""); err != nil || got != legacy {
-		t.Fatalf("runnerForSession(legacy) = %#v, %v", got, err)
+	// 无专家（四专家之前的极老会话）没有可路由的部署。
+	if _, err := service.runnerForSession(""); err == nil {
+		t.Fatal("expected ErrRunnerUnavailable for expert-less sessions")
 	}
 	// 未部署的专家明确不可用。
 	if _, err := service.runnerForSession(ExpertFengshui); err == nil {
@@ -253,9 +252,9 @@ func TestServiceRejectsWhenNoAgentRunnerConfigured(t *testing.T) {
 	if _, err := service.runnerForSession(ExpertNatal); err == nil {
 		t.Fatal("expected ErrRunnerUnavailable when agent runner is not configured")
 	}
-	// 无 legacy runner 时，历史会话同样明确不可用。
+	// 历史无专家会话明确不可用。
 	if _, err := service.runnerForSession(""); err == nil {
-		t.Fatal("expected ErrRunnerUnavailable for expert-less sessions without a legacy runner")
+		t.Fatal("expected ErrRunnerUnavailable for expert-less sessions")
 	}
 }
 

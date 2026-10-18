@@ -16,6 +16,15 @@ type Migration struct {
 	Up func(ctx context.Context, tx *sql.Tx) error
 }
 
+// Run applies migrations in order, recording each in schema_migrations.
+//
+// ID uniqueness contract: the applied-key is (scope='liki', id), so every
+// store sharing one database file must use globally unique IDs — a duplicate
+// would make the later migration a silent no-op. New migrations carry a store
+// prefix ("<store>_<NNN>_<slug>"); existing unprefixed IDs are frozen because
+// renaming them would replay migrations on already-migrated databases. The
+// shared-liki.db guard test (shared_liki_db_test.go) fails closed on
+// collisions by asserting every store's artifacts exist.
 func Run(ctx context.Context, db *sql.DB, migrations []Migration) error {
 	migrateMu.Lock()
 	defer migrateMu.Unlock()

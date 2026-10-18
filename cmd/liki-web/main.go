@@ -73,7 +73,6 @@ type Config struct {
 	EngineMCPBaseURL                 string
 	EngineMCPToken                   string
 	AgentURLs                        map[string]string
-	AgentLegacyURL                   string
 	AgentInternalToken               string
 	AgentTimeoutSeconds              int
 	PublicBaseURL                    string
@@ -115,9 +114,8 @@ func LoadConfig() Config {
 		EngineMCPBaseURL:                 envOr("LIKI_ENGINE_MCP_URL", "http://localhost:8085"),
 		EngineMCPToken:                   os.Getenv("LIKI_ENGINE_MCP_TOKEN"),
 		AgentURLs:                        loadAgentURLs(),
-		AgentLegacyURL:                   strings.TrimRight(envOr("LIKI_AGENTS_LEGACY_URL", ""), "/"),
 		AgentInternalToken:               os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
-		AgentTimeoutSeconds:              envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
+		AgentTimeoutSeconds:              envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 600),
 		PublicBaseURL:                    envOr("LIKI_PUBLIC_BASE_URL", ""),
 		JWTSecret:                        os.Getenv("JWT_SECRET"),
 		HTTPListenAddress:                envOr("LIKI_HTTP_LISTEN_ADDRESS", ":8081"),
@@ -416,21 +414,7 @@ func main() {
 		}
 		runners[expert] = runner
 	}
-	var legacyRunner chat.Runner
-	if cfg.AgentLegacyURL != "" {
-		legacy, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
-			BaseURL: cfg.AgentLegacyURL,
-			Token:   cfg.AgentInternalToken,
-			Timeout: agentTimeout,
-			Product: "liki",
-		})
-		if err != nil {
-			slog.Error("init liki legacy agent runner", "err", err)
-			os.Exit(1)
-		}
-		legacyRunner = legacy
-	}
-	chatService.SetAgentRunners(runners, legacyRunner)
+	chatService.SetAgentRunners(runners)
 	productCatalog := product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY:      cfg.ChatOneTimePriceMinorCNY,
 		OneTimePriceMinorUSD:      cfg.ChatOneTimePriceMinorUSD,
@@ -603,11 +587,6 @@ func main() {
 		for _, expert := range chat.ExpertOrder {
 			if err := checkAgentReadiness(ctx, cfg.AgentURLs[expert]); err != nil {
 				return fmt.Errorf("expert %s: %w", expert, err)
-			}
-		}
-		if cfg.AgentLegacyURL != "" {
-			if err := checkAgentReadiness(ctx, cfg.AgentLegacyURL); err != nil {
-				return fmt.Errorf("legacy expert: %w", err)
 			}
 		}
 		return nil
@@ -875,11 +854,6 @@ func validateRuntimeURLs(cfg Config) error {
 	for _, expert := range chat.ExpertOrder {
 		name := "LIKI_AGENTS_" + strings.ToUpper(expert) + "_URL"
 		if err := validateHTTPURL(name, cfg.AgentURLs[expert]); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if cfg.AgentLegacyURL != "" {
-		if err := validateHTTPURL("LIKI_AGENTS_LEGACY_URL", cfg.AgentLegacyURL); err != nil {
 			errs = append(errs, err)
 		}
 	}

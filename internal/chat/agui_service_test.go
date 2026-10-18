@@ -64,7 +64,7 @@ func newAgentModeTestService(t *testing.T) (*Service, *ChatStore, *scriptedChatR
 
 	service := NewService(chats, entitlements, profiles)
 	remote := &scriptedChatRunner{result: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}}}
-	service.SetAgentRunners(map[string]Runner{ExpertNatal: remote}, nil)
+	service.SetAgentRunners(map[string]Runner{ExpertNatal: remote})
 	return service, chats, remote
 }
 

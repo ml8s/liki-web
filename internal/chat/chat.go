@@ -157,7 +157,7 @@ ALTER TABLE chat_sessions ADD COLUMN deleted_at TEXT;
 		},
 		{
 			// 四专家独立部署：会话绑定专家（endpoint 选择维度）。历史会话
-			// expert=''，由 LIKI_AGENTS_LEGACY_URL 兜底或明确不可用。
+			// expert=''（四专家之前的极老会话）没有可路由的部署，明确不可用。
 			ID: "005_session_expert",
 			Up: func(ctx context.Context, tx *sql.Tx) error {
 				_, err := tx.ExecContext(ctx, `

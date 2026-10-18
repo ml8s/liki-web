@@ -80,7 +80,7 @@ In development, the login page shows a local verification code when the email se
 | `LIKI_PAYMENT_WEBHOOK_URL` | Provider webhook URL |
 | `DODO_API_KEY`, `DODO_WEBHOOK_KEY`, `DODO_PRODUCT_LIKI_CHAT_ONE_TIME`, `DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION` | Dodo configuration |
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
-| `LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | AG-UI runtime per expert deployment (`LIKI_AGENTS_URL` = dev fallback, `LIKI_AGENTS_LEGACY_URL` = pre-expert sessions) |
+| `LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | AG-UI runtime per expert deployment (`LIKI_AGENTS_URL` = dev fallback) |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
 | `LIKI_BILLING_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
 | `LIKI_METRICS_TOKEN` | Protects the internal metrics endpoint |

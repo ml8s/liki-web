@@ -55,7 +55,6 @@ type Service struct {
 	authorizer   AccessAuthorizer
 	profiles     *birthprofile.Store
 	agentRunners map[string]Runner
-	legacyRunner Runner
 	locks        sync.Mutex
 	sessionLocks sync.Map // sessionID -> *sync.Mutex
 }
@@ -66,20 +65,15 @@ func NewService(store *ChatStore, authorizer AccessAuthorizer, profiles *birthpr
 
 // SetAgentRunners enables AG-UI routing per expert app. The in-process local
 // runner has been retired; every session executes on the remote
-// liki-agent-runtime deployment selected by the session's expert. legacy
-// serves sessions created before the expert dimension (expert == ""); when
-// nil, those sessions are unavailable.
-func (s *Service) SetAgentRunners(runners map[string]Runner, legacy Runner) {
+// liki-agent-runtime deployment selected by the session's expert. Sessions
+// without an expert (pre-expert history) are unavailable.
+func (s *Service) SetAgentRunners(runners map[string]Runner) {
 	s.agentRunners = runners
-	s.legacyRunner = legacy
 }
 
 func (s *Service) runnerForSession(expert string) (Runner, error) {
 	if runner, ok := s.agentRunners[expert]; ok && runner != nil {
 		return runner, nil
-	}
-	if expert == "" && s.legacyRunner != nil {
-		return s.legacyRunner, nil
 	}
 	return nil, ErrRunnerUnavailable
 }
