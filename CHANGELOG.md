@@ -1,6 +1,28 @@
 # Changelog
 
-## Unreleased —— 四专家独立部署
+## [2026.10.18.0] — 2026-10-18
+
+### Added
+
+- **记录操作标准件**：`RecordActions` 统一桌面/移动行操作；聊天会话重命名/删除、订单继续支付/取消/去使用/过期态、四术数历史（问卦自动存档、择日/合盘/八宅手动保存、打开回放或重算）。
+- **订单详情抽屉**：支付渠道、状态时间线、权益生效与退款信息（`GET /api/sales/orders/{id}`）。
+- **紫微运限**：BFF 放行 `ziwei_daxian`/`ziwei_liunian`；大限十二限与流年完整盘（年份选择、四化落宫、流年十二宫）；盘面环形布局补齐盘头/四化/格局/三方四正/空宫借星。
+- **四专家一等入口**：本命/占卜/风水/起名进入 `chatServices` 与场景交接（naming 落地页直达）；工具记录与订单契约单测/e2e 同构覆盖。
+
+### Changed
+
+- 会话新增 `expert` 维度（迁移 005）：按专家路由到对应 liki-agent-runtime 部署（endpoint 即专家身份）；`LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL` 一专家一部署，`LIKI_AGENTS_URL` 仅开发回退。
+- **退役 legacy 单运行时回退链**：删除 `LIKI_AGENTS_LEGACY_URL` 与 history runner（无专家会话明确不可用）。
+- 前端体验统一：表单校验、空态/重试、消息流停止/跳到最新、合盘/择日/风水/排盘表单化，partner/admin 视图重构与移动端对齐。
+- 工程收口：Go 死代码清理、失效配置旋钮接线（归因 TTL/保留期）、对话框与网格复用收敛、设计 token/死类/死资源清理、404/robots/CI 一致性修正。
+
+### Fixed
+
+- ElMessage/ElMessageBox 按需样式随异步 chunk 分割缺失（弹窗裸样式）→ 入口静态引入，确定性命中所有页面。
+- 移动端订单卡状态标签压缩、详情抽屉窄屏裁切、桌面订单表操作列溢出（fixed=right）。
+- 一次性价格缺省 100→0 fail-fast（防 ¥1 误上架）；邮箱发送失败恢复 503 `mailer_unavailable` 语义。
+- 迁移防护：共享 liki.db 多 store 迁移产物守卫测试（ID 撞车 fail-closed）+ 新迁移命名约定。
+
 
 - 会话新增 `expert` 维度（迁移 005，建会话必填四选一）：liki-web 按专家路由到对应 liki-agent-runtime 部署（endpoint 即专家身份），不再依赖单一 router 入口；权益校验仍以统一 skill `liki` 为准。
 - 运行器按专家配置：`LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`（`LIKI_AGENTS_URL` 为开发回退；`LIKI_AGENTS_LEGACY_URL` 可选，服务历史无专家会话）；readiness 覆盖全部专家 endpoint。
