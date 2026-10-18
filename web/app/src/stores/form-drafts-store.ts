@@ -28,15 +28,10 @@ export const useFormDraftsStore = defineStore('form-drafts', () => {
     delete drafts.value[key]
   }
 
-  function clearAll(): void {
-    Object.keys(drafts.value).forEach(key => clear(key))
-  }
-
   return {
     drafts,
     get,
     set,
     clear,
-    clearAll,
   }
 })

@@ -10,7 +10,7 @@ describe('form drafts store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     sessionStorage.clear()
-    useFormDraftsStore().clearAll()
+    useFormDraftsStore().drafts = {}
   })
 
   it('sets, gets, and clears a namespaced draft', () => {

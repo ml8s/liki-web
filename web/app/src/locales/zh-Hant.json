@@ -752,7 +752,6 @@
       "skill_forbidden": "目前權益不可使用該 skill",
       "engine_unavailable": "排盤服務暫時不可用，請稍後重試",
       "invalid_engine_response": "排盤服務回應異常",
-      "engine_rpc_failed": "排盤失敗，請檢查輸入後重試",
       "engine_tool_failed": "排盤處理失敗，請檢查輸入後重試",
       "engine_tool_not_found": "該排盤服務不可用",
       "city_not_found": "無法識別出生地，無法做真太陽時修正；請改用常見城市名，或移除出生地後重試",

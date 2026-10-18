@@ -6,7 +6,6 @@ export interface Props {
   scenario?: string;
   service?: string;
   labelKey?: string;
-  secondaryKey?: string;
   class?: string;
 }
 
@@ -15,7 +14,6 @@ const {
   scenario = '',
   service = '',
   labelKey = 'scenario.cta.primary',
-  secondaryKey = '',
   class: className = 'btn-purple',
 } = Astro.props;
 
@@ -29,4 +27,3 @@ const target = `/app?${query.toString()}`;
 <a href={target} class={className} data-cta={scenario || service}>
   {t(locale, labelKey)}
 </a>
-{secondaryKey && <a href="#how-it-works" class="btn-ghost">{t(locale, secondaryKey)}</a>}

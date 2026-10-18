@@ -31,9 +31,8 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         this.user = await fetchMe()
-        if (requestedLocale) {
-          // An explicit locale handoff wins for this browser tab.
-        } else {
+        // 显式 locale 交接（requestedLocale）优先，本标签页沿用；否则同步用户偏好。
+        if (!requestedLocale) {
           const savedLocale = savedLocalePreference()
           const userLocale = savedLocale ?? normalizeUnknownLocale(this.user.locale)
           if (userLocale) await setAppLocale(userLocale)

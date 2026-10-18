@@ -1,6 +1,5 @@
 # Go binaries
 /bin/
-/liki
 *.exe
 *.test
 
@@ -40,7 +39,6 @@ skills-lock.json
 
 # Node
 node_modules/
-web/node_modules/
 
 # Skills (synced from ../liki)
 web/skills/
@@ -50,6 +48,7 @@ web/skills/
 web/sitemap.xml
 web/dist/
 web/.astro/
+/.astro/
 
 # Site verification
 /web/e2af3ac5940b47a78a12e8018331ac6e.txt

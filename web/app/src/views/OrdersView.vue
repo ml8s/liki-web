@@ -73,7 +73,7 @@
           :key="subscription.id"
           class="subscription"
         >
-          <div class="subscription-main">
+          <div>
             <div class="subscription-title">
               {{ productName(subscription.product_id) }}
               <el-tag

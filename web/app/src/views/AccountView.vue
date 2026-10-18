@@ -175,7 +175,7 @@
           :key="item.id"
           class="session-item"
         >
-          <div class="session-info">
+          <div>
             <div class="session-device">
               {{ deviceLabel(item.user_agent) }}
               <el-tag
@@ -386,7 +386,6 @@ onMounted(load)
   border-radius: 2px;
   background: var(--liki-primary);
 }
-.sessions-head { display: flex; align-items: center; justify-content: space-between; }
 .language-row {
   display: flex;
   align-items: center;

@@ -249,7 +249,7 @@ function addKnownCompoundKeys(used) {
   const META = ['metaDesc','meta.ogTitle','meta.ogDesc','meta.twitterTitle','meta.twitterDesc','title','heading'];
   for (const p of KNOWN_PAGES) for (const s of META) used.add(`${p}.${s}`);
   for (const key of [
-    'brand', 'cta.primary', 'cta.secondary', 'cta.bottom', 'stepsTitle', 'faqTitle', 'demoNote',
+    'brand', 'cta.primary', 'cta.secondary', 'cta.bottom', 'stepsTitle', 'faqTitle',
     'steps.s1', 'steps.s2', 'steps.s3', 'steps.s4',
   ]) used.add(`scenario.${key}`);
   for (const faq of ['paid', 'data', 'accuracy']) {
@@ -305,16 +305,6 @@ function addKnownCompoundKeys(used) {
   for (let n=1;n<=36;n++) for (const t of ['a','b','c','d']) used.add(`naming.example.tag${n}${t}`);
   const namingStatic = ['a11y.examples'];
   for (const k of namingStatic) used.add(`naming.${k}`);
-  for (const s of ['hero.title','hero.subtitle','cta.title']) {
-    used.add(`hepan.${s}`);
-    used.add(`mingshu.${s}`);
-  }
-  for (const k of ['hero.title','hero.subtitle','hero.desc','features','install.title','install.method1','install.method2']) {
-    used.add(`index.${k}`);
-  }
-  for (const skill of ['mingli','qiming','wengua','fengshui']) {
-    for (const k of ['title','desc']) used.add(`index.skills.${skill}.${k}`);
-  }
 }
 
 function checkUnusedKeys(locales) {

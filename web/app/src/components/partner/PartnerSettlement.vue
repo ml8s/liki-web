@@ -52,7 +52,6 @@
       <el-table
         :data="settlement?.payouts ?? []"
         :empty-text="$t('partner.noPayouts')"
-        class="payouts"
       >
         <el-table-column
           :label="$t('partner.amount')"

@@ -752,7 +752,6 @@
       "skill_forbidden": "Your current entitlement does not include this skill.",
       "engine_unavailable": "The charting service is temporarily unavailable. Try again later.",
       "invalid_engine_response": "The charting service returned an invalid response.",
-      "engine_rpc_failed": "Charting failed. Check the input and try again.",
       "engine_tool_failed": "Chart processing failed. Check the input and try again.",
       "engine_tool_not_found": "This charting service is unavailable.",
       "city_not_found": "The birthplace could not be recognized for solar-time correction. Use a common city name or remove it.",

@@ -7,19 +7,15 @@ import Footer from '../components/Footer.astro';
 export interface Props {
   locale: string;
   page: string;
-  metaDesc?: string;
-  type?: 'article' | 'brand' | 'bare';
+  type?: 'article' | 'brand';
   twitterCard?: string;
-  viewportFit?: boolean;
 }
 
 const {
   locale,
   page,
-  metaDesc = '',
   type = 'article',
   twitterCard = 'summary',
-  viewportFit = false,
 } = Astro.props;
 
 const pagePath = page === 'index' ? '' : page;
@@ -44,8 +40,8 @@ const documentTitle = pageTitle.includes(siteName) ? pageTitle : `${pageTitle} Â
 <link rel="alternate" hreflang="en" href={`https://liki.hk/en/${pagePath ? pagePath + '/' : ''}`}>
 <link rel="alternate" hreflang="x-default" href={`https://liki.hk/zh-Hant/${pagePath ? pagePath + '/' : ''}`}>
 
-<meta name="description" content={metaDesc || t(locale, `${page}.metaDesc`)}>
-<meta name="viewport" content={`width=device-width, initial-scale=1.0${viewportFit ? ', viewport-fit=cover' : ''}`}>
+<meta name="description" content={t(locale, `${page}.metaDesc`)}>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#f6f9fc">
 <meta name="color-scheme" content="light">
 <meta property="og:title" content={t(locale, `${page}.meta.ogTitle`)}>
@@ -69,11 +65,7 @@ const documentTitle = pageTitle.includes(siteName) ? pageTitle : `${pageTitle} Â
 </head>
 <body class="bg-stone-50">
 
-{type === 'bare' ? (
-  <slot />
-) : (
-  <>
-  <div class="page-shell">
+<div class="page-shell">
 
   <a href="#main" class="skip-link">{t(locale, 'a11y.skipLink')}</a>
 
@@ -100,7 +92,5 @@ const documentTitle = pageTitle.includes(siteName) ? pageTitle : `${pageTitle} Â
   <script>
     import '../scripts/analytics';
   </script>
-  </>
-)}
 </body>
 </html>

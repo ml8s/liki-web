@@ -1,6 +1,5 @@
 <template>
   <el-card
-    class="skill-card"
     shadow="never"
   >
     <template #header>

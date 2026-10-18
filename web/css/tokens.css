@@ -19,9 +19,7 @@
   --brand-on-primary: #ffffff;
 
   --brand-gold: #975a16;
-  --brand-gold-hover: #744210;
   --brand-gold-on-dark: #e4c878;
-  --brand-gold-tint: #fff7e6;
   --brand-accent-on-ink: var(--brand-gold-on-dark);
 
   --brand-ink: #0d253d;
@@ -57,24 +55,20 @@
   --color-accent-soft: var(--brand-primary-soft);
   --color-accent-focus: rgba(83, 58, 253, 0.18);
   --color-fire: #d92d20;
-  --color-fire-hover: #b42318;
   --color-paper: var(--brand-paper);
   --color-surface: var(--brand-surface);
   --color-text: var(--brand-text);
   --color-text-muted: var(--brand-text-muted);
   --color-border: var(--brand-line);
   --color-border-hover: var(--brand-line-strong);
-  --color-gold: var(--brand-gold);
   --color-gold-light: var(--brand-gold-on-dark);
   --color-header-text: #f7f6f4;
   --color-github: #181717;
   --color-telegram: #26a5e4;
   --color-on-primary-border: rgba(255, 255, 255, 0.4);
   --color-input-ink: #232733;
-  --color-error: #d92d20;
   --color-error-border: rgba(217, 45, 32, 0.35);
   --color-danger-surface: #fff8f7;
-  --color-success: #067647;
   --color-success-border: var(--brand-success-border);
   --color-success-surface: var(--brand-success-surface);
   --color-text-faint: var(--brand-text-faint);
@@ -110,18 +104,13 @@
   --radius-card: 16px;
   --radius-control: 10px;
   --radius-small: 6px;
-  --radius-none: 0;
-  --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --radius-xl: 16px;
   --radius-full: 9999px;
 
   /* shared elevation contract */
   --shadow-card: 0 1px 2px rgba(13, 37, 61, 0.04),
     0 8px 24px rgba(13, 37, 61, 0.05);
-  --shadow-card-hover: 0 12px 32px rgba(13, 37, 61, 0.09),
-    0 3px 10px rgba(13, 37, 61, 0.05);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07),
     0 2px 4px -2px rgba(0, 0, 0, 0.05);
@@ -140,12 +129,6 @@
   --font-size-title-lg: 24px;
   --font-size-display-sm: 27px;
   --font-size-display: 32px;
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -153,9 +136,6 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
-  --duration-xs: 100ms;
-  --duration-sm: 150ms;
-  --duration-md: 250ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --z-header: 50;
@@ -163,7 +143,6 @@
   --z-skip-link: 100;
   --scroll-margin-header: 88px;
   --color-white: #ffffff;
-  --color-error-soft: #fef2f2;
 }
 
 /* Element Plus bridge. Keep vendor component variables in the canonical token
@@ -201,7 +180,6 @@
 /* Static pages retain a few legacy aliases. Product code must use the canonical
  * shared aliases above; do not add new consumers for these raw names. */
 :root {
-  --color-fire-raw: #b85450;
   --color-stone-50-raw: #fafaf9;
   --color-stone-500-raw: #78716c;
   --color-stone-600-raw: #57534e;

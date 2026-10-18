@@ -312,7 +312,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.section-card { margin-bottom: 16px; }
 .inline-alert { margin-bottom: 0; }
 .skill-grid {
   display: grid;

@@ -12,6 +12,7 @@ async function chatApiLazy(): Promise<ChatApi> {
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { errorMessage } from '@/utils/errors'
+import { chatSkills } from '@/config/chat'
 import { i18n } from '@/i18n'
 
 function t(key: string, values?: Record<string, unknown>): string {
@@ -240,15 +241,8 @@ export const useChatStore = defineStore('chat', {
   },
 })
 
-const EXPERT_LABEL_KEYS: Record<string, string> = {
-  natal: 'services.expert.natal.label',
-  divination: 'services.expert.divination.label',
-  fengshui: 'services.expert.fengshui.label',
-  naming: 'services.expert.naming.label',
-}
-
-/** 会话展示名：专家标签；历史会话（无专家）回退到「命理」。 */
+/** 会话展示名：专家标签（config/chat.ts 单源）；历史会话（无专家）回退到「命理」。 */
 export function skillLabel(expert: string): string {
-  const key = EXPERT_LABEL_KEYS[expert]
-  return i18n.global.t(key ?? 'services.skill.compact')
+  const skill = chatSkills.find(item => item.id === expert)
+  return i18n.global.t(skill?.labelKey ?? 'services.skill.compact')
 }

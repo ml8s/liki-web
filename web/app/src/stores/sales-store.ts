@@ -15,7 +15,7 @@ type PaymentState = 'idle' | 'verifying' | 'confirmed' | 'unpaid'
 
 /** handlePaymentReturn 返回值：由调用方决定路由跳转。 */
 export interface PaymentReturnResult {
-  action: 'none' | 'poll' | 'enter_chat' | 'show_message'
+  action: 'none' | 'enter_chat' | 'show_message'
   sessionId?: string
   message?: string
   state?: PaymentState

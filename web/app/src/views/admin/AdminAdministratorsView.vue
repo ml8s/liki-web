@@ -155,7 +155,6 @@
             <template #field="{ field }">
               <div
                 v-if="field.key === 'capabilities' && row"
-                class="admin-capability-values"
               >
                 <el-tag
                   v-for="item in activeCapabilities(row)"

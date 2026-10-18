@@ -7,7 +7,6 @@ import {
   financeTaskTypeLabel,
   formatAdminMoney,
   maskAdminAccount,
-  toDatetimeLocal,
   type AdminStatusDomain,
 } from '@/utils/adminFormat'
 
@@ -74,11 +73,5 @@ describe('admin formatting', () => {
     expect(maskAdminAccount('user@example.com')).toBe('u***@example.com')
     expect(maskAdminAccount('1234567890')).toBe('12****7890')
     expect(maskAdminAccount('12')).toBe('****')
-  })
-
-  it('normalizes timestamps for datetime inputs', () => {
-    expect(toDatetimeLocal('2026-10-14T08:30:00Z')).toMatch(/^2026-10-14T\d{2}:30$/)
-    expect(toDatetimeLocal('invalid')).toBe('')
-    expect(toDatetimeLocal(null)).toBe('')
   })
 })

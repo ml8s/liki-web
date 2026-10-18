@@ -6,7 +6,7 @@
       @pointerenter="preloadNavigation"
       @focusin="preloadNavigation"
     >
-      <span class="t-label">{{ $t('nav.workspace') }}</span>
+      <span>{{ $t('nav.workspace') }}</span>
     </router-link>
     <router-link
       to="/birth-profiles"
@@ -14,7 +14,7 @@
       @pointerenter="preloadNavigation"
       @focusin="preloadNavigation"
     >
-      <span class="t-label">{{ $t('nav.profiles') }}</span>
+      <span>{{ $t('nav.profiles') }}</span>
     </router-link>
     <router-link
       to="/chat"
@@ -22,7 +22,7 @@
       @pointerenter="preloadNavigation"
       @focusin="preloadNavigation"
     >
-      <span class="t-label">{{ $t('nav.chat') }}</span>
+      <span>{{ $t('nav.chat') }}</span>
     </router-link>
     <router-link
       to="/account"
@@ -30,7 +30,7 @@
       @pointerenter="preloadNavigation"
       @focusin="preloadNavigation"
     >
-      <span class="t-label">{{ $t('nav.mine') }}</span>
+      <span>{{ $t('nav.mine') }}</span>
     </router-link>
   </nav>
 </template>

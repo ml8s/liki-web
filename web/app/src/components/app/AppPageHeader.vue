@@ -1,6 +1,6 @@
 <template>
   <header class="app-page-header">
-    <div class="copy">
+    <div>
       <p
         v-if="eyebrow"
         class="eyebrow"
