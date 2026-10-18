@@ -19,6 +19,7 @@ import (
 	"github.com/ml8s/liki-web/internal/feedback"
 	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
+	"github.com/ml8s/liki-web/internal/records"
 	"github.com/ml8s/liki-web/internal/sales"
 )
 
@@ -30,6 +31,7 @@ type ServerDeps struct {
 	SalesHandler         *sales.Handler
 	EntitlementHandler   *entitlement.Handler
 	ChatHandler          *chat.Handler
+	RecordsHandler       *records.Handler
 	EngineMCP            *enginemcp.Handler
 	AipayHandler         *aipay.Handler
 	ProfileHandler       *birthprofile.Handler
@@ -88,6 +90,9 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	}
 	if deps.ChatHandler != nil {
 		deps.ChatHandler.RegisterRoutes(mux)
+	}
+	if deps.RecordsHandler != nil {
+		deps.RecordsHandler.RegisterRoutes(mux)
 	}
 	if deps.EngineMCP != nil {
 		engineLimit := func(next http.HandlerFunc) http.HandlerFunc {

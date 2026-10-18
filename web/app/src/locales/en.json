@@ -682,6 +682,27 @@
       }
     }
   },
+  "records": {
+    "title": "History",
+    "open": "Open",
+    "rename": "Rename",
+    "delete": "Delete",
+    "renameTitle": "Rename record",
+    "renamePrompt": "Enter a new title for this record.",
+    "renamePlaceholder": "Record title",
+    "renameRequired": "Title is required",
+    "renameTooLong": "Title must be 60 characters or fewer",
+    "deleteTitle": "Delete record",
+    "deleteConfirm": "Delete “{title}”? This cannot be undone.",
+    "actionFailed": "Action failed, please retry",
+    "loadFailed": "Failed to load history",
+    "saveFailed": "Failed to save, please retry",
+    "save": "Save record",
+    "titleLiuyao": "Divination · {question}",
+    "titleHuangli": "Date selection · {event} · {start}",
+    "titleBond": "Synastry · {a} × {b}",
+    "titleBazhai": "Bazhai · {nickname}"
+  },
   "consultation": {
     "defaultTitle": "Deep interpretation",
     "defaultAction": "Start chat"

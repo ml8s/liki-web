@@ -106,9 +106,17 @@
         shadow="never"
       >
         <template #header>
-          <h2 class="app-card__title">
-            {{ $t('services.bond.result') }}
-          </h2>
+          <div class="app-card__header">
+            <h2 class="app-card__title">
+              {{ $t('services.bond.result') }}
+            </h2>
+            <el-button
+              size="small"
+              @click="saveRecord"
+            >
+              {{ $t('records.save') }}
+            </el-button>
+          </div>
         </template>
 
         <div class="charts">
@@ -246,6 +254,26 @@
         @action="startInterpretation"
       />
     </template>
+
+    <el-card
+      v-if="toolRecords.length || recordsError"
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('records.title') }}
+        </h2>
+      </template>
+      <RecordList
+        :records="toolRecords"
+        :error="recordsError"
+        @open="openRecord"
+        @rename="renameToolRecord"
+        @remove="removeToolRecord"
+      />
+    </el-card>
+
   </ServicePageShell>
 </template>
 
@@ -260,11 +288,23 @@ import {
   type BaziChartData,
 } from '@/api/engine'
 import { baziChartFor } from '@/utils/paipan'
+import { useToolRecords } from '@/composables/useToolRecords'
+import RecordList from '@/components/records/RecordList.vue'
+import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
 const { t, te } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
+const {
+  records: toolRecords,
+  error: recordsError,
+  load: loadRecords,
+  save: saveToolRecord,
+  confirmRename: renameToolRecord,
+  confirmRemove: removeToolRecord,
+} = useToolRecords('bond')
+void loadRecords()
 
 interface SynastryInput { gender: string; birth_date: string; birth_time: string; birth_place: string }
 
@@ -331,6 +371,27 @@ async function compute() {
   } finally {
     loading.value = false
   }
+}
+
+function saveRecord() {
+  if (!result.value) return
+  void saveToolRecord(
+    t('records.titleBond', { a: aName.value, b: b.value.birth_date }),
+    { profile_id: profileAId.value, b: { ...b.value } },
+  )
+}
+
+function openRecord(record: ToolRecord) {
+  profileAId.value = String(record.input.profile_id ?? '')
+  const inputB = (record.input.b ?? {}) as Partial<SynastryInput>
+  b.value = {
+    gender: String(inputB.gender ?? 'female'),
+    birth_date: String(inputB.birth_date ?? ''),
+    birth_time: String(inputB.birth_time ?? ''),
+    birth_place: String(inputB.birth_place ?? ''),
+  }
+  chartA.value = null
+  void compute()
 }
 
 const ZHU_LABELS = computed<Record<string, string>>(() => ({

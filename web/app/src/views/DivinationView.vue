@@ -204,6 +204,26 @@
         @action="startChat"
       />
     </template>
+
+    <el-card
+      v-if="toolRecords.length || recordsError"
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('records.title') }}
+        </h2>
+      </template>
+      <RecordList
+        :records="toolRecords"
+        :error="recordsError"
+        @open="openRecord"
+        @rename="renameToolRecord"
+        @remove="removeToolRecord"
+      />
+    </el-card>
+
   </ServicePageShell>
 </template>
 
@@ -213,11 +233,23 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineLiuyaoQigua, engineLiuyaoChart, engineSolarTime, type LiuyaoChartResult } from '@/api/engine'
+import { useToolRecords } from '@/composables/useToolRecords'
+import RecordList from '@/components/records/RecordList.vue'
+import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
+const {
+  records: toolRecords,
+  error: recordsError,
+  load: loadRecords,
+  save: saveToolRecord,
+  confirmRename: renameToolRecord,
+  confirmRemove: removeToolRecord,
+} = useToolRecords('liuyao')
+void loadRecords()
 
 const question = ref('')
 const snapshot = ref<LiuyaoChartResult | null>(null)
@@ -284,11 +316,26 @@ async function cast() {
     const solarTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}+08:00`
     const t = await engineSolarTime(solarTime, 120)
     snapshot.value = await engineLiuyaoChart(t.solar, casting)
+    // 卦不可复现：每次摇卦自动落一条历史记录。
+    void saveToolRecord(
+      recordTitle(question.value.trim()),
+      { question: question.value.trim() },
+      snapshot.value as unknown as Record<string, unknown>,
+    )
   } catch (err) {
     error.value = toUserMessage(err, t('services.divination.failed'))
   } finally {
     loading.value = false
   }
+}
+
+function recordTitle(question: string): string {
+  return t('records.titleLiuyao', { question: question.slice(0, 30) })
+}
+
+function openRecord(record: ToolRecord) {
+  question.value = String(record.input.question ?? '')
+  snapshot.value = (record.output as unknown as LiuyaoChartResult | undefined) ?? null
 }
 
 function startChat() {

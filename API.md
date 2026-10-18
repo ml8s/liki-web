@@ -133,7 +133,18 @@ Paid chat operations recheck entitlement server-side.
 | GET | `/api/chat/sessions/{id}/messages` | owner + entitled | Read messages |
 | POST | `/api/chat/sessions/{id}/ag-ui` | owner + entitled | AG-UI/SSE generation |
 
-Current canonical skill is `liki`.
+Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
+
+## Records
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| GET | `/api/records?kind=` | user | List tool records (newest 50; `kind` one of `liuyao`, `huangli`, `bond`, `bazhai`) |
+| POST | `/api/records` | user | Save a tool record (`{kind, title, input, output?}`; JSON-object input/output snapshots) |
+| PATCH | `/api/records/{id}` | owner | Rename a record (title, 1-60 chars) |
+| DELETE | `/api/records/{id}` | owner | Soft-delete a record |
+
+Records are opaque engine I/O snapshots for the service pages; the engine contract stays authoritative for their shape.
 
 ## Orders
 

@@ -56,9 +56,17 @@
         shadow="never"
       >
         <template #header>
-          <h2 class="app-card__title">
-            {{ $t('services.fengshui.lifeGuaDirections') }}
-          </h2>
+          <div class="app-card__header">
+            <h2 class="app-card__title">
+              {{ $t('services.fengshui.lifeGuaDirections') }}
+            </h2>
+            <el-button
+              size="small"
+              @click="saveRecord"
+            >
+              {{ $t('records.save') }}
+            </el-button>
+          </div>
         </template>
         <MingGuaSection :bazhai="bazhai" />
         <LiuNianFlySection
@@ -76,6 +84,26 @@
         @action="startChat"
       />
     </template>
+
+    <el-card
+      v-if="toolRecords.length || recordsError"
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('records.title') }}
+        </h2>
+      </template>
+      <RecordList
+        :records="toolRecords"
+        :error="recordsError"
+        @open="openRecord"
+        @rename="renameToolRecord"
+        @remove="removeToolRecord"
+      />
+    </el-card>
+
   </ServicePageShell>
 </template>
 
@@ -85,6 +113,9 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineBazhaiChart, type BazhaiChart } from '@/api/engine'
+import { useToolRecords } from '@/composables/useToolRecords'
+import RecordList from '@/components/records/RecordList.vue'
+import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
 import MingGuaSection from '@/components/bazhai/MingGuaSection.vue'
@@ -92,6 +123,15 @@ import LiuNianFlySection from '@/components/bazhai/LiuNianFlySection.vue'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
+const {
+  records: toolRecords,
+  error: recordsError,
+  load: loadRecords,
+  save: saveToolRecord,
+  confirmRename: renameToolRecord,
+  confirmRemove: removeToolRecord,
+} = useToolRecords('bazhai')
+void loadRecords()
 
 const profileId = ref('')
 const bazhai = ref<BazhaiChart | null>(null)
@@ -116,6 +156,17 @@ async function loadPreview() {
   } finally {
     loading.value = false
   }
+}
+
+function saveRecord() {
+  const p = profile.value
+  if (!bazhai.value || !p) return
+  void saveToolRecord(t('records.titleBazhai', { nickname: p.nickname }), { profile_id: p.id })
+}
+
+function openRecord(record: ToolRecord) {
+  profileId.value = String(record.input.profile_id ?? '')
+  void loadPreview()
 }
 
 function startChat() {

@@ -41,6 +41,7 @@ import (
 	"github.com/ml8s/liki-web/internal/metrics"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/records"
 )
 
 // Build-time variables injected via -ldflags.
@@ -378,6 +379,11 @@ func main() {
 		slog.Error("init chat schema", "err", err)
 		os.Exit(1)
 	}
+	recordsStore := records.NewStore(likiDB)
+	if err := recordsStore.Migrate(ctx); err != nil {
+		slog.Error("init records schema", "err", err)
+		os.Exit(1)
+	}
 	chatService := chat.NewService(chatStore, entitlements, profileStore)
 	if cfg.AgentInternalToken == "" {
 		slog.Error("LIKI_AGENTS_INTERNAL_TOKEN is required")
@@ -659,6 +665,9 @@ func main() {
 		EntitlementHandler: entitlement.NewHandler(entitlements, authHandler.RequireUser),
 		ChatHandler: chat.NewHandler(chatService, authHandler.RequireUser, func(next http.HandlerFunc) http.HandlerFunc {
 			return rateLimiter.Wrap(5.0/60, 6, next)
+		}),
+		RecordsHandler: records.NewHandler(recordsStore, authHandler.RequireUser, func(next http.HandlerFunc) http.HandlerFunc {
+			return rateLimiter.Wrap(20.0/60, 10, next)
 		}),
 		EngineMCP:            enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),
 		AipayHandler:         aipayHandler,

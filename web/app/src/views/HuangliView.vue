@@ -59,6 +59,12 @@
         >
           {{ $t('services.huangli.calculate') }}
         </el-button>
+        <el-button
+          v-if="result?.length"
+          @click="saveRecord"
+        >
+          {{ $t('records.save') }}
+        </el-button>
       </el-form>
     </el-card>
 
@@ -160,6 +166,26 @@
         @action="startChat"
       />
     </template>
+
+    <el-card
+      v-if="toolRecords.length || recordsError"
+      class="app-card"
+      shadow="never"
+    >
+      <template #header>
+        <h2 class="app-card__title">
+          {{ $t('records.title') }}
+        </h2>
+      </template>
+      <RecordList
+        :records="toolRecords"
+        :error="recordsError"
+        @open="openRecord"
+        @rename="renameToolRecord"
+        @remove="removeToolRecord"
+      />
+    </el-card>
+
   </ServicePageShell>
 </template>
 
@@ -169,6 +195,9 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineHuangliDays, type HuangliDay } from '@/api/engine'
+import { useToolRecords } from '@/composables/useToolRecords'
+import RecordList from '@/components/records/RecordList.vue'
+import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
 
@@ -179,6 +208,15 @@ const EVENT_KEYS = [
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
+const {
+  records: toolRecords,
+  error: recordsError,
+  load: loadRecords,
+  save: saveToolRecord,
+  confirmRename: renameToolRecord,
+  confirmRemove: removeToolRecord,
+} = useToolRecords('huangli')
+void loadRecords()
 
 const event = ref('wedding')
 const startDate = ref('')
@@ -223,6 +261,21 @@ async function calc() {
   } finally {
     loading.value = false
   }
+}
+
+function saveRecord() {
+  if (!result.value?.length) return
+  void saveToolRecord(
+    t('records.titleHuangli', { event: eventLabel(event.value), start: startDate.value }),
+    { event: event.value, start_date: startDate.value, end_date: endDate.value },
+  )
+}
+
+function openRecord(record: ToolRecord) {
+  event.value = String(record.input.event ?? 'wedding')
+  startDate.value = String(record.input.start_date ?? '')
+  endDate.value = String(record.input.end_date ?? '')
+  void calc()
 }
 
 function startChat() {

@@ -682,6 +682,27 @@
       }
     }
   },
+  "records": {
+    "title": "历史记录",
+    "open": "打开",
+    "rename": "重命名",
+    "delete": "删除",
+    "renameTitle": "重命名记录",
+    "renamePrompt": "输入新的记录标题。",
+    "renamePlaceholder": "记录标题",
+    "renameRequired": "请输入标题",
+    "renameTooLong": "标题不能超过 60 个字符",
+    "deleteTitle": "删除记录",
+    "deleteConfirm": "确定删除「{title}」？删除后不可恢复。",
+    "actionFailed": "操作失败，请重试",
+    "loadFailed": "历史记录加载失败",
+    "saveFailed": "保存失败，请重试",
+    "save": "保存记录",
+    "titleLiuyao": "问卦 · {question}",
+    "titleHuangli": "择日 · {event} · {start}",
+    "titleBond": "合盘 · {a} × {b}",
+    "titleBazhai": "八宅 · {nickname}"
+  },
   "consultation": {
     "defaultTitle": "深入解读",
     "defaultAction": "开始对话"

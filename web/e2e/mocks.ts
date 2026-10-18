@@ -58,6 +58,7 @@ export interface WorkspaceOptions {
   sessions?: unknown[]
   products?: unknown[]
   orders?: unknown[]
+  records?: unknown[]
 }
 
 // 已登录工作台壳：登录态、能力、以及工作台首屏会拉取的列表（默认空集合）。
@@ -75,4 +76,6 @@ export async function mockWorkspace(page: Page, options: WorkspaceOptions = {}) 
   await page.route('**/api/chat/sessions', route => route.fulfill(json(options.sessions ?? [])))
   await page.route('**/api/sales/products', route => route.fulfill(json({ products: options.products ?? [] })))
   await page.route('**/api/sales/orders', route => route.fulfill(json({ orders: options.orders ?? [] })))
+  // 四术数服务页在载入时拉各自的历史记录；用例需要真实回放时自行覆盖此路由。
+  await page.route('**/api/records**', route => route.fulfill(json({ records: options.records ?? [] })))
 }
