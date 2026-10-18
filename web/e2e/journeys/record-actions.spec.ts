@@ -77,8 +77,8 @@ test('聊天会话行操作：重命名与删除走标准请求', async ({ page 
 
   const secondRow = page.locator('.el-table__row', { hasText: '流年運勢' })
   await secondRow.getByRole('button', { name: '刪除' }).click()
-  const confirm = page.locator('.el-message-box')
-  await expect(confirm).toContainText('流年運勢')
+  const confirm = page.locator('.el-message-box').filter({ hasText: '流年運勢' })
+  await expect(confirm).toBeVisible()
   await confirm.getByRole('button', { name: '刪除' }).click()
   await expect(page.locator('.el-table__row')).toHaveCount(1)
   expect(deleted).toBe(1)

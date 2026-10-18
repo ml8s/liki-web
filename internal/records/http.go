@@ -82,11 +82,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		Output: req.Output,
 	})
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			httputil.NotFound(w)
-			return
-		}
-		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "记录参数无效")
+		writeRecordError(w, err, "create")
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, record)
@@ -108,7 +104,7 @@ func (h *Handler) HandleRename(w http.ResponseWriter, r *http.Request) {
 	}
 	record, err := h.store.Rename(r.Context(), user.ID, r.PathValue("id"), req.Title)
 	if err != nil {
-		writeRecordError(w, err)
+		writeRecordError(w, err, "rename")
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, record)
@@ -121,17 +117,22 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.store.SoftDelete(r.Context(), user.ID, r.PathValue("id")); err != nil {
-		writeRecordError(w, err)
+		writeRecordError(w, err, "delete")
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
-func writeRecordError(w http.ResponseWriter, err error) {
+// writeRecordError keeps caller-fixable problems (ErrInvalid) distinct from
+// missing rows and store failures, mirroring chat's session error layer.
+func writeRecordError(w http.ResponseWriter, err error, action string) {
 	switch {
+	case errors.Is(err, ErrInvalid):
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "记录参数无效")
 	case errors.Is(err, ErrNotFound):
 		httputil.NotFound(w)
 	default:
-		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "记录参数无效")
+		slog.Error("records: "+action, "err", err)
+		httputil.InternalError(w)
 	}
 }

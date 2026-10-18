@@ -10,7 +10,15 @@
     "copy": "Copy",
     "copied": "Copied",
     "copyFailed": "Copy failed. Please copy manually.",
-    "listSeparator": ", "
+    "listSeparator": ", ",
+    "renameTitle": "Rename {target}",
+    "renamePrompt": "Enter a new title for this {target}.",
+    "renamePlaceholder": "{target} title",
+    "renameRequired": "Title is required",
+    "renameTooLong": "Title must be 60 characters or fewer",
+    "deleteTitle": "Delete {target}",
+    "deleteConfirm": "Delete “{title}”? This cannot be undone.",
+    "actionFailed": "Action failed, please retry"
   },
   "fatal": {
     "title": "Something went wrong",
@@ -527,14 +535,7 @@
       "open": "Open",
       "rename": "Rename",
       "delete": "Delete",
-      "renameTitle": "Rename session",
-      "renamePrompt": "Enter a new title for this session.",
-      "renamePlaceholder": "Session title",
-      "renameRequired": "Title is required",
-      "renameTooLong": "Title must be 60 characters or fewer",
-      "deleteTitle": "Delete session",
-      "deleteConfirm": "Delete “{title}”? This cannot be undone.",
-      "actionFailed": "Action failed, please retry"
+      "noun": "session"
     },
     "systemBirthProfile": {
       "title": "Profile loaded",
@@ -687,21 +688,14 @@
     "open": "Open",
     "rename": "Rename",
     "delete": "Delete",
-    "renameTitle": "Rename record",
-    "renamePrompt": "Enter a new title for this record.",
-    "renamePlaceholder": "Record title",
-    "renameRequired": "Title is required",
-    "renameTooLong": "Title must be 60 characters or fewer",
-    "deleteTitle": "Delete record",
-    "deleteConfirm": "Delete “{title}”? This cannot be undone.",
-    "actionFailed": "Action failed, please retry",
     "loadFailed": "Failed to load history",
     "saveFailed": "Failed to save, please retry",
     "save": "Save record",
     "titleLiuyao": "Divination · {question}",
     "titleHuangli": "Date selection · {event} · {start}",
     "titleBond": "Synastry · {a} × {b}",
-    "titleBazhai": "Bazhai · {nickname}"
+    "titleBazhai": "Bazhai · {nickname}",
+    "noun": "record"
   },
   "consultation": {
     "defaultTitle": "Deep interpretation",

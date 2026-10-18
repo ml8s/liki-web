@@ -145,6 +145,12 @@ func TestHandlerRoutesAndOwnership(t *testing.T) {
 	}
 
 	recorder = httptest.NewRecorder()
+	handler.HandleRename(recorder, recordRequest(http.MethodPatch, "/api/records/rec-1", `{"title":"  "}`, "user-1", record.ID))
+	if recorder.Code != http.StatusBadRequest || !strings.Contains(recorder.Body.String(), `"invalid_request"`) {
+		t.Fatalf("invalid rename = %d %s", recorder.Code, recorder.Body.String())
+	}
+
+	recorder = httptest.NewRecorder()
 	handler.HandleRename(recorder, recordRequest(http.MethodPatch, "/api/records/rec-1", `{"title":"新标题"}`, "user-2", record.ID))
 	if recorder.Code != http.StatusNotFound {
 		t.Fatalf("foreign rename = %d", recorder.Code)

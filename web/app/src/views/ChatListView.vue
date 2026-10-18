@@ -155,6 +155,7 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
+import { confirmDeleteEntity, promptRenameEntity } from '@/utils/dialogs'
 import { firstQueryValue } from '@/utils/query'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -239,52 +240,27 @@ function openSession(session: ChatSession) {
 }
 
 async function renameSession(session: ChatSession) {
-  let value: string
+  let value: string | null
   try {
-    const result = await ElMessageBox.prompt(
-      t('chat.sessions.renamePrompt'),
-      t('chat.sessions.renameTitle'),
-      {
-        inputValue: session.title,
-        inputPlaceholder: t('chat.sessions.renamePlaceholder'),
-        inputValidator: (raw: string) => {
-          const title = raw.trim()
-          if (!title) return t('chat.sessions.renameRequired')
-          if (title.length > 60) return t('chat.sessions.renameTooLong')
-          return true
-        },
-        confirmButtonText: t('common.save'),
-        cancelButtonText: t('common.cancel'),
-      },
-    )
-    value = result.value.trim()
+    value = await promptRenameEntity(t('chat.sessions.noun'), session.title)
   } catch (error) {
-    // prompt 取消以 'cancel'/'close' 拒绝，不算错误。
-    if (error === 'cancel' || error === 'close') return
-    chat.error = toUserMessage(error, t('chat.sessions.actionFailed'))
+    chat.error = toUserMessage(error, t('common.actionFailed'))
     return
   }
+  if (value === null) return
   try {
     await chat.renameSession(session.id, value)
   } catch (error) {
-    chat.error = toUserMessage(error, t('chat.sessions.actionFailed'))
+    chat.error = toUserMessage(error, t('common.actionFailed'))
   }
 }
 
 async function removeSession(session: ChatSession) {
-  try {
-    await ElMessageBox.confirm(
-      t('chat.sessions.deleteConfirm', { title: session.title }),
-      t('chat.sessions.deleteTitle'),
-      { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') },
-    )
-  } catch {
-    return
-  }
+  if (!await confirmDeleteEntity(t('chat.sessions.noun'), session.title)) return
   try {
     await chat.removeSession(session.id)
   } catch (error) {
-    chat.error = toUserMessage(error, t('chat.sessions.actionFailed'))
+    chat.error = toUserMessage(error, t('common.actionFailed'))
   }
 }
 

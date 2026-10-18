@@ -50,6 +50,11 @@ export async function mockAdmin(page: Page, capabilities: string[]) {
   })))
 }
 
+/** 声明单个引擎工具路由（小用例使用；全量契约回归见 engine-contract.spec 的 routeEngine）。 */
+export async function mockEngineTool(page: Page, tool: string, data: unknown) {
+  await page.route(`**/api/engine/tools/${tool}`, route => route.fulfill(json(data)))
+}
+
 export interface WorkspaceOptions {
   user?: TestUser
   entitlements?: unknown[]

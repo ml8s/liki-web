@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -19,6 +20,10 @@ import (
 )
 
 var ErrNotFound = errors.New("records: record not found")
+
+// ErrInvalid marks caller-fixable input problems (kind/title/JSON shape) so the
+// HTTP layer can answer 400 without masking store failures as validation.
+var ErrInvalid = errors.New("records: invalid input")
 
 // MaxTitleRunes bounds record titles, matching the session rename contract.
 const MaxTitleRunes = 60
@@ -139,7 +144,7 @@ func scanRecord(scan func(dest ...any) error) (Record, error) {
 
 func (s *Store) Create(ctx context.Context, userID string, in CreateInput) (Record, error) {
 	if err := in.Validate(); err != nil {
-		return Record{}, err
+		return Record{}, fmt.Errorf("%w: %w", ErrInvalid, err)
 	}
 	now := s.nowFunc().Format(time.RFC3339)
 	record := Record{
@@ -175,7 +180,7 @@ FROM tool_records WHERE id=? AND user_id=? AND deleted_at IS NULL`, recordID, us
 // is needed.
 func (s *Store) List(ctx context.Context, userID string, kind Kind, limit int) ([]Record, error) {
 	if kind != "" && !kind.Valid() {
-		return nil, errors.New("records: unknown kind")
+		return nil, fmt.Errorf("%w: unknown kind", ErrInvalid)
 	}
 	if limit <= 0 || limit > 100 {
 		limit = 50
@@ -212,7 +217,7 @@ FROM tool_records WHERE user_id=? AND deleted_at IS NULL`
 func (s *Store) Rename(ctx context.Context, userID, recordID, title string) (Record, error) {
 	title = strings.TrimSpace(title)
 	if title == "" || utf8.RuneCountInString(title) > MaxTitleRunes {
-		return Record{}, errors.New("records: title must be 1-60 characters")
+		return Record{}, fmt.Errorf("%w: title must be 1-60 characters", ErrInvalid)
 	}
 	result, err := s.db.ExecContext(ctx, `
 UPDATE tool_records SET title=? WHERE id=? AND user_id=? AND deleted_at IS NULL`, title, recordID, userID)

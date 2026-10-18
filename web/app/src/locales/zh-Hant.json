@@ -10,7 +10,15 @@
     "copy": "複製",
     "copied": "已複製",
     "copyFailed": "複製失敗，請手動複製",
-    "listSeparator": "、"
+    "listSeparator": "、",
+    "renameTitle": "重新命名{target}",
+    "renamePrompt": "輸入新的{target}標題。",
+    "renamePlaceholder": "{target}標題",
+    "renameRequired": "請輸入標題",
+    "renameTooLong": "標題不能超過 60 個字元",
+    "deleteTitle": "刪除{target}",
+    "deleteConfirm": "確定刪除「{title}」？刪除後不可恢復。",
+    "actionFailed": "操作失敗，請重試"
   },
   "fatal": {
     "title": "頁面出了點問題",
@@ -527,14 +535,7 @@
       "open": "打開",
       "rename": "重新命名",
       "delete": "刪除",
-      "renameTitle": "重新命名會話",
-      "renamePrompt": "輸入新的會話標題。",
-      "renamePlaceholder": "會話標題",
-      "renameRequired": "請輸入標題",
-      "renameTooLong": "標題不能超過 60 個字元",
-      "deleteTitle": "刪除會話",
-      "deleteConfirm": "確定刪除「{title}」？刪除後不可恢復。",
-      "actionFailed": "操作失敗，請重試"
+      "noun": "會話"
     },
     "systemBirthProfile": {
       "title": "已載入檔案",
@@ -687,21 +688,14 @@
     "open": "打開",
     "rename": "重新命名",
     "delete": "刪除",
-    "renameTitle": "重新命名記錄",
-    "renamePrompt": "輸入新的記錄標題。",
-    "renamePlaceholder": "記錄標題",
-    "renameRequired": "請輸入標題",
-    "renameTooLong": "標題不能超過 60 個字元",
-    "deleteTitle": "刪除記錄",
-    "deleteConfirm": "確定刪除「{title}」？刪除後不可恢復。",
-    "actionFailed": "操作失敗，請重試",
     "loadFailed": "歷史記錄載入失敗",
     "saveFailed": "儲存失敗，請重試",
     "save": "儲存記錄",
     "titleLiuyao": "問卦 · {question}",
     "titleHuangli": "擇日 · {event} · {start}",
     "titleBond": "合盤 · {a} × {b}",
-    "titleBazhai": "八宅 · {nickname}"
+    "titleBazhai": "八宅 · {nickname}",
+    "noun": "記錄"
   },
   "consultation": {
     "defaultTitle": "深入解讀",

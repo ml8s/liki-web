@@ -2,7 +2,7 @@
 // 择日等手动保存的记录走标准行操作（打开/重命名/删除，RecordActions）。
 import { test, expect } from '../fixtures'
 import type { Page } from '@playwright/test'
-import { json, mockWorkspace, testUser } from '../mocks'
+import { json, mockEngineTool, mockWorkspace, testUser } from '../mocks'
 
 test.use({ locale: 'zh-Hant' })
 
@@ -18,28 +18,32 @@ const liuyaoSnapshot = {
   timing_candidates: [],
 }
 
-async function mockEngines(page: Page, counts: { qigua: number; huangli: number }) {
-  await page.route('**/api/engine/tools/liuyao_qigua', route => {
-    counts.qigua += 1
-    return route.fulfill(json({ casting: liuyaoSnapshot.casting }))
+function countEngineCalls(page: Page): { qigua: number; huangli: number } {
+  const counts = { qigua: 0, huangli: 0 }
+  page.on('request', request => {
+    const url = request.url()
+    if (url.includes('/api/engine/tools/liuyao_qigua')) counts.qigua += 1
+    if (url.includes('/api/engine/tools/huangli_days')) counts.huangli += 1
   })
-  await page.route('**/api/engine/tools/liuyao_chart', route => route.fulfill(json(liuyaoSnapshot)))
-  await page.route('**/api/engine/tools/tianwen_time', route => route.fulfill(json({
+  return counts
+}
+
+async function mockEngines(page: Page) {
+  await mockEngineTool(page, 'liuyao_qigua', { casting: liuyaoSnapshot.casting })
+  await mockEngineTool(page, 'liuyao_chart', liuyaoSnapshot)
+  await mockEngineTool(page, 'tianwen_time', {
     solar: '2026-10-18T12:00:00+08:00',
     lunar: { year: 2026, month: 9, day: 8 },
-  })))
-  await page.route('**/api/engine/tools/huangli_days', route => {
-    counts.huangli += 1
-    return route.fulfill(json([
-      { date: '2026-10-01', suitability: 'recommended', jian_chu: '建', reason: '宜嫁娶' },
-    ]))
   })
+  await mockEngineTool(page, 'huangli_days', [
+    { date: '2026-10-01', suitability: 'recommended', jian_chu: '建', reason: '宜嫁娶' },
+  ])
 }
 
 test('问卦自动保存记录，打开历史回放快照不再重摇', async ({ page }) => {
-  const counts = { qigua: 0, huangli: 0 }
   await mockWorkspace(page, { user, sessions: [] })
-  await mockEngines(page, counts)
+  await mockEngines(page)
+  const counts = countEngineCalls(page)
 
   const created: Record<string, unknown>[] = []
   await page.route('**/api/records**', route => {
@@ -77,9 +81,9 @@ test('问卦自动保存记录，打开历史回放快照不再重摇', async ({
 })
 
 test('择日记录行操作：打开重算、重命名、删除', async ({ page }) => {
-  const counts = { qigua: 0, huangli: 0 }
   await mockWorkspace(page, { user, sessions: [] })
-  await mockEngines(page, counts)
+  await mockEngines(page)
+  const counts = countEngineCalls(page)
 
   const list = [{
     id: 'rec_h1', user_id: user.id, kind: 'huangli', title: '擇日 · 婚禮 · 2026-10-01',
@@ -119,7 +123,7 @@ test('择日记录行操作：打开重算、重命名、删除', async ({ page 
 
   // 删除走标准 confirm，行消失。
   await historyCard.getByRole('button', { name: '刪除' }).click()
-  const confirm = page.locator('.el-message-box')
+  const confirm = page.locator('.el-message-box').filter({ hasText: '十月婚禮擇日' })
   await confirm.getByRole('button', { name: '刪除' }).click()
   await expect(historyCard).toBeHidden()
   expect(deleted).toBe(1)

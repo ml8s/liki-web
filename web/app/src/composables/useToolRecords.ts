@@ -1,8 +1,8 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
 import { createRecord, deleteRecord, fetchRecords, renameRecord, type RecordKind, type ToolRecord } from '@/api/records'
 import { toUserMessage } from '@/utils/errors'
+import { confirmDeleteEntity, promptRenameEntity } from '@/utils/dialogs'
 
 /**
  * 工具记录标准回路（问卦/择日/合盘/八宅共用）：
@@ -36,54 +36,30 @@ export function useToolRecords(kind: RecordKind) {
   }
 
   async function confirmRename(record: ToolRecord) {
-    let value: string
+    let value: string | null
     try {
-      const result = await ElMessageBox.prompt(
-        t('records.renamePrompt'),
-        t('records.renameTitle'),
-        {
-          inputValue: record.title,
-          inputPlaceholder: t('records.renamePlaceholder'),
-          inputValidator: (raw: string) => {
-            const title = raw.trim()
-            if (!title) return t('records.renameRequired')
-            if (title.length > 60) return t('records.renameTooLong')
-            return true
-          },
-          confirmButtonText: t('common.save'),
-          cancelButtonText: t('common.cancel'),
-        },
-      )
-      value = result.value.trim()
+      value = await promptRenameEntity(t('records.noun'), record.title)
     } catch (err) {
-      if (err === 'cancel' || err === 'close') return
-      error.value = toUserMessage(err, t('records.actionFailed'))
+      error.value = toUserMessage(err, t('common.actionFailed'))
       return
     }
+    if (value === null) return
     try {
       const updated = await renameRecord(record.id, value)
       const index = records.value.findIndex(item => item.id === record.id)
       if (index >= 0) records.value[index] = updated
     } catch (err) {
-      error.value = toUserMessage(err, t('records.actionFailed'))
+      error.value = toUserMessage(err, t('common.actionFailed'))
     }
   }
 
   async function confirmRemove(record: ToolRecord) {
-    try {
-      await ElMessageBox.confirm(
-        t('records.deleteConfirm', { title: record.title }),
-        t('records.deleteTitle'),
-        { type: 'warning', confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel') },
-      )
-    } catch {
-      return
-    }
+    if (!await confirmDeleteEntity(t('records.noun'), record.title)) return
     try {
       await deleteRecord(record.id)
       records.value = records.value.filter(item => item.id !== record.id)
     } catch (err) {
-      error.value = toUserMessage(err, t('records.actionFailed'))
+      error.value = toUserMessage(err, t('common.actionFailed'))
     }
   }
 

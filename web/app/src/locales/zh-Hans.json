@@ -10,7 +10,15 @@
     "copy": "复制",
     "copied": "已复制",
     "copyFailed": "复制失败，请手动复制",
-    "listSeparator": "，"
+    "listSeparator": "，",
+    "renameTitle": "重命名{target}",
+    "renamePrompt": "输入新的{target}标题。",
+    "renamePlaceholder": "{target}标题",
+    "renameRequired": "请输入标题",
+    "renameTooLong": "标题不能超过 60 个字符",
+    "deleteTitle": "删除{target}",
+    "deleteConfirm": "确定删除「{title}」？删除后不可恢复。",
+    "actionFailed": "操作失败，请重试"
   },
   "fatal": {
     "title": "页面出了点问题",
@@ -527,14 +535,7 @@
       "open": "打开",
       "rename": "重命名",
       "delete": "删除",
-      "renameTitle": "重命名会话",
-      "renamePrompt": "输入新的会话标题。",
-      "renamePlaceholder": "会话标题",
-      "renameRequired": "请输入标题",
-      "renameTooLong": "标题不能超过 60 个字符",
-      "deleteTitle": "删除会话",
-      "deleteConfirm": "确定删除「{title}」？删除后不可恢复。",
-      "actionFailed": "操作失败，请重试"
+      "noun": "会话"
     },
     "systemBirthProfile": {
       "title": "已载入档案",
@@ -687,21 +688,14 @@
     "open": "打开",
     "rename": "重命名",
     "delete": "删除",
-    "renameTitle": "重命名记录",
-    "renamePrompt": "输入新的记录标题。",
-    "renamePlaceholder": "记录标题",
-    "renameRequired": "请输入标题",
-    "renameTooLong": "标题不能超过 60 个字符",
-    "deleteTitle": "删除记录",
-    "deleteConfirm": "确定删除「{title}」？删除后不可恢复。",
-    "actionFailed": "操作失败，请重试",
     "loadFailed": "历史记录加载失败",
     "saveFailed": "保存失败，请重试",
     "save": "保存记录",
     "titleLiuyao": "问卦 · {question}",
     "titleHuangli": "择日 · {event} · {start}",
     "titleBond": "合盘 · {a} × {b}",
-    "titleBazhai": "八宅 · {nickname}"
+    "titleBazhai": "八宅 · {nickname}",
+    "noun": "记录"
   },
   "consultation": {
     "defaultTitle": "深入解读",

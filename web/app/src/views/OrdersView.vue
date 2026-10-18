@@ -203,7 +203,7 @@
       </el-table-column>
       <el-table-column
         :label="$t('orders.createdAt')"
-        width="190"
+        width="170"
       >
         <template #default="{ row }">
           {{ formatDateTime(row.created_at) }}
@@ -211,7 +211,7 @@
       </el-table-column>
       <el-table-column
         :label="$t('orders.paidAt')"
-        width="190"
+        width="170"
       >
         <template #default="{ row }">
           {{ formatDateTime(row.paid_at) }}
@@ -220,6 +220,7 @@
       <el-table-column
         width="200"
         align="right"
+        fixed="right"
       >
         <template #default="{ row }">
           <RecordActions
@@ -295,7 +296,7 @@
     <el-drawer
       v-model="detailOpen"
       :title="$t('orders.detail.title')"
-      size="420px"
+      :size="isMobile ? '92%' : '420px'"
     >
       <template v-if="detailData">
         <div class="detail-tags">
@@ -313,42 +314,42 @@
             {{ intentBadge(detailData.order) }}
           </el-tag>
         </div>
-        <div class="order-row">
+        <div class="order-row detail-row">
           <span class="k">{{ $t('orders.id') }}</span><span class="detail-id">{{ detailData.order.id }}</span>
         </div>
-        <div class="order-row">
+        <div class="order-row detail-row">
           <span class="k">{{ $t('orders.product') }}</span><span>{{ productName(detailData.order.product_id) }}</span>
         </div>
-        <div class="order-row">
+        <div class="order-row detail-row">
           <span class="k">{{ $t('orders.amount') }}</span><span>{{ formatMinorUnit(detailData.order.amount_minor, detailData.order.currency) }}</span>
         </div>
         <div
           v-if="detailData.payment"
-          class="order-row"
+          class="order-row detail-row"
         >
           <span class="k">{{ $t('orders.detail.payment') }}</span><span>{{ providerLabel(detailData.payment.provider) }}</span>
         </div>
         <div
           v-if="detailData.payment"
-          class="order-row"
+          class="order-row detail-row"
         >
           <span class="k">{{ $t('orders.detail.paymentStatus') }}</span><span>{{ intentStatusLabel(detailData.payment.status) }}</span>
         </div>
         <div
           v-if="detailData.order.paid_at"
-          class="order-row"
+          class="order-row detail-row"
         >
           <span class="k">{{ $t('orders.paidShort') }}</span><span>{{ formatDateTime(detailData.order.paid_at) }}</span>
         </div>
         <div
           v-if="detailData.payment && detailData.payment.refunded_amount_minor > 0"
-          class="order-row"
+          class="order-row detail-row"
         >
           <span class="k">{{ $t('orders.detail.refund') }}</span><span>{{ $t('orders.detail.refundedAmount', { amount: formatMinorUnit(detailData.payment.refunded_amount_minor, detailData.order.currency) }) }}</span>
         </div>
         <div
           v-if="detailData.order.status === 'paid'"
-          class="order-row"
+          class="order-row detail-row"
         >
           <span class="k">{{ $t('orders.detail.entitlement') }}</span>
           <span v-if="activeEntitlement">{{ $t('orders.detail.entitlementActive', { date: formatDateTime(activeEntitlement.expires_at) }) }}</span>
@@ -408,6 +409,7 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
+import { confirmAction } from '@/utils/dialogs'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { cancelOrder as apiCancelOrder, fetchOrderDetail, fetchOrders, fetchSubscriptionPayments, fetchSubscriptions, resumeOrderCheckout, setSubscriptionCancellation, type Order, type OrderDetail, type Subscription, type SubscriptionPayment } from '@/api/orders'
@@ -530,15 +532,11 @@ async function resumeCheckout(order: Order) {
 }
 
 async function confirmCancelOrder(order: Order) {
-  try {
-    await ElMessageBox.confirm(
-      t('orders.cancelConfirm'),
-      t('orders.cancelTitle'),
-      { type: 'warning', confirmButtonText: t('orders.cancel'), cancelButtonText: t('common.cancel') },
-    )
-  } catch {
-    return
-  }
+  if (!await confirmAction({
+    title: t('orders.cancelTitle'),
+    message: t('orders.cancelConfirm'),
+    confirmText: t('orders.cancel'),
+  })) return
   if (actingId.value) return
   actingId.value = order.id
   error.value = ''
@@ -606,19 +604,11 @@ function subscriptionPaymentStatusType(payment: SubscriptionPayment) {
 
 async function toggleCancellation(subscription: Subscription) {
   if (!subscription.cancel_at_period_end) {
-    try {
-      await ElMessageBox.confirm(
-        t('subscriptions.cancelConfirmBody'),
-        t('subscriptions.cancelConfirmTitle'),
-        {
-          type: 'warning',
-          confirmButtonText: t('subscriptions.cancel'),
-          cancelButtonText: t('common.cancel'),
-        },
-      )
-    } catch {
-      return
-    }
+    if (!await confirmAction({
+      title: t('subscriptions.cancelConfirmTitle'),
+      message: t('subscriptions.cancelConfirmBody'),
+      confirmText: t('subscriptions.cancel'),
+    })) return
   }
   updatingId.value = subscription.id
   error.value = ''
@@ -686,10 +676,11 @@ onMounted(() => {
   border-radius: var(--radius-lg); padding: 14px 16px;
 }
 .order-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.order-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.order-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
 .status-cell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .order-actions { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--liki-line); justify-content: flex-start; }
 .detail-tags { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.order-row.detail-row .k { width: 5em; }
 .detail-id { word-break: break-all; }
 .detail-timeline { margin-top: 16px; }
 .detail-error { color: var(--liki-text-2); }

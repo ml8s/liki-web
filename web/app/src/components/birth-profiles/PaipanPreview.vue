@@ -709,17 +709,22 @@ watch(() => props.profile?.id, () => {
 .ys-label { color: var(--liki-text-3); flex: 0 0 3em; }
 .ys-body { color: var(--liki-ink); }
 
-.zw-grid {
+.zw-grid,
+.ln-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, minmax(100px, auto));
   gap: 1px;
   background: var(--liki-line);
   border: 1px solid var(--liki-line);
   border-radius: var(--radius-small);
   overflow: hidden;
 }
-.zw-palace { background: var(--liki-surface); padding: 6px 5px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.zw-grid { grid-template-rows: repeat(4, minmax(100px, auto)); }
+.ln-grid { grid-template-rows: repeat(4, minmax(60px, auto)); margin-top: 8px; }
+.zw-palace,
+.ln-cell { background: var(--liki-surface); min-width: 0; }
+.zw-palace { padding: 6px 5px; display: flex; flex-direction: column; gap: 2px; }
+.ln-cell { padding: 4px 5px; }
 .zw-palace.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
 .zw-palace.ming .zw-pname, .zw-palace.ming .zw-main { color: var(--liki-primary); }
 .zw-palace.shen { box-shadow: inset 0 0 0 1px var(--liki-primary-border); }
@@ -762,18 +767,6 @@ watch(() => props.profile?.id, () => {
 
 .ln-pick { margin-bottom: 8px; }
 .ln-sihua { justify-content: flex-start; }
-.ln-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, minmax(60px, auto));
-  gap: 1px;
-  background: var(--liki-line);
-  border: 1px solid var(--liki-line);
-  border-radius: var(--radius-small);
-  overflow: hidden;
-  margin-top: 8px;
-}
-.ln-cell { background: var(--liki-surface); padding: 4px 5px; min-width: 0; }
 .ln-cell.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
 .ln-pname { font-size: var(--font-size-micro); font-weight: 600; color: var(--liki-text-2); white-space: nowrap; }
 .ln-cell.ming .ln-pname { color: var(--liki-primary); }
