@@ -137,6 +137,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/sales/products", h.requireUser(h.HandleProducts))
 	mux.HandleFunc("POST /api/sales/checkouts", h.requireUser(h.limit(h.HandleCheckout)))
 	mux.HandleFunc("GET /api/sales/orders", h.requireUser(h.HandleOrders))
+	mux.HandleFunc("GET /api/sales/orders/{id}", h.requireUser(h.HandleOrderDetail))
 	mux.HandleFunc("POST /api/sales/orders/{id}/cancel", h.requireUser(h.limit(h.HandleCancelOrder)))
 	mux.HandleFunc("POST /api/sales/orders/{id}/checkout", h.requireUser(h.limit(h.HandleResumeCheckout)))
 	if h.subscriptions == nil {
@@ -300,6 +301,13 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
 }
 
+// orderItem decorates a sales order with its payment intent status so clients
+// can distinguish "can still pay" from "expired" without extra round-trips.
+type orderItem struct {
+	Order
+	IntentStatus string `json:"intent_status,omitempty"`
+}
+
 func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
@@ -323,12 +331,6 @@ func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 		httputil.InternalError(w)
 		return
 	}
-	// intent_status lets the client distinguish "can still pay" from "expired";
-	// the sales store itself only knows pending/paid/canceled.
-	type orderItem struct {
-		Order
-		IntentStatus string `json:"intent_status,omitempty"`
-	}
 	items := make([]orderItem, 0, len(orders))
 	for _, order := range orders {
 		item := orderItem{Order: order}
@@ -338,6 +340,52 @@ func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 		items = append(items, item)
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{"orders": items})
+}
+
+// HandleOrderDetail returns one owned order plus its payment intent facts
+// (provider, status, timestamps, refunds) for the order detail drawer.
+func (h *Handler) HandleOrderDetail(w http.ResponseWriter, r *http.Request) {
+	user, ok := auth.UserFromContext(r.Context())
+	if !ok {
+		httputil.Unauthorized(w)
+		return
+	}
+	order, err := h.orders.GetOrderForUser(r.Context(), user.ID, r.PathValue("id"))
+	if err != nil {
+		if errors.Is(err, ErrOrderNotFound) {
+			httputil.NotFound(w)
+			return
+		}
+		slog.Error("sales: load order detail", "order_id", r.PathValue("id"), "err", err)
+		httputil.InternalError(w)
+		return
+	}
+	item := orderItem{Order: order}
+	payload := map[string]any{"order": item}
+	if order.PaymentIntentID != "" {
+		intent, err := h.runtime.GetIntent(r.Context(), order.PaymentIntentID)
+		switch {
+		case err == nil:
+			item.IntentStatus = string(intent.Status)
+			payload["order"] = item
+			payload["payment"] = map[string]any{
+				"provider":              string(intent.Provider),
+				"status":                string(intent.Status),
+				"created_at":            intent.CreatedAt,
+				"updated_at":            intent.UpdatedAt,
+				"paid_at":               intent.PaidAt,
+				"refunded_at":           intent.RefundedAt,
+				"refunded_amount_minor": intent.RefundedAmountMinor,
+			}
+		case errors.Is(err, payment.ErrIntentNotFound):
+			// An order without a live intent still renders; payment stays absent.
+		default:
+			slog.Error("sales: load intent for order detail", "order_id", order.ID, "err", err)
+			httputil.InternalError(w)
+			return
+		}
+	}
+	httputil.RespondJSON(w, http.StatusOK, payload)
 }
 
 func (h *Handler) HandleCancelOrder(w http.ResponseWriter, r *http.Request) {

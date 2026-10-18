@@ -76,9 +76,25 @@
     "notFound": "頁面不存在"
   },
   "services": {
+    "expert": {
+      "natal": {
+        "label": "本命",
+        "description": "八字·紫微·大運流年·合盤合參"
+      },
+      "divination": {
+        "label": "占卜",
+        "description": "六爻·奇門·黃曆擇日"
+      },
+      "fengshui": {
+        "label": "風水",
+        "description": "八宅·玄空·流年飛星"
+      },
+      "naming": {
+        "label": "起名",
+        "description": "按用神選字·名字評估"
+      }
+    },
     "skill": {
-      "label": "命理解讀",
-      "description": "八字、紫微、起名、問卦、風水——一個入口，按你的問題自動匹配領域。",
       "compact": "命理"
     },
     "bazi": {
@@ -455,7 +471,7 @@
   },
   "chat": {
     "pendingService": "準備開始：{service}",
-    "subtitle": "八字、合盤、起名、問卦、風水——一個入口，專業解讀。",
+    "subtitle": "八字・紫微、占卜、風水、起名——選擇專屬專家，專業解讀。",
     "productsFailed": "產品載入失敗",
     "selectBirthProfile": "選擇檔案",
     "selectBirthProfileFirst": "請先選擇一個檔案",
@@ -636,7 +652,35 @@
     "resumeFailed": "發起支付失敗，請重試",
     "use": "去使用",
     "repurchase": "重新購買",
-    "refresh": "重新整理訂單"
+    "refresh": "重新整理訂單",
+    "intentStatus": {
+      "created": "待發起支付",
+      "checkout_created": "待支付",
+      "paid": "已支付",
+      "refunded": "已退款",
+      "expired": "已過期",
+      "failed": "支付失敗"
+    },
+    "detail": {
+      "action": "詳情",
+      "title": "訂單詳情",
+      "payment": "支付方式",
+      "paymentStatus": "支付狀態",
+      "refund": "退款",
+      "refundedAmount": "已退款 {amount}",
+      "nodeCreated": "訂單建立",
+      "nodePaid": "支付完成",
+      "nodeWaiting": "等待支付",
+      "nodeRefunded": "已退款",
+      "entitlement": "權益",
+      "entitlementActive": "生效至 {date}",
+      "entitlementProcessing": "開通處理中，稍後重新整理",
+      "loadFailed": "詳情載入失敗，請重試",
+      "provider": {
+        "xunhu": "虎皮椒",
+        "dodo": "Dodo Payments"
+      }
+    }
   },
   "consultation": {
     "defaultTitle": "深入解讀",

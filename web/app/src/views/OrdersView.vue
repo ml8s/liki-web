@@ -291,6 +291,118 @@
       :closable="false"
       class="pending-alert"
     />
+
+    <el-drawer
+      v-model="detailOpen"
+      :title="$t('orders.detail.title')"
+      size="420px"
+    >
+      <template v-if="detailData">
+        <div class="detail-tags">
+          <el-tag
+            :type="statusType(detailData.order.status)"
+            size="small"
+          >
+            {{ statusLabel(detailData.order.status) }}
+          </el-tag>
+          <el-tag
+            v-if="intentBadge(detailData.order)"
+            type="info"
+            size="small"
+          >
+            {{ intentBadge(detailData.order) }}
+          </el-tag>
+        </div>
+        <div class="order-row">
+          <span class="k">{{ $t('orders.id') }}</span><span class="detail-id">{{ detailData.order.id }}</span>
+        </div>
+        <div class="order-row">
+          <span class="k">{{ $t('orders.product') }}</span><span>{{ productName(detailData.order.product_id) }}</span>
+        </div>
+        <div class="order-row">
+          <span class="k">{{ $t('orders.amount') }}</span><span>{{ formatMinorUnit(detailData.order.amount_minor, detailData.order.currency) }}</span>
+        </div>
+        <div
+          v-if="detailData.payment"
+          class="order-row"
+        >
+          <span class="k">{{ $t('orders.detail.payment') }}</span><span>{{ providerLabel(detailData.payment.provider) }}</span>
+        </div>
+        <div
+          v-if="detailData.payment"
+          class="order-row"
+        >
+          <span class="k">{{ $t('orders.detail.paymentStatus') }}</span><span>{{ intentStatusLabel(detailData.payment.status) }}</span>
+        </div>
+        <div
+          v-if="detailData.order.paid_at"
+          class="order-row"
+        >
+          <span class="k">{{ $t('orders.paidShort') }}</span><span>{{ formatDateTime(detailData.order.paid_at) }}</span>
+        </div>
+        <div
+          v-if="detailData.payment && detailData.payment.refunded_amount_minor > 0"
+          class="order-row"
+        >
+          <span class="k">{{ $t('orders.detail.refund') }}</span><span>{{ $t('orders.detail.refundedAmount', { amount: formatMinorUnit(detailData.payment.refunded_amount_minor, detailData.order.currency) }) }}</span>
+        </div>
+        <div
+          v-if="detailData.order.status === 'paid'"
+          class="order-row"
+        >
+          <span class="k">{{ $t('orders.detail.entitlement') }}</span>
+          <span v-if="activeEntitlement">{{ $t('orders.detail.entitlementActive', { date: formatDateTime(activeEntitlement.expires_at) }) }}</span>
+          <span v-else>{{ $t('orders.detail.entitlementProcessing') }}</span>
+        </div>
+
+        <el-timeline class="detail-timeline">
+          <el-timeline-item
+            :timestamp="formatDateTime(detailData.order.created_at)"
+            type="primary"
+          >
+            {{ $t('orders.detail.nodeCreated') }}
+          </el-timeline-item>
+          <el-timeline-item
+            v-if="detailData.payment?.paid_at"
+            :timestamp="formatDateTime(detailData.payment.paid_at)"
+            type="success"
+          >
+            {{ $t('orders.detail.nodePaid') }}
+          </el-timeline-item>
+          <el-timeline-item
+            v-else-if="detailData.order.status === 'pending'"
+            :timestamp="formatDateTime(detailData.order.updated_at)"
+          >
+            {{ $t('orders.detail.nodeWaiting') }}
+          </el-timeline-item>
+          <el-timeline-item
+            v-if="detailData.payment?.refunded_at"
+            :timestamp="formatDateTime(detailData.payment.refunded_at)"
+            type="info"
+          >
+            {{ $t('orders.detail.nodeRefunded') }}
+          </el-timeline-item>
+          <el-timeline-item
+            v-if="detailData.order.status === 'canceled'"
+            :timestamp="formatDateTime(detailData.order.updated_at)"
+            type="info"
+          >
+            {{ $t('orders.statusCanceled') }}
+          </el-timeline-item>
+        </el-timeline>
+      </template>
+      <el-skeleton
+        v-else-if="detailLoading"
+        :rows="4"
+        animated
+      />
+      <p
+        v-else
+        class="detail-error"
+      >
+        {{ detailError }}
+      </p>
+    </el-drawer>
   </section>
 </template>
 
@@ -298,8 +410,9 @@
 import { toUserMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { cancelOrder as apiCancelOrder, fetchOrders, fetchSubscriptionPayments, fetchSubscriptions, resumeOrderCheckout, setSubscriptionCancellation, type Order, type Subscription, type SubscriptionPayment } from '@/api/orders'
+import { cancelOrder as apiCancelOrder, fetchOrderDetail, fetchOrders, fetchSubscriptionPayments, fetchSubscriptions, resumeOrderCheckout, setSubscriptionCancellation, type Order, type OrderDetail, type Subscription, type SubscriptionPayment } from '@/api/orders'
 import { ApiError } from '@/api/http'
+import { useEntitlementsStore } from '@/stores/entitlements'
 import { formatDateTime, formatMinorUnit, productName } from '@/utils/format'
 import { useMobile } from '@/composables/useMobile'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
@@ -313,12 +426,26 @@ const actingId = ref('')
 const loading = ref(false)
 const error = ref('')
 const isMobile = useMobile()
-const { t } = useI18n()
+const { t, te } = useI18n()
+const entitlements = useEntitlementsStore()
+
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detailData = ref<OrderDetail | null>(null)
+const detailError = ref('')
+
+const activeEntitlement = computed(() =>
+  entitlements.items.find(item => item.status === 'active' && item.skills.includes('liki')) ?? null,
+)
 
 const pendingOrders = computed(() => orders.value.filter(order => order.status === 'pending'))
 
-/** 行操作标准：按订单+intent 状态派生可用动作（导航类渲染为链接）。 */
+/** 行操作标准：每个订单都可打开详情，再按 订单态×intent 态 派生可用动作。 */
 function orderActions(order: Order): RecordAction[] {
+  return [{ key: 'detail', label: t('orders.detail.action') }, ...statusActions(order)]
+}
+
+function statusActions(order: Order): RecordAction[] {
   if (order.status === 'pending') {
     if (order.intent_status === 'expired') {
       // 已过期的订单仍可取消：过期也是未完结，用户需要能整理列表。
@@ -351,9 +478,33 @@ function intentBadge(order: Order): string {
 }
 
 function onOrderAction(key: string, order: Order) {
-  if (key === 'resume') void resumeCheckout(order)
+  if (key === 'detail') void openDetail(order)
+  else if (key === 'resume') void resumeCheckout(order)
   else if (key === 'cancel') void confirmCancelOrder(order)
   else if (key === 'refresh') void load()
+}
+
+function providerLabel(provider: string): string {
+  const key = `orders.detail.provider.${provider}`
+  return te(key) ? t(key) : provider
+}
+
+function intentStatusLabel(status: Order['intent_status']): string {
+  return status ? t(`orders.intentStatus.${status}`) : '—'
+}
+
+async function openDetail(order: Order) {
+  detailOpen.value = true
+  detailLoading.value = true
+  detailData.value = null
+  detailError.value = ''
+  try {
+    detailData.value = await fetchOrderDetail(order.id)
+  } catch (err) {
+    detailError.value = toUserMessage(err, t('orders.detail.loadFailed'))
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 async function resumeCheckout(order: Order) {
@@ -410,6 +561,7 @@ async function load() {
       fetchOrders(),
       fetchSubscriptions(),
       fetchSubscriptionPayments(),
+      entitlements.load(),
     ])
     orders.value = orderItems
     subscriptions.value = subscriptionItems
@@ -537,6 +689,10 @@ onMounted(() => {
 .order-tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .status-cell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .order-actions { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--liki-line); justify-content: flex-start; }
+.detail-tags { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.detail-id { word-break: break-all; }
+.detail-timeline { margin-top: 16px; }
+.detail-error { color: var(--liki-text-2); }
 .order-id { font-weight: 600; font-size: var(--font-size-label); word-break: break-all; }
 .order-row { display: flex; gap: 8px; font-size: var(--font-size-body); color: var(--liki-ink); padding: 3px 0; }
 .order-row .k { color: var(--liki-text-2); width: 40px; flex-shrink: 0; }

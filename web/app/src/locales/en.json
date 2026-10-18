@@ -76,9 +76,25 @@
     "notFound": "Page not found"
   },
   "services": {
+    "expert": {
+      "natal": {
+        "label": "Natal",
+        "description": "BaZi · ZiWei · lifetime cycles · synastry"
+      },
+      "divination": {
+        "label": "Divination",
+        "description": "LiuYao · QiMen · date selection"
+      },
+      "fengshui": {
+        "label": "Feng Shui",
+        "description": "Eight Mansions · XuanKong · annual stars"
+      },
+      "naming": {
+        "label": "Naming",
+        "description": "Name picking by chart yongshen · name review"
+      }
+    },
     "skill": {
-      "label": "Metaphysics consultation",
-      "description": "BaZi, ZiWei, divination, and Feng Shui in one guided chat.",
       "compact": "Metaphysics"
     },
     "bazi": {
@@ -455,7 +471,7 @@
   },
   "chat": {
     "pendingService": "Ready to start: {service}",
-    "subtitle": "BaZi, compatibility, naming, divination, and Feng Shui—one guided professional consultation.",
+    "subtitle": "BaZi · ZiWei, divination, Feng Shui, and naming—choose your expert for a professional reading.",
     "productsFailed": "Failed to load products",
     "selectBirthProfile": "Select a profile",
     "selectBirthProfileFirst": "Select a profile first",
@@ -636,7 +652,35 @@
     "resumeFailed": "Failed to start checkout, please retry",
     "use": "Use it",
     "repurchase": "Buy again",
-    "refresh": "Refresh order"
+    "refresh": "Refresh order",
+    "intentStatus": {
+      "created": "Checkout pending",
+      "checkout_created": "Awaiting payment",
+      "paid": "Paid",
+      "refunded": "Refunded",
+      "expired": "Expired",
+      "failed": "Payment failed"
+    },
+    "detail": {
+      "action": "Details",
+      "title": "Order detail",
+      "payment": "Payment method",
+      "paymentStatus": "Payment status",
+      "refund": "Refund",
+      "refundedAmount": "Refunded {amount}",
+      "nodeCreated": "Order created",
+      "nodePaid": "Payment completed",
+      "nodeWaiting": "Awaiting payment",
+      "nodeRefunded": "Refunded",
+      "entitlement": "Access",
+      "entitlementActive": "Active until {date}",
+      "entitlementProcessing": "Activation in progress, refresh later",
+      "loadFailed": "Failed to load order detail, please retry",
+      "provider": {
+        "xunhu": "Xunhu Pay",
+        "dodo": "Dodo Payments"
+      }
+    }
   },
   "consultation": {
     "defaultTitle": "Deep interpretation",

@@ -35,7 +35,16 @@ const order = (id: string, status: string, intentStatus: string) => ({
 })
 
 async function mockOrdersPage(page: Page, orders: unknown[]) {
-  await mockWorkspace(page, { user, allowedSkills: ['liki'], sessions: [], orders })
+  await mockWorkspace(page, {
+    user,
+    allowedSkills: ['liki'],
+    sessions: [],
+    orders,
+    entitlements: [{
+      id: 'ent_1', user_id: user.id, product_id: 'liki-chat', skills: ['liki'], status: 'active',
+      starts_at: '2026-01-01T00:00:00Z', expires_at: '2027-01-01T00:00:00Z',
+    }],
+  })
   await page.route('**/api/sales/subscriptions', route => route.fulfill(json([])))
   await page.route('**/api/sales/subscription-payments', route => route.fulfill(json([])))
 }
@@ -83,6 +92,18 @@ test('订单行操作：继续支付跳收银台、取消生效为已取消', as
     order('ord_paid', 'paid', 'paid'),
   ]
   await mockOrdersPage(page, orders)
+  await page.route('**/api/sales/orders/ord_paid', route => route.fulfill(json({
+    order: orders[3],
+    payment: {
+      provider: 'xunhu',
+      status: 'paid',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:05:00Z',
+      paid_at: '2026-01-01T00:05:00Z',
+      refunded_at: null,
+      refunded_amount_minor: 0,
+    },
+  })))
   const checkouts: string[] = []
   const cancels: string[] = []
   await page.route('**/api/sales/orders/ord_resume/checkout', route => {
@@ -116,6 +137,16 @@ test('订单行操作：继续支付跳收银台、取消生效为已取消', as
   await expect(expiredRow.getByRole('button', { name: '取消訂單' })).toBeVisible()
   const paidRow = page.locator('.el-table__row', { hasText: 'ord_paid' })
   await expect(paidRow.getByRole('link', { name: '去使用' })).toHaveAttribute('href', '/app/chat')
+
+  // 详情抽屉：支付渠道/时间线/权益生效信息。
+  await paidRow.getByRole('button', { name: '詳情' }).click()
+  const drawer = page.locator('.el-drawer')
+  await expect(drawer).toBeVisible()
+  await expect(drawer).toContainText('虎皮椒')
+  await expect(drawer).toContainText('支付完成')
+  await expect(drawer).toContainText('生效至')
+  await page.keyboard.press('Escape')
+  await expect(drawer).toBeHidden()
 
   await resumeRow.getByRole('button', { name: '繼續支付' }).click()
   await page.waitForURL('**/pay/stub')

@@ -140,6 +140,7 @@ Current canonical skill is `liki`.
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/sales/orders` | user | List sales orders (annotated with `intent_status`) |
+| GET | `/api/sales/orders/{id}` | owner | Order detail (order + payment intent facts) |
 | POST | `/api/sales/orders/{id}/cancel` | owner | Cancel a pending order |
 | POST | `/api/sales/orders/{id}/checkout` | owner | Re-open checkout for a pending order (fresh provider session; 409 `order_expired` / `order_already_paid` / `order_refunded`) |
 

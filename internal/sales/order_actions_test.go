@@ -204,6 +204,55 @@ func TestResumeCheckoutRejectsPaidIntentRace(t *testing.T) {
 	}
 }
 
+func TestOrderDetailReturnsPaymentFacts(t *testing.T) {
+	handler, intents, order, intent := newOrderActionsHandler(t)
+	ctx := context.Background()
+	if _, _, err := intents.MarkPaid(ctx, intent.ID, "pay-1"); err != nil {
+		t.Fatal(err)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/api/sales/orders/"+order.ID, nil)
+	request.SetPathValue("id", order.ID)
+	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{ID: "user-1"}, auth.AuthSession{}, ""))
+	recorder := httptest.NewRecorder()
+	handler.HandleOrderDetail(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var response struct {
+		Data struct {
+			Order struct {
+				ID           string `json:"id"`
+				IntentStatus string `json:"intent_status"`
+			} `json:"order"`
+			Payment *struct {
+				Provider string `json:"provider"`
+				Status   string `json:"status"`
+			} `json:"payment"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Data.Order.ID != order.ID || response.Data.Order.IntentStatus != string(payment.IntentPaid) {
+		t.Fatalf("order = %+v", response.Data.Order)
+	}
+	if response.Data.Payment == nil ||
+		response.Data.Payment.Provider != string(payment.ProviderXunhu) ||
+		response.Data.Payment.Status != string(payment.IntentPaid) {
+		t.Fatalf("payment = %+v", response.Data.Payment)
+	}
+
+	request = httptest.NewRequest(http.MethodGet, "/api/sales/orders/"+order.ID, nil)
+	request.SetPathValue("id", order.ID)
+	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{ID: "user-2"}, auth.AuthSession{}, ""))
+	recorder = httptest.NewRecorder()
+	handler.HandleOrderDetail(recorder, request)
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("foreign detail = %d", recorder.Code)
+	}
+}
+
 func TestOrdersListAnnotatesIntentStatus(t *testing.T) {
 	handler, intents, order, intent := newOrderActionsHandler(t)
 	ctx := context.Background()

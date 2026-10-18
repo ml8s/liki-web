@@ -42,6 +42,25 @@ export function resumeOrderCheckout(orderId: string): Promise<OrderCheckoutResul
   return post<OrderCheckoutResult>(`/api/sales/orders/${orderId}/checkout`)
 }
 
+export interface OrderPaymentInfo {
+  provider: string
+  status: OrderIntentStatus
+  created_at: string
+  updated_at: string
+  paid_at: string | null
+  refunded_at: string | null
+  refunded_amount_minor: number
+}
+
+export interface OrderDetail {
+  order: Order
+  payment?: OrderPaymentInfo
+}
+
+export function fetchOrderDetail(orderId: string): Promise<OrderDetail> {
+  return get<OrderDetail>(`/api/sales/orders/${orderId}`)
+}
+
 export interface Subscription {
   id: string
   user_id: string
