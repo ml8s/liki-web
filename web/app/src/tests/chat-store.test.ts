@@ -10,7 +10,8 @@ const session = {
   user_id: 'usr_1',
   profile_id: '',
   skill: 'liki',
-  title: '命理解读',
+  expert: 'natal',
+  title: '本命解读',
   status: 'active',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -39,7 +40,7 @@ describe('chat store', () => {
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
 
-    await expect(chat.createSession('', 'liki')).rejects.toThrow('当前订单未开通该 skill')
+    await expect(chat.createSession('', 'natal')).rejects.toThrow('当前订单未开通该 skill')
     expect(entitlements.hasSkill('liki')).toBe(false)
     expect(global.fetch).toHaveBeenCalledTimes(1)
   })
@@ -78,11 +79,11 @@ describe('chat store', () => {
       return sendResult
     })
 
-    await chat.createSession('', 'liki')
+    await chat.createSession('', 'natal')
     chat.activeSession = session
     await chat.send(' 你好 ')
 
-    expect(createSpy).toHaveBeenCalledWith('', 'liki', '命理解读')
+    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '本命解读')
     expect(sendSpy).toHaveBeenCalledWith(session.id, '你好', expect.any(Function), expect.any(AbortSignal))
     expect(chat.messages).toEqual([userMessage, assistantMessage])
     expect(chat.activeSession?.id).toBe(session.id)

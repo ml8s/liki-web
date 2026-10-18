@@ -71,7 +71,8 @@ type Config struct {
 	AlipayConfig                     aipay.Config
 	EngineMCPBaseURL                 string
 	EngineMCPToken                   string
-	AgentURL                         string
+	AgentURLs                        map[string]string
+	AgentLegacyURL                   string
 	AgentInternalToken               string
 	AgentTimeoutSeconds              int
 	PublicBaseURL                    string
@@ -112,7 +113,8 @@ func LoadConfig() Config {
 		AlipayConfig:                     loadAlipayConfig(),
 		EngineMCPBaseURL:                 envOr("LIKI_ENGINE_MCP_URL", "http://localhost:8085"),
 		EngineMCPToken:                   os.Getenv("LIKI_ENGINE_MCP_TOKEN"),
-		AgentURL:                         strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/"),
+		AgentURLs:                        loadAgentURLs(),
+		AgentLegacyURL:                   strings.TrimRight(envOr("LIKI_AGENTS_LEGACY_URL", ""), "/"),
 		AgentInternalToken:               os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
 		AgentTimeoutSeconds:              envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 140),
 		PublicBaseURL:                    envOr("LIKI_PUBLIC_BASE_URL", ""),
@@ -377,10 +379,6 @@ func main() {
 		os.Exit(1)
 	}
 	chatService := chat.NewService(chatStore, entitlements, profileStore)
-	if cfg.AgentURL == "" {
-		slog.Error("LIKI_AGENTS_URL is required")
-		os.Exit(1)
-	}
 	if cfg.AgentInternalToken == "" {
 		slog.Error("LIKI_AGENTS_INTERNAL_TOKEN is required")
 		os.Exit(1)
@@ -389,17 +387,43 @@ func main() {
 	if agentTimeout <= 0 || agentTimeout > maxAgentRunTimeout {
 		agentTimeout = maxAgentRunTimeout
 	}
-	agentRunner, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
-		BaseURL: cfg.AgentURL,
-		Token:   cfg.AgentInternalToken,
-		Timeout: agentTimeout,
-		Product: "liki",
-	})
-	if err != nil {
-		slog.Error("init liki agent runner", "err", err)
-		os.Exit(1)
+	runners := make(map[string]chat.Runner, len(chat.ExpertOrder))
+	for _, expert := range chat.ExpertOrder {
+		baseURL := cfg.AgentURLs[expert]
+		if baseURL == "" {
+			slog.Error("missing agent endpoint",
+				"expert", expert,
+				"env", "LIKI_AGENTS_"+strings.ToUpper(expert)+"_URL",
+			)
+			os.Exit(1)
+		}
+		runner, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
+			BaseURL: baseURL,
+			Token:   cfg.AgentInternalToken,
+			Timeout: agentTimeout,
+			Product: "liki",
+		})
+		if err != nil {
+			slog.Error("init liki agent runner", "expert", expert, "err", err)
+			os.Exit(1)
+		}
+		runners[expert] = runner
 	}
-	chatService.SetAgentRunner(agentRunner)
+	var legacyRunner chat.Runner
+	if cfg.AgentLegacyURL != "" {
+		legacy, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
+			BaseURL: cfg.AgentLegacyURL,
+			Token:   cfg.AgentInternalToken,
+			Timeout: agentTimeout,
+			Product: "liki",
+		})
+		if err != nil {
+			slog.Error("init liki legacy agent runner", "err", err)
+			os.Exit(1)
+		}
+		legacyRunner = legacy
+	}
+	chatService.SetAgentRunners(runners, legacyRunner)
 	productCatalog := product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY:      cfg.ChatOneTimePriceMinorCNY,
 		OneTimePriceMinorUSD:      cfg.ChatOneTimePriceMinorUSD,
@@ -569,8 +593,15 @@ func main() {
 		if err := checkEngineMCPReadiness(ctx, cfg.EngineMCPBaseURL); err != nil {
 			return err
 		}
-		if err := checkAgentReadiness(ctx, cfg.AgentURL); err != nil {
-			return err
+		for _, expert := range chat.ExpertOrder {
+			if err := checkAgentReadiness(ctx, cfg.AgentURLs[expert]); err != nil {
+				return fmt.Errorf("expert %s: %w", expert, err)
+			}
+		}
+		if cfg.AgentLegacyURL != "" {
+			if err := checkAgentReadiness(ctx, cfg.AgentLegacyURL); err != nil {
+				return fmt.Errorf("legacy expert: %w", err)
+			}
 		}
 		return nil
 	}
@@ -829,10 +860,31 @@ func validateRuntimeURLs(cfg Config) error {
 	if err := validateHTTPURL("LIKI_PAYMENT_WEBHOOK_URL", cfg.PaymentWebhookURL); err != nil {
 		errs = append(errs, err)
 	}
-	if err := validateHTTPURL("LIKI_AGENTS_URL", cfg.AgentURL); err != nil {
-		errs = append(errs, err)
+	for _, expert := range chat.ExpertOrder {
+		name := "LIKI_AGENTS_" + strings.ToUpper(expert) + "_URL"
+		if err := validateHTTPURL(name, cfg.AgentURLs[expert]); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if cfg.AgentLegacyURL != "" {
+		if err := validateHTTPURL("LIKI_AGENTS_LEGACY_URL", cfg.AgentLegacyURL); err != nil {
+			errs = append(errs, err)
+		}
 	}
 	return errors.Join(errs...)
+}
+
+// loadAgentURLs resolves the per-expert runtime endpoints. LIKI_AGENTS_URL is
+// a fallback for single-deployment development only; production sets one URL
+// per expert service.
+func loadAgentURLs() map[string]string {
+	fallback := strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/")
+	return map[string]string{
+		chat.ExpertNatal:      strings.TrimRight(envOr("LIKI_AGENTS_NATAL_URL", fallback), "/"),
+		chat.ExpertDivination: strings.TrimRight(envOr("LIKI_AGENTS_DIVINATION_URL", fallback), "/"),
+		chat.ExpertFengshui:   strings.TrimRight(envOr("LIKI_AGENTS_FENGSHUI_URL", fallback), "/"),
+		chat.ExpertNaming:     strings.TrimRight(envOr("LIKI_AGENTS_NAMING_URL", fallback), "/"),
+	}
 }
 
 func envOr(key, def string) string {

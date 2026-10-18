@@ -1,18 +1,35 @@
 import { i18n } from '@/i18n'
 
+export type ExpertId = 'natal' | 'divination' | 'fengshui' | 'naming'
+
 export interface SkillDefinition {
-  id: 'liki'
+  id: ExpertId
   labelKey: string
   descriptionKey: string
 }
 
-// 引擎已把四个领域合并为统一 skill「liki」，由引擎按意图自动路由；
-// 前端保留一个通用 Chat 入口。
+// 四专家独立部署：会话在创建时绑定专家，BFF 按专家路由到对应部署
+// （endpoint 即专家身份，不再有 LLM 路由层）。
 export const chatSkills: SkillDefinition[] = [
   {
-    id: 'liki',
-    labelKey: 'services.skill.label',
-    descriptionKey: 'services.skill.description',
+    id: 'natal',
+    labelKey: 'services.expert.natal.label',
+    descriptionKey: 'services.expert.natal.description',
+  },
+  {
+    id: 'divination',
+    labelKey: 'services.expert.divination.label',
+    descriptionKey: 'services.expert.divination.description',
+  },
+  {
+    id: 'fengshui',
+    labelKey: 'services.expert.fengshui.label',
+    descriptionKey: 'services.expert.fengshui.description',
+  },
+  {
+    id: 'naming',
+    labelKey: 'services.expert.naming.label',
+    descriptionKey: 'services.expert.naming.description',
   },
 ]
 
@@ -20,7 +37,7 @@ export interface ChatService {
   key: string
   labelKey: string
   descKey: string
-  /** 对话首条意图消息（引擎按意图路由） */
+  /** 会话首条意图消息（发给所选专家的开场陈述） */
   intentKey: string
   /** 特殊入口路由（如合盘 → /synastry），否则走对话意图 */
   route?: string

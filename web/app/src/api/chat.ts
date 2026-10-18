@@ -20,6 +20,7 @@ export interface ChatSession {
   user_id: string
   profile_id: string
   skill: string
+  expert: string
   title: string
   status: 'active' | 'closed'
   created_at: string
@@ -50,8 +51,8 @@ export function fetchChatSession(sessionId: string): Promise<ChatSession> {
   return get<ChatSession>(`/api/chat/sessions/${sessionId}`)
 }
 
-export function createChatSession(profileId: string, skill: string, title?: string): Promise<ChatSession> {
-  return post<ChatSession>('/api/chat/sessions', { profile_id: profileId, skill, title })
+export function createChatSession(profileId: string, skill: string, expert: string, title?: string): Promise<ChatSession> {
+  return post<ChatSession>('/api/chat/sessions', { profile_id: profileId, skill, expert, title })
 }
 
 export function renameChatSession(sessionId: string, title: string): Promise<ChatSession> {

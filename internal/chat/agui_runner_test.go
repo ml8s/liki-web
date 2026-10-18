@@ -223,23 +223,40 @@ func (r selectedRunner) Execute(context.Context, []llm.Message, func(agent.ChatE
 }
 func (r selectedRunner) Prompt() string { return r.name }
 
-func TestServiceRoutesAllSessionsToAgentRunner(t *testing.T) {
-	remote := selectedRunner{name: "remote"}
+func TestServiceRoutesSessionsByExpert(t *testing.T) {
+	natal := selectedRunner{name: "natal"}
+	divination := selectedRunner{name: "divination"}
+	legacy := selectedRunner{name: "legacy"}
 	service := NewService(nil, nil, nil)
-	service.SetAgentRunner(remote)
+	service.SetAgentRunners(map[string]Runner{
+		ExpertNatal:      natal,
+		ExpertDivination: divination,
+	}, legacy)
 
-	if got, err := service.runnerForSession(product.SkillConsultation, ""); err != nil || got != remote {
-		t.Fatalf("runnerForSession(unbound) = %#v, %v", got, err)
+	if got, err := service.runnerForSession(product.SkillConsultation, ExpertNatal); err != nil || got != natal {
+		t.Fatalf("runnerForSession(natal) = %#v, %v", got, err)
 	}
-	if got, err := service.runnerForSession(product.SkillConsultation, "profile-1"); err != nil || got != remote {
-		t.Fatalf("runnerForSession(profile) = %#v, %v", got, err)
+	if got, err := service.runnerForSession(product.SkillConsultation, ExpertDivination); err != nil || got != divination {
+		t.Fatalf("runnerForSession(divination) = %#v, %v", got, err)
+	}
+	// 历史会话（expert 为空）回退到 legacy runner。
+	if got, err := service.runnerForSession(product.SkillConsultation, ""); err != nil || got != legacy {
+		t.Fatalf("runnerForSession(legacy) = %#v, %v", got, err)
+	}
+	// 未部署的专家明确不可用。
+	if _, err := service.runnerForSession(product.SkillConsultation, ExpertFengshui); err == nil {
+		t.Fatal("expected ErrRunnerUnavailable for an undeployed expert")
 	}
 }
 
 func TestServiceRejectsWhenNoAgentRunnerConfigured(t *testing.T) {
 	service := NewService(nil, nil, nil)
-	if _, err := service.runnerForSession(product.SkillConsultation, ""); err == nil {
+	if _, err := service.runnerForSession(product.SkillConsultation, ExpertNatal); err == nil {
 		t.Fatal("expected ErrRunnerUnavailable when agent runner is not configured")
+	}
+	// 无 legacy runner 时，历史会话同样明确不可用。
+	if _, err := service.runnerForSession(product.SkillConsultation, ""); err == nil {
+		t.Fatal("expected ErrRunnerUnavailable for expert-less sessions without a legacy runner")
 	}
 }
 

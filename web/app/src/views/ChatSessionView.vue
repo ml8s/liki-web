@@ -12,7 +12,7 @@
               v-if="chat.activeSession"
               size="small"
             >
-              {{ skillLabel(chat.activeSession.skill) }}
+              {{ skillLabel(chat.activeSession.expert) }}
             </el-tag>
           </div>
         </template>

@@ -43,6 +43,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 type createSessionRequest struct {
 	Skill     string `json:"skill"`
+	Expert    string `json:"expert"`
 	Title     string `json:"title"`
 	ProfileID string `json:"profile_id"`
 }
@@ -50,6 +51,9 @@ type createSessionRequest struct {
 func (r createSessionRequest) Validate() error {
 	if strings.TrimSpace(r.Skill) == "" {
 		return errors.New("skill is required")
+	}
+	if !ValidExpert(strings.TrimSpace(r.Expert)) {
+		return errors.New("expert must be one of natal, divination, fengshui, naming")
 	}
 	return nil
 }
@@ -73,8 +77,12 @@ func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	session, err := h.service.CreateSession(r.Context(), user.ID, req.Skill, req.Title, req.ProfileID)
+	session, err := h.service.CreateSession(r.Context(), user.ID, req.Skill, strings.TrimSpace(req.Expert), req.Title, req.ProfileID)
 	if err != nil {
+		if errors.Is(err, ErrExpertInvalid) {
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "expert must be one of natal, divination, fengshui, naming")
+			return
+		}
 		if errors.Is(err, ErrSkillForbidden) {
 			httputil.RespondError(w, http.StatusForbidden, "skill_forbidden", "当前权益不可使用该 skill")
 			return

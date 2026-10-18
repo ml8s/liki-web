@@ -43,6 +43,7 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
     data: {
       profile_id: profile.id,
       skill: 'liki',
+      expert: 'natal',
       title: 'Full system E2E',
     },
   })

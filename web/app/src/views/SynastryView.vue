@@ -421,7 +421,7 @@ async function startInterpretation() {
     place: bBirthProfile.birth_place ? t('services.bond.otherPlace', { place: bBirthProfile.birth_place }) : '',
   })
   chat.pendingIntent = t('services.bond.intent', { a: p.nickname, info: bInfo })
-  await openServiceChat(p.id, message => { error.value = message })
+  await openServiceChat(p.id, 'natal', message => { error.value = message })
 }
 </script>
 

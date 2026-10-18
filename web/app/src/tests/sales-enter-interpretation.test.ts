@@ -40,7 +40,7 @@ describe('sales enterInterpretation', () => {
     const sessionId = await useSalesStore().enterInterpretation('profile_selected')
 
     expect(sessionId).toBe('session_selected')
-    expect(createSession).toHaveBeenCalledWith('profile_selected', 'liki')
+    expect(createSession).toHaveBeenCalledWith('profile_selected', 'natal')
   })
 
   it('falls back to the first profile when none is selected', async () => {
@@ -52,6 +52,6 @@ describe('sales enterInterpretation', () => {
     const sessionId = await useSalesStore().enterInterpretation()
 
     expect(sessionId).toBe('session_first')
-    expect(createSession).toHaveBeenCalledWith('profile_first', 'liki')
+    expect(createSession).toHaveBeenCalledWith('profile_first', 'natal')
   })
 })

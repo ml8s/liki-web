@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -19,7 +20,25 @@ var (
 	ErrSkillForbidden    = errors.New("liki: skill forbidden")
 	ErrMessageEmpty      = errors.New("liki: message empty")
 	ErrRunnerUnavailable = errors.New("liki: runner unavailable for skill")
+	ErrExpertInvalid     = errors.New("liki: invalid expert")
 )
+
+// Expert identifies one independently deployed expert app (ADK deployment).
+// Every session binds exactly one expert; the runner is chosen by this value.
+const (
+	ExpertNatal      = "natal"
+	ExpertDivination = "divination"
+	ExpertFengshui   = "fengshui"
+	ExpertNaming     = "naming"
+)
+
+// ExpertOrder is the product-facing expert order.
+var ExpertOrder = []string{ExpertNatal, ExpertDivination, ExpertFengshui, ExpertNaming}
+
+// ValidExpert reports whether expert names a deployed expert app.
+func ValidExpert(expert string) bool {
+	return slices.Contains(ExpertOrder, expert)
+}
 
 // chatExecutionTimeout must remain below the HTTP server WriteTimeout. The
 // service timeout covers local tool loops and remote AG-UI runs alike.
@@ -35,7 +54,8 @@ type Service struct {
 	store        *ChatStore
 	authorizer   AccessAuthorizer
 	profiles     *birthprofile.Store
-	agentRunner  Runner
+	agentRunners map[string]Runner
+	legacyRunner Runner
 	locks        sync.Mutex
 	sessionLocks sync.Map // sessionID -> *sync.Mutex
 }
@@ -44,16 +64,22 @@ func NewService(store *ChatStore, authorizer AccessAuthorizer, profiles *birthpr
 	return &Service{store: store, authorizer: authorizer, profiles: profiles, sessionLocks: sync.Map{}}
 }
 
-// SetAgentRunner enables AG-UI routing for all chat sessions. The in-process
-// local runner has been retired; every session (profile-bound or not) is
-// executed by the remote liki-agents runtime.
-func (s *Service) SetAgentRunner(runner Runner) {
-	s.agentRunner = runner
+// SetAgentRunners enables AG-UI routing per expert app. The in-process local
+// runner has been retired; every session executes on the remote
+// liki-agent-runtime deployment selected by the session's expert. legacy
+// serves sessions created before the expert dimension (expert == ""); when
+// nil, those sessions are unavailable.
+func (s *Service) SetAgentRunners(runners map[string]Runner, legacy Runner) {
+	s.agentRunners = runners
+	s.legacyRunner = legacy
 }
 
-func (s *Service) runnerForSession(skill product.Skill, profileID string) (Runner, error) {
-	if s.agentRunner != nil {
-		return s.agentRunner, nil
+func (s *Service) runnerForSession(skill product.Skill, expert string) (Runner, error) {
+	if runner, ok := s.agentRunners[expert]; ok && runner != nil {
+		return runner, nil
+	}
+	if expert == "" && s.legacyRunner != nil {
+		return s.legacyRunner, nil
 	}
 	return nil, ErrRunnerUnavailable
 }
@@ -75,7 +101,7 @@ func (s *Service) Session(ctx context.Context, userID, sessionID string) (Sessio
 	if !ok {
 		return Session{}, ErrSkillForbidden
 	}
-	if _, err := s.runnerForSession(product.Skill(session.Skill), session.ProfileID); err != nil {
+	if _, err := s.runnerForSession(product.Skill(session.Skill), session.Expert); err != nil {
 		return Session{}, err
 	}
 	return session, nil
@@ -130,7 +156,10 @@ func (s *Service) acquireRef(sessionID string) *refcountedMutex {
 	return loadedEntry
 }
 
-func (s *Service) CreateSession(ctx context.Context, userID, skill, title, profileID string) (Session, error) {
+func (s *Service) CreateSession(ctx context.Context, userID, skill, expert, title, profileID string) (Session, error) {
+	if !ValidExpert(expert) {
+		return Session{}, ErrExpertInvalid
+	}
 	ok, err := s.authorizer.HasSkill(ctx, userID, product.Skill(skill))
 	if err != nil {
 		return Session{}, err
@@ -146,7 +175,7 @@ func (s *Service) CreateSession(ctx context.Context, userID, skill, title, profi
 			return Session{}, err
 		}
 	}
-	session, err := s.store.CreateSession(ctx, userID, skill, title, profileID)
+	session, err := s.store.CreateSession(ctx, userID, skill, expert, title, profileID)
 	if err != nil {
 		return Session{}, err
 	}
@@ -200,7 +229,7 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if !ok {
 		return Message{}, Message{}, Session{}, ErrSkillForbidden
 	}
-	chatRunner, err := s.runnerForSession(product.Skill(session.Skill), session.ProfileID)
+	chatRunner, err := s.runnerForSession(product.Skill(session.Skill), session.Expert)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}

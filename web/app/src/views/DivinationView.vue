@@ -295,7 +295,7 @@ function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
   chat.pendingIntent = t('services.divination.intent', { question: question.value.trim() })
-  void openServiceChat(profile.id, message => { error.value = message })
+  void openServiceChat(profile.id, 'divination', message => { error.value = message })
 }
 </script>
 

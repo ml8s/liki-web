@@ -14,8 +14,9 @@ const Chat Product = "liki-chat"
 // Skill identifies a consultable domain inside the Liki agent.
 type Skill string
 
-// SkillConsultation is the single Liki Chat skill (the engine routes 八字/起名/问卦/风水
-// internally). 未发布，无历史 skill 兼容负担。
+// SkillConsultation is the single Liki Chat entitlement skill. The four
+// experts (natal / divination / fengshui / naming) are deployment routing
+// dimensions, not entitlements. 未发布，无历史 skill 兼容负担。
 const SkillConsultation Skill = "liki"
 
 // ProductDefinition describes a commercial product and the skills it grants.
@@ -35,7 +36,7 @@ var productCatalog = map[Product]ProductDefinition{
 	Chat: {
 		ID:   Chat,
 		Name: "Liki Chat",
-		// One Liki Chat skill (the engine routes 八字/起名/问卦/风水 internally).
+		// One entitlement skill; expert selection is a session routing dimension.
 		Skills: []Skill{SkillConsultation},
 	},
 }

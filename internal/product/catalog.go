@@ -43,7 +43,7 @@ func NewCatalog(config CatalogConfig) *Catalog {
 	chat := ProductOffering{
 		ID:          Chat,
 		Name:        "Liki Chat",
-		Description: "Naming, BaZi, divination, and Feng Shui in one Chat.",
+		Description: "BaZi, ZiWei, divination, Feng Shui, and naming — four experts in one Chat.",
 	}
 	if config.OneTimePriceMinorCNY > 0 {
 		chat.Offers = append(chat.Offers, Offer{

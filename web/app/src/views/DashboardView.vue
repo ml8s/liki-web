@@ -75,7 +75,7 @@
               <h2>{{ $t('dashboard.continue.title') }}</h2>
               <p>
                 {{ latestSessionBirthProfileName || latestSession.title }} ·
-                {{ skillLabel(latestSession.skill) }} ·
+                {{ skillLabel(latestSession.expert) }} ·
                 {{ formatDateTime(latestSession.last_message_at ?? latestSession.updated_at) }}
               </p>
             </template>
@@ -170,7 +170,7 @@
           >
             <span class="rs-title">{{ session.profileName || session.title }}</span>
             <span class="rs-meta">
-              {{ skillLabel(session.skill) }} ·
+              {{ skillLabel(session.expert) }} ·
               {{ formatDateTime(session.last_message_at ?? session.updated_at) }}
             </span>
           </router-link>

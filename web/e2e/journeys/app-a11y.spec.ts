@@ -15,7 +15,7 @@ const profile = {
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
 const session = {
-  id: 'chat_1', user_id: 'usr_test', profile_id: 'p_1', skill: 'liki', title: '妈妈 · 八字紫微',
+  id: 'chat_1', user_id: 'usr_test', profile_id: 'p_1', skill: 'liki', expert: 'natal', title: '妈妈 · 八字紫微',
   status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', last_message_at: null,
 }
 const message = {

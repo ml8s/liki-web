@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/ml8s/liki-web/internal/chat"
 )
 
 func TestBuildTime(t *testing.T) {
@@ -86,7 +88,12 @@ func TestValidateRuntimeURLs(t *testing.T) {
 	valid := Config{
 		EngineMCPBaseURL: "http://engine-mcp:8085",
 		PublicBaseURL:    "https://liki.hk",
-		AgentURL:         "http://agent:8083",
+		AgentURLs: map[string]string{
+			chat.ExpertNatal:      "http://experts-natal:8083",
+			chat.ExpertDivination: "http://experts-divination:8083",
+			chat.ExpertFengshui:   "http://experts-fengshui:8083",
+			chat.ExpertNaming:     "http://experts-naming:8083",
+		},
 	}
 	if err := validateRuntimeURLs(valid); err != nil {
 		t.Fatalf("validateRuntimeURLs(valid) = %v", err)
@@ -96,7 +103,9 @@ func TestValidateRuntimeURLs(t *testing.T) {
 		EngineMCPBaseURL:  "engine-mcp:8085",
 		PublicBaseURL:     "/liki.hk",
 		PaymentWebhookURL: "liki.hk/api/payments/webhook",
-		AgentURL:          "agent:8083",
+		AgentURLs: map[string]string{
+			chat.ExpertNatal: "experts-natal:8083",
+		},
 	}
 	err := validateRuntimeURLs(invalid)
 	if err == nil {
@@ -104,7 +113,7 @@ func TestValidateRuntimeURLs(t *testing.T) {
 	}
 	for _, name := range []string{
 		"LIKI_ENGINE_MCP_URL",
-		"LIKI_PUBLIC_BASE_URL", "LIKI_PAYMENT_WEBHOOK_URL", "LIKI_AGENTS_URL",
+		"LIKI_PUBLIC_BASE_URL", "LIKI_PAYMENT_WEBHOOK_URL", "LIKI_AGENTS_NATAL_URL",
 	} {
 		if !strings.Contains(err.Error(), name) {
 			t.Errorf("error %v does not mention %s", err, name)

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased —— 四专家独立部署
+
+- 会话新增 `expert` 维度（迁移 005，建会话必填四选一）：liki-web 按专家路由到对应 liki-agent-runtime 部署（endpoint 即专家身份），不再依赖单一 router 入口；权益校验仍以统一 skill `liki` 为准。
+- 运行器按专家配置：`LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`（`LIKI_AGENTS_URL` 为开发回退；`LIKI_AGENTS_LEGACY_URL` 可选，服务历史无专家会话）；readiness 覆盖全部专家 endpoint。
+- 前端 Chat 领域卡改为四专家（本命 / 占卜 / 风水 / 起名）；服务预览页直达各自专家会话；`toolPhase` 增加 `bazi`/`ziwei` 子代理阶段文案。
+- 环境模板、开发 compose、系统文档与 e2e 夹具同步。
+
 ## 2026.09.21 —— Liki Chat runtime hardening
 
 - Renamed the Go service identity to `liki-web` and moved deployment ownership to `liki-deploy`.

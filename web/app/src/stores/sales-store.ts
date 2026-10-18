@@ -167,7 +167,8 @@ export const useSalesStore = defineStore('sales', {
       const profileId = preferredProfileId || profiles.list[0]?.id || ''
       if (!profileId) return null
       try {
-        const session = await useChatStore().createSession(profileId, 'liki')
+        // 支付成功后直达解读：默认进入旗舰的本命专家会话。
+        const session = await useChatStore().createSession(profileId, 'natal')
         return session.id
       } catch (error) {
         this.actionError = toUserMessage(error, t('chat.createFailed'))

@@ -26,10 +26,11 @@ export function useServiceView() {
 
   async function openServiceChat(
     profileId: string,
+    expert: string,
     onError: (message: string) => void,
   ) {
     try {
-      const session = await chat.ensureSession(profileId)
+      const session = await chat.ensureSession(profileId, expert)
       if (session) void router.push(`/chat/${session.id}`)
     } catch (error) {
       onError(toUserMessage(error, t('chat.createFailed')))

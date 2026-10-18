@@ -25,6 +25,7 @@ type Session struct {
 	UserID        string        `json:"user_id"`
 	ProfileID     string        `json:"profile_id"`
 	Skill         string        `json:"skill"`
+	Expert        string        `json:"expert"`
 	Title         string        `json:"title"`
 	Status        SessionStatus `json:"status"`
 	CreatedAt     time.Time     `json:"created_at"`
@@ -156,18 +157,29 @@ ALTER TABLE chat_sessions ADD COLUMN deleted_at TEXT;
 				return err
 			},
 		},
+		{
+			// 四专家独立部署：会话绑定专家（endpoint 选择维度）。历史会话
+			// expert=''，由 LIKI_AGENTS_LEGACY_URL 兜底或明确不可用。
+			ID: "005_session_expert",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE chat_sessions ADD COLUMN expert TEXT NOT NULL DEFAULT '';
+`)
+				return err
+			},
+		},
 	})
 }
 
-func (s *ChatStore) CreateSession(ctx context.Context, userID, skill, title, profileID string) (Session, error) {
+func (s *ChatStore) CreateSession(ctx context.Context, userID, skill, expert, title, profileID string) (Session, error) {
 	now := chatFormatTime(s.nowFunc())
-	session := Session{ID: s.idFunc(), UserID: userID, Skill: skill, Title: title, ProfileID: profileID, Status: SessionActive}
+	session := Session{ID: s.idFunc(), UserID: userID, Skill: skill, Expert: expert, Title: title, ProfileID: profileID, Status: SessionActive}
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx, `
-INSERT INTO chat_sessions (id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at)
-VALUES (?,?,?,?,?,?,?,?,?)
+INSERT INTO chat_sessions (id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at)
+VALUES (?,?,?,?,?,?,?,?,?,?)
 RETURNING created_at,updated_at`,
-		session.ID, userID, profileID, skill, title, string(SessionActive), now, now, now,
+		session.ID, userID, profileID, skill, expert, title, string(SessionActive), now, now, now,
 	).Scan(&createdAt, &updatedAt)
 	if err != nil {
 		return Session{}, err
@@ -181,7 +193,7 @@ func scanSession(scan func(dest ...any) error) (Session, error) {
 	var session Session
 	var status, createdAt, updatedAt string
 	var lastMessage sql.NullString
-	err := scan(&session.ID, &session.UserID, &session.ProfileID, &session.Skill, &session.Title, &status, &createdAt, &updatedAt, &lastMessage)
+	err := scan(&session.ID, &session.UserID, &session.ProfileID, &session.Skill, &session.Expert, &session.Title, &status, &createdAt, &updatedAt, &lastMessage)
 	if err != nil {
 		return Session{}, err
 	}
@@ -197,7 +209,7 @@ func scanSession(scan func(dest ...any) error) (Session, error) {
 
 func (s *ChatStore) GetSession(ctx context.Context, userID, sessionID string) (Session, error) {
 	session, err := scanSession(s.db.QueryRowContext(ctx, `
-SELECT id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at
+SELECT id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at
 FROM chat_sessions WHERE id=? AND user_id=? AND deleted_at IS NULL`, sessionID, userID).Scan)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Session{}, ErrSessionNotFound
@@ -207,7 +219,7 @@ FROM chat_sessions WHERE id=? AND user_id=? AND deleted_at IS NULL`, sessionID, 
 
 func (s *ChatStore) ListSessions(ctx context.Context, userID string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx, `
-SELECT id,user_id,profile_id,skill,title,status,created_at,updated_at,last_message_at
+SELECT id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at
 FROM chat_sessions WHERE user_id=? AND status='active' AND deleted_at IS NULL
 ORDER BY COALESCE(last_message_at,updated_at) DESC`, userID)
 	if err != nil {

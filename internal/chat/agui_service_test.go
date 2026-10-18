@@ -64,14 +64,14 @@ func newAgentModeTestService(t *testing.T) (*Service, *ChatStore, *scriptedChatR
 
 	service := NewService(chats, entitlements, profiles)
 	remote := &scriptedChatRunner{result: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}}}
-	service.SetAgentRunner(remote)
+	service.SetAgentRunners(map[string]Runner{ExpertNatal: remote}, nil)
 	return service, chats, remote
 }
 
 func TestServiceAgentModePersistsAuthoritativeAgentResult(t *testing.T) {
 	service, chats, remote := newAgentModeTestService(t)
 	ctx := context.Background()
-	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "test", "")
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "test", "")
 	if err != nil {
 		t.Fatalf("create session: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestServiceAgentModeLeavesUserMessageWithoutAssistantOnRunError(t *testing.
 	service, chats, remote := newAgentModeTestService(t)
 	remote.err = errors.New("engine unavailable")
 	ctx := context.Background()
-	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "test", "")
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "test", "")
 	if err != nil {
 		t.Fatalf("create session: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create profile: %v", err)
 	}
-	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "test", created.ID)
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "test", created.ID)
 	if err != nil {
 		t.Fatalf("create profile session: %v", err)
 	}

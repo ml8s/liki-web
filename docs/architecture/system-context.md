@@ -51,7 +51,7 @@ liki release bundle → 校验 SHA256 / archive digest
 ### 3.2 Agent 运行时
 
 - local 进程内 runner 已删除，Liki Chat 唯一路径是 liki-agents AG-UI
-- 必需 env：`LIKI_AGENTS_URL`、`LIKI_AGENTS_INTERNAL_TOKEN`；模型 provider 凭据只属于 liki-agents，不得进入 liki-web runtime
+- 必需 env：`LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`（每个专家一个部署 endpoint，一 app 一服务；`LIKI_AGENTS_URL` 为开发单运行时回退）、`LIKI_AGENTS_INTERNAL_TOKEN`；模型 provider 凭据只属于 liki-agents，不得进入 liki-web runtime
 - `cmd/liki-web/main.go`：`SetAgentRunner` 把 AG-UI 客户端挂到 chat service；readiness 校验 agents 端点
 
 ### 3.3 镜像发布（release）

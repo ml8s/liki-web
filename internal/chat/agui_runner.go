@@ -202,6 +202,10 @@ func toolPhase(name string) string {
 	switch {
 	case strings.HasPrefix(name, "load_skill"), strings.HasPrefix(name, "transfer_to_agent"):
 		return "正在安排合适的老师…"
+	case name == "bazi":
+		return "正在排八字盘…"
+	case name == "ziwei":
+		return "正在排紫微盘…"
 	case strings.HasPrefix(name, "city_coords"), strings.HasPrefix(name, "tianwen_time"):
 		return "正在校准时空坐标…"
 	case strings.HasPrefix(name, "bazi_"), strings.HasPrefix(name, "compute_factors"), strings.HasPrefix(name, "natal_query"):

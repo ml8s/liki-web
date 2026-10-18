@@ -122,6 +122,6 @@ function startChat() {
   const p = profile.value
   if (!p) return
   chat.pendingIntent = t('services.fengshui.intent')
-  void openServiceChat(p.id, message => { error.value = message })
+  void openServiceChat(p.id, 'fengshui', message => { error.value = message })
 }
 </script>

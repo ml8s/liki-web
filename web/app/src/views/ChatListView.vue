@@ -100,11 +100,11 @@
             :key="item.id"
             :label="$t(item.labelKey)"
             :description="$t(item.descriptionKey)"
-            :enabled="canStart(item.id)"
-            :blocked-reason="skillState(item.id).reason"
-            :status-label="skillState(item.id).status"
-            :action-label="skillState(item.id).actionLabel"
-            :action-to="skillState(item.id).actionTo"
+            :enabled="canStart()"
+            :blocked-reason="skillState().reason"
+            :status-label="skillState().status"
+            :action-label="skillState().actionLabel"
+            :action-to="skillState().actionTo"
             :starting="creating === item.id"
             @start="create(item.id)"
           />
@@ -189,14 +189,15 @@ const pendingService = computed(() => (chat.pendingIntent ? serviceByIntent(chat
 
 const displaySessions = computed(() => chat.sessions.map(session => ({
   ...session,
-  skillLabel: skillLabel(session.skill),
+  skillLabel: skillLabel(session.expert),
 } satisfies ChatSession & { skillLabel: string })))
 
-function canStart(skill: string) {
-  return chatPurchased.value && entitlements.hasSkill(skill) && !!activeBirthProfileId.value
+function canStart() {
+  // 权益校验仍以统一 skill「liki」为准；专家只是部署路由维度。
+  return chatPurchased.value && entitlements.hasSkill('liki') && !!activeBirthProfileId.value
 }
 
-function skillState(skill: string) {
+function skillState() {
 	  if (!chatPurchased.value) {
 	    return {
 	      enabled: false,
@@ -206,7 +207,7 @@ function skillState(skill: string) {
 	      actionTo: '',
 	    }
 	  }
-  if (!entitlements.hasSkill(skill)) {
+  if (!entitlements.hasSkill('liki')) {
 	    return {
 	      enabled: false,
 	      reason: t('chat.state.notIncluded'),
@@ -287,12 +288,12 @@ async function removeSession(session: ChatSession) {
   }
 }
 
-async function create(skill: string) {
+async function create(expert: string) {
   if (!activeBirthProfileId.value) return
-  creating.value = skill
+  creating.value = expert
   sales.actionError = ''
   try {
-    const session = await chat.createSession(activeBirthProfileId.value, skill)
+    const session = await chat.createSession(activeBirthProfileId.value, expert)
     await router.push(`/chat/${session.id}`)
   } catch (error) {
     sales.actionError = toUserMessage(error, t('chat.createFailed'))

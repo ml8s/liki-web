@@ -68,7 +68,7 @@ test.describe('Authenticated app shell', () => {
   test('chat direct link restores session and messages', async ({ page }) => {
     await mockWorkspace(page, { allowedSkills: ['liki'] });
     await page.route('**/api/chat/sessions/chat_1', async route => route.fulfill(json({
-      id: 'chat_1', user_id: 'usr_test', profile_id: '', skill: 'liki', title: '起名咨询',
+      id: 'chat_1', user_id: 'usr_test', profile_id: '', skill: 'liki', expert: 'natal', title: '起名咨询',
       status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
       last_message_at: null,
     })));
@@ -117,7 +117,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
   await page.route('**/api/chat/sessions', route => {
     if (route.request().method() === 'POST') {
       return route.fulfill(json({
-        id: 'chat_new', user_id: 'usr_test', profile_id: profile.id, skill: 'liki', title: '八字紫微咨询',
+        id: 'chat_new', user_id: 'usr_test', profile_id: profile.id, skill: 'liki', expert: 'natal', title: '八字紫微咨询',
         status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', last_message_at: null,
       }));
     }

@@ -114,7 +114,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if err != nil {
 		t.Fatal(err)
 	}
-	session, err := chatStore.CreateSession(ctx, "user_1", "liki", "标题", p.ID)
+	session, err := chatStore.CreateSession(ctx, "user_1", "liki", "natal", "标题", p.ID)
 	if err != nil {
 		t.Fatal(err)
 	}

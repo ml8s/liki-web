@@ -62,25 +62,26 @@ export const useChatStore = defineStore('chat', {
         this.loadingSessions = false
       }
     },
-    async createSession(profileId: string, skill: string) {
+    async createSession(profileId: string, expert: string) {
       const entitlements = useEntitlementsStore()
       await entitlements.load()
-      if (!entitlements.hasSkill(skill)) {
+      if (!entitlements.hasSkill('liki')) {
         throw new Error(t('chat.skillNotIncluded'))
       }
       const nickname = useBirthProfilesStore().list.find(p => p.id === profileId)?.nickname ?? ''
+      const label = skillLabel(expert)
       const title = nickname
-        ? t('chat.sessionTitleWithBirthProfile', { nickname, skill: skillLabel(skill) })
-        : t('chat.sessionTitle', { skill: skillLabel(skill) })
-      const session = await (await chatApiLazy()).createChatSession(profileId, skill, title)
+        ? t('chat.sessionTitleWithBirthProfile', { nickname, skill: label })
+        : t('chat.sessionTitle', { skill: label })
+      const session = await (await chatApiLazy()).createChatSession(profileId, 'liki', expert, title)
       this.sessions.unshift(session)
       return session
     },
-    /** 取该档案的会话：有则复用（继续），无则新建。 */
-    async ensureSession(profileId: string) {
-      const existing = this.sessions.find(s => s.profile_id === profileId)
+    /** 取该档案与专家的会话：有则复用（继续），无则新建。 */
+    async ensureSession(profileId: string, expert: string) {
+      const existing = this.sessions.find(s => s.profile_id === profileId && s.expert === expert)
       if (existing) return existing
-      return this.createSession(profileId, 'liki')
+      return this.createSession(profileId, expert)
     },
     async renameSession(sessionId: string, title: string) {
       const updated = await (await chatApiLazy()).renameChatSession(sessionId, title)
@@ -239,7 +240,15 @@ export const useChatStore = defineStore('chat', {
   },
 })
 
-export function skillLabel(skill: string): string {
-  // Session titles append “reading”; keep the skill label compact.
-  return skill === 'liki' ? i18n.global.t('services.skill.compact') : skill
+const EXPERT_LABEL_KEYS: Record<string, string> = {
+  natal: 'services.expert.natal.label',
+  divination: 'services.expert.divination.label',
+  fengshui: 'services.expert.fengshui.label',
+  naming: 'services.expert.naming.label',
+}
+
+/** 会话展示名：专家标签；历史会话（无专家）回退到「命理」。 */
+export function skillLabel(expert: string): string {
+  const key = EXPERT_LABEL_KEYS[expert]
+  return i18n.global.t(key ?? 'services.skill.compact')
 }
