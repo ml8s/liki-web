@@ -40,13 +40,25 @@ defineEmits<{ action: [key: string] }>()
 </script>
 
 <style scoped>
-.record-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 2px; }
+.record-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 0 2px; }
 .record-action {
+  display: inline-flex; align-items: center;
+  min-height: 32px;
   font: inherit; font-size: var(--font-size-caption); line-height: 1;
   color: var(--liki-primary); background: none; border: 0;
-  padding: 6px 6px; cursor: pointer; text-decoration: none; white-space: nowrap;
+  padding: 6px 8px; cursor: pointer; text-decoration: none; white-space: nowrap;
+  border-radius: var(--radius-small);
   transition: opacity var(--liki-dur) var(--liki-ease);
 }
 .record-action:hover { opacity: 0.75; }
-.record-action.danger { color: var(--el-color-danger); }
+.record-action.danger {
+  margin-left: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--liki-line);
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
+  color: var(--color-error);
+}
+@media (max-width: 640px) {
+  .record-action { min-height: 44px; padding: 10px; }
+}
 </style>

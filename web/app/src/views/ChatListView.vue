@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <section class="page-stack">
     <AppPageHeader
       :title="$t('router.chat')"
       :subtitle="$t('chat.subtitle')"
@@ -36,7 +36,7 @@
 
     <el-result
       v-else-if="sales.showProductError"
-      icon="warning"
+      icon="error"
       :title="$t('chat.productsFailed')"
       :sub-title="sales.productsError"
     >
@@ -86,6 +86,7 @@
       </el-card>
 
       <el-card
+        id="chat-domain"
         class="app-card"
         shadow="never"
       >
@@ -105,8 +106,10 @@
             :status-label="skillState().status"
             :action-label="skillState().actionLabel"
             :action-to="skillState().actionTo"
+            :action-scroll-to="skillState().actionScrollTo"
             :starting="creating === item.id"
             @start="create(item.id)"
+            @anchor="handleSkillAnchor"
           />
         </div>
       </el-card>
@@ -129,16 +132,30 @@
             {{ $t('dashboard.recentSessions') }}
           </h2>
         </template>
+        <el-skeleton
+          v-if="chat.loadingSessions && !chat.sessions.length"
+          :rows="3"
+          animated
+          aria-busy="true"
+        />
         <el-empty
-          v-if="!chat.sessions.length"
+          v-else-if="!chat.sessions.length"
           :description="$t('chat.empty')"
         >
           <el-button
+            v-if="!profiles.list.length"
             type="primary"
             tag="router-link"
             to="/birth-profiles/new"
           >
             {{ $t('profiles.create') }}
+          </el-button>
+          <el-button
+            v-else
+            type="primary"
+            @click="scrollToSkills"
+          >
+            {{ $t('chat.emptyAction') }}
           </el-button>
         </el-empty>
         <SessionList
@@ -206,6 +223,7 @@ function skillState() {
 	      status: t('chat.status.inactive'),
 	      actionLabel: t('chat.action.activate'),
 	      actionTo: '',
+	      actionScrollTo: '#chat-purchase',
 	    }
 	  }
   if (!entitlements.hasSkill('liki')) {
@@ -215,6 +233,7 @@ function skillState() {
 	      status: t('chat.status.notIncluded'),
 	      actionLabel: t('chat.action.orders'),
 	      actionTo: '/orders',
+	      actionScrollTo: '',
 	    }
   }
   if (!activeBirthProfileId.value) {
@@ -224,6 +243,7 @@ function skillState() {
 	      status: t('chat.status.profileRequired'),
 	      actionLabel: t('profiles.create'),
 	      actionTo: '/birth-profiles/new',
+	      actionScrollTo: '',
 	    }
   }
 	  return {
@@ -232,11 +252,21 @@ function skillState() {
 	    status: t('chat.status.available'),
 	    actionLabel: t('chat.action.start'),
 	    actionTo: '',
+	    actionScrollTo: '',
 	  }
 }
 
 function openSession(session: ChatSession) {
   void router.push(`/chat/${session.id}`)
+}
+
+// 会话空态的下一步（已有档案时）：滚动到领域选择卡。
+function scrollToSkills() {
+  document.getElementById('chat-domain')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function handleSkillAnchor(selector: string) {
+  document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 async function renameSession(session: ChatSession) {
@@ -280,6 +310,7 @@ async function create(expert: string) {
 
 onMounted(async () => {
   try {
+    void chat.loadSessions()
     await sales.refresh()
     await profiles.loadList()
     const preset = firstQueryValue(route.query.profile)

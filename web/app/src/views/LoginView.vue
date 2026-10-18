@@ -81,6 +81,15 @@
               @update:model-value="maybeAutoVerify"
             />
           </el-form-item>
+          <el-alert
+            v-if="error"
+            id="login-error"
+            :title="error"
+            type="error"
+            show-icon
+            :closable="false"
+            class="code-error"
+          />
           <div class="code-actions">
             <el-button
               link
@@ -119,7 +128,7 @@
         />
 
         <el-alert
-          v-if="error"
+          v-if="error && !codeSent"
           id="login-error"
           :title="error"
           type="error"
@@ -292,7 +301,7 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
 }
-h1 { margin: 0 0 8px; font-size: 26px; font-weight: 650; letter-spacing: -0.03em; line-height: 1.2; }
+h1 { margin: 0 0 8px; font-size: var(--font-size-title-lg); font-weight: 650; letter-spacing: -0.03em; line-height: 1.2; }
 .brand-headline {
   max-width: 420px;
   margin: 0 0 16px;
@@ -308,10 +317,13 @@ h1 { margin: 0 0 8px; font-size: 26px; font-weight: 650; letter-spacing: -0.03em
 .value { font-size: var(--font-size-caption); color: var(--liki-text-2); background: var(--liki-primary-tint); padding: 3px 10px; border-radius: var(--radius-full); }
 .wide { width: 100%; }
 .code-actions { display: flex; justify-content: space-between; margin: 0 0 12px; }
+/* 验证码错误就近展示在字段下方，与 #login-error 的 aria-describedby 关联保持一致 */
+.code-error { margin: 0 0 var(--space-3); }
 .error { margin-top: 16px; }
 .dev-code { margin-top: 16px; }
 
-@media (max-width: 768px) {
+/* ≤900px 时两列品牌区会被表单列挤到 150–200px，提前收敛为单列 */
+@media (max-width: 900px) {
   .login-page {
     grid-template-columns: 1fr;
     gap: 28px;

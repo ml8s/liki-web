@@ -2,7 +2,10 @@
   <section>
     <AdminPageHeader title="财务">
       <template #actions>
-        <el-button @click="reloadTaskPage">
+        <el-button
+          :loading="refreshing"
+          @click="reloadAll"
+        >
           刷新
         </el-button>
       </template>
@@ -23,12 +26,14 @@
           </el-button>
         </div>
       </template>
-      <el-form inline>
+      <el-form
+        inline
+        @submit.prevent="submitFinanceFilters"
+      >
         <el-form-item label="周期">
           <el-select
             v-model="draft.days"
             class="admin-filter-control"
-            @change="submitFinanceFilters"
           >
             <el-option
               :value="7"
@@ -44,6 +49,13 @@
             />
           </el-select>
         </el-form-item>
+        <el-button
+          type="primary"
+          :loading="reportLoading"
+          @click="submitFinanceFilters"
+        >
+          查询
+        </el-button>
       </el-form>
       <el-alert
         v-if="reportError"
@@ -53,7 +65,36 @@
         :closable="false"
         class="query-error"
       />
+      <div
+        v-if="isMobile"
+        v-loading="reportLoading"
+        :aria-busy="reportLoading"
+        class="report-mobile"
+      >
+        <div
+          v-for="row in reportRows"
+          :key="row.label"
+          class="report-mobile-row"
+        >
+          <span class="report-mobile-label">{{ row.label }}</span>
+          <div class="report-mobile-values">
+            <el-tag
+              v-for="item in row.values"
+              :key="item.currency"
+              class="money-tag"
+              size="small"
+            >
+              {{ formatAdminMoney(item.amount_minor, item.currency) }}
+            </el-tag>
+            <span
+              v-if="!row.values.length"
+              class="muted"
+            >0</span>
+          </div>
+        </div>
+      </div>
       <el-table
+        v-else
         v-loading="reportLoading"
         :aria-busy="reportLoading"
         :data="reportRows"
@@ -110,7 +151,7 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="reloadTaskPage"
+          @click="submitFinanceFilters"
         >
           查询
         </el-button>
@@ -176,7 +217,7 @@
             width="180"
           >
             <template #default="{ row }">
-              {{ formatDateTime(row.created_at) }}
+              {{ formatAdminDateTime(row.created_at) }}
             </template>
           </el-table-column>
           <el-table-column
@@ -228,7 +269,7 @@
               { key: 'provider', label: 'Provider', value: row.provider },
               { key: 'reference', label: '关联对象', value: row.provider_refund_id || row.payment_intent_id, kind: 'mono' },
               { key: 'status', label: '状态', value: row.status, kind: 'status' },
-              { key: 'created', label: '时间', value: formatDateTime(row.created_at) },
+              { key: 'created', label: '时间', value: formatAdminDateTime(row.created_at) },
             ]"
           >
             <template
@@ -281,10 +322,9 @@ import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
-import { adminStatusOptions, adminStatusValues, financeTaskTypeLabel, formatAdminMoney } from '@/utils/adminFormat'
+import { adminStatusOptions, adminStatusValues, financeTaskTypeLabel, formatAdminDateTime, formatAdminMoney } from '@/utils/adminFormat'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice } from '@/utils/query'
-import { formatDateTime } from '@/utils/format'
 
 const isMobile = useAdminViewport()
 
@@ -341,12 +381,18 @@ const { draft } = query
 const pagesState = query.pages
 void query.initialize()
 
+// 页头「刷新」= 全页刷新（任务列表 + 经营汇总），loading 合并两处请求状态。
+const refreshing = computed(() => tasks.loading.value || reportLoading.value)
+
 async function load() {
   await query.submit({ taskPage: 1 })
 }
 
-function reloadTaskPage() {
-  void tasks.load(pagesState.value.taskPage)
+function reloadAll() {
+  void Promise.all([
+    tasks.load(pagesState.value.taskPage),
+    loadReport(reportDays.value),
+  ])
 }
 
 function submitFinanceFilters() {
@@ -393,5 +439,11 @@ async function resolve(row: AdminFinanceTask, result: 'resolved' | 'rejected') {
 
 <style scoped>
 .report-card { margin-bottom: var(--space-5); }
-.money-tag { margin: 0 4px 4px 0; }
+.money-tag { margin: 0 var(--space-1) var(--space-1) 0; }
+
+/* <720px：收敛矩阵改 key-value 换行布局，避免 min-width 表格横滚。 */
+.report-mobile { display: grid; gap: var(--space-3); }
+.report-mobile-row { display: grid; gap: var(--space-1); }
+.report-mobile-label { color: var(--liki-text-2); font-size: var(--font-size-label); }
+.report-mobile-values { display: flex; flex-wrap: wrap; align-items: center; }
 </style>

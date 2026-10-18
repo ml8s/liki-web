@@ -49,7 +49,7 @@ const router = useRouter()
 .code {
   margin: 0;
   color: var(--liki-primary);
-  font-size: 40px;
+  font-size: var(--font-size-display);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.04em;

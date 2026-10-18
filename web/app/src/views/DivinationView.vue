@@ -14,10 +14,16 @@
         </h2>
       </template>
       <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
         label-position="top"
         @submit.prevent="cast"
       >
-        <el-form-item :label="$t('services.divination.questionLabel')">
+        <el-form-item
+          prop="question"
+          :label="$t('services.divination.questionLabel')"
+        >
           <el-input
             v-model="question"
             name="divination-question"
@@ -31,7 +37,6 @@
           type="primary"
           native-type="submit"
           :loading="loading"
-          :disabled="!question.trim()"
         >
           {{ $t('services.divination.cast') }}
         </el-button>
@@ -198,7 +203,6 @@
         :description="$t('services.divination.consultationBody')"
         :locked-description="$t('services.divination.lockedBody')"
         :purchased="entitlements.purchased && profiles.list.length > 0"
-        :action-label="$t('services.divination.consultationTitle')"
         :locked-action-label="profiles.list.length ? $t('commerce.activateNow') : $t('profiles.create')"
         :to="profiles.list.length ? '/chat' : '/birth-profiles/new'"
         @action="startChat"
@@ -223,13 +227,13 @@
         @remove="removeToolRecord"
       />
     </el-card>
-
   </ServicePageShell>
 </template>
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, toRef } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineLiuyaoQigua, engineLiuyaoChart, engineSolarTime, type LiuyaoChartResult } from '@/api/engine'
@@ -251,10 +255,17 @@ const {
 } = useToolRecords('liuyao')
 void loadRecords()
 
-const question = ref('')
+// 表单模型保持稳定对象，v-model 写入同一引用，change 当拍校验才能读到新值。
+const form = reactive({ question: '' })
+const question = toRef(form, 'question')
 const snapshot = ref<LiuyaoChartResult | null>(null)
 const loading = ref(false)
 const error = ref('')
+
+const formRef = ref<FormInstance>()
+const rules = computed<FormRules>(() => ({
+  question: [{ required: true, whitespace: true, message: t('services.divination.questionRequired'), trigger: 'blur' }],
+}))
 
 const board = computed(() => snapshot.value?.board ?? {})
 const lines = computed(() => snapshot.value?.board?.lines ?? [])
@@ -305,7 +316,8 @@ const timingText = computed(() => {
 })
 
 async function cast() {
-  if (!question.value.trim()) return
+  const valid = await formRef.value?.validate().then(() => true).catch(() => false)
+  if (!valid) return
   loading.value = true
   error.value = ''
   snapshot.value = null
@@ -347,11 +359,11 @@ function startChat() {
 </script>
 
 <style scoped>
-.gua-row { display: flex; align-items: baseline; gap: 12px; }
-.gua-name { font-size: 26px; font-weight: 700; }
+.gua-row { display: flex; align-items: baseline; gap: var(--space-3); }
+.gua-name { font-size: var(--font-size-display-sm); font-weight: 700; }
 .gua-sub { color: var(--liki-text-2); font-size: var(--font-size-label); }
-.gua-info { margin-top: 8px; font-size: var(--font-size-label); color: var(--liki-text-2); }
-.lines-sec { margin-top: 14px; }
+.gua-info { margin-top: var(--space-2); font-size: var(--font-size-label); color: var(--liki-text-2); }
+/* 区块间距由全局 .service-view .sec-title 的 margin 统一提供，避免双重节奏。 */
 .lines-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .lines-table { border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; font-size: var(--font-size-caption); min-width: 480px; }
 .line-row { display: flex; }
@@ -359,11 +371,10 @@ function startChat() {
 .line-header { background: var(--liki-surface); font-weight: 600; }
 .line-row .lc { flex: 1; padding: 6px 4px; text-align: center; }
 .line-row.dong { background: var(--liki-primary-tint); }
-.rel-sec { margin-top: 14px; }
 .rel-text { font-size: var(--font-size-body); color: var(--liki-ink); }
-.rel-sub { font-size: var(--font-size-label); color: var(--liki-text-2); margin-top: 4px; }
-.pattern-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+.rel-sub { font-size: var(--font-size-label); color: var(--liki-text-2); margin-top: var(--space-1); }
+.pattern-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--space-1); }
 .pattern-name { font-weight: 600; color: var(--liki-primary); }
 .pattern-desc { font-size: var(--font-size-caption); color: var(--liki-text-3); }
-.safety-box { margin-top: 14px; }
+.safety-box { margin-top: var(--space-4); }
 </style>

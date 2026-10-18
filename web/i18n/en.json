@@ -1,5 +1,6 @@
 {
   "a11y.skipLink": "Skip to main content",
+  "a11y.langSwitcher": "Switch language",
   "about.heading": "About",
   "about.meta.ogDesc": "Liki is a Professional Skill for Chinese Metaphysics across BaZi & ZiWei astrology, naming, divination, and Feng Shui.",
   "about.meta.ogTitle": "About Us · Liki",
@@ -68,6 +69,7 @@
   "skills.install.method1": "Option 1: Install from GitHub",
   "skills.install.method2": "Option 2: Install from website",
   "naming.a11y.examples": "Naming examples",
+  "naming.examples.more": "Show more naming examples",
   "naming.meta.ogDesc": "Use Liki Chat for AI naming and name interpretation based on BaZi favorable elements.",
   "naming.meta.ogTitle": "AI Naming · liki.hk",
   "naming.meta.twitterDesc": "Use Liki Chat for AI naming and name interpretation.",
@@ -631,6 +633,7 @@
   "terms.s13.title": "KOL and Scout partner roles",
   "terms.s13.body": "KOL and Scout are independent partner roles, not membership levels and not multi-level marketing. Applying requires no purchase or fee and is subject to Liki review; an account normally holds only one role. Partners are independent parties, not employees, agents, or partners of Liki. Commission is earned only from qualified one-time purchases and subscription renewals that are actually completed and not refunded, and may be adjusted or clawed back for refunds, fraud, non-compliant promotion, or pricing errors. Recruiting alone, sales-free downlines, and paid-entry schemes earn nothing. Partners must follow applicable law and platform rules and must not spam, exaggerate or guarantee metaphysical outcomes, misrepresent credentials, mislead users, or misuse personal data. Payouts require the minimum balance and a verifiable payout account. Liki may meet tax, anti-fraud, and compliance duties, suspend or terminate a violating role, and recover improper compensation.",
   "skills.install.copy": "Copy install command",
+  "skills.install.copied": "Copied",
   "skills.schema.contactType": "Customer support",
   "partners.hero.title": "Bring Liki to more people",
   "partners.hero.subtitle": "Two partner roles for creators and channels. Commissions are based on real purchases; applications are reviewed by the team.",

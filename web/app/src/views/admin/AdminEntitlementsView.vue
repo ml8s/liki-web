@@ -84,7 +84,7 @@
     <el-form
       class="filters"
       inline
-      @submit.prevent="load"
+      @submit.prevent="submitEntitlementFilters"
     >
       <el-form-item label="用户邮箱">
         <el-input
@@ -95,12 +95,12 @@
           spellcheck="false"
           placeholder="user@example.com"
           clearable
-          @keyup.enter="load"
+          @keyup.enter="submitEntitlementFilters"
         />
       </el-form-item>
       <el-form-item label="状态">
         <el-select
-          v-model="status"
+          v-model="draft.status"
           class="admin-filter-control"
         >
           <el-option
@@ -114,7 +114,7 @@
       <el-button
         type="primary"
         :loading="loading"
-        @click="load"
+        @click="submitEntitlementFilters"
       >
         查询
       </el-button>
@@ -130,7 +130,7 @@
 
     <el-empty
       v-else-if="!loading && !entitlements.length"
-      description="请输入邮箱后查询"
+      :description="queried ? '未找到用户权益' : '请输入邮箱后查询'"
     />
     <div
       v-else
@@ -184,7 +184,7 @@
           min-width="300"
         >
           <template #default="{ row }">
-            {{ formatDateTime(row.starts_at) }} — {{ formatDateTime(row.expires_at) }}
+            {{ formatAdminDateTime(row.starts_at) }} — {{ formatAdminDateTime(row.expires_at) }}
           </template>
         </el-table-column>
         <el-table-column
@@ -225,11 +225,6 @@
         </el-table-column>
       </el-table>
 
-      <div
-        v-if="isMobile && !loading && !entitlements.length"
-      >
-        <el-empty description="未找到用户权益" />
-      </div>
       <div v-if="isMobile">
         <AdminRecordCard
           v-for="row in entitlements"
@@ -240,7 +235,7 @@
             { key: 'product_id', label: '产品', value: row.product_id },
             { key: 'skills', label: '技能', value: row.skills.join(', ') },
             { key: 'status', label: '状态', value: row.status, kind: 'status' },
-            { key: 'expires', label: '有效期', value: `${formatDateTime(row.starts_at)} — ${formatDateTime(row.expires_at)}` },
+            { key: 'expires', label: '有效期', value: `${formatAdminDateTime(row.starts_at)} — ${formatAdminDateTime(row.expires_at)}` },
             { key: 'source', label: '来源', value: row.source },
             { key: 'source_id', label: '来源 ID', value: row.source_id, kind: 'mono' },
           ]"
@@ -273,7 +268,7 @@
     <el-dialog
       v-model="expireDialog"
       title="修改权益到期时间"
-      width="430px"
+      width="min(430px, calc(100vw - 32px))"
     >
       <el-alert
         v-if="expireError"
@@ -341,17 +336,26 @@ import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
-import { adminStatusOptions } from '@/utils/adminFormat'
-import { formatDateTime } from '@/utils/format'
+import { adminStatusOptions, adminStatusValues, formatAdminDateTime, toDatetimeLocal } from '@/utils/adminFormat'
 import { useAdminViewport } from '@/composables/useAdminResource'
+import { useAdminQueryState } from '@/composables/useAdminQueryState'
+import { queryChoice } from '@/utils/query'
 
 const isMobile = useAdminViewport()
 
 const admin = useAdminStore()
+
+interface EntitlementFilters {
+  [key: string]: string
+  status: string
+}
+
+// email 是敏感值：只保留在本地输入框，不进 URL；status 走统一查询状态契约。
+const entitlementDefaults = { status: '' }
 const email = ref('')
-const status = ref('')
 const statusOptions = adminStatusOptions('entitlement')
 const loading = ref(false)
+const queried = ref(false)
 const saving = ref(false)
 const error = ref('')
 const entitlements = ref<AdminEntitlement[]>([])
@@ -389,16 +393,37 @@ watch(() => [compensation.value.email, compensation.value.template, compensation
   compensation.value.idempotency_key = ''
 })
 
+const query = useAdminQueryState<EntitlementFilters>({
+  defaults: entitlementDefaults,
+  pageKeys: [],
+  decode: query => ({
+    status: queryChoice(query, 'status', adminStatusValues('entitlement'), entitlementDefaults.status),
+  }),
+  encode: filters => ({
+    status: filters.status === entitlementDefaults.status ? undefined : filters.status,
+  }),
+  onApplied: (): Promise<void> => load(),
+})
+
+const { draft } = query
+void query.initialize()
+
+function submitEntitlementFilters() {
+  void query.submit()
+}
+
 async function load() {
   if (!email.value.trim()) {
     error.value = ''
     entitlements.value = []
+    queried.value = false
     return
   }
   loading.value = true
   error.value = ''
+  queried.value = true
   try {
-    const payload = await fetchAdminEntitlements(email.value.trim(), status.value)
+    const payload = await fetchAdminEntitlements(email.value.trim(), query.applied.value.status)
     entitlements.value = payload.entitlements ?? []
   } catch (requestError) {
     error.value = requestError instanceof Error ? requestError.message : '查询失败'
@@ -410,15 +435,8 @@ async function load() {
 
 function openExpire(row: AdminEntitlement) {
   editing.value = row
-  expireForm.value = { expiresAt: toDatetimeValue(row.expires_at), reason: '' }
+  expireForm.value = { expiresAt: toDatetimeLocal(row.expires_at), reason: '' }
   expireDialog.value = true
-}
-
-function toDatetimeValue(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  const pad = (item: number) => String(item).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 async function saveExpiry() {
@@ -499,6 +517,6 @@ async function compensate() {
 </script>
 
 <style scoped>
-.compensation-card { margin-bottom: 14px; }
-.skill-tag + .skill-tag { margin-left: 4px; }
+.compensation-card { margin-bottom: var(--space-4); }
+.skill-tag + .skill-tag { margin-left: var(--space-1); }
 </style>

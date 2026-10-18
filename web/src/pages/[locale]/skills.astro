@@ -52,25 +52,27 @@ const skillSchema = {
   </Fragment>
 
   <section class="landing-hero scenario-hero">
-    <p class="landing-kicker font-serif">{t(locale, 'site.slogan')}</p>
+    <p class="landing-kicker">{t(locale, 'site.slogan')}</p>
     <h1 class="landing-h1">{t(locale, 'skills.hero.title')}</h1>
     <p class="landing-sub">{t(locale, 'skills.hero.subtitle')}</p>
   </section>
 
-  <div class="max-w-2xl mx-auto px-4 pb-8 text-center space-y-6 scenario-section">
-    <p class="text-xs text-stone-400 mb-2">{t(locale, 'skills.install.method1')}</p>
+  <div class="max-w-2xl mx-auto px-4 pb-8 text-center space-y-6">
+    <p class="text-sm text-stone-400 mb-2">{t(locale, 'skills.install.method1')}</p>
     <div class="install-block">
       <pre class="install-cmd">npx skills add ml8s/liki</pre>
-      <button class="copy-btn" data-cmd="npx skills add ml8s/liki" aria-label={t(locale, 'skills.install.copy')}>
+      <button class="copy-btn" data-cmd="npx skills add ml8s/liki" data-copied-label={t(locale, 'skills.install.copied')} aria-label={t(locale, 'skills.install.copy')}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button>
+      <span class="visually-hidden" role="status" aria-live="polite"></span>
     </div>
-    <p class="text-xs text-stone-400 mb-2">{t(locale, 'skills.install.method2')}</p>
+    <p class="text-sm text-stone-400 mb-2">{t(locale, 'skills.install.method2')}</p>
     <div class="install-block">
       <pre class="install-cmd">npx skills add https://liki.hk/</pre>
-      <button class="copy-btn" data-cmd="npx skills add https://liki.hk/" aria-label={t(locale, 'skills.install.copy')}>
+      <button class="copy-btn" data-cmd="npx skills add https://liki.hk/" data-copied-label={t(locale, 'skills.install.copied')} aria-label={t(locale, 'skills.install.copy')}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button>
+      <span class="visually-hidden" role="status" aria-live="polite"></span>
     </div>
   </div>
 

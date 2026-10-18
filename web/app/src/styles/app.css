@@ -111,6 +111,20 @@ p {
 
 .el-button--large { min-height: 44px; }
 
+/* 移动端契约：输入 16px 防 iOS 聚焦缩放；按钮触达按 44px 目标提升。 */
+@media (max-width: 768px) {
+  .el-input__inner,
+  .el-textarea__inner {
+    font-size: 16px;
+  }
+  .el-button {
+    min-height: 44px;
+  }
+  .el-button--small {
+    min-height: 40px;
+  }
+}
+
 /* 输入控件：静止 / 悬停 / 焦点三态交给 Element Plus 自己的组件变量驱动，焦点只在
  * EP 的 1px 内描边外补一圈光晕。此前用 !important 覆盖静止态 box-shadow，等于把
  * EP 的 hover 和 .el-textarea__inner:focus 一起压掉——输入框没有悬停反馈，多行
@@ -183,6 +197,9 @@ p {
 /* ── 服务视图共享排版（看命/起名/问卦/风水/择日/合盘）── */
 .service-view .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .service-view .sec-title { font-size: var(--font-size-label); font-weight: 600; margin: 16px 0 8px; }
+
+/* 页面区块节奏契约：主区块（标题/卡片/提示）之间统一使用 --space-4 垂直间距。 */
+.page-stack { display: grid; gap: var(--space-4); align-content: start; }
 
 /* 尊重减弱动效偏好（redesign §9.4 #10） */
 @media (prefers-reduced-motion: reduce) {

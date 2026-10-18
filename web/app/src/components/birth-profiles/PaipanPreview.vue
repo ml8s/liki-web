@@ -43,16 +43,12 @@
         {{ $t('profiles.chart.empty') }}
       </p>
 
-      <div
+      <el-skeleton
         v-if="loading"
-        class="pan-skeleton"
-      >
-        <div
-          v-for="i in 6"
-          :key="i"
-          class="skel"
-        />
-      </div>
+        :rows="6"
+        animated
+        aria-busy="true"
+      />
 
       <template v-if="anyResult">
         <el-tabs v-model="tab">
@@ -195,7 +191,9 @@
                   <div
                     v-if="g.zaYao.length"
                     class="zw-za"
-                  >{{ g.zaYao.join(' ') }}</div>
+                  >
+                    {{ g.zaYao.join(' ') }}
+                  </div>
                   <div class="zw-foot">
                     <span>{{ $t('profiles.chart.changSheng') }} {{ g.changSheng }}</span>
                     <b
@@ -262,7 +260,9 @@
                       {{ s.name }}
                     </div>
                     <div class="zw-sf-body">
-                      {{ s.zhu_xing.join(' ') }}<template v-if="s.fu_xing?.length"> · {{ s.fu_xing.join(' ') }}</template><i
+                      {{ s.zhu_xing.join(' ') }}<template v-if="s.fu_xing?.length">
+                        · {{ s.fu_xing.join(' ') }}
+                      </template><i
                         v-for="(hua, i) in s.si_hua ?? []"
                         :key="i"
                         class="zw-si"
@@ -661,19 +661,6 @@ watch(() => props.profile?.id, () => {
   border-top: 2px solid var(--liki-primary);
 }
 .hint { color: var(--liki-text-2); font-size: var(--font-size-label); margin: 4px 0 12px; }
-.pan-skeleton .skel {
-  height: 14px;
-  margin-bottom: 10px;
-  border-radius: var(--radius-small);
-  background: var(--liki-line);
-  animation: skeleton-pulse 1.2s var(--liki-ease) infinite;
-}
-
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-
 .pillars {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
   background: var(--liki-line); border: 1px solid var(--liki-line);
@@ -682,7 +669,7 @@ watch(() => props.profile?.id, () => {
 .pillar { background: var(--liki-surface); padding: 16px 8px; text-align: center; }
 .pillar.self { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
 .pillar .label { font-size: var(--font-size-caption); color: var(--liki-text-3); margin-bottom: 8px; letter-spacing: 0.08em; }
-.pillar .gl { font-size: 25px; font-weight: 700; letter-spacing: 0.02em; }
+.pillar .gl { font-size: var(--font-size-title-lg); font-weight: 700; letter-spacing: 0.02em; }
 .pillar.self .gl { color: var(--liki-primary); }
 .pillar .sub { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 4px; }
 .pillar .nayin { color: var(--liki-text-3); }
@@ -736,9 +723,9 @@ watch(() => props.profile?.id, () => {
 .zw-star { white-space: nowrap; margin-right: 4px; display: inline-block; }
 .zw-si {
   display: inline-block; width: 14px; height: 14px; line-height: 14px; border-radius: var(--radius-full);
-  font-style: normal; font-size: 10px; text-align: center; margin-left: 1px; color: var(--color-white);
+  font-style: normal; font-size: var(--font-size-micro); text-align: center; margin-left: 1px; color: var(--color-white);
 }
-.zw-si[data-hua="禄"] { background: var(--el-color-success); }
+.zw-si[data-hua="禄"] { background: var(--color-success); }
 .zw-si[data-hua="权"] { background: var(--el-color-primary); }
 .zw-si[data-hua="科"] { background: var(--el-color-warning); }
 .zw-si[data-hua="忌"] { background: var(--el-color-danger); }

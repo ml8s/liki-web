@@ -1,162 +1,168 @@
 <template>
-  <div class="admin-shell">
-    <a
-      href="#admin-main"
-      class="skip-link"
-    >跳到主要内容</a>
-    <header class="admin-topbar">
-      <div class="brand">
-        Liki <span>Admin</span>
-      </div>
-      <nav
-        v-if="admin.status === 'ready'"
-        class="admin-nav"
-        aria-label="管理导航"
-      >
-        <RouterLink
-          to="/admin"
-          exact-active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
+  <el-config-provider :locale="zhCn">
+    <div class="admin-shell">
+      <a
+        href="#admin-main"
+        class="skip-link"
+      >跳到主要内容</a>
+      <header class="admin-topbar">
+        <div class="brand">
+          Liki <span>Admin</span>
+        </div>
+        <nav
+          v-if="admin.status === 'ready'"
+          class="admin-nav"
+          aria-label="管理导航"
         >
-          总览
-        </RouterLink>
-        <RouterLink
-          v-if="admin.can('entitlement.read')"
-          to="/admin/entitlements"
-          active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
-        >
-          权益
-        </RouterLink>
-        <RouterLink
-          v-if="admin.can('partner.read')"
-          to="/admin/partners"
-          active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
-        >
-          合作伙伴
-        </RouterLink>
-        <RouterLink
-          v-if="admin.can('payout.read')"
-          to="/admin/payouts"
-          active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
-        >
-          提现
-        </RouterLink>
-        <RouterLink
-          v-if="admin.can('commission.read')"
-          to="/admin/finance"
-          active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
-        >
-          财务
-        </RouterLink>
-        <RouterLink
-          v-if="admin.can('sales.read')"
-          to="/admin/orders"
-          active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
-        >
-          订单
-        </RouterLink>
-        <RouterLink
-          v-if="admin.can('sales.read')"
-          to="/admin/subscriptions"
-          active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
-        >
-          订阅
-        </RouterLink>
-        <RouterLink
-          v-if="admin.can('audit.read')"
-          to="/admin/audit"
-          active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
-        >
-          审计
-        </RouterLink>
-        <RouterLink
-          v-if="admin.can('admin.user.manage')"
-          to="/admin/administrators"
-          active-class="on"
-          @pointerenter="preloadNavigation"
-          @focusin="preloadNavigation"
-        >
-          管理员
-        </RouterLink>
-      </nav>
-      <div class="operator">
-        <span>{{ admin.email || auth.displayName }}</span>
-        <el-button
-          size="small"
-          plain
-          @click="logout"
-        >
-          退出
-        </el-button>
-      </div>
-    </header>
-
-    <main
-      id="admin-main"
-      class="admin-main"
-      tabindex="-1"
-    >
-      <div
-        v-if="admin.status === 'loading' || auth.loading"
-        v-loading="true"
-        aria-busy="true"
-        class="state-card"
-      />
-      <el-result
-        v-else-if="admin.status === 'denied'"
-        icon="warning"
-        title="无管理权限"
-        sub-title="当前账号没有管理后台能力。请使用管理员账号登录。"
-      >
-        <template #extra>
-          <el-button @click="logout">
-            切换账号
-          </el-button>
-        </template>
-      </el-result>
-      <el-result
-        v-else-if="admin.status === 'unreachable'"
-        icon="error"
-        title="后台不可用"
-        sub-title="无法读取管理能力，请稍后重试。"
-      >
-        <template #extra>
-          <el-button
-            type="primary"
-            @click="admin.loadSession(true)"
+          <RouterLink
+            to="/admin"
+            exact-active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
           >
-            重试
+            总览
+          </RouterLink>
+          <RouterLink
+            v-if="admin.can('entitlement.read')"
+            to="/admin/entitlements"
+            active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
+          >
+            权益
+          </RouterLink>
+          <RouterLink
+            v-if="admin.can('partner.read')"
+            to="/admin/partners"
+            active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
+          >
+            合作伙伴
+          </RouterLink>
+          <RouterLink
+            v-if="admin.can('payout.read')"
+            to="/admin/payouts"
+            active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
+          >
+            提现
+          </RouterLink>
+          <RouterLink
+            v-if="admin.can('commission.read')"
+            to="/admin/finance"
+            active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
+          >
+            财务
+          </RouterLink>
+          <RouterLink
+            v-if="admin.can('sales.read')"
+            to="/admin/orders"
+            active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
+          >
+            订单
+          </RouterLink>
+          <RouterLink
+            v-if="admin.can('sales.read')"
+            to="/admin/subscriptions"
+            active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
+          >
+            订阅
+          </RouterLink>
+          <RouterLink
+            v-if="admin.can('audit.read')"
+            to="/admin/audit"
+            active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
+          >
+            审计
+          </RouterLink>
+          <RouterLink
+            v-if="admin.can('admin.user.manage')"
+            to="/admin/administrators"
+            active-class="on"
+            @pointerenter="preloadNavigation"
+            @focusin="preloadNavigation"
+          >
+            管理员
+          </RouterLink>
+        </nav>
+        <div class="operator">
+          <span>{{ admin.email || auth.displayName }}</span>
+          <el-button
+            size="small"
+            plain
+            @click="logout"
+          >
+            退出
           </el-button>
-        </template>
-      </el-result>
-      <RouterView v-else />
-    </main>
-  </div>
+        </div>
+      </header>
+
+      <main
+        id="admin-main"
+        class="admin-main"
+        tabindex="-1"
+      >
+        <div
+          v-if="admin.status === 'loading' || auth.loading"
+          v-loading="true"
+          aria-busy="true"
+          class="state-card"
+        />
+        <el-result
+          v-else-if="admin.status === 'denied'"
+          icon="warning"
+          title="无管理权限"
+          sub-title="当前账号没有管理后台能力。请使用管理员账号登录。"
+        >
+          <template #extra>
+            <el-button @click="logout">
+              切换账号
+            </el-button>
+          </template>
+        </el-result>
+        <el-result
+          v-else-if="admin.status === 'unreachable'"
+          icon="error"
+          title="后台不可用"
+          sub-title="无法读取管理能力，请稍后重试。"
+        >
+          <template #extra>
+            <el-button
+              type="primary"
+              @click="admin.loadSession(true)"
+            >
+              重试
+            </el-button>
+          </template>
+        </el-result>
+        <RouterView v-else />
+      </main>
+    </div>
+  </el-config-provider>
 </template>
 
 <script setup lang="ts">
 import { nextTick, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElConfigProvider } from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { useAdminStore } from '@/stores/admin'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { createIntentPreloader } from '@/utils/routes'
 
+// Admin 是简体中文运营台：组件 locale 固定 zh-CN，不随客户 locale 漂移
+// （客户 locale=en 时曾出现英文分页 Total / 日期组件文案）。
 const admin = useAdminStore()
 const auth = useAuthStore()
 const route = useRoute()

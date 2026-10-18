@@ -10,7 +10,7 @@ describe('scenario handoff', () => {
   })
 
   it('maps marketing scenarios to chat services', () => {
-    expect(scenarioService('naming')).toBeNull()
+    expect(scenarioService('naming')).toBe('naming')
     expect(scenarioService('hepan')).toBe('bond')
     expect(scenarioService('mingshu')).toBe('bazi')
     expect(scenarioService('general')).toBeNull()

@@ -1,5 +1,5 @@
 <template>
-  <section class="service-view">
+  <section class="service-view page-stack">
     <AppPageHeader
       :title="title"
       :subtitle="subtitle"

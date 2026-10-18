@@ -1,4 +1,6 @@
 ---
+import { t } from '../i18n.ts';
+
 const { locale } = Astro.props;
 
 const langs = [
@@ -10,20 +12,25 @@ const sorted = [
   ...langs.filter(l => l.code === locale),
   ...langs.filter(l => l.code !== locale),
 ];
+const current = sorted[0];
+const stripped = Astro.url.pathname.replace(/^\/(zh-Hans|zh-Hant|en)(?=\/|$)/, '');
+const rest = stripped === '' ? '/' : stripped;
+const hrefFor = (code: string) => `/${code}${rest}`;
 ---
 
-<div id="lang-switcher" class="lang-switcher">
-  <button id="lang-toggle" data-lang-toggle class="btn-header" aria-label="Switch language" aria-expanded="false">
+<details id="lang-switcher" class="lang-switcher">
+  <summary id="lang-toggle" class="btn-header" aria-label={t(locale, 'a11y.langSwitcher')}>
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-  </button>
-  <div id="lang-dropdown" data-lang-dropdown class="hidden absolute right-0 top-full mt-1 bg-paper border border-stone-100 rounded-lg py-1 z-50 min-w-[130px]" role="menu">
+    <span>{current.name}</span>
+  </summary>
+  <div id="lang-dropdown" data-lang-dropdown class="absolute right-0 top-full mt-1 bg-paper border border-stone-100 rounded-lg py-1 z-50 min-w-[130px]">
     {sorted.map(l => (
-      <button type="button" data-lang={l.code} data-lang-option={l.code} class={l.code === locale ? 'bg-wood-soft text-wood font-medium block px-4 py-2 text-sm transition-colors' : 'text-stone-600 hover:bg-stone-50 block px-4 py-2 text-sm transition-colors'} role="menuitem">
+      <a href={hrefFor(l.code)} data-lang={l.code} aria-current={l.code === locale ? 'true' : undefined} class={l.code === locale ? 'bg-wood-soft text-wood font-medium block px-4 py-2 text-sm transition-colors' : 'text-stone-600 hover:bg-stone-50 block px-4 py-2 text-sm transition-colors'}>
         {l.name}
-      </button>
+      </a>
     ))}
   </div>
-</div>
+</details>
 
 <script>
   import '../scripts/lang-switcher';

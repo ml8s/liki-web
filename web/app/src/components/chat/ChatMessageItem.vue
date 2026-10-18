@@ -35,6 +35,20 @@
     >
       {{ message.content }}
     </div>
+    <div
+      v-if="message.role === 'assistant' && message.error"
+      class="message-error"
+      role="alert"
+    >
+      {{ message.error }}
+    </div>
+    <p
+      v-if="message.role === 'assistant' && message.stopped"
+      class="message-stopped"
+      role="status"
+    >
+      {{ $t('chat.stopped') }}
+    </p>
     <button
       v-if="message.role === 'assistant' && message.content"
       class="copy"
@@ -68,6 +82,7 @@ async function handleCopy() {
 
 <style scoped>
 .message {
+  box-sizing: border-box;
   max-width: 820px;
   margin: 0 auto 16px;
   padding: 14px 16px;
@@ -78,7 +93,7 @@ async function handleCopy() {
 .message.system { background: transparent; border: none; padding: 0; }
 .message.user {
   max-width: min(78%, 640px);
-  margin-left: auto;
+  margin: 0 0 16px auto;
   background: var(--liki-primary-tint);
   border-color: var(--liki-primary-border);
 }
@@ -90,7 +105,7 @@ async function handleCopy() {
 }
 .message.user .role { text-align: right; }
 .message.assistant .role { font-family: var(--liki-font-serif); font-weight: 700; color: var(--liki-primary); }
-.content { line-height: 1.65; color: var(--liki-ink); }
+.content { line-height: 1.65; color: var(--liki-ink); overflow-wrap: anywhere; }
 .message.user .content { white-space: pre-wrap; }
 .thinking {
   margin-bottom: 10px;
@@ -111,6 +126,17 @@ async function handleCopy() {
   line-height: 1.6;
   color: var(--liki-text-2);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message-error {
+  margin: 8px 0 0;
+  color: var(--color-error);
+  font-size: var(--font-size-label);
+}
+.message-stopped {
+  margin: 8px 0 0;
+  color: var(--liki-text-2);
+  font-size: var(--font-size-label);
 }
 .copy {
   margin: 6px 0 0 -8px;

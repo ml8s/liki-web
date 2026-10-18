@@ -1,4 +1,7 @@
-import { i18n } from '@/i18n'
+import { formatDateTime } from '@/utils/format'
+
+/** Admin 运营台固定简体中文：时间/金额不随操作员客户 locale 漂移。 */
+const ADMIN_LOCALE = 'zh-Hans'
 
 type AdminStatusTagType = 'success' | 'danger' | 'info' | 'warning'
 
@@ -140,11 +143,24 @@ export function financeTaskTypeLabel(type: string): string {
 export function formatAdminMoney(amountMinor: number, currency: string): string {
   const amount = Number(amountMinor || 0) / 100
   if (!currency) return amount.toFixed(2)
-  return new Intl.NumberFormat(i18n.global.locale.value, {
+  return new Intl.NumberFormat(ADMIN_LOCALE, {
     style: 'currency',
     currency,
     currencyDisplay: 'code',
   }).format(amount).replace(/\u00a0/g, ' ')
+}
+
+/** Admin 表格/卡片统一用固定 locale 的日期格式，避免英文分页/美式日期混入。 */
+export function formatAdminDateTime(value?: string | null): string {
+  return formatDateTime(value, ADMIN_LOCALE)
+}
+
+/** el-date-picker 的 value-format 回显：ISO 字符串 → 本地 YYYY-MM-DDTHH:mm:ss。 */
+export function toDatetimeLocal(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const pad = (item: number) => String(item).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 export function maskAdminAccount(value: string): string {

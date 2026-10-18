@@ -13,20 +13,29 @@
           {{ $t('services.bond.step1') }}
         </h2>
       </template>
-      <el-select
-        v-model="profileAId"
-        :aria-label="$t('chat.selectBirthProfile')"
-        :placeholder="$t('chat.selectBirthProfile')"
-        class="w-full"
-        @change="profileAId && loadA()"
+      <el-form
+        ref="formARef"
+        :model="formA"
+        :rules="rulesA"
+        label-position="top"
       >
-        <el-option
-          v-for="p in profiles.list"
-          :key="p.id"
-          :value="p.id"
-          :label="p.nickname"
-        />
-      </el-select>
+        <el-form-item prop="profileAId">
+          <el-select
+            v-model="profileAId"
+            :aria-label="$t('chat.selectBirthProfile')"
+            :placeholder="$t('chat.selectBirthProfile')"
+            class="w-full"
+            @change="onProfileChange"
+          >
+            <el-option
+              v-for="p in profiles.list"
+              :key="p.id"
+              :value="p.id"
+              :label="p.nickname"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
       <p
         v-if="!profiles.list.length"
         class="hint"
@@ -47,6 +56,9 @@
         </h2>
       </template>
       <el-form
+        ref="formBRef"
+        :model="b"
+        :rules="rulesB"
         label-position="top"
         class="b-form"
         @submit.prevent="compute"
@@ -62,7 +74,10 @@
               </el-radio-button>
             </el-radio-group>
           </el-form-item>
-          <el-form-item :label="$t('profiles.form.birthDate')">
+          <el-form-item
+            prop="birth_date"
+            :label="$t('profiles.form.birthDate')"
+          >
             <el-date-picker
               v-model="b.birth_date"
               type="date"
@@ -71,7 +86,10 @@
               class="w-full"
             />
           </el-form-item>
-          <el-form-item :label="$t('profiles.form.birthTime')">
+          <el-form-item
+            prop="birth_time"
+            :label="$t('profiles.form.birthTime')"
+          >
             <el-time-picker
               v-model="b.birth_time"
               format="HH:mm"
@@ -93,7 +111,6 @@
           type="primary"
           native-type="submit"
           :loading="loading"
-          :disabled="!profileAId || !b.birth_date || !b.birth_time"
         >
           {{ $t('services.bond.compute') }}
         </el-button>
@@ -273,13 +290,13 @@
         @remove="removeToolRecord"
       />
     </el-card>
-
   </ServicePageShell>
 </template>
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, toRef } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import {
@@ -308,13 +325,25 @@ void loadRecords()
 
 interface SynastryInput { gender: string; birth_date: string; birth_time: string; birth_place: string }
 
-const profileAId = ref('')
+// 表单模型保持稳定对象，v-model 写入同一引用，change 当拍校验才能读到新值。
+const formA = reactive({ profileAId: '' })
+const profileAId = toRef(formA, 'profileAId')
 const chartA = ref<BaziChartData | null>(null)
 const bChart = ref<BaziChartData | null>(null)
 const b = ref<SynastryInput>({ gender: 'female', birth_date: '', birth_time: '', birth_place: '' })
 const result = ref<BaziBondResult | null>(null)
 const loading = ref(false)
 const error = ref('')
+
+const formARef = ref<FormInstance>()
+const formBRef = ref<FormInstance>()
+const rulesA = computed<FormRules>(() => ({
+  profileAId: [{ required: true, message: t('chat.selectBirthProfileFirst'), trigger: 'change' }],
+}))
+const rulesB = computed<FormRules>(() => ({
+  birth_date: [{ required: true, message: t('profiles.form.errors.birthDateRequired'), trigger: 'change' }],
+  birth_time: [{ required: true, message: t('profiles.form.errors.exactTimeRequired'), trigger: 'change' }],
+}))
 
 const purchased = computed(() => entitlements.allowedSkills.length > 0)
 const profileA = computed(() => profiles.list.find(p => p.id === profileAId.value) ?? null)
@@ -351,15 +380,17 @@ async function loadA() {
   }
 }
 
+function onProfileChange() {
+  if (profileAId.value) void loadA()
+}
+
 async function compute() {
   error.value = ''
+  const validA = await formARef.value?.validate().then(() => true).catch(() => false)
+  const validB = await formBRef.value?.validate().then(() => true).catch(() => false)
+  if (!validA || !validB) return
   result.value = null
   bChart.value = null
-  if (!profileAId.value) return
-  if (!b.value.birth_date || !b.value.birth_time) {
-    error.value = t('services.bond.birthRequired')
-    return
-  }
   loading.value = true
   try {
     if (!chartA.value) await loadA()
@@ -384,12 +415,13 @@ function saveRecord() {
 function openRecord(record: ToolRecord) {
   profileAId.value = String(record.input.profile_id ?? '')
   const inputB = (record.input.b ?? {}) as Partial<SynastryInput>
-  b.value = {
+  // 保持 b 对象引用稳定：form 的 model 指向同一对象，替换引用会让校验读到旧值。
+  Object.assign(b.value, {
     gender: String(inputB.gender ?? 'female'),
     birth_date: String(inputB.birth_date ?? ''),
     birth_time: String(inputB.birth_time ?? ''),
     birth_place: String(inputB.birth_place ?? ''),
-  }
+  })
   chartA.value = null
   void compute()
 }
@@ -487,22 +519,23 @@ async function startInterpretation() {
 </script>
 
 <style scoped>
-.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.charts { display: grid; gap: 14px; }
-.chart-row { display: flex; align-items: center; gap: 12px; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
+.charts { display: grid; gap: var(--space-3); }
+.chart-row { display: flex; align-items: center; gap: var(--space-3); }
 .person { flex: 0 0 56px; font-weight: 600; font-size: var(--font-size-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; flex: 1; background: var(--liki-line); border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; }
 .pillar { background: var(--liki-surface); padding: 8px 4px; text-align: center; }
 .pillar .pl { font-size: var(--font-size-micro); color: var(--liki-text-3); }
 .pillar .gl { font-size: var(--font-size-title-xs); font-weight: 700; }
 .pillar .sub { font-size: var(--font-size-micro); color: var(--liki-text-2); }
-.rel-sec { margin-top: 16px; }
-.sec-title { font-size: var(--font-size-label); font-weight: 600; margin-bottom: 8px; }
+.rel-sec { margin-top: var(--space-4); }
+.sec-title { font-size: var(--font-size-label); font-weight: 600; margin-bottom: var(--space-2); }
 .rel-text { font-size: var(--font-size-body); color: var(--liki-ink); }
-.rels { display: flex; flex-wrap: wrap; gap: 8px; }
+.rels { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .rel-chip { padding: 4px 10px; border-radius: var(--radius-full); border: 1px solid var(--liki-line); background: var(--liki-surface); font-size: var(--font-size-caption); color: var(--liki-text-2); }
+/* 纳音关系用品牌色强调；神煞互看为中性参考信息，沿用命盘 shensha chip 的中性语义。 */
 .rel-chip.nayin { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
-.rel-chip.shensha { border-color: var(--liki-primary-border, var(--liki-primary-border)); background: var(--liki-primary-tint); }
+.rel-chip.shensha { border-color: var(--liki-line); background: var(--liki-surface-cream); }
 @media (max-width: 640px) {
   .pillars { grid-template-columns: repeat(2, 1fr); }
   .chart-row { flex-direction: column; align-items: flex-start; gap: 6px; }

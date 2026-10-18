@@ -3,6 +3,7 @@
     <el-page-header
       class="profile-page-header"
       @back="router.push('/birth-profiles')"
+      @keydown="onPageHeaderKeydown"
     >
       <template #content>
         <div class="page-heading">
@@ -20,7 +21,7 @@
     />
     <el-result
       v-else-if="error && !detail"
-      icon="warning"
+      icon="error"
       :title="$t('profiles.detail.loadFailed')"
       :sub-title="error"
     >
@@ -53,7 +54,31 @@
         class="cta"
         :title="$t('profiles.detail.interpretation')"
       >
-        <template v-if="entitlements.loaded && entitlements.purchased">
+        <!-- 权益未就绪时不得渲染解锁引导：error 提示可重试，未加载完成显示骨架 -->
+        <template v-if="entitlements.error">
+          <el-alert
+            :title="entitlements.error"
+            type="error"
+            :closable="false"
+            show-icon
+          />
+          <el-button
+            type="primary"
+            class="cta-retry"
+            @click="entitlements.load(true)"
+          >
+            {{ $t('common.retry') }}
+          </el-button>
+        </template>
+
+        <el-skeleton
+          v-else-if="!entitlements.loaded"
+          :rows="2"
+          animated
+          aria-busy="true"
+        />
+
+        <template v-else-if="entitlements.purchased">
           <p class="hint">
             {{ preselectedService
               ? $t('profiles.detail.serviceSelected', { service: $t(preselectedService.labelKey) })
@@ -78,7 +103,6 @@
           <el-button
             type="primary"
             size="large"
-            :loading="entitlements.loading"
             @click="goChat"
           >
             {{ $t('profiles.detail.unlock') }}
@@ -124,6 +148,14 @@ const editingInfo = computed(() => Boolean(infoRef.value?.isEditing && infoRef.v
 const infoError = computed(() => (infoRef.value?.isEditing ? error.value : ''))
 
 useUnloadGuard(editingInfo)
+
+// el-page-header 的返回区是 div[role=button]（EP 只绑了 click）：补齐键盘 Enter/Space 激活。
+function onPageHeaderKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  if (!(event.target as HTMLElement | null)?.closest('.el-page-header__back')) return
+  event.preventDefault()
+  void router.push('/birth-profiles')
+}
 
 async function load() {
   await profiles.loadDetail(profileId.value)
@@ -184,6 +216,7 @@ onBeforeRouteLeave(async () => {
 
 <style scoped>
 .cta { margin-top: 8px; }
+.cta-retry { margin-top: var(--space-3); }
 .profile-page-header { margin-bottom: 20px; }
 .page-heading h1 {
   margin: 0;

@@ -4,7 +4,7 @@
       <template #actions>
         <el-button
           :loading="actions.loading.value"
-          @click="actions.load(1)"
+          @click="reloadCurrentPage"
         >
           刷新
         </el-button>
@@ -32,7 +32,7 @@
           width="180"
         >
           <template #default="{ row }">
-            {{ formatDateTime(row.created_at) }}
+            {{ formatAdminDateTime(row.created_at) }}
           </template>
         </el-table-column>
         <el-table-column
@@ -74,7 +74,7 @@
           v-for="row in actions.data.value"
           :key="row.id"
           :fields="[
-            { key: 'created_at', label: '时间', value: formatDateTime(row.created_at) },
+            { key: 'created_at', label: '时间', value: formatAdminDateTime(row.created_at) },
             { key: 'actor', label: '操作人', value: row.actor },
             { key: 'action', label: '动作', value: row.action },
             { key: 'target_id', label: '对象', value: row.target_id, kind: 'mono' },
@@ -86,7 +86,7 @@
       <el-pagination
         v-if="(actions.meta.value?.total ?? 0) > 0"
         class="admin-pagination"
-        :current-page="actionPage"
+        :current-page="pages.page"
         :page-size="actions.meta.value?.page_size ?? 100"
         :total="actions.meta.value?.total ?? 0"
         layout="prev, pager, next, total"
@@ -99,21 +99,36 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
 import { fetchAdminActions, type AdminAction } from '@/api/admin'
 import AdminRecordCard from '@/components/admin/AdminRecordCard.vue'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
-import { formatDateTime } from '@/utils/format'
+import { useAdminQueryState } from '@/composables/useAdminQueryState'
+import { formatAdminDateTime } from '@/utils/adminFormat'
 
 const isMobile = useAdminViewport()
 
-const actionPage = ref(1)
+interface AuditFilters {
+  [key: string]: string
+}
+
 const actions = useAdminPagedResource<AdminAction>(async page => await fetchAdminActions(page))
 
-onMounted(() => actions.load(actionPage.value))
+const query = useAdminQueryState<AuditFilters>({
+  defaults: {},
+  pageKeys: ['page'],
+  decode: () => ({}),
+  encode: (_filters, pages) => ({ page: pages.page === 1 ? undefined : pages.page }),
+  onApplied: (_filters, pages): Promise<void> => actions.load(pages.page),
+})
+
+const { pages } = query
+void query.initialize()
+
+function reloadCurrentPage() {
+  void actions.load(pages.value.page)
+}
 
 function setActionPage(page: number) {
-  actionPage.value = page
-  void actions.load(page)
+  void query.setPage('page', page)
 }
 </script>

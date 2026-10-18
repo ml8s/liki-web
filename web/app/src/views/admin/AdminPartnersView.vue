@@ -112,7 +112,7 @@
             width="180"
           >
             <template #default="{ row }">
-              {{ formatDateTime(row.created_at) }}
+              {{ formatAdminDateTime(row.created_at) }}
             </template>
           </el-table-column>
           <el-table-column
@@ -162,7 +162,7 @@
               { key: 'role', label: '角色', value: adminRoleLabel(row.type) },
               { key: 'note', label: '说明', value: row.note },
               { key: 'status', label: '状态', value: row.status, kind: 'status' },
-              { key: 'created', label: '时间', value: formatDateTime(row.created_at) },
+              { key: 'created', label: '时间', value: formatAdminDateTime(row.created_at) },
             ]"
           >
             <template
@@ -211,7 +211,7 @@
             :loading="partners.loading.value"
             @click="reloadPartners"
           >
-            筛选
+            刷新
           </el-button>
         </div>
       </template>
@@ -261,6 +261,12 @@
             clearable
           />
         </el-form-item>
+        <el-button
+          type="primary"
+          @click="submitPartnerFilters"
+        >
+          查询
+        </el-button>
       </el-form>
       <div
         v-loading="partners.loading.value"
@@ -306,7 +312,7 @@
             width="180"
           >
             <template #default="{ row }">
-              {{ formatDateTime(row.created_at) }}
+              {{ formatAdminDateTime(row.created_at) }}
             </template>
           </el-table-column>
           <el-table-column
@@ -344,7 +350,7 @@
               { key: 'user_id', label: 'User ID', value: row.user_id, kind: 'mono' },
               { key: 'role', label: '角色', value: adminRoleLabel(row.role) },
               { key: 'status', label: '状态', value: row.status, kind: 'status' },
-              { key: 'created', label: '时间', value: formatDateTime(row.created_at) },
+              { key: 'created', label: '时间', value: formatAdminDateTime(row.created_at) },
             ]"
           >
             <template
@@ -390,10 +396,9 @@ import AdminStatusTag from '@/components/admin/AdminStatusTag.vue'
 import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useAdminPagedResource, useAdminViewport, type AdminPagedResource } from '@/composables/useAdminResource'
-import { adminRoleLabel, adminStatusOptions, adminStatusValues } from '@/utils/adminFormat'
+import { adminRoleLabel, adminStatusOptions, adminStatusValues, formatAdminDateTime } from '@/utils/adminFormat'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
-import { formatDateTime } from '@/utils/format'
 
 const isMobile = useAdminViewport()
 

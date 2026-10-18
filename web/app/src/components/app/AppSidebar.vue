@@ -15,6 +15,7 @@
         <router-link
           to="/"
           exact-active-class="on"
+          :aria-current="isCurrent('/') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
           @focusin="preloadNavigation"
         >
@@ -23,6 +24,7 @@
         <router-link
           to="/birth-profiles"
           active-class="on"
+          :aria-current="isCurrent('/birth-profiles') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
           @focusin="preloadNavigation"
         >
@@ -31,6 +33,7 @@
         <router-link
           to="/chat"
           active-class="on"
+          :aria-current="isCurrent('/chat') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
           @focusin="preloadNavigation"
         >
@@ -44,6 +47,7 @@
         <router-link
           to="/orders"
           active-class="on"
+          :aria-current="isCurrent('/orders') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
           @focusin="preloadNavigation"
         >
@@ -52,6 +56,7 @@
         <router-link
           to="/account"
           active-class="on"
+          :aria-current="isCurrent('/account') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
           @focusin="preloadNavigation"
         >
@@ -65,6 +70,7 @@
         <router-link
           to="/partners"
           exact-active-class="on"
+          :aria-current="isCurrent('/partners') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
           @focusin="preloadNavigation"
         >
@@ -87,14 +93,21 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { createIntentPreloader } from '@/utils/routes'
 
 defineProps<{ email: string }>()
 defineEmits<{ logout: [] }>()
 
+const route = useRoute()
 const router = useRouter()
 const preloadNavigation = createIntentPreloader(router, record => !String(record.name ?? '').startsWith('admin-'))
+
+// 侧栏链接都是扁平路由，active 即 exact-active（/partners 显式用 exact-active-class）；
+// 显式输出与 .on 同源的 aria-current="page"，不依赖 RouterLink 的内部判断。
+function isCurrent(target: string) {
+  return route.path === target
+}
 </script>
 
 <style scoped>
@@ -104,6 +117,7 @@ const preloadNavigation = createIntentPreloader(router, record => !String(record
   width: 240px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
   background: var(--liki-ink);
   color: var(--liki-on-ink);
   padding: 24px 16px;

@@ -67,8 +67,10 @@
   --color-telegram: #26a5e4;
   --color-on-primary-border: rgba(255, 255, 255, 0.4);
   --color-input-ink: #232733;
+  --color-error: var(--color-fire);
   --color-error-border: rgba(217, 45, 32, 0.35);
   --color-danger-surface: #fff8f7;
+  --color-success: #067647;
   --color-success-border: var(--brand-success-border);
   --color-success-surface: var(--brand-success-surface);
   --color-text-faint: var(--brand-text-faint);
@@ -111,6 +113,8 @@
   /* shared elevation contract */
   --shadow-card: 0 1px 2px rgba(13, 37, 61, 0.04),
     0 8px 24px rgba(13, 37, 61, 0.05);
+  --shadow-card-hover: 0 12px 32px rgba(13, 37, 61, 0.09),
+    0 3px 10px rgba(13, 37, 61, 0.05);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07),
     0 2px 4px -2px rgba(0, 0, 0, 0.05);
@@ -136,6 +140,11 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-18: 72px;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --z-header: 50;
@@ -190,8 +199,6 @@
   --color-white-alpha-92: rgba(255,255,255,.92);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.08), 0 4px 6px -4px rgba(0,0,0,.04);
   --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.08), 0 8px 10px -6px rgba(0,0,0,.04);
-  --space-10: 40px;
-  --space-12: 48px;
   --font-serif: "Songti SC", "Noto Serif SC", "Noto Serif CJK SC", "STSong", "SimSun", "宋体", "AR PL UMing CN", "Hiragino Mincho Pro", "Noto Serif TC", serif;
   --liki-font-sans: var(--font-sans);
   --liki-font-serif: var(--font-serif);

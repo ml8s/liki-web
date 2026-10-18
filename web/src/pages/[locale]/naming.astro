@@ -15,6 +15,7 @@ const faqs = ['paid', 'data', 'accuracy'].map(key => ({
   questionKey: `scenario.faq.${key}.q`,
   answerKey: `scenario.faq.${key}.a`,
 }));
+const cardIndexes = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 ---
 
 <ScenarioLanding
@@ -33,10 +34,27 @@ const faqs = ['paid', 'data', 'accuracy'].map(key => ({
   faqTitleKey="scenario.faqTitle"
   faqs={faqs}
 >
-  <div class="name-scroll scenario-name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')} tabindex="0">
-    {Array.from({length: 36}, (_, i) => {
-      const n = i + 1;
-      return (
+  <div class="name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')} tabindex="0">
+    {cardIndexes(1, 6).map((n) => (
+      <div class="name-preview-card" role="listitem">
+        <div class="name-preview-title">{t(locale, `${ns}.name${n}`)}</div>
+        <div class="name-preview-gender">{t(locale, `${ns}.gender${n}`)}</div>
+        <div class="name-preview-quote">{t(locale, `${ns}.quote${n}`)}</div>
+        <div class="text-xs text-stone-600 mb-1">{t(locale, `${ns}.source${n}`)}</div>
+        <div class="name-preview-detail">
+          <span>{t(locale, `${ns}.tag${n}a`)}</span>
+          <span>{t(locale, `${ns}.tag${n}b`)}</span>
+          <span>{t(locale, `${ns}.tag${n}c`)}</span>
+          <span>{t(locale, `${ns}.tag${n}d`)}</span>
+        </div>
+        <p class="text-xs text-stone-600 mt-2">{t(locale, `${ns}.footer${n}`)}</p>
+      </div>
+    ))}
+  </div>
+  <details class="name-more">
+    <summary>{t(locale, 'naming.examples.more')}</summary>
+    <div class="name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')} tabindex="0">
+      {cardIndexes(7, 36).map((n) => (
         <div class="name-preview-card" role="listitem">
           <div class="name-preview-title">{t(locale, `${ns}.name${n}`)}</div>
           <div class="name-preview-gender">{t(locale, `${ns}.gender${n}`)}</div>
@@ -50,7 +68,7 @@ const faqs = ['paid', 'data', 'accuracy'].map(key => ({
           </div>
           <p class="text-xs text-stone-600 mt-2">{t(locale, `${ns}.footer${n}`)}</p>
         </div>
-      );
-    })}
-  </div>
+      ))}
+    </div>
+  </details>
 </ScenarioLanding>

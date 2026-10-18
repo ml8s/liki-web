@@ -58,7 +58,6 @@ const suggestions = computed(() => [
 </script>
 
 <style scoped>
-.thread { padding-right: 8px; }
 .empty-with-suggestions {
   display: flex;
   flex-direction: column;
@@ -73,7 +72,10 @@ const suggestions = computed(() => [
   margin-top: -18px;
 }
 .suggestion {
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 16px;
   border: 1px solid var(--liki-line);
   border-radius: var(--radius-full);
   background: var(--liki-surface);

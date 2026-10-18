@@ -76,7 +76,8 @@ const homeSchema = {
   <section class="landing-paipan">
     <h2>{t(locale, 'index.paipan.title')}</h2>
     <p>{t(locale, 'index.paipan.desc')}</p>
-    <form class="paipan-hook" id="paipanHook">
+    <form class="paipan-hook" id="paipanHook" action="/app/birth-profiles/new" method="get">
+      <input type="hidden" name="locale" value={locale} />
       <input name="date" type="date" required aria-label={t(locale, 'index.paipan.date')} />
       <input name="time" type="time" required aria-label={t(locale, 'index.paipan.time')} />
       <select name="gender" required aria-label={t(locale, 'index.paipan.gender')}>

@@ -54,7 +54,7 @@ const dirs = computed(() =>
 .dir { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 10px; text-align: center; }
 .dir .dg { font-size: var(--font-size-title-sm); color: var(--liki-primary); }
 .dir.good { border-color: var(--color-success-border); background: var(--color-success-surface); }
-.dir.good .dg { color: var(--el-color-success); }
+.dir.good .dg { color: var(--color-success); }
 .dir .dname { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 3px; }
 @media (max-width: 640px) { .dirs { grid-template-columns: repeat(2, 1fr); } }
 </style>

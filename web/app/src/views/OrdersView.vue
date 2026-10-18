@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <section class="page-stack">
     <AppPageHeader
       :title="$t('router.orders')"
       :subtitle="$t('orders.subtitle')"
@@ -15,8 +15,8 @@
     </AppPageHeader>
 
     <el-result
-      v-if="error && !orders.length && !subscriptions.length"
-      icon="warning"
+      v-if="error && !hasData"
+      icon="error"
       :title="$t('orders.loadFailed')"
       :sub-title="error"
     >
@@ -29,23 +29,16 @@
         </el-button>
       </template>
     </el-result>
-    <el-alert
-      v-else-if="error && orders.length"
-      :title="error"
-      type="error"
-      :closable="false"
-      show-icon
-    />
 
     <el-skeleton
-      v-else-if="loading && !orders.length && !subscriptions.length"
+      v-else-if="loading && !hasData"
       :rows="6"
       animated
       aria-busy="true"
     />
 
     <el-empty
-      v-else-if="!loading && !orders.length && !subscriptions.length"
+      v-else-if="!loading && !hasData"
       :description="$t('orders.empty')"
     >
       <el-button
@@ -57,241 +50,252 @@
       </el-button>
     </el-empty>
 
-    <el-card
-      v-if="subscriptions.length"
-      class="app-card subscription-card"
-      shadow="never"
-    >
-      <template #header>
-        <h2 class="app-card__title">
-          {{ $t('subscriptions.title') }}
-        </h2>
-      </template>
-      <div class="subscription-list">
-        <div
-          v-for="subscription in subscriptions"
-          :key="subscription.id"
-          class="subscription"
-        >
-          <div>
-            <div class="subscription-title">
-              {{ productName(subscription.product_id) }}
-              <el-tag
-                :type="subscriptionStatusType(subscription.status)"
-                size="small"
-              >
-                {{ subscriptionStatusLabel(subscription.status) }}
-              </el-tag>
-              <el-tag
-                v-if="subscription.cancel_at_period_end && subscription.status === 'active'"
-                type="warning"
-                size="small"
-              >
-                {{ $t('subscriptions.endsAtPeriodEnd') }}
-              </el-tag>
-            </div>
-            <div class="subscription-meta">
-              <span v-if="subscription.current_period_end">
-                {{ $t('subscriptions.activeUntil') }} {{ formatDateTime(subscription.current_period_end) }}
-              </span>
-              <span v-if="subscription.next_billing_at">
-                {{ $t('subscriptions.nextBilling') }} {{ formatDateTime(subscription.next_billing_at) }}
-              </span>
-            </div>
-          </div>
-          <el-button
-            v-if="subscription.status === 'active' && subscription.provider_subscription_id"
-            size="small"
-            :loading="updatingId === subscription.id"
-            @click="toggleCancellation(subscription)"
-          >
-            {{ subscription.cancel_at_period_end ? $t('subscriptions.resume') : $t('subscriptions.cancel') }}
-          </el-button>
-        </div>
-      </div>
-      <div
-        v-if="subscriptionPayments.length"
-        class="subscription-payments"
-      >
-        <h3 class="subscription-payments-title">
-          {{ $t('subscriptions.paymentHistory') }}
-        </h3>
-        <div
-          v-for="item in subscriptionPayments"
-          :key="item.id"
-          class="subscription-payment"
-        >
-          <div>
-            <span class="payment-date">{{ formatDateTime(item.created_at) }}</span>
-            <span
-              v-if="item.period_start && item.period_end"
-              class="payment-period"
-            >
-              {{ formatDateTime(item.period_start) }} – {{ formatDateTime(item.period_end) }}
-            </span>
-          </div>
-          <div class="payment-state">
-            <span class="payment-amount">{{ formatMinorUnit(item.amount_minor_units, item.currency_code) }}</span>
-            <span
-              v-if="item.refunded_minor_units > 0"
-              class="payment-refund"
-            >
-              {{ $t('subscriptions.refundedAmount', { amount: formatMinorUnit(item.refunded_minor_units, item.currency_code) }) }}
-            </span>
-            <el-tag
-              :type="subscriptionPaymentStatusType(item)"
-              size="small"
-            >
-              {{ subscriptionPaymentStatusLabel(item) }}
-            </el-tag>
-          </div>
-        </div>
-      </div>
-    </el-card>
-
-    <!-- 桌面：表格 -->
-    <el-table
-      v-else-if="!isMobile"
-      v-loading="loading"
-      :aria-busy="loading"
-      :data="orders"
-      class="orders-table"
-    >
-      <el-table-column
-        prop="id"
-        :label="$t('orders.id')"
-        min-width="180"
-        show-overflow-tooltip
+    <!-- 订阅与一次性订单是并列区块：存在订阅时订单列表仍需渲染。 -->
+    <template v-else>
+      <el-alert
+        v-if="error"
+        :title="error"
+        type="error"
+        :closable="false"
+        show-icon
       />
-      <el-table-column
-        :label="$t('orders.product')"
-        min-width="160"
-      >
-        <template #default="{ row }">
-          {{ productName(row.product_id) }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        :label="$t('orders.amount')"
-        width="130"
-      >
-        <template #default="{ row }">
-          {{ formatAmount(row) }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        :label="$t('orders.status')"
-        width="150"
-      >
-        <template #default="{ row }">
-          <div class="status-cell">
-            <el-tag
-              :type="statusType(row.status)"
-              size="small"
-            >
-              {{ statusLabel(row.status) }}
-            </el-tag>
-            <el-tag
-              v-if="intentBadge(asOrder(row))"
-              type="info"
-              size="small"
-            >
-              {{ intentBadge(asOrder(row)) }}
-            </el-tag>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column
-        :label="$t('orders.createdAt')"
-        width="170"
-      >
-        <template #default="{ row }">
-          {{ formatDateTime(row.created_at) }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        :label="$t('orders.paidAt')"
-        width="170"
-      >
-        <template #default="{ row }">
-          {{ formatDateTime(row.paid_at) }}
-        </template>
-      </el-table-column>
-      <el-table-column
-        width="200"
-        align="right"
-        fixed="right"
-      >
-        <template #default="{ row }">
-          <RecordActions
-            :actions="orderActions(asOrder(row))"
-            @action="key => onOrderAction(key, asOrder(row))"
-          />
-        </template>
-      </el-table-column>
-    </el-table>
 
-    <!-- 移动端：卡片降级 -->
-    <div
-      v-else
-      v-loading="loading"
-      :aria-busy="loading"
-      class="order-cards"
-    >
-      <div
-        v-for="order in orders"
-        :key="order.id"
-        class="order-card"
+      <el-card
+        v-if="subscriptions.length"
+        class="app-card subscription-card"
+        shadow="never"
       >
-        <div class="order-top">
-          <span class="order-id">{{ order.id }}</span>
-          <span class="order-tags">
-            <el-tag
-              :type="statusType(order.status)"
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('subscriptions.title') }}
+          </h2>
+        </template>
+        <div class="subscription-list">
+          <div
+            v-for="subscription in subscriptions"
+            :key="subscription.id"
+            class="subscription"
+          >
+            <div>
+              <div class="subscription-title">
+                {{ productName(subscription.product_id) }}
+                <el-tag
+                  :type="subscriptionStatusType(subscription.status)"
+                  size="small"
+                >
+                  {{ subscriptionStatusLabel(subscription.status) }}
+                </el-tag>
+                <el-tag
+                  v-if="subscription.cancel_at_period_end && subscription.status === 'active'"
+                  type="warning"
+                  size="small"
+                >
+                  {{ $t('subscriptions.endsAtPeriodEnd') }}
+                </el-tag>
+              </div>
+              <div class="subscription-meta">
+                <span v-if="subscription.current_period_end">
+                  {{ $t('subscriptions.activeUntil') }} {{ formatDateTime(subscription.current_period_end) }}
+                </span>
+                <span v-if="subscription.next_billing_at">
+                  {{ $t('subscriptions.nextBilling') }} {{ formatDateTime(subscription.next_billing_at) }}
+                </span>
+              </div>
+            </div>
+            <el-button
+              v-if="subscription.status === 'active' && subscription.provider_subscription_id"
               size="small"
+              :loading="updatingId === subscription.id"
+              @click="toggleCancellation(subscription)"
             >
-              {{ statusLabel(order.status) }}
-            </el-tag>
-            <el-tag
-              v-if="intentBadge(order)"
-              type="info"
-              size="small"
-            >
-              {{ intentBadge(order) }}
-            </el-tag>
-          </span>
-        </div>
-        <div class="order-row">
-          <span class="k">{{ $t('orders.product') }}</span><span>{{ productName(order.product_id) }}</span>
-        </div>
-        <div class="order-row">
-          <span class="k">{{ $t('orders.amount') }}</span><span>{{ formatAmount(order) }}</span>
-        </div>
-        <div class="order-row">
-          <span class="k">{{ $t('orders.createdShort') }}</span><span>{{ formatDateTime(order.created_at) }}</span>
+              {{ subscription.cancel_at_period_end ? $t('subscriptions.resume') : $t('subscriptions.cancel') }}
+            </el-button>
+          </div>
         </div>
         <div
-          v-if="order.paid_at"
-          class="order-row"
+          v-if="subscriptionPayments.length"
+          class="subscription-payments"
         >
-          <span class="k">{{ $t('orders.paidShort') }}</span><span>{{ formatDateTime(order.paid_at) }}</span>
+          <h3 class="subscription-payments-title">
+            {{ $t('subscriptions.paymentHistory') }}
+          </h3>
+          <div
+            v-for="item in subscriptionPayments"
+            :key="item.id"
+            class="subscription-payment"
+          >
+            <div>
+              <span class="payment-date">{{ formatDateTime(item.created_at) }}</span>
+              <span
+                v-if="item.period_start && item.period_end"
+                class="payment-period"
+              >
+                {{ formatDateTime(item.period_start) }} – {{ formatDateTime(item.period_end) }}
+              </span>
+            </div>
+            <div class="payment-state">
+              <span class="payment-amount">{{ formatMinorUnit(item.amount_minor_units, item.currency_code) }}</span>
+              <span
+                v-if="item.refunded_minor_units > 0"
+                class="payment-refund"
+              >
+                {{ $t('subscriptions.refundedAmount', { amount: formatMinorUnit(item.refunded_minor_units, item.currency_code) }) }}
+              </span>
+              <el-tag
+                :type="subscriptionPaymentStatusType(item)"
+                size="small"
+              >
+                {{ subscriptionPaymentStatusLabel(item) }}
+              </el-tag>
+            </div>
+          </div>
         </div>
-        <RecordActions
-          class="order-actions"
-          :actions="orderActions(order)"
-          @action="key => onOrderAction(key, order)"
+      </el-card>
+
+      <el-alert
+        v-if="pendingOrders.length"
+        :title="$t('orders.pendingTitle')"
+        :description="$t('orders.pendingBody')"
+        type="warning"
+        show-icon
+        :closable="false"
+      />
+
+      <!-- 桌面：表格 -->
+      <el-table
+        v-if="!isMobile"
+        v-loading="loading"
+        :aria-busy="loading"
+        :data="orders"
+        class="orders-table"
+      >
+        <el-table-column
+          prop="id"
+          :label="$t('orders.id')"
+          min-width="180"
+          show-overflow-tooltip
         />
+        <el-table-column
+          :label="$t('orders.product')"
+          min-width="160"
+        >
+          <template #default="{ row }">
+            {{ productName(row.product_id) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('orders.amount')"
+          width="130"
+        >
+          <template #default="{ row }">
+            {{ formatAmount(row) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('orders.status')"
+          width="150"
+        >
+          <template #default="{ row }">
+            <div class="status-cell">
+              <el-tag
+                :type="statusType(row.status)"
+                size="small"
+              >
+                {{ statusLabel(row.status) }}
+              </el-tag>
+              <el-tag
+                v-if="intentBadge(asOrder(row))"
+                type="info"
+                size="small"
+              >
+                {{ intentBadge(asOrder(row)) }}
+              </el-tag>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('orders.createdAt')"
+          width="170"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime(row.created_at) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('orders.paidAt')"
+          width="170"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime(row.paid_at) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          width="200"
+          align="right"
+          fixed="right"
+        >
+          <template #default="{ row }">
+            <RecordActions
+              :actions="orderActions(asOrder(row))"
+              @action="key => onOrderAction(key, asOrder(row))"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 移动端：卡片降级 -->
+      <div
+        v-else
+        v-loading="loading"
+        :aria-busy="loading"
+        class="order-cards"
+      >
+        <div
+          v-for="order in orders"
+          :key="order.id"
+          class="order-card"
+        >
+          <div class="order-top">
+            <span class="order-id">{{ order.id }}</span>
+            <span class="order-tags">
+              <el-tag
+                :type="statusType(order.status)"
+                size="small"
+              >
+                {{ statusLabel(order.status) }}
+              </el-tag>
+              <el-tag
+                v-if="intentBadge(order)"
+                type="info"
+                size="small"
+              >
+                {{ intentBadge(order) }}
+              </el-tag>
+            </span>
+          </div>
+          <div class="order-row">
+            <span class="k">{{ $t('orders.product') }}</span><span>{{ productName(order.product_id) }}</span>
+          </div>
+          <div class="order-row">
+            <span class="k">{{ $t('orders.amount') }}</span><span>{{ formatAmount(order) }}</span>
+          </div>
+          <div class="order-row">
+            <span class="k">{{ $t('orders.createdShort') }}</span><span>{{ formatDateTime(order.created_at) }}</span>
+          </div>
+          <div
+            v-if="order.paid_at"
+            class="order-row"
+          >
+            <span class="k">{{ $t('orders.paidShort') }}</span><span>{{ formatDateTime(order.paid_at) }}</span>
+          </div>
+          <RecordActions
+            class="order-actions"
+            :actions="orderActions(order)"
+            @action="key => onOrderAction(key, order)"
+          />
+        </div>
       </div>
-    </div>
-    <el-alert
-      v-if="pendingOrders.length"
-      :title="$t('orders.pendingTitle')"
-      :description="$t('orders.pendingBody')"
-      type="warning"
-      show-icon
-      :closable="false"
-      class="pending-alert"
-    />
+    </template>
 
     <el-drawer
       v-model="detailOpen"
@@ -439,6 +443,8 @@ const detailError = ref('')
 const activeEntitlement = computed(() =>
   entitlements.items.find(item => item.status === 'active' && item.skills.includes('liki')) ?? null,
 )
+
+const hasData = computed(() => orders.value.length > 0 || subscriptions.value.length > 0)
 
 const pendingOrders = computed(() => orders.value.filter(order => order.status === 'pending'))
 
@@ -648,8 +654,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.pending-alert { margin-bottom: 16px; }
-.subscription-card { margin-bottom: 16px; }
 .subscription-list { display: grid; gap: 12px; }
 .subscription { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .subscription-title { display: flex; align-items: center; gap: 8px; font-weight: 650; }
@@ -666,10 +670,13 @@ onMounted(() => {
 .payment-state { display: flex; align-items: center; gap: 10px; }
 .payment-amount { font-weight: 600; font-size: var(--font-size-label); }
 .payment-refund { color: var(--liki-text-2); font-size: var(--font-size-caption); }
-@media (max-width: 640px) { .subscription { align-items: flex-start; flex-direction: column; } }
-.subscription-payment { align-items: flex-start; flex-direction: column; gap: 6px; }
-.payment-state { flex-wrap: wrap; }
-.orders-table { background: var(--liki-surface); border-radius: var(--el-border-radius-base); }
+@media (max-width: 640px) {
+  .subscription { align-items: flex-start; flex-direction: column; }
+  .subscription-payment { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .payment-state { flex-wrap: wrap; }
+}
+.orders-table { background: var(--liki-surface); border-radius: var(--radius-control); }
+.orders-table, .subscription-meta, .payment-amount, .payment-date, .order-card { font-variant-numeric: tabular-nums; }
 .order-cards { display: grid; gap: 12px; }
 .order-card {
   background: var(--liki-surface); border: 1px solid var(--liki-line);

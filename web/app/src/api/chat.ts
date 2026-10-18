@@ -41,6 +41,8 @@ export interface ChatMessage {
   /** 仅本地流式期间附加的推理内容（thinking-delta），服务端不回存 */
   thinking?: string
   error?: string
+  /** 仅前端本地标记：用户主动停止生成，保留已流出的部分内容 */
+  stopped?: boolean
 }
 
 export function fetchChatSessions(): Promise<ChatSession[]> {

@@ -10,10 +10,13 @@
     >
       <template #header>
         <h2 class="app-card__title">
-          {{ $t('services.huangli.pageTitle') }}
+          {{ $t('services.huangli.formTitle') }}
         </h2>
       </template>
       <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
         label-position="top"
         @submit.prevent="calc"
       >
@@ -32,7 +35,10 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item :label="$t('services.huangli.startDate')">
+          <el-form-item
+            prop="startDate"
+            :label="$t('services.huangli.startDate')"
+          >
             <el-date-picker
               v-model="startDate"
               type="date"
@@ -41,7 +47,10 @@
               class="w-full"
             />
           </el-form-item>
-          <el-form-item :label="$t('services.huangli.endDate')">
+          <el-form-item
+            prop="endDate"
+            :label="$t('services.huangli.endDate')"
+          >
             <el-date-picker
               v-model="endDate"
               type="date"
@@ -55,9 +64,8 @@
           type="primary"
           native-type="submit"
           :loading="loading"
-          :disabled="!event || !startDate || !endDate"
         >
-          {{ $t('services.huangli.calculate') }}
+          {{ $t('services.huangli.cta') }}
         </el-button>
         <el-button
           v-if="result?.length"
@@ -83,6 +91,12 @@
           class="range-info"
         >
           {{ $t('services.huangli.range', { start: rangeInfo.start, end: rangeInfo.end, days: rangeInfo.days }) }}
+        </div>
+        <div
+          v-if="recommended.length"
+          class="sec-title"
+        >
+          {{ $t('services.huangli.recommended') }}
         </div>
         <div
           v-if="recommended.length"
@@ -160,7 +174,6 @@
         :description="$t('services.huangli.consultationBody')"
         :locked-description="$t('services.huangli.lockedBody')"
         :purchased="entitlements.purchased && profiles.list.length > 0"
-        :action-label="$t('services.huangli.consultationTitle')"
         :locked-action-label="profiles.list.length ? $t('commerce.activateNow') : $t('profiles.create')"
         :to="profiles.list.length ? '/chat' : '/birth-profiles/new'"
         @action="startChat"
@@ -185,13 +198,13 @@
         @remove="removeToolRecord"
       />
     </el-card>
-
   </ServicePageShell>
 </template>
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, toRef, watch } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineHuangliDays, type HuangliDay } from '@/api/engine'
@@ -218,12 +231,37 @@ const {
 } = useToolRecords('huangli')
 void loadRecords()
 
-const event = ref('wedding')
-const startDate = ref('')
-const endDate = ref('')
+// 表单模型保持稳定对象，v-model 写入同一引用，change 当拍校验才能读到新值。
+const form = reactive({ event: 'wedding', startDate: '', endDate: '' })
+const event = toRef(form, 'event')
+const startDate = toRef(form, 'startDate')
+const endDate = toRef(form, 'endDate')
 const result = ref<HuangliDay[] | null>(null)
 const loading = ref(false)
 const error = ref('')
+
+const formRef = ref<FormInstance>()
+const spanDays = computed(() => {
+  if (!startDate.value || !endDate.value) return 0
+  return Math.round((new Date(endDate.value).getTime() - new Date(startDate.value).getTime()) / 86400000) + 1
+})
+function validateRange(_rule: unknown, value: string, callback: (error?: Error) => void) {
+  if (!value || !startDate.value) return callback()
+  if (startDate.value > value) return callback(new Error(t('services.huangli.endBeforeStart')))
+  if (spanDays.value > 30) return callback(new Error(t('services.huangli.rangeTooLong', { days: spanDays.value })))
+  callback()
+}
+const rules = computed<FormRules>(() => ({
+  startDate: [{ required: true, message: t('profiles.form.selectDate'), trigger: 'change' }],
+  endDate: [
+    { required: true, message: t('profiles.form.selectDate'), trigger: 'change' },
+    { validator: validateRange, trigger: 'change' },
+  ],
+}))
+// 起始日期变化后，已填写的结束日期需要重新校验范围。
+watch(startDate, () => {
+  if (endDate.value) void formRef.value?.validateField('endDate').catch(() => {})
+})
 
 const days = computed(() => result.value ?? [])
 const recommended = computed(() => days.value.filter(d => d.suitability === 'recommended'))
@@ -241,21 +279,13 @@ function eventLabel(key: string): string {
 
 // 引擎按 start_date + count 连续取数（count ≤ 30），结束日期只用于算跨度。
 async function calc() {
-  if (!event.value || !startDate.value || !endDate.value) return
-  if (startDate.value > endDate.value) {
-    error.value = t('services.huangli.endBeforeStart')
-    return
-  }
-  const spanDays = Math.round((new Date(endDate.value).getTime() - new Date(startDate.value).getTime()) / 86400000) + 1
-  if (spanDays > 30) {
-    error.value = t('services.huangli.rangeTooLong', { days: spanDays })
-    return
-  }
+  const valid = await formRef.value?.validate().then(() => true).catch(() => false)
+  if (!valid) return
   loading.value = true
   error.value = ''
   result.value = null
   try {
-    result.value = await engineHuangliDays(event.value, startDate.value, spanDays)
+    result.value = await engineHuangliDays(event.value, startDate.value, spanDays.value)
   } catch (err) {
     error.value = toUserMessage(err, t('services.huangli.failed'))
   } finally {
@@ -282,19 +312,20 @@ function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
   chat.pendingIntent = t('services.huangli.intent', { event: eventLabel(event.value) })
+  // 择日属占卜域，复用 divination 专家部署。
   void openServiceChat(profile.id, 'divination', message => { error.value = message })
 }
 
 </script>
 
 <style scoped>
-.range-info { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: 12px; }
-.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-.days { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.range-info { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: var(--space-3); font-variant-numeric: tabular-nums; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); }
+.days { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--space-2); }
 .day { border: 1px solid var(--liki-line); border-radius: var(--radius-md); padding: 10px; text-align: center; }
 .day.good { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
 .day.possible { border-color: var(--liki-line); background: var(--liki-surface); }
-.day.bad { border-color: var(--el-color-danger-light-7); background: var(--el-color-danger-light-9); }
-.d-date { font-weight: 700; }
-.d-sub { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 4px; }
+.day.bad { border-color: var(--color-error-border); background: var(--color-danger-surface); }
+.d-date { font-weight: 700; font-variant-numeric: tabular-nums; }
+.d-sub { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: var(--space-1); }
 </style>

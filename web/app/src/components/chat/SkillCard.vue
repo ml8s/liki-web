@@ -35,6 +35,14 @@
       {{ actionLabel || $t('chat.action.resolve') }}
     </el-button>
     <el-button
+      v-else-if="!enabled && actionScrollTo"
+      type="primary"
+      plain
+      @click="$emit('anchor', actionScrollTo)"
+    >
+      {{ actionLabel || $t('chat.action.resolve') }}
+    </el-button>
+    <el-button
       type="primary"
       :disabled="!enabled || starting"
       :loading="starting"
@@ -55,9 +63,10 @@ defineProps<{
   statusLabel?: string
   actionLabel?: string
   actionTo?: string
+  actionScrollTo?: string
 }>()
 
-defineEmits<{ start: [] }>()
+defineEmits<{ start: []; anchor: [selector: string] }>()
 </script>
 
 <style scoped>

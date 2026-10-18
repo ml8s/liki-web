@@ -20,7 +20,7 @@ const { locale } = Astro.params;
     <h1 class="landing-h1">{t(locale, 'partners.hero.title')}</h1>
     <p class="landing-sub">{t(locale, 'partners.hero.subtitle')}</p>
     <div class="landing-actions">
-      <a href="/app/partners" class="btn-purple">{t(locale, 'partners.cta')}</a>
+      <a href={`/app/partners?locale=${locale}`} class="btn-purple">{t(locale, 'partners.cta')}</a>
     </div>
   </section>
 
@@ -38,11 +38,11 @@ const { locale } = Astro.params;
     </div>
   </section>
 
-  <section class="landing-services">
+  <section class="landing-services landing-section--start">
     <h2>{t(locale, 'partners.rules.title')}</h2>
     <p>{t(locale, 'partners.rules.body')}</p>
     <div class="landing-actions">
-      <a href="/app/partners" class="btn-purple">{t(locale, 'partners.cta')}</a>
+      <a href={`/app/partners?locale=${locale}`} class="btn-purple">{t(locale, 'partners.cta')}</a>
     </div>
   </section>
 </BaseLayout>

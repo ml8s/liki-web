@@ -52,12 +52,22 @@
         </el-button>
       </div>
 
-      <ChatComposer
-        v-model="draft"
-        :sending="chat.sending"
-        @submit="submit"
-        @stop="chat.stopGeneration()"
-      />
+      <div class="composer-area">
+        <button
+          v-if="!nearBottom"
+          type="button"
+          class="jump-latest"
+          @click="jumpToLatest"
+        >
+          {{ $t('chat.jumpToLatest') }}
+        </button>
+        <ChatComposer
+          v-model="draft"
+          :sending="chat.sending"
+          @submit="submit"
+          @stop="chat.stopGeneration()"
+        />
+      </div>
     </div>
   </section>
 </template>
@@ -137,15 +147,33 @@ async function submit() {
   await scrollToEnd()
 }
 
+// 错误有两个来源：发送失败（草稿已恢复，重发草稿）与会话加载失败（草稿为空，重载会话）。
 function retry() {
+  if (chat.sending) return
   const message = draft.value.trim()
-  if (!message || chat.sending) return
-  draft.value = ''
-  void chat.send(message)
+  if (message) {
+    draft.value = ''
+    void chat.send(message)
+    return
+  }
+  void reloadSession()
+}
+
+async function reloadSession() {
+  if (!sessionId.value) return
+  await chat.openSession(sessionId.value)
+  nearBottom.value = true
+  await scrollToEnd()
+}
+
+function jumpToLatest() {
+  nearBottom.value = true
+  void scrollToEnd()
 }
 
 watch(sessionId, async id => {
   if (id) {
+    nearBottom.value = true
     try {
       await chat.openSession(id)
       // 服务入口：会话打开后自动发出首条意图（内存态，刷新即失不重发）。
@@ -162,7 +190,14 @@ watch(sessionId, async id => {
   }
 }, { immediate: true })
 
-watch(() => chat.messages.length, () => scrollToEnd())
+// 流式期间消息条数不变、只有最后一条的内容在增长：跟踪长度变化才能跟随滚动。
+watch(
+  () => {
+    const last = chat.messages[chat.messages.length - 1]
+    return last ? `${chat.messages.length}:${last.content?.length ?? 0}:${last.thinking?.length ?? 0}` : ''
+  },
+  () => scrollToEnd(),
+)
 
 function onGlobalKeydown(event: KeyboardEvent) {
   // Esc 停止生成（借命名 chat 实践）。
@@ -228,8 +263,28 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.thread { flex: 1; overflow: auto; padding-right: 8px; }
+.thread { flex: 1; overflow: auto; padding-right: 8px; scrollbar-gutter: stable; }
 .composer-alert { margin: 12px 0 0; }
 .error-row { display: flex; align-items: flex-start; gap: 10px; }
 .error-row .el-button { margin-top: 12px; }
+.composer-area { position: relative; }
+.jump-latest {
+  position: absolute;
+  top: -46px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid var(--liki-line);
+  border-radius: var(--radius-full);
+  background: var(--liki-surface);
+  color: var(--liki-text-2);
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+}
+.jump-latest:hover { color: var(--liki-primary); border-color: var(--liki-primary-border); }
 </style>

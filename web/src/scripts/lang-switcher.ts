@@ -1,17 +1,21 @@
-// Locale dropdown for statically generated marketing pages.
-const toggle = document.querySelector<HTMLButtonElement>('#lang-toggle');
+// Locale dropdown for statically generated marketing pages. The switcher is a
+// native <details> element and its menu is a list of real links, so switching
+// works without JS; this script only mirrors the disclosure state for assistive
+// tech, closes on outside click / Escape, and remembers the choice in a cookie.
+const details = document.querySelector<HTMLDetailsElement>('#lang-switcher');
+const toggle = document.querySelector<HTMLElement>('#lang-toggle');
 const dropdown = document.querySelector<HTMLElement>('#lang-dropdown');
-const switcher = document.querySelector<HTMLElement>('#lang-switcher');
 
-if (toggle && dropdown && switcher) {
-  const open = () => {
-    dropdown.classList.remove('hidden');
-    toggle.setAttribute('aria-expanded', 'true');
+if (details && toggle && dropdown) {
+  const sync = () => {
+    toggle.setAttribute('aria-expanded', details.open ? 'true' : 'false');
   };
+  sync();
+  details.addEventListener('toggle', sync);
 
   const close = () => {
-    dropdown.classList.add('hidden');
-    toggle.setAttribute('aria-expanded', 'false');
+    details.open = false;
+    toggle.focus();
   };
 
   const rememberLang = (locale: string) => {
@@ -19,40 +23,24 @@ if (toggle && dropdown && switcher) {
     document.cookie = `liki_locale=${encodeURIComponent(locale)}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
   };
 
-  toggle.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (dropdown.classList.contains('hidden')) open();
-    else close();
-  });
-
-  dropdown.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      event.preventDefault();
-      const locale = button.dataset.lang;
-      if (!locale) return;
-
-      rememberLang(locale);
-      const path = location.pathname.replace(/^\/(zh-Hans|zh-Hant|en)\/?/, '/');
-      location.href = `/${locale}${path === '/' ? '/' : path}`;
+  dropdown.querySelectorAll<HTMLAnchorElement>('a[data-lang]').forEach((link) => {
+    link.addEventListener('click', () => {
+      const locale = link.dataset.lang;
+      if (locale) rememberLang(locale);
     });
 
-    button.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
-        close();
-        button.focus();
-      }
+    link.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') close();
     });
   });
 
   document.addEventListener('click', (event) => {
-    if (!switcher.contains(event.target as Node)) close();
+    if (details.open && !details.contains(event.target as Node)) {
+      details.open = false;
+    }
   });
 
   toggle.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      close();
-      toggle.focus();
-    }
+    if (event.key === 'Escape' && details.open) close();
   });
 }

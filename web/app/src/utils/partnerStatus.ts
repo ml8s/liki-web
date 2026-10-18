@@ -1,11 +1,28 @@
 import { i18n } from '@/i18n'
-import type { CommissionStatus, PayoutStatus } from '@/api/partner'
+import type { CommissionStatus, PartnerProgramState, PartnerRole, PayoutStatus } from '@/api/partner'
 
-export type PartnerStatusTagType = 'success' | 'danger' | 'warning'
+export type PartnerStatusTagType = 'success' | 'danger' | 'warning' | 'info'
 
 export interface PartnerStatusMeta {
   label: string
   tag: PartnerStatusTagType
+}
+
+/** 角色名统一走 i18n，避免页面内硬编码 KOL / Scout。 */
+export function partnerRoleName(role: PartnerRole): string {
+  return i18n.global.t(`partner.${role}.roleName`)
+}
+
+/** 合作角色状态（含申请进度与角色冲突）统一映射，供 Partner 各页共用。 */
+export function partnerRoleState(state: PartnerProgramState, otherRoleAssigned = false): PartnerStatusMeta {
+  const t = i18n.global.t
+  if (state.status === 'active') return { label: t('partner.state.active'), tag: 'success' }
+  if (state.status === 'retired') return { label: t('partner.state.retired'), tag: 'info' }
+  if (state.status === 'frozen') return { label: t('partner.state.frozen'), tag: 'danger' }
+  if (state.application?.status === 'pending') return { label: t('partner.state.pending'), tag: 'warning' }
+  if (state.application?.status === 'rejected') return { label: t('partner.state.reapply'), tag: 'warning' }
+  if (otherRoleAssigned) return { label: t('partner.state.conflict'), tag: 'info' }
+  return { label: t('partner.state.available'), tag: 'info' }
 }
 
 export function partnerCommissionStatus(status: CommissionStatus): PartnerStatusMeta {

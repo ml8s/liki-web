@@ -128,7 +128,7 @@ function emitAction(key: string, session: ChatSession) {
 .session-card:hover {
   border-color: var(--liki-primary-border);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px var(--liki-shadow-strong);
+  box-shadow: var(--shadow-card-hover);
 }
 .session-card-main { display: block; text-decoration: none; color: inherit; }
 .sc-actions { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--liki-line); justify-content: flex-start; }

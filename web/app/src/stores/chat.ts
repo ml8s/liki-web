@@ -202,19 +202,23 @@ export const useChatStore = defineStore('chat', {
         this.phase = ''
       } catch (error) {
         const aborted = (error as { name?: string } | null)?.name === 'AbortError'
-        if (!aborted) this.error = errorMessage(error)
         this.phase = ''
         streamController = null
         if (textTimer) { clearTimeout(textTimer); textTimer = null }
         assistant.content = pendingText
         assistant.thinking = pendingThinking
+        if (aborted) {
+          // 停止生成：保留本地已流出内容并标记「已停止」；部分答案不得静默消失。
+          assistant.stopped = true
+          return
+        }
+        this.error = errorMessage(error)
         try {
           this.messages = await (await chatApiLazy()).fetchChatMessages(session.id)
         } catch {
           // 保留本地消息，标记为失败状态
           assistant.error = this.error || t('chat.sendFailed')
         }
-        if (aborted) return
       } finally {
         streamController = null
         this.sending = false

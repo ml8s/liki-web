@@ -16,7 +16,7 @@
 
     <el-result
       v-if="error && !profiles.list.length"
-      icon="warning"
+      icon="error"
       :title="$t('profiles.detail.loadFailed')"
       :sub-title="error"
     >

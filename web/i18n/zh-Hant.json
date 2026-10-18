@@ -1,5 +1,6 @@
 {
   "a11y.skipLink": "跳到主要内容",
+  "a11y.langSwitcher": "切換語言",
   "about.heading": "關於我們",
   "about.meta.ogDesc": "Liki 是命理 Skill，按命理師的專業標準構建——八字紫微、起名、問卦、風水。",
   "about.meta.ogTitle": "關於我們",
@@ -68,6 +69,7 @@
   "skills.install.method1": "方式一：從 GitHub 安裝",
   "skills.install.method2": "方式二：從官網安裝",
   "naming.a11y.examples": "起名示例",
+  "naming.examples.more": "展開更多取名示例",
   "naming.meta.ogDesc": "用 Liki Chat 結合八字喜用與音形義，完成專業起名諮詢。",
   "naming.meta.ogTitle": "AI 起名 · liki.hk",
   "naming.meta.twitterDesc": "用 Liki Chat 獲得專業 AI 起名建議。",
@@ -631,6 +633,7 @@
   "terms.s13.title": "KOL 與 Scout 合作角色",
   "terms.s13.body": "KOL 與 Scout 是獨立合作夥伴角色，不是會員等級，也不是多層次傳銷。申請無需購買或付費，並需 Liki 審核；一個帳號通常只擔任一個角色。合作夥伴是獨立主體，不是 Liki 的員工、代理人或合夥人。佣金僅來自實際完成且未退款的一次性購買和訂閱續費，並可能因退款、詐欺、不合規推廣或價格錯誤而被調整或追回。僅招募、無銷售的下線或付費加入機制不會產生佣金。合作夥伴必須遵守法律和平台規則，不得刷量騷擾、誇大或保證命理結果、冒用資歷、誤導用戶或濫用個人資料。提現需達到最低餘額並提供可核驗收款帳戶。Liki 可履行稅務、反詐欺與合規義務，暫停或終止違規角色，並追回不當報酬。",
   "skills.install.copy": "複製安裝命令",
+  "skills.install.copied": "已複製",
   "skills.schema.contactType": "客戶支援",
   "partners.hero.title": "讓更多人遇見 Liki",
   "partners.hero.subtitle": "KOL 與 Scout 兩種合作角色，佣金基於真實成交，平台按內容與渠道審核。",

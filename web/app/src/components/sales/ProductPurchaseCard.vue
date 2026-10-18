@@ -31,6 +31,12 @@
       class="plans"
       :aria-busy="buying ? 'true' : 'false'"
     >
+      <p
+        v-if="!subscriptionOption && !oneTimeOption"
+        class="plans-empty"
+      >
+        {{ $t('commerce.noPurchaseOptions') }}
+      </p>
       <button
         v-if="subscriptionOption"
         type="button"
@@ -112,11 +118,12 @@ p { color: var(--liki-text-2); margin: 0 0 12px; }
   background: var(--liki-surface); border: 1px solid var(--liki-line); border-radius: var(--radius-lg);
   color: var(--liki-ink); font: inherit;
 }
-.plan--primary { border-color: var(--el-color-primary); box-shadow: 0 0 0 1px var(--el-color-primary) inset; }
+.plan--primary { border-color: var(--liki-primary); box-shadow: 0 0 0 1px var(--liki-primary) inset; }
 .plan:disabled { opacity: .55; cursor: not-allowed; }
 .plan__name { font-weight: 650; }
-.plan__price { font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.plan__price { font-size: var(--font-size-title-md); font-weight: 750; font-variant-numeric: tabular-nums; }
 .plan__note { color: var(--liki-text-3); font-size: var(--font-size-caption); }
+.plans-empty { margin: 0; color: var(--liki-text-3); font-size: var(--font-size-label); }
 .plans-pending { margin: 10px 0 0; color: var(--liki-text-3); font-size: var(--font-size-caption); }
 .disclaimer {
   margin: 14px 0 0;

@@ -21,5 +21,7 @@ form?.addEventListener('submit', (event) => {
     // Private browsing can reject storage; still continue to onboarding.
   }
 
-  location.href = '/app/birth-profiles/new';
+  // 与 LikiChatCta 的交接契约一致：进入 App 时携带 locale。
+  const locale = document.documentElement.lang || 'zh-Hant';
+  location.href = `/app/birth-profiles/new?locale=${encodeURIComponent(locale)}`;
 });

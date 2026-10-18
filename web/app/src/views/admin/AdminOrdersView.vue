@@ -113,7 +113,7 @@
           width="180"
         >
           <template #default="{ row }">
-            {{ formatDateTime(row.created_at) }}
+            {{ formatAdminDateTime(row.created_at) || '-' }}
           </template>
         </el-table-column>
         <el-table-column
@@ -121,7 +121,7 @@
           width="180"
         >
           <template #default="{ row }">
-            {{ formatDateTime(row.paid_at) }}
+            {{ formatAdminDateTime(row.paid_at) || '-' }}
           </template>
         </el-table-column>
       </el-table>
@@ -143,8 +143,8 @@
             { key: 'amount', label: '金额', value: row.amount_minor, kind: 'money', currency: row.currency },
             { key: 'status', label: '状态', value: row.status, kind: 'status' },
             { key: 'intent', label: '支付凭证', value: row.payment_intent_id, kind: 'mono' },
-            { key: 'created', label: '创建时间', value: formatDateTime(row.created_at) },
-            { key: 'paid', label: '支付时间', value: formatDateTime(row.paid_at) },
+            { key: 'created', label: '创建时间', value: formatAdminDateTime(row.created_at) },
+            { key: 'paid', label: '支付时间', value: formatAdminDateTime(row.paid_at) },
           ]"
         />
       </div>
@@ -175,8 +175,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
-import { adminStatusOptions, adminStatusValues, formatAdminMoney } from '@/utils/adminFormat'
-import { formatDateTime } from '@/utils/format'
+import { adminStatusOptions, adminStatusValues, formatAdminDateTime, formatAdminMoney } from '@/utils/adminFormat'
 
 const isMobile = useAdminViewport()
 

@@ -34,10 +34,11 @@ defineProps<{
   margin: 0;
 }
 
+/* 外卡圆角 --radius-card(16) - 卡内边距 --space-5(20) 为负，取小一级的同心圆角。 */
 .partner-stat {
   padding: var(--space-4);
   border: 1px solid var(--liki-line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-control);
   background: var(--liki-paper);
 }
 

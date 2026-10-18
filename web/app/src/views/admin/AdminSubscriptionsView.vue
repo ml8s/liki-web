@@ -105,7 +105,7 @@
           width="180"
         >
           <template #default="{ row }">
-            {{ formatDateTime(row.current_period_end) }}
+            {{ formatAdminDateTime(row.current_period_end) || '-' }}
           </template>
         </el-table-column>
         <el-table-column
@@ -113,7 +113,7 @@
           width="180"
         >
           <template #default="{ row }">
-            {{ formatDateTime(row.next_billing_at) }}
+            {{ formatAdminDateTime(row.next_billing_at) || '-' }}
           </template>
         </el-table-column>
         <el-table-column
@@ -129,7 +129,7 @@
           width="180"
         >
           <template #default="{ row }">
-            {{ formatDateTime(row.created_at) }}
+            {{ formatAdminDateTime(row.created_at) || '-' }}
           </template>
         </el-table-column>
       </el-table>
@@ -150,10 +150,10 @@
             { key: 'product', label: '产品', value: row.product_id },
             { key: 'status', label: '状态', value: row.status, kind: 'status' },
             { key: 'provider', label: '服务商订阅号', value: row.provider_subscription_id, kind: 'mono' },
-            { key: 'periodEnd', label: '当前周期结束', value: formatDateTime(row.current_period_end) },
-            { key: 'nextBilling', label: '下次扣费', value: formatDateTime(row.next_billing_at) },
+            { key: 'periodEnd', label: '当前周期结束', value: formatAdminDateTime(row.current_period_end) },
+            { key: 'nextBilling', label: '下次扣费', value: formatAdminDateTime(row.next_billing_at) },
             { key: 'cancelAtPeriodEnd', label: '期末取消', value: row.cancel_at_period_end ? '是' : '否' },
-            { key: 'created', label: '创建时间', value: formatDateTime(row.created_at) },
+            { key: 'created', label: '创建时间', value: formatAdminDateTime(row.created_at) },
           ]"
         />
       </div>
@@ -184,8 +184,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminPagedResource, useAdminViewport } from '@/composables/useAdminResource'
 import { useAdminQueryState } from '@/composables/useAdminQueryState'
 import { queryChoice, queryText } from '@/utils/query'
-import { adminStatusOptions, adminStatusValues } from '@/utils/adminFormat'
-import { formatDateTime } from '@/utils/format'
+import { adminStatusOptions, adminStatusValues, formatAdminDateTime } from '@/utils/adminFormat'
 
 const isMobile = useAdminViewport()
 

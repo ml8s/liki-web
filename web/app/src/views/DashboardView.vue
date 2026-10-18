@@ -14,6 +14,23 @@
       :closable="false"
       show-icon
     />
+    <div
+      v-if="entitlements.error"
+      class="entitlements-error"
+    >
+      <el-alert
+        :title="entitlements.error"
+        type="error"
+        :closable="false"
+        show-icon
+      />
+      <el-button
+        size="small"
+        @click="entitlements.load(true)"
+      >
+        {{ $t('common.retry') }}
+      </el-button>
+    </div>
 
     <el-skeleton
       v-if="loading"
@@ -175,36 +192,37 @@
             </span>
           </router-link>
         </div>
-
-        <div class="section-head scenarios-head">
-          <h2>{{ $t('dashboard.moreScenarios') }}</h2>
-        </div>
-        <div class="services">
-          <div
-            v-for="service in chatServices"
-            :key="service.key"
-            :class="['service-card', service.key === 'bazi' ? 'feature' : '']"
-          >
-            <span class="sv-glyph font-serif">{{ $t(service.labelKey).slice(0, 1) }}</span>
-            <div class="sv-copy">
-              <div class="sv-name font-serif">
-                {{ $t(service.labelKey) }}
-              </div>
-              <div class="sv-desc">
-                {{ $t(service.descKey) }}
-              </div>
-            </div>
-            <el-button
-              type="primary"
-              size="small"
-              plain
-              @click="startService(service.key)"
-            >
-              {{ $t(service.ctaKey) }}
-            </el-button>
-          </div>
-        </div>
       </template>
+
+      <!-- 场景/服务入口与档案状态解耦：无档案用户同样可见，点击走 startService 的建档流程 -->
+      <div class="section-head scenarios-head">
+        <h2>{{ $t('dashboard.moreScenarios') }}</h2>
+      </div>
+      <div class="services">
+        <div
+          v-for="service in chatServices"
+          :key="service.key"
+          :class="['service-card', service.key === 'bazi' ? 'feature' : '']"
+        >
+          <span class="sv-glyph font-serif">{{ $t(service.labelKey).slice(0, 1) }}</span>
+          <div class="sv-copy">
+            <div class="sv-name font-serif">
+              {{ $t(service.labelKey) }}
+            </div>
+            <div class="sv-desc">
+              {{ $t(service.descKey) }}
+            </div>
+          </div>
+          <el-button
+            type="primary"
+            size="small"
+            plain
+            @click="startService(service.key)"
+          >
+            {{ $t(service.ctaKey) }}
+          </el-button>
+        </div>
+      </div>
     </template>
   </section>
 </template>
@@ -332,11 +350,22 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* entitlements 加载失败为非阻塞错误：有数据仍可用，仅提示并可重试刷新面板 */
+.entitlements-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.entitlements-error :deep(.el-alert) {
+  flex: 1;
+}
 .hero {
+  --hero-pad-x: 30px;
   position: relative;
   overflow: hidden;
   margin-bottom: 24px;
-  padding: 34px 30px 30px;
+  padding: 34px var(--hero-pad-x) 30px;
   border: 1px solid var(--liki-line);
   border-radius: var(--radius-card);
   color: var(--liki-ink);
@@ -348,8 +377,8 @@ onMounted(async () => {
 .hero-accent {
   position: absolute;
   top: 0;
-  left: 30px;
-  right: 30px;
+  left: var(--hero-pad-x);
+  right: var(--hero-pad-x);
   height: 2px;
   background: linear-gradient(90deg, var(--liki-primary), var(--liki-primary-alpha-12));
 }
@@ -362,7 +391,7 @@ onMounted(async () => {
 }
 .hero-title {
   margin: 0 0 8px;
-  font-size: var(--font-size-display);
+  font-size: clamp(var(--font-size-display-sm), 4vw, var(--font-size-display));
   font-weight: 650;
   line-height: 1.15;
   letter-spacing: -0.035em;
@@ -396,7 +425,7 @@ onMounted(async () => {
 .primary-copy h2 {
   margin: 0 0 8px;
   font-family: var(--liki-font-serif);
-  font-size: 22px;
+  font-size: var(--font-size-title-md);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -404,6 +433,7 @@ onMounted(async () => {
   margin: 0 0 4px;
   color: var(--liki-text-2);
   font-size: var(--font-size-body);
+  font-variant-numeric: tabular-nums;
 }
 .primary-note {
   color: var(--liki-text-3) !important;
@@ -437,7 +467,7 @@ onMounted(async () => {
 .service-card:hover {
   transform: translateY(-2px);
   border-color: var(--liki-primary-border);
-  box-shadow: 0 6px 18px var(--liki-shadow-strong);
+  box-shadow: var(--shadow-card-hover);
 }
 .service-card.feature {
   grid-column: span 2;
@@ -585,6 +615,7 @@ onMounted(async () => {
   color: var(--liki-text-2);
   font-size: var(--font-size-caption);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 768px) {
@@ -619,10 +650,8 @@ onMounted(async () => {
     grid-column: span 1;
   }
   .hero {
-    padding: 26px 22px 24px;
-  }
-  .hero-title {
-    font-size: var(--font-size-display-sm);
+    --hero-pad-x: 22px;
+    padding: 26px var(--hero-pad-x) 24px;
   }
 }
 </style>

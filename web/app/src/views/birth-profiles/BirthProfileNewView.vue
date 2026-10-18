@@ -3,6 +3,7 @@
     <el-page-header
       class="new-profile-header"
       @back="router.push('/birth-profiles')"
+      @keydown="onPageHeaderKeydown"
     >
       <template #content>
         <div class="page-heading">
@@ -11,20 +12,25 @@
         </div>
       </template>
     </el-page-header>
-    <el-alert
-      v-if="draftLoaded"
-      :title="$t('profiles.new.draftLoaded')"
-      type="info"
-      :closable="false"
-      show-icon
-    />
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      :closable="false"
-      show-icon
-    />
+    <div
+      v-if="draftLoaded || error"
+      class="alerts"
+    >
+      <el-alert
+        v-if="draftLoaded"
+        :title="$t('profiles.new.draftLoaded')"
+        type="info"
+        :closable="false"
+        show-icon
+      />
+      <el-alert
+        v-if="error"
+        :title="error"
+        type="error"
+        :closable="false"
+        show-icon
+      />
+    </div>
     <BirthForm
       ref="birthFormRef"
       :submitting="submitting"
@@ -60,6 +66,14 @@ const birthFormRef = ref<InstanceType<typeof BirthForm> | null>(null)
 const draftKey = computed(() => auth.user?.id ? `birth-profile:new:${auth.user.id}` : undefined)
 
 useUnloadGuard(isDirty)
+
+// el-page-header 的返回区是 div[role=button]（EP 只绑了 click）：补齐键盘 Enter/Space 激活。
+function onPageHeaderKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  if (!(event.target as HTMLElement | null)?.closest('.el-page-header__back')) return
+  event.preventDefault()
+  void router.push('/birth-profiles')
+}
 
 onBeforeRouteLeave(async () => {
   if (!isDirty.value) return true
@@ -123,6 +137,7 @@ async function submit(input: BirthProfileInput) {
 <style scoped>
 .new-profile { max-width: 640px; }
 .new-profile-header { margin-bottom: 20px; }
+.alerts { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
 .page-heading h1 {
   margin: 0;
   font-size: var(--font-size-title-lg);

@@ -13,20 +13,29 @@
           {{ $t('services.fengshui.selectBirthProfile') }}
         </h2>
       </template>
-      <el-select
-        v-model="profileId"
-        :aria-label="$t('chat.selectBirthProfile')"
-        :placeholder="$t('chat.selectBirthProfile')"
-        class="w-full"
-        @change="profileId && loadPreview()"
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-position="top"
       >
-        <el-option
-          v-for="p in profiles.list"
-          :key="p.id"
-          :value="p.id"
-          :label="p.nickname"
-        />
-      </el-select>
+        <el-form-item prop="profileId">
+          <el-select
+            v-model="profileId"
+            :aria-label="$t('chat.selectBirthProfile')"
+            :placeholder="$t('chat.selectBirthProfile')"
+            class="w-full"
+            @change="onProfileChange"
+          >
+            <el-option
+              v-for="p in profiles.list"
+              :key="p.id"
+              :value="p.id"
+              :label="p.nickname"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
       <p
         v-if="!profiles.list.length"
         class="hint"
@@ -39,15 +48,19 @@
 
     <el-card
       v-if="loading"
-      class="app-card"
+      class="app-card app-card--highlight"
       shadow="never"
+      aria-busy="true"
     >
       <template #header>
         <h2 class="app-card__title">
-          {{ $t('services.fengshui.lifeGua') }}
+          {{ $t('services.fengshui.lifeGuaDirections') }}
         </h2>
       </template>
-      {{ $t('profiles.chart.compute') }}…
+      <el-skeleton
+        :rows="4"
+        animated
+      />
     </el-card>
 
     <template v-if="bazhai">
@@ -80,7 +93,6 @@
         :description="$t('services.fengshui.consultationBody')"
         :locked-description="$t('services.fengshui.lockedBody')"
         :purchased="entitlements.purchased"
-        :action-label="$t('services.fengshui.consultationTitle')"
         @action="startChat"
       />
     </template>
@@ -103,13 +115,13 @@
         @remove="removeToolRecord"
       />
     </el-card>
-
   </ServicePageShell>
 </template>
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, toRef } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineBazhaiChart, type BazhaiChart } from '@/api/engine'
@@ -133,12 +145,42 @@ const {
 } = useToolRecords('bazhai')
 void loadRecords()
 
-const profileId = ref('')
+// 表单模型保持稳定对象，v-model 写入同一引用，change 当拍校验才能读到新值。
+const form = reactive({ profileId: '' })
+const profileId = toRef(form, 'profileId')
 const bazhai = ref<BazhaiChart | null>(null)
 const loading = ref(false)
 const error = ref('')
 
 const profile = computed(() => profiles.list.find(p => p.id === profileId.value) ?? null)
+
+const formRef = ref<FormInstance>()
+// 档案数据问题（农历档案/出生年份越界）属字段级错误，显示在档案选择旁。
+const rules = computed<FormRules>(() => ({
+  profileId: [{
+    validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+      const p = profiles.list.find(item => item.id === value)
+      if (!value || !p) return callback(new Error(t('chat.selectBirthProfileFirst')))
+      if (p.calendar === 'lunar') return callback(new Error(t('profiles.chart.lunarHint')))
+      const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
+      if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2100) {
+        return callback(new Error(t('services.fengshui.invalidBirthYear')))
+      }
+      callback()
+    },
+    trigger: 'change',
+  }],
+}))
+
+async function onProfileChange() {
+  const valid = await formRef.value?.validate().then(() => true).catch(() => false)
+  if (!valid) {
+    bazhai.value = null
+    error.value = ''
+    return
+  }
+  void loadPreview()
+}
 
 async function loadPreview() {
   const p = profile.value
@@ -147,9 +189,7 @@ async function loadPreview() {
   error.value = ''
   bazhai.value = null
   try {
-    if (p.calendar === 'lunar') throw new Error(t('profiles.chart.lunarHint'))
     const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
-    if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2100) throw new Error(t('services.fengshui.invalidBirthYear'))
     bazhai.value = await engineBazhaiChart(birthYear, p.gender)
   } catch (err) {
     error.value = toUserMessage(err, t('services.fengshui.failed'))
@@ -166,7 +206,7 @@ function saveRecord() {
 
 function openRecord(record: ToolRecord) {
   profileId.value = String(record.input.profile_id ?? '')
-  void loadPreview()
+  void onProfileChange()
 }
 
 function startChat() {

@@ -106,6 +106,14 @@
       >
         {{ $t('account.erase.title') }}
       </el-button>
+      <el-alert
+        v-if="eraseError"
+        :title="eraseError"
+        type="error"
+        :closable="false"
+        show-icon
+        class="erase-error"
+      />
     </el-card>
 
     <h2 class="section-title">
@@ -114,7 +122,7 @@
 
     <el-result
       v-if="error && !sessions.length"
-      icon="warning"
+      icon="error"
       :title="$t('account.sessions.loadFailed')"
       :sub-title="error"
     >
@@ -145,7 +153,11 @@
     <el-empty
       v-else-if="!loading && !sessions.length"
       :description="$t('account.sessions.empty')"
-    />
+    >
+      <el-button @click="load">
+        {{ $t('common.refresh') }}
+      </el-button>
+    </el-empty>
 
     <el-card
       v-else
@@ -258,6 +270,8 @@ const revoking = ref(false)
 const revokingAll = ref(false)
 const revokingId = ref('')
 const erasing = ref(false)
+// 擦除失败必须留在擦除卡片内：与「登录设备」区块的 error 分开，避免操作与报错脱节。
+const eraseError = ref('')
 
 function statusLabel(status?: string) {
   const labels: Record<string, string> = {
@@ -355,12 +369,13 @@ async function eraseAccount() {
     return
   }
   erasing.value = true
+  eraseError.value = ''
   try {
     await erasureAccount()
     await auth.logout()
     await router.push({ name: 'login' })
   } catch (err) {
-    error.value = toUserMessage(err, t('account.erase.failed'))
+    eraseError.value = toUserMessage(err, t('account.erase.failed'))
   } finally {
     erasing.value = false
   }
@@ -375,7 +390,7 @@ onMounted(load)
   align-items: center;
   gap: 8px;
   font-family: var(--liki-font-serif);
-  font-size: 17px;
+  font-size: var(--font-size-title-md);
   font-weight: 700;
   margin: 24px 0 12px;
 }
@@ -404,7 +419,9 @@ onMounted(load)
 .session-item:last-child { border-bottom: none; }
 .session-device { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .session-meta { color: var(--liki-text-2); font-size: var(--font-size-label); margin-top: 2px; }
-.legal-links { display: flex; gap: 18px; justify-content: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--liki-line); }
-.legal-links a { color: var(--liki-text-2); font-size: var(--font-size-label); text-decoration: none; padding: 6px 2px; }
+.erase-error { margin-top: var(--space-3); }
+.legal-links { display: flex; gap: var(--space-2); justify-content: center; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--liki-line); }
+/* 触达目标 ≥40px：正文 13px + 上下 padding 12px */
+.legal-links a { color: var(--liki-text-2); font-size: var(--font-size-label); text-decoration: none; padding: var(--space-3); }
 .legal-links a:hover { color: var(--liki-primary); }
 </style>

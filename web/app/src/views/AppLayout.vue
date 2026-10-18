@@ -2,6 +2,7 @@
   <div
     class="app-shell"
     :class="{ 'app-shell-bounded': viewportBound }"
+    :style="shellHeightStyle"
   >
     <a
       href="#app-main"
@@ -42,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -61,12 +62,32 @@ const pageTitle = computed(() => route.meta.titleKey ? t(String(route.meta.title
 // 只有自称独占视口的视图才把滚动收进页面内部（如会话页的消息区）。
 const viewportBound = computed(() => route.meta.viewportBound === true)
 
+// 移动端键盘开合时 visualViewport 缩小而 dvh 不变：独占视口的页面跟随可视高度，
+// 保证 composer 不被键盘遮挡（内容页依赖平台自身行为，不介入）。
+const vvHeight = ref<number | null>(null)
+const shellHeightStyle = computed(() =>
+  viewportBound.value && vvHeight.value ? { height: `${vvHeight.value}px` } : undefined,
+)
+
+function syncViewportHeight() {
+  const vv = window.visualViewport
+  vvHeight.value = vv ? Math.round(vv.height) : null
+}
+
 onMounted(async () => {
   try {
     await auth.loadMe()
   } catch {
     // 路由守卫已处理 401 重定向；网络异常不崩溃整页。
   }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncViewportHeight)
+    syncViewportHeight()
+  }
+})
+
+onBeforeUnmount(() => {
+  window.visualViewport?.removeEventListener('resize', syncViewportHeight)
 })
 
 // 路由切换后把焦点移到主内容，供键盘/读屏用户感知页面已变更。
@@ -100,7 +121,7 @@ async function logout() {
 .skip-link {
   position: absolute; left: -9999px; top: 0; z-index: var(--z-skip-link);
   background: var(--liki-primary); color: var(--liki-on-primary);
-  padding: 10px 16px; border-radius: 0 0 8px 0; text-decoration: none;
+  padding: 10px 16px; border-radius: 0 0 var(--radius-md) 0; text-decoration: none;
 }
 .skip-link:focus { left: 0; }
 
@@ -141,7 +162,8 @@ async function logout() {
 
 @media (min-width: 1024px) {
   .app-topbar { display: none; }
-  .app-main { margin-left: 240px; padding: 32px 40px 48px; max-width: 1200px; }
+  /* 240px 侧栏之后，剩余空间里居中内容列，避免超宽屏贴左。 */
+  .app-main { margin-left: max(240px, calc(50vw - 520px)); padding: 32px 40px 48px; max-width: 1200px; }
 }
 
 @media (max-width: 640px) {

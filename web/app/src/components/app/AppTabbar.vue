@@ -1,46 +1,41 @@
 <template>
   <nav class="app-tabbar">
     <router-link
-      to="/"
-      exact-active-class="on"
+      v-for="tab in tabs"
+      :key="tab.to"
+      :to="tab.to"
+      :class="{ on: tab.active }"
+      :aria-current="tab.active ? 'page' : undefined"
       @pointerenter="preloadNavigation"
       @focusin="preloadNavigation"
     >
-      <span>{{ $t('nav.workspace') }}</span>
-    </router-link>
-    <router-link
-      to="/birth-profiles"
-      active-class="on"
-      @pointerenter="preloadNavigation"
-      @focusin="preloadNavigation"
-    >
-      <span>{{ $t('nav.profiles') }}</span>
-    </router-link>
-    <router-link
-      to="/chat"
-      active-class="on"
-      @pointerenter="preloadNavigation"
-      @focusin="preloadNavigation"
-    >
-      <span>{{ $t('nav.chat') }}</span>
-    </router-link>
-    <router-link
-      to="/account"
-      active-class="on"
-      @pointerenter="preloadNavigation"
-      @focusin="preloadNavigation"
-    >
-      <span>{{ $t('nav.mine') }}</span>
+      <span>{{ tab.label }}</span>
     </router-link>
   </nav>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { createIntentPreloader } from '@/utils/routes'
 
+const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const preloadNavigation = createIntentPreloader(router, record => !String(record.name ?? '').startsWith('admin-'))
+
+// 与桌面侧栏同一目的地模型：Workspace / Profiles / Chat / Orders-Account / Partners。
+const tabs = computed(() => {
+  const path = route.path
+  return [
+    { to: '/', label: t('nav.workspace'), active: path === '/' },
+    { to: '/birth-profiles', label: t('nav.profiles'), active: path.startsWith('/birth-profiles') },
+    { to: '/chat', label: t('nav.chat'), active: path.startsWith('/chat') },
+    { to: '/account', label: t('nav.mine'), active: path.startsWith('/account') || path.startsWith('/orders') },
+    { to: '/partners', label: t('nav.partner'), active: path.startsWith('/partners') },
+  ]
+})
 </script>
 
 <style scoped>
@@ -60,7 +55,7 @@ const preloadNavigation = createIntentPreloader(router, record => !String(record
   height: 54px;
   color: var(--liki-text-2);
   text-decoration: none;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   transition: color var(--liki-dur) var(--liki-ease);
 }
 .app-tabbar a.on { color: var(--liki-primary); font-weight: 600; }

@@ -17,6 +17,7 @@
         type="error"
         show-icon
         :closable="false"
+        class="query-error"
       />
 
       <el-card
@@ -95,11 +96,11 @@
           >
             <template #default="{ row }">
               <el-select
-                :model-value="grantCapability"
+                :model-value="selectedCapability(row as AdminAccount)"
                 aria-label="待授予能力"
                 placeholder="选择能力"
                 size="small"
-                @change="(value: string) => grantCapability = value as AdminCapability"
+                @change="(value: string) => setSelectedCapability(row as AdminAccount, value)"
               >
                 <el-option
                   v-for="capability in capabilityOptions"
@@ -120,7 +121,7 @@
             </template>
           </el-table-column>
           <el-table-column
-            label="账号"
+            label="账号状态"
             width="150"
             fixed="right"
           >
@@ -174,17 +175,17 @@
               <AdminStatusTag
                 v-else-if="field.kind === 'status'"
                 domain="administrator"
-                :status="field.value"
+                :status="field.value ?? ''"
               />
               <span v-else>{{ field.value || '-' }}</span>
             </template>
             <template #actions>
               <el-select
-                :model-value="grantCapability"
+                :model-value="selectedCapability(row)"
                 aria-label="待授予能力"
                 placeholder="选择能力"
                 size="small"
-                @change="(value: string) => grantCapability = value as AdminCapability"
+                @change="(value: string) => setSelectedCapability(row, value)"
               >
                 <el-option
                   v-for="capability in capabilityOptions"
@@ -238,7 +239,8 @@ const loading = ref(false)
 const creating = ref(false)
 const error = ref('')
 const newEmail = ref('')
-const grantCapability = ref<AdminCapability | ''>('')
+// 待授权能力按行独立保存：全表共享一个下拉会把 A 行的选择带到 B 行的授权操作。
+const grantSelections = ref<Record<string, AdminCapability | ''>>({})
 
 const capabilityOptions: AdminCapability[] = [
   'entitlement.read', 'entitlement.manage', 'partner.read', 'partner.approve', 'partner.freeze',
@@ -288,16 +290,26 @@ async function requireReason(title: string) {
   return value.trim()
 }
 
+function selectedCapability(row: AdminAccount): AdminCapability | '' {
+  return grantSelections.value[row.email] ?? ''
+}
+
+function setSelectedCapability(row: AdminAccount, value: string) {
+  grantSelections.value = { ...grantSelections.value, [row.email]: value as AdminCapability | '' }
+}
+
 async function grant(row: AdminAccount) {
-  if (!grantCapability.value) {
+  const capability = selectedCapability(row)
+  if (!capability) {
     ElMessage.warning('请选择能力')
     return
   }
   const reason = await requireReason('授予权限').catch(() => null)
   if (!reason) return
   try {
-    await grantAdminCapability(row.email, grantCapability.value, reason)
+    await grantAdminCapability(row.email, capability, reason)
     ElMessage.success('权限已授予')
+    grantSelections.value = { ...grantSelections.value, [row.email]: '' }
     await load()
   } catch (requestError) {
     ElMessage.error(requestError instanceof Error ? requestError.message : '授权失败')
@@ -317,8 +329,8 @@ async function toggleStatus(row: AdminAccount) {
   }
 }
 
-// Active capability chips are deliberately clickable: revoke is privileged and
-// must always pass through the audited reason prompt.
+// Capability chips are revocable only via their close button: revoke is
+// privileged and must always pass through the audited reason prompt.
 async function revokeCapability(account: AdminAccount, capability: AdminCapability) {
   const reason = await requireReason(`撤销 ${capabilityLabel(capability)}`).catch(() => null)
   if (!reason) return
@@ -333,7 +345,7 @@ async function revokeCapability(account: AdminAccount, capability: AdminCapabili
 </script>
 
 <style scoped>
-.toolbar-card { margin-bottom: 16px; }
-.cap-tag { margin: 0 4px 4px 0; cursor: pointer; }
-.grant-btn { margin-left: 6px; }
+.toolbar-card { margin-bottom: var(--space-4); }
+.cap-tag { margin: 0 var(--space-1) var(--space-1) 0; }
+.grant-btn { margin-left: var(--space-2); }
 </style>

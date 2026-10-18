@@ -20,13 +20,13 @@
           <AdminStatusTag
             v-if="field.kind === 'status' && statusDomain"
             :domain="statusDomain"
-            :status="field.value"
+            :status="field.value ?? ''"
           />
           <span
             v-else-if="field.kind === 'money'"
             class="admin-record-strong"
           >
-            {{ formatAdminMoney(Number(field.value || 0), field.currency || '') }}
+            {{ formatMoneyField(field) }}
           </span>
           <span
             v-else
@@ -54,7 +54,7 @@ import { formatAdminMoney, type AdminStatusDomain } from '@/utils/adminFormat'
 export interface AdminRecordField {
   key: string
   label: string
-  value: string | number
+  value: string | number | null | undefined
   kind?: 'text' | 'mono' | 'status' | 'money'
   currency?: string
 }
@@ -65,4 +65,10 @@ defineProps<{
    *  field slot renders its own AdminStatusTag instead. */
   statusDomain?: AdminStatusDomain
 }>()
+
+// 空值统一占位 '-'：金额缺值是未知，不是 0.00（表格日期列同样按 '-' 呈现）。
+function formatMoneyField(field: AdminRecordField): string {
+  if (field.value === '' || field.value === null || field.value === undefined) return '-'
+  return formatAdminMoney(Number(field.value), field.currency || '')
+}
 </script>

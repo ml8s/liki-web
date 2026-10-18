@@ -51,6 +51,7 @@ export const chatServices: ChatService[] = [
   { key: 'bazi', labelKey: 'services.bazi.label', descKey: 'services.bazi.description', intentKey: 'services.bazi.intent', route: '/birth-profiles', ctaKey: 'services.bazi.cta' },
   { key: 'divination', labelKey: 'services.divination.label', descKey: 'services.divination.description', intentKey: 'services.divination.intent', route: '/divination', ctaKey: 'services.divination.cta' },
   { key: 'fengshui', labelKey: 'services.fengshui.label', descKey: 'services.fengshui.description', intentKey: 'services.fengshui.intent', route: '/fengshui', ctaKey: 'services.fengshui.cta' },
+  { key: 'naming', labelKey: 'services.expert.naming.label', descKey: 'services.expert.naming.description', intentKey: 'services.naming.intent', ctaKey: 'services.naming.cta' },
   { key: 'huangli', labelKey: 'services.huangli.label', descKey: 'services.huangli.description', intentKey: 'services.huangli.intent', route: '/huangli', ctaKey: 'services.huangli.cta' },
   { key: 'bond', labelKey: 'services.bond.label', descKey: 'services.bond.description', intentKey: 'services.bond.intent', route: '/synastry', ctaKey: 'services.bond.cta' },
 ]

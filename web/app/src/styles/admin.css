@@ -42,7 +42,7 @@
 .admin-shell .filters { margin-bottom: var(--space-4); }
 
 .admin-filter-control { width: 160px; }
-.admin-search-control { width: 280px; }
+.admin-search-control { width: 280px; max-width: 100%; }
 .admin-fluid-control { width: 100%; }
 
 .admin-shell .query-error { margin-bottom: var(--space-3); }
@@ -50,6 +50,13 @@
 .admin-shell .mono {
   color: var(--liki-text-2);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 数值/日期列跨页对位：admin 表格与记录卡整体启用等宽数字（金额、时间、ID
+ * 混排时列宽不跳动）。逐格加 class 会随页面漂移，这里作为 admin 视觉契约。 */
+.admin-shell .el-table,
+.admin-shell .admin-record-card {
   font-variant-numeric: tabular-nums;
 }
 

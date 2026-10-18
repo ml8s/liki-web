@@ -115,7 +115,7 @@ describe('chat streaming failure states', () => {
     expect(chat.sending).toBe(false)
   })
 
-  it('reloads authoritative messages after stopping generation', async () => {
+  it('keeps the partial answer and marks it stopped after stopping generation', async () => {
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
     entitlements.allowedSkills = ['liki']
@@ -140,8 +140,11 @@ describe('chat streaming failure states', () => {
     chat.stopGeneration()
     await sending
 
+    // 停止生成：保留本地已流出的部分内容并标记 stopped，不做 refetch（部分答案不得静默消失）。
     expect(chat.error).toBe('')
-    expect(chat.messages).toEqual([userMessage])
+    expect(chat.messages).toHaveLength(2)
+    expect(chat.messages[0]).toMatchObject({ role: 'user', content: '你好' })
+    expect(chat.messages[1]).toMatchObject({ role: 'assistant', content: '部分回复', stopped: true })
     expect(chat.sending).toBe(false)
   })
 })

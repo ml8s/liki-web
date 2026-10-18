@@ -30,9 +30,9 @@ const admin = useAdminStore()
 </script>
 
 <style scoped>
-.capability-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-top: 18px; }
+.capability-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
 .capability-grid p {
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--liki-text-2);
   font-size: var(--font-size-caption);
 }

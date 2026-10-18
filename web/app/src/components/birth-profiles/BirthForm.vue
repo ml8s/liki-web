@@ -135,7 +135,8 @@
           :type="form.birth_time === item.value ? 'primary' : 'default'"
           @click="form.birth_time = item.value"
         >
-          {{ $t(`profiles.form.shichen.${item.key}`) }}
+          <span class="shichen-name">{{ $t(`profiles.form.shichen.${item.key}`) }}</span>
+          <span class="shichen-range">{{ item.range }}</span>
         </el-button>
       </div>
     </el-form-item>
@@ -286,11 +287,12 @@ const rules = computed<FormRules>(() => ({
   ],
 }))
 
+// value 为时辰起点（提交值），range 仅用于展示时间区间；数字区间不参与翻译。
 const shichen = [
-  { key: 'zi', value: '23:00' }, { key: 'chou', value: '01:00' }, { key: 'yin', value: '03:00' },
-  { key: 'mao', value: '05:00' }, { key: 'chen', value: '07:00' }, { key: 'si', value: '09:00' },
-  { key: 'wu', value: '11:00' }, { key: 'wei', value: '13:00' }, { key: 'shen', value: '15:00' },
-  { key: 'you', value: '17:00' }, { key: 'xu', value: '19:00' }, { key: 'hai', value: '21:00' },
+  { key: 'zi', value: '23:00', range: '23:00–01:00' }, { key: 'chou', value: '01:00', range: '01:00–03:00' }, { key: 'yin', value: '03:00', range: '03:00–05:00' },
+  { key: 'mao', value: '05:00', range: '05:00–07:00' }, { key: 'chen', value: '07:00', range: '07:00–09:00' }, { key: 'si', value: '09:00', range: '09:00–11:00' },
+  { key: 'wu', value: '11:00', range: '11:00–13:00' }, { key: 'wei', value: '13:00', range: '13:00–15:00' }, { key: 'shen', value: '15:00', range: '15:00–17:00' },
+  { key: 'you', value: '17:00', range: '17:00–19:00' }, { key: 'xu', value: '19:00', range: '19:00–21:00' }, { key: 'hai', value: '21:00', range: '21:00–23:00' },
 ]
 
 function disabledDate(date: Date) {
@@ -355,7 +357,12 @@ async function submit() {
   const valid = await formRef.value?.validate().then(() => true).catch(() => false)
   if (!valid) {
     void nextTick(() => {
-      (document.querySelector('.el-form-item.is-error input, .el-form-item.is-error .el-radio-group') as HTMLElement | null)?.focus()
+      // .el-radio-group 容器不可聚焦：必须落到组内的原生 input（radio-button 用
+      // .el-radio-button__original-radio），否则聚焦无效、键盘用户定位不到错误。
+      const target = document.querySelector<HTMLElement>(
+        '.el-form-item.is-error .el-radio__original, .el-form-item.is-error .el-radio-button__original-radio, .el-form-item.is-error input, .el-form-item.is-error textarea',
+      )
+      target?.focus()
     })
     return
   }
@@ -400,7 +407,9 @@ async function submit() {
 }
 .date-row :deep(.el-date-editor) { flex: 1; }
 .shichen { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-.shichen .el-button { margin: 0; }
+.shichen .el-button { margin: 0; height: auto; padding: var(--space-1) 2px; line-height: 1.25; }
+.shichen :deep(.el-button > span) { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.shichen-range { font-size: var(--font-size-micro); font-weight: 400; opacity: 0.8; font-variant-numeric: tabular-nums; }
 .hint { color: var(--liki-text-2); font-size: var(--font-size-label); margin: 0; }
 .submit { width: 100%; }
 @media (max-width: 480px) { .shichen { grid-template-columns: repeat(4, 1fr); } }
