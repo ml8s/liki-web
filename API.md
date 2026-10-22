@@ -138,9 +138,9 @@ Responses use the same `birth` object and add canonical `instant`.
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/sales/products` | user | List products and purchase state |
-| POST | `/api/sales/checkouts` | user | Create order and provider checkout (`product_id` in body) |
+| POST | `/api/sales/checkouts` | user | Create order or subscription checkout (`product_id` and `billing_mode` in body); returns `201 Created` |
 
-Checkout response:
+A one-time checkout response is:
 
 ```json
 {
@@ -149,9 +149,14 @@ Checkout response:
   "provider": "xunhu",
   "status": "checkout_created",
   "checkout_url": "...",
+  "qr_code_url": "...",
   "status_token": "..."
 }
 ```
+
+`qr_code_url` is omitted when the selected provider does not return one. A
+subscription checkout instead returns `subscription_id`, `provider`, `status`,
+and `checkout_url`.
 
 The server selects currency, amount, provider, and provider SKU. A client provider value is only a hint.
 The product response carries the server-selected `display_currency` and `display_amount_minor`, and
@@ -170,6 +175,28 @@ overseas buyer sees Dodo one-time and subscription pricing.
 | POST | `/api/aipay` | public, rate limited | Redeem an Alipay A2M sandbox payment proof (`Payment-Proof` header, 402 flow); 503 when the channel is not enabled |
 
 Webhooks verify signature, amount, currency, provider, and event fingerprint. Browser returns may reconcile a provider state before the webhook arrives.
+
+Payment status is a minimal polling fact:
+
+```json
+{
+  "payment_intent_id": "...",
+  "order_id": "...",
+  "status": "paid"
+}
+```
+
+Completion status adds:
+
+```json
+{
+  "payment_intent_id": "...",
+  "payment_status": "paid",
+  "fulfillment_status": "succeeded"
+}
+```
+
+Redirect URLs are not exposed by polling; `/api/payments/return/{id}` owns the redirect decision.
 
 ## Entitlements
 
@@ -259,7 +286,22 @@ A record response is owner-scoped and exposes only:
 | POST | `/api/sales/orders/{id}/cancel` | owner | Cancel a pending order |
 | POST | `/api/sales/orders/{id}/checkout` | owner | Re-open checkout for a pending order (fresh provider session; 409 `order_expired` / `order_already_paid` / `order_refunded`) |
 
-Orders expose user-safe state, not provider secrets or internal metadata.
+Orders expose user-safe state, not provider secrets or internal metadata. Owner
+order responses omit `user_id` and `email`; authentication already proves
+ownership and account email remains in identity/account APIs.
+
+Subscription browser APIs:
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| GET | `/api/sales/subscriptions` | user | List owned subscriptions |
+| GET | `/api/sales/subscription-payments` | user | List owned subscription payments |
+| POST | `/api/sales/subscriptions/{id}/cancellation` | owner | Schedule cancellation at period end |
+| DELETE | `/api/sales/subscriptions/{id}/cancellation` | owner | Cancel the scheduled cancellation |
+
+Subscription responses omit user/contact and provider customer/checkout
+bookkeeping. They expose only buyer-visible state, period, renewal, and
+cancellation facts.
 
 ## Account
 

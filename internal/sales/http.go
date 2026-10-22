@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/httputil"
@@ -282,14 +283,14 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		var result *payment.CheckoutResult
 		result, _, err = h.runtime.StartCheckout(r.Context(), intent.ID)
 		if err == nil {
-			httputil.RespondJSON(w, http.StatusOK, map[string]any{
-				"order_id":                      order.ID,
-				payment.MetadataPaymentIntentID: intent.ID,
-				"provider":                      intent.Provider,
-				"status":                        intent.Status,
-				"checkout_url":                  result.CheckoutURL,
-				"qr_code_url":                   result.QRCodeURL,
-				"status_token":                  result.StatusToken,
+			httputil.RespondJSON(w, http.StatusCreated, checkoutView{
+				OrderID:         order.ID,
+				PaymentIntentID: intent.ID,
+				Provider:        string(intent.Provider),
+				Status:          string(intent.Status),
+				CheckoutURL:     result.CheckoutURL,
+				QRCodeURL:       result.QRCodeURL,
+				StatusToken:     result.StatusToken,
 			})
 			return
 		}
@@ -301,11 +302,41 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
 }
 
-// orderItem decorates a sales order with its payment intent status so clients
-// can distinguish "can still pay" from "expired" without extra round-trips.
-type orderItem struct {
-	Order
-	IntentStatus string `json:"intent_status,omitempty"`
+// checkoutView is the browser-safe checkout resource. Provider session and
+// order internals stay behind the BFF.
+type checkoutView struct {
+	OrderID         string `json:"order_id"`
+	PaymentIntentID string `json:"payment_intent_id"`
+	Provider        string `json:"provider"`
+	Status          string `json:"status"`
+	CheckoutURL     string `json:"checkout_url"`
+	QRCodeURL       string `json:"qr_code_url,omitempty"`
+	StatusToken     string `json:"status_token"`
+}
+
+// orderView is the owner-facing order projection. Authentication already proves
+// ownership, so user and email identifiers are not part of the response.
+type orderView struct {
+	ID              string          `json:"id"`
+	ProductID       product.Product `json:"product_id"`
+	AmountMinor     int64           `json:"amount_minor"`
+	Currency        string          `json:"currency"`
+	Status          OrderStatus     `json:"status"`
+	PaymentIntentID string          `json:"payment_intent_id"`
+	IntentStatus    string          `json:"intent_status,omitempty"`
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       time.Time       `json:"updated_at"`
+	PaidAt          *time.Time      `json:"paid_at"`
+}
+
+func newOrderView(order Order, intentStatus string) orderView {
+	return orderView{
+		ID: order.ID, ProductID: order.ProductID,
+		AmountMinor: order.AmountMinor, Currency: order.Currency,
+		Status: order.Status, PaymentIntentID: order.PaymentIntentID,
+		IntentStatus: intentStatus,
+		CreatedAt:    order.CreatedAt, UpdatedAt: order.UpdatedAt, PaidAt: order.PaidAt,
+	}
 }
 
 func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
@@ -331,13 +362,13 @@ func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 		httputil.InternalError(w)
 		return
 	}
-	items := make([]orderItem, 0, len(orders))
+	items := make([]orderView, 0, len(orders))
 	for _, order := range orders {
-		item := orderItem{Order: order}
+		intentStatus := ""
 		if intent, found := intents[order.PaymentIntentID]; found {
-			item.IntentStatus = string(intent.Status)
+			intentStatus = string(intent.Status)
 		}
-		items = append(items, item)
+		items = append(items, newOrderView(order, intentStatus))
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{"orders": items})
 }
@@ -360,7 +391,7 @@ func (h *Handler) HandleOrderDetail(w http.ResponseWriter, r *http.Request) {
 		httputil.InternalError(w)
 		return
 	}
-	item := orderItem{Order: order}
+	item := newOrderView(order, "")
 	payload := map[string]any{"order": item}
 	if order.PaymentIntentID != "" {
 		intent, err := h.runtime.GetIntent(r.Context(), order.PaymentIntentID)
@@ -481,14 +512,14 @@ func (h *Handler) HandleResumeCheckout(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{
-		"order_id":                      order.ID,
-		payment.MetadataPaymentIntentID: intent.ID,
-		"provider":                      updated.Provider,
-		"status":                        updated.Status,
-		"checkout_url":                  result.CheckoutURL,
-		"qr_code_url":                   result.QRCodeURL,
-		"status_token":                  result.StatusToken,
+	httputil.RespondJSON(w, http.StatusOK, checkoutView{
+		OrderID:         order.ID,
+		PaymentIntentID: intent.ID,
+		Provider:        string(updated.Provider),
+		Status:          string(updated.Status),
+		CheckoutURL:     result.CheckoutURL,
+		QRCodeURL:       result.QRCodeURL,
+		StatusToken:     result.StatusToken,
 	})
 }
 
@@ -540,7 +571,7 @@ func (h *Handler) handleSubscriptionCheckout(
 		httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起订阅支付失败")
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{
+	httputil.RespondJSON(w, http.StatusCreated, map[string]any{
 		"subscription_id": subscription.ID,
 		"provider":        string(subscription.Provider),
 		"status":          string(subscription.Status),
@@ -569,7 +600,74 @@ func (h *Handler) HandleSubscriptions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{"subscriptions": items})
+	views := make([]subscriptionView, 0, len(items))
+	for _, item := range items {
+		views = append(views, newSubscriptionView(item))
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"subscriptions": views})
+}
+
+// subscriptionView is the owner-facing subscription projection. Provider
+// customer/checkout identifiers and sync bookkeeping are not browser facts.
+type subscriptionView struct {
+	ID                 string              `json:"id"`
+	ProductID          product.Product     `json:"product_id"`
+	BillingMode        product.BillingMode `json:"billing_mode"`
+	Provider           string              `json:"provider"`
+	Status             string              `json:"status"`
+	CurrencyCode       string              `json:"currency_code"`
+	CurrentPeriodStart *time.Time          `json:"current_period_start"`
+	CurrentPeriodEnd   *time.Time          `json:"current_period_end"`
+	NextBillingAt      *time.Time          `json:"next_billing_at"`
+	CancelAtPeriodEnd  bool                `json:"cancel_at_period_end"`
+	CancelledAt        *time.Time          `json:"cancelled_at"`
+	CreatedAt          time.Time           `json:"created_at"`
+	UpdatedAt          time.Time           `json:"updated_at"`
+}
+
+func newSubscriptionView(item Subscription) subscriptionView {
+	return subscriptionView{
+		ID: item.ID, ProductID: item.ProductID,
+		BillingMode: item.BillingMode, Provider: string(item.Provider),
+		Status: string(item.Status), CurrencyCode: string(item.CurrencyCode),
+		CurrentPeriodStart: item.CurrentPeriodStart,
+		CurrentPeriodEnd:   item.CurrentPeriodEnd,
+		NextBillingAt:      item.NextBillingAt,
+		CancelAtPeriodEnd:  item.CancelAtPeriodEnd,
+		CancelledAt:        item.CancelledAt,
+		CreatedAt:          item.CreatedAt, UpdatedAt: item.UpdatedAt,
+	}
+}
+
+// subscriptionPaymentView omits ownership and provider bookkeeping while
+// retaining the buyer-visible payment and refund facts.
+type subscriptionPaymentView struct {
+	ID                 string          `json:"id"`
+	SubscriptionID     string          `json:"subscription_id"`
+	ProductID          product.Product `json:"product_id"`
+	Provider           string          `json:"provider"`
+	ProviderPaymentID  string          `json:"provider_payment_id"`
+	AmountMinorUnits   int64           `json:"amount_minor_units"`
+	RefundedMinorUnits int64           `json:"refunded_minor_units"`
+	CurrencyCode       string          `json:"currency_code"`
+	Status             string          `json:"status"`
+	PeriodStart        *time.Time      `json:"period_start"`
+	PeriodEnd          *time.Time      `json:"period_end"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
+}
+
+func newSubscriptionPaymentView(item SubscriptionPayment) subscriptionPaymentView {
+	return subscriptionPaymentView{
+		ID: item.ID, SubscriptionID: item.SubscriptionID,
+		ProductID: item.ProductID, Provider: string(item.Provider),
+		ProviderPaymentID:  item.ProviderPaymentID,
+		AmountMinorUnits:   item.AmountMinorUnits,
+		RefundedMinorUnits: item.RefundedMinorUnits,
+		CurrencyCode:       string(item.CurrencyCode), Status: string(item.Status),
+		PeriodStart: item.PeriodStart, PeriodEnd: item.PeriodEnd,
+		CreatedAt: item.CreatedAt, UpdatedAt: item.UpdatedAt,
+	}
 }
 
 func (h *Handler) reconcilePendingSubscriptions(ctx context.Context, userID string) error {
@@ -608,7 +706,11 @@ func (h *Handler) HandleSubscriptionPayments(w http.ResponseWriter, r *http.Requ
 		httputil.InternalError(w)
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{"payments": items})
+	views := make([]subscriptionPaymentView, 0, len(items))
+	for _, item := range items {
+		views = append(views, newSubscriptionPaymentView(item))
+	}
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{"payments": views})
 }
 
 func (h *Handler) HandleSetCancellation(w http.ResponseWriter, r *http.Request) {

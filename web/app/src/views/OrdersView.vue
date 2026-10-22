@@ -104,7 +104,7 @@
               </div>
             </div>
             <el-button
-              v-if="subscription.status === 'active' && subscription.provider_subscription_id"
+              v-if="subscription.status === 'active'"
               size="small"
               :loading="updatingId === subscription.id"
               @click="toggleCancellation(subscription)"

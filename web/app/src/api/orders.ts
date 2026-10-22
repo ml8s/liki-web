@@ -2,8 +2,6 @@ import { del, get, post } from './http'
 
 export interface Order {
   id: string
-  user_id: string
-  email: string
   product_id: string
   amount_minor: number
   currency: string
@@ -63,18 +61,16 @@ export function fetchOrderDetail(orderId: string): Promise<OrderDetail> {
 
 export interface Subscription {
   id: string
-  user_id: string
-  email: string
   product_id: string
   billing_mode: 'subscription'
   provider: 'dodo'
-  provider_subscription_id: string
   status: 'pending' | 'active' | 'on_hold' | 'cancelled' | 'expired' | 'failed'
   currency_code: 'CNY' | 'USD'
   current_period_start: string | null
   current_period_end: string | null
   next_billing_at: string | null
   cancel_at_period_end: boolean
+  cancelled_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -94,6 +90,7 @@ export interface SubscriptionPayment {
   created_at: string
   updated_at: string
 }
+
 
 export async function fetchSubscriptions(): Promise<Subscription[]> {
   const payload = await get<{ subscriptions: Subscription[] }>('/api/sales/subscriptions')

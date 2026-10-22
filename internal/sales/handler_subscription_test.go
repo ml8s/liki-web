@@ -77,7 +77,7 @@ func TestSubscriptionCheckoutStoresLocalKeyAndOmitsAmount(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	handler.HandleCheckout(recorder, request)
 
-	if recorder.Code != http.StatusOK {
+	if recorder.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
 	var response struct {

@@ -10,6 +10,22 @@ import (
 	"github.com/ml8s/liki-web/internal/httputil"
 )
 
+// intentStatusView is the minimal polling fact. Redirect URLs are owned by the
+// payment return endpoint and are never exposed through capability polling.
+type intentStatusView struct {
+	PaymentIntentID string        `json:"payment_intent_id"`
+	OrderID         string        `json:"order_id"`
+	Status          PaymentStatus `json:"status"`
+}
+
+// paymentCompletionStatusView separates provider payment state from local
+// entitlement fulfillment state.
+type paymentCompletionStatusView struct {
+	PaymentIntentID   string        `json:"payment_intent_id"`
+	PaymentStatus     PaymentStatus `json:"payment_status"`
+	FulfillmentStatus string        `json:"fulfillment_status"`
+}
+
 func (runtime *Runtime) HandleIntentStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	intent, err := runtime.GetIntent(r.Context(), id)
@@ -17,12 +33,10 @@ func (runtime *Runtime) HandleIntentStatus(w http.ResponseWriter, r *http.Reques
 		httputil.RespondAppError(w, httputil.ErrOrderNotFound)
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{
-		"id":                intent.ID,
-		"business_order_id": intent.BusinessOrderID,
-		"status":            intent.Status,
-		"success_url":       intent.SuccessURL,
-		"cancel_url":        intent.FailureURL,
+	httputil.RespondJSON(w, http.StatusOK, intentStatusView{
+		PaymentIntentID: intent.ID,
+		OrderID:         intent.BusinessOrderID,
+		Status:          intent.Status,
 	})
 }
 
@@ -43,10 +57,10 @@ func (runtime *Runtime) HandlePaymentCompletionStatus(w http.ResponseWriter, r *
 	if found {
 		status = string(task.Status)
 	}
-	httputil.RespondJSON(w, http.StatusOK, map[string]any{
-		"id":                 intent.ID,
-		"payment_status":     intent.Status,
-		"fulfillment_status": status,
+	httputil.RespondJSON(w, http.StatusOK, paymentCompletionStatusView{
+		PaymentIntentID:   intent.ID,
+		PaymentStatus:     intent.Status,
+		FulfillmentStatus: status,
 	})
 }
 

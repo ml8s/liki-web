@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -234,6 +235,10 @@ func TestOrderDetailReturnsPaymentFacts(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
+	body := recorder.Body.String()
+	if strings.Contains(body, `"user_id"`) || strings.Contains(body, `"email"`) {
+		t.Fatalf("owner order response must not expose ownership/contact fields: %s", body)
+	}
 	if response.Data.Order.ID != order.ID || response.Data.Order.IntentStatus != string(payment.IntentPaid) {
 		t.Fatalf("order = %+v", response.Data.Order)
 	}
@@ -277,6 +282,10 @@ func TestOrdersListAnnotatesIntentStatus(t *testing.T) {
 	}
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
+	}
+	body := recorder.Body.String()
+	if strings.Contains(body, `"user_id"`) || strings.Contains(body, `"email"`) {
+		t.Fatalf("order list must not expose ownership/contact fields: %s", body)
 	}
 	if len(response.Data.Orders) != 1 ||
 		response.Data.Orders[0].ID != order.ID ||

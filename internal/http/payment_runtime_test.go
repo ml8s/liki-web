@@ -137,6 +137,10 @@ func TestSharedPaymentHTTPFlow(t *testing.T) {
 	if statusRec.Code != http.StatusOK {
 		t.Fatalf("status = %d %s", statusRec.Code, statusRec.Body.String())
 	}
+	statusBody := statusRec.Body.String()
+	if strings.Contains(statusBody, "success_url") || strings.Contains(statusBody, "cancel_url") {
+		t.Fatalf("payment status must not expose redirect URLs: %s", statusBody)
+	}
 
 	gateway.event = payment.WebhookEvent{
 		Provider: payment.ProviderXunhu,
