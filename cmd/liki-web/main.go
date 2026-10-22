@@ -3,23 +3,16 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"html"
 	"log/slog"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
-
-	"github.com/ml8s/liki-web/internal/sqliteutil"
 
 	"github.com/ml8s/liki-web/internal/account"
 	"github.com/ml8s/liki-web/internal/adminauth"
@@ -54,116 +47,6 @@ var (
 // writer keeps an additional margin so a completed response can be flushed.
 const maxAgentRunTimeout = 600 * time.Second
 
-type Config struct {
-	DataDir                          string
-	AdminEmail                       string
-	MetricsToken                     string
-	FeedbackAPIKey                   string
-	RunCallbackSecret                string
-	ResendAPIKey                     string
-	ResendFrom                       string
-	DodoAPIKey                       string
-	DodoWebhookKey                   string
-	DodoTestMode                     bool
-	DodoProductLikiChatOneTime       string
-	DodoProductLikiChatSubscription  string
-	XunhuAppID                       string
-	XunhuAppSecret                   string
-	PaymentWebhookURL                string
-	AlipayConfig                     aipay.Config
-	AgentURLs                        map[string]string
-	AgentInternalToken               string
-	AgentsOpsPort                    string
-	AgentTimeoutSeconds              int
-	PublicBaseURL                    string
-	JWTSecret                        string
-	HTTPListenAddress                string
-	DevelopmentMode                  bool
-	CurrencySource                   string
-	BillingRegion                    string
-	ChatOneTimeAccessDays            int
-	ChatOneTimePriceMinorCNY         int64
-	ChatOneTimePriceMinorUSD         int64
-	ChatSubscriptionPriceMinorUSD    int64
-	KOLRevenueShareBasisPoints       int
-	ScoutRevenueShareBasisPoints     int
-	ReferralAttributionTTLDays       int
-	PaymentIntentExpiryDays          int
-	PaymentNotificationRetentionDays int
-	DeletedProfileRetentionDays      int
-	ExpiredSessionRetentionDays      int
-}
-
-func LoadConfig() Config {
-	return Config{
-		DataDir:                          envOr("LIKI_DATA_DIR", "/var/lib/liki"),
-		AdminEmail:                       os.Getenv("LIKI_ADMIN_EMAIL"),
-		MetricsToken:                     os.Getenv("LIKI_METRICS_TOKEN"),
-		FeedbackAPIKey:                   os.Getenv("LIKI_FEEDBACK_API_TOKEN"),
-		RunCallbackSecret:                os.Getenv("LIKI_RUN_CALLBACK_SECRET"),
-		ResendAPIKey:                     os.Getenv("RESEND_API_KEY"),
-		ResendFrom:                       envOr("LIKI_EMAIL_FROM_ADDRESS", "Liki <report@liki.email>"),
-		DodoAPIKey:                       envOr("DODO_API_KEY", ""),
-		DodoWebhookKey:                   envOr("DODO_WEBHOOK_KEY", ""),
-		DodoTestMode:                     envOrBool("DODO_TEST_MODE", false),
-		DodoProductLikiChatOneTime:       os.Getenv("DODO_PRODUCT_LIKI_CHAT_ONE_TIME"),
-		DodoProductLikiChatSubscription:  os.Getenv("DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION"),
-		XunhuAppID:                       envOr("XUNHU_APPID", ""),
-		XunhuAppSecret:                   envOr("XUNHU_APPSECRET", ""),
-		PaymentWebhookURL:                envOr("LIKI_PAYMENT_WEBHOOK_URL", strings.TrimSuffix(envOr("LIKI_PUBLIC_BASE_URL", ""), "/")+"/api/payments/webhook"),
-		AlipayConfig:                     loadAlipayConfig(),
-		AgentURLs:                        loadAgentURLs(),
-		AgentsOpsPort:                    envOr("LIKI_AGENTS_OPS_PORT", "8085"),
-		AgentInternalToken:               os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
-		AgentTimeoutSeconds:              envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 600),
-		PublicBaseURL:                    envOr("LIKI_PUBLIC_BASE_URL", ""),
-		JWTSecret:                        os.Getenv("JWT_SECRET"),
-		HTTPListenAddress:                envOr("LIKI_HTTP_LISTEN_ADDRESS", ":8081"),
-		DevelopmentMode:                  envOrBool("LIKI_DEVELOPMENT_MODE", false),
-		CurrencySource:                   envOr("LIKI_BILLING_CURRENCY_SOURCE", sales.CurrencySourceTrustedEdge),
-		BillingRegion:                    envOr("LIKI_BILLING_REGION", "global"),
-		ChatOneTimeAccessDays:            envOrInt("LIKI_CHAT_ONE_TIME_ACCESS_DAYS", 30),
-		ChatOneTimePriceMinorCNY:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS", 0),
-		ChatOneTimePriceMinorUSD:         envOrInt64("LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS", 0),
-		ChatSubscriptionPriceMinorUSD:    envOrInt64("LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS", 0),
-		KOLRevenueShareBasisPoints:       envOrInt("LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS", 5000),
-		ScoutRevenueShareBasisPoints:     envOrInt("LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS", 2000),
-		ReferralAttributionTTLDays:       envOrInt("LIKI_REFERRAL_ATTRIBUTION_TTL_DAYS", 30),
-		PaymentIntentExpiryDays:          envOrInt("LIKI_PAYMENT_INTENT_EXPIRY_DAYS", 7),
-		PaymentNotificationRetentionDays: envOrInt("LIKI_PAYMENT_NOTIFICATION_RETENTION_DAYS", 90),
-		DeletedProfileRetentionDays:      envOrInt("LIKI_DELETED_PROFILE_RETENTION_DAYS", 30),
-		ExpiredSessionRetentionDays:      envOrInt("LIKI_EXPIRED_SESSION_RETENTION_DAYS", 30),
-	}
-}
-
-func loadAlipayConfig() aipay.Config {
-	sellerName := envOr("ALIPAY_SELLER_NAME", "Liki")
-	if path := os.Getenv("ALIPAY_CONFIG_FILE"); path != "" {
-		config, err := aipay.LoadSandboxConfig(path)
-		if err != nil {
-			// Configuration errors must be visible while the endpoint remains
-			// disabled; they must not leak credential material.
-			slog.Warn("aipay disabled", "err", err)
-			return aipay.Config{}
-		}
-		config.SellerName = sellerName
-		config.Amount = os.Getenv("ALIPAY_AIPAY_AMOUNT")
-		config.GoodsName = aipay.DefaultGoodsName
-		return config
-	}
-	return aipay.Config{
-		AppID:           os.Getenv("ALIPAY_APP_ID"),
-		PrivateKey:      os.Getenv("ALIPAY_PRIVATE_KEY"),
-		AlipayPublicKey: os.Getenv("ALIPAY_PUBLIC_KEY"),
-		Gateway:         envOr("ALIPAY_GATEWAY", "https://openapi.alipay.com/gateway.do"),
-		SellerID:        os.Getenv("ALIPAY_SELLER_ID"),
-		SellerName:      sellerName,
-		ServiceID:       os.Getenv("ALIPAY_SERVICE_ID"),
-		Amount:          os.Getenv("ALIPAY_AIPAY_AMOUNT"),
-		GoodsName:       aipay.DefaultGoodsName,
-	}
-}
-
 func main() {
 	cfg := LoadConfig()
 
@@ -190,26 +73,15 @@ func main() {
 	}
 
 	// ── open databases ──
-	dataDir := cfg.DataDir
-	open := func(name string) *sql.DB {
-		db, err := sqliteutil.Open(filepath.Join(dataDir, name))
-		if err != nil {
-			slog.Error("open database", "name", name, "err", err)
-			os.Exit(1)
-		}
-		return db
+	dbs, err := openAppDatabases(cfg.DataDir)
+	if err != nil {
+		slog.Error("open databases", "err", err)
+		os.Exit(1)
 	}
+	defer func() { _ = dbs.Close() }()
 
-	platformDB := open("platform.db")
-	defer func() { _ = platformDB.Close() }()
-	profilesDB := open("profiles.db")
-	defer func() { _ = profilesDB.Close() }()
-	feedbackDB := open("feedback.db")
-	defer func() { _ = feedbackDB.Close() }()
-	likiDB := open("liki.db")
-	defer func() { _ = likiDB.Close() }()
-	aipayDB := open("aipay.db")
-	defer func() { _ = aipayDB.Close() }()
+	platformDB, profilesDB, feedbackDB := dbs.Platform, dbs.Profiles, dbs.Feedback
+	likiDB, aipayDB := dbs.Liki, dbs.Aipay
 
 	// ── platform (auth + payment runtime) ──
 	authStore := auth.NewStore(platformDB, []byte(cfg.JWTSecret))
@@ -255,7 +127,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	adminAuthorizer, err := adminauth.Open(filepath.Join(dataDir, "platform.db"))
+	adminAuthorizer, err := adminauth.Open(filepath.Join(dbs.dir, "platform.db"))
 	if err != nil {
 		slog.Error("init admin auth", "err", err)
 		os.Exit(1)
@@ -358,7 +230,7 @@ func main() {
 		slog.Error("LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY must contain at least 32 bytes")
 		os.Exit(1)
 	}
-	partnerStore, err := partner.Open(filepath.Join(dataDir, "referral.db"), []byte(payoutSecret))
+	partnerStore, err := partner.Open(filepath.Join(dbs.dir, "referral.db"), []byte(payoutSecret))
 	if err != nil {
 		slog.Error("init partner store", "err", err)
 		os.Exit(1)
@@ -692,10 +564,7 @@ func main() {
 		DevMode:        cfg.DevelopmentMode,
 	}, BuildTime, Version, rateLimiter, verifyLimiter)
 
-	workers.Go(func() {
-		erasureWorker := &account.ErasureWorker{Queue: erasureQueue, Handler: accountHandler, Interval: 30 * time.Second}
-		erasureWorker.Start(ctx)
-	})
+	startErasureWorker(workers, ctx, erasureQueue, accountHandler)
 
 	// Write timeout must accommodate LLM calls (~120s)
 	srv := &http.Server{
@@ -707,77 +576,11 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	workers.Go(func() {
-		ticker := time.NewTicker(time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				if _, err := authStore.Cleanup(ctx, cfg.ExpiredSessionRetentionDays); err != nil {
-					slog.Error("auth cleanup", "err", err)
-				}
-			}
-		}
-	})
+	startAuthCleanupWorker(workers, ctx, authStore, cfg.ExpiredSessionRetentionDays)
 
-	// 软删档案 30 天恢复窗口到期后物理清理（个保法删除权落地）。
-	workers.Go(func() {
-		ticker := time.NewTicker(6 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				cutoff := time.Now().UTC().Add(-time.Duration(cfg.DeletedProfileRetentionDays) * 24 * time.Hour)
-				if n, err := profileStore.CleanupExpired(ctx, cutoff); err != nil {
-					slog.Error("profile cleanup", "err", err)
-				} else if n > 0 {
-					slog.Info("profile cleanup complete", "purged", n)
-				}
-			}
-		}
-	})
+	startProfileCleanupWorker(workers, ctx, profileStore, cfg.DeletedProfileRetentionDays)
 
-	workers.Go(func() {
-		paymentRuntime.StartNotificationWorker(ctx, 30*time.Second)
-	})
-	workers.Go(func() {
-		paymentRuntime.StartPaymentCompletionWorker(ctx, 5*time.Second)
-	})
-	workers.Go(func() {
-		paymentRuntime.StartReconciliationWorker(ctx, time.Minute)
-	})
-
-	// Payment retention: expire abandoned checkouts and prune sent receipts.
-	workers.Go(func() {
-		ticker := time.NewTicker(6 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				intents, notifications, err := paymentRuntime.RunRetention(ctx,
-					time.Duration(cfg.PaymentIntentExpiryDays)*24*time.Hour,
-					time.Duration(cfg.PaymentNotificationRetentionDays)*24*time.Hour)
-				if err != nil {
-					slog.Error("payment retention", "err", err)
-					continue
-				}
-				if intents > 0 || notifications > 0 {
-					slog.Info("payment retention complete", "expired_intents", intents, "deleted_notifications", notifications)
-				}
-				if n, err := aipayStore.CleanupExpiredBills(ctx, time.Now().UTC()); err != nil {
-					slog.Error("aipay bill cleanup", "err", err)
-				} else if n > 0 {
-					slog.Info("aipay expired bills cleaned", "count", n)
-				}
-			}
-		}
-	})
+	startPaymentWorkers(workers, ctx, paymentRuntime, aipayStore, cfg)
 
 	// Signal handling
 	go handleSignals(srv)
@@ -794,156 +597,4 @@ func main() {
 	cancel()
 	workers.Wait()
 
-}
-
-func requireEnv(pairs ...string) {
-	for i := 0; i < len(pairs); i += 2 {
-		if pairs[i+1] == "" {
-			slog.Error("required environment variable not set", "var", pairs[i])
-			os.Exit(1)
-		}
-	}
-}
-
-// validateBusinessConfig fail-fast 检查业务/合规参数：错误配置宁可不启动，
-// 也不能把错误价格或比例带进资金路径。
-func validateBusinessConfig(cfg Config) error {
-	for name, minor := range map[string]int64{
-		"LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS":     cfg.ChatOneTimePriceMinorCNY,
-		"LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS":     cfg.ChatOneTimePriceMinorUSD,
-		"LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS": cfg.ChatSubscriptionPriceMinorUSD,
-	} {
-		if minor <= 0 || minor > 1_000_000_000 {
-			return fmt.Errorf("%s must be within (0, 1000000000] minor units, got %d", name, minor)
-		}
-	}
-	for name, bps := range map[string]int{
-		"LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS":   cfg.KOLRevenueShareBasisPoints,
-		"LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS": cfg.ScoutRevenueShareBasisPoints,
-	} {
-		if bps < 0 || bps > 10000 {
-			return fmt.Errorf("%s must be within [0,10000] bps, got %d", name, bps)
-		}
-	}
-	if cfg.KOLRevenueShareBasisPoints+cfg.ScoutRevenueShareBasisPoints > 10000 {
-		return fmt.Errorf("KOL+Scout revenue shares must not exceed 10000 basis points, got %d",
-			cfg.KOLRevenueShareBasisPoints+cfg.ScoutRevenueShareBasisPoints)
-	}
-	for name, days := range map[string]int{
-		"LIKI_CHAT_ONE_TIME_ACCESS_DAYS":           cfg.ChatOneTimeAccessDays,
-		"LIKI_REFERRAL_ATTRIBUTION_TTL_DAYS":       cfg.ReferralAttributionTTLDays,
-		"LIKI_PAYMENT_INTENT_EXPIRY_DAYS":          cfg.PaymentIntentExpiryDays,
-		"LIKI_PAYMENT_NOTIFICATION_RETENTION_DAYS": cfg.PaymentNotificationRetentionDays,
-		"LIKI_DELETED_PROFILE_RETENTION_DAYS":      cfg.DeletedProfileRetentionDays,
-		"LIKI_EXPIRED_SESSION_RETENTION_DAYS":      cfg.ExpiredSessionRetentionDays,
-	} {
-		if days < 1 || days > 3650 {
-			return fmt.Errorf("%s must be within [1,3650] days, got %d", name, days)
-		}
-	}
-	return nil
-}
-
-func validateHTTPURL(name, value string) error {
-	if value == "" {
-		return nil
-	}
-	parsed, err := url.ParseRequestURI(value)
-	if err != nil {
-		return fmt.Errorf("%s %q: %w", name, value, err)
-	}
-	if (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-		return fmt.Errorf("%s %q must be an absolute http(s) URL", name, value)
-	}
-	return nil
-}
-
-func validateRuntimeURLs(cfg Config) error {
-	var errs []error
-	if err := validateHTTPURL("LIKI_PUBLIC_BASE_URL", cfg.PublicBaseURL); err != nil {
-		errs = append(errs, err)
-	}
-	if err := validateHTTPURL("LIKI_PAYMENT_WEBHOOK_URL", cfg.PaymentWebhookURL); err != nil {
-		errs = append(errs, err)
-	}
-	for _, expert := range chat.ExpertOrder {
-		name := "LIKI_AGENTS_" + strings.ToUpper(expert) + "_URL"
-		if err := validateHTTPURL(name, cfg.AgentURLs[expert]); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errors.Join(errs...)
-}
-
-// loadAgentURLs resolves the per-expert runtime endpoints. LIKI_AGENTS_URL is
-// a fallback for single-deployment development only; production sets one URL
-// per expert service.
-func loadAgentURLs() map[string]string {
-	fallback := strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/")
-	return map[string]string{
-		chat.ExpertNatal:      strings.TrimRight(envOr("LIKI_AGENTS_NATAL_URL", fallback), "/"),
-		chat.ExpertDivination: strings.TrimRight(envOr("LIKI_AGENTS_DIVINATION_URL", fallback), "/"),
-		chat.ExpertFengshui:   strings.TrimRight(envOr("LIKI_AGENTS_FENGSHUI_URL", fallback), "/"),
-		chat.ExpertNaming:     strings.TrimRight(envOr("LIKI_AGENTS_NAMING_URL", fallback), "/"),
-	}
-}
-
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
-
-func envOrBool(key string, def bool) bool {
-	if v := os.Getenv(key); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err != nil {
-			slog.Warn("invalid bool env", "key", key, "value", v, "default", def)
-			return def
-		}
-		return b
-	}
-	return def
-}
-
-func envOrInt(key string, def int) int {
-	if value := os.Getenv(key); value != "" {
-		parsed, err := strconv.Atoi(value)
-		if err != nil || parsed <= 0 {
-			slog.Warn("invalid integer env", "key", key, "value", value, "default", def)
-			return def
-		}
-		return parsed
-	}
-	return def
-}
-
-func envOrInt64(key string, def int64) int64 {
-	if value := os.Getenv(key); value != "" {
-		parsed, err := strconv.ParseInt(value, 10, 64)
-		if err != nil || parsed <= 0 {
-			slog.Warn("invalid integer env", "key", key, "value", value, "default", def)
-			return def
-		}
-		return parsed
-	}
-	return def
-}
-
-func handleSignals(srv *http.Server) {
-	defer func() {
-		if r := recover(); r != nil {
-			slog.Error("panic in handleSignals", "panic", r)
-		}
-	}()
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-quit
-	slog.Info("received signal, shutting down", "signal", sig.String())
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(shutdownCtx); err != nil {
-		slog.Error("forced shutdown", "err", err)
-	}
 }
