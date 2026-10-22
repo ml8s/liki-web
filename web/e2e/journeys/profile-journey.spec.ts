@@ -1,6 +1,7 @@
 // 建档主路径：登录 → 新建档案 → 详情排盘 → 列表可见。真实后端（profiles API +
 // engine 排盘），登录走 DEV_MODE 验证码。CI 与本地 e2e 环境均注入 DEV_MODE。
 import { test, expect } from '../fixtures'
+import { fillBirthFields } from '../helpers'
 
 // 真实后端（profiles API + engine 排盘）：显式退出 API 契约。
 test.use({ liveBackend: true })
@@ -54,12 +55,21 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
   await page.getByLabel(/稱呼/).fill('旅程測試')
   // Element Plus renders native radios visually covered by styled spans;
   // click the visible control instead of the hidden original input.
-  await page.locator('.el-radio-button:has-text("男")').click()
-  await page.getByRole('combobox', { name: '出生日期' }).fill('1990-06-15')
-  await page.getByRole('combobox', { name: /精確時間/ }).fill('08:30')
-  await page.getByLabel(/出生地/).fill('杭州')
+  await fillBirthFields(page, page, {
+    date: '1990-06-15',
+    time: '08:30',
+    gender: 'male',
+    place: '杭州',
+  })
   await page.locator('.el-checkbox').last().click()
+  const saveResponsePromise = page.waitForResponse(r =>
+    r.url().includes('/api/birth-profiles') && r.request().method() === 'POST'
+  )
   await page.getByRole('button', { name: /儲存檔案/ }).click()
+  const saveResponse = await saveResponsePromise
+  if (!saveResponse.ok()) {
+    throw new Error(`profile create failed: ${saveResponse.status()} ${await saveResponse.text()}`)
+  }
   await page.waitForURL(/\/app\/birth-profiles\/[a-f0-9-]+/, { timeout: 15000 })
 
   // 详情页：档案信息已持久化。排盘渲染依赖 engine 集成，由

@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import LikiChatCta from '../../components/LikiChatCta.astro';
-import QuickBirthTool from '../../islands/QuickBirthTool.vue';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 import keywords from '../../keywords.json' with { type: 'json' };
 
@@ -87,7 +86,6 @@ const homeSchema = {
     <h2>{t(locale, 'index.chart.title')}</h2>
     <p>{t(locale, 'index.chart.desc')}</p>
     <div id="quick-birth-tool" data-props={JSON.stringify(quickBirthProps)}>
-      <QuickBirthTool {...quickBirthProps} />
     </div>
     <p class="chart-hint">{t(locale, 'index.chart.hint')}</p>
     <script>

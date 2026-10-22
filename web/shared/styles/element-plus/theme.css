@@ -30,3 +30,10 @@
   --el-box-shadow: var(--shadow-card);
   --el-box-shadow-light: var(--shadow-sm);
 }
+
+/* Element Plus 把焦点环画在 wrapper；原生 inner input 不能再叠一层浏览器 focus。 */
+.el-input__inner:focus-visible,
+.el-textarea__inner:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}

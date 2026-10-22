@@ -162,7 +162,8 @@
         "genderRequired": "Please select a gender",
         "birthDateRequired": "Please select a birth date",
         "exactTimeRequired": "Please select an exact time",
-        "timeFormat": "Time must use HH:mm"
+        "timeFormat": "Time must use HH:mm",
+        "birthPlaceRequired": "Choose a birth place and confirm its timezone"
       },
       "birthYear": "Birth year",
       "birthTime": "Birth time"
@@ -323,7 +324,6 @@
       "longitudeLabel": "Longitude",
       "longitudeHint": "Used for true solar time correction; manual entry is allowed",
       "placeRequired": "Enter the casting place",
-      "longitudeRequired": "Enter the longitude",
       "useCurrentLocation": "Use current location",
       "locating": "Locating…",
       "locationManualHint": "Browser location only prefills the visible form. You can edit it at any time.",
@@ -360,9 +360,7 @@
       "consultationTitle": "Deep reading",
       "consultationBody": "The AI consultant combines the hexagram, useful god, and your question for a deeper reading.",
       "lockedBody": "Unlock Liki Chat for a deeper divination reading.",
-      "usefulGodValue": "useful god {value}",
-      "worldValue": "self {value}",
-      "otherValue": "other {value}",
+      "hidden": "Hidden",
       "positionValue": "line {value}",
       "usefulGodDetail": "Useful god: {value}",
       "failed": "Casting failed"

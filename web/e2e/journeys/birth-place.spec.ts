@@ -44,8 +44,8 @@ test('ambiguous birth place resolves to a persisted longitude', async ({ page })
         name: '长沙市', longitude: 113.0267, latitude: 28.1886, country: '湖南省',
         ambiguous: true,
         candidates: [
-          { name: '长沙市', region: '湖南省', country: '湖南省', level: 'city', longitude: 113.0267, latitude: 28.1886, timezone: 'Asia/Shanghai' },
-          { name: '长沙县', region: '湖南省', country: '湖南省', level: 'county', longitude: 113.075, latitude: 28.2502, timezone: 'Asia/Shanghai' },
+          { name: '长沙市', region: '湖南省', country: '湖南省', level: 'city', longitude: 112.9823, latitude: 28.1941, timezone: 'Asia/Shanghai' },
+          { name: '长沙县', region: '湖南省', country: '湖南省', level: 'county', longitude: 113.0801, latitude: 28.2379, timezone: 'Asia/Shanghai' },
         ],
       }))
     }
@@ -63,7 +63,7 @@ test('ambiguous birth place resolves to a persisted longitude', async ({ page })
   await expect(page.getByText(/找到多(个|個)同名地(点|點)/)).toBeVisible()
   await page.locator('.el-select__wrapper').nth(0).click()
   await page.locator('.el-select-dropdown:visible .el-select-dropdown__item').filter({ hasText: '长沙县' }).last().click()
-  await expect(page.locator('input[name="birth-longitude"]')).toHaveValue('113.0750')
+  await expect(page.locator('input[name="birth-longitude"]')).toHaveValue('113.0801')
 
   await page.locator('.el-checkbox').last().click()
   await page.getByRole('button', { name: /保存档案|儲存檔案/ }).click()
@@ -76,8 +76,8 @@ test('ambiguous birth place resolves to a persisted longitude', async ({ page })
       date: '1990-06-15',
       time: '08:30',
       location: {
-        place: '湖南省长沙县',
-        longitude: 113.075,
+        place: '湖南省长沙市长沙县',
+        longitude: 113.0801,
         timezone: 'Asia/Shanghai',
       },
     },

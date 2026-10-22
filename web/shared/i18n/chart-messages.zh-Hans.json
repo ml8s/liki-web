@@ -162,7 +162,8 @@
         "genderRequired": "请选择性别",
         "birthDateRequired": "请选择出生日期",
         "exactTimeRequired": "请选择精确时间",
-        "timeFormat": "时间格式应为 HH:mm"
+        "timeFormat": "时间格式应为 HH:mm",
+        "birthPlaceRequired": "请选择出生地并确认时区"
       },
       "birthYear": "出生年份",
       "birthTime": "出生时间"
@@ -323,7 +324,6 @@
       "longitudeLabel": "经度",
       "longitudeHint": "用于真太阳时校正；可手动填写",
       "placeRequired": "请填写起卦地点",
-      "longitudeRequired": "请填写经度",
       "useCurrentLocation": "使用当前定位",
       "locating": "正在定位…",
       "locationManualHint": "浏览器定位仅用于填入可见表单，可随时修改。",
@@ -360,9 +360,7 @@
       "consultationTitle": "深入解读",
       "consultationBody": "AI 顾问会结合卦象、用神和你的问题做深入断卦。",
       "lockedBody": "解锁 Liki Chat 后可获得深入断卦解读。",
-      "usefulGodValue": "用神 {value}",
-      "worldValue": "世 {value}",
-      "otherValue": "应 {value}",
+      "hidden": "伏神",
       "positionValue": "第{value}爻",
       "usefulGodDetail": "用神为{value}",
       "failed": "摇卦失败"

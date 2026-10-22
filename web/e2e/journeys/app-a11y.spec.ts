@@ -1,7 +1,7 @@
 import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { json, mockWorkspace, testUser } from '../mocks'
+import { json, mockWorkspace, mcpOk, testUser } from '../mocks'
 import { waitForSettled } from '../helpers'
 
 test.use({ locale: 'zh-Hant' })
@@ -86,6 +86,8 @@ async function mockProductWorkspace(page: Page) {
   })))
   await page.route('**/api/partner-portal/kol/**', r => r.fulfill(json({})))
   await page.route('**/api/partner-portal/scout/**', r => r.fulfill(json({})))
+  // 档案详情自动排盘直连 MCP；无障碍审计只关注壳与表单，声明空工具结果即可。
+  await page.route('**/engine/mcp', r => r.fulfill(json(mcpOk({}))))
 }
 
 async function audit(page: Page, path: string) {

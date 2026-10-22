@@ -25,6 +25,7 @@ import (
 	apphttp "github.com/ml8s/liki-web/internal/http"
 	"github.com/ml8s/liki-web/internal/httputil"
 	"github.com/ml8s/liki-web/internal/product"
+	_ "time/tzdata"
 )
 
 // Build-time variables injected via -ldflags.

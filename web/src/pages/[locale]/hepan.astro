@@ -1,6 +1,5 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
-import HepanTool from '../../islands/HepanTool.vue';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -59,7 +58,6 @@ const toolProps = {
     <h2>{t(locale, 'hepan.tool.title')}</h2>
     <p>{t(locale, 'hepan.tool.intro')}</p>
     <div id="hepan-tool" data-props={JSON.stringify(toolProps)}>
-      <HepanTool {...toolProps} />
     </div>
   </Fragment>
   <div class="scenario-static-index">

@@ -162,13 +162,13 @@ if [ "$_caddy_check" = "302" ] || [ "$_caddy_check" = "308" ]; then
   loc=$(redir_to "en" /naming)
   check "  /naming en → /en/naming"          "$BASE/en/naming"       "$loc"
   loc=$(redir_to "zh-CN" /mingshu)
-  check "  /mingshu zh-CN → /zh-Hans/mingshu" "$BASE/zh-Hans/mingshu" "$loc"
+  check "  /mingshu zh-CN → /zh-Hans/natal" "$BASE/zh-Hans/natal" "$loc"
   loc=$(redir_to "en" /mingshu)
-  check "  /mingshu en → /en/mingshu"      "$BASE/en/mingshu"     "$loc"
+  check "  /mingshu en → /en/natal"        "$BASE/en/natal"       "$loc"
   loc=$(redir_to "zh-CN" /hepan)
-  check "  /hepan zh-CN → /zh-Hans/hepan"    "$BASE/zh-Hans/hepan"   "$loc"
+  check "  /hepan zh-CN → /zh-Hans/natal"    "$BASE/zh-Hans/natal"   "$loc"
   loc=$(redir_to "en" /hepan)
-  check "  /hepan en → /en/hepan"            "$BASE/en/hepan"         "$loc"
+  check "  /hepan en → /en/natal"            "$BASE/en/natal"         "$loc"
 
   # Legacy chat paths land in the Liki Chat app (product chat pages removed)
   loc=$(redir_to "zh-CN" /chat)
@@ -178,13 +178,14 @@ if [ "$_caddy_check" = "302" ] || [ "$_caddy_check" = "308" ]; then
   loc=$(redir_to "en" /naming/chat)
   check "  /naming/chat → /app/chat"         "$BASE/app/chat"         "$loc"
 
-  # Already locale-prefixed → 200 (no redirect loop)
-  s=$(caddy GET /zh-Hans/naming)
-  check_200 "GET /zh-Hans/naming (no redirect)" "$s"
-  s=$(caddy GET /zh-Hant/naming)
-  check_200 "GET /zh-Hant/naming (no redirect)" "$s"
-  s=$(caddy GET /en/naming)
-  check_200 "GET /en/naming (no redirect)" "$s"
+  # Marketing naming was consolidated into natal: bare path goes to locale,
+  # then locale naming redirects to natal.
+  s=$(caddy GET /zh-Hans/natal/)
+  check_200 "GET /zh-Hans/natal (no redirect)" "$s"
+  s=$(caddy GET /zh-Hant/natal/)
+  check_200 "GET /zh-Hant/natal (no redirect)" "$s"
+  s=$(caddy GET /en/natal/)
+  check_200 "GET /en/natal (no redirect)" "$s"
 
   # No slash-loss regression: must not redirect to /zh-Hansnaming
   loc=$(redir_to "zh-CN" /naming)

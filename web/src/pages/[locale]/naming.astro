@@ -1,6 +1,5 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
-import NamingTool from '../../islands/NamingTool.vue';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -53,7 +52,6 @@ const toolProps = {
     <h2>{t(locale, 'naming.tool.title')}</h2>
     <p>{t(locale, 'naming.tool.intro')}</p>
     <div id="naming-tool" data-props={JSON.stringify(toolProps)}>
-      <NamingTool {...toolProps} />
     </div>
   </Fragment>
   <div class="name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')} tabindex="0">

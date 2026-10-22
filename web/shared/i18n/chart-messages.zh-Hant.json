@@ -139,7 +139,6 @@
       "nicknamePlaceholder": "如：媽媽 / 我本人",
       "gender": "性別",
       "birthDate": "出生日期",
-      "solar": "西曆",
       "selectDate": "選擇日期",
       "timePlaceholder": "如 06:00",
       "birthPlace": "出生地（城市，用於真太陽時修正）",
@@ -163,7 +162,8 @@
         "genderRequired": "請選擇性別",
         "birthDateRequired": "請選擇出生日期",
         "exactTimeRequired": "請選擇精確時間",
-        "timeFormat": "時間格式應為 HH:mm"
+        "timeFormat": "時間格式應為 HH:mm",
+        "birthPlaceRequired": "請選擇出生地並確認時區"
       },
       "birthYear": "出生年份",
       "birthTime": "出生時間"
@@ -324,7 +324,6 @@
       "longitudeLabel": "經度",
       "longitudeHint": "用於真太陽時校正；可手動填寫",
       "placeRequired": "請填寫起卦地點",
-      "longitudeRequired": "請填寫經度",
       "useCurrentLocation": "使用當前定位",
       "locating": "正在定位…",
       "locationManualHint": "瀏覽器定位僅用於填入可見表單，可隨時修改。",
@@ -361,9 +360,7 @@
       "consultationTitle": "深入解讀",
       "consultationBody": "AI 顧問會結合卦象、用神和你的問題做深入斷卦。",
       "lockedBody": "解鎖 Liki Chat 後可獲得深入斷卦解讀。",
-      "usefulGodValue": "用神 {value}",
-      "worldValue": "世 {value}",
-      "otherValue": "應 {value}",
+      "hidden": "伏神",
       "positionValue": "第{value}爻",
       "usefulGodDetail": "用神為{value}",
       "failed": "搖卦失敗"

@@ -16,6 +16,7 @@ const faqs = ['paid', 'data', 'accuracy'].map(key => ({
   answerKey: `scenario.faq.${key}.a`,
 }));
 const toolProps = {
+  locale,
   appUrl: `/app?service=divination&locale=${locale}`,
   labels: {
     error: t(locale, 'tool.error'),
