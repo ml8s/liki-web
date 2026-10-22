@@ -88,6 +88,9 @@ jobs:
           cd web && npm ci
           cd app && npm ci
 
+      - name: Install Playwright browsers
+        run: cd web && npx playwright install chromium
+
       - uses: ./.github/actions/install-caddy
         with:
           version: "2.10.2"

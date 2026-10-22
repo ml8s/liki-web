@@ -9,7 +9,7 @@ export RELEASE_VERSION
 #   make build  本仓产物（前端+二进制）
 #   make e2e    浏览器 E2E（本仓视角）
 #   make smoke  本仓镜像启动 + health/page 冒烟
-.PHONY: help check test gate smoke e2e \
+.PHONY: help check test gate smoke e2e e2e-a11y \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
         check-web-static check-release-transport check-security check-go-version runtime-version-check python-env \
         check-version check-actions check-caddy check-skills check-packaging \
@@ -83,6 +83,7 @@ test-js-coverage: ## Run Vue/TS tests with V8 coverage
 
 gate: ## 源码门槛：check + test；镜像冒烟在 release.yml 发布链执行
 	$(MAKE) --jobs=$(GATE_JOBS) --output-sync=target check test
+	$(MAKE) e2e-a11y
 
 check-go-version: ## Require the security-supported Go toolchain
 	scripts/check-go-version.sh
@@ -139,6 +140,9 @@ test-skills: ## Python skill 测试
 
 e2e: ## Docker 全栈 E2E（不跑 lint / unit）
 	scripts/e2e.sh
+
+e2e-a11y: build ## Run the accessibility E2E contract in make gate
+	scripts/e2e-a11y.sh
 
 build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）
 

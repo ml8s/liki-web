@@ -18,6 +18,17 @@ export async function waitForSettled(page: Page): Promise<void> {
     undefined,
     { timeout: 10_000 },
   );
+  // Element Plus can still run short enter/leave transitions after loading
+  // states clear. Accessibility audits must observe final CSS, not a mid-
+  // transition foreground/background pair.
+  await page.waitForFunction(
+    () =>
+      ![...document.querySelectorAll('.el-tag')].some(element =>
+        element.getAnimations({ subtree: true }).some(animation => animation.playState === 'running'),
+      ),
+    undefined,
+    { timeout: 10_000 },
+  );
 }
 
 // 统一 BirthFields 已使用 Element Plus；E2E 也按同一交互契约填写。

@@ -194,6 +194,17 @@ p {
   color: var(--liki-text-2);
 }
 
+/* Element Plus inserts tags with `transition: all .3s`; Axe can sample the
+ * in-progress text/background pair and report transient contrast failures.
+ * Status tags must render their final AA palette immediately; small tags do
+ * not need a color transition. */
+.el-tag,
+.el-tag * {
+  transition: none !important;
+  animation-duration: 0.01ms !important;
+  animation-delay: 0 !important;
+}
+
 /* ── 服务视图共享排版（看命/起名/问卦/风水/择日/合盘）── */
 .service-view .hint { color: var(--liki-text-2); margin: 0 0 14px; }
 .service-view .sec-title { font-size: var(--font-size-label); font-weight: 600; margin: var(--space-4) 0 var(--space-2); }
