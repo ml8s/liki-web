@@ -103,18 +103,20 @@ export interface ChatTurn {
 
 /**
  * 出生档案上下文（契约 C3 forwardedProps.profile；字段与 liki-web 的
- * AgentProfileContext 一一对应，刻意不含身份/联系方式/备注/数据库 id）。
+ * AgentProfile 一一对应，刻意不含身份/联系方式/备注/数据库 id）。
  */
-export interface AgentProfileContext {
+export interface AgentProfile {
   gender: string
-  birth_longitude?: number | null
-  birth_timezone?: string | null
-  birth_instant?: string | null
+  instant?: string | null
+  location?: {
+    longitude?: number | null
+    timezone?: string | null
+  } | null
 }
 
 export interface DirectChatContext {
   history?: ChatTurn[]
-  profile?: AgentProfileContext | null
+  profile?: AgentProfile | null
 }
 
 export async function streamChatMessage(

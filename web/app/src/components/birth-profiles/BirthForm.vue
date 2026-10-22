@@ -80,13 +80,13 @@ import {
 import { useFormDraftsStore } from '@shared/stores/form-drafts'
 const props = withDefaults(defineProps<{
   submitting?: boolean
-  initial?: Partial<BirthProfile>
+  initial?: Partial<BirthProfile> | Partial<BirthProfileInput>
   draftKey?: string
 }>(), {})
 const emit = defineEmits<{ submit: [BirthProfileInput]; dirty: [boolean] }>()
 const { t } = useI18n()
 
-type Gender = BirthProfileInput['gender'] | ''
+type Gender = BirthProfileInput['birth']['gender'] | ''
 
 interface BirthFormValues {
   nickname: string
@@ -100,17 +100,17 @@ interface BirthFormValues {
 
 type BirthFormDraft = Omit<BirthFormValues, 'third_party_consent'>
 
-function formValuesFromInitial(initial?: Partial<BirthProfile>): BirthFormValues {
+function formValuesFromInitial(initial?: Partial<BirthProfile> | Partial<BirthProfileInput>): BirthFormValues {
   return {
     nickname: initial?.nickname ?? '',
-    gender: initial?.gender ?? '',
-    date: initial?.birth_date ?? '',
-    time: initial?.birth_time ?? '',
-    location: initial?.birth_longitude != null && initial?.birth_timezone
+    gender: initial?.birth?.gender ?? '',
+    date: initial?.birth?.date ?? '',
+    time: initial?.birth?.time ?? '',
+    location: initial?.birth?.location?.longitude != null && initial?.birth?.location?.timezone
       ? {
-          place: initial?.birth_place ?? '',
-          longitude: initial.birth_longitude,
-          timezone: initial.birth_timezone,
+          place: initial?.birth?.location?.place ?? '',
+          longitude: initial.birth.location.longitude,
+          timezone: initial.birth.location.timezone,
           source: 'saved',
         }
       : null,
@@ -120,7 +120,7 @@ function formValuesFromInitial(initial?: Partial<BirthProfile>): BirthFormValues
 }
 
 function mergeBirthFormDraft(
-  initial?: Partial<BirthProfile>,
+  initial?: Partial<BirthProfile> | Partial<BirthProfileInput>,
   draft?: Partial<BirthFormDraft> | null,
 ): BirthFormValues {
   const values = formValuesFromInitial(initial)
@@ -150,7 +150,7 @@ if (savedDraft.value) emit('dirty', true)
 
 const formRef = ref<FormInstance>()
 const birthLabels = computed(() => createBirthFieldLabels(t))
-const initialBirthPlace = props.initial?.birth_place ?? ''
+const initialBirthPlace = props.initial?.birth?.location?.place ?? ''
 
 function validateBirthDate(_rule: unknown, value: string, callback: (error?: Error) => void) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -199,11 +199,11 @@ const birthFields = computed<BirthFieldsValue>(() => ({
 function snapshotOf(profile: typeof props.initial) {
   return JSON.stringify({
     nickname: profile?.nickname ?? '',
-    gender: profile?.gender ?? '',
-    date: profile?.birth_date ?? '',
-    time: profile?.birth_time ?? '',
-    location: profile?.birth_longitude != null && profile?.birth_timezone
-      ? [profile.birth_place, profile.birth_longitude, profile.birth_timezone]
+    gender: profile?.birth?.gender ?? '',
+    date: profile?.birth?.date ?? '',
+    time: profile?.birth?.time ?? '',
+    location: profile?.birth?.location?.longitude != null && profile?.birth?.location?.timezone
+      ? [profile.birth.location.place, profile.birth.location.longitude, profile.birth.location.timezone]
       : null,
     note: profile?.note ?? '',
     third_party_consent: profile?.third_party_consent ?? false,
@@ -253,12 +253,16 @@ async function submit() {
 
   emit('submit', {
     nickname: form.nickname.trim(),
-    gender: form.gender || 'female',
-    birth_date: form.date,
-    birth_time: form.time,
-    birth_place: form.location?.place ?? '',
-    birth_longitude: form.location?.longitude ?? 0,
-    birth_timezone: form.location?.timezone ?? '',
+    birth: {
+      gender: form.gender || 'female',
+      date: form.date,
+      time: form.time,
+      location: {
+        place: form.location?.place ?? '',
+        longitude: form.location?.longitude ?? 0,
+        timezone: form.location?.timezone ?? '',
+      },
+    },
     note: form.note.trim(),
     third_party_consent: form.third_party_consent,
   })

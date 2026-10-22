@@ -64,7 +64,7 @@
         {{ profile.name }}
       </el-descriptions-item>
       <el-descriptions-item :label="$t('profiles.form.gender')">
-        {{ $t(profile.gender === 'male' ? 'profiles.male' : 'profiles.female') }}
+        {{ $t(profile.birth.gender === 'male' ? 'profiles.male' : 'profiles.female') }}
       </el-descriptions-item>
       <el-descriptions-item :label="$t('profiles.info.birth')">
         {{ birthSummary(profile) }}

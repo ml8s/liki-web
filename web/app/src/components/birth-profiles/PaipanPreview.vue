@@ -264,32 +264,32 @@ async function compute() {
   bazhai.value = null
   daXianRaw.value = []
   liuNian.value = null
-  if (!p.birth_instant || !p.birth_timezone || p.birth_longitude == null) {
+  if (!p.birth?.instant || !p.birth?.location?.timezone || p.birth?.location?.longitude == null) {
     error.value = t('profiles.chart.errors.missingTime')
     return
   }
-  if (!p.birth_date) {
+  if (!p.birth.date) {
     error.value = t('profiles.chart.errors.missingTime')
     return
   }
   loading.value = true
   try {
     const ctx = {
-      instant: p.birth_instant,
-      timezone: p.birth_timezone,
-      longitude: p.birth_longitude,
+      instant: p.birth.instant,
+      timezone: p.birth.location.timezone,
+      longitude: p.birth.location.longitude,
     }
     correction.value = t('profiles.chart.correctedLongitude', { lng: Number(ctx.longitude).toFixed(4) })
 
-    const chart = await natalChartForChartInput({ ...ctx, gender: p.gender })
+    const chart = await natalChartForChartInput({ ...ctx, gender: p.birth.gender })
     baziChart.value = chart.bazi
     baziFull.value = chart.baziDetail
     yongShen.value = chart.baziDetail.yong_shen ?? null
     ziwei.value = chart.ziwei
     daXianRaw.value = chart.ziweiDaXian
     await loadBaziLiuNian()
-    const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
-    bazhai.value = await bazhaiChartFor(birthYear, p.gender)
+    const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
+    bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
     if (tab.value === 'ziwei') void loadLiuNian()
   } catch (err) {
     error.value = toUserMessage(err, t('profiles.chart.failed'))

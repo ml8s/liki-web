@@ -258,8 +258,8 @@ const rules = computed<FormRules>(() => ({
     validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
       const p = profiles.list.find(item => item.id === value)
       if (!value || !p) return callback(new Error(t('chat.selectBirthProfileFirst')))
-      if (!p.birth_date) return callback(new Error(t('profiles.chart.errors.missingTime')))
-      const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
+      if (!p.birth.date) return callback(new Error(t('profiles.chart.errors.missingTime')))
+      const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
       if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2100) {
         return callback(new Error(t('services.fengshui.invalidBirthYear')))
       }
@@ -292,12 +292,12 @@ async function loadPreview() {
   bazhai.value = null
   layoutResult.value = null
   try {
-    if (!p.birth_date) {
+    if (!p.birth.date) {
       error.value = t('profiles.chart.errors.missingTime')
       return
     }
-    const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
-    bazhai.value = await bazhaiChartFor(birthYear, p.gender)
+    const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
+    bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
     void loadXuankong()
   } catch (err) {
     error.value = toUserMessage(err, t('services.fengshui.failed'))

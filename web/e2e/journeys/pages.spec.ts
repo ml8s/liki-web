@@ -188,8 +188,8 @@ test.describe('Static page interactions', () => {
     const drafts = JSON.parse(raw) as Record<string, { data: Record<string, unknown>; createdAt: number }>;
     const envelope = drafts['handoff:birth'];
     expect(envelope?.data).toMatchObject({
-      birth_date: '2000-01-01',
-      birth_time: '12:00',
+      date: '2000-01-01',
+      time: '12:00',
       gender: 'female',
       location: {
         place: '上海市',

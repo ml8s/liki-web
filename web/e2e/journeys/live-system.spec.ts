@@ -25,13 +25,12 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
     headers: { Origin: publicUrl, Referer: `${publicUrl}/` },
     data: {
       nickname: 'System E2E',
-      gender: 'male',
-
-      birth_date: '1990-05-20',
-      birth_time: '12:00',
-      birth_local_time: '12:00',
-
-      birth_place: 'Beijing',
+      birth: {
+        gender: 'male',
+        date: '1990-05-20',
+        time: '12:00',
+        location: { place: 'Beijing', longitude: 116.4074, timezone: 'Asia/Shanghai' },
+      },
       note: '',
       third_party_consent: false,
     },

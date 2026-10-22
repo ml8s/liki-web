@@ -34,11 +34,11 @@ const nickname = computed(() => data.value.nickname ?? t('profiles.profile'))
 
 const summary = computed(() => {
   const d = data.value
-  const gender = d.gender === 'male' ? t('profiles.male') : d.gender === 'female' ? t('profiles.female') : ''
-  const place = d.birth_place ? ` · ${d.birth_place}` : ''
-  const canonicalTime = d.birth_instant && d.birth_timezone
-    ? formatInstant(d.birth_instant, d.birth_timezone)
-    : [d.birth_date, d.birth_time].filter(Boolean).join(' ')
+  const gender = d.birth?.gender === 'male' ? t('profiles.male') : d.birth?.gender === 'female' ? t('profiles.female') : ''
+  const place = d.birth?.location?.place ? ` · ${d.birth.location.place}` : ''
+  const canonicalTime = d.birth?.instant && d.birth?.location?.timezone
+    ? formatInstant(d.birth.instant, d.birth.location.timezone)
+    : [d.birth?.date, d.birth?.time].filter(Boolean).join(' ')
   return [canonicalTime, gender, place].filter(Boolean).join(' ')
 })
 </script>

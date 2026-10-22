@@ -2,19 +2,27 @@ import { get, post, request } from './http'
 import { i18n } from '@/i18n'
 import { formatInstant } from '@shared/domain/time'
 
+export interface BirthLocation {
+  place: string
+  longitude: number | null
+  timezone: string | null
+}
+
+export interface BirthFacts {
+  gender: 'male' | 'female'
+  date: string | null
+  time: string | null
+  location: BirthLocation
+  instant: string | null
+}
+
 export interface BirthProfile {
   id: string
   user_id: string
   version: number
   nickname: string
   name: string
-  gender: 'male' | 'female'
-  birth_place: string
-  birth_longitude: number | null
-  birth_timezone: string | null
-  birth_instant: string | null
-  birth_date: string | null
-  birth_time: string | null
+  birth: BirthFacts
   note: string
   third_party_consent: boolean
   last_used_at: string | null
@@ -25,12 +33,16 @@ export interface BirthProfile {
 export interface BirthProfileInput {
   nickname: string
   name?: string
-  gender: 'male' | 'female'
-  birth_date: string
-  birth_time: string
-  birth_place?: string
-  birth_longitude: number
-  birth_timezone: string
+  birth: {
+    gender: 'male' | 'female'
+    date: string
+    time: string
+    location: {
+      place?: string
+      longitude: number
+      timezone: string
+    }
+  }
   note?: string
   third_party_consent?: boolean
 }
@@ -67,14 +79,14 @@ export function deleteBirthProfile(id: string): Promise<{ status: string }> {
 
 export function birthSummary(profile: BirthProfile): string {
   const t = i18n.global.t
-  const gender = profile.gender === 'male' ? t('profiles.male') : t('profiles.female')
-  const place = profile.birth_place ? ` · ${profile.birth_place}` : ''
-  const canonicalTime = profile.birth_instant && profile.birth_timezone
-    ? formatInstant(profile.birth_instant, profile.birth_timezone)
+  const gender = profile.birth.gender === 'male' ? t('profiles.male') : t('profiles.female')
+  const place = profile.birth.location.place ? ` · ${profile.birth.location.place}` : ''
+  const canonicalTime = profile.birth.instant && profile.birth.location.timezone
+    ? formatInstant(profile.birth.instant, profile.birth.location.timezone)
     : ''
   return i18n.global.t('profiles.summary', {
-    date: canonicalTime || profile.birth_date || '',
-    time: canonicalTime ? '' : profile.birth_time || '',
+    date: canonicalTime || profile.birth.date || '',
+    time: canonicalTime ? '' : profile.birth.time || '',
     gender,
     place,
   })

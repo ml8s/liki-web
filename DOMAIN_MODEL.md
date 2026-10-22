@@ -54,12 +54,12 @@ id
 user_id
 nickname
 gender
-birth_place       # display label (free text; not used for computation)
-birth_longitude   # WGS-84 longitude used for true solar time
-birth_timezone    # IANA timezone used with birth_instant
-birth_instant     # canonical RFC 3339 UTC instant for exact-time profiles
-birth_date        # Gregorian date derived from birth_instant + birth_timezone
-birth_time        # local wall time derived from birth_instant + birth_timezone
+birth.location.place # display label (free text; not used for computation)
+birth.location.longitude # WGS-84 longitude used for true solar time
+birth.location.timezone # IANA timezone used with birth.instant
+birth.instant        # canonical RFC 3339 UTC instant for exact-time profiles
+birth.date           # Gregorian date derived from birth.instant + timezone
+birth.time           # local wall time derived from birth.instant + timezone
 version
 ```
 
@@ -69,8 +69,8 @@ Invariants:
 - Updates use optimistic locking through `version`.
 - Cross-user reads are forbidden.
 - Erasure anonymizes birth data and embedded profile messages.
-- Chartable profiles require `birth_longitude`, `birth_timezone`, and
-  `birth_instant` together.
+- Chartable profiles require `birth.location.longitude`,
+  `birth.location.timezone`, and `birth.instant` together.
 - There is no approximate/unknown time state. If canonical fields are absent,
   the profile cannot be charted until the user supplies complete information.
 - New/updated profile input is Gregorian-only and must be complete.

@@ -238,11 +238,13 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 		if err != nil {
 			return Message{}, Message{}, Session{}, err
 		}
-		binding.Profile = &AgentProfileContext{
-			Gender:         p.Gender,
-			BirthLongitude: p.BirthLongitude,
-			BirthTimezone:  p.BirthTimezone,
-			BirthInstant:   p.BirthInstant,
+		binding.Profile = &AgentProfile{
+			Gender:  p.Birth.Gender,
+			Instant: p.Birth.Instant,
+			Location: &AgentBirthLocation{
+				Longitude: p.Birth.Location.Longitude,
+				Timezone:  p.Birth.Location.Timezone,
+			},
 		}
 	}
 	ctx = withSessionBinding(ctx, binding)
@@ -311,14 +313,19 @@ func assistantContent(messages []llm.Message) string {
 // card. Structured JSON so the frontend can render it without parsing prose.
 func systemProfileContent(p birthprofile.BirthProfile) (string, error) {
 	payload := map[string]any{
-		"nickname":            p.Nickname,
-		"name":                p.Name,
-		"gender":              p.Gender,
-		"birth_longitude":     p.BirthLongitude,
-		"birth_timezone":      p.BirthTimezone,
-		"birth_instant":       p.BirthInstant,
-		"birth_date":          p.BirthDate,
-		"birth_time":          p.BirthTime,
+		"nickname": p.Nickname,
+		"name":     p.Name,
+		"birth": map[string]any{
+			"gender":  p.Birth.Gender,
+			"instant": p.Birth.Instant,
+			"date":    p.Birth.Date,
+			"time":    p.Birth.Time,
+			"location": map[string]any{
+				"place":     p.Birth.Location.Place,
+				"longitude": p.Birth.Location.Longitude,
+				"timezone":  p.Birth.Location.Timezone,
+			},
+		},
 		"third_party_consent": p.ThirdPartyConsent,
 	}
 	raw, err := json.Marshal(payload)

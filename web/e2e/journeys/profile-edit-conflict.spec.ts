@@ -6,12 +6,13 @@ import { json, mockWorkspace, testUser } from '../mocks'
 
 const user = testUser({ id: 'usr_profile', email: 'profile@example.com' })
 const profile = {
-  id: 'p_1', user_id: user.id, version: 3, nickname: '媽媽', name: '', gender: 'female',
-  birth_date: '1958-05-12', birth_time: '06:00',
-  birth_local_time: '06:00',
-  birth_local_date: '1958-05-12',
-  birth_place: '上海', birth_longitude: 121.4726, birth_timezone: 'Asia/Shanghai',
-  birth_instant: '1958-05-11T22:00:00Z', note: '', third_party_consent: true, last_used_at: null,
+  id: 'p_1', user_id: user.id, version: 3, nickname: '媽媽', name: '',
+  birth: {
+    gender: 'female', date: '1958-05-12', time: '06:00',
+    instant: '1958-05-11T22:00:00Z',
+    location: { place: '上海', longitude: 121.4726, timezone: 'Asia/Shanghai' },
+  },
+  note: '', third_party_consent: true, last_used_at: null,
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
 

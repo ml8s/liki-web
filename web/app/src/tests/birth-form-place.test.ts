@@ -66,7 +66,7 @@ describe('BirthForm place resolution', () => {
         ? new Response(JSON.stringify(index), { status: 200, headers: { 'Content-Type': 'application/json' } })
         : toolOk({ candidates: [] }),
     )))
-    const wrapper = mountForm({ nickname: '妈妈', birth_place: '上海' })
+    const wrapper = mountForm({ nickname: '妈妈', birth: { location: { place: '上海' } } })
     await flushPromises()
     expect(longitudeValue(wrapper)).toBe('121.4737')
   })

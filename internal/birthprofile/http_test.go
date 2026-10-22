@@ -51,10 +51,13 @@ func wrap(h *Handler) http.Handler {
 
 func completePayload(nickname string) map[string]any {
 	return map[string]any{
-		"nickname": nickname, "gender": "female",
-		"birth_date": "1958-05-12", "birth_time": "06:00",
-		"birth_place": "上海", "birth_longitude": 121.4737,
-		"birth_timezone": "Asia/Shanghai",
+		"nickname": nickname,
+		"birth": map[string]any{
+			"gender": "female", "date": "1958-05-12", "time": "06:00",
+			"location": map[string]any{
+				"place": "上海", "longitude": 121.4737, "timezone": "Asia/Shanghai",
+			},
+		},
 	}
 }
 
@@ -70,7 +73,7 @@ func TestHTTPCreateAndGet(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &env); err != nil {
 		t.Fatal(err)
 	}
-	if env.Data.ID == "" || env.Data.BirthInstant == nil || env.Data.BirthDate != "1958-05-12" {
+	if env.Data.ID == "" || env.Data.Birth.Instant == nil || env.Data.Birth.Date != "1958-05-12" {
 		t.Fatalf("unexpected profile: %+v", env.Data)
 	}
 
@@ -83,10 +86,13 @@ func TestHTTPCreateAndGet(t *testing.T) {
 func TestHTTPValidation(t *testing.T) {
 	h := newHandlerFixture(t)
 	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", map[string]any{
-		"nickname": "", "gender": "female",
-		"birth_date": "1958-05-12", "birth_time": "06:00",
-		"birth_place": "上海", "birth_longitude": 121.4737,
-		"birth_timezone": "Asia/Shanghai",
+		"nickname": "",
+		"birth": map[string]any{
+			"gender": "female", "date": "1958-05-12", "time": "06:00",
+			"location": map[string]any{
+				"place": "上海", "longitude": 121.4737, "timezone": "Asia/Shanghai",
+			},
+		},
 	})
 	if rr.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected 422, got %d body=%s", rr.Code, rr.Body.String())
@@ -96,7 +102,7 @@ func TestHTTPValidation(t *testing.T) {
 func TestHTTPRequiresCompleteChartInput(t *testing.T) {
 	h := newHandlerFixture(t)
 	payload := completePayload("妈妈")
-	payload["birth_timezone"] = nil
+	payload["birth"].(map[string]any)["location"].(map[string]any)["timezone"] = nil
 	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", payload)
 	if rr.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected 422 for incomplete input, got %d body=%s", rr.Code, rr.Body.String())
@@ -123,9 +129,9 @@ func TestHTTPListAndDelete(t *testing.T) {
 	h := newHandlerFixture(t)
 	for _, nickname := range []string{"甲", "乙", "丙"} {
 		payload := completePayload(nickname)
-		payload["gender"] = "male"
-		payload["birth_date"] = "1990-01-01"
-		payload["birth_time"] = "12:00"
+		payload["birth"].(map[string]any)["gender"] = "male"
+		payload["birth"].(map[string]any)["date"] = "1990-01-01"
+		payload["birth"].(map[string]any)["time"] = "12:00"
 		doJSON(t, h, http.MethodPost, "/api/birth-profiles", payload)
 	}
 	rr := doJSON(t, h, http.MethodGet, "/api/birth-profiles", nil)

@@ -134,12 +134,14 @@ func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
 	ctx := context.Background()
 	profileStore := service.profiles
 	created, err := profileStore.Create(ctx, "user-1", birthprofile.BirthProfileInput{
-		Nickname:       "Test",
-		Gender:         "male",
-		BirthDate:      "1990-06-01",
-		BirthTime:      "12:00",
-		BirthTimezone:  &[]string{"Asia/Shanghai"}[0],
-		BirthLongitude: &[]float64{116.4074}[0],
+		Nickname: "Test",
+		Birth: birthprofile.BirthFactsInput{
+			Gender: "male", Date: "1990-06-01", Time: "12:00",
+			Location: birthprofile.BirthLocationInput{
+				Timezone:  &[]string{"Asia/Shanghai"}[0],
+				Longitude: &[]float64{116.4074}[0],
+			},
+		},
 	})
 	if err != nil {
 		t.Fatalf("create profile: %v", err)

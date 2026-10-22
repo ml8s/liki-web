@@ -108,10 +108,14 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 
 	// user_1 建档案 + 会话 + system_profile 消息（含 PII）
 	p, err := profileStore.Create(ctx, "user_1", birthprofile.BirthProfileInput{
-		Nickname: "妈妈", Gender: "female",
-		BirthDate: "1958-05-12", BirthTime: "06:00",
-		BirthTimezone:  &[]string{"Asia/Shanghai"}[0],
-		BirthLongitude: &[]float64{121.4737}[0],
+		Nickname: "妈妈",
+		Birth: birthprofile.BirthFactsInput{
+			Gender: "female", Date: "1958-05-12", Time: "06:00",
+			Location: birthprofile.BirthLocationInput{
+				Timezone:  &[]string{"Asia/Shanghai"}[0],
+				Longitude: &[]float64{121.4737}[0],
+			},
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -120,7 +124,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "assistant", chat.KindSystemProfile, `{"birth_date":"1958-闰5-12"}`); err != nil {
+	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "assistant", chat.KindSystemProfile, `{"date":"1958-闰5-12"}`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "user", chat.KindText, "我出生于 1958 年闰五月十二，想问婚姻"); err != nil {

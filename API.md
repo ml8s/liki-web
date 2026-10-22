@@ -43,7 +43,7 @@ counsel tools (`bazi_yongshen`, `naming_*`, `liuyao_query`, …) under
 Chart tools accept the canonical `{instant, timezone, longitude}` context. `instant` is
 an RFC 3339 UTC instant, `timezone` is an IANA zone, and `longitude` is WGS-84.
 The browser converts exact Gregorian wall-clock input locally with Temporal and
-never sends raw `calendar`, `birth_date`, or `birth_time` fields to chart tools.
+never sends raw calendar or profile wall-time fields to chart tools.
 Lunar calendar arithmetic remains engine-internal output, not browser input.
 
 Browser callers must materialize Engine MCP arguments rather than relying on
@@ -107,12 +107,31 @@ Verification codes are rate limited. Production does not return the verification
 
 Profile updates use `expected_version`. Cross-user access does not reveal another user's data.
 
-New and updated profiles accept a complete Gregorian wall time and location:
-`birth_date` (`YYYY-MM-DD`), `birth_time` (`HH:mm`), `birth_timezone` (IANA
-zone), and `birth_longitude` (WGS-84, `-180..180`). The server computes and
-stores `birth_instant`; responses project `birth_date` and `birth_time`
-for editing and display. There is no approximate/unknown time state. Incomplete
-profiles cannot be charted until they are edited and completed.
+New and updated profiles carry birth facts in one nested `birth` object.
+Input requires `gender`, `date` (`YYYY-MM-DD`), `time` (`HH:mm`), and
+`location.timezone` (IANA zone) plus `location.longitude` (WGS-84,
+`-180..180`). `location.place` is display-only. The server computes and stores
+`instant`; responses project `date` and `time` for editing and display. There
+is no approximate/unknown time state. Incomplete profiles cannot be charted
+until they are edited and completed.
+
+```json
+{
+  "nickname": "妈妈",
+  "birth": {
+    "gender": "female",
+    "date": "1958-05-12",
+    "time": "06:00",
+    "location": {
+      "place": "上海",
+      "longitude": 121.4737,
+      "timezone": "Asia/Shanghai"
+    }
+  }
+}
+```
+
+Responses use the same `birth` object and add canonical `instant`.
 
 ## Products and checkout
 

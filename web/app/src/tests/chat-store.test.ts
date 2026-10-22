@@ -159,13 +159,13 @@ describe('direct transport context', () => {
       version: 1,
       nickname: '测试',
       name: '',
-      gender: 'male',
-      birth_place: 'Beijing',
-      birth_longitude: 116.4074,
-      birth_timezone: 'Asia/Shanghai',
-      birth_instant: '1990-05-20T03:00:00Z',
-      birth_date: '1990-05-20',
-      birth_time: '11:00',
+      birth: {
+        gender: 'male',
+        date: '1990-05-20',
+        time: '11:00',
+        instant: '1990-05-20T03:00:00Z',
+        location: { place: 'Beijing', longitude: 116.4074, timezone: 'Asia/Shanghai' },
+      },
       note: '',
       third_party_consent: false,
       last_used_at: null,
@@ -189,9 +189,8 @@ describe('direct transport context', () => {
       ],
       profile: {
         gender: 'male',
-        birth_longitude: 116.4074,
-        birth_timezone: 'Asia/Shanghai',
-        birth_instant: '1990-05-20T03:00:00Z',
+        instant: '1990-05-20T03:00:00Z',
+        location: { longitude: 116.4074, timezone: 'Asia/Shanghai' },
       },
     })
     vi.unstubAllEnvs()

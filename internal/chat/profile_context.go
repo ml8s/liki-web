@@ -14,17 +14,23 @@ type sessionBinding struct {
 	UserID    string
 	SessionID string
 	ProfileID string
-	Profile   *AgentProfileContext
+	Profile   *AgentProfile
 }
 
-// AgentProfileContext is the minimum birth facts required by a remote Agent to
-// call deterministic chart tools. It deliberately excludes identity, contact,
+// AgentBirthLocation is the minimal computation location. Place is omitted so
+// display text cannot become a hidden chart input.
+type AgentBirthLocation struct {
+	Longitude *float64 `json:"longitude,omitempty"`
+	Timezone  *string  `json:"timezone,omitempty"`
+}
+
+// AgentProfile is the minimum birth facts required by a remote Agent to call
+// deterministic chart tools. It deliberately excludes identity, contact,
 // consent, notes, and database identifiers.
-type AgentProfileContext struct {
-	Gender         string     `json:"gender"`
-	BirthLongitude *float64   `json:"birth_longitude,omitempty"`
-	BirthTimezone  *string    `json:"birth_timezone,omitempty"`
-	BirthInstant   *time.Time `json:"birth_instant,omitempty"`
+type AgentProfile struct {
+	Gender   string              `json:"gender"`
+	Instant  *time.Time          `json:"instant,omitempty"`
+	Location *AgentBirthLocation `json:"location,omitempty"`
 }
 
 func withSessionBinding(ctx context.Context, binding sessionBinding) context.Context {

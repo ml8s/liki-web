@@ -14,12 +14,13 @@ const mcpOk = (data: unknown) => ({
 })
 
 const savedProfile = {
-  id: 'p_new', user_id: 'usr_test', version: 1, nickname: '测试', name: '', gender: 'female',
-  birth_date: '1990-06-15', birth_time: '08:30',
-  birth_local_time: '08:30',
-  birth_local_date: '1990-06-15',
-  birth_place: '湖南省长沙县', birth_longitude: 113.075, birth_timezone: 'Asia/Shanghai',
-  birth_instant: '1990-06-14T23:30:00Z', note: '', third_party_consent: true,
+  id: 'p_new', user_id: 'usr_test', version: 1, nickname: '测试', name: '',
+  birth: {
+    gender: 'female', date: '1990-06-15', time: '08:30',
+    instant: '1990-06-14T23:30:00Z',
+    location: { place: '湖南省长沙县', longitude: 113.075, timezone: 'Asia/Shanghai' },
+  },
+  note: '', third_party_consent: true,
   last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
 
@@ -70,9 +71,15 @@ test('ambiguous birth place resolves to a persisted longitude', async ({ page })
   await expect.poll(() => created.length).toBe(1)
   expect(created[0]).toMatchObject({
     nickname: '测试',
-    birth_place: '湖南省长沙县',
-    birth_longitude: 113.075,
-    birth_timezone: 'Asia/Shanghai',
-    birth_instant: '1990-06-14T23:30:00Z',
+    birth: {
+      gender: 'female',
+      date: '1990-06-15',
+      time: '08:30',
+      location: {
+        place: '湖南省长沙县',
+        longitude: 113.075,
+        timezone: 'Asia/Shanghai',
+      },
+    },
   })
 })

@@ -77,10 +77,12 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	ctx := withSessionBinding(context.Background(), sessionBinding{
 		UserID:    "user-1",
 		SessionID: "session-1",
-		Profile: &AgentProfileContext{
-			Gender:         "male",
-			BirthLongitude: &[]float64{116.4074}[0],
-			BirthTimezone:  &[]string{"Asia/Shanghai"}[0],
+		Profile: &AgentProfile{
+			Gender: "male",
+			Location: &AgentBirthLocation{
+				Longitude: &[]float64{116.4074}[0],
+				Timezone:  &[]string{"Asia/Shanghai"}[0],
+			},
 		},
 	})
 	input := []llm.Message{
@@ -110,7 +112,7 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	}
 	profile, ok := props["profile"].(map[string]any)
 	if !ok || profile["gender"] != "male" ||
-		profile["birth_longitude"] != 116.4074 || profile["birth_timezone"] != "Asia/Shanghai" {
+		profile["location"].(map[string]any)["longitude"] != 116.4074 || profile["location"].(map[string]any)["timezone"] != "Asia/Shanghai" {
 		t.Fatalf("profile ForwardedProps = %#v", props["profile"])
 	}
 	if len(request.Messages) != 3 {

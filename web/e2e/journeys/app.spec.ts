@@ -45,12 +45,13 @@ test.describe('Authenticated app shell', () => {
   test('authenticated pages render their headings', async ({ page }) => {
     // 工作台对新用户直达建档；给一个档案模拟老用户，验证工作台本体。
     const profile = {
-      id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female',
-      relation: '家人', birth_date: '1958-05-12', birth_time: '06:00',
-      birth_local_time: '06:00',
-      birth_local_date: '1958-05-12',
-      birth_place: '上海', birth_longitude: 121.4726,
-      birth_timezone: 'Asia/Shanghai', birth_instant: '1958-05-11T22:00:00Z',
+      id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '',
+      relation: '家人',
+      birth: {
+        gender: 'female', date: '1958-05-12', time: '06:00',
+        instant: '1958-05-11T22:00:00Z',
+        location: { place: '上海', longitude: 121.4726, timezone: 'Asia/Shanghai' },
+      },
       note: '', third_party_consent: true,
       last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
     };
@@ -89,12 +90,13 @@ test.describe('Authenticated app shell', () => {
 
 test('paid return confirms entitlement and jumps straight into a session', async ({ page }) => {
   const profile = {
-    id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female',
-    relation: '家人', birth_date: '1958-05-12', birth_time: '06:00',
-    birth_local_time: '06:00',
-    birth_local_date: '1958-05-12',
-    birth_place: '上海', birth_longitude: 121.4726,
-    birth_timezone: 'Asia/Shanghai', birth_instant: '1958-05-11T22:00:00Z',
+    id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '',
+    relation: '家人',
+    birth: {
+      gender: 'female', date: '1958-05-12', time: '06:00',
+      instant: '1958-05-11T22:00:00Z',
+      location: { place: '上海', longitude: 121.4726, timezone: 'Asia/Shanghai' },
+    },
     note: '', third_party_consent: true,
     last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   };

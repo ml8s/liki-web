@@ -45,7 +45,7 @@ Normalisation deviations are deliberate; none are accidental:
 | Verbatim JSON payload | feedback.payload | Self-describing `feedback-v1` schema; the backend never interprets skill fields |
 | JSON array column | entitlements.skills | Skill snapshot is frozen at grant time and never filtered in SQL |
 | JSON extension object | payment_intents.metadata | Extension field for provider round-tripping |
-| Canonical birth-time triple | birth_profiles.birth_utc / birth_timezone / birth_longitude | Exact charting stores one UTC instant with its IANA zone and true-solar longitude; approximate/unknown facts remain null and are never defaulted |
+| Canonical birth-time triple | birth_profiles.instant / timezone / longitude | Exact charting stores one UTC instant with its IANA zone and true-solar longitude; approximate/unknown facts remain null and are never defaulted |
 | Redundant user_id on message rows | chat_messages | Serves the per-user PII erasure sweep |
 
 Naming and legacy notes:

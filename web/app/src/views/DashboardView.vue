@@ -178,7 +178,7 @@
             >
               <span class="rp-avatar font-serif">{{ profile.nickname.slice(0, 1) }}</span>
               <span class="rp-name">{{ profile.nickname }}</span>
-              <span class="rp-meta">{{ $t(profile.gender === 'male' ? 'profiles.male' : 'profiles.female') }}</span>
+              <span class="rp-meta">{{ $t(profile.birth.gender === 'male' ? 'profiles.male' : 'profiles.female') }}</span>
             </router-link>
             <router-link
               class="recent-profile add"

@@ -34,9 +34,11 @@ func validInput() BirthProfileInput {
 	lng := 121.4737
 	tz := "Asia/Shanghai"
 	return BirthProfileInput{
-		Nickname: "妈妈", Gender: "female",
-		BirthDate: "1958-05-12", BirthTime: "06:00",
-		BirthPlace: "上海", BirthLongitude: &lng, BirthTimezone: &tz,
+		Nickname: "妈妈",
+		Birth: BirthFactsInput{
+			Gender: "female", Date: "1958-05-12", Time: "06:00",
+			Location: BirthLocationInput{Place: "上海", Longitude: &lng, Timezone: &tz},
+		},
 	}
 }
 
@@ -46,14 +48,14 @@ func TestStoreCreateGetRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.Version != 1 || p.Nickname != "妈妈" || p.Gender != "female" {
+	if p.Version != 1 || p.Nickname != "妈妈" || p.Birth.Gender != "female" {
 		t.Fatalf("unexpected profile: %+v", p)
 	}
 	got, err := store.Get(context.Background(), userID, p.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.ID != p.ID || got.BirthDate != "1958-05-12" || got.BirthTime != "06:00" {
+	if got.ID != p.ID || got.Birth.Date != "1958-05-12" || got.Birth.Time != "06:00" {
 		t.Fatalf("roundtrip mismatch: %+v", got)
 	}
 	if _, err := store.Get(context.Background(), "other_user", p.ID); !errors.Is(err, ErrNotFound) {
@@ -155,14 +157,14 @@ func TestInputValidation(t *testing.T) {
 		mut  func(*BirthProfileInput)
 	}{
 		{"empty nickname", func(in *BirthProfileInput) { in.Nickname = "" }},
-		{"bad gender", func(in *BirthProfileInput) { in.Gender = "other" }},
-		{"bad date", func(in *BirthProfileInput) { in.BirthDate = "58-05-12" }},
-		{"future date", func(in *BirthProfileInput) { in.BirthDate = "2999-01-01" }},
-		{"missing time", func(in *BirthProfileInput) { in.BirthTime = "" }},
-		{"missing timezone", func(in *BirthProfileInput) { in.BirthTimezone = nil }},
-		{"missing longitude", func(in *BirthProfileInput) { in.BirthLongitude = nil }},
-		{"longitude out of range", func(in *BirthProfileInput) { lng := 181.0; in.BirthLongitude = &lng }},
-		{"longitude NaN", func(in *BirthProfileInput) { lng := math.NaN(); in.BirthLongitude = &lng }},
+		{"bad gender", func(in *BirthProfileInput) { in.Birth.Gender = "other" }},
+		{"bad date", func(in *BirthProfileInput) { in.Birth.Date = "58-05-12" }},
+		{"future date", func(in *BirthProfileInput) { in.Birth.Date = "2999-01-01" }},
+		{"missing time", func(in *BirthProfileInput) { in.Birth.Time = "" }},
+		{"missing timezone", func(in *BirthProfileInput) { in.Birth.Location.Timezone = nil }},
+		{"missing longitude", func(in *BirthProfileInput) { in.Birth.Location.Longitude = nil }},
+		{"longitude out of range", func(in *BirthProfileInput) { lng := 181.0; in.Birth.Location.Longitude = &lng }},
+		{"longitude NaN", func(in *BirthProfileInput) { lng := math.NaN(); in.Birth.Location.Longitude = &lng }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -186,7 +188,7 @@ func TestStore_AnonymizeUser(t *testing.T) {
 	for range 2 {
 		in := validInput()
 		lng := 121.4737
-		in.BirthLongitude = &lng
+		in.Birth.Location.Longitude = &lng
 		if _, err := store.Create(context.Background(), "user_1", in); err != nil {
 			t.Fatal(err)
 		}
@@ -207,11 +209,11 @@ func TestStore_AnonymizeUser(t *testing.T) {
 	var erasedLongitude sql.NullFloat64
 	var erasedTimezone, erasedInstant sql.NullString
 	if err := store.db.QueryRowContext(context.Background(),
-		`SELECT birth_longitude,birth_timezone,birth_instant FROM birth_profiles WHERE user_id='user_1' LIMIT 1`).Scan(&erasedLongitude, &erasedTimezone, &erasedInstant); err != nil {
+		`SELECT longitude,timezone,instant FROM birth_profiles WHERE user_id='user_1' LIMIT 1`).Scan(&erasedLongitude, &erasedTimezone, &erasedInstant); err != nil {
 		t.Fatal(err)
 	}
 	if erasedLongitude.Valid {
-		t.Fatalf("anonymized profile must clear birth_longitude, got %v", erasedLongitude.Float64)
+		t.Fatalf("anonymized profile must clear longitude, got %v", erasedLongitude.Float64)
 	}
 	if erasedTimezone.Valid || erasedInstant.Valid {
 		t.Fatalf("anonymized profile must clear canonical fields, got tz=%v instant=%v", erasedTimezone, erasedInstant)
@@ -228,7 +230,7 @@ func TestStore_AnonymizeUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if kept.Nickname == "" || kept.BirthDate == "" {
+	if kept.Nickname == "" || kept.Birth.Date == "" {
 		t.Fatalf("user_2 profile must be untouched: %+v", kept)
 	}
 }
@@ -265,44 +267,44 @@ func TestStore_CleanupExpired(t *testing.T) {
 	}
 }
 
-func TestStoreBirthLongitudeRoundtrip(t *testing.T) {
+func TestStoreBirthLocationRoundtrip(t *testing.T) {
 	store, userID := newStoreFixture(t)
 	in := validInput()
 	lng := 121.4737
-	in.BirthLongitude = &lng
+	in.Birth.Location.Longitude = &lng
 	created, err := store.Create(context.Background(), userID, in)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.BirthLongitude == nil || *created.BirthLongitude != lng {
-		t.Fatalf("create longitude = %v, want %v", created.BirthLongitude, lng)
+	if created.Birth.Location.Longitude == nil || *created.Birth.Location.Longitude != lng {
+		t.Fatalf("create longitude = %v, want %v", created.Birth.Location.Longitude, lng)
 	}
 
 	got, err := store.Get(context.Background(), userID, created.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.BirthLongitude == nil || *got.BirthLongitude != lng {
-		t.Fatalf("get longitude = %v, want %v", got.BirthLongitude, lng)
+	if got.Birth.Location.Longitude == nil || *got.Birth.Location.Longitude != lng {
+		t.Fatalf("get longitude = %v, want %v", got.Birth.Location.Longitude, lng)
 	}
 
 	list, _, err := store.List(context.Background(), userID, "", 10)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list) != 1 || list[0].BirthLongitude == nil || *list[0].BirthLongitude != lng {
+	if len(list) != 1 || list[0].Birth.Location.Longitude == nil || *list[0].Birth.Location.Longitude != lng {
 		t.Fatalf("list longitude = %+v", list)
 	}
 
 	updated := validInput()
-	updated.BirthPlace = "深圳"
+	updated.Birth.Location.Place = "深圳"
 	updatedLng := 114.0579
-	updated.BirthLongitude = &updatedLng
+	updated.Birth.Location.Longitude = &updatedLng
 	saved, err := store.Update(context.Background(), userID, created.ID, created.Version, updated)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if saved.BirthLongitude == nil || *saved.BirthLongitude != updatedLng || saved.BirthPlace != "深圳" {
+	if saved.Birth.Location.Longitude == nil || *saved.Birth.Location.Longitude != updatedLng || saved.Birth.Location.Place != "深圳" {
 		t.Fatalf("update = %+v", saved)
 	}
 

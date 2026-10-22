@@ -180,33 +180,50 @@ CREATE INDEX idx_birth_profiles_user_created
 				return err
 			},
 		},
+		{
+			ID: "008_canonical_birth_columns",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE birth_profiles RENAME COLUMN birth_instant TO instant;
+ALTER TABLE birth_profiles RENAME COLUMN birth_timezone TO timezone;
+ALTER TABLE birth_profiles RENAME COLUMN birth_longitude TO longitude;
+ALTER TABLE birth_profiles RENAME COLUMN birth_place TO place;
+`)
+				return err
+			},
+		},
 	})
 }
 
 func (s *Store) Create(ctx context.Context, userID string, in BirthProfileInput) (BirthProfile, error) {
 	now := formatTime(s.nowFunc())
-	p := BirthProfile{
-		ID: s.idFunc(), UserID: userID, Version: 1,
-		Nickname: strings.TrimSpace(in.Nickname), Name: strings.TrimSpace(in.Name), Gender: in.Gender,
-		BirthPlace:     strings.TrimSpace(in.BirthPlace),
-		BirthLongitude: in.BirthLongitude,
-		BirthTimezone:  in.BirthTimezone,
-		Note:           strings.TrimSpace(in.Note), ThirdPartyConsent: in.ThirdPartyConsent,
-		CreatedAt: mustTime(now), UpdatedAt: mustTime(now),
-	}
 	instant, err := in.CanonicalInstant()
 	if err != nil {
 		return BirthProfile{}, err
 	}
-	p.BirthInstant = &instant
+	p := BirthProfile{
+		ID: s.idFunc(), UserID: userID, Version: 1,
+		Nickname: strings.TrimSpace(in.Nickname), Name: strings.TrimSpace(in.Name),
+		Birth: BirthFacts{
+			Gender: in.Birth.Gender,
+			Location: BirthLocation{
+				Place:     strings.TrimSpace(in.Birth.Location.Place),
+				Longitude: in.Birth.Location.Longitude,
+				Timezone:  in.Birth.Location.Timezone,
+			},
+			Instant: &instant,
+		},
+		Note: strings.TrimSpace(in.Note), ThirdPartyConsent: in.ThirdPartyConsent,
+		CreatedAt: mustTime(now), UpdatedAt: mustTime(now),
+	}
 	setBirthProjections(&p)
 	result, err := s.db.ExecContext(ctx, `
 INSERT INTO birth_profiles
-(id,user_id,version,nickname,name,gender,birth_instant,birth_timezone,birth_longitude,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
+(id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
 SELECT ?,?,1,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?
 WHERE (SELECT COUNT(1) FROM birth_profiles WHERE user_id=? AND deleted_at IS NULL) < ?`,
-		p.ID, userID, p.Nickname, p.Name, p.Gender, timeArg(p.BirthInstant),
-		p.BirthTimezone, p.BirthLongitude, p.BirthPlace, p.Note, p.ThirdPartyConsent,
+		p.ID, userID, p.Nickname, p.Name, p.Birth.Gender, timeArg(p.Birth.Instant),
+		p.Birth.Location.Timezone, p.Birth.Location.Longitude, p.Birth.Location.Place, p.Note, p.ThirdPartyConsent,
 		now, now, userID, MaxProfilesPerUser,
 	)
 	if err != nil {
@@ -237,33 +254,32 @@ func timeArg(value *time.Time) any {
 }
 
 func setBirthProjections(profile *BirthProfile) {
-	profile.BirthDate = ""
-	profile.BirthTime = ""
-	if profile.BirthInstant == nil || profile.BirthTimezone == nil {
+	profile.Birth.Date = ""
+	profile.Birth.Time = ""
+	if profile.Birth.Instant == nil || profile.Birth.Location.Timezone == nil {
 		return
 	}
-	location, err := time.LoadLocation(*profile.BirthTimezone)
+	location, err := time.LoadLocation(*profile.Birth.Location.Timezone)
 	if err != nil {
 		return
 	}
-	local := profile.BirthInstant.In(location)
-	profile.BirthDate = local.Format("2006-01-02")
-	profile.BirthTime = local.Format("15:04")
+	local := profile.Birth.Instant.In(location)
+	profile.Birth.Date = local.Format("2006-01-02")
+	profile.Birth.Time = local.Format("15:04")
 }
 
 func (s *Store) Get(ctx context.Context, userID, id string) (BirthProfile, error) {
 	var p BirthProfile
 	var version int
-	var birthLongitude sql.NullFloat64
-	var birthTimezone sql.NullString
-	var birthInstant sql.NullString
+	var longitude sql.NullFloat64
+	var timezone, instant sql.NullString
 	var thirdParty, deletedAt, lastUsedAt sql.NullString
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx, `
-SELECT id,user_id,version,nickname,name,gender,birth_instant,birth_timezone,birth_longitude,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
+SELECT id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
 FROM birth_profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID).Scan(
-		&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Gender,
-		&birthInstant, &birthTimezone, &birthLongitude, &p.BirthPlace, &p.Note, &thirdParty,
+		&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Birth.Gender,
+		&instant, &timezone, &longitude, &p.Birth.Location.Place, &p.Note, &thirdParty,
 		&lastUsedAt, &deletedAt, &createdAt, &updatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -274,16 +290,16 @@ FROM birth_profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID
 	}
 	p.Version = version
 	p.ThirdPartyConsent = thirdParty.Valid && thirdParty.String == "1"
-	if birthLongitude.Valid {
-		p.BirthLongitude = &birthLongitude.Float64
+	if longitude.Valid {
+		p.Birth.Location.Longitude = &longitude.Float64
 	}
-	if birthTimezone.Valid {
-		value := birthTimezone.String
-		p.BirthTimezone = &value
+	if timezone.Valid {
+		value := timezone.String
+		p.Birth.Location.Timezone = &value
 	}
-	if birthInstant.Valid {
-		t := mustTime(birthInstant.String)
-		p.BirthInstant = &t
+	if instant.Valid {
+		t := mustTime(instant.String)
+		p.Birth.Instant = &t
 	}
 	if lastUsedAt.Valid {
 		t := mustTime(lastUsedAt.String)
@@ -306,7 +322,7 @@ func (s *Store) List(ctx context.Context, userID, cursor string, limit int) ([]B
 		limit = 50
 	}
 	query := `
-SELECT id,user_id,version,nickname,name,gender,birth_instant,birth_timezone,birth_longitude,birth_place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
+SELECT id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
 FROM birth_profiles
 WHERE user_id=? AND deleted_at IS NULL`
 	args := []any{userID}
@@ -331,26 +347,26 @@ WHERE user_id=? AND deleted_at IS NULL`
 	for rows.Next() {
 		var p BirthProfile
 		var version int
-		var birthLongitude sql.NullFloat64
-		var birthTimezone, birthInstant, thirdParty, lastUsedAt, deletedAt sql.NullString
+		var longitude sql.NullFloat64
+		var timezone, instant, thirdParty, lastUsedAt, deletedAt sql.NullString
 		var createdAt, updatedAt string
-		if err := rows.Scan(&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Gender,
-			&birthInstant, &birthTimezone, &birthLongitude, &p.BirthPlace, &p.Note, &thirdParty,
+		if err := rows.Scan(&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Birth.Gender,
+			&instant, &timezone, &longitude, &p.Birth.Location.Place, &p.Note, &thirdParty,
 			&lastUsedAt, &deletedAt, &createdAt, &updatedAt); err != nil {
 			return nil, "", err
 		}
 		p.Version = version
 		p.ThirdPartyConsent = thirdParty.Valid && thirdParty.String == "1"
-		if birthLongitude.Valid {
-			p.BirthLongitude = &birthLongitude.Float64
+		if longitude.Valid {
+			p.Birth.Location.Longitude = &longitude.Float64
 		}
-		if birthTimezone.Valid {
-			value := birthTimezone.String
-			p.BirthTimezone = &value
+		if timezone.Valid {
+			value := timezone.String
+			p.Birth.Location.Timezone = &value
 		}
-		if birthInstant.Valid {
-			t := mustTime(birthInstant.String)
-			p.BirthInstant = &t
+		if instant.Valid {
+			t := mustTime(instant.String)
+			p.Birth.Instant = &t
 		}
 		if lastUsedAt.Valid {
 			t := mustTime(lastUsedAt.String)
@@ -389,11 +405,11 @@ func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion i
 	result, err := s.db.ExecContext(ctx, `
 UPDATE birth_profiles SET
   version=version+1,
-  nickname=?, name=?, gender=?, birth_place=?, birth_longitude=?, birth_timezone=?, birth_instant=?, note=?, third_party_consent=?,
+  nickname=?, name=?, gender=?, place=?, longitude=?, timezone=?, instant=?, note=?, third_party_consent=?,
   updated_at=?
 WHERE id=? AND user_id=? AND deleted_at IS NULL AND version=?`,
-		strings.TrimSpace(in.Nickname), strings.TrimSpace(in.Name), in.Gender,
-		strings.TrimSpace(in.BirthPlace), in.BirthLongitude, in.BirthTimezone,
+		strings.TrimSpace(in.Nickname), strings.TrimSpace(in.Name), in.Birth.Gender,
+		strings.TrimSpace(in.Birth.Location.Place), in.Birth.Location.Longitude, in.Birth.Location.Timezone,
 		timeArg(&instant), strings.TrimSpace(in.Note), in.ThirdPartyConsent, now,
 		id, userID, expectedVersion,
 	)
@@ -447,7 +463,7 @@ func (s *Store) AnonymizeUser(ctx context.Context, userID string) (int64, error)
 	now := formatTime(s.nowFunc())
 	result, err := s.db.ExecContext(ctx, `
 UPDATE birth_profiles SET
-  nickname='', name='', gender='', birth_place='', birth_longitude=NULL, birth_timezone=NULL, birth_instant=NULL, note='',
+  nickname='', name='', gender='', place='', longitude=NULL, timezone=NULL, instant=NULL, note='',
   third_party_consent=0,
   version=version+1, deleted_at=?, updated_at=?
 WHERE user_id=? AND deleted_at IS NULL`, now, now, userID)

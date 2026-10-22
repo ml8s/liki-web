@@ -218,15 +218,15 @@ async function loadA() {
   try {
     const p = profileA.value
     if (!p) return
-    if (!p.birth_instant || !p.birth_timezone || p.birth_longitude == null) {
+    if (!p.birth.instant || !p.birth.location.timezone || p.birth.location.longitude == null) {
       error.value = t('profiles.chart.errors.missingTime')
       return
     }
     chartA.value = await baziChartForChartInput({
-      instant: p.birth_instant,
-      timezone: p.birth_timezone,
-      longitude: p.birth_longitude,
-      gender: p.gender,
+      instant: p.birth.instant,
+      timezone: p.birth.location.timezone,
+      longitude: p.birth.location.longitude,
+      gender: p.birth.gender,
     })
   } catch (err) {
     error.value = toUserMessage(err, t('profiles.detail.loadFailed'))
@@ -248,7 +248,7 @@ async function compute() {
   try {
     const p = profileA.value
     if (!p) return
-    if (!p.birth_instant || !p.birth_timezone || p.birth_longitude == null) {
+    if (!p.birth.instant || !p.birth.location.timezone || p.birth.location.longitude == null) {
       error.value = t('profiles.chart.errors.missingTime')
       return
     }
@@ -256,10 +256,10 @@ async function compute() {
     const inputB = await chartInputFromBirth(birthB)
     const hepan = await hepanForChartInputs(
       {
-        instant: p.birth_instant,
-        timezone: p.birth_timezone,
-        longitude: p.birth_longitude,
-        gender: p.gender,
+        instant: p.birth.instant,
+        timezone: p.birth.location.timezone,
+        longitude: p.birth.location.longitude,
+        gender: p.birth.gender,
       },
       { ...inputB, gender: birthB.gender },
     )

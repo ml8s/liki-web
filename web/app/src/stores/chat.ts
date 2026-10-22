@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { AgentProfileContext, ChatMessage, ChatSession, ChatTurn } from '@/api/chat'
+import type { AgentProfile, ChatMessage, ChatSession, ChatTurn } from '@/api/chat'
 
 // @ag-ui/client 较重（~292KB raw）：仅在真正发送消息时动态加载，
 // 避免 dashboard 依赖链把 chat transport 拖入首屏。
@@ -30,16 +30,18 @@ function localId(): string {
 // 直连时 runtime 无状态：中继时代由 BFF 从数据库补上的既有对话与出生档案
 // 上下文，必须由客户端携带（契约 C3）。档案与中继一致做实时查询（会话创建
 // 后档案可能被编辑）；查询失败降级为不带档案，模型可向用户询问。
-async function loadProfileContext(profileId: string): Promise<AgentProfileContext | null> {
+async function loadProfileContext(profileId: string): Promise<AgentProfile | null> {
   if (!profileId) return null
   try {
     const profile = await fetchBirthProfile(profileId)
-    const context: AgentProfileContext = {
-      gender: profile.gender,
+    const context: AgentProfile = {
+      gender: profile.birth.gender,
+      instant: profile.birth.instant,
+      location: {
+        longitude: profile.birth.location.longitude,
+        timezone: profile.birth.location.timezone,
+      },
     }
-    if (profile.birth_longitude != null) context.birth_longitude = profile.birth_longitude
-    if (profile.birth_timezone) context.birth_timezone = profile.birth_timezone
-    if (profile.birth_instant) context.birth_instant = profile.birth_instant
     return context
   } catch {
     return null

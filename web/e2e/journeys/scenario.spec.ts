@@ -43,10 +43,11 @@ test.describe('Authenticated scenario handoff', () => {
   const user = testUser()
   const profile = {
     id: 'p_1', user_id: 'usr_test', version: 1, nickname: 'Mom', name: '',
-    gender: 'female', birth_date: '1990-01-01',
-    birth_local_date: '1990-01-01',
-    birth_time: '06:00', birth_place: 'Shanghai',
-    birth_local_time: '06:00',
+    birth: {
+      gender: 'female', date: '1990-01-01', time: '06:00',
+      instant: '1989-12-31T22:00:00Z',
+      location: { place: 'Shanghai', longitude: 121.4737, timezone: 'Asia/Shanghai' },
+    },
     note: '', third_party_consent: true, last_used_at: null,
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   }

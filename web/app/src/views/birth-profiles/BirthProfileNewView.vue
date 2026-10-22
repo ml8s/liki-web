@@ -100,12 +100,16 @@ onBeforeRouteLeave(async () => {
 const handoff = consumeHandoff<BirthFieldsValue>(HANDOFF_KEYS.birth)
 if (handoff?.date && handoff.location) {
   draft.value = {
-    birth_date: handoff.date,
-    birth_time: handoff.time,
-    gender: handoff.gender === 'male' ? 'male' : 'female',
-    birth_place: handoff.location.place,
-    birth_longitude: handoff.location.longitude,
-    birth_timezone: handoff.location.timezone,
+    birth: {
+      date: handoff.date,
+      time: handoff.time,
+      gender: handoff.gender === 'male' ? 'male' : 'female',
+      location: {
+        place: handoff.location.place,
+        longitude: handoff.location.longitude,
+        timezone: handoff.location.timezone,
+      },
+    },
     nickname: '',
     third_party_consent: false,
   }
