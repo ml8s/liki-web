@@ -198,6 +198,31 @@ runtime posts `/api/internal/runs/completed` back. Both internal endpoints are
 
 Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
 
+### AG-UI forwardedProps
+
+Both the relay runner and direct browser transport use one profile shape:
+
+```json
+{
+  "product": "liki",
+  "locale": "zh-Hant",
+  "profile": {
+    "gender": "female",
+    "instant": "1958-05-11T22:00:00Z",
+    "location": {
+      "longitude": 121.4737,
+      "timezone": "Asia/Shanghai"
+    }
+  }
+}
+```
+
+`profile` is present only for profile-bound sessions. The relay transport
+constructs it server-side from the owned profile; direct transport may send the
+same trusted shape after the browser loads it from `/api/birth-profiles/{id}`.
+`location.place`, identity, contact, consent, notes, and database IDs are
+deliberately excluded.
+
 ## Records
 
 | Method | Path | Auth | Purpose |
