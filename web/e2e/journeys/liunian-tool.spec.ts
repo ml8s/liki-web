@@ -40,6 +40,7 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await fillBirthFields(page, tool, { date: '1990-05-12', time: '08:30', gender: 'male' });
   await tool.locator('input[name="birth-place"]').fill('Shanghai');
   await tool.locator('input[name="birth-place"]').blur();
+  await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
   await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
