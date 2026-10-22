@@ -22,28 +22,24 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db, nowFunc: func() time.Time { return time.Now().UTC() }, idFunc: func() string { return uuid.NewString() }}
 }
 
-func (s *Store) Create(ctx context.Context, userID string, in BirthProfileInput) (BirthProfile, error) {
-	now := formatTime(s.nowFunc())
-	instant, err := in.CanonicalInstant()
+func (s *Store) Create(ctx context.Context, userID string, in BirthProfileDraft) (BirthProfile, error) {
+	nowTime := s.nowFunc()
+	if err := ValidateBirthProfileDraft(nowTime, in); err != nil {
+		return BirthProfile{}, err
+	}
+	now := formatTime(nowTime)
+	birth, err := NewBirthFacts(nowTime, in.Birth)
 	if err != nil {
 		return BirthProfile{}, err
 	}
 	p := BirthProfile{
 		ID: s.idFunc(), UserID: userID, Version: 1,
 		Nickname: strings.TrimSpace(in.Nickname), Name: strings.TrimSpace(in.Name),
-		Birth: BirthFacts{
-			Gender: in.Birth.Gender,
-			Location: BirthLocation{
-				Place:     strings.TrimSpace(in.Birth.Location.Place),
-				Longitude: in.Birth.Location.Longitude,
-				Timezone:  in.Birth.Location.Timezone,
-			},
-			Instant: &instant,
-		},
-		Note: strings.TrimSpace(in.Note), ThirdPartyConsent: in.ThirdPartyConsent,
+		Birth: birth,
+		Note:  strings.TrimSpace(in.Note), ThirdPartyConsent: in.ThirdPartyConsent,
 		CreatedAt: mustTime(now), UpdatedAt: mustTime(now),
 	}
-	setBirthProjections(&p)
+	projectBirthFacts(&p)
 	result, err := s.db.ExecContext(ctx, `
 INSERT INTO birth_profiles
 (id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
@@ -69,7 +65,7 @@ SELECT created_at,updated_at FROM birth_profiles WHERE id=? AND user_id=?`,
 	}
 	p.CreatedAt = mustTime(createdAt)
 	p.UpdatedAt = mustTime(updatedAt)
-	setBirthProjections(&p)
+	projectBirthFacts(&p)
 	return p, nil
 }
 
@@ -80,7 +76,7 @@ func timeArg(value *time.Time) any {
 	return formatTime(*value)
 }
 
-func setBirthProjections(profile *BirthProfile) {
+func projectBirthFacts(profile *BirthProfile) {
 	profile.Birth.Date = ""
 	profile.Birth.Time = ""
 	if profile.Birth.Instant == nil || profile.Birth.Location.Timezone == nil {
@@ -138,7 +134,7 @@ FROM birth_profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID
 	}
 	p.CreatedAt = mustTime(createdAt)
 	p.UpdatedAt = mustTime(updatedAt)
-	setBirthProjections(&p)
+	projectBirthFacts(&p)
 	return p, nil
 }
 
@@ -205,7 +201,7 @@ WHERE user_id=? AND deleted_at IS NULL`
 		}
 		p.CreatedAt = mustTime(createdAt)
 		p.UpdatedAt = mustTime(updatedAt)
-		setBirthProjections(&p)
+		projectBirthFacts(&p)
 		out = append(out, p)
 	}
 	if err := rows.Err(); err != nil {
@@ -223,12 +219,16 @@ WHERE user_id=? AND deleted_at IS NULL`
 
 // Update applies a full user-info replacement guarded by an optimistic lock.
 // Returns ErrConflict when expectedVersion does not match the stored version.
-func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion int, in BirthProfileInput) (BirthProfile, error) {
+func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion int, in BirthProfileDraft) (BirthProfile, error) {
 	now := formatTime(s.nowFunc())
-	instant, err := in.CanonicalInstant()
+	if err := ValidateBirthProfileDraft(s.nowFunc(), in); err != nil {
+		return BirthProfile{}, err
+	}
+	birth, err := NewBirthFacts(s.nowFunc(), in.Birth)
 	if err != nil {
 		return BirthProfile{}, err
 	}
+	_ = birth
 	result, err := s.db.ExecContext(ctx, `
 UPDATE birth_profiles SET
   version=version+1,
@@ -236,8 +236,8 @@ UPDATE birth_profiles SET
   updated_at=?
 WHERE id=? AND user_id=? AND deleted_at IS NULL AND version=?`,
 		strings.TrimSpace(in.Nickname), strings.TrimSpace(in.Name), in.Birth.Gender,
-		strings.TrimSpace(in.Birth.Location.Place), in.Birth.Location.Longitude, in.Birth.Location.Timezone,
-		timeArg(&instant), strings.TrimSpace(in.Note), in.ThirdPartyConsent, now,
+		birth.Location.Place, birth.Location.Longitude, birth.Location.Timezone,
+		timeArg(birth.Instant), strings.TrimSpace(in.Note), in.ThirdPartyConsent, now,
 		id, userID, expectedVersion,
 	)
 	if err != nil {

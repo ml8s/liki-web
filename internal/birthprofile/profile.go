@@ -63,9 +63,9 @@ type BirthLocationInput struct {
 	Timezone  *string  `json:"timezone"`
 }
 
-// BirthProfileInput is the mutable user-info subset of a profile. Pure platform
+// BirthProfileDraft is the mutable user-info subset of a profile. Pure platform
 // data; no chart/pan fields by design (排盘不落库).
-type BirthProfileInput struct {
+type BirthProfileDraft struct {
 	Nickname          string          `json:"nickname"`
 	Name              string          `json:"name"`
 	Birth             BirthFactsInput `json:"birth"`
@@ -78,64 +78,72 @@ var (
 	timeRe      = regexp.MustCompile(`^\d{2}:\d{2}$`)
 )
 
-// Validate requires the complete chart input.
-func (in BirthProfileInput) Validate(now time.Time) error {
-	if strings.TrimSpace(in.Nickname) == "" {
-		return errors.New("nickname is required")
-	}
-	if len([]rune(in.Nickname)) > 40 {
-		return errors.New("nickname is too long")
-	}
-	switch in.Birth.Gender {
+// ValidateBirthFacts requires the complete chart input.
+func ValidateBirthFacts(now time.Time, facts BirthFactsInput) error {
+	switch facts.Gender {
 	case "male", "female":
 	default:
 		return errors.New("birth.gender must be male or female")
 	}
-	if !solarDateRe.MatchString(in.Birth.Date) {
+	if !solarDateRe.MatchString(facts.Date) {
 		return errors.New("invalid birth.date; expected Gregorian YYYY-MM-DD")
 	}
-	parsed, err := time.Parse("2006-01-02", in.Birth.Date)
+	parsed, err := time.Parse("2006-01-02", facts.Date)
 	if err != nil {
 		return errors.New("invalid birth.date")
 	}
 	if parsed.Year() < 1900 || parsed.After(now) {
 		return errors.New("birth.date out of range")
 	}
-	if !timeRe.MatchString(in.Birth.Time) {
+	if !timeRe.MatchString(facts.Time) {
 		return errors.New("birth.time is required (HH:mm)")
 	}
-	longitude := in.Birth.Location.Longitude
-	if longitude == nil {
+	if facts.Location.Longitude == nil {
 		return errors.New("birth.location.longitude is required")
 	}
-	if math.IsNaN(*longitude) || math.IsInf(*longitude, 0) || *longitude < -180 || *longitude > 180 {
+	longitude := *facts.Location.Longitude
+	if math.IsNaN(longitude) || math.IsInf(longitude, 0) || longitude < -180 || longitude > 180 {
 		return errors.New("birth.location.longitude must be a finite number between -180 and 180")
 	}
-	timezone := in.Birth.Location.Timezone
-	if timezone == nil {
+	if facts.Location.Timezone == nil {
 		return errors.New("birth.location.timezone is required")
 	}
-	if strings.TrimSpace(*timezone) == "" || strings.TrimSpace(*timezone) != *timezone {
+	timezone := *facts.Location.Timezone
+	if strings.TrimSpace(timezone) == "" || strings.TrimSpace(timezone) != timezone {
 		return errors.New("birth.location.timezone must be an IANA timezone")
 	}
-	if _, err := time.LoadLocation(*timezone); err != nil {
+	if _, err := time.LoadLocation(timezone); err != nil {
 		return errors.New("birth.location.timezone must be an IANA timezone")
 	}
 	return nil
 }
 
-// CanonicalInstant resolves civil time into one UTC instant. DST gaps return no
-// candidate; DST folds return two and are rejected instead of silently picking.
-func (in BirthProfileInput) CanonicalInstant() (time.Time, error) {
-	day, err := time.Parse("2006-01-02", in.Birth.Date)
+// ValidateBirthProfileDraft validates profile metadata and complete birth facts.
+func ValidateBirthProfileDraft(now time.Time, draft BirthProfileDraft) error {
+	if strings.TrimSpace(draft.Nickname) == "" {
+		return errors.New("nickname is required")
+	}
+	if len([]rune(draft.Nickname)) > 40 {
+		return errors.New("nickname is too long")
+	}
+	return ValidateBirthFacts(now, draft.Birth)
+}
+
+// ResolveBirthInstant returns the single civil-time reading. DST gaps produce no
+// candidate; DST folds produce two and are rejected instead of picking one.
+func ResolveBirthInstant(facts BirthFactsInput) (time.Time, error) {
+	day, err := time.Parse("2006-01-02", facts.Date)
 	if err != nil {
 		return time.Time{}, errors.New("invalid birth.date")
 	}
-	hour, err := time.Parse("15:04", in.Birth.Time)
+	hour, err := time.Parse("15:04", facts.Time)
 	if err != nil {
 		return time.Time{}, errors.New("invalid birth.time")
 	}
-	location, err := time.LoadLocation(*in.Birth.Location.Timezone)
+	if facts.Location.Timezone == nil {
+		return time.Time{}, errors.New("invalid birth.location.timezone")
+	}
+	location, err := time.LoadLocation(*facts.Location.Timezone)
 	if err != nil {
 		return time.Time{}, errors.New("invalid birth.location.timezone")
 	}
@@ -158,14 +166,37 @@ func (in BirthProfileInput) CanonicalInstant() (time.Time, error) {
 	}
 	if len(seen) == 0 {
 		return time.Time{}, fmt.Errorf("birth time %s %s does not exist in %s",
-			in.Birth.Date, in.Birth.Time, *in.Birth.Location.Timezone)
+			facts.Date, facts.Time, *facts.Location.Timezone)
 	}
 	if len(seen) > 1 {
 		return time.Time{}, fmt.Errorf("birth time %s %s is ambiguous in %s",
-			in.Birth.Date, in.Birth.Time, *in.Birth.Location.Timezone)
+			facts.Date, facts.Time, *facts.Location.Timezone)
 	}
 	for _, value := range seen {
 		return value, nil
 	}
 	return time.Time{}, errors.New("birth instant not resolved")
+}
+
+// NewBirthFacts is the single boundary from draft facts to canonical runtime
+// facts. Callers must not construct chartable BirthFacts by hand.
+func NewBirthFacts(now time.Time, facts BirthFactsInput) (BirthFacts, error) {
+	if err := ValidateBirthFacts(now, facts); err != nil {
+		return BirthFacts{}, err
+	}
+	instant, err := ResolveBirthInstant(facts)
+	if err != nil {
+		return BirthFacts{}, err
+	}
+	return BirthFacts{
+		Gender: facts.Gender,
+		Date:   facts.Date,
+		Time:   facts.Time,
+		Location: BirthLocation{
+			Place:     strings.TrimSpace(facts.Location.Place),
+			Longitude: facts.Location.Longitude,
+			Timezone:  facts.Location.Timezone,
+		},
+		Instant: &instant,
+	}, nil
 }

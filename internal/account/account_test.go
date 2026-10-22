@@ -107,7 +107,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 
 	// user_1 建档案 + 会话 + system_profile 消息（含 PII）
-	p, err := profileStore.Create(ctx, "user_1", birthprofile.BirthProfileInput{
+	p, err := profileStore.Create(ctx, "user_1", birthprofile.BirthProfileDraft{
 		Nickname: "妈妈",
 		Birth: birthprofile.BirthFactsInput{
 			Gender: "female", Date: "1958-05-12", Time: "06:00",

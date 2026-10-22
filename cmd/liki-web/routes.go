@@ -36,8 +36,8 @@ type httpWiring struct {
 	authHandler     *auth.Handler
 	profiles        *birthprofile.Store
 	feedback        *feedback.Store
-	chats           *chatSystem
-	payments        *paymentSystem
+	chats           *chatWiring
+	payments        *paymentWiring
 	partners        *partner.Store
 	partnerHandler  *partner.Handler
 	entitlements    *entitlement.Store

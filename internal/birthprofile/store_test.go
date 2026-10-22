@@ -30,10 +30,10 @@ func newStoreFixture(t *testing.T) (*Store, string) {
 	return store, "user_1"
 }
 
-func validInput() BirthProfileInput {
+func validInput() BirthProfileDraft {
 	lng := 121.4737
 	tz := "Asia/Shanghai"
-	return BirthProfileInput{
+	return BirthProfileDraft{
 		Nickname: "妈妈",
 		Birth: BirthFactsInput{
 			Gender: "female", Date: "1958-05-12", Time: "06:00",
@@ -154,23 +154,23 @@ func TestStoreQuota(t *testing.T) {
 func TestInputValidation(t *testing.T) {
 	cases := []struct {
 		name string
-		mut  func(*BirthProfileInput)
+		mut  func(*BirthProfileDraft)
 	}{
-		{"empty nickname", func(in *BirthProfileInput) { in.Nickname = "" }},
-		{"bad gender", func(in *BirthProfileInput) { in.Birth.Gender = "other" }},
-		{"bad date", func(in *BirthProfileInput) { in.Birth.Date = "58-05-12" }},
-		{"future date", func(in *BirthProfileInput) { in.Birth.Date = "2999-01-01" }},
-		{"missing time", func(in *BirthProfileInput) { in.Birth.Time = "" }},
-		{"missing timezone", func(in *BirthProfileInput) { in.Birth.Location.Timezone = nil }},
-		{"missing longitude", func(in *BirthProfileInput) { in.Birth.Location.Longitude = nil }},
-		{"longitude out of range", func(in *BirthProfileInput) { lng := 181.0; in.Birth.Location.Longitude = &lng }},
-		{"longitude NaN", func(in *BirthProfileInput) { lng := math.NaN(); in.Birth.Location.Longitude = &lng }},
+		{"empty nickname", func(in *BirthProfileDraft) { in.Nickname = "" }},
+		{"bad gender", func(in *BirthProfileDraft) { in.Birth.Gender = "other" }},
+		{"bad date", func(in *BirthProfileDraft) { in.Birth.Date = "58-05-12" }},
+		{"future date", func(in *BirthProfileDraft) { in.Birth.Date = "2999-01-01" }},
+		{"missing time", func(in *BirthProfileDraft) { in.Birth.Time = "" }},
+		{"missing timezone", func(in *BirthProfileDraft) { in.Birth.Location.Timezone = nil }},
+		{"missing longitude", func(in *BirthProfileDraft) { in.Birth.Location.Longitude = nil }},
+		{"longitude out of range", func(in *BirthProfileDraft) { lng := 181.0; in.Birth.Location.Longitude = &lng }},
+		{"longitude NaN", func(in *BirthProfileDraft) { lng := math.NaN(); in.Birth.Location.Longitude = &lng }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			in := validInput()
 			tc.mut(&in)
-			if err := in.Validate(nowForTest()); err == nil {
+			if err := ValidateBirthProfileDraft(nowForTest(), in); err == nil {
 				t.Fatalf("expected validation error for %s", tc.name)
 			}
 		})

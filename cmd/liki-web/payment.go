@@ -19,9 +19,9 @@ import (
 	"github.com/ml8s/liki-web/internal/xunhu"
 )
 
-// paymentSystem owns the provider-neutral payment lifecycle and its local
+// paymentWiring owns the provider-neutral payment lifecycle and its local
 // transactional stores. Provider clients stay outside this boundary.
-type paymentSystem struct {
+type paymentWiring struct {
 	AipayStore            *aipay.Store
 	AipayHandler          *aipay.Handler
 	Intents               *payment.IntentStore
@@ -31,7 +31,7 @@ type paymentSystem struct {
 	CompensationNotifier  func(context.Context, auth.User, entitlement.Entitlement, string) error
 }
 
-func newPaymentSystem(
+func newPaymentWiring(
 	ctx context.Context,
 	config Config,
 	platformDB *sql.DB,
@@ -43,8 +43,8 @@ func newPaymentSystem(
 	mailer *email.Client,
 	dodoClient *dodo.Client,
 	xunhuClient *xunhu.Client,
-) (*paymentSystem, error) {
-	system := &paymentSystem{}
+) (*paymentWiring, error) {
+	system := &paymentWiring{}
 	system.AipayStore = aipay.NewStore(aipayDB)
 	if err := system.AipayStore.Migrate(ctx); err != nil {
 		return nil, fmt.Errorf("init aipay schema: %w", err)

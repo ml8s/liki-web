@@ -184,7 +184,7 @@ func main() {
 	partnerHandler.SetAttributionTTL(time.Duration(cfg.ReferralAttributionTTLDays) * 24 * time.Hour)
 	authHandler.SetPostLoginHook(partnerHandler.PostLoginHook)
 	authHandler.SetPartnerRolesProvider(partnerStore.PartnerRoles)
-	chats, err := newChatSystem(ctx, cfg, likiDB, entitlements, profileStore)
+	chats, err := newChatWiring(ctx, cfg, likiDB, entitlements, profileStore)
 	if err != nil {
 		slog.Error("init chat system", "err", err)
 		os.Exit(1)
@@ -200,7 +200,7 @@ func main() {
 		slog.Error("init sales schema", "err", err)
 		os.Exit(1)
 	}
-	payments, err := newPaymentSystem(
+	payments, err := newPaymentWiring(
 		ctx, cfg, platformDB, aipayDB, salesOrders, subscriptionStore,
 		entitlements, partnerStore, emailClient, dodoClient, xunhuClient,
 	)

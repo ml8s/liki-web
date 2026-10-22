@@ -20,21 +20,21 @@ import (
 // writer keeps an additional margin so a completed response can be flushed.
 const maxAgentRunTimeout = 600 * time.Second
 
-type chatSystem struct {
+type chatWiring struct {
 	Store              *chat.ChatStore
 	Service            *chat.Service
 	Records            *records.Store
 	RunCallbackHandler http.HandlerFunc
 }
 
-func newChatSystem(
+func newChatWiring(
 	ctx context.Context,
 	config Config,
 	db *sql.DB,
 	entitlements *entitlement.Store,
 	profiles *birthprofile.Store,
-) (*chatSystem, error) {
-	system := &chatSystem{Store: chat.NewChatStore(db)}
+) (*chatWiring, error) {
+	system := &chatWiring{Store: chat.NewChatStore(db)}
 	if err := system.Store.Migrate(ctx); err != nil {
 		return nil, fmt.Errorf("init chat schema: %w", err)
 	}

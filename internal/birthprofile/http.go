@@ -37,19 +37,23 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 }
 
 type createRequest struct {
-	BirthProfileInput
+	BirthProfileDraft
 }
 
 type updateRequest struct {
-	BirthProfileInput
+	BirthProfileDraft
 	ExpectedVersion int `json:"expected_version"`
 }
 
-func (r updateRequest) Validate() error {
+func (r createRequest) Validate(now time.Time) error {
+	return ValidateBirthProfileDraft(now, r.BirthProfileDraft)
+}
+
+func (r updateRequest) Validate(now time.Time) error {
 	if r.ExpectedVersion <= 0 {
 		return errors.New("expected_version is required")
 	}
-	return nil
+	return ValidateBirthProfileDraft(now, r.BirthProfileDraft)
 }
 
 func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +70,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		validation(w, err.Error())
 		return
 	}
-	p, err := h.store.Create(r.Context(), user.ID, req.BirthProfileInput)
+	p, err := h.store.Create(r.Context(), user.ID, req.BirthProfileDraft)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrQuotaExceeded):
@@ -131,15 +135,15 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	if err := req.Validate(); err != nil {
+	if err := req.Validate(time.Now()); err != nil {
 		validation(w, err.Error())
 		return
 	}
-	if err := req.BirthProfileInput.Validate(time.Now()); err != nil {
+	if err := ValidateBirthProfileDraft(time.Now(), req.BirthProfileDraft); err != nil {
 		validation(w, err.Error())
 		return
 	}
-	p, err := h.store.Update(r.Context(), user.ID, r.PathValue("id"), req.ExpectedVersion, req.BirthProfileInput)
+	p, err := h.store.Update(r.Context(), user.ID, r.PathValue("id"), req.ExpectedVersion, req.BirthProfileDraft)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrNotFound):
