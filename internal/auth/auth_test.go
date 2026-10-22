@@ -455,11 +455,11 @@ VALUES (?,?,?,'active',?,?,?)`,
 			t.Fatal(err)
 		}
 	}
-	code, _, err := store.IssueEmailCode(ctx, email, "", "")
+	code, _, err := store.IssueEmailCode(ctx, LoginCodeRequest{Email: email})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.CompleteEmailLogin(ctx, email, code, "", "", "zh-Hans"); err != nil {
+	if _, err := store.CompleteEmailLogin(ctx, LoginVerification{Email: email, Code: code, Locale: "zh-Hans"}); err != nil {
 		t.Fatal(err)
 	}
 	var n int

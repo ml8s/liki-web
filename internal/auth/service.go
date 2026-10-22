@@ -106,7 +106,9 @@ func (s *Service) RequestEmailCode(ctx context.Context, rawEmail, ip, userAgent,
 	if err != nil {
 		return CodeIssued{}, err
 	}
-	code, expires, err := s.store.IssueEmailCode(ctx, email, s.store.ipHash(ip), truncateUserAgent(userAgent))
+	code, expires, err := s.store.IssueEmailCode(ctx, LoginCodeRequest{
+		Email: email, IPHash: s.store.ipHash(ip), UserAgent: truncateUserAgent(userAgent),
+	})
 	if err != nil {
 		return CodeIssued{}, err
 	}
@@ -133,7 +135,10 @@ func (s *Service) VerifyEmailCode(ctx context.Context, rawEmail, rawCode, ip, us
 	if locale == "" {
 		locale = "zh-Hant"
 	}
-	return s.store.CompleteEmailLogin(ctx, email, code, s.store.ipHash(ip), truncateUserAgent(userAgent), locale)
+	return s.store.CompleteEmailLogin(ctx, LoginVerification{
+		Email: email, Code: code, IPHash: s.store.ipHash(ip),
+		UserAgent: truncateUserAgent(userAgent), Locale: locale,
+	})
 }
 
 func (s *Service) SessionCookieMaxAge() int {
