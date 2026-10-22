@@ -56,8 +56,8 @@
             :label="$t('profiles.chart.bazi')"
             name="bazi"
           >
-            <div class="bazi-ln-pick">
-              <span class="bazi-ln-label">{{ $t('profiles.chart.liunianYear') }}</span>
+            <div class="chart-year-picker chart-year-picker--inline">
+              <span class="chart-year-label">{{ $t('profiles.chart.liunianYear') }}</span>
               <el-input-number
                 v-model="baziLiuNianYear"
                 :min="1900"
@@ -86,7 +86,7 @@
                 <div class="sec-title">
                   {{ $t('profiles.chart.liunian') }}
                 </div>
-                <div class="ln-pick">
+                <div class="chart-year-picker">
                   <el-input-number
                     v-model="liuNianYear"
                     :min="1900"
@@ -96,7 +96,7 @@
                   />
                 </div>
                 <template v-if="liuNian">
-                  <div class="zwc-sihua ln-sihua">
+                  <div class="zwc-sihua zwc-sihua--start">
                     <span
                       v-for="(hua, star) in liuNian.si_hua ?? {}"
                       :key="star"
@@ -106,28 +106,28 @@
                       :data-hua="hua"
                     >{{ hua }}</i>{{ liuNian.si_hua_gong?.[star] ? ` ${liuNian.si_hua_gong[star]}` : '' }}</span>
                   </div>
-                  <div class="ln-grid">
+                  <div class="zw-grid zw-grid--liunian">
                     <div
                       v-for="g in liuNianPlaced"
                       :key="`${g.name}-${g.zhi}`"
                       :style="g.style"
-                      :class="['ln-cell', { ming: g.ming }]"
+                      :class="['zw-palace', { ming: g.ming }]"
                     >
-                      <div class="ln-pname">
+                      <div class="zw-pname">
                         {{ g.name }}
                       </div>
                       <div
                         v-if="g.stars.length"
-                        class="ln-stars"
+                        class="zw-main"
                       >
                         {{ g.stars.join(' ') }}
                       </div>
                     </div>
-                    <div class="ln-center">
-                      <div class="lnc-title">
+                    <div class="zw-center">
+                      <div class="zwc-title">
                         {{ liuNianYear }}
                       </div>
-                      <div class="lnc-row">
+                      <div class="zwc-row">
                         {{ $t('profiles.chart.liuNianPalace', { name: liuNian.ming_gong_name ?? liuNian.ming_gong }) }}
                       </div>
                     </div>
@@ -157,6 +157,7 @@
 
 <script setup lang="ts">
 import '@shared/styles/chart-panel.css'
+import '@shared/components/charts/ziwei-panel.css'
 // 档案详情的一屏三盘编排器（App 专属）：数据链 + tab 外壳；
 // 三块盘面来自共享层（web/shared/components/charts），营销站 island 单独复用。
 import { toUserMessage } from '@/utils/errors'
@@ -325,42 +326,4 @@ watch(() => props.profile?.id, () => {
 
 .correction { margin: 0 0 var(--space-3); font-size: var(--font-size-caption); color: var(--liki-primary); }
 
-.zw-section { margin-top: var(--space-4); }
-.zw-si {
-  display: inline-block; width: 14px; height: 14px; line-height: 14px; border-radius: var(--radius-full);
-  font-style: normal; font-size: var(--font-size-micro); text-align: center; margin-left: 1px; color: var(--color-white);
-}
-.zw-si[data-hua="禄"] { background: var(--color-success); }
-.zw-si[data-hua="权"] { background: var(--el-color-primary); }
-.zw-si[data-hua="科"] { background: var(--el-color-warning); }
-.zw-si[data-hua="忌"] { background: var(--el-color-danger); }
-
-.ln-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--liki-line);
-  border: 1px solid var(--liki-line);
-  border-radius: var(--radius-small);
-  overflow: hidden;
-  grid-template-rows: repeat(4, minmax(60px, auto)); margin-top: var(--space-2);
-}
-.ln-cell { background: var(--liki-surface); min-width: 0; padding: 4px 5px; }
-.ln-cell.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
-.ln-pname { font-size: var(--font-size-micro); font-weight: 600; color: var(--liki-text-2); white-space: nowrap; }
-.ln-cell.ming .ln-pname { color: var(--liki-primary); }
-.ln-stars { font-size: var(--font-size-micro); color: var(--liki-primary); line-height: 1.35; margin-top: 2px; }
-.ln-center { grid-row: 2 / 4; grid-column: 2 / 4; background: var(--liki-surface-cream); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; text-align: center; }
-.lnc-title { font-size: var(--font-size-body-lg); font-weight: 700; color: var(--liki-primary); }
-.lnc-row { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: 2px; }
-
-.ln-pick { margin-bottom: var(--space-2); }
-.bazi-ln-pick { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
-.bazi-ln-label { font-size: var(--font-size-label); color: var(--liki-text-3); }
-.ln-sihua { justify-content: flex-start; }
-
-@media (max-width: 640px) {
-  .ln-grid { grid-template-rows: repeat(4, minmax(52px, auto)); }
-  .ln-cell { padding: 3px; }
-}
 </style>

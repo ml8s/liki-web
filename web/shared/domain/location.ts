@@ -11,7 +11,7 @@ export interface BirthLocation {
   longitude: number
   timezone: string
   source: LocationSource
-  bbox?: { west: number; east: number; south: number; north: number }
+  longitude_range?: { west: number; east: number }
 }
 
 export function isValidBirthLocation(value: unknown): value is BirthLocation {

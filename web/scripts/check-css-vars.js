@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const web = path.resolve(import.meta.dirname, '..');
-const roots = ['css', 'src', path.join('app', 'src')];
+const roots = ['css', 'src', 'shared', path.join('app', 'src')];
 const extensions = new Set(['.astro', '.css', '.vue']);
 const files = [];
 

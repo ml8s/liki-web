@@ -822,7 +822,6 @@
   "natal.rectification.link": "Learn more about birth time",
   "profiles.form.gender": "Gender",
   "profiles.form.birthDate": "Birth date",
-  "profiles.form.solar": "Solar",
   "profiles.form.selectDate": "Select a date",
   "profiles.form.timePlaceholder": "For example: 06:00",
   "profiles.form.birthPlace": "Birthplace (city for solar-time correction)",
@@ -840,5 +839,14 @@
   "profiles.form.birthTime": "Birth time",
   "profiles.form.timezone": "IANA timezone",
   "profiles.form.timezonePlaceholder": "For example, Asia/Shanghai",
-  "profiles.form.timezoneHint": "The legal timezone paired with the birthplace"
+  "profiles.form.timezoneHint": "The legal timezone paired with the birthplace",
+  "scenario.natalReading.benefitsTitle": "Birth Chart Reading: Personality, Career, Love & Timing",
+  "scenario.natalReading.benefit.personality.title": "Personality Structure",
+  "scenario.natalReading.benefit.personality.body": "Read day-master strength, useful gods and resource patterns behind your natural tendencies.",
+  "scenario.natalReading.benefit.career.title": "Career & Wealth",
+  "scenario.natalReading.benefit.career.body": "Connect chart structure to suitable directions, wealth style and decision timing.",
+  "scenario.natalReading.benefit.relationship.title": "Love & Relationships",
+  "scenario.natalReading.benefit.relationship.body": "Understand relationship patterns, communication needs and compatibility signals.",
+  "scenario.natalReading.benefit.timing.title": "Luck Cycles & Timing",
+  "scenario.natalReading.benefit.timing.body": "Place choices in major-luck and annual-cycle context before acting."
 }

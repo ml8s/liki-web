@@ -1,4 +1,4 @@
-import { engineHuangliDays, type HuangliDay } from '../api/engine/huangli'
+import { engineHuangliDays, type HuangliCount, type HuangliDay } from '../api/engine/huangli'
 
 export type HuangliDays = HuangliDay[]
 
@@ -8,5 +8,8 @@ export function huangliDaysFor(
   startDate: string,
   count: number,
 ): Promise<HuangliDays> {
-  return engineHuangliDays(event, startDate, count)
+  if (!Number.isInteger(count) || count < 1 || count > 30) {
+    throw new RangeError(`Huangli count ${count} is outside 1..30`)
+  }
+  return engineHuangliDays(event, startDate, count as HuangliCount)
 }

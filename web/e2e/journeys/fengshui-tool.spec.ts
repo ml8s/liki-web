@@ -5,8 +5,8 @@ import { mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 const bazhai = {
   ming_gua: { gua: { index: 8, name: '艮', wuxing: '土', yin_yang: '阳' }, group: '西四命' },
   ba_zhai_dirs: {
-    sheng_qi: ['西南'], tian_yi: ['西北'], yan_nian: ['西'], fu_wei: ['东北'],
-    huo_hai: ['南'], wu_gui: ['北'], liu_sha: ['东'], jue_ming: ['东南'],
+    sheng_qi: '西南', tian_yi: '西北', yan_nian: '西', fu_wei: '东北',
+    huo_hai: '南', wu_gui: '北', liu_sha: '东', jue_ming: '东南',
   },
 };
 

@@ -5,7 +5,7 @@ import { ENGINE_TOOLS } from './tools'
 export interface BaziZhu {
   gan: string
   zhi: string
-  na_yin?: string
+  na_yin: string
 }
 
 export interface BaziDaYunRootRef {
@@ -19,19 +19,23 @@ export interface BaziDaYunStep {
   gan: string
   zhi: string
   name: string
-  start_date?: string
-  end_date?: string
-  start_year?: number
-  end_year?: number
-  wuxing?: string
-  shi_shen?: string
+  start_date: string
+  end_date: string
+  start_year: number
+  end_year: number
+  wuxing: string
+  shi_shen: string
   rooted?: boolean
   root_refs?: BaziDaYunRootRef[]
 }
 
 export interface BaziDaYun {
+  start_date: string
+  start_year_after: number
+  start_month_after: number
+  start_day_after: number
+  direction: string
   steps: BaziDaYunStep[]
-  direction?: string
 }
 
 export interface BaziChartData {
@@ -39,12 +43,9 @@ export interface BaziChartData {
   yue: BaziZhu
   ri: BaziZhu
   shi: BaziZhu
-  birth_year?: number
-  gender?: string
-  zi_shi_rule?: string
-  zodiac?: string
-  day_xun?: string
-  day_xun_kong?: string
+  birth_year: number
+  gender: 'male' | 'female'
+  zi_shi_rule: string
   da_yun?: BaziDaYun
 }
 
@@ -359,34 +360,55 @@ export interface BaziBondNayinPair {
 }
 
 export interface BaziBondResult {
-  zhu_cross?: { pairs: BaziBondPair[] }
-  shi_shen_cross?: { a_to_b: Record<string, string>; b_to_a: Record<string, string> }
-  nayin_cross?: { pairs: BaziBondNayinPair[] }
-  shensha_cross?: Record<string, { a_present_in_b: boolean; b_present_in_a: boolean }>
+  day_master: {
+    a: { gan: string; gender: string; wuxing: string }
+    b: { gan: string; gender: string; wuxing: string }
+    gan_guan_xi: BaziGanRelation
+    b_present_in_a: boolean
+  }
+  spouse_palace: Record<string, unknown>
+  zhu_cross: { pairs: BaziBondPair[] }
+  shi_shen_cross: { a_to_b: Record<string, string>; b_to_a: Record<string, string> }
+  wuxing_cross: Record<string, unknown>
+  nayin_cross: { pairs: BaziBondNayinPair[] }
+  spouse_star: Record<string, unknown>
+  shensha_cross: Record<string, { a_present_in_b: boolean; b_present_in_a: boolean }>
 }
 
-/** 八字合盘：输入双方最小命盘（bazi.chart 结果）。 */
+/** 八字合盘：输入双方最小命盘（bazi_chart 结果）。 */
 export function engineBaziBond(chartA: unknown, chartB: unknown): Promise<BaziBondResult> {
   return mcpTool<BaziBondResult>(ENGINE_TOOLS.BaziBond, { a: { chart: chartA }, b: { chart: chartB } })
 }
 
 export interface BaziYongShenResult {
   selected: {
-    yong: string
+    yong: '' | '木' | '火' | '土' | '金' | '水'
     xi: string[]
     ji: string[]
     /** 判据来源：tiao_hou / fu_yi / ge_ju … */
     source: string
-    confidence: string
+    confidence: 'high' | 'medium' | 'low'
+    known_fields: Array<'yong' | 'xi' | 'ji'>
   }
-  status?: string
-  conflicts?: Array<{ code?: string; message?: string }>
-  rule_id?: string
-  ge_ju_context?: Record<string, unknown>
+  status: 'resolved' | 'partial' | 'needs_review' | 'unresolved'
+  conflicts: Array<{ code: string; message: string }>
+  rule_id: string
+  policy_id: string
+  chart_digest: string
+  yongshen_digest: string
+  ge_ju_context: {
+    ge_ju: string
+    pattern_god_ten_god: string
+    pattern_god_source: string
+    yong_fa: string
+    clear: boolean
+    theme: string
+  }
+  evidence: Array<{ source: 'facts' | 'fu_yi' | 'tiao_hou' | 'ge_ju' | 'cong_ge' } & Record<string, unknown>>
 }
 
 /** 起名/择吉的用神裁决（counsel 域，直连 /counsel/mcp）。 */
-export function engineBaziYongShen(chart: unknown): Promise<BaziYongShenResult> {
+export function engineBaziYongShen(chart: BaziChartData): Promise<BaziYongShenResult> {
   return mcpTool<BaziYongShenResult>('bazi_yongshen', { chart })
 }
 

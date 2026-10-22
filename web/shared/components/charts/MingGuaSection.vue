@@ -40,8 +40,8 @@ import type { BazhaiChart } from '../../api/engine/fengshui'
 const props = defineProps<{ bazhai: BazhaiChart }>()
 
 const dirs = computed(() =>
-  Object.entries(props.bazhai.ba_zhai_dirs).map(([key, values]) => ({
-    key, gua: (values ?? [''])[0], good: BAZHAI_AUS.includes(key),
+  Object.entries(props.bazhai.ba_zhai_dirs).map(([key, direction]) => ({
+    key, gua: direction ?? '', good: BAZHAI_AUS.includes(key),
   })),
 )
 </script>

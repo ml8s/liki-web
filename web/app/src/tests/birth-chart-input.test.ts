@@ -75,7 +75,7 @@ describe('chartInputFromBirth', () => {
 describe('baziChartFor', () => {
   beforeEach(() => vi.restoreAllMocks())
 
-  it('sends only the canonical chart input to bazi.chart', async () => {
+  it('sends only the canonical chart input to bazi_chart', async () => {
     const fetchMock = mockEngineTools({
       bazi_chart: { birth_year: 1958, gender: 'female' },
     })

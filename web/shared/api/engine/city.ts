@@ -1,7 +1,7 @@
 import { mcpTool } from '../mcp/client'
 import { ENGINE_TOOLS } from './tools'
 
-/** 内置城市表候选（含同名区县、IANA 时区、行政 bbox）；不调用外部地理编码。 */
+/** 内置城市表候选（含同名区县、IANA 时区、东西经度范围）；不调用外部地理编码。 */
 export interface CityCandidate {
   name: string
   region: string
@@ -11,7 +11,7 @@ export interface CityCandidate {
   longitude: number
   latitude: number
   timezone?: string
-  bbox?: { west: number; east: number; south: number; north: number }
+  longitude_range?: { west: number; east: number }
 }
 
 export function engineCityCandidates(city: string): Promise<{ candidates: CityCandidate[] }> {

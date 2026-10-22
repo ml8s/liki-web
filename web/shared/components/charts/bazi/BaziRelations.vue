@@ -242,14 +242,7 @@ const luRoots = computed(() => {
 
 
 <style scoped>
-.rel-table { border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; }
-.rel-row { display: grid; grid-template-columns: minmax(5.5em, max-content) 1fr; gap: var(--space-2); padding: var(--space-2) var(--space-3); font-size: var(--font-size-label); align-items: baseline; }
-.rel-row + .rel-row { border-top: 1px solid var(--liki-line); }
-.rel-label { color: var(--liki-text-3); }
-.rel-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.rel-main { color: var(--liki-ink); font-weight: 600; }
 .rel-el { color: var(--liki-primary); }
-.rel-pos { color: var(--liki-text-3); font-size: var(--font-size-micro); }
 .rel-mark { color: var(--color-error); font-size: var(--font-size-micro); }
 .analysis-grid { display: grid; gap: var(--space-2); }
 .analysis-sec { min-width: 0; }
@@ -259,8 +252,6 @@ const luRoots = computed(() => {
 .dot.on { background: var(--liki-primary); border-color: var(--liki-primary); }
 .tg-strong .tg-name, .el-strong .tg-name { color: var(--liki-primary); }
 .tg-weak .tg-name, .el-weak .tg-name { color: var(--liki-text-3); }
-.shensha { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-3); font-size: var(--font-size-label); }
-.sy-label { color: var(--liki-text-3); flex: 0 0 auto; min-width: 2em; }
 .lu-shen { margin-left: var(--space-1); color: var(--liki-text-3); font-size: var(--font-size-micro); }
 @media (min-width: 640px) {
   .analysis-grid { grid-template-columns: 1fr 1fr; gap: var(--space-4); }

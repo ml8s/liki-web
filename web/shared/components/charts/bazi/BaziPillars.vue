@@ -183,10 +183,8 @@ const shenShaList = computed(() => {
 .void-tag { background: var(--liki-primary-tint); color: var(--liki-primary); }
 .solid-tag { background: var(--liki-primary); color: var(--liki-on-primary); }
 .line-tag { border: 1px solid var(--liki-line); color: var(--liki-text-2); }
-.san-yuan, .shensha { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-3); font-size: var(--font-size-label); }
-.sy-label { color: var(--liki-text-3); flex: 0 0 auto; min-width: 2em; }
+.san-yuan { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-3); font-size: var(--font-size-label); }
 .sy-body { color: var(--liki-ink); }
-.shensha { gap: var(--space-2); }
 @media (min-width: 720px) {
   .pillars.with-liunian { grid-template-columns: repeat(5, 1fr); }
 }

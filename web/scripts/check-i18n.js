@@ -353,6 +353,11 @@ function addKnownCompoundKeys(used) {
   for (const key of ['subtitle', 'ziwei.title', 'zodiac.title', 'zodiac.body', 'rectification.title', 'rectification.body']) {
     used.add(`natal.${key}`);
   }
+  used.add('scenario.natalReading.benefitsTitle');
+  for (const benefit of ['personality', 'career', 'relationship', 'timing']) {
+    used.add(`scenario.natalReading.benefit.${benefit}.title`);
+    used.add(`scenario.natalReading.benefit.${benefit}.body`);
+  }
   for (const benefit of ['palaces', 'stars', 'cycles', 'career']) {
     used.add(`natal.ziwei.benefit.${benefit}.title`);
     used.add(`natal.ziwei.benefit.${benefit}.body`);

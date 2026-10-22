@@ -105,14 +105,26 @@ describe('engine request contract', () => {
       instant: '2026-10-20T12:00:00Z',
       timezone: 'Asia/Shanghai',
       longitude: 116.4,
-      casting: { order: [1, 2, 3, 4, 5, 6] },
+      casting: {
+        mode: 'auto',
+        order: 'bottom_up',
+        yaos: [7, 8, 8, 7, 8, 7],
+        dong_yao: [],
+        casting_id: 'a'.repeat(64),
+      },
       yongShen: '世爻',
     })
     expect(lastCall().body.params?.arguments).toEqual({
       instant: '2026-10-20T12:00:00Z',
       timezone: 'Asia/Shanghai',
       longitude: 116.4,
-      casting: { order: [1, 2, 3, 4, 5, 6] },
+      casting: {
+        mode: 'auto',
+        order: 'bottom_up',
+        yaos: [7, 8, 8, 7, 8, 7],
+        dong_yao: [],
+        casting_id: 'a'.repeat(64),
+      },
       yong_shen: '世爻',
     })
   })

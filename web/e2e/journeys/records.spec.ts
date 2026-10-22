@@ -9,12 +9,23 @@ test.use({ locale: 'zh-Hant' })
 const user = testUser({ id: 'usr_records', email: 'records@example.com' })
 
 const liuyaoSnapshot = {
-  board: { name: '水火既济', gong: '坎', lines: [], xun_kong: ['子', '丑'] },
-  casting: { dong_yao: [6] },
-  focus: { yong_shen: '妻财', world: '世', other: '应' },
+  name: '水火既济',
+  ben_gua: '水火既济',
+  gong: '坎',
+  gong_wuxing: '水',
+  lines: [],
+  bian_yao: [],
+  ri_chen_gan: '戊',
+  ri_chen_zhi: '子',
+  yue_jian_gan: '甲',
+  yue_jian_zhi: '寅',
+  xun_kong: ['子', '丑'],
+  casting: { mode: 'auto', order: 'bottom_up', yaos: [7, 8, 8, 7, 8, 9], dong_yao: [6], casting_id: 'c1' },
+  yong_shen: { name: '妻财', position: 6, wang_shuai: '相' },
+  gua_ci: { name: '水火既济', gua_ci: '亨小，利贞', yao_ci: [] },
+  wang_shuai: [],
+  ri_chen_relations: [],
   patterns: [],
-  yong_shen: { name: '妻财', position: '三爻' },
-  gua_ci: { gua: '既济', ci: '亨小，利贞' },
   timing_candidates: [],
 }
 
@@ -79,12 +90,12 @@ test('问卦自动保存记录，打开历史回放快照不再重摇', async ({
   expect(input.casting_mode).toBe('auto')
   expect(String(input.casting_instant)).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/)
   expect(input.location).toMatchObject({
-    place: '中國上海市',
+    place: '上海市',
     longitude: 121.4726,
     timezone: 'Asia/Shanghai',
     source: 'city',
   })
-  expect((created[0].output as { board: { name: string } }).board.name).toBe('水火既济')
+  expect((created[0].output as { name: string }).name).toBe('水火既济')
   expect(engineArguments.find(call => call.tool === 'liuyao_qigua')?.arguments).toEqual({ mode: 'auto' })
   expect(engineArguments.find(call => call.tool === 'tianwen_resolve')).toBeUndefined()
   const chartArguments = engineArguments.find(call => call.tool === 'liuyao_chart')?.arguments

@@ -33,18 +33,18 @@
         </template>
         <div class="gua-row">
           <div class="gua-name font-serif">
-            {{ board.name ?? '—' }}
+            {{ board?.name ?? '—' }}
           </div>
           <div class="gua-sub">
-            <span v-if="board.ben_gua">{{ $t('services.divination.original') }} {{ board.ben_gua }}</span>
-            <span v-if="board.bian_gua"> · {{ $t('services.divination.changed') }} {{ board.bian_gua }}</span>
+            <span v-if="board?.ben_gua">{{ $t('services.divination.original') }} {{ board?.ben_gua }}</span>
+            <span v-if="board?.bian_gua"> · {{ $t('services.divination.changed') }} {{ board?.bian_gua }}</span>
           </div>
         </div>
         <div class="gua-info">
-          <span v-if="board.gong">{{ $t('services.divination.palace', { palace: board.gong }) }}</span>
-          <span v-if="board.gong_wuxing"> · {{ board.gong_wuxing }}</span>
-          <span v-if="board.ri_chen_gan"> · {{ $t('services.divination.dayPillar') }} {{ board.ri_chen_gan }}{{ board.ri_chen_zhi }}</span>
-          <span v-if="board.yue_jian_zhi"> · {{ $t('services.divination.monthBranch') }} {{ board.yue_jian_gan }}{{ board.yue_jian_zhi }}</span>
+          <span v-if="board?.gong">{{ $t('services.divination.palace', { palace: board?.gong }) }}</span>
+          <span v-if="board?.gong_wuxing"> · {{ board?.gong_wuxing }}</span>
+          <span v-if="board?.ri_chen_gan"> · {{ $t('services.divination.dayPillar') }} {{ board?.ri_chen_gan }}{{ board?.ri_chen_zhi }}</span>
+          <span v-if="board?.yue_jian_zhi"> · {{ $t('services.divination.monthBranch') }} {{ board?.yue_jian_gan }}{{ board?.yue_jian_zhi }}</span>
           <span v-if="xunKongText"> · {{ $t('profiles.chart.void') }} {{ xunKongText }}</span>
         </div>
 
@@ -73,11 +73,11 @@
               >
                 <span class="lc">{{ $t('services.divination.lineNumber', { number: 6 - idx }) }}</span>
                 <span class="lc">{{ line.liu_qin ?? '—' }}</span>
-                <span class="lc">{{ line.di_zhi ?? '—' }}</span>
-                <span class="lc">{{ line.xing ?? '—' }}</span>
-                <span class="lc">{{ line.tian_gan ?? '—' }}</span>
-                <span class="lc">{{ line.wang_shuai ?? '—' }}</span>
-                <span class="lc">{{ line.ri_chen_relation ?? '—' }}</span>
+                <span class="lc">{{ line.zhi ?? '—' }}</span>
+                <span class="lc">{{ line.wuxing ?? '—' }}</span>
+                <span class="lc">{{ line.gan ?? '—' }}</span>
+                <span class="lc">{{ wangShuai[idx] ?? '—' }}</span>
+                <span class="lc">{{ dayRelations[idx]?.relations?.join('、') ?? '—' }}</span>
               </div>
             </div>
           </div>
@@ -98,8 +98,8 @@
             >
               <span class="lc">{{ $t('services.divination.lineNumber', { number: 6 - idx }) }}</span>
               <span class="lc">{{ line.liu_qin ?? '—' }}</span>
-              <span class="lc">{{ line.di_zhi ?? '—' }}</span>
-              <span class="lc">{{ line.tian_gan ?? '—' }}</span>
+              <span class="lc">{{ line.zhi ?? '—' }}</span>
+              <span class="lc">{{ line.gan ?? '—' }}</span>
             </div>
           </div>
         </div>
@@ -143,11 +143,11 @@
           </div>
           <div
             v-for="p in patterns"
-            :key="p.name"
+            :key="`${p.type}-${p.sub_type}-${p.position}`"
             class="pattern-item"
           >
-            <span class="pattern-name">{{ p.name }}</span>
-            <span class="pattern-desc">{{ p.description }}</span>
+            <span class="pattern-name">{{ p.sub_type }}</span>
+            <span class="pattern-desc">{{ p.type }} · 爻位 {{ p.position }} · {{ p.is_true ? '有效' : '候选' }}</span>
           </div>
         </div>
 
@@ -161,18 +161,6 @@
           <div class="rel-text">
             {{ timingText }}
           </div>
-        </div>
-
-        <div
-          v-if="snapshot.safety_advisory"
-          class="safety-box"
-        >
-          <el-alert
-            :title="snapshot.safety_advisory"
-            type="warning"
-            :closable="false"
-            show-icon
-          />
         </div>
       </el-card>
 
@@ -243,31 +231,32 @@ const snapshot = ref<LiuyaoChartResult | null>(null)
 const loading = ref(false)
 const error = ref('')
 
-const board = computed(() => snapshot.value?.board ?? {})
-const lines = computed(() => snapshot.value?.board?.lines ?? [])
-const bianLines = computed(() => snapshot.value?.board?.bian_yao ?? [])
+const board = computed(() => snapshot.value)
+const lines = computed(() => snapshot.value?.lines ?? [])
+const bianLines = computed(() => snapshot.value?.bian_yao ?? [])
+const wangShuai = computed(() => snapshot.value?.wang_shuai ?? [])
+const dayRelations = computed(() => snapshot.value?.ri_chen_relations ?? [])
 const dongYao = computed(() => snapshot.value?.casting?.dong_yao ?? [])
 const patterns = computed(() => snapshot.value?.patterns ?? [])
 
 function isDong(idx: number) {
   const pos = 6 - idx
-  return dongYao.value.includes(pos)
+  return dongYao.value.includes(pos as 1 | 2 | 3 | 4 | 5 | 6)
 }
 
 const xunKongText = computed(() => {
-  const xk = snapshot.value?.board?.xun_kong
+  const xk = snapshot.value?.xun_kong
   if (!xk || !xk.length) return ''
   return xk.join(' ')
 })
 
 const focusText = computed(() => {
-  const f = snapshot.value?.focus
-  if (!f) return ''
-  const parts: string[] = []
-  if (f.yong_shen) parts.push(t('services.divination.usefulGodValue', { value: f.yong_shen }))
-  if (f.world) parts.push(t('services.divination.worldValue', { value: f.world }))
-  if (f.other) parts.push(t('services.divination.otherValue', { value: f.other }))
-  return parts.join(' · ')
+  const ys = snapshot.value?.yong_shen
+  if (!ys?.name) return ''
+  const position = ys.position && ys.position > 0
+    ? t('services.divination.positionValue', { value: ys.position })
+    : t('services.divination.hidden')
+  return `${ys.name} · ${position}`
 })
 
 const yongShenDetail = computed(() => {
@@ -282,13 +271,13 @@ const yongShenDetail = computed(() => {
 const guaCi = computed(() => {
   const gc = snapshot.value?.gua_ci
   if (!gc) return ''
-  return [gc.gua, gc.ci].filter(Boolean).join('：')
+  return [gc.name, gc.gua_ci].filter(Boolean).join('：')
 })
 
 const timingText = computed(() => {
   const tc = snapshot.value?.timing_candidates
   if (!tc || !tc.length) return ''
-  return tc.map(t => [t.time, t.description].filter(Boolean).join('：')).join('；')
+  return tc.map(item => [item.window || item.id, item.mechanism, item.trigger_branch].filter(Boolean).join('：')).join('；')
 })
 
 async function cast(context: DivinationCastingFormValue) {
@@ -365,5 +354,4 @@ function startChat() {
 .pattern-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--space-1); }
 .pattern-name { font-weight: 600; color: var(--liki-primary); }
 .pattern-desc { font-size: var(--font-size-caption); color: var(--liki-text-3); }
-.safety-box { margin-top: var(--space-4); }
 </style>

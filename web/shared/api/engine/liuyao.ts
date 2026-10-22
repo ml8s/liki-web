@@ -3,65 +3,83 @@ import { mcpTool } from '../mcp/client'
 import { ENGINE_TOOLS } from './tools'
 
 export interface LiuyaoCasting {
-  schema_version?: string
-  mode?: string
-  order?: number[]
-  yaos?: unknown[]
-  dong_yao?: number[]
-  casting_id?: string
-  rounds?: unknown[]
+  mode: LiuyaoQiguaMode
+  order: 'bottom_up'
+  coin_convention?: { 正: 3; 反: 2 }
+  rounds?: SixItems<LiuyaoCoinRound>
+  yaos: SixItems<LiuyaoYaoValue>
+  dong_yao: LiuyaoPosition[]
+  casting_id: string
 }
 
 export interface LiuyaoLine {
-  xing?: string
+  position?: number
+  type?: LiuyaoYaoValue
+  gan?: string
+  zhi?: string
+  wuxing?: string
   liu_qin?: string
-  di_zhi?: string
-  tian_gan?: string
+  shi_ying?: string
+  liu_shou?: string
   wang_shuai?: string
-  ri_chen_relation?: string
-}
-
-export interface LiuyaoBoard {
-  name?: string
-  ben_gua?: string
-  bian_gua?: string
-  gong?: string
-  gong_wuxing?: string
-  ri_chen_gan?: string
-  ri_chen_zhi?: string
-  yue_jian_zhi?: string
-  yue_jian_gan?: string
-  xun_kong?: string[]
-  lines?: LiuyaoLine[]
-  bian_yao?: LiuyaoLine[]
+  yue_po?: boolean
+  dong_self?: boolean
+  dong_sheng?: boolean
+  dong_ke?: boolean
+  xun_kong?: boolean
+  mu_ku?: boolean
 }
 
 export interface LiuyaoYongShen {
   name?: string
   position?: number
-  world?: string
-  other?: string
+  is_hidden?: boolean
+  wang_shuai?: string
+  yue_po?: boolean
+  xun_kong?: boolean
+  mu_ku?: boolean
+  liu_shou?: string
+  chang_sheng?: string
 }
 
 export interface LiuyaoTimingCandidate {
-  time?: string
+  id: string
   description?: string
+  mechanism: string
+  position?: number
+  trigger_branch?: string
+  window?: string
+  basis?: string[]
+  confidence: string
 }
 
 export interface LiuyaoPattern {
-  name?: string
-  description?: string
+  type: string
+  sub_type: string
+  position: number
+  is_true: boolean
 }
 
 export interface LiuyaoChartResult {
-  casting?: LiuyaoCasting
-  board?: LiuyaoBoard
-  focus?: { yong_shen?: string; world?: string; other?: string }
-  yong_shen?: LiuyaoYongShen
-  gua_ci?: { gua?: string; ci?: string }
+  name: string
+  ben_gua: string
+  bian_gua?: string
+  gong: string
+  gong_wuxing: string
+  lines: SixItems<LiuyaoLine>
+  bian_yao: SixItems<LiuyaoLine>
+  ri_chen_gan: string
+  ri_chen_zhi: string
+  yue_jian_zhi: string
+  yue_jian_gan: string
+  yong_shen: LiuyaoYongShen
+  gua_ci: { name: string; gua_ci: string; yao_ci: SixItems<string> }
+  wang_shuai: SixItems<string>
+  ri_chen_relations: SixItems<{ relations: string[] }>
+  xun_kong: [string, string]
   timing_candidates?: LiuyaoTimingCandidate[]
-  safety_advisory?: string
   patterns?: LiuyaoPattern[]
+  casting: LiuyaoCasting
 }
 
 export type LiuyaoPosition = 1 | 2 | 3 | 4 | 5 | 6

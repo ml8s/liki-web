@@ -5,7 +5,6 @@ import { mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 // 初爻老阳（动）+ 少阳 + 少阴 + 少阳 + 少阴 + 少阳
 // 本卦：下兑（110）上离（101）→ 火泽睽；变卦：下坎（010）上离 → 火水未济。
 const casting = {
-  schema_version: '2',
   mode: 'coins',
   order: 'bottom_up',
   yaos: [9, 7, 8, 7, 8, 7],

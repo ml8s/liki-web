@@ -121,10 +121,6 @@ const nayinRows = computed(() => (props.full?.nayin_rel ?? []).map(r => ({
 
 <style scoped>
 .sec-note { font-size: var(--font-size-caption); color: var(--liki-text-3); margin: calc(-1 * var(--space-1)) 0 var(--space-2); }
-.dayun { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--space-2); }
-.dy-name { font-weight: 700; }
-.dy-shen { font-size: var(--font-size-caption); color: var(--liki-text-2); }
-.dy-year { font-size: var(--font-size-micro); color: var(--liki-text-3); }
 .dy.cur .dy-name, .dy.cur .dy-shen { color: var(--liki-primary); }
 .cs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: var(--space-2); }
 .cs-cell { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: 6px 2px; text-align: center; }

@@ -136,13 +136,4 @@ const liunianInteractionBlocks = computed(() => {
 .ln-line { margin-top: 0; }
 .ln-block-title { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: var(--space-1); }
 .ln-cat { margin-left: var(--space-1); font-style: normal; font-size: var(--font-size-micro); opacity: 0.85; }
-.shensha { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-3); font-size: var(--font-size-label); }
-.sy-label { color: var(--liki-text-3); flex: 0 0 auto; min-width: 2em; }
-.rel-table { border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; }
-.rel-row { display: grid; grid-template-columns: minmax(5.5em, max-content) 1fr; gap: var(--space-2); padding: var(--space-2) var(--space-3); font-size: var(--font-size-label); align-items: baseline; }
-.rel-row + .rel-row { border-top: 1px solid var(--liki-line); }
-.rel-label { color: var(--liki-text-3); }
-.rel-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.rel-main { color: var(--liki-ink); font-weight: 600; }
-.rel-pos { color: var(--liki-text-3); font-size: var(--font-size-micro); }
 </style>

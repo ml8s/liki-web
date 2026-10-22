@@ -9,13 +9,17 @@ export const baziChart: BaziChartData = {
   shi: { gan: '癸', zhi: '卯', na_yin: '金箔金' },
   birth_year: 1990,
   gender: 'female',
-  zodiac: '马',
+  zi_shi_rule: '晚子时属本日',
   da_yun: {
+    start_date: '1996-02-04',
+    start_year_after: 6,
+    start_month_after: 7,
+    start_day_after: 12,
     direction: '顺排',
     steps: [
-      { gan: '壬', zhi: '午', name: '壬午', shi_shen: '比肩', start_year: 1996, end_year: 2005 },
-      { gan: '癸', zhi: '未', name: '癸未', shi_shen: '劫财', start_year: 2006, end_year: 2015 },
-      { gan: '甲', zhi: '申', name: '甲申', shi_shen: '食神', start_year: 2016, end_year: 2025 },
+      { gan: '壬', zhi: '午', name: '壬午', wuxing: '木', shi_shen: '比肩', start_date: '1996-02-04', end_date: '2005-02-03', start_year: 1996, end_year: 2005 },
+      { gan: '癸', zhi: '未', name: '癸未', wuxing: '木', shi_shen: '劫财', start_date: '2006-02-04', end_date: '2015-02-03', start_year: 2006, end_year: 2015 },
+      { gan: '甲', zhi: '申', name: '甲申', wuxing: '木', shi_shen: '食神', start_date: '2016-02-04', end_date: '2025-02-03', start_year: 2016, end_year: 2025 },
     ],
   },
 };

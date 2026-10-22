@@ -150,9 +150,7 @@
       "consultationTitle": "深入解读",
       "consultationBody": "AI 顾问会结合卦象、用神和你的问题做深入断卦。",
       "lockedBody": "解锁 Liki Chat 后可获得深入断卦解读。",
-      "usefulGodValue": "用神 {value}",
-      "worldValue": "世 {value}",
-      "otherValue": "应 {value}",
+      "hidden": "伏神",
       "positionValue": "第{value}爻",
       "usefulGodDetail": "用神为{value}",
       "failed": "摇卦失败"

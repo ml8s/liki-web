@@ -822,7 +822,6 @@
   "natal.rectification.link": "了解出生时辰",
   "profiles.form.gender": "性别",
   "profiles.form.birthDate": "出生日期",
-  "profiles.form.solar": "公历",
   "profiles.form.selectDate": "选择日期",
   "profiles.form.timePlaceholder": "如 06:00",
   "profiles.form.birthPlace": "出生地（城市，用于真太阳时修正）",
@@ -840,5 +839,14 @@
   "profiles.form.birthTime": "出生时间",
   "profiles.form.timezone": "IANA 时区",
   "profiles.form.timezonePlaceholder": "例如 Asia/Shanghai",
-  "profiles.form.timezoneHint": "和出生地配套的法定时区"
+  "profiles.form.timezoneHint": "和出生地配套的法定时区",
+  "scenario.natalReading.benefitsTitle": "命盘解读：性格、事业、感情与时机",
+  "scenario.natalReading.benefit.personality.title": "性格结构",
+  "scenario.natalReading.benefit.personality.body": "从日主强弱、喜用神和资源模式，理解天性与压力来源。",
+  "scenario.natalReading.benefit.career.title": "事业与财富",
+  "scenario.natalReading.benefit.career.body": "把命盘结构对应到适合方向、财富风格与决策节奏。",
+  "scenario.natalReading.benefit.relationship.title": "感情与人际",
+  "scenario.natalReading.benefit.relationship.body": "理解亲密关系模式、沟通需求和相处中的互补或张力。",
+  "scenario.natalReading.benefit.timing.title": "大运与时机",
+  "scenario.natalReading.benefit.timing.body": "把选择放回大运和流年节奏中，减少逆势硬推。"
 }

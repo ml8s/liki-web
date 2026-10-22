@@ -150,9 +150,7 @@
       "consultationTitle": "Deep reading",
       "consultationBody": "The AI consultant combines the hexagram, useful god, and your question for a deeper reading.",
       "lockedBody": "Unlock Liki Chat for a deeper divination reading.",
-      "usefulGodValue": "useful god {value}",
-      "worldValue": "self {value}",
-      "otherValue": "other {value}",
+      "hidden": "Hidden",
       "positionValue": "line {value}",
       "usefulGodDetail": "Useful god: {value}",
       "failed": "Casting failed"

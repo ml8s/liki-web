@@ -172,6 +172,7 @@
 
 <script setup lang="ts">
 import '@shared/styles/chart-panel.css'
+import './ziwei-panel.css'
 // 紫微本命盘展示（十二宫格/格局/三方/空劫/大运）——纯展示、数据驱动。
 // 流年区块（含年份选择）由宿主编排器自行组合（App 的 ChartPreview）。
 import { computed } from 'vue'
@@ -244,60 +245,3 @@ const daXian = computed(() => {
   }))
 })
 </script>
-
-
-<style scoped>
-.zw-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--liki-line);
-  border: 1px solid var(--liki-line);
-  border-radius: var(--radius-small);
-  overflow: hidden;
-  grid-template-rows: repeat(4, minmax(100px, auto));
-}
-.zw-palace { background: var(--liki-surface); min-width: 0; padding: 6px 5px; display: flex; flex-direction: column; gap: 2px; }
-.zw-palace.ming { background: linear-gradient(180deg, var(--liki-primary-tint), var(--liki-surface-cream)); }
-.zw-palace.ming .zw-pname, .zw-palace.ming .zw-main { color: var(--liki-primary); }
-.zw-palace.shen { box-shadow: inset 0 0 0 1px var(--liki-primary-border); }
-.zw-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-1); }
-.zw-pname { font-size: var(--font-size-label); font-weight: 600; white-space: nowrap; }
-.zw-gz { font-size: var(--font-size-micro); color: var(--liki-text-3); }
-.zw-main { color: var(--liki-primary); font-size: var(--font-size-caption); line-height: 1.4; }
-.zw-minor { color: var(--liki-text-2); font-size: var(--font-size-micro); line-height: 1.4; }
-.zw-star { white-space: nowrap; margin-right: var(--space-1); display: inline-block; }
-.zw-si {
-  display: inline-block; width: 14px; height: 14px; line-height: 14px; border-radius: var(--radius-full);
-  font-style: normal; font-size: var(--font-size-micro); text-align: center; margin-left: 1px; color: var(--color-white);
-}
-.zw-si[data-hua="禄"] { background: var(--color-success); }
-.zw-si[data-hua="权"] { background: var(--el-color-primary); }
-.zw-si[data-hua="科"] { background: var(--el-color-warning); }
-.zw-si[data-hua="忌"] { background: var(--el-color-danger); }
-.zw-za { font-size: var(--font-size-micro); color: var(--liki-text-3); line-height: 1.35; }
-.zw-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: var(--space-1); font-size: var(--font-size-micro); color: var(--liki-text-3); }
-.zw-shen { color: var(--liki-primary); font-weight: 700; }
-.zw-center {
-  grid-row: 2 / 4; grid-column: 2 / 4;
-  background: var(--liki-surface-cream);
-  padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); justify-content: center; text-align: center;
-}
-.zwc-title { font-size: var(--font-size-body-lg); font-weight: 700; color: var(--liki-primary); }
-.zwc-row { font-size: var(--font-size-caption); color: var(--liki-text-2); }
-.zw-section { margin-top: var(--space-4); }
-.zw-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.zw-sanfang { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-2); }
-.zw-sf { border: 1px solid var(--liki-line); border-radius: var(--radius-small); padding: var(--space-2) var(--space-3); background: var(--liki-surface); min-width: 0; }
-.zw-sf-name { font-size: var(--font-size-caption); font-weight: 600; color: var(--liki-text-3); }
-.zw-sf-body { font-size: var(--font-size-caption); color: var(--liki-ink); margin-top: 2px; }
-
-@media (max-width: 640px) {
-  .zw-grid { grid-template-rows: repeat(4, minmax(88px, auto)); }
-  .zw-palace { padding: 4px 3px; }
-  .zw-pname { font-size: var(--font-size-micro); }
-  .zw-center { padding: var(--space-2); gap: var(--space-1); }
-  .zwc-row { font-size: var(--font-size-micro); }
-  .zw-sanfang { grid-template-columns: 1fr; }
-}
-</style>

@@ -9,7 +9,16 @@ export interface BazhaiLiuNianXing {
 
 export interface BazhaiChart {
   ming_gua: { gua: { name: string; wuxing?: string }; group: string }
-  ba_zhai_dirs: Record<string, string[]>
+  ba_zhai_dirs: {
+    sheng_qi: string
+    tian_yi: string
+    yan_nian: string
+    fu_wei: string
+    huo_hai: string
+    wu_gui: string
+    liu_sha: string
+    jue_ming: string
+  }
   liu_nian_xing?: BazhaiLiuNianXing
 }
 

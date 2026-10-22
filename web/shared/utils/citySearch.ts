@@ -19,6 +19,8 @@ export interface CityIndex {
 
 export interface CityMatch extends CityRecord {
   level: 'county' | 'city' | 'world'
+  /** Engine candidate carries only the east/west range relevant to time boundary. */
+  longitude_range?: { west: number; east: number }
 }
 
 let cache: CityIndex | null = null

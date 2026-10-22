@@ -142,7 +142,7 @@ const gridCells = computed<GridCell[]>(() => {
   if (!b) return []
   const cells: GridCell[] = []
   for (const [key, values] of Object.entries(b.ba_zhai_dirs)) {
-    const direction = (values ?? [''])[0] ?? ''
+    const direction = values ?? ''
     const slot = DIR_SLOT[direction]
     if (slot === undefined) continue
     cells.push({

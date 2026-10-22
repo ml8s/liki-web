@@ -73,12 +73,14 @@ function applyCandidate(candidate: CityMatch) {
     emit('update:location', null)
     return
   }
+  const longitudeRange = candidate.longitude_range
+    ?? (candidate.bbox ? { west: candidate.bbox.west, east: candidate.bbox.east } : undefined)
   emit('update:location', {
     place: label,
     longitude: Math.round(candidate.lng * 10000) / 10000,
     timezone: candidate.tz,
     source: 'city',
-    ...(candidate.bbox ? { bbox: candidate.bbox } : {}),
+    ...(longitudeRange ? { longitude_range: longitudeRange } : {}),
   })
 }
 
@@ -118,7 +120,7 @@ async function resolvePlace() {
         lng: item.longitude,
         lat: item.latitude,
         tz: item.timezone,
-        bbox: item.bbox,
+        longitude_range: item.longitude_range,
         level: 'world' as const,
       }))
     }
