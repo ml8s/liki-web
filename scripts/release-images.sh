@@ -8,6 +8,25 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# Supported early so `make gate` can assert the release transport contract
+# without building, logging in to GHCR, or requiring a release tag.
+case "${1:-build}" in
+  --check-transport)
+    if [ "${VITE_CHAT_TRANSPORT:-}" = "direct" ]; then
+      echo "✓ release transport: direct"
+      exit 0
+    fi
+    echo "❌ VITE_CHAT_TRANSPORT must be set to 'direct' for release images" >&2
+    exit 1
+    ;;
+  build)
+    ;;
+  *)
+    echo "usage: $0 [--check-transport]" >&2
+    exit 2
+    ;;
+esac
+
 RELEASE_VERSION="${RELEASE_VERSION:?set RELEASE_VERSION to the CalVer version without the v prefix (e.g. 2026.10.16.0)}"
 if ! [[ "$RELEASE_VERSION" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
   echo "❌ RELEASE_VERSION must be CalVer YYYY.MM.DD.N: $RELEASE_VERSION" >&2
@@ -32,6 +51,14 @@ rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
 REGISTRY="ghcr.io/ml8s"
+
+# The production direct-connect rollout is immutable at frontend build time.
+# Refuse to publish an accidental relay-only image from this release chain.
+if [ "${VITE_CHAT_TRANSPORT:-}" != "direct" ]; then
+  echo "❌ VITE_CHAT_TRANSPORT must be set to 'direct' for release images" >&2
+  exit 1
+fi
+export VITE_CHAT_TRANSPORT=direct
 
 make build
 

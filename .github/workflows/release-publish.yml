@@ -25,6 +25,7 @@ jobs:
           ref: refs/tags/${{ inputs.tag }}
 
       - name: Guard publish
+        id: guard
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -42,15 +43,17 @@ jobs:
             echo "::error::GitHub release $tag already exists; releases are immutable" >&2
             exit 1
           fi
-          run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --branch "$tag" --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
-          if [ -z "$run_id" ]; then
+          build_run_id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --branch "$tag" --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [ -z "$build_run_id" ]; then
             echo "::error::no successful build run for $tag; push the tag and let release.yml finish first" >&2
             exit 1
           fi
+          echo "run_id=$build_run_id" >> "$GITHUB_OUTPUT"
 
       - name: Download release assets
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.guard.outputs.run_id }}
         run: |
           set -euo pipefail
           mkdir -p build/release-assets
