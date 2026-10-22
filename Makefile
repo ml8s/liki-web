@@ -23,7 +23,7 @@ PYTHON_BIN := $(HOME)/app/python3.12.14/bin
 export PATH := $(PYTHON_BIN):$(NODE_BIN):$(HOME)/app/go/bin:$(HOME)/app/go-tools/bin:$(HOME)/go/bin:$(PATH)
 export GOCACHE ?= /tmp/gocache
 export GOLANGCI_LINT_CACHE ?= /tmp/golangci-lint-cache
-export GOTOOLCHAIN ?= go1.26.9
+export GOTOOLCHAIN ?= go1.26.10
 
 # ════════════════════════════════════════════════════════════
 #  用户面对（help 显示）
