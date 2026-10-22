@@ -123,7 +123,8 @@ export interface PartnerCommission {
 
 export interface Payout {
   id: string
-  referrer_id: string
+  beneficiary_id: string
+  beneficiary_code: string
   role: PartnerRole
   amount_minor: number
   requested_amount_minor: number

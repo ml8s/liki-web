@@ -68,11 +68,11 @@ func TestListPayoutsIncludesPartnerCode(t *testing.T) {
 	if len(itemsPage.Items) != 1 {
 		t.Fatalf("payouts = %+v, want one", itemsPage)
 	}
-	if itemsPage.Items[0].ID != payout.ID || itemsPage.Items[0].ReferrerID != kol.UserID {
+	if itemsPage.Items[0].ID != payout.ID || itemsPage.Items[0].BeneficiaryID != kol.UserID {
 		t.Fatalf("payout = %+v, want id=%s referrer=%s", itemsPage.Items[0], payout.ID, kol.UserID)
 	}
-	if itemsPage.Items[0].ReferrerCode != kol.Code {
-		t.Fatalf("referrer_code = %q, want %q", itemsPage.Items[0].ReferrerCode, kol.Code)
+	if itemsPage.Items[0].BeneficiaryCode != kol.Code {
+		t.Fatalf("beneficiary_code = %q, want %q", itemsPage.Items[0].BeneficiaryCode, kol.Code)
 	}
 }
 

@@ -61,13 +61,13 @@
           </template>
         </el-table-column>
         <el-table-column
-          prop="referrer_code"
+          prop="beneficiary_code"
           label="推广码"
           min-width="150"
           show-overflow-tooltip
         />
         <el-table-column
-          prop="referrer_id"
+          prop="beneficiary_id"
           label="合作伙伴 ID"
           min-width="180"
           show-overflow-tooltip
@@ -170,8 +170,8 @@
           status-domain="payout"
           :fields="[
             { key: 'amount', label: '金额', value: row.amount_minor, kind: 'money', currency: row.currency },
-            { key: 'code', label: '推广码', value: row.referrer_code },
-            { key: 'partner', label: '合作伙伴 ID', value: row.referrer_id, kind: 'mono' },
+            { key: 'code', label: '推广码', value: row.beneficiary_code },
+            { key: 'partner', label: '合作伙伴 ID', value: row.beneficiary_id, kind: 'mono' },
             { key: 'role', label: '角色', value: adminRoleLabel(row.role) },
             { key: 'method', label: '方式', value: adminPaymentMethodLabel(row.method) },
             { key: 'account', label: '账号', value: revealed === row.id ? row.account : maskAdminAccount(row.account), kind: 'mono' },

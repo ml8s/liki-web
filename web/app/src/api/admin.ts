@@ -84,8 +84,8 @@ export interface AdminPartner {
 
 export interface AdminPayout {
   id: string
-  referrer_id: string
-  referrer_code: string
+  beneficiary_id: string
+  beneficiary_code: string
   role: PartnerRole
   amount_minor: number
   requested_amount_minor: number

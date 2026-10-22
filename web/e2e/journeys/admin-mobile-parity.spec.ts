@@ -64,7 +64,7 @@ const cases: AdminCase[] = [
     api: [['**/api/admin/partner-payouts*', {
       ...pageMeta,
       payouts: [{
-        id: 'payout_1', referrer_id: 'usr_partner', referrer_code: 'PAY-CODE', role: 'kol',
+        id: 'payout_1', beneficiary_id: 'usr_partner', beneficiary_code: 'PAY-CODE', role: 'kol',
         amount_minor: 5000, requested_amount_minor: 5000, currency: 'USD', method: 'alipay',
         account: 'partner@example.com', status: 'requested',
         created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z',

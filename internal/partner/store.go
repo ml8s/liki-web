@@ -683,7 +683,17 @@ ALTER TABLE finance_tasks RENAME TO partner_finance_tasks;
 `)
 			return err
 		},
-	}}
+	},
+		{
+			ID: "014_canonical_payout_owner",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE partner_payouts RENAME COLUMN referrer_id TO beneficiary_id;
+`)
+				return err
+			},
+		},
+	}
 }
 func newPartnerCode() (string, error) {
 	raw := make([]byte, 8)

@@ -108,16 +108,16 @@ GROUP BY currency`, userID, string(role), string(CommissionPending))
 	}
 	now := formatTime(s.nowFunc())
 	payout := Payout{
-		ID: s.idFunc(), ReferrerID: userID, Role: role,
+		ID: s.idFunc(), BeneficiaryID: userID, Role: role,
 		AmountMinor: amount, RequestedAmountMinor: amount,
 		Currency: currency, Method: method, Account: account,
 		Status: PayoutRequested, CreatedAt: parseTime(now), UpdatedAt: parseTime(now),
 	}
 	if _, err := tx.ExecContext(ctx, `
 INSERT INTO partner_payouts
-(id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at)
+(id,beneficiary_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at)
 VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-		payout.ID, payout.ReferrerID, string(payout.Role), payout.AmountMinor,
+		payout.ID, payout.BeneficiaryID, string(payout.Role), payout.AmountMinor,
 		payout.RequestedAmountMinor, payout.Currency, string(payout.Method),
 		sealedAccount, string(payout.Status), now, now); err != nil {
 		return Payout{}, err
@@ -145,11 +145,11 @@ WHERE beneficiary_id=? AND beneficiary_role=? AND status=? AND payout_id IS NULL
 
 func (s *Store) PayoutByID(ctx context.Context, id string) (Payout, error) {
 	row := s.db.QueryRowContext(ctx, `
-SELECT p.id,p.referrer_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
+SELECT p.id,p.beneficiary_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
        p.method,p.account,p.status,COALESCE(p.payment_reference,''),COALESCE(p.rejection_reason,''),
        p.created_at,p.updated_at,p.paid_at
 FROM partner_payouts p
-LEFT JOIN partners partner ON partner.user_id=p.referrer_id
+LEFT JOIN partners partner ON partner.user_id=p.beneficiary_id
 WHERE p.id=?`, id)
 	return s.scanPayout(row.Scan)
 }
@@ -159,12 +159,12 @@ func (s *Store) ListPayoutsForUser(ctx context.Context, userID string, limit int
 		limit = 50
 	}
 	rows, err := s.db.QueryContext(ctx, `
-SELECT p.id,p.referrer_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
+SELECT p.id,p.beneficiary_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
        p.method,p.account,p.status,COALESCE(p.payment_reference,''),COALESCE(p.rejection_reason,''),
        p.created_at,p.updated_at,p.paid_at
 FROM partner_payouts p
-LEFT JOIN partners partner ON partner.user_id=p.referrer_id
-WHERE p.referrer_id=? ORDER BY p.created_at DESC LIMIT ?`, userID, limit)
+LEFT JOIN partners partner ON partner.user_id=p.beneficiary_id
+WHERE p.beneficiary_id=? ORDER BY p.created_at DESC LIMIT ?`, userID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -185,12 +185,12 @@ func (s *Store) ListPayoutsForRole(ctx context.Context, userID string, role Part
 		limit = 50
 	}
 	rows, err := s.db.QueryContext(ctx, `
-SELECT p.id,p.referrer_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
+SELECT p.id,p.beneficiary_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
        p.method,p.account,p.status,COALESCE(p.payment_reference,''),COALESCE(p.rejection_reason,''),
        p.created_at,p.updated_at,p.paid_at
 FROM partner_payouts p
-LEFT JOIN partners partner ON partner.user_id=p.referrer_id
-WHERE p.referrer_id=? AND p.beneficiary_role=?
+LEFT JOIN partners partner ON partner.user_id=p.beneficiary_id
+WHERE p.beneficiary_id=? AND p.beneficiary_role=?
 ORDER BY p.created_at DESC LIMIT ?`, userID, string(normalizeRole(role)), limit)
 	if err != nil {
 		return nil, err
@@ -216,11 +216,11 @@ func (s *Store) ListPayouts(ctx context.Context, status PayoutStatus, page Admin
 	}
 	countQuery := `SELECT COUNT(*) FROM partner_payouts p` + whereSQL
 	listQuery := `
-SELECT p.id,p.referrer_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
+SELECT p.id,p.beneficiary_id,COALESCE(partner.code,''),p.beneficiary_role,p.amount_minor,p.requested_amount_minor,p.currency,
        p.method,p.account,p.status,COALESCE(p.payment_reference,''),COALESCE(p.rejection_reason,''),
        p.created_at,p.updated_at,p.paid_at
 FROM partner_payouts p
-LEFT JOIN partners partner ON partner.user_id=p.referrer_id` + whereSQL + `
+LEFT JOIN partners partner ON partner.user_id=p.beneficiary_id` + whereSQL + `
 ORDER BY p.created_at DESC
 LIMIT ? OFFSET ?`
 	result, err := adminPagedQuery(ctx, s.db, countQuery, listQuery, args,
@@ -326,7 +326,7 @@ func (s *Store) scanPayout(scan func(dest ...any) error) (Payout, error) {
 	var item Payout
 	var role, currency, method, status, createdAt, updatedAt string
 	var paidAt sql.NullString
-	if err := scan(&item.ID, &item.ReferrerID, &item.ReferrerCode, &role, &item.AmountMinor,
+	if err := scan(&item.ID, &item.BeneficiaryID, &item.BeneficiaryCode, &role, &item.AmountMinor,
 		&item.RequestedAmountMinor, &currency, &method, &item.Account, &status,
 		&item.PaymentReference, &item.RejectionReason, &createdAt, &updatedAt, &paidAt); err != nil {
 		return Payout{}, err

@@ -6,7 +6,7 @@ import type { Payout } from '@/api/partner'
 const payouts: Payout[] = [
   {
     id: 'p1',
-    referrer_id: 'u1',
+    beneficiary_id: 'u1', beneficiary_code: 'CODE',
     role: 'kol',
     amount_minor: 10000,
     requested_amount_minor: 10000,

@@ -32,7 +32,11 @@ func TestCanonicalPartnerMigrationRenamesLegacyTables(t *testing.T) {
 		"finance_tasks",
 	}
 	for _, table := range legacyTables {
-		_, err := db.ExecContext(ctx, "CREATE TABLE "+table+" (id TEXT PRIMARY KEY)")
+		column := ""
+		if table == "referral_payouts" {
+			column = ",referrer_id TEXT NOT NULL DEFAULT ''"
+		}
+		_, err := db.ExecContext(ctx, "CREATE TABLE "+table+" (id TEXT PRIMARY KEY"+column+")")
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -335,6 +335,16 @@ Erasure is rate limited and spans identity, birth profiles, chat, sales, entitle
 | GET | `/api/partner-portal/scout/settlement` | active or retired Scout | Read money-only settlement state |
 | GET | `/r/{code}` | public | Store a signed-in-new-account attribution cookie |
 
+Partner payout responses name their owner explicitly:
+
+```json
+{
+  "beneficiary_id": "...",
+  "beneficiary_code": "...",
+  "beneficiary_role": "kol"
+}
+```
+
 KOL and Scout are independent role capabilities, not levels. The public code
 link is the last valid link before a new account is created. A Scout link that
 leads to an approved KOL creates that Scout's direct channel relationship.

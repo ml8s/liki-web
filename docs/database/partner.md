@@ -102,7 +102,7 @@ Partner withdrawal request.
 the net drops to zero or below the payout minimum, finance review is rejected
 and non-voided entries are released.
 
-`beneficiary_role` makes the payout owner explicit. `account` stores an AES-GCM
+`beneficiary_id` and `beneficiary_role` make the payout owner explicit. `account` stores an AES-GCM
 sealed envelope, never plaintext payment credentials.
 
 ### partner_payout_adjustments
@@ -147,3 +147,4 @@ to `platform.db.users.id`; no cross-database foreign keys are allowed.
 - `011_finance_task_erasure` permits `user_erasure_review`; account erasure freezes partners, redacts payout accounts after settlement, and queues unpaid obligations for finance.
 - `012_application_roles` permits KOL and Scout applications and preserves all historical applications as Scout applications.
 - `013_canonical_partner_tables` renames legacy referral tables to canonical partner-owned names. It must still run on fresh databases: migration 001 creates the legacy table names that 013 canonicalizes.
+- `014_canonical_payout_owner` renames `partner_payouts.referrer_id` to `beneficiary_id`; payouts are beneficiary-owned, not referral-owned.

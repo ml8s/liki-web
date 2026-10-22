@@ -40,7 +40,7 @@ func (s *Store) EraseUser(ctx context.Context, userID string) (ErasureResult, er
 	var activePayouts int
 	if err := tx.QueryRowContext(ctx, `
 SELECT COUNT(1) FROM partner_payouts
-WHERE referrer_id=? AND status IN (?,?)`,
+WHERE beneficiary_id=? AND status IN (?,?)`,
 		userID, string(PayoutRequested), string(PayoutApproved)).Scan(&activePayouts); err != nil {
 		return ErasureResult{}, err
 	}
@@ -52,7 +52,7 @@ WHERE referrer_id=? AND status IN (?,?)`,
 	erasureRef := "account-erasure"
 	erasedPayouts, err := eraseCount(tx.ExecContext(ctx, `
 UPDATE partner_payouts SET account='erased',updated_at=?
-WHERE referrer_id=? AND account!='erased'`, now, userID))
+WHERE beneficiary_id=? AND account!='erased'`, now, userID))
 	if err != nil {
 		return ErasureResult{}, err
 	}

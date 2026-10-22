@@ -17,7 +17,7 @@ func TestEraseUserHoldsActivePayout(t *testing.T) {
 	}
 	var account, status string
 	if err := store.db.QueryRowContext(ctx, `
-SELECT account,status FROM partner_payouts WHERE referrer_id=?`, commission.ReferrerID).Scan(&account, &status); err != nil {
+SELECT account,status FROM partner_payouts WHERE beneficiary_id=?`, commission.ReferrerID).Scan(&account, &status); err != nil {
 		t.Fatal(err)
 	}
 	if status != string(PayoutRequested) || account == "erased" {

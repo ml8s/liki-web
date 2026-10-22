@@ -55,17 +55,17 @@ VALUES ('entry-end','commission-end','partner-1','kol',700,0,'CNY','pending',?,?
 			args: []any{endBoundary, endBoundary}},
 		{sql: `
 INSERT INTO partner_payouts
-(id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at,paid_at)
+(id,beneficiary_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at,paid_at)
 VALUES ('payout-paid','partner-1','kol',300,300,'USD','alipay','sealed','paid',?, ?, ?)`,
 			args: []any{inside, now, inside}},
 		{sql: `
 INSERT INTO partner_payouts
-(id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at,paid_at)
+(id,beneficiary_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at,paid_at)
 VALUES ('payout-out','partner-1','kol',1000,1000,'USD','alipay','sealed','paid',?, ?, ?)`,
 			args: []any{outside, outside, outside}},
 		{sql: `
 INSERT INTO partner_payouts
-(id,referrer_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at)
+(id,beneficiary_id,beneficiary_role,amount_minor,requested_amount_minor,currency,method,account,status,created_at,updated_at)
 VALUES ('payout-pending','partner-1','kol',700,700,'USD','paypal','sealed','requested',?,?)`,
 			args: []any{outside, outside}},
 	}
