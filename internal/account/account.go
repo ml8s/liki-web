@@ -103,7 +103,7 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 	if h.erasureQueue != nil {
 		id, err := h.erasureQueue.Enqueue(r.Context(), user.ID, user.Email, tombstone)
 		if err != nil {
-			slog.Error("account: enqueue erasure", "user_id", user.ID, "err", err)
+			slog.ErrorContext(r.Context(), "account: enqueue erasure", "user_id", user.ID, "err", err)
 			httputil.InternalError(w)
 			return
 		}
@@ -115,7 +115,7 @@ func (h *Handler) HandleErasure(w http.ResponseWriter, r *http.Request) {
 			httputil.RespondError(w, http.StatusConflict, "partner_financial_hold", "存在待结算提现，请先完成资金结算")
 			return
 		}
-		slog.Error("account: erasure", "user_id", user.ID, "request_id", requestID, "err", err)
+		slog.ErrorContext(r.Context(), "account: erasure", "user_id", user.ID, "request_id", requestID, "err", err)
 		httputil.InternalError(w)
 		return
 	}

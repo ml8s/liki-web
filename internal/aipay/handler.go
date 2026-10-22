@@ -119,7 +119,7 @@ func (h *Handler) redeem(w http.ResponseWriter, r *http.Request, proof string) {
 
 	verified, err := h.gateway.Verify(r.Context(), proof)
 	if err != nil || !verified.Active {
-		slog.Warn("aipay proof verify failed", "err", err, "active", verified.Active)
+		slog.WarnContext(r.Context(), "aipay proof verify failed", "err", err, "active", verified.Active)
 		h.proofRejected(w)
 		return
 	}

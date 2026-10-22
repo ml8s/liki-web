@@ -28,6 +28,10 @@ New product functionality belongs in `web/app` and backing Go APIs.
 - `@ag-ui/client`;
 - `markdown-it` + DOMPurify.
 
+Component rule: user-facing list views stay under ~600 lines; a view that
+crosses the threshold is split during its next feature change, not as a
+standalone refactor.
+
 ## Routes
 
 Authenticated routes live under `/app`:
@@ -67,11 +71,18 @@ speculative work. There is intentionally no idle preload of every route.
 
 ### Scenario handoff
 
-Marketing pages use `/app?scenario=naming|mingshu|hepan&locale=…` for the
-retired report scenarios and `/app?service=bazi|divination|fengshui|huangli&locale=…`
-for the App services. The app keeps the locale, authenticates the user, resolves
-the scenario or service after profile data has loaded, and falls unknown values
-back to the general workspace.
+Marketing pages hand off with the scenario id — one vocabulary across both
+surfaces (`/{locale}/natal/` ↔ `/app?scenario=natal`):
+
+- scenario ids: `natal | liunian | hepan | divination | huangli | fengshui | naming`
+  (the seven user-facing scenarios). The internal expert deployment
+  (`natal | divination | fengshui | naming`) is never presented to users;
+- tool-route entries use the same ids through `/app?service=…`;
+- legacy values are normalized for old links and stored session keys:
+  `bazi | mingshu → natal`, `bond → hepan`;
+- the app keeps the locale, authenticates the user, resolves the scenario after
+  profile data has loaded, and falls unknown values back to the general
+  workspace.
 
 ## State
 
@@ -86,6 +97,44 @@ Pinia stores are the frontend server-state layer.
 | `sales` | products, checkout, payment return state |
 
 Stores display server-verified state. They do not grant entitlement or decide price.
+
+### Birth location and canonical time
+
+The shared `RegionField` resolves free text through the built-in city index and
+the engine `city_coords` fallback. It emits one atomic location value:
+
+```text
+{ place, longitude, timezone, source }
+```
+
+- Exactly one candidate auto-fills longitude and timezone; multiple candidates
+  require an explicit pick.
+- Manual entry requires both longitude and IANA timezone.
+- Exact chart inputs require the complete location; longitude without timezone
+  is rejected rather than guessed.
+- Profiles persist `birth_longitude`, `birth_timezone`, and `birth_instant`.
+
+### Paipan time normalization
+
+Birth input is complete Gregorian wall time (`YYYY-MM-DD` + `HH:mm`). The
+shared Temporal adapter rejects DST gaps/folds and passes only
+`{instant, timezone, longitude}` to chart tools. There is no approximate/unknown
+time state: incomplete information cannot be charted. Lunar dates are not
+accepted as browser input; lunar fields in panels are engine projections.
+
+### LiuYao casting context
+
+The divination form owns an explicit context: question, casting mode, and an
+atomic casting location. The submit handler captures the ritual instant
+before the first Engine MCP request and reuses exactly that instant for
+`liuyao_chart`; network completion time never becomes the casting time. It also
+passes `yong_shen` explicitly.
+
+Browser Geolocation may be requested only from the visible “use current
+location” action. Success prefills place, longitude, and the device IANA
+timezone, while denial or failure leaves the normal city-resolution and manual
+location path. No hidden longitude or timezone default is sent, and chart
+requests carry no raw place text.
 
 ## Dashboard states
 
@@ -105,12 +154,24 @@ Scenario entries remain available below the primary guidance.
 The Vue app uses the official AG-UI client against:
 
 ```text
-/api/chat/sessions/{id}/ag-ui
+/api/chat/sessions/{id}/ag-ui        (relay, default)
+/rt/<profile>/ag-ui                  (direct, VITE_CHAT_TRANSPORT=direct)
 ```
 
-It does not connect directly to `liki-agents`.
+The relay reaches `liki-agents` through the liki-web BFF. The direct transport
+is a build-time switch: Caddy (same origin) performs ForwardAuth introspection
+and a mutual-TLS upstream, and the client carries the conversation history and
+profile context because the runtime is stateless; history is persisted by the
+run-completed callback. Rollback = deploy the previous (relay) web image.
 
 The app consumes product-safe events. Backend persistence only uses the authoritative terminal result. `RUN_ERROR` is surfaced as a generation error, not stored as a formal assistant message.
+
+Message history is cursor-paginated: `GET /api/chat/sessions/{id}/messages?before=&limit=`
+returns `{messages, next_cursor}` (default page 200, cap 500; cursors are
+`<created_at>|<id>` keyset strings). The session view offers “load earlier”, and
+the agent context is capped to the latest 50 messages. Session lists are capped
+at the recent 200. Keyset indexes must cover the full sort key — a query-plan
+contract test guards this.
 
 ## Markdown
 
@@ -173,6 +234,11 @@ eslint covers `.ts` and `.js` sources under `web/`; `.astro` templates are
 covered by `astro check`. There is no `eslint-plugin-astro` because its 2.x/3.x
 line requires a newer Node than the pinned `.nvmrc`, and 1.x carries an
 unfixable high advisory that would fail the CI dependency audit.
+
+`make check` also enforces cross-layer contracts: marketing↔App i18n key usage,
+service-CTA parity, chart-message sync, and error-code copy coverage — every Go
+error code must carry App copy in all three locales (`check-error-codes.js`;
+inventory in the generated `docs/error-codes.md`).
 
 ## Payments
 
@@ -303,18 +369,20 @@ policy lives in
 
 ## Capability pages
 
-The public `/bazi`, `/divination`, `/fengshui`, and `/huangli` pages are the SEO
-landing pages for the four App services. They share one component
-(`web/src/components/ScenarioLanding.astro`), explain a single service, and send
-the visitor to `/app?service=…`; the home page service cards link to them. The
-raw App routes stay private — these pages exist so each service has a public,
-indexable entry point that ends in the app.
+The public scenario pages — `/natal`, `/liunian`, `/hepan`, `/divination`,
+`/fengshui`, `/huangli`, `/naming` — are the SEO landing pages for the seven
+user-facing scenarios. They share one component
+(`web/src/components/ScenarioLanding.astro`), explain a single scenario with a
+free tool, and hand off to `/app?scenario=…` (tool-route entries use
+`service=…`); the home page service cards link to them. The raw App routes stay
+private — these pages exist so each scenario has a public, indexable entry
+point that ends in the app.
 
 ## Retired product pages
 
-The public `/naming`, `/mingshu`, and `/hepan` pages are Liki Chat CTA pages.
-They explain a scenario and send the visitor to `/app?scenario=…`, just as the
-home page sends visitors to the app.
+`/mingshu` is retired: the life reading is the deliverable of the natal
+scenario, not a separate page; `/mingshu` and `/bazi` 301 to `/natal`.
+`/naming` and `/hepan` are live scenario pages.
 
 The retired naming activation and chat URLs redirect to the Liki Chat scenario;
 the retired commerce backends, client-side report demo renderer, and vendored

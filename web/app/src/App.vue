@@ -21,13 +21,16 @@
         </el-button>
       </div>
     </div>
-    <router-view v-else />
+    <ElementPlusProvider v-else>
+      <router-view />
+    </ElementPlusProvider>
   </el-provider>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { ElConfigProvider as ElProvider } from 'element-plus'
+import ElementPlusProvider from '@shared/components/form/ElementPlusProvider.vue'
 import en from 'element-plus/es/locale/lang/en'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import zhTw from 'element-plus/es/locale/lang/zh-tw'

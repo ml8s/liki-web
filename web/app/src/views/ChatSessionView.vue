@@ -8,12 +8,6 @@
         <template #content>
           <div class="page-heading">
             <h1>{{ chat.activeSession?.title || $t('common.loading') }}</h1>
-            <el-tag
-              v-if="chat.activeSession"
-              size="small"
-            >
-              {{ skillLabel(chat.activeSession.expert) }}
-            </el-tag>
           </div>
         </template>
       </el-page-header>
@@ -25,6 +19,18 @@
         class="thread"
         @scroll="onThreadScroll"
       >
+        <div
+          v-if="chat.messagesCursor"
+          class="earlier-row"
+        >
+          <el-button
+            size="small"
+            :loading="chat.loadingEarlier"
+            @click="loadEarlier"
+          >
+            {{ $t('chat.loadEarlier') }}
+          </el-button>
+        </div>
         <ChatThread
           :messages="chat.messages"
           :loading="chat.loadingMessages"
@@ -75,10 +81,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useChatStore, skillLabel } from '@/stores/chat'
+import { useChatStore } from '@/stores/chat'
 import ChatComposer from '@/components/chat/ChatComposer.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
 import ChatThread from '@/components/chat/ChatThread.vue'
+import { useFormDraftsStore } from '@shared/stores/form-drafts'
 
 const route = useRoute()
 const chat = useChatStore()
@@ -87,25 +94,18 @@ const draft = ref('')
 const threadElement = ref<HTMLElement | null>(null)
 const nearBottom = ref(true)
 const sessionId = computed(() => String(route.params.sessionId ?? ''))
-const DRAFT_KEY = 'likiChatDraft'
+const DRAFT_KEY = 'chat-draft'
+const drafts = useFormDraftsStore()
 
 // 输入框草稿持久化：刷新/离开页面后恢复（借命名 chat 实践）。
 watch(draft, value => {
-  try {
-    if (value) sessionStorage.setItem(DRAFT_KEY, value)
-    else sessionStorage.removeItem(DRAFT_KEY)
-  } catch {
-    // ignore
-  }
+  if (value) drafts.set(DRAFT_KEY, value)
+  else drafts.clear(DRAFT_KEY)
 })
 
 function restoreDraft() {
-  try {
-    const saved = sessionStorage.getItem(DRAFT_KEY)
-    if (saved) draft.value = saved
-  } catch {
-    // ignore
-  }
+  const saved = drafts.get<string>(DRAFT_KEY)
+  if (saved) draft.value = saved
 }
 
 function goBack() {
@@ -159,6 +159,16 @@ function retry() {
   void reloadSession()
 }
 
+// 加载更早的消息：顶部插入后把滚动位置下移插入的高度差，视口内容不跳动。
+async function loadEarlier() {
+  const el = threadElement.value
+  const beforeHeight = el?.scrollHeight ?? 0
+  const loaded = await chat.loadEarlierMessages()
+  if (!loaded || !el) return
+  await nextTick()
+  el.scrollTop += el.scrollHeight - beforeHeight
+}
+
 async function reloadSession() {
   if (!sessionId.value) return
   await chat.openSession(sessionId.value)
@@ -194,7 +204,7 @@ watch(sessionId, async id => {
 watch(
   () => {
     const last = chat.messages[chat.messages.length - 1]
-    return last ? `${chat.messages.length}:${last.content?.length ?? 0}:${last.thinking?.length ?? 0}` : ''
+    return last ? `${chat.messages.length}:${last.content?.length ?? 0}` : ''
   },
   () => scrollToEnd(),
 )
@@ -264,6 +274,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .thread { flex: 1; overflow: auto; padding-right: 8px; scrollbar-gutter: stable; }
+.earlier-row { display: flex; justify-content: center; padding-bottom: var(--space-3); }
 .composer-alert { margin: 12px 0 0; }
 .error-row { display: flex; align-items: flex-start; gap: 10px; }
 .error-row .el-button { margin-top: 12px; }
@@ -287,4 +298,12 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .jump-latest:hover { color: var(--liki-primary); border-color: var(--liki-primary-border); }
+
+@media (max-width: 768px) {
+  .jump-latest {
+    top: -56px;
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+}
 </style>

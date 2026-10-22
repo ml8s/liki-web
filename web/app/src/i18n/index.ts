@@ -1,5 +1,5 @@
 import { createI18n } from 'vue-i18n'
-import localeConfig from '../../../shared/locales.json'
+import localeConfig from '@shared/locales.json'
 
 export type AppLocale = 'zh-Hans' | 'zh-Hant' | 'en'
 

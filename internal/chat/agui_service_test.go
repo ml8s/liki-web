@@ -25,7 +25,7 @@ type scriptedChatRunner struct {
 
 func (r *scriptedChatRunner) Prompt() string { return r.prompt }
 
-func (r *scriptedChatRunner) Execute(_ context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent), _ func() string) ([]llm.Message, error) {
+func (r *scriptedChatRunner) Execute(_ context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) ([]llm.Message, error) {
 	r.calls++
 	r.lastMsgs = msgs
 	if onEvent != nil {
@@ -92,7 +92,7 @@ func TestServiceAgentModePersistsAuthoritativeAgentResult(t *testing.T) {
 	if len(remote.lastMsgs) == 0 || remote.lastMsgs[0].Role != llm.RoleUser {
 		t.Fatalf("agent runner first message = %+v", remote.lastMsgs)
 	}
-	messages, err := chats.ListMessages(ctx, "user-1", session.ID)
+	messages, _, err := chats.ListMessages(ctx, "user-1", session.ID, "", 50)
 	if err != nil {
 		t.Fatalf("list messages: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestServiceAgentModeLeavesUserMessageWithoutAssistantOnRunError(t *testing.
 	if remote.calls != 1 {
 		t.Fatalf("runner calls remote=%d", remote.calls)
 	}
-	messages, err := chats.ListMessages(ctx, "user-1", session.ID)
+	messages, _, err := chats.ListMessages(ctx, "user-1", session.ID, "", 50)
 	if err != nil {
 		t.Fatalf("list messages: %v", err)
 	}
@@ -136,9 +136,10 @@ func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
 	created, err := profileStore.Create(ctx, "user-1", birthprofile.BirthProfileInput{
 		Nickname:       "Test",
 		Gender:         "male",
-		Calendar:       "solar",
 		BirthDate:      "1990-06-01",
-		BirthTimeKnown: "unknown",
+		BirthTime:      "12:00",
+		BirthTimezone:  &[]string{"Asia/Shanghai"}[0],
+		BirthLongitude: &[]float64{116.4074}[0],
 	})
 	if err != nil {
 		t.Fatalf("create profile: %v", err)
@@ -158,7 +159,7 @@ func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
 	if remote.calls != 1 {
 		t.Fatalf("runner calls remote=%d", remote.calls)
 	}
-	messages, err := chats.ListMessages(ctx, "user-1", session.ID)
+	messages, _, err := chats.ListMessages(ctx, "user-1", session.ID, "", 50)
 	if err != nil {
 		t.Fatalf("list messages: %v", err)
 	}

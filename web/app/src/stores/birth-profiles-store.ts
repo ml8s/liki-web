@@ -86,14 +86,16 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
     async create(input: BirthProfileInput): Promise<BirthProfile> {
       const profile = await createBirthProfile(input)
       this.list.unshift(profile)
-      return profile
+      // 返回响应式代理而非 unshift 前的原始对象（同类响应式陷阱的防御）。
+      return this.list[0]
     },
     async update(id: string, expectedVersion: number, input: BirthProfileInput): Promise<BirthProfile> {
       const profile = await updateBirthProfile(id, expectedVersion, input)
       const index = this.list.findIndex(item => item.id === id)
       if (index >= 0) this.list[index] = profile
       if (this.detail?.id === id) this.detail = profile
-      return profile
+      // 列表内返回响应式代理；不在列表（如仅详情态）时原始对象无响应式消费者。
+      return index >= 0 ? this.list[index] : profile
     },
     async remove(id: string) {
       await deleteBirthProfile(id)

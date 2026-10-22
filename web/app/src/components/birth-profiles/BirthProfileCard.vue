@@ -60,7 +60,7 @@ const initial = computed(() => props.profile.nickname.slice(0, 1))
   display: flex; align-items: center; gap: 14px;
   background: var(--liki-surface); border: 1px solid var(--liki-line);
   border-radius: var(--radius-lg); padding: 16px 18px;
-  transition: border-color var(--liki-dur) var(--liki-ease), box-shadow var(--liki-dur) var(--liki-ease), transform var(--liki-dur) var(--liki-ease);
+  transition: border-color var(--liki-dur) var(--liki-ease), background var(--liki-dur) var(--liki-ease);
 }
 .profile-main {
   display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;
@@ -68,8 +68,7 @@ const initial = computed(() => props.profile.nickname.slice(0, 1))
 }
 .profile-card:hover {
   border-color: var(--liki-primary-border);
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  background: var(--liki-paper);
 }
 .avatar {
   width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;

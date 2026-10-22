@@ -31,9 +31,9 @@
     "profiles": "档案",
     "chat": "Liki Chat",
     "orders": "订单",
-    "partner": "合作计划",
     "account": "账户设置",
     "mine": "我的",
+    "partner": "我的合作",
     "logout": "退出"
   },
   "a11y": {
@@ -70,46 +70,25 @@
     "profiles": "档案",
     "profileNew": "新建档案",
     "profileDetail": "档案详情",
-    "synastry": "合盘",
+    "hepan": "合盘",
     "divination": "问卦",
     "fengshui": "风水",
     "huangli": "择日",
     "chat": "Liki Chat",
     "chatSession": "咨询",
     "orders": "订单",
-    "partnerCenter": "合作计划",
+    "partnerCenter": "我的合作",
     "partnerKol": "KOL 合作",
     "partnerScout": "Scout 合作",
     "account": "账户设置",
     "notFound": "页面不存在"
   },
   "services": {
-    "expert": {
-      "natal": {
-        "label": "本命",
-        "description": "八字·紫微·大运流年·合盘合参"
-      },
-      "divination": {
-        "label": "占卜",
-        "description": "六爻·奇门·黄历择日"
-      },
-      "fengshui": {
-        "label": "风水",
-        "description": "八宅·玄空·流年飞星"
-      },
-      "naming": {
-        "label": "起名",
-        "description": "按用神选字·名字评估"
-      }
-    },
-    "skill": {
-      "compact": "命理"
-    },
-    "bazi": {
-      "label": "看命",
+    "natal": {
+      "label": "命理",
       "description": "八字·紫微·大运·流年·格局",
       "intent": "我想咨询八字。",
-      "cta": "去排盘"
+      "cta": "去命理"
     },
     "divination": {
       "label": "问卦",
@@ -120,8 +99,34 @@
       "subtitle": "输入一个问题摇卦，先看卦象；深入断卦解读进对话。",
       "cast": "摇卦",
       "questionLabel": "你想问的一件事",
-      "questionPlaceholder": "如：这个项目能不能成 / 何时有结果",
+      "questionPlaceholder": "如：这个项目能不能成 / 何时有结果…",
       "questionRequired": "请先输入你想问的问题",
+      "castingModeLabel": "起卦方式",
+      "castingModeAuto": "系统自动起卦",
+      "castingModeHint": "系统使用安全随机数起卦；提交时会固定起卦时间。",
+      "placeLabel": "起卦地点",
+      "placePlaceholder": "如：上海 / 上海市…",
+      "placeResolving": "正在匹配起卦地点…",
+      "placeAmbiguous": "找到多个同名地点，请选择：",
+      "placePick": "请选择地点",
+      "placeNotFound": "未能识别起卦地点，请改写或手动填写经度",
+      "placeMatched": "已匹配起卦地点 · 东经 {lng}°",
+      "longitudeLabel": "经度",
+      "longitudeHint": "用于真太阳时校正；可手动填写",
+      "placeRequired": "请填写起卦地点",
+      "useCurrentLocation": "使用当前定位",
+      "locating": "正在定位…",
+      "locationManualHint": "浏览器定位仅用于填入可见表单，可随时修改。",
+      "currentDevicePlace": "当前设备位置",
+      "browserLocationUsed": "已使用当前设备位置",
+      "browserLocationAccuracy": "定位精度约 {meters} 米",
+      "castingTimeHint": "提交时会记录起卦时间、地点和经度，用于排盘与保存记录。",
+      "locationError": {
+        "denied": "浏览器定位未授权。你可以手动选择地点或填写经度。",
+        "unavailable": "浏览器定位当前不可用。请手动填写。",
+        "timeout": "浏览器定位超时。请重试或手动填写。",
+        "invalid": "浏览器定位结果无效。请手动填写经度。"
+      },
       "hexagram": "卦象",
       "original": "本卦",
       "changed": "变卦",
@@ -156,10 +161,10 @@
       "label": "风水",
       "description": "八宅·流年飞星·吉凶方位",
       "intent": "我想咨询风水。",
-      "cta": "看风水",
+      "cta": "去风水",
       "pageTitle": "风水",
       "subtitle": "先看命卦与八宅吉凶方位、流年飞星；布局解读进对话。",
-      "selectBirthProfile": "选择档案（本命）",
+      "selectBirthProfile": "选择档案",
       "noBirthProfilePrefix": "还没有档案，先",
       "noBirthProfileSuffix": "再看风水。",
       "lifeGuaDirections": "命卦与吉凶方",
@@ -168,13 +173,54 @@
       "consultationBody": "AI 顾问会结合命卦、八宅方位和流年飞星为你做布局解读。",
       "lockedBody": "解锁 Liki Chat 后可获得专业布局解读。",
       "invalidBirthYear": "出生日期无效",
-      "failed": "风水预览失败"
+      "failed": "风水预览失败",
+      "xuankongTitle": "玄空飞星盘",
+      "zuoShan": "坐山",
+      "xiangShan": "向山",
+      "zuo": "坐",
+      "xiang": "向",
+      "shanStar": "山星",
+      "xiangStar": "向星",
+      "yunStar": "运星",
+      "periodDate": "起盘日期",
+      "fourSituation": "四大格局",
+      "sitMountainTimely": "坐宫山星当令",
+      "faceFacingTimely": "向宫向星当令",
+      "sitFacingTimely": "坐宫向星当令",
+      "faceMountainTimely": "向宫山星当令",
+      "shouShanChuSha": "收山出煞",
+      "zhengShen": "正神",
+      "lingShen": "零神",
+      "shouShanOk": "收山得宜",
+      "chuShaOk": "出煞得宜",
+      "fuYin": "伏吟",
+      "fanYin": "反吟",
+      "xingJiaHui": "星加会",
+      "layoutTitle": "布局判断",
+      "door": "门",
+      "master": "主卧",
+      "stove": "灶",
+      "youxing": "游年星",
+      "rating": "评级",
+      "match": "同异组",
+      "layoutNote": "门、主卧宜吉方，灶压凶方（坐凶向吉）。",
+      "directionLabel": "方位",
+      "guaLabel": "卦",
+      "centerPalace": "中宫",
+      "selectPlaceholder": "请选择",
+      "ratingValue": {
+        "veryAuspicious": "大吉",
+        "auspicious": "吉",
+        "neutral": "平",
+        "inauspicious": "凶",
+        "veryInauspicious": "大凶"
+      }
     },
     "huangli": {
       "label": "择日",
       "description": "黄历择日·宜忌",
       "intent": "我想咨询择日（{event}）。",
-      "cta": "选日子",
+      "cta": "去择日",
       "pageTitle": "择日",
       "subtitle": "选事项与日期范围，先看黄历推荐；择日解读进对话。",
       "event": "事项",
@@ -187,6 +233,34 @@
       "recommended": "推荐",
       "possible": "可选",
       "unsuitable": "不宜",
+      "naYin": "纳音",
+      "path": "值神",
+      "pathValue": {
+        "yellow": "黄道",
+        "black": "黑道"
+      },
+      "mansion": "星宿",
+      "spirits": "吉神方位",
+      "xiShen": "喜神",
+      "caiShen": "财神",
+      "fuShen": "福神",
+      "pengZu": "彭祖百忌",
+      "jieQi": "节气",
+      "jieQiDays": "第 {days} 天",
+      "renYuan": "人元",
+      "shiChen": "时辰吉凶",
+      "auspicious": "吉",
+      "inauspicious": "凶",
+      "dir": {
+        "e": "正东",
+        "se": "东南",
+        "s": "正南",
+        "sw": "西南",
+        "w": "正西",
+        "nw": "西北",
+        "n": "正北",
+        "ne": "东北"
+      },
       "consultationTitle": "择日解读",
       "consultationBody": "AI 顾问会结合黄历、事项和你的档案做择日解读。",
       "lockedBody": "解锁 Liki Chat 后可获得专业择日解读。",
@@ -212,20 +286,24 @@
       }
     },
     "naming": {
+      "label": "起名",
+      "description": "按用神选字·名字评估",
       "intent": "我想咨询起名。",
-      "cta": "去起名"
+      "cta": "去起名",
+      "yongShen": "用神",
+      "xiShen": "喜神",
+      "jiShen": "忌神",
+      "needsReview": "此盘用神存在冲突或置信度较低，建议结合完整解读复核。"
     },
-    "bond": {
+    "hepan": {
       "label": "合盘",
       "description": "两人八字合婚·关系分析",
       "intent": "请为我（{a}）与对方做合盘解读。对方信息：{info}。",
-      "cta": "开始合盘解读",
+      "cta": "去合盘",
       "title": "合盘",
       "subtitle": "用你的档案与对方信息，查看两人的八字合盘。",
       "step1": "第一步 · 选择档案（你或对方）",
       "step2": "第二步 · 输入对方信息",
-      "birthPlaceOptional": "出生地（可选）",
-      "birthPlacePlaceholder": "用于真太阳时修正，如：上海",
       "compute": "合盘",
       "result": "合盘结果",
       "otherPerson": "对方",
@@ -264,6 +342,21 @@
         "day": "日",
         "hour": "时"
       }
+    },
+    "liunian": {
+      "label": "流年",
+      "description": "流年盘·犯太岁·年度节奏",
+      "intent": "我想咨询流年运势。",
+      "cta": "去流年"
+    },
+    "glyph": {
+      "natal": "命",
+      "liunian": "运",
+      "hepan": "合",
+      "divination": "卦",
+      "huangli": "吉",
+      "fengshui": "宅",
+      "naming": "名"
     }
   },
   "dashboard": {
@@ -323,21 +416,19 @@
       "nicknamePlaceholder": "如：妈妈 / 我本人",
       "gender": "性别",
       "birthDate": "出生日期",
-      "solar": "公历",
-      "lunar": "农历",
       "selectDate": "选择日期",
-      "lunarPlaceholder": "如 1958-闰5-12 或 1990-5-12",
-      "birthTime": "出生时间",
-      "timeKnown": "时间是否确定",
-      "known": "精确",
-      "approximate": "只知道时辰",
-      "unknown": "不确定",
-      "exactTime": "精确时间（将做真太阳时修正）",
       "timePlaceholder": "如 06:00",
       "birthPlace": "出生地（城市，用于真太阳时修正）",
       "birthPlacePlaceholder": "如：上海",
-      "shichenLabel": "时辰（按已定时辰排，不校正）",
-      "unknownHint": "不确定也能算，之后可在对话中定盘。",
+      "longitude": "经度",
+      "timezone": "IANA 时区",
+      "timezonePlaceholder": "例如 Asia/Shanghai",
+      "timezoneHint": "和出生地配套的法定时区",
+      "placeResolving": "正在匹配出生地…",
+      "placeAmbiguous": "找到多个同名地点，请选择：",
+      "placePick": "请选择地点",
+      "placeNotFound": "未能识别出生地，请改写或手动填写经度",
+      "placeMatched": "已匹配出生地 · 东经 {lng}°",
       "more": "更多信息（可选）",
       "note": "备注",
       "notePlaceholder": "如：这是我想深度了解的人",
@@ -347,25 +438,12 @@
         "nicknameRequired": "请填写称呼",
         "genderRequired": "请选择性别",
         "birthDateRequired": "请选择出生日期",
-        "lunarFormat": "农历日期格式如 1958-闰5-12 或 1990-5-12",
-        "timeTypeRequired": "请选择时间类型",
         "exactTimeRequired": "请选择精确时间",
-        "timeFormat": "时间格式应为 HH:mm"
+        "timeFormat": "时间格式应为 HH:mm",
+        "birthPlaceRequired": "请选择出生地并确认时区"
       },
-      "shichen": {
-        "zi": "子",
-        "chou": "丑",
-        "yin": "寅",
-        "mao": "卯",
-        "chen": "辰",
-        "si": "巳",
-        "wu": "午",
-        "wei": "未",
-        "shen": "申",
-        "you": "酉",
-        "xu": "戌",
-        "hai": "亥"
-      }
+      "birthYear": "出生年份",
+      "birthTime": "出生时间"
     },
     "list": {
       "subtitle": "管理你关心的人的出生信息。",
@@ -390,7 +468,6 @@
     "chart": {
       "title": "免费排盘",
       "compute": "排盘",
-      "lunarHint": "免费预览暂支持公历出生时间；农历可在付费对话中获得完整排盘与解读。",
       "empty": "输入公历出生时间后点“排盘”，免费查看八字、紫微、八宅三盘（临时展示，不保存）。",
       "bazi": "八字",
       "ziwei": "紫微",
@@ -400,6 +477,80 @@
       "shenSha": "神煞",
       "daYun": "大运",
       "yongShen": "用神简览",
+      "relations": "命盘关系",
+      "rel": {
+        "ganHe": "天干五合",
+        "ganChong": "天干相冲",
+        "zhiLiuHe": "地支六合",
+        "sanHe": "三合局",
+        "sanHePartial": "半合局",
+        "sanHui": "三会局",
+        "liuChong": "六冲",
+        "liuHai": "六害",
+        "liuXing": "相刑",
+        "liuPo": "相破",
+        "anHe": "暗合",
+        "gongJia": "拱夹",
+        "contested": "争合"
+      },
+      "pillarShort": {
+        "year": "年",
+        "month": "月",
+        "day": "日",
+        "hour": "时"
+      },
+      "starLuck": "星运",
+      "selfSitting": "自坐",
+      "xunKong": "旬空",
+      "kuiGang": "魁罡",
+      "tenGods": "十神力量",
+      "elementStates": "五行状态",
+      "marks": {
+        "transparent": "透",
+        "hidden": "藏",
+        "rooted": "根",
+        "timely": "时"
+      },
+      "count": "数量",
+      "season": "季节",
+      "strength": "强弱",
+      "seasonValue": {
+        "prosperous": "旺",
+        "strong": "相",
+        "resting": "休",
+        "trapped": "囚",
+        "dead": "死"
+      },
+      "strengthValue": {
+        "strong": "强",
+        "neutral": "中",
+        "weak": "弱"
+      },
+      "luRoots": "禄根",
+      "changShengStages": "长生十二宫",
+      "nayinRel": "纳音关系",
+      "nayinRelValue": {
+        "sheng": "相生",
+        "ke": "相克",
+        "same": "相同"
+      },
+      "daYunNext": "距下一步 {years} 年",
+      "daYunDir": {
+        "forward": "顺排",
+        "backward": "逆排"
+      },
+      "liunianPillar": "流年",
+      "liunianYear": "流年年份",
+      "liunianDetail": "流年详览",
+      "withNatal": "与命局",
+      "withDaYun": "与大运",
+      "ganRel": "天干",
+      "zhiRel": "地支",
+      "fuyinFanyin": "伏吟反吟",
+      "shengCount": "生数",
+      "keCount": "克数",
+      "auspicious": "吉",
+      "inauspicious": "凶",
       "annualStars": "流年飞星（{year}）",
       "centerStar": "入中星：",
       "mingZhu": "命主",
@@ -425,10 +576,7 @@
       "favorAvoid": "{value} · 喜 {favorable} 忌 {unfavorable}",
       "useFavor": "用 {value} · 喜 {favorable}",
       "patternValue": "{value} · 喜 {favorable} 忌 {unfavorable}",
-      "corrected": "已做真太阳时修正",
-      "notCorrectedNoPlace": "未做真太阳时修正（未填出生地）",
-      "approximateWithPlace": "按已定时辰排盘（出生地仅用于精确时间校正，此时不生效）",
-      "approximate": "按已定时辰排盘，未做校正",
+      "correctedLongitude": "已做真太阳时修正（东经 {lng}°）",
       "failed": "排盘失败",
       "pillar": {
         "year": "年柱",
@@ -447,7 +595,6 @@
         "jue_ming": "绝命"
       },
       "errors": {
-        "unknownTime": "出生时间不确定，暂无法预览排盘；可在付费对话中定盘。",
         "missingTime": "缺少出生时间"
       }
     },
@@ -456,7 +603,7 @@
       "remove": "删除"
     },
     "profile": "档案",
-    "summary": "{calendar} {date} {time} · {gender} · {known}{place}"
+    "summary": "{date} {time} · {gender}{place}"
   },
   "commerce": {
     "oneTime": {
@@ -484,7 +631,7 @@
   },
   "chat": {
     "pendingService": "准备开始：{service}",
-    "subtitle": "八字·紫微、占卜、风水、起名——选择专属专家，专业解读。",
+    "subtitle": "命理·流年·合盘、问卦·择日、风水·起名——选择解读领域，进入专业解读。",
     "productsFailed": "产品加载失败",
     "selectBirthProfile": "选择档案",
     "selectBirthProfileFirst": "请先选择一个档案",
@@ -492,19 +639,7 @@
     "empty": "选择档案与解读领域后，即可开启第一次对话。",
     "emptyAction": "选择领域开始咨询",
     "createFailed": "创建会话失败",
-    "state": {
-      "inactive": "开通 Liki Chat 后即可使用。",
-      "notIncluded": "当前方案不包含此解读领域。",
-      "profileRequired": "选择档案后即可开始解读。"
-    },
-    "status": {
-      "inactive": "未开通",
-      "notIncluded": "未包含",
-      "profileRequired": "需要档案",
-      "available": "可用"
-    },
     "action": {
-      "resolve": "去处理",
       "activate": "去开通",
       "orders": "去查看",
       "start": "开始"
@@ -519,7 +654,6 @@
       "user": "我",
       "assistant": "AI 顾问"
     },
-    "thinking": "推理过程",
     "copied": "已复制",
     "copyAnswer": "复制回答",
     "stopped": "已停止生成",
@@ -538,7 +672,6 @@
     },
     "sessions": {
       "title": "主题",
-      "domain": "领域",
       "updated": "更新时间",
       "open": "打开",
       "rename": "重命名",
@@ -547,10 +680,7 @@
     },
     "systemBirthProfile": {
       "title": "已载入档案",
-      "note": "将基于以上出生信息排盘后解读。",
-      "known": "已知",
-      "approximate": "时辰",
-      "unknown": "不确定"
+      "note": "将基于以上出生信息排盘后解读。"
     },
     "skillNotIncluded": "当前订单未开通该 skill",
     "sessionTitleWithBirthProfile": "{nickname} · {skill}解读",
@@ -558,7 +688,21 @@
     "phase": {
       "thinking": "思考中"
     },
-    "sendFailed": "发送失败"
+    "tool": {
+      "expert": "正在准备解读…",
+      "bazi": "正在排八字盘…",
+      "ziwei": "正在排紫微盘…",
+      "coords": "正在校准出生时间与地点…",
+      "chart": "正在排盘推演…",
+      "period": "正在推演大运流年…",
+      "qimen": "正在起局…",
+      "liuyao": "正在起卦…",
+      "naming": "正在斟酌用字…",
+      "fengshui": "正在勘察方位…",
+      "generic": "正在推演分析…"
+    },
+    "sendFailed": "发送失败",
+    "loadEarlier": "加载更早的消息"
   },
   "account": {
     "subtitle": "账号信息与登录设备管理。",
@@ -758,10 +902,17 @@
       "role_required": "需要对应的合作角色",
       "self_management_forbidden": "不能管理自己的管理员权限",
       "skill_forbidden": "当前权益不可使用该 skill",
+      "runtime_failed": "生成失败，请稍后重试",
+      "runtime_timeout": "生成超时，请重试",
+      "runtime_busy": "服务繁忙，请稍后重试",
+      "runtime_interrupted": "生成已中断，请重试",
+      "runtime_empty_response": "生成结果为空，请重试",
+      "llm_unavailable": "模型服务暂时不可用，请稍后重试",
+      "mcp_tools_unavailable": "工具服务暂时不可用，请稍后重试",
+      "tool_execution_failed": "工具执行失败，请重试",
       "engine_unavailable": "排盘服务暂时不可用，请稍后重试",
       "invalid_engine_response": "排盘服务响应异常",
       "engine_tool_failed": "排盘处理失败，请检查输入后重试",
-      "engine_tool_not_found": "该排盘服务不可用",
       "city_not_found": "无法识别出生地，无法做真太阳时修正；请改用常见城市名，或移除出生地后重试",
       "city_invalid": "未找到出生地坐标；请改用常见城市名，或移除出生地后重试",
       "lunar_preview_unsupported": "免费预览暂支持公历出生时间",
@@ -773,7 +924,53 @@
       "code_locked": "验证码尝试次数过多，请稍后再试",
       "user_disabled": "账户不可用",
       "user_not_found": "用户不存在",
-      "mailer_unavailable": "邮件服务暂不可用，请稍后再试"
+      "mailer_unavailable": "邮件服务暂不可用，请稍后再试",
+      "runtime_init_failed": "解读服务启动失败，请稍后重试",
+      "runtime_session_unavailable": "会话状态暂不可用，请重试",
+      "llm_request_invalid": "模型请求异常，请重试",
+      "llm_call_failed": "模型调用失败，请重试",
+      "tool_call_invalid": "工具调用异常，请重试",
+      "tool_call_unknown": "调用了未知工具，请重试",
+      "tool_execution_interrupted": "工具执行被中断，请重试",
+      "agent_definition_invalid": "解读配置异常，请联系支持",
+      "agent_definition_missing": "解读配置缺失，请联系支持",
+      "agent_delegation_unknown": "任务分派异常，请重试",
+      "agent_delegation_failed": "任务分派失败，请重试",
+      "structured_output_invalid": "结果格式异常，请重试",
+      "structured_output_empty": "结果为空，请重试",
+      "user_message_required": "消息内容不能为空",
+      "history_invalid": "历史消息异常，请重试",
+      "run_id_conflict": "请求冲突，请重试",
+      "profile_not_allowed": "该解读服务不可用，请返回重试",
+      "run_id_required": "请求缺少运行标识",
+      "run_id_invalid": "运行标识无效",
+      "thread_id_required": "请求缺少会话标识",
+      "thread_id_invalid": "会话标识无效",
+      "user_id_required": "请求缺少用户标识",
+      "user_id_invalid": "用户标识无效",
+      "identity_required": "身份校验失败，请重新登录",
+      "method_not_allowed": "请求方式不支持",
+      "invalid_agui_request": "请求格式异常，请重试",
+      "unsupported_agui_feature": "当前版本暂不支持该功能",
+      "invalid_agui_message": "消息格式异常，请重试",
+      "partner_financial_hold": "存在待结算提现，请先完成资金结算",
+      "entitlement_not_found": "未找到该权益",
+      "entitlement_revoked": "已撤销的权益不能改期",
+      "entitlement_already_revoked": "该权益已撤销",
+      "sales_unavailable": "订单服务暂时不可用，请稍后重试",
+      "user_not_active": "该账号已停用",
+      "super_requires_super": "变更超级管理员权限需要超级管理员身份",
+      "too_large": "请求内容过大",
+      "webhook_failed": "支付回调处理失败",
+      "invalid_body": "请求内容无效",
+      "invalid_signature": "签名校验失败",
+      "invalid_callback": "回调参数无效",
+      "idempotency_mismatch": "重复请求与原请求不一致",
+      "invalid_billing_mode": "计费方式无效",
+      "subscription_unavailable": "订阅在当前区域不可用",
+      "subscription_conflict": "已有有效订阅，无法重复创建",
+      "subscription_failed": "创建订阅失败，请稍后重试",
+      "subscription_update_failed": "更新订阅状态失败，请稍后重试"
     }
   },
   "notFound": {
@@ -783,7 +980,6 @@
     "back": "返回上一页"
   },
   "partner": {
-    "centerSubtitle": "KOL 和 Scout 是独立合作角色，不是会员等级；佣金只来自真实成交。",
     "centerKolDescription": "适合宝妈、命理师和能影响终端用户的内容创作者。",
     "centerScoutDescription": "适合能发现和支持 KOL 的创业博主与渠道型创作者。",
     "state": {
@@ -799,10 +995,7 @@
     "openWorkspace": "进入工作台",
     "viewSettlement": "查看结算记录",
     "applyNow": "去申请",
-    "viewRoleDescription": "查看角色说明",
     "rules": "合作规则",
-    "rule1": "KOL 直接影响终端用户；Scout 发现并支持 KOL。",
-    "rule2": "KOL 和 Scout 是独立角色，不能升级、降级或同时担任。",
     "rule3": "申请不要求先购买产品；平台按内容、渠道和合作计划审核。",
     "rule4": "佣金只基于真实产品成交，退款会相应调整。",
     "kol": {
@@ -812,9 +1005,8 @@
       "pendingDescription": "平台审核通过后，这里会显示 KOL 工作台。",
       "applyTitle": "申请 KOL 合作",
       "applyDescription": "KOL 面向能直接影响终端用户的命理师、宝妈和内容创作者。申请后由平台审核。",
-      "noteLabel": "内容方向与推广计划",
+      "noteLabel": "内容方向与推广计划（可选）",
       "notePlaceholder": "介绍你的内容平台、受众、命理方向和推广计划。",
-      "noteRequired": "请填写内容方向与推广计划",
       "applicationSubmitted": "KOL 申请已提交"
     },
     "scout": {
@@ -824,9 +1016,8 @@
       "pendingDescription": "平台审核通过后，这里会显示招商工作台。",
       "applyTitle": "申请 Scout 合作",
       "applyDescription": "Scout 面向能发现和支持 KOL 的创业博主、渠道合伙人与招商型创作者。申请后由平台审核。",
-      "noteLabel": "渠道资源与合作计划",
+      "noteLabel": "渠道资源与合作计划（可选）",
       "notePlaceholder": "介绍你的渠道资源、可触达的 KOL 类型和支持方式。",
-      "noteRequired": "请填写渠道资源与合作计划",
       "applicationSubmitted": "Scout 申请已提交",
       "inviteLink": "Scout 邀请链接",
       "copyInviteLink": "复制邀请链接",
@@ -864,8 +1055,13 @@
     "requestedAt": "申请时间",
     "frozenTitle": "{role} 合作已冻结",
     "frozenDescription": "账号合作状态被冻结。如需恢复，请联系平台处理。",
-    "otherRoleTitle": "当前账号已参与 {role} 合作",
-    "roleConflictDescription": "KOL 和 Scout 是独立合作角色，不能同时担任或互相转换。",
+    "roleConflictDescription": "合作角色相互独立，不能同时担任或互相转换。",
+    "inviteOnly": "合作计划为邀请制。请使用你收到的邀请链接进入对应申请。",
+    "roleConflictTitle": "当前账号已参与其他合作角色",
+    "ruleKol1": "分享专属推广链接，佣金只来自真实成交。",
+    "ruleKol2": "合作身份独立审核，不可升级或降级。",
+    "ruleScout1": "Scout 发现并支持 KOL 成长，从其渠道的真实成交中获得佣金。",
+    "ruleScout2": "合作身份独立审核，不可升级或降级。",
     "pendingTitle": "{role} 申请审核中",
     "rejectedTitle": "上次申请未通过：{reason}",
     "rejectedTitleNoReason": "上次申请未通过",

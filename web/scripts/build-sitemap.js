@@ -12,17 +12,22 @@ import localeConfig from '../shared/locales.json' with { type: 'json' };
 const LOCALES = localeConfig.locales;
 const DEFAULT_LOCALE = localeConfig.defaultLocale;
 
+// 站点 origin 随构建环境（本地 SEO 审计可用 SITE_URL=http://localhost:8080）。
+const SITE_ORIGIN = process.env.SITE_URL ?? 'https://liki.hk';
+
 // Structure (which pages exist) is derived from the pages directory — the only
 // copy. Per-page sitemap metadata is configuration: defaults plus overrides,
 // so a new page is included automatically without editing this file.
 const PAGES_DIR = path.resolve(import.meta.dirname, '../src/pages/[locale]');
 const DEFAULT_PAGE_META = { freq: 'monthly', priority: '0.5' };
+// 不公开页（定向邀请制）位于 partner/ 子目录：本脚本只发现顶层页面，
+// 嵌套页天然不进 sitemap，无需排除表。
 const PAGE_META = {
   '':          { freq: 'weekly', priority: '1.0' },
   skills:      { freq: 'monthly', priority: '0.6' },
   naming:      { freq: 'weekly', priority: '0.8' },
-  mingshu:     { freq: 'weekly', priority: '0.8' },
   hepan:       { freq: 'weekly', priority: '0.8' },
+  liunian:     { freq: 'weekly', priority: '0.8' },
   contact:     { freq: 'monthly', priority: '0.4' },
   disclaimer:  { freq: 'monthly', priority: '0.3' },
   privacy:     { freq: 'yearly', priority: '0.2' },
@@ -44,8 +49,8 @@ function discoverPages() {
 const PAGES = discoverPages();
 
 const SPECIAL = [
-  { loc: 'https://liki.hk/llms.txt',        src: 'web/llms.txt',           freq: 'weekly',  priority: '0.7' },
-  { loc: 'https://liki.hk/skills/SKILL.md',  src: 'web/skills/liki/SKILL.md',      freq: 'monthly', priority: '0.5' },
+  { loc: `${SITE_ORIGIN}/llms.txt`,        src: 'web/llms.txt',           freq: 'weekly',  priority: '0.7' },
+  { loc: `${SITE_ORIGIN}/skills/liki/SKILL.md`, src: 'web/skills/liki/SKILL.md', freq: 'monthly', priority: '0.5' },
 ];
 
 function gitLastmod(file) {
@@ -74,11 +79,11 @@ for (const page of PAGES) {
   const lastmod = gitLastmod(page.src);
   const links = LOCALES.map(l => ({
     hreflang: l,
-    href: `https://liki.hk/${l}${page.path ? '/' + page.path : ''}/`,
+    href: `${SITE_ORIGIN}/${l}${page.path ? '/' + page.path : ''}/`,
   }));
-  links.push({ hreflang: 'x-default', href: `https://liki.hk/${DEFAULT_LOCALE}${page.path ? '/' + page.path : ''}/` });
+  links.push({ hreflang: 'x-default', href: `${SITE_ORIGIN}/${DEFAULT_LOCALE}${page.path ? '/' + page.path : ''}/` });
   for (const l of LOCALES) {
-    lines.push(url(`https://liki.hk/${l}${page.path ? '/' + page.path : ''}/`, lastmod, page.freq, page.priority, links));
+    lines.push(url(`${SITE_ORIGIN}/${l}${page.path ? '/' + page.path : ''}/`, lastmod, page.freq, page.priority, links));
   }
 }
 

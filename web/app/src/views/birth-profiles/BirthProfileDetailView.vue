@@ -84,16 +84,11 @@
               ? $t('profiles.detail.serviceSelected', { service: $t(preselectedService.labelKey) })
               : $t('profiles.detail.servicePrompt') }}
           </p>
-          <div class="service-chips">
-            <el-button
-              v-for="s in chatServices"
-              :key="s.key"
-              :type="s.key === preselectedKey ? 'primary' : 'default'"
-              @click="startService(s.key)"
-            >
-              {{ $t(s.labelKey) }}
-            </el-button>
-          </div>
+          <ServiceEntryList
+            :items="scenarioEntries"
+            :selected-id="preselectedKey"
+            @select="startService"
+          />
         </template>
 
         <template v-else>
@@ -122,10 +117,12 @@ import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useAuthStore } from '@/stores/auth'
 import type { BirthProfileInput } from '@/api/birth-profiles'
-import { chatServices, chatUrl, serviceByKey } from '@/config/chat'
+import { chatUrl, scenarioById, scenarioEntryItems } from '@/config/chat'
 import PaipanPreview from '@/components/birth-profiles/PaipanPreview.vue'
 import BirthProfileInfo from '@/components/birth-profiles/BirthProfileInfo.vue'
+import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'
+import { useFormDraftsStore } from '@shared/stores/form-drafts'
 
 const route = useRoute()
 const router = useRouter()
@@ -137,10 +134,12 @@ const auth = useAuthStore()
 const infoRef = ref<InstanceType<typeof BirthProfileInfo> | null>(null)
 const updating = ref(false)
 const preselectedKey = ref('')
+const drafts = useFormDraftsStore()
 const profileId = computed(() => String(route.params.id ?? ''))
 const detail = computed(() => profiles.detail)
 const error = computed(() => profiles.error)
-const preselectedService = computed(() => (preselectedKey.value ? serviceByKey(preselectedKey.value) : undefined))
+const preselectedService = computed(() => (preselectedKey.value ? scenarioById(preselectedKey.value) : undefined))
+const scenarioEntries = computed(() => scenarioEntryItems(t))
 const draftKey = computed(() => auth.user?.id ? `birth-profile:edit:${auth.user.id}:${profileId.value}` : undefined)
 const editingInfo = computed(() => Boolean(infoRef.value?.isEditing && infoRef.value?.isDirty))
 
@@ -181,16 +180,14 @@ async function goChat() {
 }
 
 function startService(key: string) {
-  try { sessionStorage.removeItem('liki-service') } catch { /* ignore */ }
+  drafts.clear('service')
   preselectedKey.value = ''
   void router.push(chatUrl(profileId.value, key))
 }
 
 onMounted(async () => {
-  try {
-    const key = sessionStorage.getItem('liki-service')
-    if (key && serviceByKey(key)) preselectedKey.value = key
-  } catch { /* ignore */ }
+  const key = drafts.consume<string>('service')
+  if (key && scenarioById(key)) preselectedKey.value = key
   try {
     await Promise.all([load(), entitlements.load()])
   } catch (error) {
@@ -230,5 +227,4 @@ onBeforeRouteLeave(async () => {
   font-size: var(--font-size-body);
 }
 .hint { color: var(--liki-text-2); margin: 0 0 14px; }
-.service-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 </style>

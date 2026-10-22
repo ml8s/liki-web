@@ -34,7 +34,6 @@ import (
 	"github.com/ml8s/liki-web/internal/xunhu"
 
 	"github.com/ml8s/liki-web/internal/email"
-	"github.com/ml8s/liki-web/internal/enginemcp"
 	"github.com/ml8s/liki-web/internal/feedback"
 	apphttp "github.com/ml8s/liki-web/internal/http"
 	"github.com/ml8s/liki-web/internal/httputil"
@@ -42,6 +41,7 @@ import (
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/records"
+	"github.com/ml8s/liki-web/internal/runcontrol"
 )
 
 // Build-time variables injected via -ldflags.
@@ -59,6 +59,7 @@ type Config struct {
 	AdminEmail                       string
 	MetricsToken                     string
 	FeedbackAPIKey                   string
+	RunCallbackSecret                string
 	ResendAPIKey                     string
 	ResendFrom                       string
 	DodoAPIKey                       string
@@ -70,10 +71,9 @@ type Config struct {
 	XunhuAppSecret                   string
 	PaymentWebhookURL                string
 	AlipayConfig                     aipay.Config
-	EngineMCPBaseURL                 string
-	EngineMCPToken                   string
 	AgentURLs                        map[string]string
 	AgentInternalToken               string
+	AgentsOpsPort                    string
 	AgentTimeoutSeconds              int
 	PublicBaseURL                    string
 	JWTSecret                        string
@@ -100,6 +100,7 @@ func LoadConfig() Config {
 		AdminEmail:                       os.Getenv("LIKI_ADMIN_EMAIL"),
 		MetricsToken:                     os.Getenv("LIKI_METRICS_TOKEN"),
 		FeedbackAPIKey:                   os.Getenv("LIKI_FEEDBACK_API_TOKEN"),
+		RunCallbackSecret:                os.Getenv("LIKI_RUN_CALLBACK_SECRET"),
 		ResendAPIKey:                     os.Getenv("RESEND_API_KEY"),
 		ResendFrom:                       envOr("LIKI_EMAIL_FROM_ADDRESS", "Liki <report@liki.email>"),
 		DodoAPIKey:                       envOr("DODO_API_KEY", ""),
@@ -111,9 +112,8 @@ func LoadConfig() Config {
 		XunhuAppSecret:                   envOr("XUNHU_APPSECRET", ""),
 		PaymentWebhookURL:                envOr("LIKI_PAYMENT_WEBHOOK_URL", strings.TrimSuffix(envOr("LIKI_PUBLIC_BASE_URL", ""), "/")+"/api/payments/webhook"),
 		AlipayConfig:                     loadAlipayConfig(),
-		EngineMCPBaseURL:                 envOr("LIKI_ENGINE_MCP_URL", "http://localhost:8085"),
-		EngineMCPToken:                   os.Getenv("LIKI_ENGINE_MCP_TOKEN"),
 		AgentURLs:                        loadAgentURLs(),
+		AgentsOpsPort:                    envOr("LIKI_AGENTS_OPS_PORT", "8085"),
 		AgentInternalToken:               os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
 		AgentTimeoutSeconds:              envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 600),
 		PublicBaseURL:                    envOr("LIKI_PUBLIC_BASE_URL", ""),
@@ -174,7 +174,9 @@ func main() {
 	}
 
 	// Structured logging
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	slog.SetDefault(slog.New(httputil.NewRequestIDHandler(
+		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
+	)))
 
 	// Validate required config
 	requireEnv("JWT_SECRET", cfg.JWTSecret)
@@ -373,10 +375,28 @@ func main() {
 	partnerHandler := partner.NewHandler(partnerStore, authHandler.RequireUser, !cfg.DevelopmentMode)
 	partnerHandler.SetAttributionTTL(time.Duration(cfg.ReferralAttributionTTLDays) * 24 * time.Hour)
 	authHandler.SetPostLoginHook(partnerHandler.PostLoginHook)
+	authHandler.SetPartnerRolesProvider(partnerStore.PartnerRoles)
 	chatStore := chat.NewChatStore(likiDB)
 	if err := chatStore.Migrate(ctx); err != nil {
 		slog.Error("init chat schema", "err", err)
 		os.Exit(1)
+	}
+	runcontrolStore := runcontrol.NewStore(likiDB)
+	if err := runcontrolStore.Migrate(ctx); err != nil {
+		slog.Error("init run registry schema", "err", err)
+		os.Exit(1)
+	}
+	var runCallbackHandler http.HandlerFunc
+	if cfg.RunCallbackSecret != "" {
+		runCallbackHandler, err = runcontrol.NewCallbackHandler(runcontrol.CallbackConfig{
+			Secret:  cfg.RunCallbackSecret,
+			Store:   runcontrolStore,
+			History: chatStore,
+		})
+		if err != nil {
+			slog.Error("init run callback receiver", "err", err)
+			os.Exit(1)
+		}
 	}
 	recordsStore := records.NewStore(likiDB)
 	if err := recordsStore.Migrate(ctx); err != nil {
@@ -581,11 +601,8 @@ func main() {
 				return fmt.Errorf("database %s: %w", name, err)
 			}
 		}
-		if err := checkEngineMCPReadiness(ctx, cfg.EngineMCPBaseURL); err != nil {
-			return err
-		}
 		for _, expert := range chat.ExpertOrder {
-			if err := checkAgentReadiness(ctx, cfg.AgentURLs[expert]); err != nil {
+			if err := checkAgentReadiness(ctx, agentOpsURL(cfg.AgentURLs[expert], cfg.AgentsOpsPort)); err != nil {
 				return fmt.Errorf("expert %s: %w", expert, err)
 			}
 		}
@@ -649,7 +666,6 @@ func main() {
 		RecordsHandler: records.NewHandler(recordsStore, authHandler.RequireUser, func(next http.HandlerFunc) http.HandlerFunc {
 			return rateLimiter.Wrap(20.0/60, 10, next)
 		}),
-		EngineMCP:            enginemcp.NewHandler(enginemcp.NewClient(cfg.EngineMCPBaseURL, cfg.EngineMCPToken)),
 		AipayHandler:         aipayHandler,
 		ProfileHandler:       birthprofile.NewHandler(profileStore, authHandler.RequireUser),
 		AccountHandler:       accountHandler,
@@ -659,6 +675,8 @@ func main() {
 		AdminEmail:           cfg.AdminEmail,
 		AdminAuthorizer:      adminAuthorizer,
 		AuthUsers:            authStore,
+		SessionCookieName:    authConfig.CookieName,
+		RunCallbackHandler:   runCallbackHandler,
 		SalesStores:          sales.NewSalesStores(salesOrders, subscriptionStore),
 		CompensationNotifier: compensationEmail,
 		PartnerNotifier: func(ctx context.Context, item partner.PartnerApplication, approved bool, reason string) {
@@ -842,9 +860,6 @@ func validateHTTPURL(name, value string) error {
 
 func validateRuntimeURLs(cfg Config) error {
 	var errs []error
-	if err := validateHTTPURL("LIKI_ENGINE_MCP_URL", cfg.EngineMCPBaseURL); err != nil {
-		errs = append(errs, err)
-	}
 	if err := validateHTTPURL("LIKI_PUBLIC_BASE_URL", cfg.PublicBaseURL); err != nil {
 		errs = append(errs, err)
 	}

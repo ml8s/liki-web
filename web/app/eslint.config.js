@@ -17,6 +17,19 @@ export default [
     },
   },
   {
+    // Element Plus styles enter through app/src/styles/element-plus.css; vendor
+    // imports elsewhere bypass the cascade-layer theme boundary.
+    files: ['src/**/*.{ts,vue}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['element-plus/theme-chalk/*'],
+          message: 'Use src/styles/element-plus.css; vendor styles are cascade-layered there.',
+        }],
+      }],
+    },
+  },
+  {
     files: ['src/**/*.{vue,ts}'],
     plugins: {
       '@typescript-eslint': tseslint.plugin,

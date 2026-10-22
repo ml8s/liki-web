@@ -41,7 +41,7 @@
           <el-button
             type="primary"
             :loading="creating"
-            @click="createAdmin"
+            native-type="submit"
           >
             新增
           </el-button>

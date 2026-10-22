@@ -13,34 +13,12 @@
           {{ $t('services.divination.cast') }}
         </h2>
       </template>
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-position="top"
-        @submit.prevent="cast"
-      >
-        <el-form-item
-          prop="question"
-          :label="$t('services.divination.questionLabel')"
-        >
-          <el-input
-            v-model="question"
-            name="divination-question"
-            autocomplete="off"
-            maxlength="200"
-            :placeholder="$t('services.divination.questionPlaceholder')"
-            show-word-limit
-          />
-        </el-form-item>
-        <el-button
-          type="primary"
-          native-type="submit"
-          :loading="loading"
-        >
-          {{ $t('services.divination.cast') }}
-        </el-button>
-      </el-form>
+      <DivinationCastingForm
+        ref="castingFormRef"
+        variant="full"
+        :loading="loading"
+        @submit="cast"
+      />
     </el-card>
 
     <template v-if="snapshot">
@@ -232,16 +210,21 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, reactive, ref, toRef } from 'vue'
-import type { FormInstance, FormRules } from 'element-plus'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
-import { engineLiuyaoQigua, engineLiuyaoChart, engineSolarTime, type LiuyaoChartResult } from '@/api/engine'
+import {
+  engineLiuyaoQigua,
+  engineLiuyaoChart,
+  type LiuyaoChartResult,
+} from '@/api/engine'
 import { useToolRecords } from '@/composables/useToolRecords'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
+import DivinationCastingForm from '@shared/components/divination/DivinationCastingForm.vue'
+import type { DivinationCastingFormValue } from '@shared/components/divination/types'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -255,17 +238,10 @@ const {
 } = useToolRecords('liuyao')
 void loadRecords()
 
-// 表单模型保持稳定对象，v-model 写入同一引用，change 当拍校验才能读到新值。
-const form = reactive({ question: '' })
-const question = toRef(form, 'question')
+const castingFormRef = ref<InstanceType<typeof DivinationCastingForm>>()
 const snapshot = ref<LiuyaoChartResult | null>(null)
 const loading = ref(false)
 const error = ref('')
-
-const formRef = ref<FormInstance>()
-const rules = computed<FormRules>(() => ({
-  question: [{ required: true, whitespace: true, message: t('services.divination.questionRequired'), trigger: 'blur' }],
-}))
 
 const board = computed(() => snapshot.value?.board ?? {})
 const lines = computed(() => snapshot.value?.board?.lines ?? [])
@@ -315,23 +291,35 @@ const timingText = computed(() => {
   return tc.map(t => [t.time, t.description].filter(Boolean).join('：')).join('；')
 })
 
-async function cast() {
-  const valid = await formRef.value?.validate().then(() => true).catch(() => false)
-  if (!valid) return
+async function cast(context: DivinationCastingFormValue) {
+  if (loading.value) return
   loading.value = true
   error.value = ''
+  const location = context.location
+  if (!location) {
+    loading.value = false
+    return
+  }
+  const castingInstant = new Date().toISOString()
   snapshot.value = null
   try {
-    const { casting } = await engineLiuyaoQigua('auto')
-    const now = new Date()
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const solarTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}+08:00`
-    const t = await engineSolarTime(solarTime, 120)
-    snapshot.value = await engineLiuyaoChart(t.solar, casting)
+    const { casting } = await engineLiuyaoQigua({ mode: context.castingMode })
+    snapshot.value = await engineLiuyaoChart({
+      instant: castingInstant,
+      timezone: location.timezone,
+      longitude: location.longitude,
+      casting,
+      yongShen: '世爻',
+    })
     // 卦不可复现：每次摇卦自动落一条历史记录。
     void saveToolRecord(
-      recordTitle(question.value.trim()),
-      { question: question.value.trim() },
+      recordTitle(context.question.trim()),
+      {
+        question: context.question.trim(),
+        casting_mode: context.castingMode,
+        casting_instant: castingInstant,
+        location,
+      },
       snapshot.value as unknown as Record<string, unknown>,
     )
   } catch (err) {
@@ -346,14 +334,15 @@ function recordTitle(question: string): string {
 }
 
 function openRecord(record: ToolRecord) {
-  question.value = String(record.input.question ?? '')
+  castingFormRef.value?.restore(record.input)
   snapshot.value = (record.output as unknown as LiuyaoChartResult | undefined) ?? null
 }
 
 function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
-  chat.pendingIntent = t('services.divination.intent', { question: question.value.trim() })
+  const question = castingFormRef.value?.getContext().question.trim() ?? ''
+  chat.pendingIntent = t('services.divination.intent', { question })
   void openServiceChat(profile.id, 'divination', message => { error.value = message })
 }
 </script>

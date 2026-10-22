@@ -34,11 +34,20 @@ func TestRespondAppError(t *testing.T) {
 		t.Fatalf("status = %d, want 422", w.Code)
 	}
 	var resp struct {
-		Type string `json:"type"`
+		Type   string `json:"type"`
+		Title  string `json:"title"`
+		Code   string `json:"code"`
+		Detail string `json:"detail"`
 	}
 	json.NewDecoder(w.Body).Decode(&resp) //nolint:errcheck
-	if resp.Type != "test_err" {
-		t.Errorf("type = %q", resp.Type)
+	if resp.Type != "test_err" || resp.Code != "test_err" {
+		t.Errorf("type/code = %q/%q, want test_err", resp.Type, resp.Code)
+	}
+	if resp.Title != http.StatusText(http.StatusUnprocessableEntity) {
+		t.Errorf("title = %q, want the human-readable status text %q", resp.Title, http.StatusText(http.StatusUnprocessableEntity))
+	}
+	if resp.Detail != "test msg" {
+		t.Errorf("detail = %q", resp.Detail)
 	}
 }
 

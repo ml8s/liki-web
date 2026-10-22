@@ -26,10 +26,11 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
     data: {
       nickname: 'System E2E',
       gender: 'male',
-      calendar: 'solar',
+
       birth_date: '1990-05-20',
       birth_time: '12:00',
-      birth_time_known: 'known',
+      birth_local_time: '12:00',
+
       birth_place: 'Beijing',
       note: '',
       third_party_consent: false,
@@ -67,7 +68,7 @@ test('full system chat journey through Caddy and AG-UI @system', async ({ page }
 
   const messagesResponse = await page.request.get(`/api/chat/sessions/${session.id}/messages`)
   expect(messagesResponse.ok()).toBe(true)
-  const messages: { role: string; content: string }[] = (await messagesResponse.json()).data
+  const messages: { role: string; content: string }[] = (await messagesResponse.json()).data.messages
   const persisted = messages.filter(item => item.role === 'assistant').some(item => item.content === answer)
   expect(persisted).toBe(true)
 })

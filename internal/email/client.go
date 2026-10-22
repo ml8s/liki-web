@@ -46,14 +46,14 @@ func (c *Client) SendReport(ctx context.Context, to, subject, htmlBody string) e
 
 		if rateLimitErr, ok := errors.AsType[*resend.RateLimitError](err); ok {
 			if retryAfter, e := strconv.Atoi(rateLimitErr.RetryAfter); e == nil {
-				slog.Warn("email: rate limited, waiting", "seconds", retryAfter)
+				slog.WarnContext(ctx, "email: rate limited, waiting", "seconds", retryAfter)
 				time.Sleep(time.Duration(retryAfter) * time.Second)
 				continue
 			}
 		}
 
 		if attempt < 2 {
-			slog.Warn("email: send attempt failed", "attempt", attempt+1, "err", err)
+			slog.WarnContext(ctx, "email: send attempt failed", "attempt", attempt+1, "err", err)
 		}
 	}
 	return fmt.Errorf("email: %w", lastErr)

@@ -104,6 +104,12 @@ if (!scenario && !service) {
     <slot />
   </section>
 
+  {Astro.slots.has('tool') && (
+    <section class="landing-services scenario-section" id="free-tool">
+      <slot name="tool" />
+    </section>
+  )}
+
   <section class="landing-steps" id="how-it-works">
     <h2 class="font-serif">{t(locale, stepsTitleKey)}</h2>
     <div class="steps-grid">

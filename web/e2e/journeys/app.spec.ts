@@ -6,7 +6,7 @@ test.use({ locale: 'zh-Hant' });
 const protectedPages = [
   { path: '/app/', heading: '工作台' },
   { path: '/app/birth-profiles', heading: '檔案' },
-  { path: '/app/synastry', heading: '合盤' },
+  { path: '/app/hepan', heading: '合盤' },
   { path: '/app/divination', heading: '問卦' },
   { path: '/app/fengshui', heading: '風水' },
   { path: '/app/huangli', heading: '擇日' },
@@ -46,8 +46,12 @@ test.describe('Authenticated app shell', () => {
     // 工作台对新用户直达建档；给一个档案模拟老用户，验证工作台本体。
     const profile = {
       id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female',
-      relation: '家人', calendar: 'solar', birth_date: '1958-05-12', birth_time: '06:00',
-      birth_time_known: 'known', birth_place: '上海', note: '', third_party_consent: true,
+      relation: '家人', birth_date: '1958-05-12', birth_time: '06:00',
+      birth_local_time: '06:00',
+      birth_local_date: '1958-05-12',
+      birth_place: '上海', birth_longitude: 121.4726,
+      birth_timezone: 'Asia/Shanghai', birth_instant: '1958-05-11T22:00:00Z',
+      note: '', third_party_consent: true,
       last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
     };
     await mockWorkspace(page, { allowedSkills: ['liki'], profiles: [profile] });
@@ -72,10 +76,10 @@ test.describe('Authenticated app shell', () => {
       status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
       last_message_at: null,
     })));
-    await page.route('**/api/chat/sessions/chat_1/messages', async route => route.fulfill(json([
+    await page.route('**/api/chat/sessions/chat_1/messages', async route => route.fulfill(json({ messages: [
       { id: 'msg_1', session_id: 'chat_1', user_id: 'usr_test', role: 'user', kind: 'text', content: '你好', created_at: '2026-01-01T00:01:00Z' },
       { id: 'msg_2', session_id: 'chat_1', user_id: 'usr_test', role: 'assistant', kind: 'text', content: '你好，请提供信息。', created_at: '2026-01-01T00:02:00Z' },
-    ])));
+    ], next_cursor: '' })));
 
     await page.goto('/app/chat/chat_1');
     await expect(page.getByRole('heading', { name: '起名咨询' })).toBeVisible();
@@ -86,8 +90,12 @@ test.describe('Authenticated app shell', () => {
 test('paid return confirms entitlement and jumps straight into a session', async ({ page }) => {
   const profile = {
     id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female',
-    relation: '家人', calendar: 'lunar', birth_date: '1958-闰5-12', birth_time: '06:00',
-    birth_time_known: 'known', birth_place: '上海', note: '', third_party_consent: true,
+    relation: '家人', birth_date: '1958-05-12', birth_time: '06:00',
+    birth_local_time: '06:00',
+    birth_local_date: '1958-05-12',
+    birth_place: '上海', birth_longitude: 121.4726,
+    birth_timezone: 'Asia/Shanghai', birth_instant: '1958-05-11T22:00:00Z',
+    note: '', third_party_consent: true,
     last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   };
 
@@ -123,7 +131,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
     }
     return route.fulfill(json([]));
   });
-  await page.route('**/api/chat/sessions/chat_new/messages', route => route.fulfill(json([])));
+  await page.route('**/api/chat/sessions/chat_new/messages', route => route.fulfill(json({ messages: [], next_cursor: '' })));
 
   await page.goto('/app/chat?order_id=order_1&status=paid&payment_intent_id=pi_1&status_token=token');
   // 权益确认后自动用默认 skill 建会话并直达。

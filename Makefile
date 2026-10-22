@@ -49,7 +49,7 @@ test-go-coverage: ## Run Go tests with the CI coverage policy（race 由 test-go
 	@COV=$$(go tool cover -func=coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
 		echo "Go coverage: $$COV%"; \
 		if awk -v c="$$COV" -v m="40" 'BEGIN {exit !(c < m)}'; then \
-			echo "❌ Go coverage $$COV% < 65%" >&2; exit 1; \
+			echo "❌ Go coverage $$COV% < 40%" >&2; exit 1; \
 		fi
 
 test-js-coverage: ## Run Vue/TS tests with V8 coverage
@@ -145,6 +145,7 @@ check-web-static:
 	node web/scripts/check-performance.js
 	node web/scripts/check-mobile-responsive.js
 	node web/scripts/check-i18n.js
+	node web/scripts/check-error-codes.js
 	node web/scripts/check-service-parity.js
 	node web/scripts/check-classes.js
 	node web/scripts/check-css-utility-freeze.js

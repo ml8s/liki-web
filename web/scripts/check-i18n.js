@@ -50,12 +50,11 @@ function getPath(obj, segments) {
 // separate i18n catalogs (static build vs runtime), so user-visible terms can
 // drift silently. Anchors below MUST resolve to the same value in every locale.
 const TERM_ANCHORS = [
-  { name: 'partner program (nav)', marketing: 'footer.partners', app: 'nav.partner' },
-  { name: 'partner program (page title)', marketing: 'footer.partners', app: 'router.partnerCenter' },
+  // 合作计划入口不公开（定向邀请制），footer/nav 不再承载该词条，故无跨面锚点。
   { name: 'brand slogan', marketing: 'site.slogan', app: 'auth.slogan' },
   // 标签标题后缀（「<页面名> · <站点名>」）在两个 surface 上必须是同一个名字。
   { name: 'site name (tab title)', marketing: 'site.name', app: 'site.name' },
-  { name: 'service: bond', marketing: 'index.services.bond.title', app: 'services.bond.label' },
+  { name: 'service: hepan', marketing: 'index.services.hepan.title', app: 'services.hepan.label' },
 ];
 
 function checkCrossSurfaceTerms(marketingLocales) {
@@ -107,6 +106,7 @@ function checkPrices(locales) {
 // catalog (web/app/src/locales/*.json) lives on the SPA surface and is validated
 // by web/app/src/tests/i18n.test.ts — two catalogs, two surfaces, two checkers.
 const MARKETING_SRC = path.resolve(import.meta.dirname, '..', 'src');
+const SHARED_FORM_SRC = path.resolve(import.meta.dirname, '..', 'shared', 'components', 'form');
 const MARKETING_EXTENSIONS = new Set(['.astro', '.ts']);
 
 // Keys are referenced as t(locale, 'key'), t(locale, `template`) or as a
@@ -114,8 +114,11 @@ const MARKETING_EXTENSIONS = new Set(['.astro', '.ts']);
 // belonged to the retired vanilla runtime; they are not part of the contract.
 const KEY_ATTRIBUTE_RE =
   /(?:labelKey|titleKey|subtitleKey|questionKey|answerKey|benefitsTitleKey|exampleTitleKey|stepsTitleKey|questionsTitleKey|faqTitleKey|ctaKey|intentKey|descriptionKey)="([^"]+)"/g;
-const LITERAL_KEY_RE = /t\(locale,\s*'([^']+)'\)/g;
+const LITERAL_KEY_RE = /t\(locale,\s*'([^']+)'/g;
 const TEMPLATE_KEY_RE = /t\(locale,\s*`([^`]+)`\)/g;
+// 共享字段工厂接收宿主传入的 t；这里只校验它引用的 marketing key。
+const SHARED_LITERAL_KEY_RE = /t\(\s*'([^']+)'/g;
+const SHARED_TEMPLATE_KEY_RE = /t\(\s*`([^`]+)`\)/g;
 
 function walkMarketingFiles(dir = MARKETING_SRC) {
   const files = [];
@@ -139,7 +142,21 @@ function collectMarketingKeys() {
     for (const re of [LITERAL_KEY_RE, KEY_ATTRIBUTE_RE]) {
       for (const m of content.matchAll(re)) literal.set(m[1], file);
     }
-    for (const m of content.matchAll(TEMPLATE_KEY_RE)) template.set(m[1], file);
+    for (const m of content.matchAll(TEMPLATE_KEY_RE)) {
+      const occurrences = template.get(m[1]) ?? [];
+      occurrences.push({ file, content });
+      template.set(m[1], occurrences);
+    }
+  }
+  for (const filepath of walkMarketingFiles(SHARED_FORM_SRC)) {
+    const file = path.relative(root, filepath);
+    const content = fs.readFileSync(filepath, 'utf-8');
+    for (const m of content.matchAll(SHARED_LITERAL_KEY_RE)) literal.set(m[1], file);
+    for (const m of content.matchAll(SHARED_TEMPLATE_KEY_RE)) {
+      const occurrences = template.get(m[1]) ?? [];
+      occurrences.push({ file, content });
+      template.set(m[1], occurrences);
+    }
   }
   return { literal, template };
 }
@@ -155,10 +172,12 @@ function checkHtmlKeys(locales) {
   for (const [key, file] of literal) {
     if (!allKeys.has(key)) errors.push(`${file}: t(locale, '${key}') not found in any locale file`);
   }
-  for (const [tmpl, file] of template) {
-    for (const key of expandTemplateKey(tmpl)) {
-      if (!allKeys.has(key)) {
-        errors.push(`${file}: t(locale, \`${tmpl}\`) → "${key}" not found in any locale file`);
+  for (const [tmpl, occurrences] of template) {
+    for (const { file, content } of occurrences) {
+      for (const key of expandTemplateKey(tmpl, content)) {
+        if (!allKeys.has(key)) {
+          errors.push(`${file}: t(locale, \`${tmpl}\`) → "${key}" not found in any locale file`);
+        }
       }
     }
   }
@@ -167,9 +186,23 @@ function checkHtmlKeys(locales) {
 // Page names used by BaseLayout's dynamic keys: t(locale, `${page}.meta.ogTitle`).
 // The source of truth is the pages directory itself; never keep a second copy.
 const PAGES_DIR = path.resolve(import.meta.dirname, '../src/pages/[locale]');
-const KNOWN_PAGES = fs.readdirSync(PAGES_DIR)
-  .filter(f => f.endsWith('.astro'))
-  .map(f => (f === 'index.astro' ? 'index' : path.basename(f, '.astro')));
+// 递归发现页面：嵌套页（如 partner/kol）以相对路径为页面名，与 BaseLayout 的
+// page 属性、i18n 键前缀（`partner/kol.title`）保持一致。
+function discoverPages(dir, prefix = '') {
+  const names = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      names.push(...discoverPages(path.join(dir, entry.name), `${prefix}${entry.name}/`));
+      continue;
+    }
+    if (!entry.name.endsWith('.astro')) continue;
+    const base = path.basename(entry.name, '.astro');
+    if (base === 'index' && prefix === '') names.push('index');
+    else if (base !== 'index') names.push(`${prefix}${base}`);
+  }
+  return names;
+}
+const KNOWN_PAGES = discoverPages(PAGES_DIR);
 
 function expandTemplateKey(tmpl, fileContent) {
   const keys = [];
@@ -204,6 +237,9 @@ function expandTemplateKey(tmpl, fileContent) {
   const nsMatch = tmpl.match(/^\$\{ns\}\.(.+)$/);
   if (nsMatch) {
     const suffix = nsMatch[1];
+    // 后缀里还有别的插值（如 `${ns}.static.${key}.title`）：无法在静态检查期展开，
+    // 这些键由 addKnownCompoundKeys 的显式清单覆盖。
+    if (suffix.includes('${')) return [];
     // Find all ns usages: ns={'...'} or ns={nsValue} or const ns = '...'
     const nsValues = new Set();
     const nsValsRe = /ns=\{'([^']+)'\}/g;
@@ -278,14 +314,14 @@ function addKnownCompoundKeys(used) {
     used.add(`scenario.hepan.benefit.${benefit}.title`);
     used.add(`scenario.hepan.benefit.${benefit}.body`);
   }
-  for (const section of ['overview', 'wuxing', 'dayMaster', 'branches', 'rating']) {
+  for (const section of ['overview', 'wuxing', 'dayMaster', 'branches', 'zodiac']) {
     used.add(`scenario.hepan.static.${section}.title`);
     used.add(`scenario.hepan.static.${section}.body`);
   }
   // Capability landing pages share one content shape (see ScenarioLanding.astro):
   // title/subtitle/benefitsTitle/exampleTitle/questionsTitle, q1..q3, a fixed
   // benefit set, and the focus/method/output static sections.
-  for (const scenario of ['bazi', 'divination', 'fengshui', 'huangli']) {
+  for (const scenario of ['bazi', 'divination', 'fengshui', 'huangli', 'liunian']) {
     for (const key of ['title', 'subtitle', 'benefitsTitle', 'exampleTitle', 'questionsTitle']) {
       used.add(`scenario.${scenario}.${key}`);
     }
@@ -299,19 +335,37 @@ function addKnownCompoundKeys(used) {
       used.add(`scenario.${scenario}.static.${section}.body`);
     }
   }
+  // 流年页的年度内容区块（逐年更新）
+  for (const section of ['taisui', 'relations', 'howto']) {
+    used.add(`scenario.liunian.static.${section}.title`);
+    used.add(`scenario.liunian.static.${section}.body`);
+  }
   for (const f of ['name','gender','quote','source','footer']) {
     for (let n=1;n<=36;n++) used.add(`naming.example.${f}${n}`);
   }
   for (let n=1;n<=36;n++) for (const t of ['a','b','c','d']) used.add(`naming.example.tag${n}${t}`);
   const namingStatic = ['a11y.examples'];
   for (const k of namingStatic) used.add(`naming.${k}`);
+  for (const key of [
+    'zi', 'chou', 'yin', 'mao', 'chen', 'si', 'wu', 'wei', 'shen', 'you', 'xu', 'hai',
+  ]) used.add(`profiles.form.shichen.${key}`);
+  // natal hub（v5：命理合并页）的动态键：(`${ns}.subtitle`、ziwei 卡组、zodiac/rectification 区块)。
+  for (const key of ['subtitle', 'ziwei.title', 'zodiac.title', 'zodiac.body', 'rectification.title', 'rectification.body']) {
+    used.add(`natal.${key}`);
+  }
+  for (const benefit of ['palaces', 'stars', 'cycles', 'career']) {
+    used.add(`natal.ziwei.benefit.${benefit}.title`);
+    used.add(`natal.ziwei.benefit.${benefit}.body`);
+  }
 }
 
 function checkUnusedKeys(locales) {
   const { literal, template } = collectMarketingKeys();
   const used = new Set(literal.keys());
-  for (const tmpl of template.keys()) {
-    for (const key of expandTemplateKey(tmpl)) used.add(key);
+  for (const [tmpl, occurrences] of template) {
+    for (const { content } of occurrences) {
+      for (const key of expandTemplateKey(tmpl, content)) used.add(key);
+    }
   }
 
   // Pre-populate known compound keys that are constructed dynamically at build time

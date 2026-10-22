@@ -1,0 +1,20 @@
+/* Shared styles for PartnerKOLView / PartnerScoutView slot content.
+   Imported via <style scoped> in each view so rules are view-scoped. */
+.apply-card { max-width: 720px; }
+.apply-card h2 { margin: 0 0 var(--space-2); font-size: var(--font-size-title-md); font-weight: 700; }
+.apply-card p { margin: 0 0 var(--space-4); color: var(--liki-text-2); }
+.section-card { margin-bottom: var(--space-5); }
+.rules, .load-alert { margin-bottom: var(--space-4); }
+.overview-stats { margin-top: var(--space-4); }
+.record-cards { display: grid; gap: var(--space-3); }
+.record-card {
+  padding: var(--space-4);
+  border: 1px solid var(--liki-line);
+  border-radius: var(--radius-lg);
+  background: var(--liki-surface);
+}
+.record-card__top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-2); }
+.record-card__title { font-weight: 600; font-size: var(--font-size-label); word-break: break-all; }
+.record-row { display: flex; gap: var(--space-2); padding: var(--space-1) 0; font-size: var(--font-size-body); }
+.record-row .k { flex-shrink: 0; min-width: 4em; color: var(--liki-text-2); }
+.record-row span:last-child { word-break: break-all; }

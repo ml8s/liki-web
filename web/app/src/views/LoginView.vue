@@ -26,11 +26,6 @@
         <p class="slogan font-serif">
           {{ $t('auth.slogan') }}
         </p>
-        <div class="values">
-          <span class="value">{{ $t('auth.valueChart') }}</span>
-          <span class="value">{{ $t('auth.valueInterpretation') }}</span>
-          <span class="value">{{ $t('auth.valueBirthProfile') }}</span>
-        </div>
         <p class="hint">
           {{ $t('auth.codeHint') }}
         </p>
@@ -313,8 +308,6 @@ h1 { margin: 0 0 8px; font-size: var(--font-size-title-lg); font-weight: 650; le
 }
 .hint { color: var(--liki-text-2); margin: 0 0 20px; }
 .slogan { color: var(--liki-primary); margin: 0 0 4px; font-size: var(--font-size-body-lg); }
-.values { display: flex; gap: 8px; justify-content: flex-start; margin: 6px 0 12px; flex-wrap: wrap; }
-.value { font-size: var(--font-size-caption); color: var(--liki-text-2); background: var(--liki-primary-tint); padding: 3px 10px; border-radius: var(--radius-full); }
 .wide { width: 100%; }
 .code-actions { display: flex; justify-content: space-between; margin: 0 0 12px; }
 /* 验证码错误就近展示在字段下方，与 #login-error 的 aria-describedby 关联保持一致 */

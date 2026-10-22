@@ -37,5 +37,5 @@ test('purchased state hides the purchase entry', async ({ page }) => {
   await expect(page.locator('#chat-purchase')).toBeHidden()
   // Core workspace still present (locale-independent structural markers).
   await expect(page.locator('.profile-picker')).toBeVisible()
-  await expect(page.locator('.skill-grid')).toBeVisible()
+  await expect(page.locator('.service-entries')).toBeVisible()
 })

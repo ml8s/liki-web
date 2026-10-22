@@ -1,0 +1,5 @@
+/* The full vendor sheet is deliberately loaded into a lower cascade layer.
+ * theme.css stays unlayered, so application tokens always beat vendor defaults
+ * regardless of Astro island or Vite async-chunk order. */
+@import 'element-plus/theme-chalk/index.css' layer(element-plus);
+@import './theme.css';

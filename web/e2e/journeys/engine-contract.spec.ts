@@ -11,8 +11,11 @@ test.use({ locale: 'zh-Hant' })
 const user = testUser()
 const profile = {
   id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female', relation: '家人',
-  calendar: 'solar', birth_date: '1958-05-12', birth_time: '06:00', birth_time_known: 'known',
-  birth_place: '上海', note: '', third_party_consent: true, last_used_at: null,
+  birth_date: '1958-05-12', birth_time: '06:00',
+  birth_local_time: '06:00',
+  birth_local_date: '1958-05-12',
+  birth_place: '上海', birth_longitude: 121.4726, birth_timezone: 'Asia/Shanghai',
+  birth_instant: '1958-05-11T22:00:00Z', note: '', third_party_consent: true, last_used_at: null,
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
 
@@ -25,7 +28,7 @@ const baziChart = {
   birth_year: 1958,
   gender: 'female',
   da_yun: {
-    direction: '逆排', current_step_index: 5, next_step_in_years: 2,
+    direction: '逆排',
     steps: [
       { gan: '丙', zhi: '辰', name: '丙辰', wuxing: '火', shi_shen: '偏财', start_year: 1968, end_year: 1977, start_date: '1968-01-01', end_date: '1977-12-31' },
       { gan: '辛', zhi: '亥', name: '辛亥', wuxing: '金', shi_shen: '正印', start_year: 2018, end_year: 2027, start_date: '2018-01-01', end_date: '2027-12-31' },
@@ -49,10 +52,10 @@ const ziweiFull = {"birth_lunar_month": 6, "birth_year": 2000, "gender": "male",
 const ziweiDaXian = [{"end_year": 2014, "gong": "命宫", "name": "命宫", "qi_sui": 6, "start_year": 2005, "zhi_sui": 15}, {"end_year": 2024, "gong": "父母", "name": "父母", "qi_sui": 16, "start_year": 2015, "zhi_sui": 25}, {"end_year": 2034, "gong": "福德", "name": "福德", "qi_sui": 26, "start_year": 2025, "zhi_sui": 35}, {"end_year": 2044, "gong": "田宅", "name": "田宅", "qi_sui": 36, "start_year": 2035, "zhi_sui": 45}, {"end_year": 2054, "gong": "官禄", "name": "官禄", "qi_sui": 46, "start_year": 2045, "zhi_sui": 55}, {"end_year": 2064, "gong": "仆役", "name": "仆役", "qi_sui": 56, "start_year": 2055, "zhi_sui": 65}, {"end_year": 2074, "gong": "迁移", "name": "迁移", "qi_sui": 66, "start_year": 2065, "zhi_sui": 75}, {"end_year": 2084, "gong": "疾厄", "name": "疾厄", "qi_sui": 76, "start_year": 2075, "zhi_sui": 85}, {"end_year": 2094, "gong": "财帛", "name": "财帛", "qi_sui": 86, "start_year": 2085, "zhi_sui": 95}, {"end_year": 2104, "gong": "子女", "name": "子女", "qi_sui": 96, "start_year": 2095, "zhi_sui": 105}, {"end_year": 2114, "gong": "夫妻", "name": "夫妻", "qi_sui": 106, "start_year": 2105, "zhi_sui": 115}, {"end_year": 2124, "gong": "兄弟", "name": "兄弟", "qi_sui": 116, "start_year": 2115, "zhi_sui": 125}]
 const ziweiLiuNian = {"fu_xing": {"天喜": "卯", "天钺": "酉", "天马": "申", "天魁": "亥", "擎羊": "午", "文昌": "申", "文曲": "午", "禄存": "巳", "红鸾": "酉", "陀罗": "辰"}, "gong_wei": [{"is_liu_ming": false, "name": "财帛", "xing_yao": [], "zhi": "寅"}, {"is_liu_ming": false, "name": "子女", "xing_yao": ["流喜"], "zhi": "卯"}, {"is_liu_ming": false, "name": "夫妻", "xing_yao": ["流陀", "年解"], "zhi": "辰"}, {"is_liu_ming": false, "name": "兄弟", "xing_yao": ["流禄"], "zhi": "巳"}, {"is_liu_ming": true, "name": "命宫", "xing_yao": ["流羊", "流曲"], "zhi": "午"}, {"is_liu_ming": false, "name": "父母", "xing_yao": [], "zhi": "未"}, {"is_liu_ming": false, "name": "福德", "xing_yao": ["流马", "流昌"], "zhi": "申"}, {"is_liu_ming": false, "name": "田宅", "xing_yao": ["流钺", "流鸾"], "zhi": "酉"}, {"is_liu_ming": false, "name": "官禄", "xing_yao": [], "zhi": "戌"}, {"is_liu_ming": false, "name": "仆役", "xing_yao": ["流魁"], "zhi": "亥"}, {"is_liu_ming": false, "name": "迁移", "xing_yao": [], "zhi": "子"}, {"is_liu_ming": false, "name": "疾厄", "xing_yao": [], "zhi": "丑"}], "ming_gong": "仆役", "ming_gong_name": "仆役", "si_hua": {"天同": "禄", "天机": "权", "廉贞": "忌", "文昌": "科"}, "si_hua_gong": {"天同": "疾厄", "天机": "兄弟", "廉贞": "官禄", "文昌": "田宅"}, "zhi": "午"}
 const bazhai = {
-  ming_gua: { gua: { index: 7, name: '艮', wuxing: '土', yin_yang: '阳' }, group: '西四命', year_boundary: 'gregorian_calendar_year' },
+  ming_gua: { gua: { index: 8, name: '艮', wuxing: '土', yin_yang: '阳' }, group: '西四命', year_boundary: 'gregorian_calendar_year' },
   ba_zhai_dirs: {
-    sheng_qi: ['西南'], tian_yi: ['正西'], yan_nian: ['西北'], fu_wei: ['正东'],
-    huo_hai: ['正北'], wu_gui: ['东北'], liu_sha: ['正南'], jue_ming: ['东南'],
+    sheng_qi: ['西南'], tian_yi: ['西北'], yan_nian: ['西'], fu_wei: ['东北'],
+    huo_hai: ['南'], wu_gui: ['北'], liu_sha: ['东'], jue_ming: ['东南'],
   },
   liu_nian_xing: {
     year: 2026, year_boundary: 'gregorian_calendar_year', ru_zhong: '三碧禄存',
@@ -1699,27 +1702,119 @@ const huangliDays = [
   }
 ]
 
+// ── 流年盘（bazi_liunian 真实形状）──
+const baziLiunian = {
+  year: 2026,
+  nian_name: '丙午',
+  shi_shen: '正官',
+  nian_gan: '丙',
+  nian_zhi: '午',
+  wuxing: '火',
+  na_yin: '天河水',
+  sheng: 0,
+  ke: 1,
+  shensha: [
+    { name: '天乙贵人', category: '吉', description: '流运天乙贵人，有贵人相助' },
+    { name: '吊客', category: '凶', description: '流运吊客临命，主吊丧/孝服' },
+  ],
+  fuyin_fanyin: [{ detail: '午地支伏吟', natal_index: 0, type: '伏吟' }],
+  dayun_interactions: [{
+    pillar_label: '偏财运(乙酉)',
+    gan_rels: [
+      { gan_a: '乙', gan_b: '庚', relation: '乙庚合化金', type: '天干五合' },
+      { gan_a: '乙', gan_b: '丁', relation: '乙生丁', type: '相生' },
+      { gan_a: '乙', gan_b: '壬', relation: '壬生乙', type: '相生' },
+      { gan_a: '乙', gan_b: '癸', relation: '癸生乙', type: '相生' },
+    ],
+    zhi_rels: [
+      { detail: '无特殊关系', type: '无', zhi_a: '酉', zhi_b: '戌' },
+      { detail: '巳酉半合金局', type: '半合', zhi_a: '酉', zhi_b: '巳' },
+    ],
+  }],
+  natal_interactions: [{
+    pillar_label: '丙午',
+    gan_rels: [
+      { gan_a: '丙', gan_b: '庚', relation: '丙克庚', type: '相克' },
+      { gan_a: '丙', gan_b: '丁', relation: '丁克丙', type: '相克' },
+      { gan_a: '丙', gan_b: '壬', relation: '丙壬相冲', type: '相冲' },
+      { gan_a: '丙', gan_b: '癸', relation: '癸克丙', type: '相克' },
+    ],
+    zhi_rels: [
+      { detail: '午午自刑', type: '相刑', zhi_a: '午', zhi_b: '午' },
+      { detail: '无特殊关系', type: '无', zhi_a: '午', zhi_b: '巳' },
+    ],
+  }],
+}
+
+// ── 玄空飞星宅盘（xuankong_chart 真实形状：九运 子山午向）──
+const xuankongChart = {
+  yun: { year: 2026, year_boundary: 'gregorian_calendar_year', yuan: '下元', yun_number: 9, yun_name: '九运', start_year: 2024, end_year: 2043 },
+  gong_wei: [
+    { gong_num: 1, yun_xing: { number: 5, color: '黄', name: '五黄廉贞', wuxing: '土' }, shan_xing: { number: 9, color: '紫', name: '九紫右弼', wuxing: '火' }, xiang_xing: { number: 9, color: '紫', name: '九紫右弼', wuxing: '火' } },
+    { gong_num: 2, yun_xing: { number: 6, color: '白', name: '六白武曲', wuxing: '金' }, shan_xing: { number: 8, color: '白', name: '八白左辅', wuxing: '土' }, xiang_xing: { number: 1, color: '白', name: '一白贪狼', wuxing: '水' } },
+    { gong_num: 3, yun_xing: { number: 7, color: '赤', name: '七赤破军', wuxing: '金' }, shan_xing: { number: 7, color: '赤', name: '七赤破军', wuxing: '金' }, xiang_xing: { number: 2, color: '黑', name: '二黑巨门', wuxing: '土' } },
+    { gong_num: 4, yun_xing: { number: 8, color: '白', name: '八白左辅', wuxing: '土' }, shan_xing: { number: 6, color: '白', name: '六白武曲', wuxing: '金' }, xiang_xing: { number: 3, color: '碧', name: '三碧禄存', wuxing: '木' } },
+    { gong_num: 5, yun_xing: { number: 9, color: '紫', name: '九紫右弼', wuxing: '火' }, shan_xing: { number: 5, color: '黄', name: '五黄廉贞', wuxing: '土' }, xiang_xing: { number: 4, color: '绿', name: '四绿文曲', wuxing: '木' } },
+    { gong_num: 6, yun_xing: { number: 1, color: '白', name: '一白贪狼', wuxing: '水' }, shan_xing: { number: 4, color: '绿', name: '四绿文曲', wuxing: '木' }, xiang_xing: { number: 5, color: '黄', name: '五黄廉贞', wuxing: '土' } },
+    { gong_num: 7, yun_xing: { number: 2, color: '黑', name: '二黑巨门', wuxing: '土' }, shan_xing: { number: 3, color: '碧', name: '三碧禄存', wuxing: '木' }, xiang_xing: { number: 6, color: '白', name: '六白武曲', wuxing: '金' } },
+    { gong_num: 8, yun_xing: { number: 3, color: '碧', name: '三碧禄存', wuxing: '木' }, shan_xing: { number: 2, color: '黑', name: '二黑巨门', wuxing: '土' }, xiang_xing: { number: 7, color: '赤', name: '七赤破军', wuxing: '金' } },
+    { gong_num: 9, yun_xing: { number: 4, color: '绿', name: '四绿文曲', wuxing: '木' }, shan_xing: { number: 1, color: '白', name: '一白贪狼', wuxing: '水' }, xiang_xing: { number: 8, color: '白', name: '八白左辅', wuxing: '土' } },
+  ],
+  four_situation: { name: '双星会坐', sit_mountain_timely: true, face_facing_timely: false, sit_facing_timely: true, face_mountain_timely: false },
+  fu_yin_layers: [],
+  fan_yin_layers: ['山星反吟'],
+  xing_jia_hui: [
+    { shan_num: 9, xiang_num: 9, name: '星曜加会', meaning: '该组合未列入固定通则，须参合星、宫、运与峦头判断' },
+    { shan_num: 8, xiang_num: 1, name: '星曜加会', meaning: '该组合未列入固定通则，须参合星、宫、运与峦头判断' },
+    { shan_num: 7, xiang_num: 2, name: '七二同道', meaning: '二七同宫，传统论火灾风险；成灾与否须核元运、生旺与峦头' },
+    { shan_num: 6, xiang_num: 3, name: '星曜加会', meaning: '该组合未列入固定通则，须参合星、宫、运与峦头判断' },
+    { shan_num: 5, xiang_num: 4, name: '星曜加会', meaning: '该组合未列入固定通则，须参合星、宫、运与峦头判断' },
+    { shan_num: 4, xiang_num: 5, name: '星曜加会', meaning: '该组合未列入固定通则，须参合星、宫、运与峦头判断' },
+    { shan_num: 3, xiang_num: 6, name: '星曜加会', meaning: '该组合未列入固定通则，须参合星、宫、运与峦头判断' },
+    { shan_num: 2, xiang_num: 7, name: '二七同道', meaning: '二七同宫，传统论火灾风险；成灾与否须核元运、生旺与峦头' },
+    { shan_num: 1, xiang_num: 8, name: '星曜加会', meaning: '该组合未列入固定通则，须参合星、宫、运与峦头判断' },
+  ],
+  chart_digest: 'sha256:50173497269a148a0ad0',
+  zuo_shan: 0,
+  zuo_shan_name: '子',
+  xiang_shan: 12,
+  xiang_shan_name: '午',
+  shou_shan_chu_sha: { zheng_shen: 9, ling_shen: 1, shou_shan: true, chu_sha: false, assessment: '收山得宜（坐宫山星当令）；拨水入零堂未得，向首零神不见水' },
+}
+
+// ── 八宅布局（bazhai_layout 真实形状：艮命 门坤/主兑/灶乾）──
+const bazhaiLayout = {
+  group: '西四命',
+  ming_gua: '艮',
+  door: { direction: '西南', gua_name: '坤', wuxing: '土', youxing: '生气', rating: '大吉', group: '西四卦', match: '吉' },
+  master: { direction: '西', gua_name: '兑', wuxing: '金', youxing: '延年', rating: '吉', group: '西四卦', match: '吉' },
+  stove: { direction: '西北', gua_name: '乾', wuxing: '金', youxing: '天医', rating: '吉', group: '西四卦', match: '吉' },
+}
+
 function routeEngine(page: Page) {
-  return page.route('**/api/engine/tools/*', async route => {
-    const tool = new URL(route.request().url()).pathname.split('/').pop()
+  return page.route(/\/(engine|counsel)\/mcp$/, async route => {
+    const body = JSON.parse(route.request().postData() ?? '{}') as { params?: { name?: string } }
+    const tool = body.params?.name ?? ''
     let data: unknown
     switch (tool) {
-      case ENGINE_TOOLS.CityCoords: data = { longitude: 121.47, latitude: 31.23 }; break
-      case ENGINE_TOOLS.TianwenTime: data = { solar: '1958-05-12T06:00:00+08:00', lunar: { year: 1958, month: 4, day: 24 } }; break
+      case ENGINE_TOOLS.CityCoords: data = { candidates: [{ name: '上海', region: '上海市', country: '中国', level: 'city', longitude: 121.47, latitude: 31.23, timezone: 'Asia/Shanghai' }] }; break
       case ENGINE_TOOLS.BaziChart: data = baziChart; break
       case ENGINE_TOOLS.BaziFullChart: data = baziFull; break
+      case ENGINE_TOOLS.BaziLiuNian: data = baziLiunian; break
       case ENGINE_TOOLS.ZiweiChart: data = ziweiChart; break
       case ENGINE_TOOLS.ZiweiFullChart: data = ziweiFull; break
       case ENGINE_TOOLS.ZiweiDaXian: data = ziweiDaXian; break
       case ENGINE_TOOLS.ZiweiLiuNian: data = ziweiLiuNian; break
       case ENGINE_TOOLS.BazhaiChart: data = bazhai; break
+      case ENGINE_TOOLS.BazhaiLayout: data = bazhaiLayout; break
+      case ENGINE_TOOLS.XuankongChart: data = xuankongChart; break
       case ENGINE_TOOLS.BaziBond: data = bond; break
       case ENGINE_TOOLS.LiuyaoQigua: data = { casting: liuyaoSnapshot.casting }; break
       case ENGINE_TOOLS.LiuyaoChart: data = liuyaoSnapshot; break
       case ENGINE_TOOLS.HuangliDays: data = huangliDays; break
       default: data = {}
     }
-    return route.fulfill(json(data))
+    return route.fulfill({ json: { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: JSON.stringify(data) }] } } })
   })
 }
 
@@ -1741,8 +1836,23 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
   await expect(page.locator('.pillar .cang').first()).toContainText('戊 辛 丁') // 藏干
   await expect(page.locator('.pillar .sub').first()).toContainText('七杀') // 十神（shi_shens 数组首项）
   await expect(page.locator('.void-tag')).toHaveCount(1) // 旬空
-  await expect(page.locator('.ss-chip')).toContainText(['天乙贵人', '华盖']) // 神煞
+  await expect(page.locator('.bazi-panel > .shensha').first()).toContainText('天乙贵人') // 神煞
+  await expect(page.locator('.bazi-panel > .shensha').first()).toContainText('华盖')
   await expect(page.locator('.san-yuan .sy-body')).toContainText('胎元 壬申')
+
+  // 流年盘（bazi_liunian）：五柱流年列 + 流年详览（神煞/伏吟/与命局/与大运关系）
+  await expect(page.locator('.pillars.with-liunian .pillar.liunian')).toContainText('丙午')
+  await expect(page.locator('.pillar.liunian')).toContainText('正官')
+  await expect(page.locator('.pillar.liunian')).toContainText('生數 0')
+  await expect(page.locator('.liunian-detail .paipan-chip').first()).toContainText('天乙贵人')
+  await expect(page.locator('.ln-block-title').first()).toContainText('與命局')
+  await expect(page.locator('.ln-block-title').nth(1)).toContainText('與大運')
+  await expect(page.locator('.liunian-detail')).toContainText('丙克庚')
+  await expect(page.locator('.liunian-detail')).toContainText('午午自刑')
+  await expect(page.locator('.liunian-detail')).not.toContainText('无特殊关系')
+
+  // 空态：命盘无合冲刑害时不渲染「命盘关系」区块（mock 命盘无关系数据）
+  await expect(page.locator('.bazi-panel')).not.toContainText('命盤關係')
 
   await page.locator('.el-tabs__item:has-text("紫微")').click()
   await expect(page.locator('.zw-palace')).toHaveCount(12) // 环形十二宫
@@ -1777,19 +1887,21 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
 test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await routeApp(page)
 
-  await page.goto('/app/synastry')
+  await page.goto('/app/hepan')
   await page.waitForSelector('.b-form', { timeout: 10000 })
   await page.locator('.el-select').first().click()
   await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
-  await page.waitForTimeout(300)
+  // 等下拉关闭再点击表单（固定等待在负载下会点穿浮层）。
+  await expect(page.locator('.el-select-dropdown')).toBeHidden()
   await page.locator('.b-form .el-radio-button:has-text("男")').click()
   await page.getByRole('combobox', { name: '出生日期' }).click()
   await page.locator('.el-picker-panel .el-date-table td.available').first().click()
   await page.getByRole('combobox', { name: '出生時間' }).fill('08:00')
   await page.locator('.b-form button[type="submit"]').click()
   await page.waitForSelector('.rel-sec', { timeout: 12000 })
-  await expect(page.locator('.rel-text')).toContainText('甲辰') // 日主（golden a_zhu=b_zhu=ri）
-  await expect(page.locator('.rel-text')).toContainText('辛克甲') // 天干关系
+  const dayMaster = page.locator('.rel-sec', { hasText: '日主關係' })
+  await expect(dayMaster.locator('.rel-text')).toContainText('甲辰') // 日主（golden a_zhu=b_zhu=ri）
+  await expect(dayMaster.locator('.rel-text')).toContainText('辛克甲') // 天干关系
   await expect(page.locator('.rel-chip')).toContainText(['辰酉合化金', '辰辰自刑']) // 关键地支：按 type 过滤、detail 展示
   await expect(page.locator('.rel-chip.nayin')).toContainText(['白蜡金']) // 纳音互看
   await expect(page.locator('.rel-chip.shensha')).toContainText(['天乙貴人']) // 神煞标识符→locale 标签
@@ -1835,4 +1947,45 @@ test('择日按真实契约渲染（huangli_days）', async ({ page }) => {
   await expect(page.locator('.day.good .d-date').first()).toHaveText('2026-10-11') // 引擎真数据首个 recommended
   await expect(page.locator('.day.possible')).toHaveCount(3)
   await expect(page.locator('.day.bad')).toHaveCount(3) // unsuitable
+})
+
+test('风水页按真实契约渲染（命卦/玄空飞星/八宅布局）', async ({ page }) => {
+  await routeApp(page)
+  await page.route('**/api/birth-profiles**', r => r.fulfill(json({ profiles: [profile], next_cursor: '' })))
+  await page.route('**/api/me/sessions', r => r.fulfill(json([])))
+  await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
+  await routeEngine(page)
+
+  await page.goto('/app/fengshui')
+  await page.locator('.el-select').first().click()
+  await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
+  await page.waitForSelector('.mingua', { timeout: 12000 })
+
+  // 命卦（八宅）
+  await expect(page.locator('.mingua')).toHaveText('艮')
+
+  // 玄空飞星盘（xuankong_chart）：标准九宫（山星左上/向星右上/运星下）+ 坐向角标
+  await expect(page.locator('.paipan-grid .xk-cell')).toHaveCount(9)
+  await expect(page.locator('.xk-head')).toContainText('九运')
+  await expect(page.locator('.xk-head')).toContainText('子')
+  await expect(page.locator('.xk-head')).toContainText('午')
+  await expect(page.locator('.xk-cell.sit')).toContainText('坐')
+  await expect(page.locator('.xk-cell.face')).toContainText('向')
+  await expect(page.locator('.xuankong-panel')).toContainText('双星会坐')
+  await expect(page.locator('.xk-combo-name')).toContainText(['七二同道', '二七同道'])
+  await expect(page.locator('.paipan-chip', { hasText: '山星反吟' })).toHaveCount(1)
+
+  // 八宅布局（bazhai_layout）：门/主/灶三要判断
+  await page.locator('.fx-select').nth(1).click()
+  await page.locator('.fx-popper-door .el-select-dropdown__item', { hasText: '坤' }).first().click()
+  await page.locator('.fx-select').nth(2).click()
+  await page.locator('.fx-popper-master .el-select-dropdown__item', { hasText: '兑' }).first().click()
+  await page.locator('.fx-select').nth(3).click()
+  await page.locator('.fx-popper-stove .el-select-dropdown__item', { hasText: '乾' }).first().click()
+  await page.waitForSelector('.bz-verdict', { timeout: 12000 })
+  await expect(page.locator('.bz-table tbody tr')).toHaveCount(3)
+  await expect(page.locator('.bz-table')).toContainText('生气') // 引擎游年星值（简体内文，不随 locale 翻译）
+  await expect(page.locator('.bz-table')).toContainText('大吉')
+  await expect(page.locator('.bz-badge')).toContainText(['門', '主臥', '灶'])
+  await expect(page.locator('.bz-cell.good')).toHaveCount(4) // 四吉方着色
 })

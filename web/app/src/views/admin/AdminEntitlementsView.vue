@@ -74,7 +74,7 @@
           type="warning"
           plain
           :loading="compensating"
-          @click="compensate"
+          native-type="submit"
         >
           发放补偿
         </el-button>
@@ -95,7 +95,6 @@
           spellcheck="false"
           placeholder="user@example.com"
           clearable
-          @keyup.enter="submitEntitlementFilters"
         />
       </el-form-item>
       <el-form-item label="状态">
@@ -114,7 +113,7 @@
       <el-button
         type="primary"
         :loading="loading"
-        @click="submitEntitlementFilters"
+        native-type="submit"
       >
         查询
       </el-button>

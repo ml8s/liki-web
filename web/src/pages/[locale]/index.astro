@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import LikiChatCta from '../../components/LikiChatCta.astro';
-import { t, locales } from '../../i18n.ts';
+import QuickBirthTool from '../../islands/QuickBirthTool.vue';
+import { t, locales, birthFieldLabels } from '../../i18n.ts';
 import keywords from '../../keywords.json' with { type: 'json' };
 
 export function getStaticPaths() {
@@ -10,6 +11,14 @@ export function getStaticPaths() {
 
 const { locale } = Astro.params;
 const pageKeywords = [...new Set(['liki.hk', ...(keywords as Record<string, string[]>)[locale]])].join(', ');
+const quickBirthProps = {
+  locale,
+  appUrl: `/app/birth-profiles/new?locale=${locale}`,
+  labels: {
+    ...birthFieldLabels(locale),
+    submit: t(locale, 'tool.submit'),
+  },
+};
 const siteUrl = 'https://liki.hk';
 const homeSchema = {
   '@context': 'https://schema.org',
@@ -41,12 +50,13 @@ const homeSchema = {
       '@id': `${siteUrl}/#services`,
       name: t(locale, 'index.services.title'),
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: t(locale, 'index.services.naming.title'), url: `${siteUrl}/${locale}/naming/` },
-        { '@type': 'ListItem', position: 2, name: t(locale, 'index.services.bazi.title'), url: `${siteUrl}/${locale}/bazi/` },
-        { '@type': 'ListItem', position: 3, name: t(locale, 'index.services.mingshu.title'), url: `${siteUrl}/${locale}/mingshu/` },
+        { '@type': 'ListItem', position: 1, name: t(locale, 'index.services.natal.title'), url: `${siteUrl}/${locale}/natal/` },
+        { '@type': 'ListItem', position: 2, name: t(locale, 'index.services.liunian.title'), url: `${siteUrl}/${locale}/liunian/` },
+        { '@type': 'ListItem', position: 3, name: t(locale, 'index.services.hepan.title'), url: `${siteUrl}/${locale}/hepan/` },
         { '@type': 'ListItem', position: 4, name: t(locale, 'index.services.divination.title'), url: `${siteUrl}/${locale}/divination/` },
-        { '@type': 'ListItem', position: 5, name: t(locale, 'index.services.fengshui.title'), url: `${siteUrl}/${locale}/fengshui/` },
-        { '@type': 'ListItem', position: 6, name: t(locale, 'index.services.bond.title'), url: `${siteUrl}/${locale}/hepan/` },
+        { '@type': 'ListItem', position: 5, name: t(locale, 'index.services.huangli.title'), url: `${siteUrl}/${locale}/huangli/` },
+        { '@type': 'ListItem', position: 6, name: t(locale, 'index.services.fengshui.title'), url: `${siteUrl}/${locale}/fengshui/` },
+        { '@type': 'ListItem', position: 7, name: t(locale, 'index.services.naming.title'), url: `${siteUrl}/${locale}/naming/` },
       ],
     },
   ],
@@ -76,20 +86,12 @@ const homeSchema = {
   <section class="landing-paipan">
     <h2>{t(locale, 'index.paipan.title')}</h2>
     <p>{t(locale, 'index.paipan.desc')}</p>
-    <form class="paipan-hook" id="paipanHook" action="/app/birth-profiles/new" method="get">
-      <input type="hidden" name="locale" value={locale} />
-      <input name="date" type="date" required aria-label={t(locale, 'index.paipan.date')} />
-      <input name="time" type="time" required aria-label={t(locale, 'index.paipan.time')} />
-      <select name="gender" required aria-label={t(locale, 'index.paipan.gender')}>
-        <option value="" disabled selected>{t(locale, 'index.paipan.gender_placeholder')}</option>
-        <option value="female">{t(locale, 'index.paipan.female')}</option>
-        <option value="male">{t(locale, 'index.paipan.male')}</option>
-      </select>
-      <button type="submit" class="btn-purple">{t(locale, 'index.cta.paipan')}</button>
-    </form>
+    <div id="quick-birth-tool" data-props={JSON.stringify(quickBirthProps)}>
+      <QuickBirthTool {...quickBirthProps} />
+    </div>
     <p class="paipan-hint">{t(locale, 'index.paipan.hint')}</p>
     <script>
-      import '../../scripts/paipan-hook';
+      import '../../scripts/quick-birth-tool';
     </script>
   </section>
 
@@ -97,40 +99,46 @@ const homeSchema = {
     <h2>{t(locale, 'index.services.title')}</h2>
     <div class="service-grid">
       <div class="card">
-        <h3 class="font-serif">{t(locale, 'index.services.naming.title')}</h3>
-        <p>{t(locale, 'index.services.naming.desc')}</p>
-        <LikiChatCta locale={locale} scenario="naming" labelKey="index.services.cta" class="card-link" />
-        <a href={`/${locale}/naming/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
+        <h3 class="font-serif">{t(locale, 'index.services.natal.title')}</h3>
+        <p>{t(locale, 'index.services.natal.desc')}</p>
+        <LikiChatCta locale={locale} service="natal" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/natal/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.natal.title') })}</a>
       </div>
       <div class="card">
-        <h3 class="font-serif">{t(locale, 'index.services.bazi.title')}</h3>
-        <p>{t(locale, 'index.services.bazi.desc')}</p>
-        <LikiChatCta locale={locale} service="bazi" labelKey="index.services.cta" class="card-link" />
-        <a href={`/${locale}/bazi/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
+        <h3 class="font-serif">{t(locale, 'index.services.liunian.title')}</h3>
+        <p>{t(locale, 'index.services.liunian.desc')}</p>
+        <LikiChatCta locale={locale} scenario="liunian" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/liunian/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.liunian.title') })}</a>
       </div>
       <div class="card">
-        <h3 class="font-serif">{t(locale, 'index.services.mingshu.title')}</h3>
-        <p>{t(locale, 'index.services.mingshu.desc')}</p>
-        <LikiChatCta locale={locale} scenario="mingshu" labelKey="index.services.cta" class="card-link" />
-        <a href={`/${locale}/mingshu/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
+        <h3 class="font-serif">{t(locale, 'index.services.hepan.title')}</h3>
+        <p>{t(locale, 'index.services.hepan.desc')}</p>
+        <LikiChatCta locale={locale} scenario="hepan" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/hepan/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.hepan.title') })}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.divination.title')}</h3>
         <p>{t(locale, 'index.services.divination.desc')}</p>
         <LikiChatCta locale={locale} service="divination" labelKey="index.services.cta" class="card-link" />
-        <a href={`/${locale}/divination/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
+        <a href={`/${locale}/divination/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.divination.title') })}</a>
+      </div>
+      <div class="card">
+        <h3 class="font-serif">{t(locale, 'index.services.huangli.title')}</h3>
+        <p>{t(locale, 'index.services.huangli.desc')}</p>
+        <LikiChatCta locale={locale} service="huangli" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/huangli/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.huangli.title') })}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.fengshui.title')}</h3>
         <p>{t(locale, 'index.services.fengshui.desc')}</p>
         <LikiChatCta locale={locale} service="fengshui" labelKey="index.services.cta" class="card-link" />
-        <a href={`/${locale}/fengshui/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
+        <a href={`/${locale}/fengshui/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.fengshui.title') })}</a>
       </div>
       <div class="card">
-        <h3 class="font-serif">{t(locale, 'index.services.bond.title')}</h3>
-        <p>{t(locale, 'index.services.bond.desc')}</p>
-        <LikiChatCta locale={locale} scenario="hepan" labelKey="index.services.cta" class="card-link" />
-        <a href={`/${locale}/hepan/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMore')}</a>
+        <h3 class="font-serif">{t(locale, 'index.services.naming.title')}</h3>
+        <p>{t(locale, 'index.services.naming.desc')}</p>
+        <LikiChatCta locale={locale} scenario="naming" labelKey="index.services.cta" class="card-link" />
+        <a href={`/${locale}/naming/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.naming.title') })}</a>
       </div>
     </div>
   </section>
@@ -142,6 +150,12 @@ const homeSchema = {
       <div class="trust-item"><strong class="font-serif">{t(locale, 'index.trust.rules')}</strong></div>
       <div class="trust-item"><strong class="font-serif">{t(locale, 'index.trust.verify')}</strong></div>
     </div>
+  </section>
+
+  <section class="landing-ai">
+    <h2 class="font-serif">{t(locale, 'index.ai.title')}</h2>
+    <p class="text-sm text-stone-400 text-center max-w-2xl mx-auto mb-6">{t(locale, 'index.ai.body')}</p>
+    <p class="text-center"><a class="btn-purple" href={`/app?locale=${locale}`}>{t(locale, 'index.ai.cta')}</a></p>
   </section>
 
   <section class="landing-steps">

@@ -8,6 +8,8 @@ export interface Me {
   status: UserStatus
   locale: string
   last_login_at?: string
+  /** 有关系的合作角色（含审核中/被拒）；App 壳据此显示"我的合作"入口。 */
+  partner_roles?: string[]
 }
 
 export interface SessionInfo {

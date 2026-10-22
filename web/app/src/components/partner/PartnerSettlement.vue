@@ -171,7 +171,7 @@
       </div>
     </template>
 
-    <PayoutDialog
+    <PartnerPayoutDialog
       v-model="payoutVisible"
       :title="$t('partner.settlement.dialogTitle', { role: title })"
       :submitting="submitting"
@@ -184,7 +184,7 @@
 import { errorMessage } from '@/utils/errors'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import PayoutDialog from '@/components/partner/PayoutDialog.vue'
+import PartnerPayoutDialog from '@/components/partner/PartnerPayoutDialog.vue'
 import PartnerStatGrid, { type PartnerStat } from '@/components/partner/PartnerStatGrid.vue'
 import PartnerCardHeader from '@/components/partner/PartnerCardHeader.vue'
 import {

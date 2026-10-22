@@ -37,25 +37,30 @@ func doJSON(t *testing.T, h *Handler, method, path string, body any) *httptest.R
 		req.Header.Set("Content-Type", "application/json")
 	}
 	rr := httptest.NewRecorder()
-	handler := wrap(h)
-	handler.ServeHTTP(rr, req)
+	wrap(h).ServeHTTP(rr, req)
 	return rr
 }
 
-// wrap exposes the profile routes on a mux, mirroring RegisterRoutes with a
-// pass-through limiter.
 func wrap(h *Handler) http.Handler {
 	mux := http.NewServeMux()
-	h.RegisterRoutes(mux, func(next http.HandlerFunc) http.HandlerFunc { return next })
+	h.RegisterRoutes(mux, func(next http.HandlerFunc) http.HandlerFunc {
+		return next
+	})
 	return mux
+}
+
+func completePayload(nickname string) map[string]any {
+	return map[string]any{
+		"nickname": nickname, "gender": "female",
+		"birth_date": "1958-05-12", "birth_time": "06:00",
+		"birth_place": "上海", "birth_longitude": 121.4737,
+		"birth_timezone": "Asia/Shanghai",
+	}
 }
 
 func TestHTTPCreateAndGet(t *testing.T) {
 	h := newHandlerFixture(t)
-	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", map[string]any{
-		"nickname": "妈妈", "gender": "female", "calendar": "lunar",
-		"birth_date": "1958-闰5-12", "birth_time": "06:00", "birth_time_known": "known",
-	})
+	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", completePayload("妈妈"))
 	if rr.Code != http.StatusCreated {
 		t.Fatalf("create status=%d body=%s", rr.Code, rr.Body.String())
 	}
@@ -65,43 +70,50 @@ func TestHTTPCreateAndGet(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &env); err != nil {
 		t.Fatal(err)
 	}
-	id := env.Data.ID
-	if id == "" {
-		t.Fatal("missing profile id")
+	if env.Data.ID == "" || env.Data.BirthInstant == nil || env.Data.BirthDate != "1958-05-12" {
+		t.Fatalf("unexpected profile: %+v", env.Data)
 	}
 
-	rr = doJSON(t, h, http.MethodGet, "/api/birth-profiles/"+id, nil)
+	rr = doJSON(t, h, http.MethodGet, "/api/birth-profiles/"+env.Data.ID, nil)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("get status=%d body=%s", rr.Code, rr.Body.String())
 	}
 }
 
-func TestHTTPValidationError(t *testing.T) {
+func TestHTTPValidation(t *testing.T) {
 	h := newHandlerFixture(t)
 	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", map[string]any{
-		"nickname": "", "gender": "female", "calendar": "lunar",
-		"birth_date": "1958-闰5-12", "birth_time": "06:00", "birth_time_known": "known",
+		"nickname": "", "gender": "female",
+		"birth_date": "1958-05-12", "birth_time": "06:00",
+		"birth_place": "上海", "birth_longitude": 121.4737,
+		"birth_timezone": "Asia/Shanghai",
 	})
 	if rr.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected 422, got %d body=%s", rr.Code, rr.Body.String())
 	}
 }
 
+func TestHTTPRequiresCompleteChartInput(t *testing.T) {
+	h := newHandlerFixture(t)
+	payload := completePayload("妈妈")
+	payload["birth_timezone"] = nil
+	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", payload)
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 for incomplete input, got %d body=%s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestHTTPUpdateConflict(t *testing.T) {
 	h := newHandlerFixture(t)
-	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", map[string]any{
-		"nickname": "妈妈", "gender": "female", "calendar": "lunar",
-		"birth_date": "1958-闰5-12", "birth_time": "06:00", "birth_time_known": "known",
-	})
+	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", completePayload("妈妈"))
 	var env struct {
 		Data BirthProfile `json:"data"`
 	}
 	_ = json.Unmarshal(rr.Body.Bytes(), &env)
 
-	rr = doJSON(t, h, http.MethodPatch, "/api/birth-profiles/"+env.Data.ID, map[string]any{
-		"expected_version": 999, "nickname": "改名", "gender": "female", "calendar": "lunar",
-		"birth_date": "1958-闰5-12", "birth_time": "06:00", "birth_time_known": "known",
-	})
+	payload := completePayload("改名")
+	payload["expected_version"] = 999
+	rr = doJSON(t, h, http.MethodPatch, "/api/birth-profiles/"+env.Data.ID, payload)
 	if rr.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d body=%s", rr.Code, rr.Body.String())
 	}
@@ -110,10 +122,11 @@ func TestHTTPUpdateConflict(t *testing.T) {
 func TestHTTPListAndDelete(t *testing.T) {
 	h := newHandlerFixture(t)
 	for _, nickname := range []string{"甲", "乙", "丙"} {
-		doJSON(t, h, http.MethodPost, "/api/birth-profiles", map[string]any{
-			"nickname": nickname, "gender": "male", "calendar": "solar",
-			"birth_date": "1990-01-01", "birth_time": "12:00", "birth_time_known": "known",
-		})
+		payload := completePayload(nickname)
+		payload["gender"] = "male"
+		payload["birth_date"] = "1990-01-01"
+		payload["birth_time"] = "12:00"
+		doJSON(t, h, http.MethodPost, "/api/birth-profiles", payload)
 	}
 	rr := doJSON(t, h, http.MethodGet, "/api/birth-profiles", nil)
 	if rr.Code != http.StatusOK {

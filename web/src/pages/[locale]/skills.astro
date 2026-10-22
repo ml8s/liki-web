@@ -20,8 +20,7 @@ const skillSchema = {
   keywords: skillKeywords.join(', '),
   hasPart: [
     { '@type': 'Service', name: t(locale, 'scenario.naming.title'), description: t(locale, 'scenario.naming.subtitle'), url: `https://liki.hk/${locale}/naming/` },
-    { '@type': 'Service', name: t(locale, 'scenario.mingshu.title'), description: t(locale, 'scenario.mingshu.subtitle'), url: `https://liki.hk/${locale}/mingshu/` },
-    { '@type': 'Service', name: t(locale, 'scenario.hepan.title'), description: t(locale, 'scenario.hepan.subtitle'), url: `https://liki.hk/${locale}/hepan/` },
+    { '@type': 'Service', name: t(locale, 'natal.title'), description: t(locale, 'natal.metaDesc'), url: `https://liki.hk/${locale}/natal/` },
   ],
   contactPoint: {
     '@type': 'ContactPoint',
@@ -58,11 +57,12 @@ const skillSchema = {
   </section>
 
   <div class="max-w-2xl mx-auto px-4 pb-8 text-center space-y-6">
+    <h2 class="font-serif">{t(locale, 'skills.install.title')}</h2>
     <p class="text-sm text-stone-400 mb-2">{t(locale, 'skills.install.method1')}</p>
     <div class="install-block">
       <pre class="install-cmd">npx skills add ml8s/liki</pre>
       <button class="copy-btn" data-cmd="npx skills add ml8s/liki" data-copied-label={t(locale, 'skills.install.copied')} aria-label={t(locale, 'skills.install.copy')}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button>
       <span class="visually-hidden" role="status" aria-live="polite"></span>
     </div>
@@ -70,10 +70,15 @@ const skillSchema = {
     <div class="install-block">
       <pre class="install-cmd">npx skills add https://liki.hk/</pre>
       <button class="copy-btn" data-cmd="npx skills add https://liki.hk/" data-copied-label={t(locale, 'skills.install.copied')} aria-label={t(locale, 'skills.install.copy')}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       </button>
       <span class="visually-hidden" role="status" aria-live="polite"></span>
     </div>
+  </div>
+
+  <div class="max-w-2xl mx-auto px-4 pb-8 text-center space-y-6">
+    <h2 class="font-serif">{t(locale, 'skills.coverage.title')}</h2>
+    <p class="text-sm text-stone-400">{t(locale, 'skills.coverage.body')}</p>
   </div>
 
   <p class="text-center text-xs text-stone-400 pb-8 flex flex-wrap justify-center gap-x-6 gap-y-2">

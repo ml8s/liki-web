@@ -158,7 +158,7 @@ async function logout() {
   min-height: 0;
   padding: 24px 16px 88px;
 }
-.app-main:focus { outline: none; }
+.app-main:focus-visible { outline: 2px solid var(--liki-primary); outline-offset: 2px; }
 
 @media (min-width: 1024px) {
   .app-topbar { display: none; }

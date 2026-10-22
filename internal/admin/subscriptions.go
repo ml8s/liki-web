@@ -20,7 +20,7 @@ func (h *AdminService) HandleAdminSubscriptions() http.HandlerFunc {
 
 		result, err := h.sales.Subscriptions.ListSubscriptionsForAdmin(r.Context(), status, search, page, pageSize)
 		if err != nil {
-			slog.Error("admin: list sales subscriptions", "err", err)
+			slog.ErrorContext(r.Context(), "admin: list sales subscriptions", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询订阅失败")
 			return
 		}

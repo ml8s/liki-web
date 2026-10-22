@@ -25,6 +25,13 @@ liki engine  /  liki-agents  /  payment providers
 | `liki-agents` | generic agent runtime, AG-UI/A2A protocol adapters, execution audit |
 | `liki-deploy` | deployment locks, Compose, Caddy, release and rollback |
 
+Liki Chat has two transports: the BFF relay (`/api/chat/sessions/<id>/ag-ui`)
+and, behind the build-time `VITE_CHAT_TRANSPORT=direct` flag, a direct route
+(`/rt/<profile>/ag-ui`) where Caddy performs ForwardAuth introspection and the
+runtime connection is mutual TLS. Direct runs persist history through the
+signed run-completed callback. See `liki-deploy`'s
+`docs/DIRECT_CONNECT.md`; the relay remains the rollback lever until P5b.
+
 ## Quick start
 
 Requirements are documented by:
@@ -81,6 +88,8 @@ In development, the login page shows a local verification code when the email se
 | `DODO_API_KEY`, `DODO_WEBHOOK_KEY`, `DODO_PRODUCT_LIKI_CHAT_ONE_TIME`, `DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION` | Dodo configuration |
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
 | `LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | AG-UI runtime per expert deployment (`LIKI_AGENTS_URL` = dev fallback) |
+| `LIKI_AGENTS_OPS_PORT` | Expert ops surface port (`/readyz` / `/version` / `/metrics`) used by readiness probes |
+| `LIKI_RUN_CALLBACK_SECRET` | Run-completed callback secret (Standard Webhooks); required once the direct transport is deployed — direct history is written by this callback |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
 | `LIKI_BILLING_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
 | `LIKI_METRICS_TOKEN` | Protects the internal metrics endpoint |
@@ -142,6 +151,8 @@ immutable digest. See [Release pipeline](https://github.com/ml8s/liki-deploy/blo
 | [`API.md`](./API.md) | Stable HTTP API |
 | [`FRONTEND.md`](./FRONTEND.md) | Astro marketing pages, Vue App, and frontend state |
 | [`LEGACY_PRODUCTS.md`](./LEGACY_PRODUCTS.md) | retired-product compatibility boundary |
+| [`BRAND.md`](./BRAND.md) | Brand definition: positioning, language, and principles |
+| [`SEO.md`](./SEO.md) | Search and GEO plan: per-page keyword targets |
 | [`docs/database/overview.md`](./docs/database/overview.md) | SQLite bounded-context inventory |
 | [`docs/database/partner.md`](./docs/database/partner.md) | Partner database schema |
 | [`docs/database/platform-admin.md`](./docs/database/platform-admin.md) | Platform admin auth & audit schema |

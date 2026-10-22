@@ -55,6 +55,8 @@
   --color-accent-soft: var(--brand-primary-soft);
   --color-accent-focus: rgba(83, 58, 253, 0.18);
   --color-fire: #d92d20;
+  /* 装饰/文化用朱红（如命名示例诗句）：与错误语义 --color-error 同值不同义。 */
+  --color-seal: #d92d20;
   --color-paper: var(--brand-paper);
   --color-surface: var(--brand-surface);
   --color-text: var(--brand-text);
@@ -152,38 +154,6 @@
   --z-skip-link: 100;
   --scroll-margin-header: 88px;
   --color-white: #ffffff;
-}
-
-/* Element Plus bridge. Keep vendor component variables in the canonical token
- * source so product components consume semantic aliases only. */
-:root {
-  --el-font-family: var(--liki-font-sans);
-  --el-color-primary: var(--liki-primary);
-  --el-color-primary-light-3: #8a7bfa;
-  --el-color-primary-light-5: #aca5fd;
-  --el-color-primary-light-7: #d3d0fe;
-  --el-color-primary-light-8: #e7e5ff;
-  --el-color-primary-light-9: var(--liki-primary-tint);
-  --el-color-primary-dark-2: var(--liki-primary-hover);
-
-  /* EP defaults are deepened where their light-background contrast misses AA. */
-  --el-color-danger: #b42318;
-  --el-color-danger-dark-2: #93261d;
-  --el-color-danger-light-7: #fbe3e1;
-  --el-color-danger-light-9: #fef2f2;
-  --el-color-warning: #b45309;
-  --el-color-warning-light-9: #fffaeb;
-  --el-color-success: #067647;
-  --el-color-success-dark-2: #04523a;
-  --el-table-header-text-color: #526378;
-  --el-empty-description-color: #526378;
-  --el-alert-title-color: #303133;
-  --el-text-color-secondary: #526378;
-  --el-border-radius-base: 10px;
-  --el-border-radius-small: 8px;
-  --el-border-radius-round: 999px;
-  --el-box-shadow: 0 1px 2px rgba(13, 37, 61, 0.04), 0 8px 24px rgba(13, 37, 61, 0.05);
-  --el-box-shadow-light: 0 1px 2px rgba(13, 37, 61, 0.03), 0 6px 18px rgba(13, 37, 61, 0.04);
 }
 
 /* Static pages retain a few legacy aliases. Product code must use the canonical

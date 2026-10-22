@@ -17,6 +17,8 @@ export interface TestUser {
   email: string
   status: string
   locale: string
+  /** /api/me 的合作角色摘要：默认空数组 = 普通用户（无合作入口）。 */
+  partner_roles: string[]
 }
 
 export const testUser = (overrides: Partial<TestUser> = {}): TestUser => ({
@@ -24,6 +26,7 @@ export const testUser = (overrides: Partial<TestUser> = {}): TestUser => ({
   email: 'user@example.com',
   status: 'active',
   locale: 'zh-Hant',
+  partner_roles: [],
   ...overrides,
 })
 
@@ -32,6 +35,7 @@ export const adminUser: TestUser = {
   email: 'admin@example.com',
   status: 'active',
   locale: 'zh-Hans',
+  partner_roles: [],
 }
 
 // 静态页首屏都会打一次即发即忘的 pageview 信标（BaseLayout 的 analytics 脚本）；
@@ -50,9 +54,61 @@ export async function mockAdmin(page: Page, capabilities: string[]) {
   })))
 }
 
-/** 声明单个引擎工具路由（小用例使用；全量契约回归见 engine-contract.spec 的 routeEngine）。 */
+/** MCP 直连的 JSON-RPC 成功信封（content[0].text 内为 JSON 字符串）。 */
+export const mcpOk = (data: unknown) => ({
+  jsonrpc: '2.0',
+  id: 1,
+  result: { content: [{ type: 'text', text: JSON.stringify(data) }] },
+})
+
+/** MCP 工具业务错误：HTTP 200 + isError（引擎/counsel 通用形态）。 */
+export const mcpToolError = (message: string) => ({
+  jsonrpc: '2.0',
+  id: 1,
+  result: { content: [{ type: 'text', text: message }], isError: true },
+})
+
+import { COUNSEL_TOOLS } from '../shared/api/engine'
+
+/** 按请求体里的工具名声明单条 MCP 工具路由（同 URL 承载任意工具，用 fallback 串接）。 */
+export async function mockMcpTool(page: Page, url: '**/engine/mcp' | '**/counsel/mcp', tool: string, data: unknown) {
+  await page.route(url, async route => {
+    const body = JSON.parse(route.request().postData() ?? '{}') as { params?: { name?: string } }
+    if (body.params?.name !== tool) return route.fallback()
+    return route.fulfill({ json: mcpOk(data) })
+  })
+}
+
+/** 同 mockMcpTool，但返回 isError（引擎失败态用例）。 */
+export async function mockMcpToolError(page: Page, url: '**/engine/mcp' | '**/counsel/mcp', tool: string, message: string) {
+  await page.route(url, async route => {
+    const body = JSON.parse(route.request().postData() ?? '{}') as { params?: { name?: string } }
+    if (body.params?.name !== tool) return route.fallback()
+    return route.fulfill({ json: mcpToolError(message) })
+  })
+}
+
+/** city_coords candidates 模式：单一候选，表单自动填入经度。 */
+export async function mockCityCoords(page: Page, options: {
+  name: string; region: string; longitude: number; latitude: number; level?: string; timezone?: string
+}) {
+  await mockMcpTool(page, '**/engine/mcp', 'city_coords', {
+    candidates: [{
+      name: options.name,
+      region: options.region,
+      country: options.region,
+      level: options.level ?? 'city',
+      longitude: options.longitude,
+      latitude: options.latitude,
+      timezone: options.timezone ?? 'Asia/Shanghai',
+    }],
+  })
+}
+
+/** 声明单个引擎/counsel 工具（小用例使用；全量契约回归见 engine-contract.spec 的 routeEngine）。 */
 export async function mockEngineTool(page: Page, tool: string, data: unknown) {
-  await page.route(`**/api/engine/tools/${tool}`, route => route.fulfill(json(data)))
+  const url = COUNSEL_TOOLS.has(tool) ? '**/counsel/mcp' : '**/engine/mcp'
+  await mockMcpTool(page, url, tool, data)
 }
 
 export interface WorkspaceOptions {

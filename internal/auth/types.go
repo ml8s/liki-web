@@ -58,6 +58,9 @@ type PublicUser struct {
 	Status      UserStatus `json:"status"`
 	Locale      string     `json:"locale"`
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
+	// PartnerRoles 列出该账号有关系的合作角色（含审核中/被拒）；App 壳据此
+	// 决定是否显示合作入口。永远输出数组（无角色为空数组）。
+	PartnerRoles []string `json:"partner_roles"`
 }
 
 type PublicAuthIdentity struct {

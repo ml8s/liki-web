@@ -53,176 +53,191 @@
         </p>
       </div>
 
-      <div
+      <el-card
         v-if="dashboardState === 'no-profile'"
-        class="primary-card guide"
+        class="app-card app-card--highlight primary-guide"
+        shadow="never"
       >
-        <div class="primary-copy">
-          <h2>{{ $t('dashboard.noBirthProfile.title') }}</h2>
-          <p>{{ $t('dashboard.noBirthProfile.body') }}</p>
-        </div>
-        <el-button
-          type="primary"
-          size="large"
-          @click="router.push('/birth-profiles/new')"
-        >
-          {{ $t('dashboard.noBirthProfile.cta') }}
-        </el-button>
-      </div>
-
-      <template v-else>
-        <div class="primary-card">
+        <div class="primary-body">
           <div class="primary-copy">
-            <template v-if="dashboardState === 'free-profile'">
-              <h2>{{ $t('dashboard.freeBirthProfile.title') }}</h2>
-              <p v-if="primaryBirthProfile">
-                {{ primaryBirthProfile.nickname }} · {{ birthSummary(primaryBirthProfile) }}
-              </p>
-              <p class="primary-note">
-                {{ $t('dashboard.freeBirthProfile.note') }}
-              </p>
-            </template>
-
-            <template v-else-if="dashboardState === 'paid-no-session'">
-              <h2>{{ $t('dashboard.paidNoSession.title') }}</h2>
-              <p>{{ $t('dashboard.paidNoSession.body') }}</p>
-            </template>
-
-            <template v-else-if="latestSession">
-              <h2>{{ $t('dashboard.continue.title') }}</h2>
-              <p>
-                {{ latestSessionBirthProfileName || latestSession.title }} ·
-                {{ skillLabel(latestSession.expert) }} ·
-                {{ formatDateTime(latestSession.last_message_at ?? latestSession.updated_at) }}
-              </p>
-            </template>
+            <h2 class="app-card__title">
+              {{ $t('dashboard.noBirthProfile.title') }}
+            </h2>
+            <p>{{ $t('dashboard.noBirthProfile.body') }}</p>
           </div>
-
           <div class="primary-actions">
             <el-button
-              v-if="dashboardState === 'free-profile'"
-              size="large"
-              @click="viewChart"
-            >
-              {{ $t('dashboard.freeBirthProfile.viewChart') }}
-            </el-button>
-            <el-button
-              v-if="dashboardState === 'free-profile'"
               type="primary"
               size="large"
-              @click="startInterpretation"
+              @click="router.push('/birth-profiles/new')"
             >
-              {{ $t('dashboard.freeBirthProfile.start') }}
-            </el-button>
-
-            <el-button
-              v-if="dashboardState === 'paid-no-session'"
-              type="primary"
-              size="large"
-              @click="startInterpretation"
-            >
-              {{ $t('dashboard.paidNoSession.cta') }}
-            </el-button>
-
-            <el-button
-              v-if="dashboardState === 'paid-continue' && latestSession"
-              type="primary"
-              size="large"
-              @click="router.push(`/chat/${latestSession.id}`)"
-            >
-              {{ $t('dashboard.continue.cta') }}
+              {{ $t('dashboard.noBirthProfile.cta') }}
             </el-button>
           </div>
         </div>
+      </el-card>
 
-        <div class="section-head">
-          <h2>{{ $t('dashboard.recentBirthProfiles') }}</h2>
-          <router-link
-            to="/birth-profiles"
-            class="more-link"
-          >
-            {{ $t('dashboard.allBirthProfiles') }}
-          </router-link>
-        </div>
-        <div class="recent-profiles">
-          <router-link
-            v-for="profile in recentBirthProfiles"
-            :key="profile.id"
-            class="recent-profile"
-            :to="`/birth-profiles/${profile.id}`"
-          >
-            <span class="rp-avatar font-serif">{{ profile.nickname.slice(0, 1) }}</span>
-            <span class="rp-name">{{ profile.nickname }}</span>
-            <span class="rp-meta">{{ $t(profile.gender === 'male' ? 'profiles.male' : 'profiles.female') }}</span>
-          </router-link>
-          <router-link
-            class="recent-profile add"
-            to="/birth-profiles/new"
-          >
-            ＋ {{ $t('profiles.create') }}
-          </router-link>
-        </div>
+      <template v-else>
+        <el-card
+          class="app-card app-card--highlight"
+          shadow="never"
+        >
+          <div class="primary-body">
+            <div class="primary-copy">
+              <template v-if="dashboardState === 'free-profile'">
+                <h2 class="app-card__title">
+                  {{ $t('dashboard.freeBirthProfile.title') }}
+                </h2>
+                <p v-if="primaryBirthProfile">
+                  {{ primaryBirthProfile.nickname }} · {{ birthSummary(primaryBirthProfile) }}
+                </p>
+                <p class="primary-note">
+                  {{ $t('dashboard.freeBirthProfile.note') }}
+                </p>
+              </template>
 
-        <div
-          v-if="recentSessions.length"
-          class="section-head"
+              <template v-else-if="dashboardState === 'paid-no-session'">
+                <h2 class="app-card__title">
+                  {{ $t('dashboard.paidNoSession.title') }}
+                </h2>
+                <p>{{ $t('dashboard.paidNoSession.body') }}</p>
+              </template>
+
+              <template v-else-if="latestSession">
+                <h2 class="app-card__title">
+                  {{ $t('dashboard.continue.title') }}
+                </h2>
+                <p>
+                  {{ latestSessionBirthProfileName || latestSession.title }} ·
+                  {{ formatDateTime(latestSession.last_message_at ?? latestSession.updated_at) }}
+                </p>
+              </template>
+            </div>
+
+            <div class="primary-actions">
+              <el-button
+                v-if="dashboardState === 'free-profile'"
+                size="large"
+                @click="viewChart"
+              >
+                {{ $t('dashboard.freeBirthProfile.viewChart') }}
+              </el-button>
+              <el-button
+                v-if="dashboardState === 'free-profile'"
+                type="primary"
+                size="large"
+                @click="startInterpretation"
+              >
+                {{ $t('dashboard.freeBirthProfile.start') }}
+              </el-button>
+
+              <el-button
+                v-if="dashboardState === 'paid-no-session'"
+                type="primary"
+                size="large"
+                @click="startInterpretation"
+              >
+                {{ $t('dashboard.paidNoSession.cta') }}
+              </el-button>
+
+              <el-button
+                v-if="dashboardState === 'paid-continue' && latestSession"
+                type="primary"
+                size="large"
+                @click="router.push(`/chat/${latestSession.id}`)"
+              >
+                {{ $t('dashboard.continue.cta') }}
+              </el-button>
+            </div>
+          </div>
+        </el-card>
+
+        <el-card
+          class="app-card"
+          shadow="never"
         >
-          <h2>{{ $t('dashboard.recentSessions') }}</h2>
-          <router-link
-            to="/chat"
-            class="more-link"
-          >
-            {{ $t('dashboard.allSessions') }}
-          </router-link>
-        </div>
-        <div
+          <template #header>
+            <div class="app-card__header">
+              <h2 class="app-card__title">
+                {{ $t('dashboard.recentBirthProfiles') }}
+              </h2>
+              <router-link
+                to="/birth-profiles"
+                class="more-link"
+              >
+                {{ $t('dashboard.allBirthProfiles') }}
+              </router-link>
+            </div>
+          </template>
+          <div class="recent-profiles">
+            <router-link
+              v-for="profile in recentBirthProfiles"
+              :key="profile.id"
+              class="recent-profile"
+              :to="`/birth-profiles/${profile.id}`"
+            >
+              <span class="rp-avatar font-serif">{{ profile.nickname.slice(0, 1) }}</span>
+              <span class="rp-name">{{ profile.nickname }}</span>
+              <span class="rp-meta">{{ $t(profile.gender === 'male' ? 'profiles.male' : 'profiles.female') }}</span>
+            </router-link>
+            <router-link
+              class="recent-profile add"
+              to="/birth-profiles/new"
+            >
+              ＋ {{ $t('profiles.create') }}
+            </router-link>
+          </div>
+        </el-card>
+
+        <el-card
           v-if="recentSessions.length"
-          class="recent-sessions"
+          class="app-card"
+          shadow="never"
         >
-          <router-link
-            v-for="session in recentSessions"
-            :key="session.id"
-            class="recent-session"
-            :to="`/chat/${session.id}`"
-          >
-            <span class="rs-title">{{ session.profileName || session.title }}</span>
-            <span class="rs-meta">
-              {{ skillLabel(session.expert) }} ·
-              {{ formatDateTime(session.last_message_at ?? session.updated_at) }}
-            </span>
-          </router-link>
-        </div>
+          <template #header>
+            <div class="app-card__header">
+              <h2 class="app-card__title">
+                {{ $t('dashboard.recentSessions') }}
+              </h2>
+              <router-link
+                to="/chat"
+                class="more-link"
+              >
+                {{ $t('dashboard.allSessions') }}
+              </router-link>
+            </div>
+          </template>
+          <div class="recent-sessions">
+            <router-link
+              v-for="session in recentSessions"
+              :key="session.id"
+              class="recent-session"
+              :to="`/chat/${session.id}`"
+            >
+              <span class="rs-title">{{ session.profileName || session.title }}</span>
+              <span class="rs-meta">
+                {{ formatDateTime(session.last_message_at ?? session.updated_at) }}
+              </span>
+            </router-link>
+          </div>
+        </el-card>
       </template>
 
       <!-- 场景/服务入口与档案状态解耦：无档案用户同样可见，点击走 startService 的建档流程 -->
-      <div class="section-head scenarios-head">
-        <h2>{{ $t('dashboard.moreScenarios') }}</h2>
-      </div>
-      <div class="services">
-        <div
-          v-for="service in chatServices"
-          :key="service.key"
-          :class="['service-card', service.key === 'bazi' ? 'feature' : '']"
-        >
-          <span class="sv-glyph font-serif">{{ $t(service.labelKey).slice(0, 1) }}</span>
-          <div class="sv-copy">
-            <div class="sv-name font-serif">
-              {{ $t(service.labelKey) }}
-            </div>
-            <div class="sv-desc">
-              {{ $t(service.descKey) }}
-            </div>
-          </div>
-          <el-button
-            type="primary"
-            size="small"
-            plain
-            @click="startService(service.key)"
-          >
-            {{ $t(service.ctaKey) }}
-          </el-button>
-        </div>
-      </div>
+      <el-card
+        class="app-card"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('dashboard.moreScenarios') }}
+          </h2>
+        </template>
+        <ServiceEntryList
+          :items="scenarioEntries"
+          @select="startService"
+        />
+      </el-card>
     </template>
   </section>
 </template>
@@ -230,15 +245,17 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useChatStore, skillLabel } from '@/stores/chat'
+import { useChatStore } from '@/stores/chat'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { birthSummary, type BirthProfile } from '@/api/birth-profiles'
 import { resolveDashboardState, type DashboardState } from '@/composables/dashboardState'
 import { normalizeScenario, scenarioService } from '@/composables/scenario'
-import { chatServices, chatUrl, serviceByKey } from '@/config/chat'
+import { chatUrl, scenarioById, scenarioEntryItems } from '@/config/chat'
 import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/utils/format'
+import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
+import { useFormDraftsStore } from '@shared/stores/form-drafts'
 
 const route = useRoute()
 const router = useRouter()
@@ -246,10 +263,13 @@ const { t } = useI18n()
 const chat = useChatStore()
 const profiles = useBirthProfilesStore()
 const entitlements = useEntitlementsStore()
+const drafts = useFormDraftsStore()
 
 const loading = computed(() =>
   chat.loadingSessions || profiles.loading || entitlements.loading,
 )
+
+const scenarioEntries = computed(() => scenarioEntryItems(t))
 const hasBirthProfile = computed(() => profiles.list.length > 0)
 
 function startScenario(scenario: string) {
@@ -304,14 +324,10 @@ function startInterpretation() {
 }
 
 function startService(key: string) {
-  try {
-    sessionStorage.setItem('liki-service', key)
-  } catch {
-    // sessionStorage 不可用时不阻断主流程。
-  }
-  const service = serviceByKey(key)
-  if (service?.route) {
-    void router.push(service.route)
+  drafts.set('service', key)
+  const scenario = scenarioById(key)
+  if (scenario?.route) {
+    void router.push(scenario.route)
     return
   }
   if (!profiles.list.length) {
@@ -342,7 +358,7 @@ onMounted(async () => {
 
   const raw = route.query.service
   const key = Array.isArray(raw) ? String(raw[0] ?? '') : String(raw ?? '')
-  if (key && serviceByKey(key)) {
+  if (key && scenarioById(key)) {
     void router.replace({ query: {} })
     startService(key)
   }
@@ -403,31 +419,20 @@ onMounted(async () => {
   text-wrap: pretty;
 }
 
-.primary-card {
+/* 主状态卡内容布局：容器用统一 app-card（强调态 = app-card--highlight）。 */
+.primary-body {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 24px;
-  padding: 24px 26px;
-  border: 1px solid var(--liki-primary-border);
-  border-radius: var(--radius-card);
-  background: var(--liki-surface);
-  box-shadow: var(--shadow-card);
 }
-.primary-card.guide {
+/* 无档案引导态：dashed 边框提示「需要动作」（仅此一处状态变体）。 */
+.primary-guide {
   border-style: dashed;
   background: linear-gradient(180deg, var(--liki-surface) 0%, var(--liki-paper) 100%);
 }
 .primary-copy {
   min-width: 0;
-}
-.primary-copy h2 {
-  margin: 0 0 8px;
-  font-family: var(--liki-font-serif);
-  font-size: var(--font-size-title-md);
-  font-weight: 700;
-  letter-spacing: -0.02em;
 }
 .primary-copy p {
   margin: 0 0 4px;
@@ -445,84 +450,7 @@ onMounted(async () => {
   gap: 10px;
 }
 
-.services {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 14px;
-}
-.service-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border: 1px solid var(--liki-line);
-  border-radius: var(--radius-card);
-  padding: 16px;
-  background: var(--liki-surface);
-  transition:
-    transform var(--liki-dur) var(--liki-ease),
-    box-shadow var(--liki-dur) var(--liki-ease),
-    border-color var(--liki-dur) var(--liki-ease);
-}
-.service-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--liki-primary-border);
-  box-shadow: var(--shadow-card-hover);
-}
-.service-card.feature {
-  grid-column: span 2;
-}
-.service-card.feature::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 16px;
-  right: 16px;
-  height: 2px;
-  background: linear-gradient(90deg, var(--liki-primary), transparent);
-}
-.sv-glyph {
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-lg);
-  background: var(--liki-primary-tint);
-  color: var(--liki-primary);
-  font-size: var(--font-size-title-md);
-  font-weight: 600;
-}
-.sv-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-.sv-name {
-  font-size: var(--font-size-title-xs);
-  font-weight: 700;
-  line-height: 1.2;
-}
-.sv-desc {
-  font-size: var(--font-size-label);
-  color: var(--liki-text-2);
-}
 
-.section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin: 20px 0 10px;
-}
-.section-head h2 {
-  margin: 0;
-  font-size: var(--font-size-title-sm);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.scenarios-head {
-  margin-top: 28px;
-}
 .more-link {
   font-size: var(--font-size-label);
   color: var(--liki-primary);
@@ -547,11 +475,11 @@ onMounted(async () => {
   text-decoration: none;
   transition:
     border-color var(--liki-dur) var(--liki-ease),
-    transform var(--liki-dur) var(--liki-ease);
+    background var(--liki-dur) var(--liki-ease);
 }
 .recent-profile:hover {
   border-color: var(--liki-primary-border);
-  transform: translateY(-1px);
+  background: var(--liki-paper);
 }
 .recent-profile.add {
   border-style: dashed;
@@ -599,10 +527,13 @@ onMounted(async () => {
   background: var(--liki-surface);
   color: inherit;
   text-decoration: none;
-  transition: border-color var(--liki-dur) var(--liki-ease);
+  transition:
+    border-color var(--liki-dur) var(--liki-ease),
+    background var(--liki-dur) var(--liki-ease);
 }
 .recent-session:hover {
   border-color: var(--liki-primary-border);
+  background: var(--liki-paper);
 }
 .rs-title {
   overflow: hidden;
@@ -619,11 +550,10 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .primary-card {
+  .primary-body {
     align-items: stretch;
     flex-direction: column;
     gap: 16px;
-    padding: 22px;
   }
   .primary-actions {
     width: 100%;
@@ -634,21 +564,7 @@ onMounted(async () => {
     margin-left: 0;
   }
 }
-@media (max-width: 768px) {
-  .services {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .service-card.feature {
-    grid-column: span 2;
-  }
-}
 @media (max-width: 480px) {
-  .services {
-    grid-template-columns: 1fr;
-  }
-  .service-card.feature {
-    grid-column: span 1;
-  }
   .hero {
     --hero-pad-x: 22px;
     padding: 26px var(--hero-pad-x) 24px;

@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import DivinationTool from '../../islands/DivinationTool.vue';
 import { t, locales } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -15,10 +16,14 @@ const faqs = ['paid', 'data', 'accuracy'].map(key => ({
   questionKey: `scenario.faq.${key}.q`,
   answerKey: `scenario.faq.${key}.a`,
 }));
-const staticSections = ['focus', 'method', 'output'].map(key => ({
-  title: t(locale, `${ns}.static.${key}.title`),
-  body: t(locale, `${ns}.static.${key}.body`),
-}));
+const toolProps = {
+  appUrl: `/app?service=divination&locale=${locale}`,
+  labels: {
+    error: t(locale, 'tool.error'),
+    cta: t(locale, 'tool.cta'),
+    privacy: t(locale, 'tool.privacy'),
+  },
+};
 ---
 
 <ScenarioLanding
@@ -37,12 +42,14 @@ const staticSections = ['focus', 'method', 'output'].map(key => ({
   faqTitleKey="scenario.faqTitle"
   faqs={faqs}
 >
-  <div class="scenario-static-index">
-    {staticSections.map(section => (
-      <details>
-        <summary>{section.title}</summary>
-        <p>{section.body}</p>
-      </details>
-    ))}
-  </div>
+  <Fragment slot="tool">
+    <h2>{t(locale, 'divination.tool.title')}</h2>
+    <p>{t(locale, 'divination.tool.intro')}</p>
+    <div id="divination-tool" data-props={JSON.stringify(toolProps)}>
+    </div>
+  </Fragment>
 </ScenarioLanding>
+
+<script>
+  import '../../scripts/divination-tool';
+</script>

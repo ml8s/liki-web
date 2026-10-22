@@ -54,11 +54,12 @@ id
 user_id
 nickname
 gender
-calendar
-birth_date
-birth_time
-birth_time_known
-birth_place
+birth_place       # display label (free text; not used for computation)
+birth_longitude   # WGS-84 longitude used for true solar time
+birth_timezone    # IANA timezone used with birth_instant
+birth_instant     # canonical RFC 3339 UTC instant for exact-time profiles
+birth_date        # Gregorian date derived from birth_instant + birth_timezone
+birth_time        # local wall time derived from birth_instant + birth_timezone
 version
 ```
 
@@ -68,6 +69,11 @@ Invariants:
 - Updates use optimistic locking through `version`.
 - Cross-user reads are forbidden.
 - Erasure anonymizes birth data and embedded profile messages.
+- Chartable profiles require `birth_longitude`, `birth_timezone`, and
+  `birth_instant` together.
+- There is no approximate/unknown time state. If canonical fields are absent,
+  the profile cannot be charted until the user supplies complete information.
+- New/updated profile input is Gregorian-only and must be complete.
 
 ## Product and price
 
@@ -79,13 +85,44 @@ Only purchasable product:
 liki-chat
 ```
 
-Scenario identifiers (landing page → Liki Chat handoff, not products):
+Scenario identifiers (landing page → Liki Chat handoff, not products) are the
+seven user-facing scenarios; each routes to an internal expert deployment:
 
 ```text
-naming
-mingshu
-hepan
+natal      → expert natal       (life reading)
+liunian    → expert natal       (annual fortune)
+hepan      → expert natal       (compatibility)
+divination → expert divination
+huangli    → expert divination  (date selection)
+fengshui   → expert fengshui
+naming     → expert naming
 ```
+
+Legacy ids `bazi` / `mingshu` normalize to `natal`; `bond` normalizes to
+`hepan`.
+
+### Scenario naming convention
+
+Scenario identifiers use **pinyin** when they map to one specific Chinese
+metaphysics concept with no English equivalent; they use **English** when they
+are an umbrella covering multiple methods. This is a deliberate domain-model
+decision, not an inconsistency.
+
+| Scenario | Language | Rationale |
+| -------- | -------- | --------- |
+| natal | English | Umbrella: covers bazi + ziwei (no single pinyin word) |
+| liunian | Pinyin | Specific concept: annual fortune (流年) |
+| hepan | Pinyin | Specific concept: Chinese synastry (合盘, not Western astrology) |
+| divination | English | Umbrella: covers liuyao + qimen (extensible to more methods) |
+| huangli | Pinyin | Specific concept: Chinese almanac (黄历) |
+| fengshui | Pinyin | Specific concept: already an English loanword (风水) |
+| naming | English | Generic service action, not metaphysics-specific |
+
+The same rule applies to frontend code: shared chart components use pinyin
+(`BaziPanel`, `ZiweiPanel`), umbrella UI layers use English
+(`DivinationView`, `NatalTool`). Engine MCP tool names (`liuyao_qigua`,
+`bazi_chart`) are cross-system contracts and always keep their original
+pinyin identifiers regardless of the frontend naming layer.
 
 Invariants:
 
@@ -176,7 +213,7 @@ Invariants:
 ### Scenario
 
 A scenario is an entry intent for Liki Chat, not a product. Its public page is a CTA surface into the app, comparable to the home page.
-Current public scenarios are `naming`, `mingshu`, and `hepan`.
+The seven public scenarios are `natal`, `liunian`, `hepan`, `divination`, `huangli`, `fengshui`, and `naming` — one vocabulary shared by marketing slugs and App handoff parameters. Each scenario routes to an internal expert deployment; the expert layer is never presented to users. `mingshu` (life reading) is the deliverable of the `natal` scenario, not a scenario of its own.
 
 ## Notification
 

@@ -1,5 +1,6 @@
 import { get, post, request } from './http'
 import { i18n } from '@/i18n'
+import { formatInstant } from '@shared/utils/paipan'
 
 export interface BirthProfile {
   id: string
@@ -8,11 +9,12 @@ export interface BirthProfile {
   nickname: string
   name: string
   gender: 'male' | 'female'
-  calendar: 'solar' | 'lunar'
-  birth_date: string
-  birth_time: string
-  birth_time_known: 'known' | 'approximate' | 'unknown'
   birth_place: string
+  birth_longitude: number | null
+  birth_timezone: string | null
+  birth_instant: string | null
+  birth_date: string | null
+  birth_time: string | null
   note: string
   third_party_consent: boolean
   last_used_at: string | null
@@ -24,11 +26,11 @@ export interface BirthProfileInput {
   nickname: string
   name?: string
   gender: 'male' | 'female'
-  calendar: 'solar' | 'lunar'
   birth_date: string
   birth_time: string
-  birth_time_known: 'known' | 'approximate' | 'unknown'
   birth_place?: string
+  birth_longitude: number
+  birth_timezone: string
   note?: string
   third_party_consent?: boolean
 }
@@ -66,19 +68,14 @@ export function deleteBirthProfile(id: string): Promise<{ status: string }> {
 export function birthSummary(profile: BirthProfile): string {
   const t = i18n.global.t
   const gender = profile.gender === 'male' ? t('profiles.male') : t('profiles.female')
-  const calendar = profile.calendar === 'lunar' ? t('profiles.form.lunar') : t('profiles.form.solar')
-  const known = {
-    known: t('chat.systemBirthProfile.known'),
-    approximate: t('chat.systemBirthProfile.approximate'),
-    unknown: t('chat.systemBirthProfile.unknown'),
-  }[profile.birth_time_known]
   const place = profile.birth_place ? ` · ${profile.birth_place}` : ''
+  const canonicalTime = profile.birth_instant && profile.birth_timezone
+    ? formatInstant(profile.birth_instant, profile.birth_timezone)
+    : ''
   return i18n.global.t('profiles.summary', {
-    calendar,
-    date: profile.birth_date,
-    time: profile.birth_time || '',
+    date: canonicalTime || profile.birth_date || '',
+    time: canonicalTime ? '' : profile.birth_time || '',
     gender,
-    known,
     place,
   })
 }

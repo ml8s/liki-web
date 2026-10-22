@@ -2,6 +2,7 @@ import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { json, mockWorkspace, testUser } from '../mocks'
+import { waitForSettled } from '../helpers'
 
 test.use({ locale: 'zh-Hant' })
 
@@ -10,8 +11,11 @@ const user = testUser()
 const entitlements = { entitlements: [], allowed_skills: ['liki'] }
 const profile = {
   id: 'p_1', user_id: 'usr_test', version: 1, nickname: '妈妈', name: '', gender: 'female', relation: '家人',
-  calendar: 'lunar', birth_date: '1958-闰5-12', birth_time: '06:00', birth_time_known: 'known',
-  birth_place: '上海', note: '', third_party_consent: true, last_used_at: null,
+  birth_date: '1958-05-12', birth_time: '06:00',
+  birth_local_time: '06:00',
+  birth_local_date: '1958-05-12',
+  birth_place: '上海', birth_longitude: 121.4726, birth_timezone: 'Asia/Shanghai',
+  birth_instant: '1958-05-11T22:00:00Z', note: '', third_party_consent: true, last_used_at: null,
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
 const session = {
@@ -36,15 +40,15 @@ const order = {
 
 const pages = [
   { path: '/app/login', name: 'login', marker: 'input[type="email"]' },
-  { path: '/app/', name: 'dashboard', marker: '.services' },
+  { path: '/app/', name: 'dashboard', marker: '.service-entries' },
   { path: '/app/birth-profiles', name: 'profiles', marker: '.profile-card' },
   { path: '/app/birth-profiles/new', name: 'profile-new', marker: '.birth-form' },
   { path: '/app/birth-profiles/p_1', name: 'profile-detail', marker: '.paipan-preview' },
-  { path: '/app/synastry', name: 'synastry', marker: '.b-form' },
+  { path: '/app/hepan', name: 'hepan', marker: '.b-form' },
   { path: '/app/divination', name: 'divination', marker: '.el-input' },
   { path: '/app/fengshui', name: 'fengshui', marker: '.el-select' },
   { path: '/app/huangli', name: 'huangli', marker: '.el-select' },
-  { path: '/app/chat', name: 'chat-list', marker: '.skill-grid' },
+  { path: '/app/chat', name: 'chat-list', marker: '.service-entries' },
   { path: '/app/chat/chat_1', name: 'chat-session', marker: '.thread' },
   { path: '/app/orders', name: 'orders', marker: '.orders-table, .order-cards' },
   { path: '/app/account', name: 'account', marker: '.app-card--danger' },
@@ -69,7 +73,7 @@ async function mockProductWorkspace(page: Page) {
     return r.fulfill(json({ profiles: [profile], next_cursor: '' }))
   })
   await page.route('**/api/chat/sessions/chat_1', r => r.fulfill(json(session)))
-  await page.route('**/api/chat/sessions/chat_1/messages', r => r.fulfill(json([message])))
+  await page.route('**/api/chat/sessions/chat_1/messages', r => r.fulfill(json({ messages: [message], next_cursor: '' })))
   await page.route('**/api/sales/subscriptions', r => r.fulfill(json([])))
   await page.route('**/api/sales/subscription-payments', r => r.fulfill(json([])))
   await page.route('**/api/me/sessions', r => r.fulfill(json([])))
@@ -100,7 +104,7 @@ test.describe('App accessibility audit', () => {
 
       await page.goto(path)
       await page.waitForSelector(marker, { timeout: 10000 })
-      await page.waitForTimeout(200)
+      await waitForSettled(page)
 
       await audit(page, path)
     })
@@ -117,7 +121,7 @@ test.describe('App mobile accessibility smoke', () => {
       await mockProductWorkspace(page)
       await page.goto(path)
       await page.waitForSelector(marker, { timeout: 10000 })
-      await page.waitForTimeout(200)
+      await waitForSettled(page)
       await audit(page, path)
     })
   }

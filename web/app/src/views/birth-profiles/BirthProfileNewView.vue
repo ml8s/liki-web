@@ -52,6 +52,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'
 import type { BirthProfileInput } from '@/api/birth-profiles'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
+import { consumeHandoff, HANDOFF_KEYS } from '@shared/utils/handoff'
+import type { BirthFieldsValue } from '@shared/components/form/birth-fields'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -94,28 +96,20 @@ onBeforeRouteLeave(async () => {
   }
 })
 
-// 主页免费排盘钩子（草稿续算）：同步读 sessionStorage 预填出生信息，读后清除。
-// 必须在 BirthForm setup 前读到（其内部 ref 从 initial 初始化一次）。
-try {
-  const raw = sessionStorage.getItem('liki-draft')
-  if (raw) {
-    const parsed = JSON.parse(raw)
-    if (parsed && parsed.birth_date) {
-      draft.value = {
-        birth_date: parsed.birth_date,
-        birth_time: parsed.birth_time ?? '',
-        ...(parsed.gender === 'male' || parsed.gender === 'female' ? { gender: parsed.gender } : {}),
-        calendar: parsed.calendar ?? 'solar',
-        birth_time_known: parsed.birth_time ? 'known' : 'unknown',
-        nickname: '',
-        third_party_consent: false,
-      }
-      draftLoaded.value = true
-      sessionStorage.removeItem('liki-draft')
-    }
+// 跨端 handoff（营销站→App）：读后即清，带 TTL 与版本校验。
+const handoff = consumeHandoff<BirthFieldsValue>(HANDOFF_KEYS.birth)
+if (handoff?.birth_date && handoff.location) {
+  draft.value = {
+    birth_date: handoff.birth_date,
+    birth_time: handoff.birth_time,
+    gender: handoff.gender === 'male' ? 'male' : 'female',
+    birth_place: handoff.location.place,
+    birth_longitude: handoff.location.longitude,
+    birth_timezone: handoff.location.timezone,
+    nickname: '',
+    third_party_consent: false,
   }
-} catch {
-  sessionStorage.removeItem('liki-draft')
+  draftLoaded.value = true
 }
 
 async function submit(input: BirthProfileInput) {

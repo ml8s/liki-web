@@ -95,23 +95,10 @@
             {{ $t('chat.selectDomain') }}
           </h2>
         </template>
-        <div class="skill-grid">
-          <SkillCard
-            v-for="item in chatSkills"
-            :key="item.id"
-            :label="$t(item.labelKey)"
-            :description="$t(item.descriptionKey)"
-            :enabled="canStart()"
-            :blocked-reason="skillState().reason"
-            :status-label="skillState().status"
-            :action-label="skillState().actionLabel"
-            :action-to="skillState().actionTo"
-            :action-scroll-to="skillState().actionScrollTo"
-            :starting="creating === item.id"
-            @start="create(item.id)"
-            @anchor="handleSkillAnchor"
-          />
-        </div>
+        <ServiceEntryList
+          :items="scenarioEntries"
+          @select="selectScenario"
+        />
       </el-card>
 
       <el-alert
@@ -138,7 +125,7 @@
           animated
           aria-busy="true"
         />
-        <el-empty
+        <AppEmptyState
           v-else-if="!chat.sessions.length"
           :description="$t('chat.empty')"
         >
@@ -157,10 +144,10 @@
           >
             {{ $t('chat.emptyAction') }}
           </el-button>
-        </el-empty>
+        </AppEmptyState>
         <SessionList
           v-else
-          :sessions="displaySessions"
+          :sessions="chat.sessions"
           @open="openSession"
           @rename="renameSession"
           @remove="removeSession"
@@ -177,15 +164,16 @@ import { firstQueryValue } from '@/utils/query'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useChatStore, skillLabel } from '@/stores/chat'
+import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useSalesStore } from '@/stores/sales-store'
-import { chatSkills, serviceByIntent, serviceByKey } from '@/config/chat'
+import { scenarioByIntent, scenarioById, scenarioEntryItems } from '@/config/chat'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import AppEmptyState from '@/components/app/AppEmptyState.vue'
+import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
 import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
 import SessionList from '@/components/chat/SessionList.vue'
-import SkillCard from '@/components/chat/SkillCard.vue'
 import BirthProfilePicker from '@/components/chat/BirthProfilePicker.vue'
 import type { ChatSession } from '@/api/chat'
 
@@ -203,57 +191,35 @@ const creating = ref('')
 const chatPurchased = computed(() => entitlements.purchased)
 const profilePickerEl = ref<HTMLElement | null>(null)
 
-const pendingService = computed(() => (chat.pendingIntent ? serviceByIntent(chat.pendingIntent) : undefined))
+const pendingService = computed(() => (chat.pendingIntent ? scenarioByIntent(chat.pendingIntent) : undefined))
 
-const displaySessions = computed(() => chat.sessions.map(session => ({
-  ...session,
-  skillLabel: skillLabel(session.expert),
-} satisfies ChatSession & { skillLabel: string })))
+// 入口行右侧动作文案：随可用状态给出下一步（开通/查看订单/建档案/开始）。
+const scenarioAction = computed(() => {
+  if (!chatPurchased.value) return t('chat.action.activate')
+  if (!entitlements.hasSkill('liki')) return t('chat.action.orders')
+  if (!activeBirthProfileId.value) return t('profiles.create')
+  return t('chat.action.start')
+})
 
-function canStart() {
-  // 权益校验仍以统一 skill「liki」为准；专家只是部署路由维度。
-  return chatPurchased.value && entitlements.hasSkill('liki') && !!activeBirthProfileId.value
-}
+const scenarioEntries = computed(() =>
+  scenarioEntryItems(t).map(item => ({ ...item, action: scenarioAction.value })),
+)
 
-function skillState() {
-	  if (!chatPurchased.value) {
-	    return {
-	      enabled: false,
-	      reason: t('chat.state.inactive'),
-	      status: t('chat.status.inactive'),
-	      actionLabel: t('chat.action.activate'),
-	      actionTo: '',
-	      actionScrollTo: '#chat-purchase',
-	    }
-	  }
+// 选择场景：未开通 → 滚到开通卡；方案未含 → 订单页；缺档案 → 建档案；就绪 → 创建会话。
+function selectScenario(id: string) {
+  if (!chatPurchased.value) {
+    document.getElementById('chat-purchase')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
   if (!entitlements.hasSkill('liki')) {
-	    return {
-	      enabled: false,
-	      reason: t('chat.state.notIncluded'),
-	      status: t('chat.status.notIncluded'),
-	      actionLabel: t('chat.action.orders'),
-	      actionTo: '/orders',
-	      actionScrollTo: '',
-	    }
+    void router.push('/orders')
+    return
   }
   if (!activeBirthProfileId.value) {
-	    return {
-	      enabled: false,
-	      reason: t('chat.state.profileRequired'),
-	      status: t('chat.status.profileRequired'),
-	      actionLabel: t('profiles.create'),
-	      actionTo: '/birth-profiles/new',
-	      actionScrollTo: '',
-	    }
+    void router.push('/birth-profiles/new')
+    return
   }
-	  return {
-	    enabled: true,
-	    reason: '',
-	    status: t('chat.status.available'),
-	    actionLabel: t('chat.action.start'),
-	    actionTo: '',
-	    actionScrollTo: '',
-	  }
+  void create(id)
 }
 
 function openSession(session: ChatSession) {
@@ -263,10 +229,6 @@ function openSession(session: ChatSession) {
 // 会话空态的下一步（已有档案时）：滚动到领域选择卡。
 function scrollToSkills() {
   document.getElementById('chat-domain')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
-function handleSkillAnchor(selector: string) {
-  document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 async function renameSession(session: ChatSession) {
@@ -294,12 +256,12 @@ async function removeSession(session: ChatSession) {
   }
 }
 
-async function create(expert: string) {
-  if (!activeBirthProfileId.value) return
-  creating.value = expert
+async function create(scenarioId: string) {
+  if (!activeBirthProfileId.value || creating.value) return
+  creating.value = scenarioId
   sales.actionError = ''
   try {
-    const session = await chat.createSession(activeBirthProfileId.value, expert)
+    const session = await chat.createSession(activeBirthProfileId.value, scenarioId)
     await router.push(`/chat/${session.id}`)
   } catch (error) {
     sales.actionError = toUserMessage(error, t('chat.createFailed'))
@@ -321,7 +283,7 @@ onMounted(async () => {
     }
     // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
     const presetService = firstQueryValue(route.query.service)
-    const svc = serviceByKey(presetService)
+    const svc = scenarioById(presetService)
     if (svc) chat.pendingIntent = t(svc.intentKey)
 
     // 支付回调处理：store 返回结果，由 view 决定路由。
@@ -344,9 +306,4 @@ onMounted(async () => {
 
 <style scoped>
 .inline-alert { margin-bottom: 0; }
-.skill-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-}
 </style>

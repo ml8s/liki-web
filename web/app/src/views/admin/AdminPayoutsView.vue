@@ -29,7 +29,7 @@
       </el-form-item>
       <el-button
         type="primary"
-        @click="submitPayoutFilters"
+        native-type="submit"
       >
         查询
       </el-button>

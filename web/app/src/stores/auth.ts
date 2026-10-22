@@ -9,6 +9,7 @@ import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { ApiError } from '@/api/http'
 import type { Me } from '@/api/me'
 import { normalizeUnknownLocale, requestedLocale, savedLocalePreference, setAppLocale } from '@/i18n'
+import { useFormDraftsStore } from '@shared/stores/form-drafts'
 
 type AuthStatus = 'unknown' | 'authenticated' | 'unauthenticated'
 
@@ -24,6 +25,8 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: state => state.status === 'authenticated',
     displayName: state => state.user?.email ?? '',
+    // 合作入口的角色门控：普通用户永远看不到；审核中/被拒也显示（可回访/重申）。
+    hasPartnerRole: state => (state.user?.partner_roles?.length ?? 0) > 0,
   },
   actions: {
     async loadMe(force = false) {
@@ -73,7 +76,7 @@ export const useAuthStore = defineStore('auth', {
       useBirthProfilesStore().reset()
       useSalesStore().reset()
       useAdminStore().reset()
-      sessionStorage.removeItem('likiChatDraft')
+      useFormDraftsStore().clear('chat-draft')
     }
   },
   },

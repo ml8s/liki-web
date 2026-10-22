@@ -1,9 +1,11 @@
 package chat
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/ml8s/liki-web/internal/auth"
@@ -91,7 +93,7 @@ func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("chat: create session", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "chat: create session", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -106,16 +108,31 @@ func (h *Handler) HandleMessages(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID := r.PathValue("id")
 	if _, err := h.service.Session(r.Context(), user.ID, sessionID); err != nil {
-		writeSessionError(w, err)
+		writeSessionError(r.Context(), w, err)
 		return
 	}
-	messages, err := h.service.store.ListMessages(r.Context(), user.ID, sessionID)
+	limit := 0
+	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+		if parsed, parseErr := strconv.Atoi(raw); parseErr == nil {
+			limit = parsed
+		}
+	}
+	messages, nextCursor, err := h.service.store.ListMessages(
+		r.Context(), user.ID, sessionID, strings.TrimSpace(r.URL.Query().Get("before")), limit,
+	)
 	if err != nil {
-		slog.Error("chat: list messages", "session_id", sessionID, "err", err)
+		if errors.Is(err, ErrInvalidMessageCursor) {
+			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "invalid message cursor")
+			return
+		}
+		slog.ErrorContext(r.Context(), "chat: list messages", "session_id", sessionID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, messages)
+	httputil.RespondJSON(w, http.StatusOK, map[string]any{
+		"messages":    messages,
+		"next_cursor": nextCursor,
+	})
 }
 
 func (h *Handler) HandleSession(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +143,7 @@ func (h *Handler) HandleSession(w http.ResponseWriter, r *http.Request) {
 	}
 	session, err := h.service.Session(r.Context(), user.ID, r.PathValue("id"))
 	if err != nil {
-		writeSessionError(w, err)
+		writeSessionError(r.Context(), w, err)
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, session)
@@ -160,7 +177,7 @@ func (h *Handler) HandleRenameSession(w http.ResponseWriter, r *http.Request) {
 	}
 	session, err := h.service.RenameSession(r.Context(), user.ID, r.PathValue("id"), title)
 	if err != nil {
-		writeSessionError(w, err)
+		writeSessionError(r.Context(), w, err)
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, session)
@@ -173,20 +190,20 @@ func (h *Handler) HandleDeleteSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.service.DeleteSession(r.Context(), user.ID, r.PathValue("id")); err != nil {
-		writeSessionError(w, err)
+		writeSessionError(r.Context(), w, err)
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
-func writeSessionError(w http.ResponseWriter, err error) {
+func writeSessionError(ctx context.Context, w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrSkillForbidden):
 		httputil.Forbidden(w)
 	case errors.Is(err, ErrSessionNotFound), errors.Is(err, ErrRunnerUnavailable):
 		httputil.NotFound(w)
 	default:
-		slog.Error("chat: access session", "err", err)
+		slog.ErrorContext(ctx, "chat: access session", "err", err)
 		httputil.InternalError(w)
 	}
 }

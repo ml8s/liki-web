@@ -7,7 +7,7 @@
 | Module | Responsibility |
 | --- | --- |
 | `cmd/liki-web` | Service entrypoint |
-| `internal/http` | HTTP route composition, middleware, security headers, rate limiting |
+| `internal/http` | HTTP route composition, middleware (request-id, RED metrics), security headers, rate limiting |
 | `internal/auth` | email-code identity, sessions, verification codes |
 | `internal/birthprofile` | birth profile aggregate |
 | `internal/payment` | provider-neutral payment runtime |
@@ -25,10 +25,10 @@
 | `internal/xunhu` | XunHuPay gateway client |
 | `internal/email` | Resend email client |
 | `internal/feedback` | feedback lifecycle store and API |
-| `internal/httputil` | shared HTTP primitives: client IP, forwarded headers, JWT validation, response envelope, decode, SSE |
+| `internal/httputil` | shared HTTP primitives: client IP, forwarded headers, JWT validation, request-id context and slog handler, response envelope, decode, SSE |
 | `internal/i18n` | supported language tag constants |
 | `internal/llm` | chat message model shared by protocol surfaces |
-| `internal/metrics` | in-memory lifecycle counters and the internal metrics endpoint |
+| `internal/metrics` | in-memory lifecycle counters, HTTP RED metrics, and the internal metrics endpoint |
 | `internal/migrate` | forward-only SQL migration runner for embedded SQLite |
 | `internal/sqliteutil` | standard SQLite connection policy for every database file |
 
@@ -66,7 +66,7 @@ and the Vue app.
 ```text
 User enters birth data
 → Vue App creates or selects a profile
-→ liki-web requests deterministic engine facts
+→ the App calls deterministic engine facts over the same-origin MCP gateway
 → Vue App renders the chart
 ```
 
@@ -87,6 +87,16 @@ User starts checkout
 
 Provider callbacks are verified and idempotent.
 
+Payment self-service reads (`/api/payments/return/{id}` and the two intent
+status endpoints) are anonymous by design — the browser return can land without
+a session, on another device, or after session expiry. The credential is a
+**capability URL**: the unguessable intent id mints a 1-hour, `payment-status`
+scoped token that is accepted only by these read-only status endpoints. The
+status responses carry no PII (status, order id, redirect URLs only). Because
+the return endpoint may trigger one provider reconciliation call, all three
+endpoints carry a rate-limit tier; a return-URL nonce is a pre-planned
+hardening if the status surface ever grows sensitive fields.
+
 ### Liki Chat run
 
 ```text
@@ -98,10 +108,20 @@ Vue App sends AG-UI to /api/chat/sessions/{id}/ag-ui
 → liki-web persists the authoritative final answer
 ```
 
-Product browser traffic only talks to `liki-web`. The Vue charting workspace
-calls same-origin web BFF endpoints, and the BFF
-calls engine MCP with a server-side token. Identity, entitlement, payment,
-profile writes, and AI generation never cross the public engine boundary.
+The relay above is the default transport and the rollback lever. A build-time
+`VITE_CHAT_TRANSPORT=direct` web image instead posts to `/rt/<profile>/ag-ui`:
+Caddy performs ForwardAuth introspection against liki-web
+(`/api/internal/introspect`) and opens a mutual-TLS connection to the runtime;
+the client carries the conversation history and profile context, and history is
+persisted by the signed run-completed callback
+(`/api/internal/runs/completed`). See liki-deploy's `docs/DIRECT_CONNECT.md`.
+
+Product browser traffic talks either to `liki-web` (identity, entitlement,
+payment, profiles, chat) or directly to the MCP services over the same-origin
+gateway prefixes `/engine/*` and `/counsel/*` — the same paths and protocol
+external skills use. Charting calls only the deterministic MCP tools;
+identity, entitlement, payment, profile writes, and AI generation stay inside
+`liki-web`.
 
 ## Storage
 

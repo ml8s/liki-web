@@ -19,8 +19,10 @@ const {
 } = Astro.props;
 
 const pagePath = page === 'index' ? '' : page;
-const canonical = `https://liki.hk/${locale}/${pagePath ? pagePath + '/' : ''}`;
-const ogImage = 'https://liki.hk/img/og-image.png';
+// 站点 origin 随构建环境（site 配置）：生产 https://liki.hk，本地审计 SITE_URL=http://localhost:8080。
+const siteOrigin = Astro.site ? Astro.site.origin : 'https://liki.hk';
+const canonical = `${siteOrigin}/${locale}/${pagePath ? pagePath + '/' : ''}`;
+const ogImage = `${siteOrigin}/img/og-image.png`;
 // 标题统一为「<页面名> · <站点名>」；页面名里已经带了站点名（首页 slogan）就不再重复追加。
 // SPA 侧同一格式见 web/app/src/utils/documentTitle.ts。
 const pageTitle = t(locale, `${page}.title`);
@@ -35,10 +37,10 @@ const documentTitle = pageTitle.includes(siteName) ? pageTitle : `${pageTitle} �
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
 <link rel="canonical" href={canonical}>
-<link rel="alternate" hreflang="zh-Hant" href={`https://liki.hk/zh-Hant/${pagePath ? pagePath + '/' : ''}`}>
-<link rel="alternate" hreflang="zh-Hans" href={`https://liki.hk/zh-Hans/${pagePath ? pagePath + '/' : ''}`}>
-<link rel="alternate" hreflang="en" href={`https://liki.hk/en/${pagePath ? pagePath + '/' : ''}`}>
-<link rel="alternate" hreflang="x-default" href={`https://liki.hk/zh-Hant/${pagePath ? pagePath + '/' : ''}`}>
+<link rel="alternate" hreflang="zh-Hant" href={`${siteOrigin}/zh-Hant/${pagePath ? pagePath + '/' : ''}`}>
+<link rel="alternate" hreflang="zh-Hans" href={`${siteOrigin}/zh-Hans/${pagePath ? pagePath + '/' : ''}`}>
+<link rel="alternate" hreflang="en" href={`${siteOrigin}/en/${pagePath ? pagePath + '/' : ''}`}>
+<link rel="alternate" hreflang="x-default" href={`${siteOrigin}/zh-Hant/${pagePath ? pagePath + '/' : ''}`}>
 
 <meta name="description" content={t(locale, `${page}.metaDesc`)}>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

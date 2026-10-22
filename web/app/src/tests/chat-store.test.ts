@@ -49,7 +49,7 @@ describe('chat store', () => {
     const chat = useChatStore()
     const chatApi = await import('@/api/chat')
     const sessionSpy = vi.spyOn(chatApi, 'fetchChatSession').mockResolvedValue(session)
-    const messagesSpy = vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue([userMessage, assistantMessage])
+    const messagesSpy = vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue({ messages: [userMessage, assistantMessage], next_cursor: '' })
 
     await chat.openSession(session.id)
 
@@ -74,24 +74,158 @@ describe('chat store', () => {
       assistant_message: assistantMessage,
     }
     const sendSpy = vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_sessionId, _content, onEvent) => {
-      onEvent({ type: 'thinking' })
       onEvent({ type: 'text-delta', content: assistantMessage.content })
-      return sendResult
+      return { transport: 'relay', result: sendResult } as const
     })
 
     await chat.createSession('', 'natal')
     chat.activeSession = session
     await chat.send(' 你好 ')
 
-    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '本命解读')
-    expect(sendSpy).toHaveBeenCalledWith(session.id, '你好', expect.any(Function), expect.any(AbortSignal))
+    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '命理解读')
+    // 中继模式不携带直连上下文（第 5 参为 undefined）。
+    expect(sendSpy).toHaveBeenCalledWith(session, '你好', expect.any(Function), expect.any(AbortSignal), undefined)
     expect(chat.messages).toEqual([userMessage, assistantMessage])
     expect(chat.activeSession?.id).toBe(session.id)
+  })
+
+  it('localizes tool phases from raw tool names', async () => {
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    entitlements.allowedSkills = ['liki']
+    entitlements.loaded = true
+
+    const chatApi = await import('@/api/chat')
+    vi.spyOn(chatApi, 'createChatSession').mockResolvedValue(session)
+    const sendResult = {
+      session,
+      active_skill: session.skill,
+      user_message: userMessage,
+      assistant_message: assistantMessage,
+    }
+    const phaseAfterTool: string[] = []
+    vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_sessionId, _content, onEvent) => {
+      onEvent({ type: 'phase', content: 'bazi_chart' })
+      phaseAfterTool.push(chat.phase)
+      onEvent({ type: 'text-delta', content: assistantMessage.content })
+      return { transport: 'relay', result: sendResult } as const
+    })
+
+    await chat.createSession('', 'natal')
+    chat.activeSession = session
+    await chat.send('你好')
+
+    // phase 事件只带原始工具名，标签由前端 i18n 渲染。
+    expect(phaseAfterTool).toEqual([i18n.global.t('chat.tool.chart')])
+  })
+})
+
+  it('keeps the local exchange on the direct transport (history comes from the callback)', async () => {
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    entitlements.allowedSkills = ['liki']
+    entitlements.loaded = true
+
+    const chatApi = await import('@/api/chat')
+    vi.spyOn(chatApi, 'createChatSession').mockResolvedValue(session)
+    vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_session, _content, onEvent) => {
+      onEvent({ type: 'text-delta', content: '直连答案' })
+      return { transport: 'direct', answer: '直连答案' } as const
+    })
+
+    await chat.createSession('', 'natal')
+    chat.activeSession = session
+    await chat.send('你好')
+
+    expect(chat.messages).toHaveLength(2)
+    expect(chat.messages[1].content).toBe('直连答案')
+    expect(chat.error).toBe('')
+  })
+
+describe('direct transport context', () => {
+  it('carries conversation history and the profile context on the direct transport', async () => {
+    vi.stubEnv('VITE_CHAT_TRANSPORT', 'direct')
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    entitlements.allowedSkills = ['liki']
+    entitlements.loaded = true
+
+    const profileSession = { ...session, profile_id: 'prof_1' }
+    const chatApi = await import('@/api/chat')
+    const birthApi = await import('@/api/birth-profiles')
+    const profileSpy = vi.spyOn(birthApi, 'fetchBirthProfile').mockResolvedValue({
+      id: 'prof_1',
+      user_id: 'usr_1',
+      version: 1,
+      nickname: '测试',
+      name: '',
+      gender: 'male',
+      birth_place: 'Beijing',
+      birth_longitude: 116.4074,
+      birth_timezone: 'Asia/Shanghai',
+      birth_instant: '1990-05-20T03:00:00Z',
+      birth_date: '1990-05-20',
+      birth_time: '11:00',
+      note: '',
+      third_party_consent: false,
+      last_used_at: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    })
+    const sendSpy = vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_session, _content, onEvent) => {
+      onEvent({ type: 'text-delta', content: '答案' })
+      return { transport: 'direct', answer: '答案' } as const
+    })
+
+    chat.activeSession = profileSession
+    chat.messages = [userMessage, assistantMessage]
+    await chat.send('继续')
+
+    expect(profileSpy).toHaveBeenCalledWith('prof_1')
+    expect(sendSpy).toHaveBeenCalledWith(profileSession, '继续', expect.any(Function), expect.any(AbortSignal), {
+      history: [
+        { id: userMessage.id, role: 'user', content: userMessage.content },
+        { id: assistantMessage.id, role: 'assistant', content: assistantMessage.content },
+      ],
+      profile: {
+        gender: 'male',
+        birth_longitude: 116.4074,
+        birth_timezone: 'Asia/Shanghai',
+        birth_instant: '1990-05-20T03:00:00Z',
+      },
+    })
+    vi.unstubAllEnvs()
+  })
+
+  it('degrades to no profile context when the profile lookup fails', async () => {
+    vi.stubEnv('VITE_CHAT_TRANSPORT', 'direct')
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    entitlements.allowedSkills = ['liki']
+    entitlements.loaded = true
+
+    const profileSession = { ...session, profile_id: 'prof_1' }
+    const chatApi = await import('@/api/chat')
+    const birthApi = await import('@/api/birth-profiles')
+    vi.spyOn(birthApi, 'fetchBirthProfile').mockRejectedValue(new Error('boom'))
+    const sendSpy = vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_session, _content, onEvent) => {
+      onEvent({ type: 'text-delta', content: '答案' })
+      return { transport: 'direct', answer: '答案' } as const
+    })
+
+    chat.activeSession = profileSession
+    await chat.send('你好')
+
+    expect(sendSpy).toHaveBeenCalledWith(profileSession, '你好', expect.any(Function), expect.any(AbortSignal), {
+      history: [],
+      profile: null,
+    })
+    vi.unstubAllEnvs()
   })
 })
 
 describe('chat streaming failure states', () => {
-  it('reloads authoritative messages after an SSE error event', async () => {
+  it('reloads authoritative messages after a failed stream', async () => {
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
     entitlements.allowedSkills = ['liki']
@@ -100,12 +234,11 @@ describe('chat streaming failure states', () => {
     const chatApi = await import('@/api/chat')
     vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_sessionId, _content, onEvent) => {
       onEvent({ type: 'text-delta', content: '半个' })
-      onEvent({ type: 'error', content: '生成失败' })
       const { ApiError } = await import('@/api/http')
       throw new ApiError(500, 'generation_failed', 'Generation failed')
     })
     const history = [userMessage]
-    vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue(history)
+    vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue({ messages: history, next_cursor: '' })
 
     chat.activeSession = session
     await chat.send('你好')
@@ -127,13 +260,16 @@ describe('chat streaming failure states', () => {
       await Promise.resolve()
       signal?.throwIfAborted()
       return {
-        session,
-        active_skill: session.skill,
-        user_message: userMessage,
-        assistant_message: assistantMessage,
-      }
+        transport: 'relay',
+        result: {
+          session,
+          active_skill: session.skill,
+          user_message: userMessage,
+          assistant_message: assistantMessage,
+        },
+      } as const
     })
-    vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue([userMessage])
+    vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue({ messages: [userMessage], next_cursor: '' })
 
     chat.activeSession = session
     const sending = chat.send('你好')

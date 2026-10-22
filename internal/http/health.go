@@ -28,7 +28,7 @@ func handleReady(check ReadinessChecker) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
 		if err := check(ctx); err != nil {
-			slog.Error("readiness check failed", "err", err)
+			slog.ErrorContext(ctx, "readiness check failed", "err", err)
 			httputil.RespondJSON(w, http.StatusServiceUnavailable, map[string]any{
 				"status": "unready", "error": "readiness_check_failed",
 			})

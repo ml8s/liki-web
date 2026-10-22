@@ -1,0 +1,5 @@
+/* App uses a broader Element Plus surface than marketing islands, so load the
+ * official full sheet through the same cascade-layer boundary. */
+@import '@shared/styles/element-plus/index.css';
+@import 'element-plus/theme-chalk/el-message.css' layer(element-plus);
+@import 'element-plus/theme-chalk/el-message-box.css' layer(element-plus);

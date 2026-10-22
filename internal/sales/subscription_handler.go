@@ -70,7 +70,7 @@ func (p *SubscriptionEventProcessor) HandleSubscriptionEvent(ctx context.Context
 		return p.subscriptions.RecordPaymentRefund(ctx, event, p.commissionRefundObserver)
 	default:
 		// Providers may emit payment notifications with no local money effect.
-		slog.Info("sales: ignored subscription payment event", "type", event.Type)
+		slog.InfoContext(ctx, "sales: ignored subscription payment event", "type", event.Type)
 		return nil
 	}
 }

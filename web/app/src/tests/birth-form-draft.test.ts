@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { mount } from '@vue/test-utils'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
-import { useFormDraftsStore } from '@/stores/form-drafts-store'
+import { useFormDraftsStore } from '@shared/stores/form-drafts'
 
 const draftKey = 'birth-profile:test'
+
+beforeEach(() => {
+  sessionStorage.clear()
+})
 
 async function mountForm(initial = {}) {
   const pinia = createPinia()

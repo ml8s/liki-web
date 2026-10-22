@@ -1,6 +1,7 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
-import { t, locales } from '../../i18n.ts';
+import NamingTool from '../../islands/NamingTool.vue';
+import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
   return locales.map(locale => ({ params: { locale } }));
@@ -16,6 +17,20 @@ const faqs = ['paid', 'data', 'accuracy'].map(key => ({
   answerKey: `scenario.faq.${key}.a`,
 }));
 const cardIndexes = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+const birthLabels = birthFieldLabels(locale);
+const toolProps = {
+  locale,
+  appUrl: `/app?service=naming&locale=${locale}`,
+  labels: {
+    ...birthLabels,
+    submit: t(locale, 'tool.submit'),
+    computing: t(locale, 'tool.computing'),
+    error: t(locale, 'tool.error'),
+    note: t(locale, 'naming.tool.note'),
+    cta: t(locale, 'tool.cta'),
+    privacy: t(locale, 'tool.privacy'),
+  },
+};
 ---
 
 <ScenarioLanding
@@ -34,6 +49,13 @@ const cardIndexes = (from: number, to: number) => Array.from({ length: to - from
   faqTitleKey="scenario.faqTitle"
   faqs={faqs}
 >
+  <Fragment slot="tool">
+    <h2>{t(locale, 'naming.tool.title')}</h2>
+    <p>{t(locale, 'naming.tool.intro')}</p>
+    <div id="naming-tool" data-props={JSON.stringify(toolProps)}>
+      <NamingTool {...toolProps} />
+    </div>
+  </Fragment>
   <div class="name-scroll" role="list" aria-label={t(locale, 'naming.a11y.examples')} tabindex="0">
     {cardIndexes(1, 6).map((n) => (
       <div class="name-preview-card" role="listitem">
@@ -71,4 +93,26 @@ const cardIndexes = (from: number, to: number) => Array.from({ length: to - from
       ))}
     </div>
   </details>
+
+  <div class="scenario-content-blocks">
+    <h3>{t(locale, 'naming.segments.title')}</h3>
+    <div class="segments-grid">
+      <article>
+        <h4>{t(locale, 'naming.segments.boy')}</h4>
+        <p>{t(locale, 'naming.segments.boyBody')}</p>
+      </article>
+      <article>
+        <h4>{t(locale, 'naming.segments.girl')}</h4>
+        <p>{t(locale, 'naming.segments.girlBody')}</p>
+      </article>
+      <article>
+        <h4>{t(locale, 'naming.segments.company')}</h4>
+        <p>{t(locale, 'naming.segments.companyBody')}</p>
+      </article>
+    </div>
+  </div>
 </ScenarioLanding>
+
+<script>
+  import '../../scripts/naming-tool';
+</script>

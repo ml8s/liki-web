@@ -1,0 +1,193 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LikiChatCta from '../../components/LikiChatCta.astro';
+import NatalTool from '../../islands/NatalTool.vue';
+import { t, locales, birthFieldLabels } from '../../i18n.ts';
+
+export function getStaticPaths() {
+  return locales.map(locale => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+const ns = 'natal';
+const cards = (prefix: string, keys: string[]) => keys.map(key => `${prefix}.benefit.${key}`);
+const baziCards = cards('scenario.bazi', ['structure', 'insight', 'timing', 'action']);
+const ziweiCards = cards(`${ns}.ziwei`, ['palaces', 'stars', 'cycles', 'career']);
+const readingCards = cards('scenario.mingshu', ['personality', 'career', 'relationship', 'timing']);
+const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
+const questions = [
+  'scenario.bazi.q1', 'scenario.bazi.q2', 'scenario.bazi.q3',
+  'scenario.mingshu.q1', 'scenario.mingshu.q2',
+];
+const birthLabels = birthFieldLabels(locale);
+const toolProps = {
+  locale,
+  appUrl: `/app?service=natal&locale=${locale}`,
+  labels: {
+    ...birthLabels,
+    submit: t(locale, 'tool.submit'),
+    computing: t(locale, 'tool.computing'),
+    error: t(locale, 'tool.error'),
+    bazi: t(locale, 'natal.tool.bazi'),
+    ziwei: t(locale, 'natal.tool.ziwei'),
+    lucky: t(locale, 'natal.tool.lucky'),
+    cta: t(locale, 'tool.cta'),
+    privacy: t(locale, 'tool.privacy'),
+  },
+};
+const faqs = ['paid', 'data', 'accuracy'].map(key => ({
+  questionKey: `scenario.faq.${key}.q`,
+  answerKey: `scenario.faq.${key}.a`,
+}));
+const faqSchema = faqs.map(item => ({
+  '@type': 'Question',
+  name: t(locale, item.questionKey),
+  acceptedAnswer: { '@type': 'Answer', text: t(locale, item.answerKey) },
+}));
+const canonical = `https://liki.hk/${locale}/natal/`;
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: t(locale, 'site.brand'), item: `https://liki.hk/${locale}/` },
+    { '@type': 'ListItem', position: 2, name: t(locale, `${ns}.heading`), item: canonical },
+  ],
+};
+---
+
+<BaseLayout locale={locale} page="natal" type="brand" twitterCard="summary_large_image">
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: t(locale, `${ns}.title`),
+      description: t(locale, `${ns}.metaDesc`),
+      provider: { '@type': 'Organization', name: 'Liki', url: 'https://liki.hk' },
+      serviceType: 'AI metaphysics consultation',
+    })} />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqSchema,
+    })} />
+  </Fragment>
+
+  <section class="landing-hero scenario-hero">
+    <p class="landing-kicker">{t(locale, 'scenario.brand')}</p>
+    <h1 class="landing-h1">{t(locale, `${ns}.heading`)}</h1>
+    <p class="landing-sub">{t(locale, `${ns}.subtitle`)}</p>
+    <div class="landing-actions">
+      <LikiChatCta locale={locale} service="natal" />
+      <a href="#how-it-works" class="btn-ghost">{t(locale, 'scenario.cta.secondary')}</a>
+    </div>
+  </section>
+
+  <section
+    id="bazi"
+    class="landing-services scenario-section"
+  >
+    <h2>{t(locale, 'scenario.bazi.benefitsTitle')}</h2>
+    <div class="service-grid">
+      {baziCards.map(key => (
+        <div class="card">
+          <h3 class="font-serif">{t(locale, `${key}.title`)}</h3>
+          <p>{t(locale, `${key}.body`)}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section id="chart-tool" class="landing-services scenario-section">
+    <h2>{t(locale, 'natal.tool.title')}</h2>
+    <p>{t(locale, 'natal.tool.intro')}</p>
+    <div id="natal-tool" data-props={JSON.stringify(toolProps)}>
+    </div>
+  </section>
+
+  <section
+    id="ziwei"
+    class="landing-services scenario-section"
+  >
+    <h2>{t(locale, `${ns}.ziwei.title`)}</h2>
+    <div class="service-grid">
+      {ziweiCards.map(key => (
+        <div class="card">
+          <h3 class="font-serif">{t(locale, `${key}.title`)}</h3>
+          <p>{t(locale, `${key}.body`)}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section
+    id="reading"
+    class="landing-services scenario-section"
+  >
+    <h2>{t(locale, 'scenario.mingshu.benefitsTitle')}</h2>
+    <div class="service-grid">
+      {readingCards.map(key => (
+        <div class="card">
+          <h3 class="font-serif">{t(locale, `${key}.title`)}</h3>
+          <p>{t(locale, `${key}.body`)}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section
+    id="zodiac"
+    class="landing-services scenario-section"
+  >
+    <h2>{t(locale, `${ns}.zodiac.title`)}</h2>
+    <p>{t(locale, `${ns}.zodiac.body`)}</p>
+    <p><a class="card-link" href={`/app?locale=${locale}`}>{t(locale, 'natal.zodiac.link')}</a></p>
+  </section>
+
+  <section
+    id="rectification"
+    class="landing-services scenario-section"
+  >
+    <h2>{t(locale, `${ns}.rectification.title`)}</h2>
+    <p>{t(locale, `${ns}.rectification.body`)}</p>
+    <p><a class="card-link" href={`/app?locale=${locale}`}>{t(locale, 'natal.rectification.link')}</a></p>
+  </section>
+
+  <section
+    id="how-it-works"
+    class="landing-steps"
+  >
+    <h2 class="font-serif">{t(locale, 'scenario.stepsTitle')}</h2>
+    <div class="steps-grid">
+      {steps.map((key, index) => (
+        <div class="card step"><span class="step-n">{index + 1}</span><p>{t(locale, key)}</p></div>
+      ))}
+    </div>
+  </section>
+
+  <section class="landing-services scenario-section">
+    <h2>{t(locale, 'scenario.bazi.questionsTitle')}</h2>
+    <div class="scenario-questions">
+      {questions.map(key => <blockquote>{t(locale, key)}</blockquote>)}
+    </div>
+  </section>
+
+  <section class="scenario-faq">
+    <h2 class="font-serif">{t(locale, 'scenario.faqTitle')}</h2>
+    {faqs.map(item => (
+      <details>
+        <summary>{t(locale, item.questionKey)}</summary>
+        <p>{t(locale, item.answerKey)}</p>
+      </details>
+    ))}
+  </section>
+
+  <section class="landing-cta">
+    <p class="font-serif">{t(locale, 'scenario.cta.bottom')}</p>
+    <LikiChatCta locale={locale} service="natal" />
+  </section>
+</BaseLayout>
+
+<script>
+  import '../../scripts/natal-tool';
+</script>

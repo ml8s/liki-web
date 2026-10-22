@@ -2,7 +2,7 @@
   <section>
     <AppPageHeader
       :title="$t('router.partnerCenter')"
-      :subtitle="$t('partner.centerSubtitle')"
+      :subtitle="headerSubtitle"
     >
       <template #actions>
         <el-button
@@ -46,13 +46,19 @@
         class="load-alert"
       />
 
+      <el-empty
+        v-if="!visiblePrograms.length"
+        :description="$t('partner.inviteOnly')"
+      />
+
       <div
+        v-else
         v-loading="loading"
         :aria-busy="loading"
       >
         <div class="role-grid">
           <el-card
-            v-for="program in programs"
+            v-for="program in visiblePrograms"
             :key="program.role"
             shadow="never"
             class="role-card"
@@ -114,30 +120,27 @@
               >
                 {{ $t('partner.applyNow') }}
               </el-button>
-              <el-button
-                v-else-if="program.otherAssigned"
-                tag="router-link"
-                :to="program.role === 'kol' ? '/partners/scout' : '/partners/kol'"
-                link
-              >
-                {{ $t('partner.viewRoleDescription') }}
-              </el-button>
             </div>
           </el-card>
         </div>
       </div>
 
-      <el-card shadow="never">
+      <el-card
+        v-if="rules.length"
+        shadow="never"
+      >
         <template #header>
           <PartnerCardHeader>
             {{ $t('partner.rules') }}
           </PartnerCardHeader>
         </template>
         <ol class="rules-list">
-          <li>{{ $t('partner.rule1') }}</li>
-          <li>{{ $t('partner.rule2') }}</li>
-          <li>{{ $t('partner.rule3') }}</li>
-          <li>{{ $t('partner.rule4') }}</li>
+          <li
+            v-for="rule in rules"
+            :key="rule"
+          >
+            {{ rule }}
+          </li>
         </ol>
       </el-card>
     </template>
@@ -171,10 +174,11 @@ type ProgramCard = ProgramView & {
   stateLabel: string
   tagType: PartnerStatusTagType
   canApply: boolean
-  otherAssigned: boolean
 }
 
-const programs = computed<ProgramCard[]>(() => {
+// 我的合作：只显示本人已有关系的角色（审核中/已开通/结算/冻结/被拒），
+// 绝不显示另一角色的任何入口——角色隔离由过滤保证，而非文案约定。
+const visiblePrograms = computed<ProgramCard[]>(() => {
   if (!states.value) return []
   return [
     {
@@ -187,18 +191,33 @@ const programs = computed<ProgramCard[]>(() => {
       description: t('partner.centerScoutDescription'),
       state: states.value.scout, dashboard: '/partners/scout', apply: '/partners/scout',
     },
-  ].map(program => {
-    const other = program.role === 'kol' ? states.value?.scout : states.value?.kol
-    const otherAssigned = Boolean(other?.status)
-    const stateMeta = partnerRoleState(program.state, otherAssigned)
-    return {
-      ...program,
-      stateLabel: stateMeta.label,
-      tagType: stateMeta.tag,
-      canApply: program.state.can_submit,
-      otherAssigned,
-    }
-  })
+  ]
+    .filter(program => Boolean(program.state.status) || program.state.application !== null)
+    .map(program => {
+      const other = program.role === 'kol' ? states.value?.scout : states.value?.kol
+      const stateMeta = partnerRoleState(program.state, Boolean(other?.status))
+      return {
+        ...program,
+        stateLabel: stateMeta.label,
+        tagType: stateMeta.tag,
+        canApply: program.state.can_submit,
+      }
+    })
+})
+
+const activeRole = computed<'kol' | 'scout' | null>(() =>
+  visiblePrograms.value.length === 1 ? visiblePrograms.value[0].role : null,
+)
+
+const headerSubtitle = computed(() =>
+  activeRole.value ? t(`partner.${activeRole.value}.subtitle`) : t('partner.inviteOnly'),
+)
+
+const rules = computed(() => {
+  const role = activeRole.value
+  if (!role) return []
+  const cap = role === 'kol' ? 'Kol' : 'Scout'
+  return [t(`partner.rule${cap}1`), t(`partner.rule${cap}2`), t('partner.rule3'), t('partner.rule4')]
 })
 
 function rejectionTitle(reason?: string) {

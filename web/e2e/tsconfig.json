@@ -12,7 +12,10 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    // e2e 经 app 源码间接进入共享层，需要与 app/web 一致的 @shared 映射。
+    "baseUrl": ".",
+    "paths": { "@shared/*": ["../shared/*"] }
   },
   "include": ["**/*.ts"]
 }

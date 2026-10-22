@@ -1,0 +1,32 @@
+/* Single Element Plus theme bridge. It remains unlayered; the build wraps every
+ * Element Plus vendor stylesheet in @layer element-plus, so these application
+ * tokens win without depending on CSS chunk/link order. */
+:root {
+  --el-font-family: var(--liki-font-sans);
+  --el-color-primary: var(--liki-primary);
+  --el-color-primary-light-3: #8a7bfa;
+  --el-color-primary-light-5: #aca5fd;
+  --el-color-primary-light-7: #d3d0fe;
+  --el-color-primary-light-8: #e7e5ff;
+  --el-color-primary-light-9: var(--liki-primary-tint);
+  --el-color-primary-dark-2: var(--liki-primary-hover);
+
+  /* EP defaults are deepened where their light-background contrast misses AA. */
+  --el-color-danger: #b42318;
+  --el-color-danger-dark-2: #93261d;
+  --el-color-danger-light-7: #fbe3e1;
+  --el-color-danger-light-9: #fef2f2;
+  --el-color-warning: #b45309;
+  --el-color-warning-light-9: #fffaeb;
+  --el-color-success: #067647;
+  --el-color-success-dark-2: #04523a;
+  --el-table-header-text-color: var(--brand-text-muted);
+  --el-empty-description-color: var(--brand-text-muted);
+  --el-alert-title-color: #303133;
+  --el-text-color-secondary: var(--brand-text-muted);
+  --el-border-radius-base: var(--radius-control);
+  --el-border-radius-small: var(--radius-md);
+  --el-border-radius-round: var(--radius-full);
+  --el-box-shadow: var(--shadow-card);
+  --el-box-shadow-light: var(--shadow-sm);
+}

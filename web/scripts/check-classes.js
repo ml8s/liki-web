@@ -2,7 +2,9 @@
 // check-classes.js — Validate CSS class names in templates against app.css.
 import fs from 'node:fs';
 import path from 'node:path';
-const ROOT = path.resolve(import.meta.dirname, '..');
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // ── Load CSS classes via simple line scanning ──
 const css = ['app.css']

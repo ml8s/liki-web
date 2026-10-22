@@ -179,7 +179,7 @@ func (w *ErasureWorker) Start(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if _, err := w.RunPending(ctx); err != nil {
-				slog.Error("account: erasure worker", "err", err)
+				slog.ErrorContext(ctx, "account: erasure worker", "err", err)
 			}
 		}
 	}

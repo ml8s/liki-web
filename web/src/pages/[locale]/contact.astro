@@ -17,15 +17,15 @@ const { locale } = Astro.params;
   <h1 class="page-title">{t(locale, 'contact.heading')}</h1>
 
   <section class="mb-10">
-    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'contact.methods.heading')}</h2>
-    <p class="text-sm text-stone-400 leading-loose mb-4">{t(locale, 'contact.methods.intro')}</p>
+    <h2 class="legal-section-title">{t(locale, 'contact.methods.heading')}</h2>
+    <p class="text-base text-stone-400 leading-loose mb-4">{t(locale, 'contact.methods.intro')}</p>
     <ul class="text-sm text-stone-400 space-y-3 pl-4">
       <li><span>{t(locale, 'contact.method.email')}</span>：<a href="mailto:hi@liki.hk" class="text-wood hover:text-wood">hi@liki.hk</a></li>
       <li><span>{t(locale, 'contact.method.telegram')}</span>：<a href="https://t.me/liki_hk" target="_blank" rel="noopener" class="text-wood hover:text-wood">@liki_hk</a></li>
     </ul>
   </section>
   <section>
-    <h2 class="text-base font-semibold text-stone-800 mb-3">{t(locale, 'contact.s3.title')}</h2>
-    <p class="text-sm text-stone-400 leading-loose">{t(locale, 'contact.s3.body')}</p>
+    <h2 class="legal-section-title">{t(locale, 'contact.s3.title')}</h2>
+    <p class="text-base text-stone-400 leading-loose">{t(locale, 'contact.s3.body')}</p>
   </section>
 </BaseLayout>

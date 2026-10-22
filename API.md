@@ -2,27 +2,56 @@
 
 This document describes the stable HTTP API exposed by `liki-web`.
 The legacy public `/jsonrpc` engine runtime was retired together with the
-engine RPC server; `liki-web` does not proxy it. The browser charting
-workspace uses the same-origin
-`POST /api/engine/tools/{tool}` BFF surface below; the BFF calls engine MCP and
-never exposes the downstream token to a browser.
+engine RPC server; `liki-web` does not proxy it, and it no longer proxies
+engine/counsel MCP either. Browser charting calls the MCP services directly
+over the same-origin gateway paths `/engine/*` and `/counsel/*`; the gateway
+strips the prefix and forwards to engine-mcp / counsel-mcp. The browser speaks
+the same MCP Streamable HTTP protocol as external skills.
 
-Successful responses use a shared envelope (`application/json`):
+`liki-web`'s own API (profiles, records, orders, chat, …) uses the shared
+envelope (`application/json`):
 
 ```json
 {"data": {}}
 ```
 
-## Free engine tools
+## Engine & counsel MCP (same-origin gateway)
 
-`POST /api/engine/tools/{tool}` accepts a JSON object and returns the engine
-MCP tool result in `data`. The tool name is an explicit allowlist:
+`POST /engine/mcp` and `POST /counsel/mcp` accept MCP JSON-RPC 2.0. Both
+services are stateless with JSON responses — no `initialize` handshake is
+required. Clients must send `Accept: application/json, text/event-stream`
+(MCP Streamable HTTP spec).
 
-```text
-tianwen_time, city_coords, bazi_chart, bazi_fullchart,
-ziwei_chart, ziwei_fullchart, ziwei_daxian, ziwei_liunian,
-bazhai_chart, bazi_bond, liuyao_qigua, liuyao_chart, huangli_days
+Request:
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+ "params": {"name": "bazi_chart", "arguments": {
+   "instant": "1958-05-11T22:00:00Z",
+   "timezone": "Asia/Shanghai",
+   "longitude": 121.47,
+   "gender": "female"
+ }}}
 ```
+
+The tool payload is a JSON string inside `result.content[0].text`. Tool
+errors return HTTP 200 with `result.isError: true` and the diagnostic message
+in the same field. Engine tools (charting/calendar) live under `/engine/mcp`;
+counsel tools (`bazi_yongshen`, `naming_*`, `liuyao_query`, …) under
+`/counsel/mcp`.
+
+Chart tools accept the canonical `{instant, timezone, longitude}` context. `instant` is
+an RFC 3339 UTC instant, `timezone` is an IANA zone, and `longitude` is WGS-84.
+The browser converts exact Gregorian wall-clock input locally with Temporal and
+never sends raw `calendar`, `birth_date`, or `birth_time` fields to chart tools.
+Lunar calendar arithmetic remains engine-internal output, not browser input.
+
+Browser callers must materialize Engine MCP arguments rather than relying on
+server defaults. In particular, LiuYao sends an explicit `liuyao_qigua` mode,
+captures its ritual UTC instant once at submit, and passes that instant plus the
+visible casting timezone and numeric longitude to `liuyao_chart`. It also
+materializes `yong_shen` explicitly. The display place string is never
+substituted for longitude or timezone.
 
 Error responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)
 (`application/problem+json`):
@@ -37,7 +66,10 @@ Error responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc
 ```
 
 `type` is the stable machine identifier (a URI reference; short codes like
-`not_found` are valid relative references). `detail` is diagnostic and is not
+`not_found` are valid relative references). The full code inventory (every code
+must carry App copy in all three locales) lives in
+[`docs/error-codes.md`](./docs/error-codes.md), enforced by `make check-web-static`.
+`detail` is diagnostic and is not
 guaranteed to be in the browser's UI language; browser clients map types to
 their own locale resources.
 
@@ -74,6 +106,13 @@ Verification codes are rate limited. Production does not return the verification
 | DELETE | `/api/birth-profiles/{id}` | owner | Delete birth profile |
 
 Profile updates use `expected_version`. Cross-user access does not reveal another user's data.
+
+New and updated profiles accept a complete Gregorian wall time and location:
+`birth_date` (`YYYY-MM-DD`), `birth_time` (`HH:mm`), `birth_timezone` (IANA
+zone), and `birth_longitude` (WGS-84, `-180..180`). The server computes and
+stores `birth_instant`; responses project `birth_date` and `birth_time`
+for editing and display. There is no approximate/unknown time state. Incomplete
+profiles cannot be charted until they are edited and completed.
 
 ## Products and checkout
 
@@ -130,8 +169,13 @@ Paid chat operations recheck entitlement server-side.
 | GET | `/api/chat/sessions/{id}` | owner + entitled | Read session |
 | PATCH | `/api/chat/sessions/{id}` | owner | Rename session (title, 1-60 chars) |
 | DELETE | `/api/chat/sessions/{id}` | owner | Soft-delete session |
-| GET | `/api/chat/sessions/{id}/messages` | owner + entitled | Read messages |
-| POST | `/api/chat/sessions/{id}/ag-ui` | owner + entitled | AG-UI/SSE generation |
+| GET | `/api/chat/sessions/{id}/messages` | owner + entitled | Read messages (cursor paging: `?before=&limit=`; response `{messages, next_cursor}`) |
+| POST | `/api/chat/sessions/{id}/ag-ui` | owner + entitled | AG-UI/SSE generation (relay) |
+
+The direct transport (`/rt/<profile>/ag-ui`) is not a liki-web route: Caddy
+reaches the runtime directly after calling `/api/internal/introspect`, and the
+runtime posts `/api/internal/runs/completed` back. Both internal endpoints are
+404 on the public path; see liki-deploy's `docs/DIRECT_CONNECT.md`.
 
 Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
 

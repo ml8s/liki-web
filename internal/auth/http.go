@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +18,7 @@ type Handler struct {
 	service       *Service
 	config        Config
 	postLoginHook PostLoginHook
+	partnerRoles  PartnerRolesProvider
 }
 
 func NewHandler(store *Store, service *Service, config Config) (*Handler, error) {
@@ -32,6 +35,14 @@ type PostLoginHook func(w http.ResponseWriter, r *http.Request, user User, isNew
 
 func (h *Handler) SetPostLoginHook(hook PostLoginHook) {
 	h.postLoginHook = hook
+}
+
+// PartnerRolesProvider 返回账号的合作角色列表（身份摘要）。由 partner store
+// 在启动时注入，auth 模块不依赖 partner 模块。
+type PartnerRolesProvider func(ctx context.Context, userID string) ([]string, error)
+
+func (h *Handler) SetPartnerRolesProvider(provider PartnerRolesProvider) {
+	h.partnerRoles = provider
 }
 
 type sendCodeRequest struct {
@@ -123,7 +134,7 @@ func (h *Handler) HandleVerifyEmailCode(w http.ResponseWriter, r *http.Request) 
 		h.postLoginHook(w, r, result.User, result.IsNewUser)
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]any{
-		"user":       publicUser(result.User),
+		"user":       h.publicUserFor(r.Context(), result.User),
 		"session_id": result.Session.ID,
 		"expires_at": result.Session.ExpiresAt,
 	})
@@ -169,7 +180,7 @@ func (h *Handler) HandleMe(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, publicUser(user))
+	httputil.RespondJSON(w, http.StatusOK, h.publicUserFor(r.Context(), user))
 }
 
 func (h *Handler) HandleAuthIdentities(w http.ResponseWriter, r *http.Request) {
@@ -325,6 +336,25 @@ func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
 
 func publicUser(user User) PublicUser {
 	return PublicUser{ID: user.ID, Email: user.Email, Status: user.Status, Locale: user.Locale, LastLoginAt: user.LastLoginAt}
+}
+
+// publicUserFor 在身份响应上附加合作角色摘要。查询失败时降级为空角色
+// （入口不显示）并记日志——身份接口本身不因附属查询失败而不可用。
+func (h *Handler) publicUserFor(ctx context.Context, user User) PublicUser {
+	out := publicUser(user)
+	out.PartnerRoles = []string{}
+	if h.partnerRoles == nil {
+		return out
+	}
+	roles, err := h.partnerRoles(ctx, user.ID)
+	if err != nil {
+		slog.WarnContext(ctx, "auth: partner roles lookup", "user_id", user.ID, "err", err)
+		return out
+	}
+	if roles != nil {
+		out.PartnerRoles = roles
+	}
+	return out
 }
 
 func clientIP(r *http.Request) string {

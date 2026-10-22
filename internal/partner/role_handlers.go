@@ -24,7 +24,7 @@ func (h *Handler) requireKOL(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			slog.Error("partner: load kol", "user_id", user.ID, "err", err)
+			slog.ErrorContext(r.Context(), "partner: load kol", "user_id", user.ID, "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 			return
 		}
@@ -46,7 +46,7 @@ func (h *Handler) requireScout(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			slog.Error("partner: load scout", "user_id", user.ID, "err", err)
+			slog.ErrorContext(r.Context(), "partner: load scout", "user_id", user.ID, "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 			return
 		}
@@ -63,13 +63,13 @@ func (h *Handler) HandleKOLSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		slog.Error("partner: kol session", "err", err)
+		slog.ErrorContext(r.Context(), "partner: kol session", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
 	overview, err := h.store.KOLOverview(r.Context(), user.ID)
 	if err != nil {
-		slog.Error("partner: kol overview", "err", err)
+		slog.ErrorContext(r.Context(), "partner: kol overview", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -83,7 +83,7 @@ func (h *Handler) HandleKOLCommissions(w http.ResponseWriter, r *http.Request) {
 	limit, _ := parseIntQuery(r, "limit", 100)
 	items, balances, err := h.store.ListKOLCommissions(r.Context(), user.ID, limit)
 	if err != nil {
-		slog.Error("partner: kol commissions", "err", err)
+		slog.ErrorContext(r.Context(), "partner: kol commissions", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -97,13 +97,13 @@ func (h *Handler) HandleKOLPayouts(w http.ResponseWriter, r *http.Request) {
 			httputil.RespondError(w, http.StatusForbidden, "role_required", "当前账号未开通该合作权限")
 			return
 		}
-		slog.Error("partner: kol payouts", "err", err)
+		slog.ErrorContext(r.Context(), "partner: kol payouts", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
 	items, err := h.store.ListPayoutsForRole(r.Context(), user.ID, RoleKOL, 100)
 	if err != nil {
-		slog.Error("partner: kol payout list", "err", err)
+		slog.ErrorContext(r.Context(), "partner: kol payout list", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -121,7 +121,7 @@ func (h *Handler) HandleCreateKOLPayout(w http.ResponseWriter, r *http.Request) 
 			httputil.RespondError(w, http.StatusForbidden, "role_required", "当前账号未开通该合作权限")
 			return
 		}
-		slog.Error("partner: create kol payout", "err", err)
+		slog.ErrorContext(r.Context(), "partner: create kol payout", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -136,7 +136,7 @@ func (h *Handler) HandleScoutSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		slog.Error("partner: scout overview", "err", err)
+		slog.ErrorContext(r.Context(), "partner: scout overview", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -149,7 +149,7 @@ func (h *Handler) HandleScoutRecruits(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFromContext(r.Context())
 	items, err := h.store.ScoutRecruits(r.Context(), user.ID)
 	if err != nil {
-		slog.Error("partner: scout recruits", "err", err)
+		slog.ErrorContext(r.Context(), "partner: scout recruits", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -161,7 +161,7 @@ func (h *Handler) HandleScoutCommissions(w http.ResponseWriter, r *http.Request)
 	limit, _ := parseIntQuery(r, "limit", 100)
 	items, balances, err := h.store.ListScoutCommissions(r.Context(), user.ID, limit)
 	if err != nil {
-		slog.Error("partner: scout commissions", "err", err)
+		slog.ErrorContext(r.Context(), "partner: scout commissions", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -175,13 +175,13 @@ func (h *Handler) HandleScoutPayouts(w http.ResponseWriter, r *http.Request) {
 			httputil.RespondError(w, http.StatusNotFound, "not_found", "页面不存在")
 			return
 		}
-		slog.Error("partner: scout payouts", "err", err)
+		slog.ErrorContext(r.Context(), "partner: scout payouts", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
 	items, err := h.store.ListPayoutsForRole(r.Context(), user.ID, RoleScout, 100)
 	if err != nil {
-		slog.Error("partner: scout payout list", "err", err)
+		slog.ErrorContext(r.Context(), "partner: scout payout list", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -204,7 +204,7 @@ func (h *Handler) settlement(w http.ResponseWriter, r *http.Request, role Partne
 		return
 	}
 	if err != nil {
-		slog.Error("partner: settlement", "user_id", user.ID, "role", role, "err", err)
+		slog.ErrorContext(r.Context(), "partner: settlement", "user_id", user.ID, "role", role, "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -218,7 +218,7 @@ func (h *Handler) HandleCreateScoutPayout(w http.ResponseWriter, r *http.Request
 			httputil.RespondError(w, http.StatusNotFound, "not_found", "页面不存在")
 			return
 		}
-		slog.Error("partner: create scout payout", "err", err)
+		slog.ErrorContext(r.Context(), "partner: create scout payout", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -242,7 +242,7 @@ func (h *Handler) createPayout(w http.ResponseWriter, r *http.Request, user auth
 		case errors.Is(err, ErrPayoutMinimumNotMet):
 			httputil.RespondError(w, http.StatusUnprocessableEntity, "payout_minimum_not_met", "未达到最低提现金额")
 		default:
-			slog.Error("partner: create payout", "user_id", user.ID, "role", role, "err", err)
+			slog.ErrorContext(r.Context(), "partner: create payout", "user_id", user.ID, "role", role, "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "创建提现失败")
 		}
 		return

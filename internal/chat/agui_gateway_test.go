@@ -20,9 +20,9 @@ func TestAGUIGatewayEmitsStandardBrowserProtocol(t *testing.T) {
 	gateway := newAGUIGateway(recorder, context.Background(), "session-1", "run-1")
 
 	gateway.start()
-	gateway.translate(agent.ChatEvent{Type: agent.EventPhase, Content: "排盘中"})
+	gateway.translate(agent.ChatEvent{Type: agent.EventPhase, Content: "bazi_chart"})
 	gateway.translate(agent.ChatEvent{Type: agent.EventTextDelta, Content: "答案"})
-	gateway.translate(agent.ChatEvent{Type: agent.EventThinkingDelta, Content: "hidden reasoning"})
+	gateway.translate(agent.ChatEvent{Type: agent.EventThinking, Content: "hidden reasoning"})
 	gateway.finish(SendMessageResult{
 		Session:          Session{ID: "session-1"},
 		ActiveSkill:      "liki",
@@ -39,6 +39,10 @@ func TestAGUIGatewayEmitsStandardBrowserProtocol(t *testing.T) {
 
 	decoder := aguievents.NewEventDecoder(nil)
 	types := make([]aguievents.EventType, 0, 8)
+	customs := make([]struct {
+		name  string
+		value any
+	}, 0, 2)
 	var finished *aguievents.RunFinishedEvent
 	scanner := bufio.NewScanner(strings.NewReader(recorder.Body.String()))
 	for scanner.Scan() {
@@ -57,6 +61,12 @@ func TestAGUIGatewayEmitsStandardBrowserProtocol(t *testing.T) {
 			t.Fatalf("decode AG-UI event: %v", err)
 		}
 		types = append(types, event.Type())
+		if custom, ok := event.(*aguievents.CustomEvent); ok {
+			customs = append(customs, struct {
+				name  string
+				value any
+			}{name: custom.Name, value: custom.Value})
+		}
 		if ev, ok := event.(*aguievents.RunFinishedEvent); ok {
 			finished = ev
 		}
@@ -70,7 +80,6 @@ func TestAGUIGatewayEmitsStandardBrowserProtocol(t *testing.T) {
 		aguievents.EventTypeCustom,
 		aguievents.EventTypeTextMessageStart,
 		aguievents.EventTypeTextMessageContent,
-		aguievents.EventTypeCustom,
 		aguievents.EventTypeTextMessageEnd,
 		aguievents.EventTypeRunFinished,
 	}
@@ -81,6 +90,14 @@ func TestAGUIGatewayEmitsStandardBrowserProtocol(t *testing.T) {
 		if types[i] != want[i] {
 			t.Fatalf("events = %v, want %v", types, want)
 		}
+	}
+	// 自定义事件使用反域名命名；phase 载荷是原始工具名（事实）。
+	if len(customs) != 1 ||
+		customs[0].name != "hk.liki.phase" || customs[0].value != "bazi_chart" {
+		t.Fatalf("phase custom event = %#v", customs)
+	}
+	if strings.Contains(recorder.Body.String(), "hidden reasoning") {
+		t.Fatal("reasoning content must never be forwarded to the browser")
 	}
 	if finished == nil {
 		t.Fatal("run finished event missing")

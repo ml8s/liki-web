@@ -1,6 +1,7 @@
 package adminauth
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -73,7 +74,7 @@ func (h *Handler) HandleListAdmins() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		items, err := h.store.ListAdmins(r.Context())
 		if err != nil {
-			slog.Error("adminauth: list admins", "err", err)
+			slog.ErrorContext(r.Context(), "adminauth: list admins", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询管理员失败")
 			return
 		}
@@ -89,7 +90,7 @@ func (h *Handler) HandleCreateAdmin() http.HandlerFunc {
 		}
 		err := h.store.EnsureAdmin(r.Context(), actorFromContext(r), req.Email, "create administrator")
 		if err != nil {
-			h.writeError(w, err, "创建管理员失败")
+			h.writeError(r.Context(), w, err, "创建管理员失败")
 			return
 		}
 		httputil.RespondJSON(w, http.StatusCreated, map[string]string{"result": "ok"})
@@ -105,7 +106,7 @@ func (h *Handler) HandleGrantCapability() http.HandlerFunc {
 		err := h.store.GrantCapability(r.Context(), actorFromContext(r), r.PathValue("email"),
 			Capability(req.Capability), req.Reason)
 		if err != nil {
-			h.writeError(w, err, "授权失败")
+			h.writeError(r.Context(), w, err, "授权失败")
 			return
 		}
 		httputil.RespondJSON(w, http.StatusOK, map[string]string{"result": "ok"})
@@ -121,7 +122,7 @@ func (h *Handler) HandleRevokeCapability() http.HandlerFunc {
 		err := h.store.RevokeCapability(r.Context(), actorFromContext(r), r.PathValue("email"),
 			Capability(req.Capability), req.Reason)
 		if err != nil {
-			h.writeError(w, err, "撤销授权失败")
+			h.writeError(r.Context(), w, err, "撤销授权失败")
 			return
 		}
 		httputil.RespondJSON(w, http.StatusOK, map[string]string{"result": "ok"})
@@ -144,14 +145,14 @@ func (h *Handler) handleStatus(status AdminStatus) http.HandlerFunc {
 		}
 		err := h.store.SetAdminStatus(r.Context(), actorFromContext(r), r.PathValue("email"), status, req.Reason)
 		if err != nil {
-			h.writeError(w, err, "更新管理员状态失败")
+			h.writeError(r.Context(), w, err, "更新管理员状态失败")
 			return
 		}
 		httputil.RespondJSON(w, http.StatusOK, map[string]string{"result": "ok"})
 	}
 }
 
-func (h *Handler) writeError(w http.ResponseWriter, err error, fallback string) {
+func (h *Handler) writeError(ctx context.Context, w http.ResponseWriter, err error, fallback string) {
 	switch {
 	case errors.Is(err, ErrAdminNotFound):
 		httputil.RespondError(w, http.StatusNotFound, "admin_not_found", "管理员不存在")
@@ -170,7 +171,7 @@ func (h *Handler) writeError(w http.ResponseWriter, err error, fallback string) 
 	case errors.Is(err, ErrSuperRequiresSuper):
 		httputil.RespondError(w, http.StatusForbidden, "super_requires_super", "变更超级管理员权限需要超级管理员身份")
 	default:
-		slog.Error("adminauth: management operation", "err", err)
+		slog.ErrorContext(ctx, "adminauth: management operation", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", fallback)
 	}
 }

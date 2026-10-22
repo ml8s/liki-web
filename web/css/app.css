@@ -16,6 +16,7 @@ body {
 h1, h2, h3 {
   line-height: 1.25;
   font-weight: 650;
+  text-wrap: balance;
 }
 
 [id] {
@@ -65,6 +66,9 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 768px) { .page-card { padding: var(--space-8); } }
 /* 长文（法律/关于/联系）阅读宽度：约 70ch（60–75 字符区间），避免超宽行难以换行追踪。 */
 .page-card :is(p, ul, ol) { max-width: 70ch; }
+
+/* 法务/静态长文：小节标题（语义类；长文刻度 20/18/16 中的 18）。 */
+.legal-section-title { font-size: 1.125rem; font-weight: 600; color: var(--color-text); margin: 0 0 var(--space-3); }
 
 /* ── Layout ── */
 .max-w-3xl { max-width: 48rem; }
@@ -216,8 +220,8 @@ th {
 }
 .site-footer a { display: inline-flex; align-items: center; min-height: 40px; }
 
-.footer-groups { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2) var(--space-6); }
-.footer-group { display: flex; flex-direction: column; align-items: flex-end; gap: 0; min-width: 0; }
+.footer-groups { display: flex; flex-direction: column; align-items: flex-end; gap: 0; }
+.footer-group { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0 var(--space-5); min-width: 0; }
 
 .min-w-\[130px\] { min-width: 130px; }
 
@@ -276,7 +280,7 @@ th {
 .name-preview-gender { font-size: .6875rem; color: var(--color-text-muted); text-align: center; margin-bottom: var(--space-2); }
 .name-preview-quote {
   font-family: var(--font-serif); font-style: italic;
-  font-size: .9375rem; font-weight: 700; color: var(--color-fire);
+  font-size: .9375rem; font-weight: 700; color: var(--color-seal);
   line-height: 1.5; margin-bottom: .375rem; text-align: center;
 }
 .name-preview-detail { display: flex; gap: var(--space-2); justify-content: center; flex-wrap: wrap; }
@@ -394,22 +398,25 @@ th {
 
 /* ── C 端着陆页（redesign M2）── */
 .btn-purple { display:inline-flex; align-items:center; justify-content:center; min-height:44px; background:var(--color-accent); color:var(--color-white); padding:.75rem 1.75rem; border-radius:var(--radius-full); font-weight:600; text-decoration:none; transition:background .15s ease, transform .15s ease; }
-.btn-purple:hover { background:var(--color-accent-hover); }
-.btn-ghost { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border:1px solid var(--color-border); color:var(--color-text-muted); padding:.75rem 1.75rem; border-radius:var(--radius-full); transition:border-color .15s ease, color .15s ease; }
-.btn-ghost:hover { border-color:var(--color-accent); color:var(--color-accent); }
+.btn-ghost { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border:1px solid var(--color-border); color:var(--color-text-muted); padding:.75rem 1.75rem; border-radius:var(--radius-full); transition:border-color .15s ease, color .15s ease, transform .15s ease; }
+/* 按钮状态规范（一处定义，全站按钮类共用）：hover 仅在可用时触发；
+ * disabled 统一降透明度并给出禁用指针；active 与 .btn-header 同款按下反馈。 */
+.btn-purple:disabled, .btn-ghost:disabled { opacity:.55; cursor:not-allowed; }
+.btn-purple:not(:disabled):hover { background:var(--color-accent-hover); }
+.btn-ghost:not(:disabled):hover { border-color:var(--color-accent); color:var(--color-accent); }
+.btn-purple:not(:disabled):active, .btn-ghost:not(:disabled):active { transform:scale(.97); }
 .landing-hero { text-align:center; padding:var(--space-18) var(--space-6) var(--space-12); }
 .landing-h1 { font-size:clamp(2rem,6vw,3.25rem); font-weight:650; letter-spacing:-.04em; line-height:1.15; text-wrap:balance; }
 .landing-sub { color:var(--color-text-muted); margin-top:14px; font-size:1.125rem; }
 .landing-actions { display:flex; gap:14px; justify-content:center; margin-top:var(--space-8); flex-wrap:wrap; }
 .landing-paipan { background:var(--color-accent); color:var(--color-white); text-align:center; padding:var(--space-14) var(--space-6); }
 .landing-paipan h2 { font-family:var(--font-serif); margin-bottom:10px; }
-.landing-paipan p { opacity:.9; margin-bottom:22px; }
-.landing-paipan .btn-purple { background:var(--color-white); color:var(--color-accent); transform:none; }
-.landing-paipan .btn-purple:hover { background:var(--color-accent-soft); }
+.landing-paipan > p { opacity:.9; margin-bottom:22px; }
 .landing-services,
 .landing-steps,
+.landing-ai,
 .landing-cta { margin:0 auto; padding:var(--space-16) var(--space-6); }
-.landing-services h2, .landing-steps h2 { text-align:center; font-family:var(--font-serif); margin-bottom:var(--space-8); }
+.landing-services h2, .landing-steps h2, .landing-ai h2 { text-align:center; font-family:var(--font-serif); margin-bottom:var(--space-8); }
 .landing-section--start { text-align:start; }
 .landing-section--start h2 { text-align:start; }
 .landing-section--start .landing-actions { justify-content:flex-start; }
@@ -428,22 +435,11 @@ th {
 .landing-cta { text-align:center; }
 .landing-cta p { font-size:1.5rem; margin-bottom:22px; }
 
-/* ── 主页免费排盘钩子（redesign 转化桥）── */
-.paipan-hook { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; max-width:640px; margin:0 auto; }
-.paipan-hook input, .paipan-hook select {
-  flex:1 1 9rem; width:auto; min-width:0;
-  padding:.65rem .8rem; border-radius:var(--radius-md); border:1px solid var(--color-on-primary-border);
-  background:var(--color-white-alpha-92); color:var(--color-input-ink); font-size:.9375rem;
-}
-@media (max-width: 640px) {
-  .paipan-hook input, .paipan-hook select { flex-basis:100%; }
-}
-.paipan-hook .btn-purple { background:var(--color-white); color:var(--color-accent); border:none; cursor:pointer; }
-.paipan-hook .btn-purple:hover { background:var(--color-accent-soft); }
+.landing-paipan .tool-form { max-width:760px; margin-inline:auto; }
 .paipan-hint { opacity:.8; font-size:.8125rem; margin-top:14px; }
-.card-link { display:inline-flex; align-items:center; min-height:40px; margin-top:10px; color:var(--color-accent); font-size:.875rem; text-decoration:none; }
+.card-link { display:inline-flex; align-items:center; min-height:44px; margin-top:10px; color:var(--color-accent); font-size:.875rem; text-decoration:none; }
 .card-link:hover { text-decoration:underline; }
-.card-link-secondary { margin-left:14px; color:var(--color-text-muted); }
+.card-link-secondary { margin-inline-start:14px; color:var(--color-text-muted); }
 .card-link-secondary:hover { color:var(--color-accent); text-decoration:underline; }
 
 /* ── Liki Chat 场景引流页 ── */
@@ -502,3 +498,50 @@ th {
   color:var(--color-accent); font-weight:600;
 }
 .name-more[open] summary { margin-bottom:var(--space-4); }
+
+/* tool-island：营销工具岛（Vue island）共用的表单/结果骨架。
+ * 字段一律用 .tool-field（可见标签 + 控件）：纵向为默认，行内紧凑用 .tool-field--inline。 */
+.tool-form { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
+.tool-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 10rem; min-width: 0; }
+.tool-field > span { font-size: var(--font-size-label); color: var(--color-text-muted); }
+.tool-field > input,
+.tool-field > select { width: 100%; }
+.tool-field--inline { flex: 0 0 auto; flex-direction: row; align-items: center; gap: var(--space-2); }
+.tool-field--inline > span { white-space: nowrap; }
+.tool-field--inline > input,
+.tool-field--inline > select { width: auto; padding: var(--space-1) var(--space-2); }
+.tool-field--inline > input[type="number"] { width: 6rem; }
+.tool-form > input,
+.tool-form > select {
+  flex: 1 1 10rem;
+  min-width: 0;
+  font: inherit;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+.tool-form button { flex: 0 0 auto; }
+.tool-error { margin-top: var(--space-3); color: var(--color-fire); }
+.tool-pan { margin-top: var(--space-6); }
+.tool-pan-title { margin: 0 0 var(--space-3); font-size: var(--font-size-title-sm); font-weight: 650; color: var(--color-text); }
+.tool-cta { margin-top: var(--space-6); display: inline-block; }
+.tool-privacy { margin: var(--space-3) 0 0; font-size: var(--font-size-caption); color: var(--color-text-muted); }
+/* 工具表单纵向变体（多人输入，如合盘）：字段组用 fieldset，行内字段用 .tool-fields；
+ * 提交按钮保持与横向表单一致的行内宽度（flex 行内为 0 0 auto，此处对齐到起点）。 */
+.tool-form--stack { flex-direction: column; align-items: stretch; }
+.tool-form--stack > button { align-self: flex-start; }
+.tool-form fieldset { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4) var(--space-4); }
+.tool-form legend { padding: 0 var(--space-2); font-size: var(--font-size-label); font-weight: 600; color: var(--color-text); }
+.tool-fields { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+/* 内容区块（WP4 词嵌入）：article 语义 + 与 details 加速器并列的常青内容。 */
+.scenario-content-blocks { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); }
+.scenario-content-blocks article { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--color-surface); }
+.scenario-content-blocks h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-title-sm); color: var(--color-text); }
+.scenario-content-blocks h4 { margin: 0 0 var(--space-1); font-size: var(--font-size-body-lg); color: var(--color-text); }
+.scenario-content-blocks p { margin: 0; font-size: var(--font-size-body); color: var(--color-text-muted); line-height: 1.6; }
+.segments-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.segments-grid article { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--color-surface); }

@@ -196,7 +196,7 @@ p {
 
 /* ── 服务视图共享排版（看命/起名/问卦/风水/择日/合盘）── */
 .service-view .hint { color: var(--liki-text-2); margin: 0 0 14px; }
-.service-view .sec-title { font-size: var(--font-size-label); font-weight: 600; margin: 16px 0 8px; }
+.service-view .sec-title { font-size: var(--font-size-label); font-weight: 600; margin: var(--space-4) 0 var(--space-2); }
 
 /* 页面区块节奏契约：主区块（标题/卡片/提示）之间统一使用 --space-4 垂直间距。 */
 .page-stack { display: grid; gap: var(--space-4); align-content: start; }

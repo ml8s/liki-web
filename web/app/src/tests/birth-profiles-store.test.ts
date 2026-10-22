@@ -10,11 +10,12 @@ const profile = {
   nickname: '妈妈',
   name: '',
   gender: 'female',
-  calendar: 'lunar',
-  birth_date: '1958-闰5-12',
+  birth_date: '1958-05-12',
   birth_time: '06:00',
-  birth_time_known: 'known',
   birth_place: '上海',
+  birth_longitude: 121.4737,
+  birth_timezone: 'Asia/Shanghai',
+  birth_instant: '1958-05-11T22:00:00Z',
   note: '',
   third_party_consent: true,
   last_used_at: null,
@@ -47,8 +48,9 @@ describe('profiles store', () => {
     ))
     const store = useBirthProfilesStore()
     const created = await store.create({
-      nickname: '妈妈', gender: 'female', calendar: 'lunar',
-      birth_date: '1958-闰5-12', birth_time: '06:00', birth_time_known: 'known',
+      nickname: '妈妈', gender: 'female',
+      birth_date: '1958-05-12', birth_time: '06:00',
+      birth_longitude: 121.4737, birth_timezone: 'Asia/Shanghai',
     })
     expect(created.id).toBe('p_1')
     expect(store.list[0].id).toBe('p_1')

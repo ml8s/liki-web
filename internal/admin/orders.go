@@ -21,7 +21,7 @@ func (h *AdminService) HandleAdminOrders() http.HandlerFunc {
 
 		result, err := h.sales.Orders.ListOrdersForAdmin(r.Context(), status, search, page, pageSize)
 		if err != nil {
-			slog.Error("admin: list sales orders", "err", err)
+			slog.ErrorContext(r.Context(), "admin: list sales orders", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询订单失败")
 			return
 		}

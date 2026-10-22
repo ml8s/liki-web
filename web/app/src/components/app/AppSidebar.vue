@@ -41,9 +41,6 @@
         </router-link>
       </div>
       <div class="nav-group nav-group-secondary">
-        <div class="nav-label">
-          {{ $t('nav.account') }}
-        </div>
         <router-link
           to="/orders"
           active-class="on"
@@ -63,10 +60,10 @@
           {{ $t('nav.account') }}
         </router-link>
       </div>
-      <div class="nav-group nav-group-secondary">
-        <div class="nav-label">
-          {{ $t('nav.partner') }}
-        </div>
+      <div
+        v-if="auth.hasPartnerRole"
+        class="nav-group nav-group-secondary"
+      >
         <router-link
           to="/partners"
           exact-active-class="on"
@@ -95,12 +92,14 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import { createIntentPreloader } from '@/utils/routes'
+import { useAuthStore } from '@/stores/auth'
 
 defineProps<{ email: string }>()
 defineEmits<{ logout: [] }>()
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const preloadNavigation = createIntentPreloader(router, record => !String(record.name ?? '').startsWith('admin-'))
 
 // 侧栏链接都是扁平路由，active 即 exact-active（/partners 显式用 exact-active-class）；
@@ -129,7 +128,6 @@ function isCurrent(target: string) {
 .side-nav { display: flex; flex-direction: column; gap: 20px; flex: 1; }
 .nav-group { display: flex; flex-direction: column; gap: 4px; }
 .nav-group-secondary { border-top: 1px solid var(--liki-on-ink-line); padding-top: 16px; }
-.nav-label { font-size: var(--font-size-caption); color: var(--liki-on-ink-label); letter-spacing: 1px; padding: 0 12px 4px; }
 .side-nav a {
   position: relative;
   color: var(--liki-on-ink-link); text-decoration: none; padding: 10px 12px;

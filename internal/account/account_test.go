@@ -108,8 +108,10 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 
 	// user_1 建档案 + 会话 + system_profile 消息（含 PII）
 	p, err := profileStore.Create(ctx, "user_1", birthprofile.BirthProfileInput{
-		Nickname: "妈妈", Gender: "female", Calendar: "lunar",
-		BirthDate: "1958-闰5-12", BirthTime: "06:00", BirthTimeKnown: "known",
+		Nickname: "妈妈", Gender: "female",
+		BirthDate: "1958-05-12", BirthTime: "06:00",
+		BirthTimezone:  &[]string{"Asia/Shanghai"}[0],
+		BirthLongitude: &[]float64{121.4737}[0],
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -169,7 +171,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if _, err := profileStore.Get(ctx, "user_1", p.ID); err != birthprofile.ErrNotFound {
 		t.Fatalf("profile should be gone, got err=%v", err)
 	}
-	msgs, err := chatStore.ListMessages(ctx, "user_1", session.ID)
+	msgs, _, err := chatStore.ListMessages(ctx, "user_1", session.ID, "", 50)
 	if err != nil {
 		t.Fatal(err)
 	}

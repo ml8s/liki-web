@@ -14,12 +14,12 @@ import (
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/birthprofile"
 	"github.com/ml8s/liki-web/internal/chat"
-	"github.com/ml8s/liki-web/internal/enginemcp"
 	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/feedback"
 	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/records"
+	"github.com/ml8s/liki-web/internal/runcontrol"
 	"github.com/ml8s/liki-web/internal/sales"
 )
 
@@ -32,7 +32,6 @@ type ServerDeps struct {
 	EntitlementHandler   *entitlement.Handler
 	ChatHandler          *chat.Handler
 	RecordsHandler       *records.Handler
-	EngineMCP            *enginemcp.Handler
 	AipayHandler         *aipay.Handler
 	ProfileHandler       *birthprofile.Handler
 	AccountHandler       *account.Handler
@@ -44,6 +43,8 @@ type ServerDeps struct {
 	AdminEmail           string
 	AdminAuthorizer      *adminauth.Store
 	AuthUsers            *auth.Store
+	SessionCookieName    string
+	RunCallbackHandler   http.HandlerFunc
 	SalesStores          *sales.SalesStores
 	CompensationNotifier admin.CompensationNotifier
 	PartnerNotifier      partner.DecisionNotifier
@@ -62,11 +63,19 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		return rl.Wrap(60.0/60, 30, h)
 	}
 
+	// 支付自助读取限流档（capability-URL 类公开端点：返回/状态查询）。
+	// 凭证是 intent id + 1h 作用域 token（见 ARCHITECTURE.md）；返回端点会触发
+	// 一次 provider 对账调用，故即使 id 不可枚举也必须限流防匿名放大。
+	// 60/min burst 30 对浏览器返回与状态轮询足够宽松。
+	paymentSelfLimit := func(h http.HandlerFunc) http.HandlerFunc {
+		return rl.Wrap(60.0/60, 30, h)
+	}
+
 	// ── unified payment runtime ──
 	if deps.PaymentRuntime != nil {
-		mux.HandleFunc("GET /api/payments/intents/{id}/status", deps.PaymentRuntime.HandleIntentStatus)
-		mux.HandleFunc("GET /api/payments/intents/{id}/payment-completion-status", deps.PaymentRuntime.HandlePaymentCompletionStatus)
-		mux.HandleFunc("GET /api/payments/return/{id}", deps.PaymentRuntime.HandlePaymentReturn)
+		mux.HandleFunc("GET /api/payments/intents/{id}/status", paymentSelfLimit(deps.PaymentRuntime.HandleIntentStatus))
+		mux.HandleFunc("GET /api/payments/intents/{id}/payment-completion-status", paymentSelfLimit(deps.PaymentRuntime.HandlePaymentCompletionStatus))
+		mux.HandleFunc("GET /api/payments/return/{id}", paymentSelfLimit(deps.PaymentRuntime.HandlePaymentReturn))
 		mux.HandleFunc("POST /api/payments/webhook", webhookLimit(deps.PaymentRuntime.HandleWebhook))
 	}
 
@@ -93,12 +102,6 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	}
 	if deps.RecordsHandler != nil {
 		deps.RecordsHandler.RegisterRoutes(mux)
-	}
-	if deps.EngineMCP != nil {
-		engineLimit := func(next http.HandlerFunc) http.HandlerFunc {
-			return rl.Wrap(30.0/60, 30, next)
-		}
-		deps.EngineMCP.RegisterRoutes(mux, engineLimit)
 	}
 	if deps.AipayHandler != nil {
 		// Aipay bills and proof redemption are write-like endpoints and get
@@ -142,11 +145,25 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	}
 	mux.HandleFunc("POST /api/analytics/pageview", analyticsLimit(handlePageView()))
 	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
+	// 内部面共用限流档：边缘 forward_auth 与抓取都属低频小突发调用。
+	rlInternal := func(next http.HandlerFunc) http.HandlerFunc {
+		return rl.Wrap(0.5, 10, next)
+	}
 	if deps.MetricsHandler != nil {
-		rlInternal := func(next http.HandlerFunc) http.HandlerFunc {
-			return rl.Wrap(0.5, 10, next)
-		}
 		mux.HandleFunc("GET /api/internal/metrics", rlInternal(deps.MetricsHandler))
+	}
+	if deps.AuthUsers != nil && deps.Entitlements != nil && deps.SessionCookieName != "" {
+		introspect := runcontrol.NewIntrospectHandler(runcontrol.IntrospectConfig{
+			CookieName:   deps.SessionCookieName,
+			Sessions:     deps.AuthUsers,
+			Entitlements: deps.Entitlements,
+		})
+		// forward_auth 转发原始方法（浏览器对 /rt/<profile>/ag-ui 发 POST），
+		// 因此这里按任意方法注册。
+		mux.HandleFunc("/api/internal/introspect", rlInternal(introspect))
+	}
+	if deps.RunCallbackHandler != nil {
+		mux.HandleFunc("POST /api/internal/runs/completed", rlInternal(deps.RunCallbackHandler))
 	}
 
 	// ── admin routes (registered here to avoid import cycle) ──
@@ -181,16 +198,18 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		mux.HandleFunc("PATCH /api/feedback/{id}", rlFeedbackOps(feedback.HandleUpdate(deps.FeedbackStore, deps.FeedbackAPIKey)))
 	}
 
-	handler := Recover(SecurityHeaders(SameOrigin(
+	// API 链：Metrics 记录应用路由（静态文件不进入）；Recover 的 500 也被计入。
+	handler := Metrics(Recover(SecurityHeaders(SameOrigin(
 		deps.DevMode,
 		CORSMiddleware(deps.DevMode, BodyLimit(mux)),
-	)))
+	))))
 
 	webDir := findWebDir()
 	if webDir != "" {
 		handler = fileServer(webDir, handler)
 	}
-	return handler
+	// RequestID 最外层：静态页与 API 响应都带 X-Request-Id，日志与响应头一致。
+	return RequestID(handler)
 }
 
 func findWebDir() string {
@@ -204,6 +223,55 @@ func findWebDir() string {
 	return ""
 }
 
+// marketingLocales 是营销站的语言前缀。
+var marketingLocales = []string{"/zh-Hans", "/zh-Hant", "/en"}
+
+// legacyPageTargets 记录已合并/下线的营销页（v5：bazi/mingshu 并入 natal；
+// partners 下线为定向邀请制；hepan 已恢复独立页）。空目标表示落到语言首页。
+var legacyPageTargets = map[string]string{"bazi": "natal", "mingshu": "natal", "partners": ""}
+
+// legacyPageRedirect 返回下线页的 301 目标（/{locale}/{old}/ → /{locale}/{target}/ 或语言首页）。
+func legacyPageRedirect(clean string) (string, bool) {
+	for _, loc := range marketingLocales {
+		if !strings.HasPrefix(clean, loc+"/") {
+			continue
+		}
+		page := strings.TrimPrefix(clean, loc+"/")
+		if target, ok := legacyPageTargets[page]; ok {
+			if target == "" {
+				return loc + "/", true
+			}
+			return loc + "/" + target + "/", true
+		}
+	}
+	return "", false
+}
+
+// marketingPathLocale 返回路径的营销语言前缀；无前缀返回 false。
+func marketingPathLocale(clean string) (string, bool) {
+	for _, loc := range marketingLocales {
+		if clean == loc || strings.HasPrefix(clean, loc+"/") {
+			return loc, true
+		}
+	}
+	return "", false
+}
+
+// negotiateLocale 按 Accept-Language 协商营销语言，与裸路径重定向契约一致。
+func negotiateLocale(r *http.Request) string {
+	accept := strings.ToLower(r.Header.Get("Accept-Language"))
+	switch {
+	case strings.HasPrefix(accept, "zh-cn"), strings.HasPrefix(accept, "zh-sg"), strings.HasPrefix(accept, "zh-hans"):
+		return "zh-Hans"
+	case strings.HasPrefix(accept, "zh-tw"), strings.HasPrefix(accept, "zh-hk"), strings.HasPrefix(accept, "zh-mo"), strings.HasPrefix(accept, "zh-hant"):
+		return "zh-Hant"
+	case strings.HasPrefix(accept, "en"):
+		return "en"
+	default:
+		return "zh-Hant"
+	}
+}
+
 func fileServer(webDir string, next http.Handler) http.Handler {
 	distDir := filepath.Join(webDir, "dist")
 	_, distErr := os.Stat(distDir)
@@ -215,6 +283,11 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 
 		if info, err := os.Stat(p); err == nil {
 			if info.IsDir() {
+				if !strings.HasSuffix(r.URL.Path, "/") {
+					// 目录 URL 规范化：canonical 与 sitemap 均为带斜杠版本。
+					http.Redirect(w, r, r.URL.Path+"/", http.StatusMovedPermanently)
+					return true
+				}
 				serveFileNoRedirect(w, r, filepath.Join(p, "index.html"))
 				return true
 			}
@@ -225,24 +298,43 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 			serveFileNoRedirect(w, r, p+".html")
 			return true
 		}
-		for _, loc := range []string{"/zh-Hans", "/zh-Hant", "/en"} {
-			if strings.HasPrefix(clean, loc+"/") || clean == loc {
-				serveFileNoRedirect(w, r, filepath.Join(root, loc[1:], "index.html"))
+		if _, ok := marketingPathLocale(clean); ok {
+			// 旧 .html 营销 URL（bond 为合盘旧名）：目标存在时 301 到规范路径。
+			if strings.HasSuffix(clean, ".html") {
+				base := strings.TrimSuffix(clean, ".html")
+				if strings.HasSuffix(base, "/bond") {
+					// bond 为合盘旧名；合盘页现为 hepan。
+					base = strings.TrimSuffix(base, "bond") + "hepan"
+				}
+				target := base + "/"
+				if _, ok := marketingPathLocale(target); ok {
+					if _, err := os.Stat(filepath.Join(root, target[1:], "index.html")); err == nil {
+						http.Redirect(w, r, target, http.StatusMovedPermanently)
+						return true
+					}
+				}
+			}
+			// 已合并页面（命理三页 → natal）：301 到新页，保留收取的权重。
+			if target, ok := legacyPageRedirect(clean); ok {
+				http.Redirect(w, r, target, http.StatusMovedPermanently)
 				return true
 			}
+			// 不存在的营销路径必须 404：回落到语言首页会造成软 404 与索引稀释。
+			return false
 		}
-		defLoc := "zh-Hant"
-		defP := filepath.Join(root, defLoc, clean)
+		// 无语言前缀但存在于默认语言（zh-Hant）的路径：按 Accept-Language 协商
+		// 301 到带前缀 URL；协商语言无此页面时回落默认语言。
+		defP := filepath.Join(root, "zh-Hant", clean[1:])
 		if info, err := os.Stat(defP); err == nil {
-			if info.IsDir() {
-				serveFileNoRedirect(w, r, filepath.Join(defP, "index.html"))
-				return true
+			loc := negotiateLocale(r)
+			if _, err := os.Stat(filepath.Join(root, loc, clean[1:])); err != nil {
+				loc = "zh-Hant"
 			}
-			http.ServeFile(w, r, defP)
-			return true
-		}
-		if _, err := os.Stat(defP + ".html"); err == nil {
-			serveFileNoRedirect(w, r, defP+".html")
+			target := "/" + loc + clean
+			if info.IsDir() && !strings.HasSuffix(target, "/") {
+				target += "/"
+			}
+			http.Redirect(w, r, target, http.StatusMovedPermanently)
 			return true
 		}
 		return false
@@ -256,6 +348,20 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 			return
 		}
 		clean := filepath.Clean(r.URL.Path)
+		// 裸入口协商（与静态部署契约一致）：/, /skills → 本地化页面；
+		// /skills/liki/... 子路径保持直接访问（agent artifact）。
+		if clean == "/" {
+			http.Redirect(w, r, "/"+negotiateLocale(r)+"/", http.StatusFound)
+			return
+		}
+		if clean == "/skills" || clean == "/skills/" {
+			http.Redirect(w, r, "/"+negotiateLocale(r)+"/skills/", http.StatusFound)
+			return
+		}
+		if clean == "/admin.html" {
+			http.Redirect(w, r, "/app/admin", http.StatusMovedPermanently)
+			return
+		}
 		if strings.HasPrefix(clean, "/app/assets/") {
 			assetPath := filepath.Join(distDir, "app", strings.TrimPrefix(clean, "/app/"))
 			if info, err := os.Stat(assetPath); err == nil && !info.IsDir() {

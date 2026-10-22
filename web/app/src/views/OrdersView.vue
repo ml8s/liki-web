@@ -6,6 +6,7 @@
     >
       <template #actions>
         <el-button
+          v-if="hasData"
           :loading="loading"
           @click="load"
         >
@@ -37,7 +38,7 @@
       aria-busy="true"
     />
 
-    <el-empty
+    <AppEmptyState
       v-else-if="!loading && !hasData"
       :description="$t('orders.empty')"
     >
@@ -48,7 +49,7 @@
       >
         {{ $t('orders.unlock') }}
       </el-button>
-    </el-empty>
+    </AppEmptyState>
 
     <!-- 订阅与一次性订单是并列区块：存在订阅时订单列表仍需渲染。 -->
     <template v-else>
@@ -422,6 +423,7 @@ import { useEntitlementsStore } from '@/stores/entitlements'
 import { formatDateTime, formatMinorUnit, productName } from '@/utils/format'
 import { useMobile } from '@/composables/useMobile'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import AppEmptyState from '@/components/app/AppEmptyState.vue'
 import RecordActions, { type RecordAction } from '@/components/app/RecordActions.vue'
 
 const orders = ref<Order[]>([])

@@ -10,10 +10,11 @@
     "lint": "eslint .",
     "typecheck": "astro check && tsc --noEmit -p e2e/tsconfig.json",
     "test": "vitest run test/",
-    "lint:docs": "npx --yes markdownlint-cli2@0.23.3 --config ../.markdownlint-cli2.jsonc \"../README.md\" \"../ARCHITECTURE.md\" \"../DOMAIN_MODEL.md\" \"../API.md\" \"../FRONTEND.md\" \"../LEGACY_PRODUCTS.md\" \"../CONTRIBUTING.md\" \"../SECURITY.md\" \"../docs/**/*.md\""
+    "lint:docs": "npx --yes markdownlint-cli2@0.23.3 --config ../.markdownlint-cli2.jsonc \"../README.md\" \"../ARCHITECTURE.md\" \"../DOMAIN_MODEL.md\" \"../API.md\" \"../FRONTEND.md\" \"../LEGACY_PRODUCTS.md\" \"../CONTRIBUTING.md\" \"../SECURITY.md\" \\\"../BRAND.md\\\" \\\"../SEO.md\\\" \"../docs/**/*.md\""
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@astrojs/vue": "^7.1.0",
     "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
@@ -23,10 +24,17 @@
     "globals": "^17.13.0",
     "typescript": "~5.6.3",
     "typescript-eslint": "^8.71.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "vue": "^3.5.44",
+    "vue-i18n": "^11.4.16"
   },
   "engines": {
     "npm": "11.11.0",
     "node": "24.14.1"
+  },
+  "dependencies": {
+    "element-plus": "^2.14.7",
+    "pinia": "^2.3.0",
+    "@js-temporal/polyfill": "^0.5.1"
   }
 }

@@ -72,7 +72,7 @@ func (h *Handler) PostLoginHook(w http.ResponseWriter, r *http.Request, user aut
 		if errors.Is(err, ErrInvalidCode) || errors.Is(err, ErrSelfReferral) {
 			return
 		}
-		slog.Warn("partner: attribute new account", "user_id", user.ID, "err", err)
+		slog.WarnContext(r.Context(), "partner: attribute new account", "user_id", user.ID, "err", err)
 		return
 	}
 	http.SetCookie(w, &http.Cookie{
@@ -89,7 +89,7 @@ func (h *Handler) HandlePartnerStates(w http.ResponseWriter, r *http.Request) {
 	}
 	states, err := h.store.PartnerStates(r.Context(), user.ID)
 	if err != nil {
-		slog.Error("partner: partner states", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "partner: partner states", "user_id", user.ID, "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -120,7 +120,7 @@ func (h *Handler) getApplication(w http.ResponseWriter, r *http.Request, role Pa
 	}
 	states, err := h.store.PartnerStates(r.Context(), user.ID)
 	if err != nil {
-		slog.Error("partner: get application", "user_id", user.ID, "role", role, "err", err)
+		slog.ErrorContext(r.Context(), "partner: get application", "user_id", user.ID, "role", role, "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "服务器内部错误")
 		return
 	}
@@ -164,7 +164,7 @@ func (h *Handler) submitApplication(w http.ResponseWriter, r *http.Request, role
 		case errors.Is(err, ErrApplicationPending):
 			httputil.RespondError(w, http.StatusConflict, "application_pending", "申请正在处理中")
 		default:
-			slog.Error("partner: submit application", "user_id", user.ID, "role", role, "err", err)
+			slog.ErrorContext(r.Context(), "partner: submit application", "user_id", user.ID, "role", role, "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "提交申请失败")
 		}
 		return
@@ -216,7 +216,7 @@ func safeReferralTarget(rawTarget string) (string, bool) {
 		allowedPaths["/"+locale] = true
 		allowedPaths["/"+locale+"/"] = true
 		for _, slug := range []string{
-			"naming", "mingshu", "hepan", "skills", "partners",
+			"natal", "liunian", "hepan", "divination", "fengshui", "huangli", "naming", "skills",
 			"about", "contact", "privacy", "terms", "disclaimer",
 		} {
 			allowedPaths["/"+locale+"/"+slug] = true

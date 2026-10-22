@@ -20,7 +20,8 @@
     "大限", "小限", "三方四正", "命宫", "身宫",
     "开源", "免费", "API", "JSON-RPC",
     "工具", "工作流", "自动化", "报告生成",
-    "命理师", "执业工具", "专业版"
+    "命理师", "执业工具", "专业版",
+    "AI 命理", "命理 Skill", "AI Skill", "Claude Skill", "AI Agent", "MCP", "大模型工具"
   ],
   "en": [
     "BaZi", "ZiWei", "Chinese Astrology", "BaZi Chart", "Four Pillars",
@@ -41,7 +42,8 @@
     "ZiWei Stars", "SiHua", "DaXian", "MingGong",
     "Open Source", "Free", "API", "JSON-RPC",
     "AI Tool", "Workflow", "Automation", "Report Generator",
-    "Practitioner", "Professional Tool"
+    "Practitioner", "Professional Tool",
+    "AI Skill", "AI Agent Skill", "Claude Skill", "MCP", "LLM Tool", "AI Fortune Telling", "Agent Tool"
   ],
   "zh-Hant": [
     "八字排盤", "紫微斗數", "生辰八字", "八字合婚",
@@ -63,6 +65,7 @@
     "紫微星曜", "紫微排盤", "十四主星", "四化",
     "大限", "小限", "三方四正", "命宮",
     "開源", "免費", "API", "JSON-RPC",
-    "命理師", "專業工具"
+    "命理師", "專業工具",
+    "AI 命理", "命理 Skill", "AI Skill", "Claude Skill", "AI Agent", "MCP", "大模型工具"
   ]
 }

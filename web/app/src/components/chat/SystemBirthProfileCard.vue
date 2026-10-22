@@ -17,6 +17,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BirthProfile } from '@/api/birth-profiles'
+import { formatInstant } from '@shared/utils/paipan'
 
 const props = defineProps<{ content: string }>()
 const { t } = useI18n()
@@ -33,16 +34,12 @@ const nickname = computed(() => data.value.nickname ?? t('profiles.profile'))
 
 const summary = computed(() => {
   const d = data.value
-  const calendar = d.calendar === 'lunar' ? t('profiles.form.lunar') : t('profiles.form.solar')
   const gender = d.gender === 'male' ? t('profiles.male') : d.gender === 'female' ? t('profiles.female') : ''
-  const knownMap: Record<string, string> = {
-    known: t('chat.systemBirthProfile.known'),
-    approximate: t('chat.systemBirthProfile.approximate'),
-    unknown: t('chat.systemBirthProfile.unknown'),
-  }
-  const known = knownMap[d.birth_time_known ?? ''] ?? ''
   const place = d.birth_place ? ` · ${d.birth_place}` : ''
-  return [calendar, d.birth_date, d.birth_time, gender, known, place].filter(Boolean).join(' ')
+  const canonicalTime = d.birth_instant && d.birth_timezone
+    ? formatInstant(d.birth_instant, d.birth_timezone)
+    : [d.birth_date, d.birth_time].filter(Boolean).join(' ')
+  return [canonicalTime, gender, place].filter(Boolean).join(' ')
 })
 </script>
 

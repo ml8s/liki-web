@@ -11,14 +11,6 @@
       min-width="180"
     />
     <el-table-column
-      :label="$t('chat.sessions.domain')"
-      width="140"
-    >
-      <template #default="{ row }">
-        {{ row.skillLabel }}
-      </template>
-    </el-table-column>
-    <el-table-column
       :label="$t('chat.sessions.updated')"
       width="190"
     >
@@ -55,12 +47,6 @@
       >
         <div class="sc-top">
           <span class="sc-title">{{ s.title }}</span>
-          <el-tag
-            size="small"
-            effect="light"
-          >
-            {{ s.skillLabel }}
-          </el-tag>
         </div>
         <div class="sc-time">
           {{ formatDateTime(s.updated_at) }}
@@ -83,7 +69,7 @@ import { useI18n } from 'vue-i18n'
 import RecordActions, { type RecordAction } from '@/components/app/RecordActions.vue'
 
 defineProps<{
-  sessions: Array<ChatSession & { skillLabel?: string }>
+  sessions: ChatSession[]
 }>()
 
 const emit = defineEmits<{ open: [session: ChatSession]; rename: [session: ChatSession]; remove: [session: ChatSession] }>()

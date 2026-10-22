@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import HuangliTool from '../../islands/HuangliTool.vue';
 import { t, locales } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -19,6 +20,17 @@ const staticSections = ['focus', 'method', 'output'].map(key => ({
   title: t(locale, `${ns}.static.${key}.title`),
   body: t(locale, `${ns}.static.${key}.body`),
 }));
+const toolProps = {
+  locale,
+  appUrl: `/app?service=huangli&locale=${locale}`,
+  labels: {
+    submit: t(locale, 'tool.submit'),
+    computing: t(locale, 'tool.computing'),
+    error: t(locale, 'tool.error'),
+    cta: t(locale, 'tool.cta'),
+    privacy: t(locale, 'tool.privacy'),
+  },
+};
 ---
 
 <ScenarioLanding
@@ -37,6 +49,12 @@ const staticSections = ['focus', 'method', 'output'].map(key => ({
   faqTitleKey="scenario.faqTitle"
   faqs={faqs}
 >
+  <Fragment slot="tool">
+    <h2>{t(locale, 'huangli.tool.title')}</h2>
+    <p>{t(locale, 'huangli.tool.intro')}</p>
+    <div id="huangli-tool" data-props={JSON.stringify(toolProps)}>
+    </div>
+  </Fragment>
   <div class="scenario-static-index">
     {staticSections.map(section => (
       <details>
@@ -45,4 +63,26 @@ const staticSections = ['focus', 'method', 'output'].map(key => ({
       </details>
     ))}
   </div>
+  <div class="scenario-content-blocks">
+    <article>
+      <h3>{t(locale, 'huangli.taisui.title')}</h3>
+      <p>{t(locale, 'huangli.taisui.body')}</p>
+    </article>
+    <article>
+      <h3>{t(locale, 'huangli.daily.title')}</h3>
+      <p>{t(locale, 'huangli.daily.body')}</p>
+    </article>
+    <article>
+      <h3>{t(locale, 'huangli.calendar.title')}</h3>
+      <p>{t(locale, 'huangli.calendar.body')}</p>
+    </article>
+    <article>
+      <h3>{t(locale, 'huangli.events.title')}</h3>
+      <p>{t(locale, 'huangli.events.body')}</p>
+    </article>
+  </div>
 </ScenarioLanding>
+
+<script>
+  import '../../scripts/huangli-tool';
+</script>

@@ -12,8 +12,10 @@ check() {
 
 check "web/skills/liki/SKILL.md"
 check "web/skills/liki/VERSION.txt"
-check "web/skills/liki/references/natal/TOOLS.md"
-check "web/skills/liki/references/divination/TOOLS.md"
+check "web/skills/liki/references/natal-ENTRY.md"
+check "web/skills/liki/references/natal-bazi-ENTRY.md"
+check "web/skills/liki/references/natal-ziwei-ENTRY.md"
+check "web/skills/liki/references/divination-ENTRY.md"
 
 if [ $FAILED -eq 0 ]; then
   echo "✓ skill structure OK"

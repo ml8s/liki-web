@@ -61,7 +61,7 @@ func Recover(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rv := recover(); rv != nil {
-				slog.Error("panic recovered", "panic", rv, "stack", string(debug.Stack()))
+				slog.ErrorContext(r.Context(), "panic recovered", "panic", rv, "stack", string(debug.Stack()))
 				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "internal server error")
 			}
 		}()

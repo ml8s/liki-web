@@ -7,23 +7,6 @@ import (
 	"testing"
 )
 
-func TestCheckEngineMCPCReadinessUsesHealth(t *testing.T) {
-	var method string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		method = r.Method
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","result":{"status":"ok"},"id":1}`))
-	}))
-	defer server.Close()
-
-	if err := checkEngineMCPReadiness(context.Background(), server.URL); err != nil {
-		t.Fatalf("checkEngineMCPReadiness() = %v", err)
-	}
-	if method != http.MethodGet {
-		t.Fatalf("method = %s, want GET", method)
-	}
-}
-
 func TestCheckAgentReadinessUsesReadyZ(t *testing.T) {
 	var path string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +20,26 @@ func TestCheckAgentReadinessUsesReadyZ(t *testing.T) {
 	}
 	if path != "/readyz" {
 		t.Fatalf("path = %s, want /readyz", path)
+	}
+}
+
+func TestAgentOpsURLPointsAtTheOpsListener(t *testing.T) {
+	cases := map[string]string{
+		"http://experts-natal:8083":  "http://experts-natal:8085",
+		"http://experts-natal":       "http://experts-natal:8085",
+		"https://experts-natal:8083": "https://experts-natal:8085",
+	}
+	for input, want := range cases {
+		if got := agentOpsURL(input, "8085"); got != want {
+			t.Fatalf("agentOpsURL(%q) = %q, want %q", input, got, want)
+		}
+	}
+	// 无法解析或缺少端口配置时原样返回（由就绪检查显式报错）。
+	if got := agentOpsURL("::bad::", "8085"); got != "::bad::" {
+		t.Fatalf("agentOpsURL(invalid) = %q", got)
+	}
+	if got := agentOpsURL("http://experts-natal:8083", ""); got != "http://experts-natal:8083" {
+		t.Fatalf("agentOpsURL(no ops port) = %q", got)
 	}
 }
 

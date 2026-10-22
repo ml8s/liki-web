@@ -31,9 +31,9 @@
     "profiles": "Profiles",
     "chat": "Liki Chat",
     "orders": "Orders",
-    "partner": "Partners",
     "account": "Account",
     "mine": "Me",
+    "partner": "My partnership",
     "logout": "Sign out"
   },
   "a11y": {
@@ -47,7 +47,7 @@
     "valueInterpretation": "Professional interpretation",
     "valueBirthProfile": "Free profiles",
     "loginTitle": "Sign in to Liki",
-    "slogan": "For Chinese Metaphysics, use Liki.",
+    "slogan": "For Astrology, use Liki.",
     "codeHint": "Enter your email to receive a sign-in code.",
     "email": "Email",
     "getCode": "Get code",
@@ -70,58 +70,63 @@
     "profiles": "Profiles",
     "profileNew": "New profile",
     "profileDetail": "Profile details",
-    "synastry": "Compatibility",
+    "hepan": "Compatibility",
     "divination": "Divination",
     "fengshui": "Feng Shui",
     "huangli": "Date selection",
     "chat": "Liki Chat",
     "chatSession": "Consultation",
     "orders": "Orders",
-    "partnerCenter": "Partners",
+    "partnerCenter": "My partnership",
     "partnerKol": "KOL partnership",
     "partnerScout": "Scout partnership",
     "account": "Account",
     "notFound": "Page not found"
   },
   "services": {
-    "expert": {
-      "natal": {
-        "label": "Natal",
-        "description": "BaZi · ZiWei · lifetime cycles · synastry"
-      },
-      "divination": {
-        "label": "Divination",
-        "description": "LiuYao · QiMen · date selection"
-      },
-      "fengshui": {
-        "label": "Feng Shui",
-        "description": "Eight Mansions · XuanKong · annual stars"
-      },
-      "naming": {
-        "label": "Naming",
-        "description": "Name picking by chart yongshen · name review"
-      }
-    },
-    "skill": {
-      "compact": "Metaphysics"
-    },
-    "bazi": {
+    "natal": {
       "label": "Life reading",
       "description": "BaZi · ZiWei · destiny cycles · annual luck",
       "intent": "I would like a BaZi consultation.",
-      "cta": "View charts"
+      "cta": "Open life reading"
     },
     "divination": {
       "label": "Divination",
       "description": "LiuYao question reading and timing",
       "intent": "I would like a divination reading. Question: {question}",
-      "cta": "Ask a question",
+      "cta": "Open divination",
       "pageTitle": "Divination",
       "subtitle": "Ask one question, cast a hexagram, then continue with a deeper reading in chat.",
       "cast": "Cast",
       "questionLabel": "One question you want to ask",
-      "questionPlaceholder": "For example: Will this project succeed? / When will there be a result?",
+      "questionPlaceholder": "e.g. Will this project work out / when will it land…",
       "questionRequired": "Enter the question you want to ask",
+      "castingModeLabel": "Casting mode",
+      "castingModeAuto": "System automatic cast",
+      "castingModeHint": "The system casts with secure randomness and fixes the casting time at submission.",
+      "placeLabel": "Casting place",
+      "placePlaceholder": "e.g. Shanghai…",
+      "placeResolving": "Matching casting place…",
+      "placeAmbiguous": "Multiple places match. Choose one:",
+      "placePick": "Choose a place",
+      "placeNotFound": "Casting place not recognized. Rewrite it or enter the longitude manually.",
+      "placeMatched": "Matched casting place · {lng}°E",
+      "longitudeLabel": "Longitude",
+      "longitudeHint": "Used for true solar time correction; manual entry is allowed",
+      "placeRequired": "Enter the casting place",
+      "useCurrentLocation": "Use current location",
+      "locating": "Locating…",
+      "locationManualHint": "Browser location only prefills the visible form. You can edit it at any time.",
+      "currentDevicePlace": "Current device location",
+      "browserLocationUsed": "Using the current device location",
+      "browserLocationAccuracy": "Location accuracy is approximately {meters} meters",
+      "castingTimeHint": "At submission, the casting time, place, and longitude are recorded for charting and history.",
+      "locationError": {
+        "denied": "Browser location was not allowed. Choose a place or enter the longitude manually.",
+        "unavailable": "Browser location is unavailable. Please enter it manually.",
+        "timeout": "Browser location timed out. Try again or enter it manually.",
+        "invalid": "Browser location is invalid. Enter the longitude manually."
+      },
       "hexagram": "Hexagram",
       "original": "Original",
       "changed": "Changed",
@@ -156,7 +161,7 @@
       "label": "Feng Shui",
       "description": "Eight Mansions, annual stars, directions",
       "intent": "I would like a Feng Shui consultation.",
-      "cta": "Review Feng Shui",
+      "cta": "Open Feng Shui",
       "pageTitle": "Feng Shui",
       "subtitle": "View your life trigram, Eight Mansions directions, and annual flying stars before a layout consultation.",
       "selectBirthProfile": "Select a profile",
@@ -168,13 +173,54 @@
       "consultationBody": "The AI consultant combines your life trigram, Eight Mansions directions, and annual flying stars.",
       "lockedBody": "Unlock Liki Chat for a professional layout reading.",
       "invalidBirthYear": "Invalid birth date",
-      "failed": "Feng Shui preview failed"
+      "failed": "Feng Shui preview failed",
+      "xuankongTitle": "Flying Star chart",
+      "zuoShan": "Sitting mountain",
+      "xiangShan": "Facing mountain",
+      "zuo": "Sit",
+      "xiang": "Face",
+      "shanStar": "Mountain star",
+      "xiangStar": "Facing star",
+      "yunStar": "Period star",
+      "periodDate": "Period date",
+      "fourSituation": "Four situations",
+      "sitMountainTimely": "Sit palace mountain star timely",
+      "faceFacingTimely": "Face palace facing star timely",
+      "sitFacingTimely": "Sit palace facing star timely",
+      "faceMountainTimely": "Face palace mountain star timely",
+      "shouShanChuSha": "Collect & discharge",
+      "zhengShen": "Zheng spirit",
+      "lingShen": "Ling spirit",
+      "shouShanOk": "Mountain collected",
+      "chuShaOk": "Discharge proper",
+      "fuYin": "Repetition",
+      "fanYin": "Reversal",
+      "xingJiaHui": "Star combinations",
+      "layoutTitle": "Layout review",
+      "door": "Door",
+      "master": "Master bedroom",
+      "stove": "Stove",
+      "youxing": "Star",
+      "rating": "Rating",
+      "match": "Match",
+      "layoutNote": "Doors and master bedrooms favor auspicious directions; stoves press inauspicious directions.",
+      "directionLabel": "Direction",
+      "guaLabel": "Trigram",
+      "centerPalace": "Center",
+      "selectPlaceholder": "Select",
+      "ratingValue": {
+        "veryAuspicious": "Very auspicious",
+        "auspicious": "Auspicious",
+        "neutral": "Neutral",
+        "inauspicious": "Inauspicious",
+        "veryInauspicious": "Very inauspicious"
+      }
     },
     "huangli": {
       "label": "Date selection",
       "description": "Auspicious dates and daily guidance",
       "intent": "I would like help selecting an auspicious date ({event}).",
-      "cta": "Choose a date",
+      "cta": "Open date selection",
       "pageTitle": "Date selection",
       "subtitle": "Choose an event and date range, review recommended dates, then continue in chat.",
       "event": "Event",
@@ -187,6 +233,34 @@
       "recommended": "Recommended",
       "possible": "Possible",
       "unsuitable": "Unsuitable",
+      "naYin": "Nayin",
+      "path": "Day spirit",
+      "pathValue": {
+        "yellow": "Yellow path",
+        "black": "Black path"
+      },
+      "mansion": "Mansion",
+      "spirits": "Auspicious directions",
+      "xiShen": "Joy God",
+      "caiShen": "Wealth God",
+      "fuShen": "Fortune God",
+      "pengZu": "Peng Zu taboos",
+      "jieQi": "Solar term",
+      "jieQiDays": "day {days}",
+      "renYuan": "Human stem",
+      "shiChen": "Hour fortunes",
+      "auspicious": "Auspicious",
+      "inauspicious": "Inauspicious",
+      "dir": {
+        "e": "E",
+        "se": "SE",
+        "s": "S",
+        "sw": "SW",
+        "w": "W",
+        "nw": "NW",
+        "n": "N",
+        "ne": "NE"
+      },
       "consultationTitle": "Date-selection reading",
       "consultationBody": "The AI consultant combines the almanac, event, and your profile for a date-selection reading.",
       "lockedBody": "Unlock Liki Chat for a professional date-selection reading.",
@@ -212,20 +286,24 @@
       }
     },
     "naming": {
+      "label": "Naming",
+      "description": "Name picking by chart yongshen · name review",
       "intent": "I would like naming advice.",
-      "cta": "Start naming"
+      "cta": "Open naming",
+      "yongShen": "Ruling element (Yong Shen)",
+      "xiShen": "Favorable elements",
+      "jiShen": "Unfavorable elements",
+      "needsReview": "This chart has conflicts or low confidence in the ruling element — verify with a full reading."
     },
-    "bond": {
+    "hepan": {
       "label": "Synastry",
       "description": "Two-person BaZi compatibility analysis",
       "intent": "Please provide a compatibility reading for me ({a}) and the other person. Other person’s information: {info}.",
-      "cta": "Start compatibility reading",
+      "cta": "Open hepan",
       "title": "Compatibility",
       "subtitle": "Use one saved profile and the other person’s information to view a two-person BaZi compatibility chart.",
       "step1": "Step 1 · Select a profile (you or the other person)",
       "step2": "Step 2 · Enter the other person’s information",
-      "birthPlaceOptional": "Birthplace (optional)",
-      "birthPlacePlaceholder": "Used for solar-time correction, e.g. Shanghai",
       "compute": "Compare",
       "result": "Compatibility result",
       "otherPerson": "Other person",
@@ -264,6 +342,21 @@
         "day": "day",
         "hour": "hour"
       }
+    },
+    "liunian": {
+      "label": "Annual fortune",
+      "description": "Yearly chart · Tai Sui · year ahead",
+      "intent": "I want an annual fortune reading.",
+      "cta": "Open annual fortune"
+    },
+    "glyph": {
+      "natal": "R",
+      "liunian": "A",
+      "hepan": "S",
+      "divination": "I",
+      "huangli": "D",
+      "fengshui": "F",
+      "naming": "N"
     }
   },
   "dashboard": {
@@ -323,21 +416,19 @@
       "nicknamePlaceholder": "For example: Mom / Myself",
       "gender": "Gender",
       "birthDate": "Birth date",
-      "solar": "Solar",
-      "lunar": "Lunar",
       "selectDate": "Select a date",
-      "lunarPlaceholder": "For example: 1958-leap5-12 or 1990-5-12",
-      "birthTime": "Birth time",
-      "timeKnown": "Is the birth time known?",
-      "known": "Exact",
-      "approximate": "Two-hour period only",
-      "unknown": "Unknown",
-      "exactTime": "Exact time (solar-time corrected)",
       "timePlaceholder": "For example: 06:00",
       "birthPlace": "Birthplace (city for solar-time correction)",
       "birthPlacePlaceholder": "For example: Shanghai",
-      "shichenLabel": "Two-hour period (charted as selected; not corrected)",
-      "unknownHint": "A reading is still possible. The chart can be refined later in chat.",
+      "longitude": "Longitude",
+      "timezone": "IANA timezone",
+      "timezonePlaceholder": "For example, Asia/Shanghai",
+      "timezoneHint": "The legal timezone paired with the birthplace",
+      "placeResolving": "Matching birth place…",
+      "placeAmbiguous": "Multiple places match. Choose one:",
+      "placePick": "Choose a place",
+      "placeNotFound": "Birth place not recognized. Rewrite it or enter the longitude manually.",
+      "placeMatched": "Matched birth place · {lng}°E",
       "more": "More information (optional)",
       "note": "Note",
       "notePlaceholder": "For example: someone I want to understand more deeply",
@@ -347,25 +438,12 @@
         "nicknameRequired": "Please enter a nickname",
         "genderRequired": "Please select a gender",
         "birthDateRequired": "Please select a birth date",
-        "lunarFormat": "Use a lunar date such as 1958-leap5-12 or 1990-5-12",
-        "timeTypeRequired": "Please select a time type",
         "exactTimeRequired": "Please select an exact time",
-        "timeFormat": "Time must use HH:mm"
+        "timeFormat": "Time must use HH:mm",
+        "birthPlaceRequired": "Choose a birth place and confirm its timezone"
       },
-      "shichen": {
-        "zi": "Zi",
-        "chou": "Chou",
-        "yin": "Yin",
-        "mao": "Mao",
-        "chen": "Chen",
-        "si": "Si",
-        "wu": "Wu",
-        "wei": "Wei",
-        "shen": "Shen",
-        "you": "You",
-        "xu": "Xu",
-        "hai": "Hai"
-      }
+      "birthYear": "Birth year",
+      "birthTime": "Birth time"
     },
     "list": {
       "subtitle": "Manage birth information for the people you care about.",
@@ -390,7 +468,6 @@
     "chart": {
       "title": "Free charts",
       "compute": "Generate",
-      "lunarHint": "The free preview currently supports solar birth dates. Lunar dates can be charted and interpreted in a paid consultation.",
       "empty": "Enter a solar birth time and select “Generate” to preview BaZi, ZiWei, and Eight Mansions charts (temporary and not saved).",
       "bazi": "BaZi",
       "ziwei": "ZiWei",
@@ -400,6 +477,80 @@
       "shenSha": "Spirit stars",
       "daYun": "Destiny cycles",
       "yongShen": "Useful gods overview",
+      "relations": "Chart relations",
+      "rel": {
+        "ganHe": "Stem combination",
+        "ganChong": "Stem clash",
+        "zhiLiuHe": "Branch combination",
+        "sanHe": "Triple combination",
+        "sanHePartial": "Half combination",
+        "sanHui": "Triple meeting",
+        "liuChong": "Six clash",
+        "liuHai": "Six harm",
+        "liuXing": "Punishment",
+        "liuPo": "Destruction",
+        "anHe": "Hidden combination",
+        "gongJia": "Enclosed branch",
+        "contested": "Contested"
+      },
+      "pillarShort": {
+        "year": "Year",
+        "month": "Month",
+        "day": "Day",
+        "hour": "Hour"
+      },
+      "starLuck": "Stage",
+      "selfSitting": "Self seat",
+      "xunKong": "Xun void",
+      "kuiGang": "Kuigang",
+      "tenGods": "Ten Gods strength",
+      "elementStates": "Element states",
+      "marks": {
+        "transparent": "Transp.",
+        "hidden": "Hidden",
+        "rooted": "Root",
+        "timely": "Timely"
+      },
+      "count": "Count",
+      "season": "Season",
+      "strength": "Strength",
+      "seasonValue": {
+        "prosperous": "Prosperous",
+        "strong": "Strong",
+        "resting": "Resting",
+        "trapped": "Trapped",
+        "dead": "Dead"
+      },
+      "strengthValue": {
+        "strong": "Strong",
+        "neutral": "Neutral",
+        "weak": "Weak"
+      },
+      "luRoots": "Lu roots",
+      "changShengStages": "Twelve stages",
+      "nayinRel": "Nayin relations",
+      "nayinRelValue": {
+        "sheng": "Generating",
+        "ke": "Controlling",
+        "same": "Same"
+      },
+      "daYunNext": "next step in {years} yr",
+      "daYunDir": {
+        "forward": "Forward",
+        "backward": "Backward"
+      },
+      "liunianPillar": "Annual",
+      "liunianYear": "Annual year",
+      "liunianDetail": "Annual detail",
+      "withNatal": "With natal chart",
+      "withDaYun": "With cycle",
+      "ganRel": "Stems",
+      "zhiRel": "Branches",
+      "fuyinFanyin": "Repetition & reversal",
+      "shengCount": "Generates",
+      "keCount": "Restrains",
+      "auspicious": "Auspicious",
+      "inauspicious": "Inauspicious",
       "annualStars": "Annual flying stars ({year})",
       "centerStar": "Center star: ",
       "mingZhu": "Life Master",
@@ -425,10 +576,7 @@
       "favorAvoid": "{value} · favorable {favorable} · unfavorable {unfavorable}",
       "useFavor": "Use {value} · favorable {favorable}",
       "patternValue": "{value} · favorable {favorable} · unfavorable {unfavorable}",
-      "corrected": "Solar-time correction applied",
-      "notCorrectedNoPlace": "Solar-time correction not applied (birthplace missing)",
-      "approximateWithPlace": "Charted by two-hour period; birthplace is not applied without an exact time",
-      "approximate": "Charted by two-hour period without correction",
+      "correctedLongitude": "True solar time corrected · {lng}°E",
       "failed": "Chart generation failed",
       "pillar": {
         "year": "Year",
@@ -447,7 +595,6 @@
         "jue_ming": "Endings"
       },
       "errors": {
-        "unknownTime": "Birth time is unknown, so the free chart preview is unavailable. It can be refined in a paid consultation.",
         "missingTime": "Birth time is missing"
       }
     },
@@ -456,7 +603,7 @@
       "remove": "Delete"
     },
     "profile": "Profile",
-    "summary": "{calendar} {date} {time} · {gender} · {known}{place}"
+    "summary": "{date} {time} · {gender}{place}"
   },
   "commerce": {
     "oneTime": {
@@ -484,7 +631,7 @@
   },
   "chat": {
     "pendingService": "Ready to start: {service}",
-    "subtitle": "BaZi · ZiWei, divination, Feng Shui, and naming—choose your expert for a professional reading.",
+    "subtitle": "Life reading, annual fortune, compatibility, divination, dates, Feng Shui and naming — pick a reading and go deeper.",
     "productsFailed": "Failed to load products",
     "selectBirthProfile": "Select a profile",
     "selectBirthProfileFirst": "Select a profile first",
@@ -492,19 +639,7 @@
     "empty": "Select a profile and domain to start your first conversation.",
     "emptyAction": "Choose a service to start",
     "createFailed": "Could not create the session",
-    "state": {
-      "inactive": "Activate Liki Chat to use this service.",
-      "notIncluded": "This consultation domain is not included in your current plan.",
-      "profileRequired": "Select a profile to begin."
-    },
-    "status": {
-      "inactive": "Inactive",
-      "notIncluded": "Not included",
-      "profileRequired": "Profile needed",
-      "available": "Available"
-    },
     "action": {
-      "resolve": "Resolve",
       "activate": "Activate",
       "orders": "View orders",
       "start": "Start"
@@ -519,7 +654,6 @@
       "user": "Me",
       "assistant": "AI consultant"
     },
-    "thinking": "Reasoning",
     "copied": "Copied",
     "copyAnswer": "Copy answer",
     "stopped": "Generation stopped",
@@ -538,7 +672,6 @@
     },
     "sessions": {
       "title": "Topic",
-      "domain": "Domain",
       "updated": "Updated",
       "open": "Open",
       "rename": "Rename",
@@ -547,18 +680,29 @@
     },
     "systemBirthProfile": {
       "title": "Profile loaded",
-      "note": "Interpretation will be charted from this birth information.",
-      "known": "Known",
-      "approximate": "Two-hour period",
-      "unknown": "Unknown"
+      "note": "Interpretation will be charted from this birth information."
     },
     "skillNotIncluded": "This skill is not included in your current plan.",
-    "sessionTitleWithBirthProfile": "{nickname} · {skill} reading",
-    "sessionTitle": "{skill} reading",
+    "sessionTitleWithBirthProfile": "{nickname} · {skill}",
+    "sessionTitle": "{skill}",
     "phase": {
       "thinking": "Thinking"
     },
-    "sendFailed": "Send failed"
+    "tool": {
+      "expert": "Preparing your reading…",
+      "bazi": "Casting the BaZi chart…",
+      "ziwei": "Casting the ZiWei chart…",
+      "coords": "Calibrating birth time and place…",
+      "chart": "Running the chart analysis…",
+      "period": "Reading luck cycles…",
+      "qimen": "Setting up the QiMen chart…",
+      "liuyao": "Casting the hexagram…",
+      "naming": "Choosing characters…",
+      "fengshui": "Surveying the feng shui…",
+      "generic": "Working out the analysis…"
+    },
+    "sendFailed": "Send failed",
+    "loadEarlier": "Load earlier messages"
   },
   "account": {
     "subtitle": "Account information and signed-in devices.",
@@ -758,10 +902,17 @@
       "role_required": "The corresponding partner role is required.",
       "self_management_forbidden": "You cannot manage your own admin capabilities.",
       "skill_forbidden": "Your current entitlement does not include this skill.",
+      "runtime_failed": "Generation failed. Try again later.",
+      "runtime_timeout": "Generation timed out. Try again.",
+      "runtime_busy": "The service is busy. Try again later.",
+      "runtime_interrupted": "Generation was interrupted. Try again.",
+      "runtime_empty_response": "The run returned no answer. Try again.",
+      "llm_unavailable": "The model service is temporarily unavailable. Try again later.",
+      "mcp_tools_unavailable": "The tool service is temporarily unavailable. Try again later.",
+      "tool_execution_failed": "A tool call failed. Try again.",
       "engine_unavailable": "The charting service is temporarily unavailable. Try again later.",
       "invalid_engine_response": "The charting service returned an invalid response.",
       "engine_tool_failed": "Chart processing failed. Check the input and try again.",
-      "engine_tool_not_found": "This charting service is unavailable.",
       "city_not_found": "The birthplace could not be recognized for solar-time correction. Use a common city name or remove it.",
       "city_invalid": "No coordinates were found for the birthplace. Use a common city name or remove it.",
       "lunar_preview_unsupported": "The free preview currently supports Gregorian birth dates.",
@@ -773,7 +924,53 @@
       "code_locked": "Too many attempts. Please try again later.",
       "user_disabled": "This account is not available.",
       "user_not_found": "User not found.",
-      "mailer_unavailable": "Email service is temporarily unavailable. Please try again later."
+      "mailer_unavailable": "Email service is temporarily unavailable. Please try again later.",
+      "runtime_init_failed": "The reading service failed to start. Please try again later.",
+      "runtime_session_unavailable": "The session state is temporarily unavailable. Please try again.",
+      "llm_request_invalid": "The model request was invalid. Please try again.",
+      "llm_call_failed": "The model call failed. Please try again.",
+      "tool_call_invalid": "A tool call was invalid. Please try again.",
+      "tool_call_unknown": "An unknown tool was requested. Please try again.",
+      "tool_execution_interrupted": "Tool execution was interrupted. Please try again.",
+      "agent_definition_invalid": "The reading configuration is invalid. Please contact support.",
+      "agent_definition_missing": "The reading configuration is missing. Please contact support.",
+      "agent_delegation_unknown": "Task delegation was misrouted. Please try again.",
+      "agent_delegation_failed": "Task delegation failed. Please try again.",
+      "structured_output_invalid": "The generated result had an invalid format. Please try again.",
+      "structured_output_empty": "The generated result was empty. Please try again.",
+      "user_message_required": "The message must not be empty.",
+      "history_invalid": "The conversation history was invalid. Please try again.",
+      "run_id_conflict": "The request conflicted with an existing run. Please try again.",
+      "profile_not_allowed": "This reading profile is not available. Please go back and try again.",
+      "run_id_required": "The request is missing a run id.",
+      "run_id_invalid": "The run id is invalid.",
+      "thread_id_required": "The request is missing a session id.",
+      "thread_id_invalid": "The session id is invalid.",
+      "user_id_required": "The request is missing a user id.",
+      "user_id_invalid": "The user id is invalid.",
+      "identity_required": "Your identity could not be verified. Please sign in again.",
+      "method_not_allowed": "This request method is not supported.",
+      "invalid_agui_request": "The request was malformed. Please try again.",
+      "unsupported_agui_feature": "This feature is not supported yet.",
+      "invalid_agui_message": "The message format was invalid. Please try again.",
+      "partner_financial_hold": "Pending payouts must be settled first.",
+      "entitlement_not_found": "Entitlement not found.",
+      "entitlement_revoked": "Revoked entitlements cannot be rescheduled.",
+      "entitlement_already_revoked": "This entitlement is already revoked.",
+      "sales_unavailable": "Order service is temporarily unavailable. Try again later.",
+      "user_not_active": "This account is inactive.",
+      "super_requires_super": "Changing super admin capabilities requires a super admin.",
+      "too_large": "Request payload is too large.",
+      "webhook_failed": "Payment webhook processing failed.",
+      "invalid_body": "Invalid request body.",
+      "invalid_signature": "Signature verification failed.",
+      "invalid_callback": "Invalid callback parameters.",
+      "idempotency_mismatch": "This retry does not match the original request.",
+      "invalid_billing_mode": "Invalid billing mode.",
+      "subscription_unavailable": "Subscriptions are unavailable in your region.",
+      "subscription_conflict": "An active subscription already exists.",
+      "subscription_failed": "Could not create the subscription. Try again later.",
+      "subscription_update_failed": "Could not update the subscription. Try again later."
     }
   },
   "notFound": {
@@ -783,7 +980,6 @@
     "back": "Go back"
   },
   "partner": {
-    "centerSubtitle": "KOL and Scout are independent partnership roles—not membership levels. Commission comes only from real sales.",
     "centerKolDescription": "For parents, metaphysics practitioners, and creators who directly influence end users.",
     "centerScoutDescription": "For startup creators and channel partners who discover and support KOLs.",
     "state": {
@@ -799,10 +995,7 @@
     "openWorkspace": "Open workspace",
     "viewSettlement": "View settlement records",
     "applyNow": "Apply",
-    "viewRoleDescription": "View role description",
     "rules": "Partnership rules",
-    "rule1": "KOLs directly influence end users; Scouts discover and support KOLs.",
-    "rule2": "KOL and Scout are independent roles—no upgrades, downgrades, or simultaneous membership.",
     "rule3": "Purchase is not required to apply. Applications are reviewed by content, channel, and partnership plan.",
     "rule4": "Commission is based only on real product sales and adjusts for refunds.",
     "kol": {
@@ -812,9 +1005,8 @@
       "pendingDescription": "After approval, your KOL workspace will appear here.",
       "applyTitle": "Apply for the KOL program",
       "applyDescription": "The KOL program is for metaphysics practitioners, parents, and creators who directly influence end users. Applications are reviewed by Liki.",
-      "noteLabel": "Content direction and promotion plan",
+      "noteLabel": "Content direction and promotion plan (optional)",
       "notePlaceholder": "Describe your content platform, audience, metaphysics focus, and promotion plan.",
-      "noteRequired": "Enter your content direction and promotion plan",
       "applicationSubmitted": "KOL application submitted"
     },
     "scout": {
@@ -824,9 +1016,8 @@
       "pendingDescription": "After approval, your Scout workspace will appear here.",
       "applyTitle": "Apply for the Scout program",
       "applyDescription": "The Scout program is for startup creators, channel partners, and recruitment-oriented creators who discover and support KOLs. Applications are reviewed by Liki.",
-      "noteLabel": "Channel resources and partnership plan",
+      "noteLabel": "Channel resources and partnership plan (optional)",
       "notePlaceholder": "Describe your channel resources, the KOL audiences you can reach, and how you would support them.",
-      "noteRequired": "Enter your channel resources and partnership plan",
       "applicationSubmitted": "Scout application submitted",
       "inviteLink": "Scout invitation link",
       "copyInviteLink": "Copy invite link",
@@ -864,8 +1055,13 @@
     "requestedAt": "Requested",
     "frozenTitle": "{role} partnership frozen",
     "frozenDescription": "This partnership status is frozen. Contact Liki if you need it restored.",
-    "otherRoleTitle": "This account already participates in {role}",
-    "roleConflictDescription": "KOL and Scout are independent roles and cannot be held simultaneously or converted into each other.",
+    "roleConflictDescription": "Partnership roles are independent and cannot be held simultaneously or converted into each other.",
+    "inviteOnly": "The partnership program is invitation-only. Use the invitation link you received to open the matching application.",
+    "roleConflictTitle": "This account already participates in another partnership role",
+    "ruleKol1": "Share your referral link; commission comes only from real purchases.",
+    "ruleKol2": "Partnership is reviewed independently; no upgrades or downgrades.",
+    "ruleScout1": "Scouts discover and support KOLs, earning channel commission on their real purchases.",
+    "ruleScout2": "Partnership is reviewed independently; no upgrades or downgrades.",
     "pendingTitle": "{role} application under review",
     "rejectedTitle": "Last application was not approved: {reason}",
     "rejectedTitleNoReason": "Last application was not approved",

@@ -88,6 +88,41 @@
         />
       </el-card>
 
+      <el-card
+        class="app-card"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('services.fengshui.xuankongTitle') }}
+          </h2>
+        </template>
+        <FengshuiLayoutFields
+          :value="fengshuiLayout"
+          @update:patch="patchFengshuiLayout"
+        />
+        <XuankongPanel
+          v-loading="xuankongLoading"
+          :chart="xuankong"
+        />
+      </el-card>
+
+      <el-card
+        class="app-card"
+        shadow="never"
+      >
+        <template #header>
+          <h2 class="app-card__title">
+            {{ $t('services.fengshui.layoutTitle') }}
+          </h2>
+        </template>
+        <BazhaiLayoutPanel
+          v-loading="layoutLoading"
+          :layout="layoutResult"
+          :bazhai="bazhai"
+        />
+      </el-card>
+
       <AppConsultationCard
         :title="$t('services.fengshui.consultationTitle')"
         :description="$t('services.fengshui.consultationBody')"
@@ -120,18 +155,23 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, reactive, ref, toRef } from 'vue'
+import { firstQueryValue } from '@/utils/query'
+import { computed, onMounted, reactive, ref, toRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
-import { engineBazhaiChart, type BazhaiChart } from '@/api/engine'
+import { engineBazhaiChart, engineBazhaiLayout, engineXuankongChart, type BazhaiChart, type BazhaiLayout, type XuankongChart } from '@/api/engine'
 import { useToolRecords } from '@/composables/useToolRecords'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
-import MingGuaSection from '@/components/bazhai/MingGuaSection.vue'
-import LiuNianFlySection from '@/components/bazhai/LiuNianFlySection.vue'
+import MingGuaSection from '@shared/components/paipan/MingGuaSection.vue'
+import LiuNianFlySection from '@shared/components/paipan/LiuNianFlySection.vue'
+import XuankongPanel from '@shared/components/paipan/XuankongPanel.vue'
+import BazhaiLayoutPanel from '@shared/components/paipan/BazhaiLayoutPanel.vue'
+import FengshuiLayoutFields from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -148,20 +188,77 @@ void loadRecords()
 // 表单模型保持稳定对象，v-model 写入同一引用，change 当拍校验才能读到新值。
 const form = reactive({ profileId: '' })
 const profileId = toRef(form, 'profileId')
+const route = useRoute()
+const router = useRouter()
+
+// 档案选择同步 URL（?profile= 可分享/刷新保留）。
+const initialProfile = firstQueryValue(route.query.profile)
+if (initialProfile) form.profileId = initialProfile
+watch(profileId, value => {
+  const query = { ...route.query }
+  if (value) query.profile = value
+  else delete query.profile
+  void router.replace({ query })
+})
 const bazhai = ref<BazhaiChart | null>(null)
 const loading = ref(false)
 const error = ref('')
 
+// 玄空飞星（坐山默认子山午向，立极日期默认今天）与八宅布局（门/主/灶三卦）。
+const xuankong = ref<XuankongChart | null>(null)
+const xuankongLoading = ref(false)
+const fengshuiLayout = reactive({
+  zuoShan: 0,
+  periodDate: new Date().toISOString().slice(0, 10),
+  doorGua: '',
+  masterGua: '',
+  stoveGua: '',
+})
+const layoutResult = ref<BazhaiLayout | null>(null)
+const layoutLoading = ref(false)
+const layoutReady = computed(() => !!(bazhai.value && fengshuiLayout.doorGua && fengshuiLayout.masterGua && fengshuiLayout.stoveGua))
+
+type FengshuiLayoutPatch = Partial<typeof fengshuiLayout>
+function patchFengshuiLayout(patch: FengshuiLayoutPatch) {
+  Object.assign(fengshuiLayout, patch)
+  if (patch.zuoShan !== undefined || patch.periodDate !== undefined) void loadXuankong()
+  if (patch.doorGua !== undefined || patch.masterGua !== undefined || patch.stoveGua !== undefined) void loadLayout()
+}
+
+async function loadXuankong() {
+  xuankongLoading.value = true
+  try {
+    xuankong.value = await engineXuankongChart(fengshuiLayout.periodDate, fengshuiLayout.zuoShan, (fengshuiLayout.zuoShan + 12) % 24)
+  } catch {
+    xuankong.value = null
+  } finally {
+    xuankongLoading.value = false
+  }
+}
+
+async function loadLayout() {
+  const chart = bazhai.value
+  if (!layoutReady.value || !chart) return
+  layoutLoading.value = true
+  try {
+    layoutResult.value = await engineBazhaiLayout(chart.ming_gua.gua.name, fengshuiLayout.doorGua, fengshuiLayout.masterGua, fengshuiLayout.stoveGua)
+  } catch {
+    layoutResult.value = null
+  } finally {
+    layoutLoading.value = false
+  }
+}
+
 const profile = computed(() => profiles.list.find(p => p.id === profileId.value) ?? null)
 
 const formRef = ref<FormInstance>()
-// 档案数据问题（农历档案/出生年份越界）属字段级错误，显示在档案选择旁。
+// 档案数据问题（canonical 信息缺失/出生年份越界）属字段级错误，显示在档案选择旁。
 const rules = computed<FormRules>(() => ({
   profileId: [{
     validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
       const p = profiles.list.find(item => item.id === value)
       if (!value || !p) return callback(new Error(t('chat.selectBirthProfileFirst')))
-      if (p.calendar === 'lunar') return callback(new Error(t('profiles.chart.lunarHint')))
+      if (!p.birth_date) return callback(new Error(t('profiles.chart.errors.missingTime')))
       const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
       if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2100) {
         return callback(new Error(t('services.fengshui.invalidBirthYear')))
@@ -182,15 +279,26 @@ async function onProfileChange() {
   void loadPreview()
 }
 
+// URL 带回档案时（分享/刷新）自动出盘。
+onMounted(() => {
+  if (profileId.value) void onProfileChange()
+})
+
 async function loadPreview() {
   const p = profile.value
   if (!p) return
   loading.value = true
   error.value = ''
   bazhai.value = null
+  layoutResult.value = null
   try {
+    if (!p.birth_date) {
+      error.value = t('profiles.chart.errors.missingTime')
+      return
+    }
     const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
     bazhai.value = await engineBazhaiChart(birthYear, p.gender)
+    void loadXuankong()
   } catch (err) {
     error.value = toUserMessage(err, t('services.fengshui.failed'))
   } finally {
@@ -216,3 +324,8 @@ function startChat() {
   void openServiceChat(p.id, 'fengshui', message => { error.value = message })
 }
 </script>
+
+<style scoped>
+.fx-controls { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3); }
+.fx-select { width: 9rem; }
+</style>

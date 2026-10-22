@@ -12,6 +12,7 @@
           {{ $t('nav.orders') }}
         </el-button>
         <el-button
+          v-if="auth.hasPartnerRole"
           tag="router-link"
           to="/partners"
         >
@@ -150,14 +151,10 @@
       aria-busy="true"
     />
 
-    <el-empty
+    <AppEmptyState
       v-else-if="!loading && !sessions.length"
       :description="$t('account.sessions.empty')"
-    >
-      <el-button @click="load">
-        {{ $t('common.refresh') }}
-      </el-button>
-    </el-empty>
+    />
 
     <el-card
       v-else
@@ -258,6 +255,7 @@ import { erasureAccount } from '@/api/account'
 import { formatDateTime } from '@/utils/format'
 import { setAppLocale, type AppLocale } from '@/i18n'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import AppEmptyState from '@/components/app/AppEmptyState.vue'
 
 const auth = useAuthStore()
 const router = useRouter()

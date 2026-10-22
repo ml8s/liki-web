@@ -45,7 +45,7 @@ func (h *Handler) HandleAGUIMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := h.service.Session(r.Context(), user.ID, sessionID); err != nil {
-		writeSessionError(w, err)
+		writeSessionError(r.Context(), w, err)
 		return
 	}
 	requestCtx := withChatLocale(r.Context(), localeOrDefault(firstNonEmpty(
@@ -73,7 +73,7 @@ func (h *Handler) HandleAGUIMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !errors.Is(runErr, context.Canceled) {
-		slog.Error("liki: send agent message", "session_id", sessionID, "err", runErr)
+		slog.ErrorContext(r.Context(), "liki: send agent message", "session_id", sessionID, "err", runErr)
 	}
 	gateway.fail("服务暂时不可用，请稍后重试")
 }
@@ -119,11 +119,11 @@ func newAGUIGateway(
 
 func (g *aguiGateway) emit(event aguievents.Event) {
 	if err := event.Validate(); err != nil {
-		slog.Error("liki: invalid browser AG-UI event", "err", err)
+		slog.ErrorContext(g.ctx, "liki: invalid browser AG-UI event", "err", err)
 		return
 	}
 	if err := g.writer.WriteEvent(g.ctx, g.w, event); err != nil {
-		slog.Warn("liki: write browser AG-UI event", "err", err)
+		slog.WarnContext(g.ctx, "liki: write browser AG-UI event", "err", err)
 	}
 }
 
@@ -131,25 +131,30 @@ func (g *aguiGateway) start() {
 	g.emit(aguievents.NewRunStartedEvent(g.sessionID, g.runID))
 }
 
+// 浏览器自定义事件采用反域名命名；载荷只承载事实（工具名/信号），
+// 用户可见文案一律由前端 i18n 渲染。
+const (
+	browserPhaseEvent = "hk.liki.phase"
+)
+
+// translate 把内部 ChatEvent 映射为浏览器 AG-UI 事件：
+// phase 只带原始工具名；EventThinking 不产生浏览器事件（前端自带本地化默认
+// 文案，推理内容不外发）。
 func (g *aguiGateway) translate(event agent.ChatEvent) {
 	switch event.Type {
-	case agent.EventThinking:
-		g.phase("思考中")
 	case agent.EventPhase:
 		g.phase(event.Content)
-	case agent.EventThinkingDelta:
-		g.custom("liki.thinking", "正在推理…")
 	case agent.EventTextDelta:
 		g.text(event.Content)
 	default:
 	}
 }
 
-func (g *aguiGateway) phase(content string) {
-	if strings.TrimSpace(content) == "" {
+func (g *aguiGateway) phase(tool string) {
+	if strings.TrimSpace(tool) == "" {
 		return
 	}
-	g.custom("liki.phase", content)
+	g.custom(browserPhaseEvent, tool)
 }
 
 func (g *aguiGateway) custom(name, value string) {

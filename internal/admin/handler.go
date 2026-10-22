@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -31,7 +32,7 @@ func (h *AdminService) HandleSession(user auth.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		capabilities, err := h.authorizer.Capabilities(r.Context(), user)
 		if err != nil {
-			slog.Error("admin: read session capabilities", "err", err)
+			slog.ErrorContext(r.Context(), "admin: read session capabilities", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "读取管理能力失败")
 			return
 		}
@@ -70,7 +71,7 @@ func (h *AdminService) HandleEntitlements() http.HandlerFunc {
 		status := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("status")))
 		items, err := h.entitlements.ListForAdmin(r.Context(), email, status, 100)
 		if err != nil {
-			slog.Error("admin: list entitlements", "err", err)
+			slog.ErrorContext(r.Context(), "admin: list entitlements", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询用户权益失败")
 			return
 		}
@@ -91,7 +92,7 @@ func (h *AdminService) HandleExpireEntitlement() http.HandlerFunc {
 			return
 		}
 		before, after, err := h.entitlements.UpdateExpiration(r.Context(), id, expiresAt)
-		if writeEntitlementError(w, err) {
+		if writeEntitlementError(r.Context(), w, err) {
 			return
 		}
 		h.auditEntitlementChange(r, "entitlement.expire", id, before, after, req.Reason)
@@ -107,7 +108,7 @@ func (h *AdminService) HandleRevokeEntitlement() http.HandlerFunc {
 			return
 		}
 		before, after, err := h.entitlements.Revoke(r.Context(), id)
-		if writeEntitlementError(w, err) {
+		if writeEntitlementError(r.Context(), w, err) {
 			return
 		}
 		h.auditEntitlementChange(r, "entitlement.revoked", id, before, after, req.Reason)
@@ -115,7 +116,7 @@ func (h *AdminService) HandleRevokeEntitlement() http.HandlerFunc {
 	}
 }
 
-func writeEntitlementError(w http.ResponseWriter, err error) bool {
+func writeEntitlementError(ctx context.Context, w http.ResponseWriter, err error) bool {
 	switch {
 	case err == nil:
 		return false
@@ -126,7 +127,7 @@ func writeEntitlementError(w http.ResponseWriter, err error) bool {
 	case errors.Is(err, entitlement.ErrEntitlementAlreadyRevoked):
 		httputil.RespondError(w, http.StatusConflict, "entitlement_already_revoked", "权益已撤销")
 	default:
-		slog.Error("admin: change entitlement", "err", err)
+		slog.ErrorContext(ctx, "admin: change entitlement", "err", err)
 		httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "更新用户权益失败")
 	}
 	return true
@@ -141,7 +142,7 @@ func (h *AdminService) auditEntitlementChange(r *http.Request, action, id, befor
 		Before: before, After: after, Reason: strings.TrimSpace(reason),
 	})
 	if err != nil {
-		slog.Error("admin: audit entitlement", "id", id, "err", err)
+		slog.ErrorContext(r.Context(), "admin: audit entitlement", "id", id, "err", err)
 	}
 }
 

@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"time"
 )
 
 type sessionBindingKey struct{}
@@ -20,12 +21,10 @@ type sessionBinding struct {
 // call deterministic chart tools. It deliberately excludes identity, contact,
 // consent, notes, and database identifiers.
 type AgentProfileContext struct {
-	Calendar       string `json:"calendar"`
-	Gender         string `json:"gender"`
-	BirthDate      string `json:"birth_date"`
-	BirthTime      string `json:"birth_time,omitempty"`
-	BirthTimeKnown string `json:"birth_time_known"`
-	BirthPlace     string `json:"birth_place,omitempty"`
+	Gender         string     `json:"gender"`
+	BirthLongitude *float64   `json:"birth_longitude,omitempty"`
+	BirthTimezone  *string    `json:"birth_timezone,omitempty"`
+	BirthInstant   *time.Time `json:"birth_instant,omitempty"`
 }
 
 func withSessionBinding(ctx context.Context, binding sessionBinding) context.Context {

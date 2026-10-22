@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import FengshuiTool from '../../islands/FengshuiTool.vue';
 import { t, locales } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -19,6 +20,17 @@ const staticSections = ['focus', 'method', 'output'].map(key => ({
   title: t(locale, `${ns}.static.${key}.title`),
   body: t(locale, `${ns}.static.${key}.body`),
 }));
+const toolProps = {
+  locale,
+  appUrl: `/app?service=fengshui&locale=${locale}`,
+  labels: {
+    submit: t(locale, 'tool.submit'),
+    computing: t(locale, 'tool.computing'),
+    error: t(locale, 'tool.error'),
+    cta: t(locale, 'tool.cta'),
+    privacy: t(locale, 'tool.privacy'),
+  },
+};
 ---
 
 <ScenarioLanding
@@ -37,6 +49,12 @@ const staticSections = ['focus', 'method', 'output'].map(key => ({
   faqTitleKey="scenario.faqTitle"
   faqs={faqs}
 >
+  <Fragment slot="tool">
+    <h2>{t(locale, 'fengshui.tool.title')}</h2>
+    <p>{t(locale, 'fengshui.tool.intro')}</p>
+    <div id="fengshui-tool" data-props={JSON.stringify(toolProps)}>
+    </div>
+  </Fragment>
   <div class="scenario-static-index">
     {staticSections.map(section => (
       <details>
@@ -46,3 +64,7 @@ const staticSections = ['focus', 'method', 'output'].map(key => ({
     ))}
   </div>
 </ScenarioLanding>
+
+<script>
+  import '../../scripts/fengshui-tool';
+</script>

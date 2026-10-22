@@ -6,7 +6,7 @@ export type PartnerRoleStatus = 'active' | 'frozen' | 'retired'
 export type CommissionStatus = 'pending' | 'paid' | 'voided'
 export type PayoutStatus = 'requested' | 'pending' | 'approved' | 'rejected' | 'paid' | 'failed'
 export type PayoutMethod = 'alipay' | 'paypal'
-export type ApplicationStatus = 'pending' | 'approved' | 'rejected'
+export type PartnerApplicationStatus = 'pending' | 'approved' | 'rejected'
 
 export interface Partner {
   user_id: string
@@ -23,7 +23,7 @@ export interface PartnerApplication {
   user_id: string
   type: PartnerRole
   code: string
-  status: ApplicationStatus
+  status: PartnerApplicationStatus
   note: string
   reviewer_id?: string
   decision_reason?: string

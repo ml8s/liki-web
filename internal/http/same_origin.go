@@ -10,20 +10,12 @@ import (
 
 // SameOrigin protects cookie-authenticated state changes. SameSite=Lax is the
 // primary cookie boundary; Origin/Referer verification is the application
-// boundary. Provider webhooks are explicitly bypassed.
+// boundary. Requests carrying an explicit credential header are exempt: the
+// browser never attaches those automatically, so a cross-site page cannot forge
+// them (standard CSRF exemption for non-cookie API clients).
 func SameOrigin(devMode bool, next stdhttp.Handler) stdhttp.Handler {
 	return stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
-		if !unsafeMethod(r.Method) || sameOriginBypass(r.URL.Path) {
-			next.ServeHTTP(w, r)
-			return
-		}
-		// Feedback is public anonymous JSON without cookies or sessions. A
-		// non-browser first-party script has no browser-supplied Origin, so the
-		// missing-header case is allowed; cross-site browser headers still fall
-		// through to the checks below. Rate limiting and payload validation
-		// remain the abuse boundary.
-		if publicAnonymousJSON(r.URL.Path) &&
-			r.Header.Get("Origin") == "" && r.Header.Get("Referer") == "" {
+		if !unsafeMethod(r.Method) || csrfExempt(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -48,16 +40,34 @@ func unsafeMethod(method string) bool {
 	}
 }
 
-func sameOriginBypass(path string) bool {
-	// Webhooks authenticate with provider signatures, not browser cookies.
-	// The aipay 402 flow is a non-browser agent redemption: the credential
-	// is the Payment-Proof header, so same-origin is meaningless there.
-	// Both stay rate limited.
-	return path == "/api/payments/webhook" || path == "/api/aipay"
-}
-
-func publicAnonymousJSON(path string) bool {
-	return path == "/api/feedback"
+// csrfExempt reports whether a state-changing request does not need same-origin
+// verification. CSRF only affects credentials the browser attaches implicitly
+// (cookies); explicit header credentials and anonymous public JSON are safe.
+func csrfExempt(r *stdhttp.Request) bool {
+	// Explicit credentials: the browser does not add these cross-site.
+	// - Authorization: Bearer token / API key (feedback API and machine clients)
+	// - Payment-Proof: aipay 402 redemption credential
+	if r.Header.Get("Authorization") != "" || r.Header.Get("Payment-Proof") != "" {
+		return true
+	}
+	// Provider webhooks authenticate with signatures, not browser cookies.
+	// `/api/aipay` is a non-browser 402 flow: the first request has no
+	// Payment-Proof yet (it returns 402 with the bill), so it cannot be gated
+	// on that header. Internal run-control endpoints are server-to-server only.
+	if r.URL.Path == "/api/payments/webhook" || r.URL.Path == "/api/aipay" ||
+		strings.HasPrefix(r.URL.Path, "/api/internal/") {
+		return true
+	}
+	// Feedback is public anonymous JSON without cookies. A non-browser script
+	// has no browser-supplied Origin/Referer, so the missing-header case is
+	// allowed (covers POST and PATCH under /api/feedback). Cross-site browser
+	// requests still carry Origin and fall through to the origin check.
+	// Rate limiting and payload validation remain the abuse boundary.
+	if strings.HasPrefix(r.URL.Path, "/api/feedback") &&
+		r.Header.Get("Origin") == "" && r.Header.Get("Referer") == "" {
+		return true
+	}
+	return false
 }
 
 func sameOriginAllowed(r *stdhttp.Request, allowed map[string]bool) bool {

@@ -15,7 +15,10 @@ import { test as base, expect } from '@playwright/test';
 
 // 匹配用 URL 谓词而不是 `**/api/**` 这类 glob：只认 HTTP API 命名空间，
 // 不会把 dev server 的 /src/api/*.ts 模块请求当成 API 调用。
-const isApiRequest = (url: URL) => url.pathname.startsWith('/api/');
+const isApiRequest = (url: URL) =>
+  url.pathname.startsWith('/api/') ||
+  url.pathname.startsWith('/engine/') ||
+  url.pathname.startsWith('/counsel/');
 
 const test = base.extend<{ liveBackend: boolean }>({
   liveBackend: [false, { option: true }],

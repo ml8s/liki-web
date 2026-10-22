@@ -55,7 +55,7 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="submitApplicationFilters"
+          native-type="submit"
         >
           查询
         </el-button>
@@ -263,7 +263,7 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="submitPartnerFilters"
+          native-type="submit"
         >
           查询
         </el-button>

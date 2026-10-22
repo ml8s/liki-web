@@ -1,6 +1,7 @@
 package records
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -58,7 +59,7 @@ func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 	}
 	items, err := h.store.List(r.Context(), user.ID, kind, 50)
 	if err != nil {
-		slog.Error("records: list", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "records: list", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -82,7 +83,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		Output: req.Output,
 	})
 	if err != nil {
-		writeRecordError(w, err, "create")
+		writeRecordError(r.Context(), w, err, "create")
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, record)
@@ -104,7 +105,7 @@ func (h *Handler) HandleRename(w http.ResponseWriter, r *http.Request) {
 	}
 	record, err := h.store.Rename(r.Context(), user.ID, r.PathValue("id"), req.Title)
 	if err != nil {
-		writeRecordError(w, err, "rename")
+		writeRecordError(r.Context(), w, err, "rename")
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, record)
@@ -117,7 +118,7 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.store.SoftDelete(r.Context(), user.ID, r.PathValue("id")); err != nil {
-		writeRecordError(w, err, "delete")
+		writeRecordError(r.Context(), w, err, "delete")
 		return
 	}
 	httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
@@ -125,14 +126,14 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 
 // writeRecordError keeps caller-fixable problems (ErrInvalid) distinct from
 // missing rows and store failures, mirroring chat's session error layer.
-func writeRecordError(w http.ResponseWriter, err error, action string) {
+func writeRecordError(ctx context.Context, w http.ResponseWriter, err error, action string) {
 	switch {
 	case errors.Is(err, ErrInvalid):
 		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "记录参数无效")
 	case errors.Is(err, ErrNotFound):
 		httputil.NotFound(w)
 	default:
-		slog.Error("records: "+action, "err", err)
+		slog.ErrorContext(ctx, "records: "+action, "err", err)
 		httputil.InternalError(w)
 	}
 }

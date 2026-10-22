@@ -1,0 +1,47 @@
+---
+// KOL 合作邀请页（定向邀请制）：不公开、noindex、不进 sitemap；
+// 链接由平台定向发放（liki.hk/{locale}/partner/kol/）。
+// 页面只呈现 KOL 角色本身，不出现其他合作角色的任何信息。
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { t, locales } from '../../../i18n.ts';
+
+export function getStaticPaths() {
+  return locales.map(locale => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params;
+const ns = 'partner/kol';
+---
+
+<BaseLayout
+  locale={locale}
+  page="partner/kol"
+  type="brand"
+  twitterCard="summary_large_image"
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex" />
+  </Fragment>
+
+  <section class="landing-hero">
+    <p class="landing-kicker">{t(locale, `${ns}.kicker`)}</p>
+    <h1 class="landing-h1">{t(locale, `${ns}.hero.title`)}</h1>
+    <p class="landing-sub">{t(locale, `${ns}.hero.subtitle`)}</p>
+    <div class="landing-actions">
+      <a href={`/app/partners/kol?locale=${locale}`} class="btn-purple">{t(locale, `${ns}.cta`)}</a>
+    </div>
+  </section>
+
+  <section class="landing-services">
+    <div class="service-grid">
+      <div class="card">
+        <h2 class="font-serif">{t(locale, `${ns}.audience.title`)}</h2>
+        <p>{t(locale, `${ns}.audience.body`)}</p>
+      </div>
+      <div class="card">
+        <h2 class="font-serif">{t(locale, `${ns}.how.title`)}</h2>
+        <p>{t(locale, `${ns}.how.body`)}</p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

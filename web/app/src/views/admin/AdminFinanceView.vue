@@ -52,7 +52,7 @@
         <el-button
           type="primary"
           :loading="reportLoading"
-          @click="submitFinanceFilters"
+          native-type="submit"
         >
           查询
         </el-button>
@@ -151,7 +151,7 @@
         </el-form-item>
         <el-button
           type="primary"
-          @click="submitFinanceFilters"
+          native-type="submit"
         >
           查询
         </el-button>

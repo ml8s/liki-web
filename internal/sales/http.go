@@ -295,9 +295,9 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if cancelErr := h.orders.CancelOrder(r.Context(), user.ID, order.ID); cancelErr != nil {
-		slog.Error("sales: cancel failed checkout order", "order_id", order.ID, "err", cancelErr)
+		slog.ErrorContext(r.Context(), "sales: cancel failed checkout order", "order_id", order.ID, "err", cancelErr)
 	}
-	slog.Error("sales: start checkout", "order_id", order.ID, "err", err)
+	slog.ErrorContext(r.Context(), "sales: start checkout", "order_id", order.ID, "err", err)
 	httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
 }
 
@@ -327,7 +327,7 @@ func (h *Handler) HandleOrders(w http.ResponseWriter, r *http.Request) {
 	}
 	intents, err := h.runtime.GetIntents(r.Context(), intentIDs)
 	if err != nil {
-		slog.Error("sales: annotate orders with intents", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: annotate orders with intents", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -356,7 +356,7 @@ func (h *Handler) HandleOrderDetail(w http.ResponseWriter, r *http.Request) {
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("sales: load order detail", "order_id", r.PathValue("id"), "err", err)
+		slog.ErrorContext(r.Context(), "sales: load order detail", "order_id", r.PathValue("id"), "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -380,7 +380,7 @@ func (h *Handler) HandleOrderDetail(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, payment.ErrIntentNotFound):
 			// An order without a live intent still renders; payment stays absent.
 		default:
-			slog.Error("sales: load intent for order detail", "order_id", order.ID, "err", err)
+			slog.ErrorContext(r.Context(), "sales: load intent for order detail", "order_id", order.ID, "err", err)
 			httputil.InternalError(w)
 			return
 		}
@@ -401,7 +401,7 @@ func (h *Handler) HandleCancelOrder(w http.ResponseWriter, r *http.Request) {
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("sales: load order for cancel", "order_id", orderID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: load order for cancel", "order_id", orderID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -416,7 +416,7 @@ func (h *Handler) HandleCancelOrder(w http.ResponseWriter, r *http.Request) {
 			httputil.RespondError(w, http.StatusConflict, "order_not_pending", "订单当前不可取消")
 			return
 		}
-		slog.Error("sales: cancel order", "order_id", orderID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: cancel order", "order_id", orderID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -440,7 +440,7 @@ func (h *Handler) HandleResumeCheckout(w http.ResponseWriter, r *http.Request) {
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("sales: load order for resume", "order_id", orderID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: load order for resume", "order_id", orderID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -454,7 +454,7 @@ func (h *Handler) HandleResumeCheckout(w http.ResponseWriter, r *http.Request) {
 			httputil.RespondError(w, http.StatusConflict, "order_expired", "订单已过期，请重新下单")
 			return
 		}
-		slog.Error("sales: load intent for resume", "order_id", orderID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: load intent for resume", "order_id", orderID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -477,7 +477,7 @@ func (h *Handler) HandleResumeCheckout(w http.ResponseWriter, r *http.Request) {
 			httputil.RespondError(w, http.StatusConflict, "order_expired", "订单已过期，请重新下单")
 			return
 		}
-		slog.Error("sales: resume checkout", "order_id", orderID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: resume checkout", "order_id", orderID, "err", err)
 		httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起支付失败")
 		return
 	}
@@ -513,13 +513,13 @@ func (h *Handler) handleSubscriptionCheckout(
 			httputil.RespondError(w, http.StatusConflict, "subscription_conflict", "已有有效订阅")
 			return
 		}
-		slog.Error("sales: check blocking subscription", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: check blocking subscription", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
 	subscription, err := h.subscriptions.CreatePending(r.Context(), user.ID, user.Email, productID, currency)
 	if err != nil {
-		slog.Error("sales: create subscription", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: create subscription", "user_id", user.ID, "err", err)
 		httputil.RespondError(w, http.StatusBadRequest, "subscription_failed", "创建订阅失败")
 		return
 	}
@@ -536,7 +536,7 @@ func (h *Handler) handleSubscriptionCheckout(
 		err = h.subscriptions.AttachCheckout(r.Context(), user.ID, subscription.ID, result.CheckoutSessionID)
 	}
 	if err != nil {
-		slog.Error("sales: start subscription checkout", "subscription_id", subscription.ID, "locale", LocaleOrDefault(locale), "err", err)
+		slog.ErrorContext(r.Context(), "sales: start subscription checkout", "subscription_id", subscription.ID, "locale", LocaleOrDefault(locale), "err", err)
 		httputil.RespondError(w, http.StatusBadGateway, "checkout_failed", "发起订阅支付失败")
 		return
 	}
@@ -561,7 +561,7 @@ func (h *Handler) HandleSubscriptions(w http.ResponseWriter, r *http.Request) {
 	}
 	if h.subscriptionReconciler != nil && h.applySubscriptionEvent != nil {
 		if err := h.reconcilePendingSubscriptions(r.Context(), user.ID); err != nil {
-			slog.Error("sales: reconcile pending subscriptions", "user_id", user.ID, "err", err)
+			slog.ErrorContext(r.Context(), "sales: reconcile pending subscriptions", "user_id", user.ID, "err", err)
 		}
 		items, err = h.subscriptions.ListByUser(r.Context(), user.ID, 50)
 		if err != nil {
@@ -583,14 +583,14 @@ func (h *Handler) reconcilePendingSubscriptions(ctx context.Context, userID stri
 		}
 		event, err := h.subscriptionReconciler.FetchSubscriptionByCheckout(ctx, item.ProviderCheckoutSessionID)
 		if err != nil {
-			slog.Error("sales: fetch pending subscription", "subscription_id", item.ID, "checkout_id", item.ProviderCheckoutSessionID, "err", err)
+			slog.ErrorContext(ctx, "sales: fetch pending subscription", "subscription_id", item.ID, "checkout_id", item.ProviderCheckoutSessionID, "err", err)
 			continue
 		}
 		if event == nil {
 			continue
 		}
 		if err := h.applySubscriptionEvent(ctx, *event); err != nil {
-			slog.Error("sales: apply reconciled subscription", "subscription_id", item.ID, "err", err)
+			slog.ErrorContext(ctx, "sales: apply reconciled subscription", "subscription_id", item.ID, "err", err)
 		}
 	}
 	return nil
@@ -604,7 +604,7 @@ func (h *Handler) HandleSubscriptionPayments(w http.ResponseWriter, r *http.Requ
 	}
 	items, err := h.subscriptions.ListPaymentsByUser(r.Context(), user.ID, 50)
 	if err != nil {
-		slog.Error("sales: list subscription payments", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "sales: list subscription payments", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -630,7 +630,7 @@ func (h *Handler) setCancellation(w http.ResponseWriter, r *http.Request, cancel
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("sales: set subscription cancellation", "user_id", user.ID, "subscription_id", r.PathValue("id"), "cancel", cancel, "err", err)
+		slog.ErrorContext(r.Context(), "sales: set subscription cancellation", "user_id", user.ID, "subscription_id", r.PathValue("id"), "cancel", cancel, "err", err)
 		httputil.RespondError(w, http.StatusBadGateway, "subscription_update_failed", "更新订阅状态失败")
 		return
 	}

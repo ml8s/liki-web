@@ -346,7 +346,7 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 	}
 	if event.Type != EventPaymentSucceeded && event.Type != EventPaymentRefunded {
 		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "ignored"})
-		slog.Info("payment: ignored webhook", "provider", event.Provider, "type", event.Type)
+		slog.InfoContext(ctx, "payment: ignored webhook", "provider", event.Provider, "type", event.Type)
 		return r.webhookAck(event.Provider)
 	}
 	intent, err := r.intents.GetIntent(ctx, event.Data.OrderID)
@@ -397,7 +397,7 @@ func (r *Runtime) ReconcilePendingIntents(ctx context.Context, limit int) error 
 	}
 	for _, intent := range intents {
 		if _, changed, err := r.reconcileIntent(ctx, intent); err != nil {
-			slog.Error("payment: reconcile intent", "intent_id", intent.ID, "err", err)
+			slog.ErrorContext(ctx, "payment: reconcile intent", "intent_id", intent.ID, "err", err)
 		} else if changed {
 			metrics.Default.Inc("payment_reconcile_total", map[string]string{"result": "captured"})
 		}
@@ -557,7 +557,7 @@ func (r *Runtime) StartPaymentCompletionWorker(ctx context.Context, interval tim
 		interval = 5 * time.Second
 	}
 	if err := r.fulfillments.RecoverRunning(ctx); err != nil {
-		slog.Error("payment: recover fulfillment tasks", "err", err)
+		slog.ErrorContext(ctx, "payment: recover fulfillment tasks", "err", err)
 	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -567,7 +567,7 @@ func (r *Runtime) StartPaymentCompletionWorker(ctx context.Context, interval tim
 			return
 		case <-ticker.C:
 			if _, err := r.ProcessPaymentCompletionTasks(ctx, 20); err != nil {
-				slog.Error("payment: fulfillment worker", "err", err)
+				slog.ErrorContext(ctx, "payment: fulfillment worker", "err", err)
 			}
 		}
 	}
@@ -602,7 +602,7 @@ func (r *Runtime) HandleReturn(ctx context.Context, intentID string) (PaymentInt
 	// the user to wait for webhook or background reconciliation.
 	intent, _, reconcileErr := r.reconcileIntent(ctx, intent)
 	if reconcileErr != nil {
-		slog.Warn("payment: reconcile return", "intent_id", intentID, "provider", intent.Provider, "err", reconcileErr)
+		slog.WarnContext(ctx, "payment: reconcile return", "intent_id", intentID, "provider", intent.Provider, "err", reconcileErr)
 	}
 	if intent.Status == IntentPaid {
 		location := flow.SuccessRedirect(intent)
@@ -658,7 +658,7 @@ func (r *Runtime) StartNotificationWorker(ctx context.Context, interval time.Dur
 			return
 		case <-ticker.C:
 			if err := r.ProcessPendingNotifications(ctx, 100); err != nil {
-				slog.Error("payment: notification worker", "err", err)
+				slog.ErrorContext(ctx, "payment: notification worker", "err", err)
 			}
 		}
 	}
@@ -673,7 +673,7 @@ func (r *Runtime) StartReconciliationWorker(ctx context.Context, interval time.D
 			return
 		case <-ticker.C:
 			if err := r.ReconcilePendingIntents(ctx, 20); err != nil {
-				slog.Error("payment: reconciliation worker", "err", err)
+				slog.ErrorContext(ctx, "payment: reconciliation worker", "err", err)
 			}
 		}
 	}
@@ -688,13 +688,13 @@ func (r *Runtime) ProcessPendingNotifications(ctx context.Context, limit int) er
 		if err := r.sender.Send(ctx, EmailMessage{To: message.To, Subject: message.Subject, Body: message.Body}); err != nil {
 			metrics.Default.Inc("payment_notification_total", map[string]string{"result": "failed"})
 			if markErr := r.notifications.MarkFailed(ctx, message.ID, err.Error()); markErr != nil {
-				slog.Error("payment: mark notification failed", "notification_id", message.ID, "err", markErr)
+				slog.ErrorContext(ctx, "payment: mark notification failed", "notification_id", message.ID, "err", markErr)
 			}
 			continue
 		}
 		metrics.Default.Inc("payment_notification_total", map[string]string{"result": "sent"})
 		if err := r.notifications.MarkSent(ctx, message.ID); err != nil {
-			slog.Error("payment: mark notification sent", "notification_id", message.ID, "err", err)
+			slog.ErrorContext(ctx, "payment: mark notification sent", "notification_id", message.ID, "err", err)
 		}
 	}
 	return nil

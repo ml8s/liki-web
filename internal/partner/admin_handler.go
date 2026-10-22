@@ -35,7 +35,7 @@ func (h *AdminHandler) HandleListPartners() http.HandlerFunc {
 			page,
 		)
 		if err != nil {
-			slog.Error("admin partner: list partners", "err", err)
+			slog.ErrorContext(r.Context(), "admin partner: list partners", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询合作伙伴失败")
 			return
 		}
@@ -53,7 +53,7 @@ func (h *AdminHandler) HandleListApplications() http.HandlerFunc {
 			page,
 		)
 		if err != nil {
-			slog.Error("admin partner: list applications", "err", err)
+			slog.ErrorContext(r.Context(), "admin partner: list applications", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询申请失败")
 			return
 		}
@@ -108,7 +108,7 @@ func (h *AdminHandler) HandleApplicationDecision() http.HandlerFunc {
 			case errors.Is(err, ErrAlreadyKOL):
 				httputil.RespondError(w, http.StatusConflict, "already_kol", "该账号已是 KOL")
 			default:
-				slog.Error("admin partner: decide application", "id", id, "err", err)
+				slog.ErrorContext(r.Context(), "admin partner: decide application", "id", id, "err", err)
 				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "处理申请失败")
 			}
 			return
@@ -160,7 +160,7 @@ func (h *AdminHandler) handlePartnerStatus(status PartnerStatus) http.HandlerFun
 			case errors.Is(err, ErrInvalidPartnerStatus):
 				httputil.RespondError(w, http.StatusUnprocessableEntity, "validation_error", "无效状态")
 			default:
-				slog.Error("admin partner: set partner status", "user_id", userID, "err", err)
+				slog.ErrorContext(r.Context(), "admin partner: set partner status", "user_id", userID, "err", err)
 				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "更新合作伙伴失败")
 			}
 			return
@@ -174,7 +174,7 @@ func (h *AdminHandler) HandleAdminActions() http.HandlerFunc {
 		page := ParseAdminPageRequest(r)
 		pageResult, err := h.store.ListPartnerAdminActions(r.Context(), page)
 		if err != nil {
-			slog.Error("admin partner: list actions", "err", err)
+			slog.ErrorContext(r.Context(), "admin partner: list actions", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询管理记录失败")
 			return
 		}
@@ -187,7 +187,7 @@ func (h *AdminHandler) HandleListPayouts() http.HandlerFunc {
 		page := ParseAdminPageRequest(r)
 		pageResult, err := h.store.ListPayouts(r.Context(), PayoutStatus(r.URL.Query().Get("status")), page)
 		if err != nil {
-			slog.Error("admin partner: list payouts", "err", err)
+			slog.ErrorContext(r.Context(), "admin partner: list payouts", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询提现失败")
 			return
 		}
@@ -237,7 +237,7 @@ func (h *AdminHandler) HandlePayoutAction() http.HandlerFunc {
 			case errors.Is(err, ErrPayoutInvalidTransition):
 				httputil.RespondError(w, http.StatusConflict, "payout_invalid_transition", "提现状态已变化，请刷新后重试")
 			default:
-				slog.Error("admin partner: payout action", "id", id, "action", action, "err", err)
+				slog.ErrorContext(r.Context(), "admin partner: payout action", "id", id, "action", action, "err", err)
 				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "处理提现失败")
 			}
 			return
@@ -251,7 +251,7 @@ func (h *AdminHandler) HandleListFinanceTasks() http.HandlerFunc {
 		page := ParseAdminPageRequest(r)
 		pageResult, err := h.store.ListFinanceTasks(r.Context(), FinanceTaskStatus(r.URL.Query().Get("status")), page)
 		if err != nil {
-			slog.Error("admin partner: list finance tasks", "err", err)
+			slog.ErrorContext(r.Context(), "admin partner: list finance tasks", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "查询财务任务失败")
 			return
 		}
@@ -289,7 +289,7 @@ func (h *AdminHandler) HandleResolveFinanceTask() http.HandlerFunc {
 			case errors.Is(err, ErrFinanceTaskInvalidTransition):
 				httputil.RespondError(w, http.StatusConflict, "finance_task_invalid_transition", "财务任务状态已变化，请刷新后重试")
 			default:
-				slog.Error("admin partner: resolve finance task", "id", id, "err", err)
+				slog.ErrorContext(r.Context(), "admin partner: resolve finance task", "id", id, "err", err)
 				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "处理财务任务失败")
 			}
 			return
@@ -322,7 +322,7 @@ func (h *AdminHandler) HandleRevealPayoutAccount() http.HandlerFunc {
 			case errors.Is(err, ErrPayoutNotFound):
 				httputil.RespondError(w, http.StatusNotFound, "payout_not_found", "提现不存在")
 			default:
-				slog.Error("admin partner: reveal payout account", "id", id, "err", err)
+				slog.ErrorContext(r.Context(), "admin partner: reveal payout account", "id", id, "err", err)
 				httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "读取收款账号失败")
 			}
 			return

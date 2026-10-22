@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sort"
+	"strings"
 )
 
 // PartnerProgramState is the user-facing state for one independent programme.
@@ -13,6 +15,45 @@ type PartnerProgramState struct {
 	Status      RoleStatus          `json:"status,omitempty"`
 	Application *PartnerApplication `json:"application"`
 	CanSubmit   bool                `json:"can_submit"`
+}
+
+// PartnerRoles returns the roles the user has any relationship with — a
+// partner record (any status) or an application (any decision state). It is
+// the light identity summary consumed by /api/me so the app shell can gate the
+// partnership entry; programme details stay in PartnerStates.
+func (s *Store) PartnerRoles(ctx context.Context, userID string) ([]string, error) {
+	userID = strings.TrimSpace(userID)
+	roles := map[string]struct{}{}
+	if userID != "" {
+		if err := s.collectRoles(ctx, `SELECT role FROM partners WHERE user_id=?`, userID, roles); err != nil {
+			return nil, err
+		}
+		if err := s.collectRoles(ctx, `SELECT DISTINCT type FROM partner_applications WHERE user_id=?`, userID, roles); err != nil {
+			return nil, err
+		}
+	}
+	out := make([]string, 0, len(roles))
+	for role := range roles {
+		out = append(out, role)
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+func (s *Store) collectRoles(ctx context.Context, query, userID string, into map[string]struct{}) error {
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var role string
+		if err := rows.Scan(&role); err != nil {
+			return err
+		}
+		into[role] = struct{}{}
+	}
+	return rows.Err()
 }
 
 // PartnerStates is the stable aggregate for the partner onboarding surface.

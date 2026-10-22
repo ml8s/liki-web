@@ -1,0 +1,73 @@
+import { describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import { flushPromises, mount } from '@vue/test-utils'
+import { ElSelect } from 'element-plus'
+import BirthForm from '@/components/birth-profiles/BirthForm.vue'
+import { resetCityIndexCache } from '@shared/utils/citySearch'
+
+const toolOk = (data: unknown) =>
+  new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      result: { content: [{ type: 'text', text: JSON.stringify(data) }] },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
+
+function mountForm(initial: Record<string, unknown> = {}) {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  return mount(BirthForm, { props: { initial }, global: { plugins: [pinia] } })
+}
+
+const longitudeValue = (wrapper: ReturnType<typeof mountForm>) =>
+  (wrapper.find('input[name="birth-longitude"]').element as HTMLInputElement).value
+
+describe('BirthForm place resolution', () => {
+  beforeEach(() => { resetCityIndexCache() })
+
+  it('auto-fills longitude for a unique candidate', async () => {
+    const index = { counties: [], cities: [{ name: '上海市', region: '上海市', lng: 121.4737, lat: 31.2304, tz: 'Asia/Shanghai' }], world: [] }
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve(
+      String(url).includes('cities_data.json')
+        ? new Response(JSON.stringify(index), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        : toolOk({ candidates: [] }),
+    )))
+    const wrapper = mountForm()
+    await wrapper.find('input[name="birth-place"]').setValue('上海')
+    await wrapper.find('input[name="birth-place"]').trigger('blur')
+    await flushPromises()
+    expect(longitudeValue(wrapper)).toBe('121.4737')
+  })
+
+  it('lets the user pick among ambiguous candidates', async () => {
+    const index = { counties: [{ name: '长沙县', region: '湖南省', lng: 113.075, lat: 28.2502, tz: 'Asia/Shanghai' }], cities: [{ name: '长沙市', region: '湖南省', lng: 113.0267, lat: 28.1886, tz: 'Asia/Shanghai' }], world: [] }
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve(
+      String(url).includes('cities_data.json')
+        ? new Response(JSON.stringify(index), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        : toolOk({ candidates: [] }),
+    )))
+    const wrapper = mountForm()
+    await wrapper.find('input[name="birth-place"]').setValue('长沙')
+    await wrapper.find('input[name="birth-place"]').trigger('blur')
+    await flushPromises()
+    const choice = wrapper.findAllComponents(ElSelect).at(-1)!
+    expect(choice.exists()).toBe(true)
+    choice.vm.$emit('change', '1')
+    await flushPromises()
+    expect(longitudeValue(wrapper)).toBe('113.0750')
+  })
+
+  it('resolves legacy profiles that have a place but no longitude', async () => {
+    const index = { counties: [], cities: [{ name: '上海市', region: '上海市', lng: 121.4737, lat: 31.2304, tz: 'Asia/Shanghai' }], world: [] }
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve(
+      String(url).includes('cities_data.json')
+        ? new Response(JSON.stringify(index), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        : toolOk({ candidates: [] }),
+    )))
+    const wrapper = mountForm({ nickname: '妈妈', birth_place: '上海' })
+    await flushPromises()
+    expect(longitudeValue(wrapper)).toBe('121.4737')
+  })
+})

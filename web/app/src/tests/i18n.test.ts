@@ -40,6 +40,9 @@ function referencedKeys(): (key: string) => boolean {
   // vitest 从 web/app 运行（`npm run test` / Makefile 都先 cd web/app），
   // 所以 cwd 就是应用根；路径不存在会直接 ENOENT 报错，不会静默跳过。
   walk(join(process.cwd(), 'src'))
+  // 排盘共享组件已迁至 web/shared（营销站 island 与 App 共用），
+  // 其引用的键同样由 App 的 locale 目录供给，纳入扫描。
+  walk(join(process.cwd(), '../shared'))
   return (key) => literals.has(key) || [...prefixes].some((prefix) => key.startsWith(prefix))
 }
 
@@ -85,7 +88,45 @@ describe('app i18n', () => {
       'generation_cancelled',
       'engine_unavailable',
       'engine_tool_failed',
-      'engine_tool_not_found',
+      // 直连聊天路径可达的 runtime/协议错误码（RUN_ERROR 与 HTTP 校验共用
+      // errors.code.* 渲染）：与 runtime internal/domain/error_codes.go 的
+      // 可达集合保持同步。
+      'runtime_init_failed',
+      'runtime_session_unavailable',
+      'runtime_busy',
+      'runtime_empty_response',
+      'runtime_failed',
+      'runtime_interrupted',
+      'runtime_timeout',
+      'llm_unavailable',
+      'llm_request_invalid',
+      'llm_call_failed',
+      'mcp_tools_unavailable',
+      'tool_call_invalid',
+      'tool_call_unknown',
+      'tool_execution_failed',
+      'tool_execution_interrupted',
+      'agent_definition_invalid',
+      'agent_definition_missing',
+      'agent_delegation_unknown',
+      'agent_delegation_failed',
+      'structured_output_invalid',
+      'structured_output_empty',
+      'user_message_required',
+      'history_invalid',
+      'run_id_conflict',
+      'run_id_required',
+      'run_id_invalid',
+      'thread_id_required',
+      'thread_id_invalid',
+      'user_id_required',
+      'user_id_invalid',
+      'identity_required',
+      'method_not_allowed',
+      'invalid_agui_request',
+      'unsupported_agui_feature',
+      'invalid_agui_message',
+      'profile_not_allowed',
     ]
 
     const localizedErrors: Record<string, Record<string, string>> = {

@@ -25,6 +25,16 @@ remain in `${LIKI_DATA_DIR}` from before the product removal; they are inert.
 2. Cross-domain IDs are plain TEXT and validated by the owning service.
 3. Financial state changes must be idempotent and audited.
 
+## Query conventions
+
+- List queries for a user carry a hard limit (sessions: recent 200; messages:
+  cursor-paged, default page 200 / cap 500). Unbounded user lists are rejected.
+- Keyset cursors are `<created_at>|<id>`; the backing index must cover the full
+  sort key (`EXPLAIN QUERY PLAN` contract tests fail if a list starts sorting in
+  a temp b-tree).
+- A list ordered by an expression (`COALESCE(last_message_at, updated_at)`) gets
+  a matching expression index.
+
 ## Schema design notes
 
 Normalisation deviations are deliberate; none are accidental:
@@ -35,6 +45,7 @@ Normalisation deviations are deliberate; none are accidental:
 | Verbatim JSON payload | feedback.payload | Self-describing `feedback-v1` schema; the backend never interprets skill fields |
 | JSON array column | entitlements.skills | Skill snapshot is frozen at grant time and never filtered in SQL |
 | JSON extension object | payment_intents.metadata | Extension field for provider round-tripping |
+| Canonical birth-time triple | birth_profiles.birth_utc / birth_timezone / birth_longitude | Exact charting stores one UTC instant with its IANA zone and true-solar longitude; approximate/unknown facts remain null and are never defaulted |
 | Redundant user_id on message rows | chat_messages | Serves the per-user PII erasure sweep |
 
 Naming and legacy notes:

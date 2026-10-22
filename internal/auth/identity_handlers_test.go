@@ -3,8 +3,10 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -87,6 +89,49 @@ func TestHandleMeReturnsCurrentUser(t *testing.T) {
 	decodeEnvelope(t, rec.Body.Bytes(), &me)
 	if me.ID != user.ID || me.Email != user.Email {
 		t.Fatalf("me = %+v", me)
+	}
+}
+
+func TestHandleMeIncludesPartnerRoles(t *testing.T) {
+	handler, _, _ := newIdentityFixture(t)
+	handler.SetPartnerRolesProvider(func(_ context.Context, userID string) ([]string, error) {
+		if userID != "user-1" {
+			t.Fatalf("provider called with user %q", userID)
+		}
+		return []string{"kol"}, nil
+	})
+	user := User{ID: "user-1", Email: "user@example.com", Status: UserActive}
+	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	req = req.WithContext(WithAuth(req.Context(), user, AuthSession{ID: "s1"}, "tok"))
+	rec := httptest.NewRecorder()
+	handler.HandleMe(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+	var me PublicUser
+	decodeEnvelope(t, rec.Body.Bytes(), &me)
+	if !reflect.DeepEqual(me.PartnerRoles, []string{"kol"}) {
+		t.Fatalf("partner_roles = %v, want [kol]", me.PartnerRoles)
+	}
+}
+
+func TestHandleMeDegradesWhenPartnerRolesFail(t *testing.T) {
+	handler, _, _ := newIdentityFixture(t)
+	handler.SetPartnerRolesProvider(func(context.Context, string) ([]string, error) {
+		return nil, errors.New("boom")
+	})
+	user := User{ID: "user-1", Email: "user@example.com", Status: UserActive}
+	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	req = req.WithContext(WithAuth(req.Context(), user, AuthSession{ID: "s1"}, "tok"))
+	rec := httptest.NewRecorder()
+	handler.HandleMe(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+	var me PublicUser
+	decodeEnvelope(t, rec.Body.Bytes(), &me)
+	if me.PartnerRoles == nil || len(me.PartnerRoles) != 0 {
+		t.Fatalf("partner_roles = %v, want empty on provider failure", me.PartnerRoles)
 	}
 }
 

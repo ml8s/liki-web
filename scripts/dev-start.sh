@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Start Liki development environment WITHOUT Docker.
-# Engine MCP on :8085, Web API on :8081, Caddy on :8080.
+# Engine MCP on :8085, Counsel MCP on :8086 (optional), Web API on :8081, Caddy on :8080.
 #
 # Prerequisites: make build-go build-web (run by Makefile 'dev' target)
 set -euo pipefail
@@ -72,6 +72,18 @@ if [ -z "$ENGINE_MCP_BIN" ]; then
   exit 1
 fi
 
+# Counsel MCP (optional; needed by the naming free tool). Point COUNSEL_DIR at the
+# liki/counsel checkout to enable; without it the naming island will fail locally.
+COUNSEL_DIR="${COUNSEL_DIR:-}"
+COUNSEL_PY="${COUNSEL_PY:-$COUNSEL_DIR/.venv/bin/python}"
+if [ -n "$COUNSEL_DIR" ] && [ ! -x "$COUNSEL_PY" ]; then
+  echo "==> Warning: COUNSEL_DIR set but $COUNSEL_PY not executable; skipping counsel"
+  COUNSEL_DIR=""
+fi
+if [ -z "$COUNSEL_DIR" ]; then
+  echo "==> Counsel MCP disabled (set COUNSEL_DIR to enable; naming tool needs it)"
+fi
+
 # Web binary (pre-built by 'make build-go')
 WEB_BIN="${WEB_BIN:-bin/liki-web}"
 if [ ! -x "$WEB_BIN" ]; then
@@ -80,14 +92,14 @@ if [ ! -x "$WEB_BIN" ]; then
 fi
 
 # Free ports
-for port in 8080 8081 8085; do
+for port in 8080 8081 8085 8086; do
   if fuser "$port/tcp" 2>/dev/null; then
     echo "==> Warning: killing existing process on port $port"
     fuser -k "$port/tcp" 2>/dev/null || true
   fi
 done
 for i in $(seq 1 30); do
-  if ! fuser 8080/tcp 8081/tcp 8085/tcp 2>/dev/null; then break; fi
+  if ! fuser 8080/tcp 8081/tcp 8085/tcp 8086/tcp 2>/dev/null; then break; fi
   sleep 0.5
 done
 
@@ -101,6 +113,17 @@ for i in $(seq 1 30); do
   sleep 0.5
 done
 
+COUNSEL_PID=""
+if [ -n "$COUNSEL_DIR" ]; then
+  echo "==> Starting counsel MCP on :8086"
+  (cd "$COUNSEL_DIR" && LIKI_MCP_URL=http://localhost:8085/mcp "$COUNSEL_PY" -m uvicorn app.counsel_mcp:app --host 127.0.0.1 --port 8086) &
+  COUNSEL_PID=$!
+  for i in $(seq 1 40); do
+    curl -sf http://localhost:8086/readyz >/dev/null 2>&1 && break
+    sleep 0.5
+  done
+fi
+
 echo "==> Starting web API on $LIKI_HTTP_LISTEN_ADDRESS"
 "$WEB_BIN" &
 API_PID=$!
@@ -113,9 +136,12 @@ echo "==> Starting Caddy on :8080"
 "$CADDY_BIN" run --config "$PROJECT_DIR/dev/Caddyfile.local" --adapter caddyfile &
 CADDY_PID=$!
 
-trap "kill $ENGINE_MCP_PID $API_PID $CADDY_PID 2>/dev/null; exit" INT TERM EXIT
+trap "kill $ENGINE_MCP_PID $COUNSEL_PID $API_PID $CADDY_PID 2>/dev/null; exit" INT TERM EXIT
 
 echo "==> Ready: http://localhost:8080"
 echo "    Engine MCP: http://localhost:8085/mcp"
+if [ -n "$COUNSEL_DIR" ]; then
+  echo "    Counsel MCP: http://localhost:8086/mcp"
+fi
 echo "    Press Ctrl+C to stop"
 wait

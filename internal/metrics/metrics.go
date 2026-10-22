@@ -25,9 +25,14 @@ var Default = New()
 func New() *Registry { return &Registry{counters: map[string]uint64{}} }
 
 func (r *Registry) Inc(name string, labels map[string]string) {
+	r.Add(name, labels, 1)
+}
+
+// Add 将计数器增加 delta（耗时累计等非 1 增量场景）。
+func (r *Registry) Add(name string, labels map[string]string, delta uint64) {
 	key := name + labelsKey(labels)
 	r.mu.Lock()
-	r.counters[key]++
+	r.counters[key] += delta
 	r.mu.Unlock()
 }
 

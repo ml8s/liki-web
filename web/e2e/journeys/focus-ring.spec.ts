@@ -26,21 +26,16 @@ test('static shell: one focus ring per control', async ({ page }) => {
   await page.goto('/zh-Hant/')
 
   // 按钮没有自己的 ring，键盘焦点必须由全局 outline 提供（含 class 名单会漏掉的提交按钮）。
-  await tabTo(page, '.paipan-hook button[type="submit"]')
-  const submit = page.locator('.paipan-hook button[type="submit"]')
+  await tabTo(page, '#quick-birth-tool button[type="submit"]')
+  const submit = page.locator('#quick-birth-tool button[type="submit"]')
   await expect(submit).toHaveCSS('outline-style', 'solid')
   await expect(submit).toHaveCSS('box-shadow', 'none')
 
-  // 表单控件：ring 由自己的 box-shadow 画，不能再叠一层 outline。
-  const input = page.locator('.paipan-hook input[name="date"]')
+  // 表单控件：Element Plus wrapper 持有 ring，原生 input 不再叠 outline。
+  const input = page.locator('#quick-birth-tool .el-input__inner').first()
   await input.click()
   await expect(input).toHaveCSS('outline-style', 'none')
-  await expect(input).toHaveCSS('box-shadow', /3px/)
-
-  const select = page.locator('.paipan-hook select')
-  await select.click()
-  await expect(select).toHaveCSS('outline-style', 'none')
-  await expect(select).toHaveCSS('box-shadow', /3px/)
+  await expect(input.locator('xpath=ancestor::div[contains(@class,"el-input__wrapper")][1]')).toHaveCSS('box-shadow', /inset/)
 })
 
 test('app shell: native controls rely on Element Plus, custom controls keep the outline', async ({ page }) => {

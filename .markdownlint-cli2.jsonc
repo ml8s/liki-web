@@ -22,6 +22,8 @@
     "LEGACY_PRODUCTS.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
+    "BRAND.md",
+    "SEO.md",
     "docs/**/*.md"
   ],
   "ignorePatterns": [

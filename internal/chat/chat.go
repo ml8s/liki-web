@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,9 @@ import (
 )
 
 var ErrSessionNotFound = errors.New("liki: session not found")
+
+// ErrInvalidMessageCursor 表示分页游标格式非法（由 HTTP 层转 400）。
+var ErrInvalidMessageCursor = errors.New("chat: invalid message cursor")
 
 type SessionStatus string
 
@@ -166,6 +170,31 @@ ALTER TABLE chat_sessions ADD COLUMN expert TEXT NOT NULL DEFAULT '';
 				return err
 			},
 		},
+		{
+			// 列表查询约定：按用户列表按「最近活动」排序且必须能走索引。
+			// 表达式索引与查询的 ORDER BY 表达式逐字一致（EXPLAIN 验收无临时排序）。
+			ID: "chat_006_sessions_recent_index",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_recent
+    ON chat_sessions(user_id, COALESCE(last_message_at, updated_at) DESC);
+`)
+				return err
+			},
+		},
+		{
+			// keyset 分页索引必须覆盖完整排序键 (created_at, id)：
+			// 旧索引缺 id 列，id 并列时走临时排序（EXPLAIN 验收）。
+			ID: "chat_007_messages_keyset_index",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+DROP INDEX IF EXISTS idx_chat_messages_session_created;
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session_created
+    ON chat_messages(session_id, created_at, id);
+`)
+				return err
+			},
+		},
 	})
 }
 
@@ -215,11 +244,16 @@ FROM chat_sessions WHERE id=? AND user_id=? AND deleted_at IS NULL`, sessionID, 
 	return session, err
 }
 
+// sessionListLimit 是会话列表上限：UI 语义即「最近会话」，超限部分不进列表
+// （将来若需全量历史再引入游标分页，届时复用 messages 的 keyset 约定）。
+const sessionListLimit = 200
+
 func (s *ChatStore) ListSessions(ctx context.Context, userID string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at
 FROM chat_sessions WHERE user_id=? AND status='active' AND deleted_at IS NULL
-ORDER BY COALESCE(last_message_at,updated_at) DESC`, userID)
+ORDER BY COALESCE(last_message_at,updated_at) DESC
+LIMIT ?`, userID, sessionListLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -274,29 +308,71 @@ UPDATE chat_sessions SET deleted_at=? WHERE id=? AND user_id=? AND deleted_at IS
 	return nil
 }
 
-func (s *ChatStore) ListMessages(ctx context.Context, userID, sessionID string) ([]Message, error) {
-	rows, err := s.db.QueryContext(ctx, `
-SELECT m.id,m.session_id,m.user_id,m.role,m.kind,m.content,m.created_at
-FROM chat_messages m
-JOIN chat_sessions s ON s.id=m.session_id
-WHERE m.session_id=? AND m.user_id=?
-ORDER BY m.created_at, m.id`, sessionID, userID)
+// 消息分页上限：默认页 200 条，服务端硬上限 500 条（防大会话全量加载）。
+const (
+	messagePageDefault = 200
+	messagePageMax     = 500
+)
+
+// agentHistoryLimit 是喂给代理模型的历史消息条数上限（最新 N 条）。
+const agentHistoryLimit = 50
+
+// ListMessages 返回一页消息（按时间升序，便于直接渲染），并给出「更早一页」的游标。
+// 游标格式 "<created_at>|<id>"（与 birthprofile 分页约定一致）；空游标 = 最新一页；
+// nextCursor 非空表示还有更早的消息。
+func (s *ChatStore) ListMessages(ctx context.Context, userID, sessionID, before string, limit int) ([]Message, string, error) {
+	if limit <= 0 || limit > messagePageMax {
+		limit = messagePageDefault
+	}
+	query := `
+SELECT id,session_id,user_id,role,kind,content,created_at
+FROM chat_messages
+WHERE session_id=? AND user_id=?`
+	args := []any{sessionID, userID}
+	if before != "" {
+		createdAt, id, ok := strings.Cut(before, "|")
+		if !ok {
+			return nil, "", ErrInvalidMessageCursor
+		}
+		query += ` AND (created_at < ? OR (created_at = ? AND id < ?))`
+		args = append(args, createdAt, createdAt, id)
+	}
+	// 倒序取 limit+1 条：多出的一条用于判断是否还有更早消息。
+	query += ` ORDER BY created_at DESC, id DESC LIMIT ?`
+	args = append(args, limit+1)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer func() { _ = rows.Close() }()
-	out := make([]Message, 0)
+	desc := make([]Message, 0, limit+1)
 	for rows.Next() {
 		var message Message
 		var kind, createdAt string
 		if err := rows.Scan(&message.ID, &message.SessionID, &message.UserID, &message.Role, &kind, &message.Content, &createdAt); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		message.Kind = MessageKind(kind)
 		message.CreatedAt = chatMustTime(createdAt)
-		out = append(out, message)
+		desc = append(desc, message)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, "", err
+	}
+
+	nextCursor := ""
+	if len(desc) > limit {
+		desc = desc[:limit]
+		oldest := desc[len(desc)-1]
+		nextCursor = chatFormatTime(oldest.CreatedAt) + "|" + oldest.ID
+	}
+	// 反转为时间升序（渲染顺序）。
+	out := make([]Message, len(desc))
+	for i, message := range desc {
+		out[len(desc)-1-i] = message
+	}
+	return out, nextCursor, nil
 }
 
 func (s *ChatStore) AppendMessage(ctx context.Context, userID, sessionID, role string, kind MessageKind, content string) (Message, error) {
@@ -329,6 +405,61 @@ WHERE id=?`, now, now, now, sessionID); err != nil {
 		return Message{}, err
 	}
 	return message, nil
+}
+
+// PendingMessage is one message of an exchange written by AppendExchange.
+type PendingMessage struct {
+	Role    string
+	Kind    MessageKind
+	Content string
+}
+
+// AppendExchange writes an ordered batch of messages in one transaction. The
+// run-completed callback compensates a failed write by deleting the run record
+// and relying on retry replay, so a partially written exchange would duplicate
+// the already-written messages on retry; the batch commits or rolls back whole.
+func (s *ChatStore) AppendExchange(ctx context.Context, userID, sessionID string, messages ...PendingMessage) ([]Message, error) {
+	if len(messages) == 0 {
+		return nil, nil
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	written := make([]Message, 0, len(messages))
+	last := ""
+	for _, pending := range messages {
+		kind := pending.Kind
+		if kind == "" {
+			kind = KindText
+		}
+		// 每条消息取独立时间戳：列表按 created_at 排序，同刻消息的次序会
+		// 退化到随机 id 上。
+		now := chatFormatTime(s.nowFunc())
+		message := Message{ID: s.idFunc(), SessionID: sessionID, UserID: userID, Role: pending.Role, Kind: kind, Content: pending.Content}
+		var createdAt string
+		err := tx.QueryRowContext(ctx, `
+INSERT INTO chat_messages (id,session_id,user_id,role,kind,content,created_at)
+VALUES (?,?,?,?,?,?,?)
+RETURNING created_at`, message.ID, sessionID, userID, pending.Role, string(kind), pending.Content, now,
+		).Scan(&createdAt)
+		if err != nil {
+			return nil, err
+		}
+		message.CreatedAt = chatMustTime(createdAt)
+		written = append(written, message)
+		last = now
+	}
+	if _, err := tx.ExecContext(ctx, `
+UPDATE chat_sessions SET updated_at=?, last_message_at=CASE WHEN last_message_at IS NULL OR last_message_at<? THEN ? ELSE last_message_at END
+WHERE id=?`, last, last, last, sessionID); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return written, nil
 }
 
 func (s *ChatStore) TouchSession(ctx context.Context, sessionID string, now time.Time) error {

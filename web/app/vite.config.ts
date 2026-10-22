@@ -10,21 +10,28 @@ export default defineConfig({
   base: '/app/',
   plugins: [
     vue(),
-    // Element Plus 按需引入（官方标准做法）：模板里的 el-* 组件与 ElMessageBox
-    // 等 API 自动导入并带样式，去掉 app.use(ElementPlus) 全量打包。
+    // Element Plus styles are centrally loaded through a cascade layer; resolver
+    // style side effects are disabled so vendor defaults cannot escape the layer.
     AutoImport({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [ElementPlusResolver({ importStyle: false })],
       dts: 'src/auto-imports.d.ts',
     }),
     Components({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [ElementPlusResolver({ importStyle: false })],
       dts: 'src/components.d.ts',
     }),
     compression({ algorithm: 'gzip' }),
     compression({ algorithm: 'brotliCompress' }),
   ],
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // 共享层（web/shared）跨边界引用统一走 @shared（层内保持相对路径，便于整层搬迁）。
+      '@shared': fileURLToPath(new URL('../shared', import.meta.url)),
+    },
+    // 共享层（web/shared）同时被 App 与营销站编译：强制 vue / vue-i18n 解析到
+    // 本包副本，避免双实例导致 provide/inject 与 VNode 标记失效。
+    dedupe: ['vue', 'vue-i18n', 'element-plus', 'pinia'],
   },
   server: {
     proxy: {

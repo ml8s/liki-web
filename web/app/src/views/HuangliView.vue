@@ -20,46 +20,10 @@
         label-position="top"
         @submit.prevent="calc"
       >
-        <div class="row">
-          <el-form-item :label="$t('services.huangli.event')">
-            <el-select
-              v-model="event"
-              :aria-label="$t('services.huangli.event')"
-              class="w-full"
-            >
-              <el-option
-                v-for="key in EVENT_KEYS"
-                :key="key"
-                :value="key"
-                :label="$t(`services.huangli.events.${key}`)"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item
-            prop="startDate"
-            :label="$t('services.huangli.startDate')"
-          >
-            <el-date-picker
-              v-model="startDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-              :placeholder="$t('services.huangli.startDate')"
-              class="w-full"
-            />
-          </el-form-item>
-          <el-form-item
-            prop="endDate"
-            :label="$t('services.huangli.endDate')"
-          >
-            <el-date-picker
-              v-model="endDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-              :placeholder="$t('services.huangli.endDate')"
-              class="w-full"
-            />
-          </el-form-item>
-        </div>
+        <HuangliRangeFields
+          :value="form"
+          @update:patch="patchRange"
+        />
         <el-button
           type="primary"
           native-type="submit"
@@ -86,87 +50,7 @@
             {{ $t('services.huangli.resultTitle', { event: eventLabel(event) }) }}
           </h2>
         </template>
-        <div
-          v-if="rangeInfo"
-          class="range-info"
-        >
-          {{ $t('services.huangli.range', { start: rangeInfo.start, end: rangeInfo.end, days: rangeInfo.days }) }}
-        </div>
-        <div
-          v-if="recommended.length"
-          class="sec-title"
-        >
-          {{ $t('services.huangli.recommended') }}
-        </div>
-        <div
-          v-if="recommended.length"
-          class="days"
-        >
-          <div
-            v-for="d in recommended"
-            :key="d.date"
-            class="day good"
-          >
-            <div class="d-date">
-              {{ d.date }}
-            </div>
-            <div class="d-sub">
-              {{ d.reason ? `${d.jian_chu} · ${d.reason}` : d.jian_chu }}
-            </div>
-          </div>
-        </div>
-        <p
-          v-if="!recommended.length"
-          class="hint"
-        >
-          {{ $t('services.huangli.noRecommended') }}
-        </p>
-        <div
-          v-if="possible.length"
-          class="sec-title"
-        >
-          {{ $t('services.huangli.possible') }}
-        </div>
-        <div
-          v-if="possible.length"
-          class="days"
-        >
-          <div
-            v-for="d in possible"
-            :key="d.date"
-            class="day possible"
-          >
-            <div class="d-date">
-              {{ d.date }}
-            </div>
-            <div class="d-sub">
-              {{ d.reason ? `${d.jian_chu} · ${d.reason}` : d.jian_chu }}
-            </div>
-          </div>
-        </div>
-        <div
-          v-if="unsuitable.length"
-          class="sec-title"
-        >
-          {{ $t('services.huangli.unsuitable') }}
-        </div>
-        <div
-          v-if="unsuitable.length"
-          class="days"
-        >
-          <div
-            v-for="d in unsuitable"
-            :key="d.date"
-            class="day bad"
-          >
-            <div class="d-date">
-              {{ d.date }}
-            </div>
-            <div class="d-sub">
-              {{ d.reason ? `${d.jian_chu} · ${d.reason}` : d.jian_chu }}
-            </div>
-          </div>
-        </div>
+        <HuangliDaysPanel :days="result" />
       </el-card>
 
       <AppConsultationCard
@@ -208,16 +92,13 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { engineHuangliDays, type HuangliDay } from '@/api/engine'
+import HuangliDaysPanel from '@shared/components/paipan/HuangliDaysPanel.vue'
+import HuangliRangeFields from '@shared/components/huangli/HuangliRangeFields.vue'
 import { useToolRecords } from '@/composables/useToolRecords'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
-
-const EVENT_KEYS = [
-  'wedding', 'engage', 'opening', 'sign', 'move', 'travel', 'build', 'exam',
-  'medical', 'sacrifice', 'cleaning', 'renovation', 'bed_install', 'income', 'funeral',
-] as const
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -241,6 +122,10 @@ const loading = ref(false)
 const error = ref('')
 
 const formRef = ref<FormInstance>()
+
+function patchRange(patch: Partial<typeof form>) {
+  Object.assign(form, patch)
+}
 const spanDays = computed(() => {
   if (!startDate.value || !endDate.value) return 0
   return Math.round((new Date(endDate.value).getTime() - new Date(startDate.value).getTime()) / 86400000) + 1
@@ -261,16 +146,6 @@ const rules = computed<FormRules>(() => ({
 // 起始日期变化后，已填写的结束日期需要重新校验范围。
 watch(startDate, () => {
   if (endDate.value) void formRef.value?.validateField('endDate').catch(() => {})
-})
-
-const days = computed(() => result.value ?? [])
-const recommended = computed(() => days.value.filter(d => d.suitability === 'recommended'))
-const possible = computed(() => days.value.filter(d => d.suitability === 'possible'))
-const unsuitable = computed(() => days.value.filter(d => d.suitability === 'unsuitable'))
-const rangeInfo = computed(() => {
-  const list = days.value
-  if (!list.length) return null
-  return { start: list[0].date, end: list[list.length - 1].date, days: list.length }
 })
 
 function eventLabel(key: string): string {
@@ -312,20 +187,12 @@ function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
   chat.pendingIntent = t('services.huangli.intent', { event: eventLabel(event.value) })
-  // 择日属占卜域，复用 divination 专家部署。
-  void openServiceChat(profile.id, 'divination', message => { error.value = message })
+  // 择日属占卜域：场景走 huangli（标题/意图），内部路由到 divination 专家部署。
+  void openServiceChat(profile.id, 'huangli', message => { error.value = message })
 }
 
 </script>
 
 <style scoped>
-.range-info { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: var(--space-3); font-variant-numeric: tabular-nums; }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); }
-.days { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--space-2); }
-.day { border: 1px solid var(--liki-line); border-radius: var(--radius-md); padding: 10px; text-align: center; }
-.day.good { border-color: var(--liki-primary-border); background: var(--liki-primary-tint); }
-.day.possible { border-color: var(--liki-line); background: var(--liki-surface); }
-.day.bad { border-color: var(--color-error-border); background: var(--color-danger-surface); }
-.d-date { font-weight: 700; font-variant-numeric: tabular-nums; }
-.d-sub { font-size: var(--font-size-caption); color: var(--liki-text-2); margin-top: var(--space-1); }
 </style>

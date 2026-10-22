@@ -389,7 +389,7 @@ func (s *Store) ProcessCommissionPayments(ctx context.Context, limit int) (int, 
 			if markErr := s.markIntakeFailed(ctx, item.ID, err); markErr != nil {
 				return processed, markErr
 			}
-			slog.Warn("partner: commission intake retry", "id", item.ID,
+			slog.WarnContext(ctx, "partner: commission intake retry", "id", item.ID,
 				"buyer", item.BuyerUserID, "attempt", item.Attempts, "err", err)
 			metrics.Default.Inc("referral_commission_worker_total", map[string]string{"result": "retry_or_failed"})
 			continue
@@ -439,28 +439,28 @@ func (s *Store) StartCommissionWorker(ctx context.Context, platformDB *sql.DB, i
 		s.recruiterRateBPS = RecruiterRateBPS
 	}
 	if err := s.recoverCommissionIntakes(ctx); err != nil {
-		slog.Error("partner: recover commission intakes", "err", err)
+		slog.ErrorContext(ctx, "partner: recover commission intakes", "err", err)
 	}
 	if err := s.recoverCommissionRefunds(ctx); err != nil {
-		slog.Error("partner: recover commission refunds", "err", err)
+		slog.ErrorContext(ctx, "partner: recover commission refunds", "err", err)
 	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
 		if n, err := s.ProcessCommissionPayments(ctx, 100); err != nil {
-			slog.Error("partner: process commissions", "err", err)
+			slog.ErrorContext(ctx, "partner: process commissions", "err", err)
 		} else if n > 0 {
-			slog.Info("partner: commissions settled", "count", n)
+			slog.InfoContext(ctx, "partner: commissions settled", "count", n)
 		}
 		if n, err := s.ProcessCommissionRefunds(ctx, 100); err != nil {
-			slog.Error("partner: process refunds", "err", err)
+			slog.ErrorContext(ctx, "partner: process refunds", "err", err)
 		} else if n > 0 {
-			slog.Info("partner: commission refunds applied", "count", n)
+			slog.InfoContext(ctx, "partner: commission refunds applied", "count", n)
 		}
 		if n, err := s.ReconcileSuccessfulPayments(ctx, platformDB, 200); err != nil {
-			slog.Error("partner: reconcile payments", "err", err)
+			slog.ErrorContext(ctx, "partner: reconcile payments", "err", err)
 		} else if n > 0 {
-			slog.Debug("partner: reconciled successful payments", "count", n)
+			slog.DebugContext(ctx, "partner: reconciled successful payments", "count", n)
 		}
 		select {
 		case <-ctx.Done():

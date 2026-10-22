@@ -13,16 +13,6 @@
     <div class="role">
       {{ $t(message.role === 'user' ? 'chat.roles.user' : 'chat.roles.assistant') }}
     </div>
-    <details
-      v-if="message.role === 'assistant' && message.thinking"
-      class="thinking"
-      :open="!message.content"
-    >
-      <summary>{{ $t('chat.thinking') }}</summary>
-      <div class="thinking-body">
-        {{ message.thinking }}
-      </div>
-    </details>
     <div
       v-if="message.role === 'assistant'"
       class="content"
@@ -107,27 +97,6 @@ async function handleCopy() {
 .message.assistant .role { font-family: var(--liki-font-serif); font-weight: 700; color: var(--liki-primary); }
 .content { line-height: 1.65; color: var(--liki-ink); overflow-wrap: anywhere; }
 .message.user .content { white-space: pre-wrap; }
-.thinking {
-  margin-bottom: 10px;
-  padding: 8px 12px;
-  border: 1px dashed var(--liki-line);
-  border-radius: var(--radius-md);
-  background: var(--liki-paper);
-}
-.thinking summary {
-  cursor: pointer;
-  font-size: var(--font-size-caption);
-  color: var(--liki-text-2);
-  user-select: none;
-}
-.thinking-body {
-  margin-top: 8px;
-  font-size: var(--font-size-caption);
-  line-height: 1.6;
-  color: var(--liki-text-2);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 .message-error {
   margin: 8px 0 0;
   color: var(--color-error);
@@ -149,4 +118,14 @@ async function handleCopy() {
   cursor: pointer;
 }
 .copy:hover { color: var(--liki-primary); }
+
+@media (max-width: 768px) {
+  .copy {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: 8px 0 0 -14px;
+    padding: 10px 14px;
+  }
+}
 </style>

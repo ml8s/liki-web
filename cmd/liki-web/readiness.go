@@ -3,21 +3,25 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
 
 var readinessClient = &http.Client{Timeout: 2 * time.Second}
 
-func checkEngineMCPReadiness(ctx context.Context, baseURL string) error {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(baseURL, "/")+"/health", nil)
-	if err != nil {
-		return fmt.Errorf("build engine readiness request: %w", err)
+// agentOpsURL derives the runtime ops surface URL (readiness/metrics) from the
+// expert API URL: /readyz lives on the runtime's dedicated ops listener, not on
+// the protocol port.
+func agentOpsURL(agentURL, opsPort string) string {
+	parsed, err := url.Parse(agentURL)
+	if err != nil || parsed.Host == "" || opsPort == "" {
+		return agentURL
 	}
-	request.Header.Set("Content-Type", "application/json")
-	response, err := readinessClient.Do(request)
-	return checkReadinessResponse(response, err, "engine")
+	parsed.Host = net.JoinHostPort(parsed.Hostname(), opsPort)
+	return parsed.String()
 }
 
 func checkAgentReadiness(ctx context.Context, agentURL string) error {

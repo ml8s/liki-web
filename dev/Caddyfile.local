@@ -10,7 +10,7 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
 		Content-Security-Policy "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://liki.hk; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
-		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(self)"
 		Cross-Origin-Opener-Policy "same-origin"
 		Cross-Origin-Resource-Policy "same-origin"
 		-Server
@@ -46,6 +46,19 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 		}
 	}
 
+	# MCP 直连（与外部 skill 同一路径/协议）：网关剥前缀后转发到 MCP 服务。
+	# 与生产 Caddy 的 edge-owned 前缀一致（只占 /engine/mcp*、/counsel/mcp*）。
+	@engineMcp path /engine/mcp /engine/mcp/*
+	handle @engineMcp {
+		uri strip_prefix /engine
+		reverse_proxy {$LIKI_ENGINE_MCP_ADDR:localhost:8085}
+	}
+	@counselMcp path /counsel/mcp /counsel/mcp/*
+	handle @counselMcp {
+		uri strip_prefix /counsel
+		reverse_proxy {$LIKI_COUNSEL_MCP_ADDR:localhost:8086}
+	}
+
 	handle /api/* {
 		reverse_proxy {$LIKI_WEB_HOST:web}:8081 {
 			flush_interval -1
@@ -70,335 +83,41 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 
 	# ── Bare-path → locale-prefixed redirects (Accept-Language) ──
 
-	# Root / and /index.html
-	@rootZhHans {
-		path / /index.html
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@rootZhHant {
-		path / /index.html
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@rootZh {
-		path / /index.html
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@rootEn {
-		path / /index.html
-		expression {header.Accept-Language}.startsWith('en')
+	# 裸路径 → 本地化页面（Accept-Language 协商）。map 单次求值 + 每条路径单条
+	# redir：匹配优先级由 map 规则顺序决定，不依赖同名指令的隐式排序。
+	map {header.Accept-Language} {marketing_lang} {
+		~(?i)^zh-cn.* zh-Hans
+		~(?i)^zh-sg.* zh-Hans
+		~(?i)^zh-hans.* zh-Hans
+		~(?i)^zh-tw.* zh-Hant
+		~(?i)^zh-hk.* zh-Hant
+		~(?i)^zh-mo.* zh-Hant
+		~(?i)^zh-hant.* zh-Hant
+		~(?i)^zh.* zh-Hant
+		~(?i)^en.* en
+		default zh-Hant
 	}
 
-	redir @rootZhHans /zh-Hans/ 302
-	redir @rootZhHant /zh-Hant/ 302
-	redir @rootZh /zh-Hant/ 302
-	redir @rootEn /en/ 302
-	redir / /zh-Hant/ 302
-	redir /index.html /zh-Hant/ 302
+	redir / /{marketing_lang}/ 302
+	redir /index.html /{marketing_lang}/ 302
+	redir /naming /{marketing_lang}/naming 302
+	redir /hepan /{marketing_lang}/natal 302
+	redir /mingshu /{marketing_lang}/natal 302
+	redir /about /{marketing_lang}/about 302
+	redir /contact /{marketing_lang}/contact 302
+	redir /disclaimer /{marketing_lang}/disclaimer 302
+	redir /privacy /{marketing_lang}/privacy 302
+	redir /terms /{marketing_lang}/terms 302
+	redir /partners /{marketing_lang}/ 302
+	redir /bazi /{marketing_lang}/natal 302
+	redir /divination /{marketing_lang}/divination 302
+	redir /fengshui /{marketing_lang}/fengshui 302
+	redir /huangli /{marketing_lang}/huangli 302
+	redir /skills /{marketing_lang}/skills 302
 
 	# /chat — legacy chat landing now lives in the Liki Chat app
 	redir /chat /app/chat 302
 	redir /naming/chat /app/chat 302
-
-	# /naming
-	@namingZhHans {
-		path /naming
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@namingZhHant {
-		path /naming
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@namingZh {
-		path /naming
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@namingEn {
-		path /naming
-		expression {header.Accept-Language}.startsWith('en')
-	}
-
-	redir @namingZhHans /zh-Hans/naming 302
-	redir @namingZhHant /zh-Hant/naming 302
-	redir @namingZh /zh-Hant/naming 302
-	redir @namingEn /en/naming 302
-	redir /naming /zh-Hant/naming 302
-
-	# /hepan
-	@hepanZhHans {
-		path /hepan
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@hepanZhHant {
-		path /hepan
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@hepanZh {
-		path /hepan
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@hepanEn {
-		path /hepan
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @hepanZhHans /zh-Hans/hepan 302
-	redir @hepanZhHant /zh-Hant/hepan 302
-	redir @hepanZh /zh-Hant/hepan 302
-	redir @hepanEn /en/hepan 302
-	redir /hepan /zh-Hant/hepan 302
-
-	# /mingshu
-	@mingshuZhHans {
-		path /mingshu
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@mingshuZhHant {
-		path /mingshu
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@mingshuZh {
-		path /mingshu
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@mingshuEn {
-		path /mingshu
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @mingshuZhHans /zh-Hans/mingshu 302
-	redir @mingshuZhHant /zh-Hant/mingshu 302
-	redir @mingshuZh /zh-Hant/mingshu 302
-	redir @mingshuEn /en/mingshu 302
-	redir /mingshu /zh-Hant/mingshu 302
-
-	# /about
-	@aboutZhHans {
-		path /about
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@aboutZhHant {
-		path /about
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@aboutZh {
-		path /about
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@aboutEn {
-		path /about
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @aboutZhHans /zh-Hans/about 302
-	redir @aboutZhHant /zh-Hant/about 302
-	redir @aboutZh /zh-Hant/about 302
-	redir @aboutEn /en/about 302
-	redir /about /zh-Hant/about 302
-
-	# /contact
-	@contactZhHans {
-		path /contact
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@contactZhHant {
-		path /contact
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@contactZh {
-		path /contact
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@contactEn {
-		path /contact
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @contactZhHans /zh-Hans/contact 302
-	redir @contactZhHant /zh-Hant/contact 302
-	redir @contactZh /zh-Hant/contact 302
-	redir @contactEn /en/contact 302
-	redir /contact /zh-Hant/contact 302
-
-	# /disclaimer
-	@disclaimerZhHans {
-		path /disclaimer
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@disclaimerZhHant {
-		path /disclaimer
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@disclaimerZh {
-		path /disclaimer
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@disclaimerEn {
-		path /disclaimer
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @disclaimerZhHans /zh-Hans/disclaimer 302
-	redir @disclaimerZhHant /zh-Hant/disclaimer 302
-	redir @disclaimerZh /zh-Hant/disclaimer 302
-	redir @disclaimerEn /en/disclaimer 302
-	redir /disclaimer /zh-Hant/disclaimer 302
-
-	# /privacy
-	@privacyZhHans {
-		path /privacy
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@privacyZhHant {
-		path /privacy
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@privacyZh {
-		path /privacy
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@privacyEn {
-		path /privacy
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @privacyZhHans /zh-Hans/privacy 302
-	redir @privacyZhHant /zh-Hant/privacy 302
-	redir @privacyZh /zh-Hant/privacy 302
-	redir @privacyEn /en/privacy 302
-	redir /privacy /zh-Hant/privacy 302
-
-	# /terms
-	@termsZhHans {
-		path /terms
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@termsZhHant {
-		path /terms
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@termsZh {
-		path /terms
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@termsEn {
-		path /terms
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @termsZhHans /zh-Hans/terms 302
-	redir @termsZhHant /zh-Hant/terms 302
-	redir @termsZh /zh-Hant/terms 302
-	redir @termsEn /en/terms 302
-	redir /terms /zh-Hant/terms 302
-
-	# Capability landing pages — one public page per App service.
-	# /bazi
-	@baziZhHans {
-		path /bazi
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@baziZhHant {
-		path /bazi
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@baziZh {
-		path /bazi
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@baziEn {
-		path /bazi
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @baziZhHans /zh-Hans/bazi 302
-	redir @baziZhHant /zh-Hant/bazi 302
-	redir @baziZh /zh-Hant/bazi 302
-	redir @baziEn /en/bazi 302
-	redir /bazi /zh-Hant/bazi 302
-
-	# /divination
-	@divinationZhHans {
-		path /divination
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@divinationZhHant {
-		path /divination
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@divinationZh {
-		path /divination
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@divinationEn {
-		path /divination
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @divinationZhHans /zh-Hans/divination 302
-	redir @divinationZhHant /zh-Hant/divination 302
-	redir @divinationZh /zh-Hant/divination 302
-	redir @divinationEn /en/divination 302
-	redir /divination /zh-Hant/divination 302
-
-	# /fengshui
-	@fengshuiZhHans {
-		path /fengshui
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@fengshuiZhHant {
-		path /fengshui
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@fengshuiZh {
-		path /fengshui
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@fengshuiEn {
-		path /fengshui
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @fengshuiZhHans /zh-Hans/fengshui 302
-	redir @fengshuiZhHant /zh-Hant/fengshui 302
-	redir @fengshuiZh /zh-Hant/fengshui 302
-	redir @fengshuiEn /en/fengshui 302
-	redir /fengshui /zh-Hant/fengshui 302
-
-	# /huangli
-	@huangliZhHans {
-		path /huangli
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@huangliZhHant {
-		path /huangli
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@huangliZh {
-		path /huangli
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@huangliEn {
-		path /huangli
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @huangliZhHans /zh-Hans/huangli 302
-	redir @huangliZhHant /zh-Hant/huangli 302
-	redir @huangliZh /zh-Hant/huangli 302
-	redir @huangliEn /en/huangli 302
-	redir /huangli /zh-Hant/huangli 302
-
-	# /skills is the localized human-facing Skills page.
-	@skillsZhHans {
-		path /skills
-		expression {header.Accept-Language}.startsWith('zh-CN') || {header.Accept-Language}.startsWith('zh-SG') || {header.Accept-Language}.startsWith('zh-Hans')
-	}
-	@skillsZhHant {
-		path /skills
-		expression {header.Accept-Language}.startsWith('zh-TW') || {header.Accept-Language}.startsWith('zh-HK') || {header.Accept-Language}.startsWith('zh-MO') || {header.Accept-Language}.startsWith('zh-Hant')
-	}
-	@skillsZh {
-		path /skills
-		expression {header.Accept-Language}.startsWith('zh')
-	}
-	@skillsEn {
-		path /skills
-		expression {header.Accept-Language}.startsWith('en')
-	}
-	redir @skillsZhHans /zh-Hans/skills 302
-	redir @skillsZhHant /zh-Hant/skills 302
-	redir @skillsZh /zh-Hant/skills 302
-	redir @skillsEn /en/skills 302
-	redir /skills /zh-Hant/skills 302
 
 	# Agent artifact — raw SKILL.md remains available at /skills/liki/SKILL.md.
 	header /skills/* Cache-Control "public, max-age=60"

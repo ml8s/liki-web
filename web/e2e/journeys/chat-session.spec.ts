@@ -41,8 +41,34 @@ const successStream = sse([
 async function mockSession(page: Page, messages: unknown[]) {
   await mockWorkspace(page, { user, allowedSkills: ['liki'] })
   await page.route('**/api/chat/sessions/chat_1', route => route.fulfill(json(session)))
-  await page.route('**/api/chat/sessions/chat_1/messages', route => route.fulfill(json(messages)))
+  await page.route('**/api/chat/sessions/chat_1/messages', route =>
+    route.fulfill(json({ messages, next_cursor: '' })))
 }
+
+test('更早的消息按游标分页加载', async ({ page }) => {
+  const older = message('msg_older', 'user', '更早的問題')
+  const recent = message('msg_recent', 'assistant', '最近的回覆')
+  await mockWorkspace(page, { user, allowedSkills: ['liki'] })
+  await page.route('**/api/chat/sessions/chat_1', route => route.fulfill(json(session)))
+  await page.route('**/api/chat/sessions/chat_1/messages**', route => {
+    const before = new URL(route.request().url()).searchParams.get('before')
+    if (before) {
+      return route.fulfill(json({ messages: [older], next_cursor: '' }))
+    }
+    return route.fulfill(json({ messages: [recent], next_cursor: '2026-01-01T00:01:00Z|msg_recent' }))
+  })
+
+  await page.goto('/app/chat/chat_1')
+  const thread = page.getByRole('log', { name: '訊息列表' })
+  await expect(thread).toContainText('最近的回覆')
+
+  // 顶部出现「載入更早」→ 点击后更早消息插入，游标用尽按钮消失。
+  const earlier = page.getByRole('button', { name: '載入更早的訊息' })
+  await expect(earlier).toBeVisible()
+  await earlier.click()
+  await expect(thread).toContainText('更早的問題')
+  await expect(earlier).toBeHidden()
+})
 
 test('a failed stream offers retry and resending succeeds', async ({ page }) => {
   const sends: unknown[] = []
@@ -109,12 +135,36 @@ test('the conversation owns the viewport and follows the keyboard', async ({ pag
 
 test('mobile: a message can be sent in a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await mockSession(page, [message('msg_1', 'assistant', '先給我出生資訊。')])
+  const history = Array.from({ length: 30 }, (_, index) => (
+    message(`msg_${index + 1}`, index % 2 ? 'assistant' : 'user', `第 ${index + 1} 條訊息`)
+  ))
+  await mockSession(page, history)
   await page.route('**/api/chat/sessions/chat_1/ag-ui', route => route.fulfill(stream(successStream)))
 
   await page.goto('/app/chat/chat_1')
   const thread = page.getByRole('log', { name: '訊息列表' })
-  await expect(thread).toContainText('先給我出生資訊。')
+  await expect(thread).toContainText('第 30 條訊息')
+
+  const copyHeight = await page.locator('.copy').first().evaluate(el => el.getBoundingClientRect().height)
+  expect(copyHeight).toBeGreaterThanOrEqual(44)
+
+  const scrollThread = page.locator('.chat-main > .thread')
+  await scrollThread.evaluate(el => {
+    el.scrollTop = 0
+  })
+  const jump = page.locator('.jump-latest')
+  await expect(jump).toBeVisible()
+  const controlGeometry = await page.evaluate(() => {
+    const jumpBox = document.querySelector('.jump-latest')?.getBoundingClientRect()
+    const composerBox = document.querySelector('form.composer')?.getBoundingClientRect()
+    return {
+      jumpHeight: jumpBox?.height ?? 0,
+      jumpBottom: jumpBox?.bottom ?? Number.NEGATIVE_INFINITY,
+      composerTop: composerBox?.top ?? Number.POSITIVE_INFINITY,
+    }
+  })
+  expect(controlGeometry.jumpHeight).toBeGreaterThanOrEqual(44)
+  expect(controlGeometry.jumpBottom).toBeLessThan(controlGeometry.composerTop)
 
   // 窄屏最容易坏的是横向溢出与输入：两者都必须保持可用。
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)

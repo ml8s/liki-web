@@ -9,8 +9,9 @@ import { mockPageview } from '../mocks';
 // Pages to audit with their framework render marker.
 const PAGES = [
   { path: '/zh-Hans/naming', marker: 'main',    name: 'naming' },
-  { path: '/zh-Hans/mingshu', marker: 'main',  name: 'mingshu' },
-  { path: '/zh-Hans/hepan',    marker: 'main',  name: 'hepan' },
+  { path: '/zh-Hans/natal',   marker: 'main',  name: 'natal' },
+  { path: '/zh-Hans/hepan',   marker: 'main',  name: 'hepan' },
+  { path: '/zh-Hans/liunian', marker: 'main',  name: 'liunian' },
   // Legal pages: sr-only heading rendered via compile-time i18n, wait for any visible element
   { path: '/zh-Hans/about',    marker: 'main',    name: 'about' },
   { path: '/zh-Hans/disclaimer', marker: 'main',  name: 'disclaimer' },

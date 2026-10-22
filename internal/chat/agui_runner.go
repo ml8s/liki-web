@@ -76,7 +76,6 @@ func (r *AgentRunner) Execute(
 	ctx context.Context,
 	msgs []llm.Message,
 	onEvent func(agent.ChatEvent),
-	phaseMsg func() string,
 ) ([]llm.Message, error) {
 	binding, _ := sessionBindingFrom(ctx)
 	locale := chatLocaleFrom(ctx)
@@ -114,7 +113,7 @@ func (r *AgentRunner) Execute(
 		if decodeErr != nil {
 			return nil, fmt.Errorf("liki: decode agent event: %w", decodeErr)
 		}
-		if err := state.observe(event, onEvent, phaseMsg); err != nil {
+		if err := state.observe(event, onEvent); err != nil {
 			return nil, err
 		}
 		if state.done {
@@ -190,52 +189,24 @@ func endpointFor(baseURL string) string {
 // streamed text is only forwarded to the browser; RUN_FINISHED.result.answer
 // remains the authoritative value that liki-web persists.
 type agentRunState struct {
-	done      bool
-	answer    string
-	runError  error
-	lastPhase string
+	done     bool
+	answer   string
+	runError error
+	lastTool string
 }
 
-// toolPhase maps a tool call name to a human-readable phase description
-// using prefix matching. Unknown tools fall back to the default phase.
-func toolPhase(name string) string {
-	switch {
-	case strings.HasPrefix(name, "load_skill"), strings.HasPrefix(name, "transfer_to_agent"):
-		return "正在安排合适的老师…"
-	case name == "bazi":
-		return "正在排八字盘…"
-	case name == "ziwei":
-		return "正在排紫微盘…"
-	case strings.HasPrefix(name, "city_coords"), strings.HasPrefix(name, "tianwen_time"):
-		return "正在校准时空坐标…"
-	case strings.HasPrefix(name, "bazi_"), strings.HasPrefix(name, "compute_factors"), strings.HasPrefix(name, "natal_query"):
-		return "正在排盘推演…"
-	case strings.HasPrefix(name, "period_query"), strings.HasPrefix(name, "bazi_liunian"):
-		return "正在推演大运流年…"
-	case strings.HasPrefix(name, "qimen_"):
-		return "正在起局…"
-	case strings.HasPrefix(name, "liuyao_"):
-		return "正在起卦…"
-	case strings.HasPrefix(name, "naming_"):
-		return "正在斟酌用字…"
-	case strings.HasPrefix(name, "fengshui_"):
-		return "正在勘察方位…"
-	default:
-		return "正在计算命理数据…"
-	}
-}
-
-func (s *agentRunState) observe(event aguievents.Event, onEvent func(agent.ChatEvent), phaseMsg func() string) error {
+func (s *agentRunState) observe(event aguievents.Event, onEvent func(agent.ChatEvent)) error {
 	switch ev := event.(type) {
 	case *aguievents.RunStartedEvent:
 		emitChatEvent(onEvent, agent.ChatEvent{Type: agent.EventThinking})
 	case *aguievents.TextMessageContentEvent:
 		emitChatEvent(onEvent, agent.ChatEvent{Type: agent.EventTextDelta, Content: ev.Delta})
 	case *aguievents.ToolCallStartEvent:
-		phase := toolPhase(ev.ToolCallName)
-		if phase != s.lastPhase {
-			s.lastPhase = phase
-			emitPhase(onEvent, func() string { return phase })
+		// 只转发原始工具名（事实）；显示文案由前端 i18n 渲染。连续同名去重。
+		tool := ev.ToolCallName
+		if tool != s.lastTool {
+			s.lastTool = tool
+			emitChatEvent(onEvent, agent.ChatEvent{Type: agent.EventPhase, Content: tool})
 		}
 	case *aguievents.ToolCallEndEvent:
 		// phase 已在 Start 时发出，End 不重复
@@ -271,13 +242,6 @@ func (s *agentRunState) observe(event aguievents.Event, onEvent func(agent.ChatE
 
 func (s *agentRunState) finalError() error {
 	return s.runError
-}
-
-func emitPhase(onEvent func(agent.ChatEvent), phaseMsg func() string) {
-	if onEvent == nil || phaseMsg == nil {
-		return
-	}
-	emitChatEvent(onEvent, agent.ChatEvent{Type: agent.EventPhase, Content: phaseMsg()})
 }
 
 func emitChatEvent(fn func(agent.ChatEvent), event agent.ChatEvent) {

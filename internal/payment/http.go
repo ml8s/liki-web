@@ -35,7 +35,7 @@ func (runtime *Runtime) HandlePaymentCompletionStatus(w http.ResponseWriter, r *
 	}
 	task, found, err := runtime.GetPaymentCompletionStatus(r.Context(), id)
 	if err != nil {
-		slog.Error("payment: fulfillment status", "intent_id", id, "err", err)
+		slog.ErrorContext(r.Context(), "payment: fulfillment status", "intent_id", id, "err", err)
 		httputil.RespondAppError(w, httputil.ErrInternal)
 		return
 	}
@@ -55,18 +55,18 @@ func (runtime *Runtime) HandlePaymentReturn(w http.ResponseWriter, r *http.Reque
 		id := r.PathValue("id")
 		intent, location, err := runtime.HandleReturn(r.Context(), id)
 		if err != nil {
-			slog.Error("payment: return", "intent_id", id, "err", err)
+			slog.ErrorContext(r.Context(), "payment: return", "intent_id", id, "err", err)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 		if intent.Status == IntentPaid && intent.Email != "" {
 			if err := httputil.SetJWTCookie(w, intent.Email, intent.BusinessOrderID); err != nil {
-				slog.Error("payment: return auth cookie", "intent_id", intent.ID, "err", err)
+				slog.ErrorContext(r.Context(), "payment: return auth cookie", "intent_id", intent.ID, "err", err)
 			}
 		}
 		// Log the path only: the query carries a 1-hour payment-status
 		// capability token that must not leak into logs.
-		slog.Info("payment: return redirect", "intent_id", intent.ID, "status", intent.Status,
+		slog.InfoContext(r.Context(), "payment: return redirect", "intent_id", intent.ID, "status", intent.Status,
 			"location", strings.SplitN(location, "?", 2)[0])
 		http.Redirect(w, r, location, http.StatusSeeOther)
 	}
@@ -75,13 +75,13 @@ func (runtime *Runtime) HandlePaymentReturn(w http.ResponseWriter, r *http.Reque
 func (runtime *Runtime) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
-		slog.Error("payment: read webhook body", "err", err)
+		slog.ErrorContext(r.Context(), "payment: read webhook body", "err", err)
 		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "read failed")
 		return
 	}
 	ack, err := runtime.HandleWebhookEventWithAck(r.Context(), body, r.Header)
 	if err != nil {
-		slog.Error("payment: webhook", "err", err)
+		slog.ErrorContext(r.Context(), "payment: webhook", "err", err)
 		// Verification failures and unknown orders are the provider's fault:
 		// 400 tells it to stop retrying. Transient failures (DB busy) must be
 		// 500 so the provider's at-least-once redelivery kicks in.

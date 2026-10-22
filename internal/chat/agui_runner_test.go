@@ -51,6 +51,11 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 			aguievents.NewRunStartedEvent("thread-1", "run-1"),
 			aguievents.NewToolCallStartEvent("call-1", "bazi_chart"),
 			aguievents.NewToolCallEndEvent("call-1"),
+			// 连续同名工具调用不重复发 phase（去重）。
+			aguievents.NewToolCallStartEvent("call-2", "bazi_chart"),
+			aguievents.NewToolCallEndEvent("call-2"),
+			aguievents.NewToolCallStartEvent("call-3", "naming_generate"),
+			aguievents.NewToolCallEndEvent("call-3"),
 			aguievents.NewTextMessageContentEvent("message-1", "流式"),
 			aguievents.NewTextMessageContentEvent("message-1", "内容"),
 		}
@@ -73,12 +78,9 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 		UserID:    "user-1",
 		SessionID: "session-1",
 		Profile: &AgentProfileContext{
-			Calendar:       "solar",
 			Gender:         "male",
-			BirthDate:      "1990-05-20",
-			BirthTime:      "12:00",
-			BirthTimeKnown: "known",
-			BirthPlace:     "Beijing",
+			BirthLongitude: &[]float64{116.4074}[0],
+			BirthTimezone:  &[]string{"Asia/Shanghai"}[0],
 		},
 	})
 	input := []llm.Message{
@@ -91,7 +93,7 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	events := make([]agent.ChatEvent, 0, 5)
 	result, err := runner.Execute(ctx, input, func(event agent.ChatEvent) {
 		events = append(events, event)
-	}, func() string { return "using engine" })
+	})
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -107,9 +109,8 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 		t.Fatalf("ForwardedProps = %#v", request.ForwardedProps)
 	}
 	profile, ok := props["profile"].(map[string]any)
-	if !ok || profile["calendar"] != "solar" || profile["gender"] != "male" ||
-		profile["birth_date"] != "1990-05-20" || profile["birth_time"] != "12:00" ||
-		profile["birth_time_known"] != "known" || profile["birth_place"] != "Beijing" {
+	if !ok || profile["gender"] != "male" ||
+		profile["birth_longitude"] != 116.4074 || profile["birth_timezone"] != "Asia/Shanghai" {
 		t.Fatalf("profile ForwardedProps = %#v", props["profile"])
 	}
 	if len(request.Messages) != 3 {
@@ -123,8 +124,15 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	if events[0].Type != agent.EventThinking {
 		t.Fatalf("first event = %+v", events[0])
 	}
-	if events[1].Type != agent.EventPhase || events[1].Content != "正在排盘推演…" {
-		t.Fatalf("tool event = %+v", events[1])
+	// phase 事件携带原始工具名（事实），文案由前端 i18n 渲染；连续同名去重。
+	var phases []string
+	for _, event := range events {
+		if event.Type == agent.EventPhase {
+			phases = append(phases, event.Content)
+		}
+	}
+	if len(phases) != 2 || phases[0] != "bazi_chart" || phases[1] != "naming_generate" {
+		t.Fatalf("phase events = %v, want [bazi_chart naming_generate]", phases)
 	}
 	textEvents := make([]agent.ChatEvent, 0, 2)
 	for _, event := range events {
@@ -149,7 +157,7 @@ func TestAgentRunnerExecuteReturnsProtocolErrorWithoutSyntheticAnswer(t *testing
 
 	runner := newTestAgentRunner(t, server)
 	ctx := withSessionBinding(context.Background(), sessionBinding{UserID: "user-1", SessionID: "session-1"})
-	_, err := runner.Execute(ctx, []llm.Message{{Role: llm.RoleUser, Content: "hello"}}, nil, nil)
+	_, err := runner.Execute(ctx, []llm.Message{{Role: llm.RoleUser, Content: "hello"}}, nil)
 	if err == nil || !strings.Contains(err.Error(), "engine unavailable") {
 		t.Fatalf("Execute() error = %v, want engine unavailable", err)
 	}
@@ -217,7 +225,7 @@ type selectedRunner struct {
 	name string
 }
 
-func (r selectedRunner) Execute(context.Context, []llm.Message, func(agent.ChatEvent), func() string) ([]llm.Message, error) {
+func (r selectedRunner) Execute(context.Context, []llm.Message, func(agent.ChatEvent)) ([]llm.Message, error) {
 	return nil, nil
 }
 func (r selectedRunner) Prompt() string { return r.name }
@@ -272,31 +280,5 @@ func TestLatestAGUIUserText(t *testing.T) {
 	input.Messages = []aguitypes.Message{input.Messages[1]}
 	if _, err := latestAGUIUserText(input); err == nil {
 		t.Fatal("latestAGUIUserText() error = nil, want missing user message")
-	}
-}
-
-func TestToolPhase(t *testing.T) {
-	t.Parallel()
-	cases := []struct{ tool, want string }{
-		{"load_skill", "正在安排合适的老师…"},
-		{"transfer_to_agent", "正在安排合适的老师…"},
-		{"city_coords", "正在校准时空坐标…"},
-		{"tianwen_time", "正在校准时空坐标…"},
-		{"bazi_chart", "正在排盘推演…"},
-		{"bazi_fullchart", "正在排盘推演…"},
-		{"compute_factors", "正在排盘推演…"},
-		{"period_query", "正在推演大运流年…"},
-		{"period_query", "正在推演大运流年…"},
-		{"qimen_cast", "正在起局…"},
-		{"liuyao_chart", "正在起卦…"},
-		{"naming_generate", "正在斟酌用字…"},
-		{"fengshui_analyze", "正在勘察方位…"},
-		{"unknown_tool", "正在计算命理数据…"},
-		{"", "正在计算命理数据…"},
-	}
-	for _, tc := range cases {
-		if got := toolPhase(tc.tool); got != tc.want {
-			t.Errorf("toolPhase(%q) = %q, want %q", tc.tool, got, tc.want)
-		}
 	}
 }

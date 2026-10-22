@@ -46,7 +46,7 @@ const chatExecutionTimeout = 600 * time.Second
 
 // Runner abstracts the LLM execution engine for one expert deployment.
 type Runner interface {
-	Execute(ctx context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent), phaseMsg func() string) ([]llm.Message, error)
+	Execute(ctx context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) ([]llm.Message, error)
 }
 
 // Service orchestrates chat sessions with entitlement checks.
@@ -175,12 +175,12 @@ func (s *Service) CreateSession(ctx context.Context, userID, skill, expert, titl
 	}
 	if profileID != "" && s.profiles != nil {
 		if err := s.profiles.TouchLastUsed(ctx, userID, profileID); err != nil {
-			slog.Warn("liki: touch profile last_used", "profile_id", profileID, "err", err)
+			slog.WarnContext(ctx, "liki: touch profile last_used", "profile_id", profileID, "err", err)
 		}
 		if p, err := s.profiles.Get(ctx, userID, profileID); err == nil {
 			if content, err := systemProfileContent(p); err == nil {
 				if _, err := s.store.AppendMessage(ctx, userID, session.ID, "assistant", KindSystemProfile, content); err != nil {
-					slog.Warn("liki: write system_profile message", "session_id", session.ID, "err", err)
+					slog.WarnContext(ctx, "liki: write system_profile message", "session_id", session.ID, "err", err)
 				}
 			}
 		}
@@ -239,12 +239,10 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 			return Message{}, Message{}, Session{}, err
 		}
 		binding.Profile = &AgentProfileContext{
-			Calendar:       p.Calendar,
 			Gender:         p.Gender,
-			BirthDate:      p.BirthDate,
-			BirthTime:      p.BirthTime,
-			BirthTimeKnown: p.BirthTimeKnown,
-			BirthPlace:     p.BirthPlace,
+			BirthLongitude: p.BirthLongitude,
+			BirthTimezone:  p.BirthTimezone,
+			BirthInstant:   p.BirthInstant,
 		}
 	}
 	ctx = withSessionBinding(ctx, binding)
@@ -253,7 +251,8 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
-	history, err := s.store.ListMessages(ctx, userID, sessionID)
+	// 代理上下文只取最近 agentHistoryLimit 条：会话无限增长时控制 token 成本与延迟。
+	history, _, err := s.store.ListMessages(ctx, userID, sessionID, "", agentHistoryLimit)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
@@ -273,9 +272,7 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 
 	ctx, cancel := context.WithTimeout(ctx, chatExecutionTimeout)
 	defer cancel()
-	result, err := chatRunner.Execute(ctx, msgs, onEvent, func() string {
-		return "正在计算命理数据…"
-	})
+	result, err := chatRunner.Execute(ctx, msgs, onEvent)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
@@ -317,11 +314,11 @@ func systemProfileContent(p birthprofile.BirthProfile) (string, error) {
 		"nickname":            p.Nickname,
 		"name":                p.Name,
 		"gender":              p.Gender,
-		"calendar":            p.Calendar,
+		"birth_longitude":     p.BirthLongitude,
+		"birth_timezone":      p.BirthTimezone,
+		"birth_instant":       p.BirthInstant,
 		"birth_date":          p.BirthDate,
 		"birth_time":          p.BirthTime,
-		"birth_time_known":    p.BirthTimeKnown,
-		"birth_place":         p.BirthPlace,
 		"third_party_consent": p.ThirdPartyConsent,
 	}
 	raw, err := json.Marshal(payload)

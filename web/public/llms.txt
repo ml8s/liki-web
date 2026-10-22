@@ -1,0 +1,32 @@
+# Liki
+
+Liki（专业 AI 命理师 / Professional AI Astrologer）以三种形态交付同一项能力：
+
+- **网页 AI 顾问**：liki.hk 上的 AI 命理顾问，覆盖八字、紫微斗数、六爻、八宅风水与择日。
+  示例：https://liki.hk/en/natal/
+- **Skill**：Liki Skill（专业命理 Skill / Professional Astrology Skill）——供 AI 助手接入的命理能力包。
+  文件：https://liki.hk/skills/liki/SKILL.md
+- **MCP 服务**：排盘与断语以标准 MCP 服务对外，同时提供 JSON-RPC 接口；外部客户端可直连。
+
+主定义句：Liki，专业 AI 命理师。 / Liki — Professional AI Astrologer.
+
+## 免费工具（无需注册；确定性计算，非 AI 猜测）
+
+- 八字排盘 + 紫微斗数命盘（含真太阳时校正）Free BaZi & Zi Wei charts
+  https://liki.hk/en/natal/
+- 六爻在线起卦（本卦/变卦推演）Free I Ching six-line casting
+  https://liki.hk/en/divination/
+- 八宅命卦与吉凶方位 Free Life Gua / Eight Mansions
+  https://liki.hk/en/fengshui/
+- 老黄历择日（宜忌 / 建除十二神）Free date selection & Chinese almanac
+  https://liki.hk/en/huangli/
+- 八字喜用神方向（起名指导）Free Yong Shen check for naming
+  https://liki.hk/en/naming/
+
+## 资产
+
+- Skill 文件：https://liki.hk/skills/liki/SKILL.md
+- 关于：https://liki.hk/en/about/
+- 服务条款：https://liki.hk/en/terms/
+- 免责声明：https://liki.hk/en/disclaimer/
+- 站点地图：https://liki.hk/sitemap.xml

@@ -1,43 +1,67 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
-import { t, locales } from '../../i18n.ts';
+import HepanTool from '../../islands/HepanTool.vue';
+import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
   return locales.map(locale => ({ params: { locale } }));
 }
 
 const { locale } = Astro.params;
-const benefits = ['chemistry', 'friction', 'communication', 'timing'].map(key => `scenario.hepan.benefit.${key}`);
+const ns = 'scenario.hepan';
+const benefits = ['chemistry', 'friction', 'communication', 'timing'].map(key => `${ns}.benefit.${key}`);
 const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
-const questions = ['q1', 'q2', 'q3'].map(key => `scenario.hepan.${key}`);
+const questions = ['q1', 'q2', 'q3'].map(key => `${ns}.${key}`);
+const staticSections = ['overview', 'dayMaster', 'branches', 'zodiac', 'wuxing'].map(key => ({
+  title: t(locale, `${ns}.static.${key}.title`),
+  body: t(locale, `${ns}.static.${key}.body`),
+}));
 const faqs = ['paid', 'data', 'accuracy'].map(key => ({
   questionKey: `scenario.faq.${key}.q`,
   answerKey: `scenario.faq.${key}.a`,
 }));
-const staticSections = ['overview', 'wuxing', 'dayMaster', 'branches', 'rating']
-  .map(key => ({
-    title: t(locale, `scenario.hepan.static.${key}.title`),
-    body: t(locale, `scenario.hepan.static.${key}.body`),
-  }));
-
+const birthLabels = birthFieldLabels(locale);
+const toolProps = {
+  locale,
+  appUrl: `/app?service=hepan&locale=${locale}`,
+  labels: {
+    ...birthLabels,
+    personA: t(locale, 'hepan.tool.personA'),
+    personB: t(locale, 'hepan.tool.personB'),
+    you: t(locale, 'hepan.tool.you'),
+    submit: t(locale, 'tool.submit'),
+    computing: t(locale, 'tool.computing'),
+    error: t(locale, 'tool.error'),
+    result: t(locale, 'hepan.tool.result'),
+    cta: t(locale, 'tool.cta'),
+    privacy: t(locale, 'tool.privacy'),
+  },
+};
 ---
 
 <ScenarioLanding
   locale={locale}
   page="hepan"
   scenario="hepan"
-  titleKey="scenario.hepan.title"
-  subtitleKey="scenario.hepan.subtitle"
-  benefitsTitleKey="scenario.hepan.benefitsTitle"
+  titleKey={`${ns}.title`}
+  subtitleKey={`${ns}.subtitle`}
+  benefitsTitleKey={`${ns}.benefitsTitle`}
   benefitKeys={benefits}
-  exampleTitleKey="scenario.hepan.exampleTitle"
+  exampleTitleKey={`${ns}.exampleTitle`}
   stepsTitleKey="scenario.stepsTitle"
   stepKeys={steps}
-  questionsTitleKey="scenario.hepan.questionsTitle"
+  questionsTitleKey={`${ns}.questionsTitle`}
   questionKeys={questions}
   faqTitleKey="scenario.faqTitle"
   faqs={faqs}
 >
+  <Fragment slot="tool">
+    <h2>{t(locale, 'hepan.tool.title')}</h2>
+    <p>{t(locale, 'hepan.tool.intro')}</p>
+    <div id="hepan-tool" data-props={JSON.stringify(toolProps)}>
+      <HepanTool {...toolProps} />
+    </div>
+  </Fragment>
   <div class="scenario-static-index">
     {staticSections.map(section => (
       <details>
@@ -47,3 +71,7 @@ const staticSections = ['overview', 'wuxing', 'dayMaster', 'branches', 'rating']
     ))}
   </div>
 </ScenarioLanding>
+
+<script>
+  import '../../scripts/hepan-tool';
+</script>

@@ -15,7 +15,7 @@ func RespondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(map[string]any{"data": data}); err != nil {
-		slog.Warn("respondJSON encode", "err", err)
+		slog.Warn("respondJSON encode", "err", err) // 无 ctx 可用：响应写失败告警，签名不为日志扩参
 	}
 }
 
@@ -25,7 +25,7 @@ func RespondRawJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		slog.Warn("respondRawJSON encode", "err", err)
+		slog.Warn("respondRawJSON encode", "err", err) // 无 ctx 可用：响应写失败告警，签名不为日志扩参
 	}
 }
 
@@ -38,19 +38,22 @@ func RespondError(w http.ResponseWriter, status int, code, msg string) {
 }
 
 // respondProblem writes an RFC 9457 Problem Details document
-// (application/problem+json). type carries the machine-readable code;
-// detail the human explanation for this occurrence.
+// (application/problem+json): title is the human-readable status summary,
+// detail the human explanation for this occurrence, and the machine-readable
+// code rides the `code` extension member (the runtime's problem documents do
+// the same). `type` keeps carrying the code for existing clients.
 func respondProblem(w http.ResponseWriter, status int, code, detail string) {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(status)
 	body := map[string]any{
 		"type":   code,
-		"title":  code,
+		"title":  http.StatusText(status),
 		"status": status,
+		"code":   code,
 		"detail": detail,
 	}
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		slog.Warn("respondProblem encode", "err", err)
+		slog.Warn("respondProblem encode", "err", err) // 无 ctx 可用：响应写失败告警，签名不为日志扩参
 	}
 }
 
@@ -108,7 +111,7 @@ func DecodeStrict[T validator](w http.ResponseWriter, r *http.Request) (T, bool)
 		return req, false
 	}
 	if err := req.Validate(); err != nil {
-		slog.Warn("validation failed", "err", err)
+		slog.WarnContext(r.Context(), "validation failed", "err", err)
 		RespondAppError(w, &AppError{Code: "validation_error", Message: "Invalid request parameters", HTTPStatus: http.StatusUnprocessableEntity})
 		return req, false
 	}
@@ -126,7 +129,7 @@ func DecodeAndValidate[T validator](w http.ResponseWriter, r *http.Request) (T, 
 		return req, false
 	}
 	if err := req.Validate(); err != nil {
-		slog.Warn("validation failed", "err", err)
+		slog.WarnContext(r.Context(), "validation failed", "err", err)
 		RespondAppError(w, &AppError{Code: "validation_error", Message: "Invalid request parameters", HTTPStatus: http.StatusUnprocessableEntity})
 		return req, false
 	}

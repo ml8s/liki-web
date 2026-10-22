@@ -22,7 +22,34 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
   await page.getByLabel(/驗證碼|验证码|verification code/i).fill(data.dev_code)
   await page.waitForURL(url => !url.href.includes('/login'), { timeout: 15000 })
 
-  // 新建档案。
+  // 新建档案。出生地失焦会调用 city_coords（candidates 模式）；CI 不启动 engine，
+  // 这里只对城市查询给出确定性响应，其余引擎请求照走（详情排盘允许降级）。
+  await page.route(/\/(engine|counsel)\/mcp$/, route => {
+    const body = route.request().postDataJSON() as { params?: { name?: string } }
+    if (body?.params?.name === 'city_coords') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          result: {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                name: '杭州市', longitude: 120.1551, latitude: 30.2741, country: '浙江省',
+                candidates: [{
+                  name: '杭州市', region: '浙江省', country: '浙江省', level: 'city',
+                  longitude: 120.1551, latitude: 30.2741, timezone: 'Asia/Shanghai',
+                }],
+              }),
+            }],
+          },
+        }),
+      })
+    }
+    return route.continue()
+  })
   await page.goto('/app/birth-profiles/new')
   await page.getByLabel(/稱呼/).fill('旅程測試')
   // Element Plus renders native radios visually covered by styled spans;

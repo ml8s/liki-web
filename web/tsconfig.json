@@ -2,7 +2,9 @@
   "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     // Node 类型供 web/src/version.ts（构建期读 VERSION 文件）使用。
-    "types": ["astro/client", "node"]
+    "types": ["astro/client", "node"],
+    // 共享层跨边界引用（与 astro.config.mjs 的 vite alias 对应）。
+    "paths": { "@shared/*": ["./shared/*"] }
   },
   "include": [
     ".astro/types.d.ts",

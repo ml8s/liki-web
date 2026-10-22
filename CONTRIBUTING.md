@@ -49,6 +49,21 @@ make check-web-static
 make test-python
 ```
 
+Cross-layer contracts enforced by `make check`: every Go error code carries App
+copy in all three locales (`web/scripts/check-error-codes.js`; the generated
+inventory lives in `docs/error-codes.md` — refresh with `--update` after adding
+or removing codes).
+
+## Known flaky tests
+
+偶发用例记录在此（发现即登记，修复后删除条目），避免「偶发=没发生」：
+
+| 用例 | 现象 | 处置 |
+| --- | --- | --- |
+| `web/e2e/journeys/purchase-unlock.spec.ts`（purchased state） | 曾在全量运行中偶发失败一次（重试通过），未复现 | 观察；连续两次复现即按根因修复并在此记录 |
+
+约定：重试通过的失败也算 flaky，必须登记；同一用例连续两次进入台账即提升为修复项。
+
 ## Toolchain versions
 
 Versions are declared once and shared by CI and local runs; `make check` fails
@@ -89,6 +104,7 @@ DOMAIN_MODEL.md
 API.md
 FRONTEND.md
 LEGACY_PRODUCTS.md
+BRAND.md
 ```
 
 ## Security

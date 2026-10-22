@@ -19,22 +19,28 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { createIntentPreloader } from '@/utils/routes'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const preloadNavigation = createIntentPreloader(router, record => !String(record.name ?? '').startsWith('admin-'))
 
-// 与桌面侧栏同一目的地模型：Workspace / Profiles / Chat / Orders-Account / Partners。
+// 与桌面侧栏同一目的地模型：Workspace / Profiles / Chat / Orders-Account。
+// 合作入口为定向邀请制：仅对已有合作角色的账号显示（数据来自 /api/me）。
+const auth = useAuthStore()
 const tabs = computed(() => {
   const path = route.path
-  return [
+  const items = [
     { to: '/', label: t('nav.workspace'), active: path === '/' },
     { to: '/birth-profiles', label: t('nav.profiles'), active: path.startsWith('/birth-profiles') },
     { to: '/chat', label: t('nav.chat'), active: path.startsWith('/chat') },
     { to: '/account', label: t('nav.mine'), active: path.startsWith('/account') || path.startsWith('/orders') },
-    { to: '/partners', label: t('nav.partner'), active: path.startsWith('/partners') },
   ]
+  if (auth.hasPartnerRole) {
+    items.push({ to: '/partners', label: t('nav.partner'), active: path.startsWith('/partners') })
+  }
+  return items
 })
 </script>
 

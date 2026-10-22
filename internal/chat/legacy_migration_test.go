@@ -29,7 +29,7 @@ func TestChatMigrationPreservesData(t *testing.T) {
 	if _, err := chats.AppendMessage(ctx, "user-1", session.ID, "user", KindText, "hello"); err != nil {
 		t.Fatal(err)
 	}
-	messages, err := chats.ListMessages(ctx, "user-1", session.ID)
+	messages, _, err := chats.ListMessages(ctx, "user-1", session.ID, "", 50)
 	if err != nil {
 		t.Fatal(err)
 	}

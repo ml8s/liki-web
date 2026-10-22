@@ -36,7 +36,7 @@
       aria-busy="true"
     />
 
-    <el-empty
+    <AppEmptyState
       v-else-if="!profiles.loading && !profiles.list.length"
       :description="$t('profiles.list.empty')"
     >
@@ -47,7 +47,7 @@
       >
         {{ $t('profiles.create') }}
       </el-button>
-    </el-empty>
+    </AppEmptyState>
 
     <BirthProfileList
       v-else
@@ -79,6 +79,7 @@ import { useI18n } from 'vue-i18n'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import type { BirthProfile } from '@/api/birth-profiles'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
+import AppEmptyState from '@/components/app/AppEmptyState.vue'
 import BirthProfileList from '@/components/birth-profiles/BirthProfileList.vue'
 
 const router = useRouter()

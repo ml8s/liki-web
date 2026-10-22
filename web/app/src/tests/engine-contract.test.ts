@@ -1,69 +1,173 @@
-// 引擎请求/错误契约锁：字段名与引擎 mcpcontract DTO 一字不差，防前端臆造参数。
+// 引擎请求/错误契约锁：MCP 直连（/engine/mcp、/counsel/mcp）的 JSON-RPC 形状与
+// 字段名须与引擎/counsel mcpcontract 一字不差，防前端臆造参数或误包协议。
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/http'
-import { engineBaziBond, engineHuangliDays, engineZiweiDaXian, engineZiweiLiuNian } from '@/api/engine'
+import {
+  engineBaziChart,
+  engineBaziBond,
+  engineHuangliDays,
+  engineLiuyaoChart,
+  engineLiuyaoQigua,
+  engineTool,
+  engineZiweiChart,
+  engineZiweiDaXian,
+  engineZiweiLiuNian,
+} from '@/api/engine'
 
-function stubFetch(payload: unknown, status = 200): void {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status })))
+const mcpOk = (data: unknown, status = 200): Response =>
+  new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      result: { content: [{ type: 'text', text: JSON.stringify(data) }] },
+    }),
+    { status },
+  )
+
+const mcpIsError = (message: string): Response =>
+  new Response(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      result: { content: [{ text: `Error executing tool: ${message}`, type: 'text' }], isError: true },
+    }),
+    { status: 200 },
+  )
+
+function stubFetch(response: Response): void {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
 }
 
-function lastRequestBody(): Record<string, unknown> {
+function lastCall(): { url: string; body: { method?: string; params?: { name?: string; arguments?: Record<string, unknown> } }; headers: Record<string, string> } {
   const call = vi.mocked(fetch).mock.calls.at(-1)!
-  return JSON.parse(String(call[1]?.body)) as Record<string, unknown>
+  return {
+    url: String(call[0]),
+    body: JSON.parse(String(call[1]?.body)),
+    headers: (call[1]?.headers ?? {}) as Record<string, string>,
+  }
 }
 
 describe('engine request contract', () => {
-  it('huangli sends {event, start_date, count} exactly (engine.huangli.HuangliDaysInput)', async () => {
-    stubFetch({ data: [] })
+  it('posts tools/call to /engine/mcp with the MCP-required Accept header', async () => {
+    stubFetch(mcpOk([]))
     await engineHuangliDays('wedding', '2026-10-01', 30)
-    expect(lastRequestBody()).toEqual({ event: 'wedding', start_date: '2026-10-01', count: 30 })
+    const { url, body, headers } = lastCall()
+    expect(url).toBe('/engine/mcp')
+    expect(body.method).toBe('tools/call')
+    expect(body.params?.name).toBe('huangli_days')
+    const meta = (body.params as { _meta?: Record<string, unknown> })?._meta
+    expect(meta?.['io.modelcontextprotocol/protocolVersion']).toBe('2026-07-28')
+    // MCP Streamable HTTP 规范：客户端必须同时接受 JSON 与 SSE 形态。
+    expect(headers.Accept).toBe('application/json, text/event-stream')
+  })
+
+  it('routes counsel tools to /counsel/mcp', async () => {
+    stubFetch(mcpOk({ selected: {} }))
+    await engineTool('bazi_yongshen', { chart: {} })
+    expect(lastCall().url).toBe('/counsel/mcp')
+  })
+
+  it('huangli sends {event, start_date, count} exactly (engine.huangli.HuangliDaysInput)', async () => {
+    stubFetch(mcpOk([]))
+    await engineHuangliDays('wedding', '2026-10-01', 30)
+    expect(lastCall().body.params?.arguments).toEqual({ event: 'wedding', start_date: '2026-10-01', count: 30 })
+  })
+
+  it('bazi chart sends the unified Gregorian time contract exactly', async () => {
+    stubFetch(mcpOk({}))
+    await engineBaziChart({
+      instant: '1958-05-11T22:00:00Z',
+      timezone: 'Asia/Shanghai',
+      longitude: 121.47,
+      gender: 'female',
+    })
+    expect(lastCall().body.params?.arguments).toEqual({
+      instant: '1958-05-11T22:00:00Z',
+      timezone: 'Asia/Shanghai',
+      longitude: 121.47,
+      gender: 'female',
+    })
+  })
+
+  it('ziwei chart sends the unified Gregorian time contract exactly', async () => {
+    stubFetch(mcpOk({ gong_wei: [] }))
+    await engineZiweiChart({
+      instant: '1958-05-11T22:00:00Z',
+      timezone: 'Asia/Shanghai',
+      longitude: 121.47,
+      gender: 'female',
+    })
+    expect(lastCall().body.params?.arguments).toEqual({
+      instant: '1958-05-11T22:00:00Z',
+      timezone: 'Asia/Shanghai',
+      longitude: 121.47,
+      gender: 'female',
+    })
+  })
+
+  it('liuyao chart sends the unified Gregorian time contract exactly', async () => {
+    stubFetch(mcpOk({}))
+    await engineLiuyaoChart({
+      instant: '2026-10-20T12:00:00Z',
+      timezone: 'Asia/Shanghai',
+      longitude: 116.4,
+      casting: { order: [1, 2, 3, 4, 5, 6] },
+      yongShen: '世爻',
+    })
+    expect(lastCall().body.params?.arguments).toEqual({
+      instant: '2026-10-20T12:00:00Z',
+      timezone: 'Asia/Shanghai',
+      longitude: 116.4,
+      casting: { order: [1, 2, 3, 4, 5, 6] },
+      yong_shen: '世爻',
+    })
+  })
+
+  it('liuyao qigua requires the frontend to materialize its mode', async () => {
+    stubFetch(mcpOk({ casting: { mode: 'coins' } }))
+    await engineLiuyaoQigua({ mode: 'auto' })
+    expect(lastCall().body.params?.arguments).toEqual({ mode: 'auto' })
   })
 
   it('bazi bond sends both charts under {a, b} (engine.bazi.BaziBondInput)', async () => {
-    stubFetch({ data: {} })
+    stubFetch(mcpOk({}))
     await engineBaziBond({ nian: { gan: '甲' } }, { nian: { gan: '庚' } })
-    expect(lastRequestBody()).toEqual({
+    expect(lastCall().body.params?.arguments).toEqual({
       a: { chart: { nian: { gan: '甲' } } },
       b: { chart: { nian: { gan: '庚' } } },
     })
   })
 
   it('ziwei daxian sends {chart} exactly (engine.ziwei.ZiweiDaXianInput)', async () => {
-    stubFetch({ data: [] })
+    stubFetch(mcpOk([]))
     await engineZiweiDaXian({ gong_wei: [] })
-    expect(lastRequestBody()).toEqual({ chart: { gong_wei: [] } })
+    expect(lastCall().body.params?.arguments).toEqual({ chart: { gong_wei: [] } })
   })
 
   it('ziwei liunian sends {chart, lunar_year} exactly (engine.ziwei.ZiweiLiuNianInput)', async () => {
-    stubFetch({ data: {} })
+    stubFetch(mcpOk({}))
     await engineZiweiLiuNian({ gong_wei: [] }, 2026)
-    expect(lastRequestBody()).toEqual({ chart: { gong_wei: [] }, lunar_year: 2026 })
+    expect(lastCall().body.params?.arguments).toEqual({ chart: { gong_wei: [] }, lunar_year: 2026 })
   })
 
-  it('maps BFF problem+json type to the ApiError code verbatim', async () => {
-    stubFetch(
-      { type: 'engine_tool_failed', title: 'engine_tool_failed', status: 422, detail: 'huangli.days: bad input' },
-      422,
-    )
+  it('maps MCP tool errors (isError) to engine_tool_failed with the tool message', async () => {
+    stubFetch(mcpIsError('invalid_arguments: chart.gender: Field required'))
     await expect(engineHuangliDays('wedding', '2026-10-01', 1)).rejects.toMatchObject({
-      status: 422,
       code: 'engine_tool_failed',
-      message: 'huangli.days: bad input',
+      message: 'Error executing tool: invalid_arguments: chart.gender: Field required',
     } satisfies Partial<ApiError>)
   })
 
-  it('keeps engine_tool_not_found distinguishable from tool failures', async () => {
-    stubFetch(
-      { type: 'engine_tool_not_found', title: 'engine_tool_not_found', status: 404, detail: 'Engine tool not found' },
-      404,
-    )
+  it('maps non-2xx transport failures to engine_unavailable', async () => {
+    stubFetch(new Response('bad gateway', { status: 502 }))
     await expect(engineHuangliDays('wedding', '2026-10-01', 1)).rejects.toMatchObject({
-      code: 'engine_tool_not_found',
+      status: 502,
+      code: 'engine_unavailable',
     } satisfies Partial<ApiError>)
   })
 
-  it('returns the raw data payload (array wrapper stripped)', async () => {
-    stubFetch({ data: [{ date: '2026-10-11', suitability: 'recommended' }] })
+  it('returns the parsed payload from the MCP content envelope', async () => {
+    stubFetch(mcpOk([{ date: '2026-10-11', suitability: 'recommended' }]))
     await expect(engineHuangliDays('wedding', '2026-10-01', 1)).resolves.toEqual([
       { date: '2026-10-11', suitability: 'recommended' },
     ])

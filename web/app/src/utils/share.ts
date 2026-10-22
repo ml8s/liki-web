@@ -9,7 +9,7 @@ const REFERRAL_TARGET_PATHS = new Set((() => {
     paths.add(`/${locale}`)
     paths.add(`/${locale}/`)
     for (const slug of [
-      'naming', 'mingshu', 'hepan', 'skills', 'partners',
+      'natal', 'liunian', 'hepan', 'divination', 'fengshui', 'huangli', 'naming', 'skills',
       'about', 'contact', 'privacy', 'terms', 'disclaimer',
     ]) {
       paths.add(`/${locale}/${slug}`)

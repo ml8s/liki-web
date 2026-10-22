@@ -86,7 +86,7 @@ runs:
         set -euo pipefail
         test -f web/skills/liki/SKILL.md
         test -f web/skills/liki/VERSION.txt
-        test -f web/skills/liki/references/natal/app/mingshu.md
+        test -f web/skills/liki/references/natal-app-mingshu.md
         test -f web/skills/liki.tar.gz
         test -f web/.well-known/agent-skills/index.json
         echo "liki VERSION: $(cat web/skills/liki/VERSION.txt)"

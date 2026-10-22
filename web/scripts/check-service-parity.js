@@ -34,7 +34,7 @@ const appScenarios = new Set([...scenarioSrc.matchAll(/scenario === '([a-z]+)'/g
 
 // ── App: service keys (config/chat.ts) ──
 const chatSrc = fs.readFileSync(path.join(WEB, 'app/src/config/chat.ts'), 'utf8');
-const appServices = new Set([...chatSrc.matchAll(/key: '([a-z]+)'/g)].map(m => m[1]));
+const appServices = new Set([...chatSrc.matchAll(/(?:key|id): '([a-z]+)'/g)].map(m => m[1]));
 
 for (const value of [...marketing].sort()) {
   const known = appScenarios.has(value) || appServices.has(value);

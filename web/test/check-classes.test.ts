@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,13 +9,13 @@ const SCRIPT = path.join(ROOT, 'web/scripts/check-classes.js');
 const INVALID_TEMPLATE = path.join(ROOT, 'web/src/_temp_invalid.astro');
 
 // 检查脚本用非零退出码报失败，消息在 stderr；这里统一成可直接断言的结果。
-function runCheck(): { status: number; stderr: string } {
+function runCheck(): { status: number; stdout: string; stderr: string } {
   try {
-    execFileSync(process.execPath, [SCRIPT], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
-    return { status: 0, stderr: '' };
+    const result = spawnSync(process.execPath, [SCRIPT], { cwd: ROOT, encoding: 'utf8' });
+    if (result.error) return { status: result.status ?? 1, stdout: result.stdout ?? '', stderr: String(result.error) };
+    return { status: result.status ?? 1, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
   } catch (error) {
-    const { status, stderr } = error as { status?: number | null; stderr?: string | Buffer };
-    return { status: status ?? 1, stderr: String(stderr ?? '') };
+    return { status: 1, stdout: '', stderr: String(error) };
   }
 }
 

@@ -35,7 +35,7 @@ before implementation.
 | Archetype | Primary task | Structure | Examples |
 | --- | --- | --- | --- |
 | Marketing landing | convert visitor to app | hero, proof, capability grid, primary CTA | home |
-| Scenario SEO | qualify a scenario and hand off to chat | scenario explanation, examples, FAQ, CTA | naming, mingshu, hepan |
+| Scenario SEO | qualify a scenario and hand off to chat | scenario explanation, free tool, examples, FAQ, CTA | natal, liunian, hepan, divination, huangli, fengshui, naming |
 | Developer tool | make integration/installation easy | install commands, skill contract, links | skills |
 | Legal / reading | make policy readable | title, scoped sections | terms, privacy, disclaimer, about |
 | Product dashboard | continue the user's next task | state-driven hero, services, recent activity | `/app` |
@@ -64,7 +64,7 @@ only when the domain cannot produce it.
 | Default | primary task is visible |
 | Loading | `el-skeleton` or `v-loading`; list/container has `aria-busy` |
 | Ready | primary task and data are visible |
-| Empty | `el-empty` or equivalent; one clear next action |
+| Empty | `AppEmptyState` (one-line description + optional single action); `el-empty` is retired for user-facing lists |
 | Page error | `el-alert type="error"`; `el-alert` already has `role="alert"` |
 | Field error | message beside the field; associated through Element Plus validation |
 | Unreachable | recovery action such as retry or sign in again |
@@ -85,17 +85,18 @@ Domain-specific states are listed in the route inventory below.
 | Route | Archetype | Primary action | Notes |
 | --- | --- | --- | --- |
 | `/{locale}/` | marketing landing | start free chart | direct app CTA is intentional |
-| `/{locale}/naming` | scenario SEO | open naming scenario | CTA sends `/app?scenario=naming` |
-| `/{locale}/mingshu` | scenario SEO | open mingshu scenario | CTA sends `/app?scenario=mingshu` |
-| `/{locale}/hepan` | scenario SEO | open hepan scenario | CTA sends `/app?scenario=hepan` |
-| `/{locale}/bazi` | capability SEO | open bazi service | CTA sends `/app?service=bazi` |
-| `/{locale}/divination` | capability SEO | open divination service | CTA sends `/app?service=divination` |
-| `/{locale}/fengshui` | capability SEO | open fengshui service | CTA sends `/app?service=fengshui` |
-| `/{locale}/huangli` | capability SEO | open huangli service | CTA sends `/app?service=huangli` |
+| `/{locale}/natal` | scenario SEO | open the life reading scenario | free chart tool; CTA sends `/app?service=natal` |
+| `/{locale}/liunian` | scenario SEO | open the annual fortune scenario | free annual chart tool; CTA sends `/app?scenario=liunian` |
+| `/{locale}/hepan` | scenario SEO | open the compatibility scenario | free compatibility tool; CTA sends `/app?scenario=hepan` |
+| `/{locale}/divination` | scenario SEO | open the divination scenario | free cast tool; CTA sends `/app?service=divination` |
+| `/{locale}/fengshui` | scenario SEO | open the fengshui scenario | free life-gua tool; CTA sends `/app?service=fengshui` |
+| `/{locale}/huangli` | scenario SEO | open the date-selection scenario | free almanac tool; CTA sends `/app?service=huangli` |
+| `/{locale}/naming` | scenario SEO | open the naming scenario | free yong-shen tool; CTA sends `/app?scenario=naming` |
+| `/{locale}/bazi`, `/{locale}/mingshu` | legacy | — | 301 to `/natal` |
 | `/{locale}/skills` | capability discovery | install the Liki skill | human-facing localized page; public and SEO-discoverable |
 | `/skills` | localized entry | choose language by `Accept-Language` | redirects to one of the localized Skills pages |
 | `/skills/liki/SKILL.md` | agent artifact | install raw skill metadata | stable resource; not the human-facing page |
-| `/{locale}/partners` | partner landing | learn/apply | shares public footer |
+| `/{locale}/partner/kol`, `/{locale}/partner/scout` | partner landing | invite-only entry | noindex, unlisted, not in sitemap |
 | `/{locale}/about` | legal / reading | learn about Liki | no primary conversion |
 | `/{locale}/contact` | legal / reading | contact | contains external links |
 | `/{locale}/privacy` | legal / reading | read policy | noindex is not applied; legal is public |
@@ -223,6 +224,8 @@ in the URL merely because they are state.
 | Admin filters and page | yes |
 | Marketing locale | yes, through path/query handoff |
 | Scenario entry | yes |
+| Paipan tab on a profile | yes, `?tab=` |
+| Fengshui selected profile | yes, `?profile=` |
 | Payment return | yes, then cleaned after handling |
 | Birth form while typing | no |
 | Chat composer draft | no |

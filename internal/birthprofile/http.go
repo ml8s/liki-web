@@ -72,7 +72,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrQuotaExceeded):
 			httputil.RespondError(w, http.StatusTooManyRequests, "quota_exceeded", "档案数量已达上限")
 		default:
-			slog.Error("profile: create", "user_id", user.ID, "err", err)
+			slog.ErrorContext(r.Context(), "profile: create", "user_id", user.ID, "err", err)
 			httputil.InternalError(w)
 		}
 		return
@@ -90,7 +90,7 @@ func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 	cursor := r.URL.Query().Get("cursor")
 	items, nextCursor, err := h.store.List(r.Context(), user.ID, cursor, limit)
 	if err != nil {
-		slog.Error("profile: list", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "profile: list", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -114,7 +114,7 @@ func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("profile: get", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "profile: get", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -147,7 +147,7 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrConflict):
 			httputil.RespondError(w, http.StatusConflict, "profile_conflict", "档案已被其他设备修改，请刷新后重试")
 		default:
-			slog.Error("profile: update", "user_id", user.ID, "err", err)
+			slog.ErrorContext(r.Context(), "profile: update", "user_id", user.ID, "err", err)
 			httputil.InternalError(w)
 		}
 		return
@@ -166,7 +166,7 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 			httputil.NotFound(w)
 			return
 		}
-		slog.Error("profile: delete", "user_id", user.ID, "err", err)
+		slog.ErrorContext(r.Context(), "profile: delete", "user_id", user.ID, "err", err)
 		httputil.InternalError(w)
 		return
 	}
@@ -174,7 +174,11 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(dst); err != nil {
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
+	// Birth profile fields are a precise contract. Retired semantic fields such
+	// as calendar/birth_time_known must not be silently accepted.
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
 		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
 		return false
 	}

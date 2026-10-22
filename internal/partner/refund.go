@@ -154,7 +154,7 @@ func (s *Store) ProcessCommissionRefunds(ctx context.Context, limit int) (int, e
 		if markErr := s.failCommissionRefund(ctx, item.ID, err); markErr != nil {
 			return processed, markErr
 		}
-		slog.Warn("partner: commission refund retry", "id", item.ID, "intent", item.PaymentID, "err", err)
+		slog.WarnContext(ctx, "partner: commission refund retry", "id", item.ID, "intent", item.PaymentID, "err", err)
 		metrics.Default.Inc("referral_commission_refund_worker_total", map[string]string{"result": "retry_or_failed"})
 	}
 	return processed, nil

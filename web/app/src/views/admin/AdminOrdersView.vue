@@ -39,7 +39,7 @@
       </el-form-item>
       <el-button
         type="primary"
-        @click="submitOrderFilters"
+        native-type="submit"
       >
         查询
       </el-button>

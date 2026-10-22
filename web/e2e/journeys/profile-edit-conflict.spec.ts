@@ -7,19 +7,31 @@ import { json, mockWorkspace, testUser } from '../mocks'
 const user = testUser({ id: 'usr_profile', email: 'profile@example.com' })
 const profile = {
   id: 'p_1', user_id: user.id, version: 3, nickname: '媽媽', name: '', gender: 'female',
-  calendar: 'solar', birth_date: '1958-05-12', birth_time: '06:00', birth_time_known: 'known',
-  birth_place: '上海', note: '', third_party_consent: true, last_used_at: null,
+  birth_date: '1958-05-12', birth_time: '06:00',
+  birth_local_time: '06:00',
+  birth_local_date: '1958-05-12',
+  birth_place: '上海', birth_longitude: 121.4726, birth_timezone: 'Asia/Shanghai',
+  birth_instant: '1958-05-11T22:00:00Z', note: '', third_party_consent: true, last_used_at: null,
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
 
 async function mockDetail(page: Page, onPatch: (route: Route) => unknown) {
   await mockWorkspace(page, { user })
-  // 详情页会尝试排盘预览。本用例只关心保存反馈，所以让引擎工具显式失败，
-  // 页面走「未找到出生地座標」的降级路径——比用兜底路由假装成功更诚实。
-  await page.route('**/api/engine/tools/*', route => route.fulfill({
-    status: 502,
-    json: { detail: 'engine unavailable in this journey' },
-  }))
+  // 表单挂载会把旧档案的出生地匹配成经度（city_coords candidates 模式）；
+  // 其余引擎工具显式失败，详情排盘走「未找到出生地座標」的降级路径。
+  await page.route(/\/(engine|counsel)\/mcp$/, route => {
+    const body = route.request().postDataJSON() as { params?: { name?: string } }
+    if (body?.params?.name === 'city_coords') {
+      return route.fulfill(json({
+        name: '上海市', longitude: 121.4726, latitude: 31.2304, country: '上海市',
+        candidates: [{
+          name: '上海市', region: '上海市', country: '上海市', level: 'city',
+          longitude: 121.4726, latitude: 31.2304, timezone: 'Asia/Shanghai',
+        }],
+      }))
+    }
+    return route.fulfill({ status: 502, json: { detail: 'engine unavailable in this journey' } })
+  })
   await page.route('**/api/birth-profiles/p_1', route => (
     route.request().method() === 'PATCH' ? onPatch(route) : route.fulfill(json(profile))
   ))

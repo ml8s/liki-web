@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures'
+import { waitForSettled } from '../helpers'
 import AxeBuilder from '@axe-core/playwright'
 import { json, mockAdmin } from '../mocks'
 
@@ -41,7 +42,7 @@ test.describe('Admin accessibility audit', () => {
 
       await page.goto(path)
       await page.waitForSelector(marker, { timeout: 10000 })
-      await page.waitForTimeout(250)
+      await waitForSettled(page)
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

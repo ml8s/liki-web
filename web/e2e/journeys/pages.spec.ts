@@ -5,7 +5,8 @@
 
 import { test, expect } from '../fixtures';
 import { I18N_KEY_RE } from '../helpers';
-import { mockPageview } from '../mocks';
+import { mockCityCoords, mockPageview } from '../mocks';
+import { fillBirthFields } from '../helpers';
 
 // 每个静态页首屏都会打一次 pageview 信标；声明成 204 空响应。
 // （信标本就是非必需的；CI 共享 localhost 客户端还可能撞上它的限流。）
@@ -36,7 +37,7 @@ const PAGES: PageCase[] = [
   { path: '/en/naming', name: 'naming EN',
     checks: [
       { selector: '.font-brand', text: 'Liki' },
-      { selector: 'h1', text: 'AI naming and name interpretation' },
+      { selector: 'h1', text: 'Chinese Baby Names & Name Analysis' },
     ] },
   { path: '/zh-Hant/naming', name: 'naming ZH-Hant',
     checks: [
@@ -47,13 +48,13 @@ const PAGES: PageCase[] = [
   { path: '/zh-Hans/',        name: 'index (C-end landing)',
     checks: [
       { selector: '.landing-paipan', text: '免费排盘' },
-      { selector: '.landing-services', text: '六大命理场景' },
-      { selector: '.landing-trust', text: '为什么可信' },
+      { selector: '.landing-services', text: '七项服务：命理、流年、合盘、问卦、择日、风水与起名' },
+      { selector: '.landing-trust', text: '引擎排盘，结论可验证' },
     ] },
   // Skill 能力发现页（保留机器可读 SKILL.md 作为独立入口）
   { path: '/zh-Hans/skills/', name: 'skills (localized page)',
     checks: [
-      { selector: '.scenario-hero h1', text: 'Liki — 专业命理 Skill' },
+      { selector: '.scenario-hero h1', text: 'Liki Skill' },
       { selector: '.install-cmd', text: 'npx skills add ml8s/liki' },
     ] },
   // Legal pages — marker renders, i18n resolves, keys don't leak
@@ -63,29 +64,21 @@ const PAGES: PageCase[] = [
   { path: '/zh-Hans/terms',    name: 'terms (static)' },
   // Static resources
   { path: '/skills/liki/SKILL.md', marker: null,          name: 'skills',   resource: true },
-  { path: '/zh-Hans/mingshu',   name: 'mingshu (static)',
+  { path: '/zh-Hans/natal',   name: 'natal (merged landing)',
     checks: [
-      { selector: 'h1', text: '个人命书与终身运势解读' },
+      { selector: 'h1', text: '在线命理：八字、紫微与命书' },
     ] },
-  { path: '/zh-Hans/hepan',    name: 'hepan (static)',
+  { path: '/en/natal',       name: 'natal EN',
     checks: [
-      { selector: 'h1', text: '八字合盘与感情关系解读' },
+      { selector: 'h1', text: 'Chinese Astrology: BaZi, Zi Wei Dou Shu & Life Reading' },
     ] },
-  { path: '/en/hepan',       name: 'hepan EN',
+  { path: '/zh-Hans/hepan',   name: 'hepan (restored landing)',
     checks: [
-      { selector: 'h1', text: 'BaZi compatibility and relationship reading' },
+      { selector: 'h1', text: '八字合盘：合婚、姻缘与关系解读' },
     ] },
-  { path: '/zh-Hans/bazi', name: 'bazi (capability landing)',
+  { path: '/zh-Hans/liunian', name: 'liunian (annual fortune landing)',
     checks: [
-      { selector: 'h1', text: '八字命盘与流年解读' },
-    ] },
-  { path: '/zh-Hant/bazi', name: 'bazi ZH-Hant',
-    checks: [
-      { selector: 'h1', text: '八字命盤與流年解讀' },
-    ] },
-  { path: '/en/bazi', name: 'bazi EN',
-    checks: [
-      { selector: 'h1', text: 'BaZi chart and annual reading' },
+      { selector: 'h1', text: '流年运势：这一年，你的机会与注意' },
     ] },
   { path: '/zh-Hans/divination', name: 'divination (capability landing)',
     checks: [
@@ -103,6 +96,12 @@ const PAGES: PageCase[] = [
 ];
 
 test.describe('Static page interactions', () => {
+  test('requests carry a correlation id header', async ({ request }) => {
+    const response = await request.get('/zh-Hans/')
+    const id = response.headers()['x-request-id'] ?? ''
+    expect(id.length).toBeGreaterThan(8)
+  });
+
   test('bare skills entry negotiates a localized human-facing page', async ({ request }) => {
     const cases = [
       ['zh-Hans,zh;q=0.9', '/zh-Hans/skills'],
@@ -123,8 +122,8 @@ test.describe('Static page interactions', () => {
 
   test('bare capability entries negotiate a localized landing page', async ({ request }) => {
     const cases = [
-      ['/bazi', 'zh-Hans,zh;q=0.9', '/zh-Hans/bazi'],
-      ['/bazi', 'en-US,en;q=0.9', '/en/bazi'],
+      ['/bazi', 'zh-Hans,zh;q=0.9', '/zh-Hans/natal'],
+      ['/bazi', 'en-US,en;q=0.9', '/en/natal'],
       ['/divination', 'zh-TW,zh;q=0.9', '/zh-Hant/divination'],
       ['/fengshui', 'ja-JP,ja;q=0.9', '/zh-Hant/fengshui'],
       ['/huangli', 'zh-Hans,zh;q=0.9', '/zh-Hans/huangli'],
@@ -171,6 +170,7 @@ test.describe('Static page interactions', () => {
   });
 
   test('free chart form stores an onboarding draft', async ({ page }) => {
+    await mockCityCoords(page, { name: '上海市', region: '上海市', longitude: 121.4726, latitude: 31.2304 });
     await page.route('**/app/birth-profiles/new*', route => route.fulfill({
       status: 200,
       contentType: 'text/html',
@@ -178,18 +178,27 @@ test.describe('Static page interactions', () => {
     }));
 
     await page.goto('/zh-Hans/');
-    await page.fill('#paipanHook [name=date]', '2000-01-01');
-    await page.fill('#paipanHook [name=time]', '12:00');
-    await page.selectOption('#paipanHook [name=gender]', 'female');
-    await page.click('#paipanHook button[type=submit]');
+    const tool = page.locator('#quick-birth-tool');
+    await fillBirthFields(page, tool, { date: '2000-01-01', time: '12:00', gender: 'female', place: '上海' });
+    await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
+    await tool.locator('button[type=submit]').click();
 
     await page.waitForURL('**/app/birth-profiles/new*');
-    expect(await page.evaluate(() => sessionStorage.getItem('liki-draft'))).toEqual(JSON.stringify({
+    const raw = await page.evaluate(() => sessionStorage.getItem('liki:form-drafts') ?? '{}');
+    const drafts = JSON.parse(raw) as Record<string, { data: Record<string, unknown>; createdAt: number }>;
+    const envelope = drafts['handoff:birth'];
+    expect(envelope?.data).toMatchObject({
       birth_date: '2000-01-01',
       birth_time: '12:00',
       gender: 'female',
-      calendar: 'solar',
-    }));
+      location: {
+        place: '上海市',
+        longitude: 121.4726,
+        timezone: 'Asia/Shanghai',
+        source: 'city',
+      },
+    });
+    expect(typeof envelope?.createdAt).toBe('number');
   });
 
   test('skills page copies install commands with temporary feedback', async ({ page }) => {
@@ -301,7 +310,7 @@ test.describe('OG / Twitter meta tags', () => {
 });
 
 test.describe('Images load without error', () => {
-  for (const page of ['naming', 'mingshu', 'hepan']) {
+  for (const page of ['naming', 'natal']) {
     test(`${page} page images are valid`, async ({ page: p }) => {
       await p.goto(`/zh-Hans/${page}`);
       await expect(p.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });

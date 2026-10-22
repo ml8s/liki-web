@@ -1,14 +1,6 @@
-export class ApiError extends Error {
-  readonly status: number
-  readonly code: string
-
-  constructor(status: number, code: string, message: string) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.code = code
-  }
-}
+// ApiError 已迁至共享层（营销站与 App 共用同一错误契约），此处 re-export。
+export { ApiError } from '@shared/api/http'
+import { ApiError } from '@shared/api/http'
 
 interface Envelope<T> {
   data?: T

@@ -3,10 +3,14 @@ import type {Page} from '@playwright/test'
 import { json, mockPageview, mockWorkspace, testUser } from '../mocks'
 
 
+// 现行场景落地页：naming 独立页 + natal 枢纽 + hepan 独立页（原 bazi/mingshu 已 301 合并进 natal）。
 const pages = [
-  { locale: 'zh-Hans', scenario: 'naming', path: '/zh-Hans/naming/', heading: 'AI 起名与姓名解读' },
-  { locale: 'zh-Hant', scenario: 'mingshu', path: '/zh-Hant/mingshu/', heading: '個人命書與終身運勢解讀' },
-  { locale: 'en', scenario: 'hepan', path: '/en/hepan/', heading: 'BaZi compatibility and relationship reading' },
+  { path: '/zh-Hans/naming/', heading: 'AI 起名与姓名解读', cta: 'naming', href: '/app?scenario=naming&locale=zh-Hans' },
+  { path: '/zh-Hant/natal/', heading: '線上命理：八字、紫微與命書', cta: 'natal', href: '/app?service=natal&locale=zh-Hant' },
+  { path: '/en/natal/', heading: 'Chinese Astrology: BaZi, Zi Wei Dou Shu & Life Reading', cta: 'natal', href: '/app?service=natal&locale=en' },
+  { path: '/zh-Hans/hepan/', heading: '八字合盘：合婚、姻缘与关系解读', cta: 'hepan', href: '/app?scenario=hepan&locale=zh-Hans' },
+  { path: '/en/hepan/', heading: 'BaZi Compatibility: Marriage Matching & Relationship Reading', cta: 'hepan', href: '/app?scenario=hepan&locale=en' },
+  { path: '/zh-Hans/liunian/', heading: '流年运势：这一年，你的机会与注意', cta: 'liunian', href: '/app?scenario=liunian&locale=zh-Hans' },
 ]
 
 test.describe('Scenario landing pages', () => {
@@ -14,25 +18,35 @@ test.describe('Scenario landing pages', () => {
     await mockPageview(page)
   })
 
-  for (const { locale, scenario, path, heading } of pages) {
-    test(`${locale}/${scenario} routes to Liki Chat`, async ({ page }) => {
+  for (const { path, heading, cta, href } of pages) {
+    test(`${path} routes to Liki Chat`, async ({ page }) => {
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible()
-      await expect(page.locator(`[data-cta="${scenario}"]`).first()).toHaveAttribute(
-        'href',
-        `/app?scenario=${scenario}&locale=${locale}`,
-      )
-      await expect(page.locator('form, input[type="email"], [data-price]')).toHaveCount(0)
+      await expect(page.locator(`[data-cta="${cta}"]`).first()).toHaveAttribute('href', href)
+      // 落地页不得出现假结账表单（工具岛的真实表单由各自工具 spec 覆盖）。
+      await expect(page.locator('[data-price], input[type="email"]')).toHaveCount(0)
     })
   }
+
+  test('legacy scenario pages redirect to the natal hub', async ({ page }) => {
+    for (const [from, to] of [
+      ['/zh-Hans/bazi/', '/zh-Hans/natal/'],
+      ['/zh-Hant/mingshu/', '/zh-Hant/natal/'],
+    ]) {
+      await page.goto(from)
+      await expect(page).toHaveURL(new RegExp(`${to}$`))
+    }
+  })
 })
 
 test.describe('Authenticated scenario handoff', () => {
   const user = testUser()
   const profile = {
     id: 'p_1', user_id: 'usr_test', version: 1, nickname: 'Mom', name: '',
-    gender: 'female', calendar: 'solar', birth_date: '1990-01-01',
-    birth_time: '06:00', birth_time_known: 'known', birth_place: 'Shanghai',
+    gender: 'female', birth_date: '1990-01-01',
+    birth_local_date: '1990-01-01',
+    birth_time: '06:00', birth_place: 'Shanghai',
+    birth_local_time: '06:00',
     note: '', third_party_consent: true, last_used_at: null,
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   }
@@ -51,16 +65,19 @@ test.describe('Authenticated scenario handoff', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 
     await page.goto('/app?scenario=hepan&locale=en')
-    await expect(page).toHaveURL(/\/app\/synastry/)
+    await expect(page).toHaveURL(/\/app\/hepan/)
     await expect(page.getByRole('heading', { level: 1, name: 'Compatibility' })).toBeVisible()
   })
 
-  test('mingshu without a profile guides profile creation', async ({ page }) => {
+  test('legacy mingshu handoff guides profile creation as natal', async ({ page }) => {
     await mockAuthenticated(page, { profiles: [] })
     await page.goto('/app?scenario=mingshu&locale=en')
     await expect(page).toHaveURL(/\/app\/birth-profiles\/new/)
     await expect(page.getByRole('heading', { level: 1, name: 'New profile' })).toBeVisible()
-    expect(await page.evaluate(() => sessionStorage.getItem('liki-service'))).toBe('bazi')
+    // 旧参数 mingshu 归一为 natal（场景 id 与营销页 slug 一致）。
+    const raw = await page.evaluate(() => sessionStorage.getItem('liki:form-drafts') ?? '{}')
+    const drafts = JSON.parse(raw) as Record<string, unknown>
+    expect(drafts['service']).toBe('natal')
   })
 })
 

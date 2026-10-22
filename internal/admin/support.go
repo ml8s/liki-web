@@ -64,7 +64,7 @@ func (h *AdminService) HandleCompensateEntitlement() http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			slog.Error("admin: lookup compensation user", "err", err)
+			slog.ErrorContext(r.Context(), "admin: lookup compensation user", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "读取用户失败")
 			return
 		}
@@ -83,7 +83,7 @@ func (h *AdminService) HandleCompensateEntitlement() http.HandlerFunc {
 			"admin_compensation", sourceID, duration,
 		)
 		if err != nil {
-			slog.Error("admin: grant compensation", "err", err)
+			slog.ErrorContext(r.Context(), "admin: grant compensation", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "发放补偿失败")
 			return
 		}
@@ -96,7 +96,7 @@ func (h *AdminService) HandleCompensateEntitlement() http.HandlerFunc {
 			"expires_at":     entitlement.ExpiresAt,
 		})
 		if err != nil {
-			slog.Error("admin: encode compensation audit", "err", err)
+			slog.ErrorContext(r.Context(), "admin: encode compensation audit", "err", err)
 		}
 		h.auditEntitlementChange(r, "entitlement.compensated", entitlement.ID, "", string(after), req.Reason)
 		emailQueued := true
@@ -106,7 +106,7 @@ func (h *AdminService) HandleCompensateEntitlement() http.HandlerFunc {
 			if err := h.compensationNotifier(context.WithoutCancel(r.Context()), user, entitlement, strings.TrimSpace(req.Template)); err != nil {
 				emailQueued = false
 				h.auditCompensationNotificationFailure(r, entitlement.ID, req.Reason, err)
-				slog.Error("admin: queue compensation notification", "entitlement_id", entitlement.ID, "err", err)
+				slog.ErrorContext(r.Context(), "admin: queue compensation notification", "entitlement_id", entitlement.ID, "err", err)
 			}
 		}
 		httputil.RespondJSON(w, http.StatusCreated, map[string]any{
@@ -139,7 +139,7 @@ func (h *AdminService) auditCompensationNotificationFailure(r *http.Request, ent
 		After: "queued=false", Reason: reason + " | queue error: " + cause.Error(),
 	})
 	if err != nil {
-		slog.Error("admin: audit compensation notification failure", "entitlement_id", entitlementID, "err", err)
+		slog.ErrorContext(r.Context(), "admin: audit compensation notification failure", "entitlement_id", entitlementID, "err", err)
 	}
 }
 
@@ -174,13 +174,13 @@ func (h *AdminService) HandleFinanceSummary() http.HandlerFunc {
 		start := end.AddDate(0, 0, -days)
 		salesSummary, err := h.sales.AdminFinanceSummary(r.Context(), start, end)
 		if err != nil {
-			slog.Error("admin: sales finance summary", "err", err)
+			slog.ErrorContext(r.Context(), "admin: sales finance summary", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "生成财务汇总失败")
 			return
 		}
 		partner, err := h.partnerFinance.AdminFinanceSummary(r.Context(), start, end)
 		if err != nil {
-			slog.Error("admin: partner finance summary", "err", err)
+			slog.ErrorContext(r.Context(), "admin: partner finance summary", "err", err)
 			httputil.RespondError(w, http.StatusInternalServerError, "internal_error", "生成财务汇总失败")
 			return
 		}
