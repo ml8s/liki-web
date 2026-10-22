@@ -200,10 +200,13 @@ func main() {
 		slog.Error("init sales schema", "err", err)
 		os.Exit(1)
 	}
-	payments, err := newPaymentWiring(
-		ctx, cfg, platformDB, aipayDB, salesOrders, subscriptionStore,
-		entitlements, partnerStore, emailClient, dodoClient, xunhuClient,
-	)
+	payments, err := newPaymentWiring(ctx, cfg, paymentStores{
+		Platform: platformDB, Aipay: aipayDB,
+		Orders: salesOrders, Subscriptions: subscriptionStore,
+		Entitlements: entitlements, Partners: partnerStore,
+	}, paymentClients{
+		Mailer: emailClient, Dodo: dodoClient, Xunhu: xunhuClient,
+	})
 	if err != nil {
 		slog.Error("init payment system", "err", err)
 		os.Exit(1)

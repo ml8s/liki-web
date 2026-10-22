@@ -31,22 +31,42 @@ type paymentWiring struct {
 	CompensationNotifier  func(context.Context, auth.User, entitlement.Entitlement, string) error
 }
 
+type paymentStores struct {
+	Platform      *sql.DB
+	Aipay         *sql.DB
+	Orders        *sales.OrderStore
+	Subscriptions *sales.SubscriptionStore
+	Entitlements  *entitlement.Store
+	Partners      *partner.Store
+}
+
+type paymentClients struct {
+	Mailer *email.Client
+	Dodo   *dodo.Client
+	Xunhu  *xunhu.Client
+}
+
+type paymentPersistence struct {
+	Intents       *payment.IntentStore
+	Notifications *payment.NotificationStore
+	Fulfillments  *payment.PaymentCompletionTaskStore
+	Events        *payment.PaymentEventStore
+}
+
+type paymentRuntimeStores struct {
+	Commerce    paymentStores
+	Persistence paymentPersistence
+}
+
 func newPaymentWiring(
 	ctx context.Context,
 	config Config,
-	platformDB *sql.DB,
-	aipayDB *sql.DB,
-	orders *sales.OrderStore,
-	subscriptions *sales.SubscriptionStore,
-	entitlements *entitlement.Store,
-	partners *partner.Store,
-	mailer *email.Client,
-	dodoClient *dodo.Client,
-	xunhuClient *xunhu.Client,
+	stores paymentStores,
+	clients paymentClients,
 ) (*paymentWiring, error) {
-	system := &paymentWiring{}
-	system.AipayStore = aipay.NewStore(aipayDB)
-	if err := system.AipayStore.Migrate(ctx); err != nil {
+	wiring := &paymentWiring{}
+	wiring.AipayStore = aipay.NewStore(stores.Aipay)
+	if err := wiring.AipayStore.Migrate(ctx); err != nil {
 		return nil, fmt.Errorf("init aipay schema: %w", err)
 	}
 	var gateway aipay.Gateway
@@ -59,57 +79,48 @@ func newPaymentWiring(
 	} else {
 		slog.Warn("alipay aipay is not fully configured; it is disabled")
 	}
-	handler, err := aipay.NewHandler(system.AipayStore, gateway, config.AlipayConfig)
+	handler, err := aipay.NewHandler(wiring.AipayStore, gateway, config.AlipayConfig)
 	if err != nil {
 		return nil, fmt.Errorf("init aipay handler: %w", err)
 	}
-	system.AipayHandler = handler
+	wiring.AipayHandler = handler
 
-	system.Intents = payment.NewIntentStore(platformDB)
-	system.Notifications = payment.NewNotificationStore(platformDB)
-	fulfillments := payment.NewPaymentCompletionTaskStore(platformDB)
-	events := payment.NewPaymentEventStore(platformDB)
-	if err := system.Intents.Migrate(ctx); err != nil {
-		return nil, fmt.Errorf("init payment intents: %w", err)
+	persistence := paymentPersistence{
+		Intents:       payment.NewIntentStore(stores.Platform),
+		Notifications: payment.NewNotificationStore(stores.Platform),
+		Fulfillments:  payment.NewPaymentCompletionTaskStore(stores.Platform),
+		Events:        payment.NewPaymentEventStore(stores.Platform),
 	}
-	if err := system.Notifications.Migrate(ctx); err != nil {
-		return nil, fmt.Errorf("init payment notifications: %w", err)
+	for _, migration := range []interface{ Migrate(context.Context) error }{
+		persistence.Intents, persistence.Notifications,
+		persistence.Fulfillments, persistence.Events,
+	} {
+		if err := migration.Migrate(ctx); err != nil {
+			return nil, err
+		}
 	}
-	if err := fulfillments.Migrate(ctx); err != nil {
-		return nil, fmt.Errorf("init payment fulfillment tasks: %w", err)
-	}
-	if err := events.Migrate(ctx); err != nil {
-		return nil, fmt.Errorf("init payment events: %w", err)
-	}
-	runtime, processor, err := buildPaymentRuntime(
-		ctx, config, orders, subscriptions, entitlements, partners,
-		system.Intents, system.Notifications, fulfillments, events,
-		mailer, dodoClient, xunhuClient,
-	)
+	runtime, processor, err := buildPaymentRuntime(ctx, config, paymentRuntimeStores{
+		Commerce:    stores,
+		Persistence: persistence,
+	}, clients)
 	if err != nil {
 		return nil, err
 	}
-	system.Runtime = runtime
-	system.SubscriptionProcessor = processor
-	system.CompensationNotifier = newCompensationNotifier(system.Notifications, config.PublicBaseURL)
-	return system, nil
+	wiring.Intents = persistence.Intents
+	wiring.Notifications = persistence.Notifications
+	wiring.Runtime = runtime
+	wiring.SubscriptionProcessor = processor
+	wiring.CompensationNotifier = newCompensationNotifier(persistence.Notifications, config.PublicBaseURL)
+	return wiring, nil
 }
 
 func buildPaymentRuntime(
 	ctx context.Context,
 	config Config,
-	orders *sales.OrderStore,
-	subscriptions *sales.SubscriptionStore,
-	entitlements *entitlement.Store,
-	partners *partner.Store,
-	intents *payment.IntentStore,
-	notifications *payment.NotificationStore,
-	fulfillments *payment.PaymentCompletionTaskStore,
-	events *payment.PaymentEventStore,
-	mailer *email.Client,
-	dodoClient *dodo.Client,
-	xunhuClient *xunhu.Client,
+	stores paymentRuntimeStores,
+	clients paymentClients,
 ) (*payment.Runtime, *sales.SubscriptionEventProcessor, error) {
+	commerce := stores.Commerce
 	dodoConfigured := config.DodoAPIKey != "" && config.DodoWebhookKey != ""
 	if dodoConfigured && config.DodoProductLikiChatOneTime == "" {
 		slog.Warn("dodo one-time product is not configured for liki-chat; USD chat checkout will fail")
@@ -128,44 +139,48 @@ func buildPaymentRuntime(
 	}
 	gateways := map[payment.Provider]payment.Gateway{}
 	if dodoConfigured {
-		gateways[payment.ProviderDodo] = dodoClient
+		gateways[payment.ProviderDodo] = clients.Dodo
 	} else {
 		slog.Warn("dodo payment provider is not fully configured; it is disabled")
 	}
 	if xunhuConfigured {
-		gateways[payment.ProviderXunhu] = xunhuClient
+		gateways[payment.ProviderXunhu] = clients.Xunhu
 	} else {
 		slog.Warn("xunhu payment provider is not fully configured; it is disabled")
 	}
 	chatDuration := time.Duration(config.ChatOneTimeAccessDays) * 24 * time.Hour
 	flows := map[string]payment.ProductFlow{
-		string(product.Chat): sales.NewProductPaymentFlow(orders, entitlements, product.Chat, chatDuration),
+		string(product.Chat): sales.NewProductPaymentFlow(
+			commerce.Orders, commerce.Entitlements, product.Chat, chatDuration,
+		),
 	}
-	runtime := payment.NewRuntime(gateways, flows, intents, notifications, fulfillments, events,
-		paymentEmailSender{client: mailer}, payment.RuntimeOptions{
+	runtime := payment.NewRuntime(gateways, flows, stores.Persistence.Intents,
+		stores.Persistence.Notifications, stores.Persistence.Fulfillments,
+		stores.Persistence.Events, paymentEmailSender{client: clients.Mailer},
+		payment.RuntimeOptions{
 			BaseURL:    config.PublicBaseURL,
 			AdminEmail: config.AdminEmail,
 		})
 	runtime.SetPaymentCompletionObserver(func(ctx context.Context, intent payment.PaymentIntent) {
 		sale := commissionablePaymentFromIntent(intent)
-		if _, _, err := partners.EnqueueCommissionPayment(ctx, sale); err != nil {
+		if _, _, err := commerce.Partners.EnqueueCommissionPayment(ctx, sale); err != nil {
 			slog.Error("referral: enqueue fulfilled payment", "payment_id", sale.ID, "err", err)
 		}
 	})
 	runtime.SetRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
-		return partners.EnqueueCommissionRefund(ctx, event, commissionablePaymentFromIntent(intent))
+		return commerce.Partners.EnqueueCommissionRefund(ctx, event, commissionablePaymentFromIntent(intent))
 	})
 	processor := sales.NewSubscriptionEventProcessor(
-		subscriptions,
-		entitlements,
+		commerce.Subscriptions,
+		commerce.Entitlements,
 		config.DodoProductLikiChatSubscription,
 		func(ctx context.Context, sale payment.CommissionablePayment) error {
-			_, _, err := partners.EnqueueCommissionPayment(ctx, sale)
+			_, _, err := commerce.Partners.EnqueueCommissionPayment(ctx, sale)
 			return err
 		},
 	)
 	processor.SetCommissionRefundObserver(func(ctx context.Context, event payment.WebhookEvent, sale payment.CommissionablePayment) error {
-		return partners.EnqueueCommissionRefund(ctx, event, sale)
+		return commerce.Partners.EnqueueCommissionRefund(ctx, event, sale)
 	})
 	runtime.SetSubscriptionProcessor(processor)
 	return runtime, processor, nil
