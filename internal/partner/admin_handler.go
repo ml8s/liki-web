@@ -221,8 +221,8 @@ func (h *AdminHandler) HandlePayoutAction() http.HandlerFunc {
 		var err error
 		switch action {
 		case "approve":
-			err = h.store.ApprovePayout(r.Context(), PayoutDecision{
-				PayoutID: id, Actor: actorFromRequest(r), Reason: req.Reason,
+			err = h.store.ApprovePayout(r.Context(), PayoutApproval{
+				PayoutID: id, Actor: actorFromRequest(r),
 			})
 		case "reject":
 			err = h.store.DecidePayout(r.Context(), PayoutDecision{

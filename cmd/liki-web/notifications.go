@@ -63,7 +63,7 @@ func newPartnerDecisionNotifier(
 			if approved {
 				opening, next = "你的 "+role+" 合作申请已通过。", "登录 Liki 后即可进入对应合作工作台。"
 			} else {
-				opening = "你的 " + role + " 合作申请未通過。"
+				opening = "你的 " + role + " 合作申请未通过。"
 			}
 		}
 		body := `<p>` + opening + `</p><p>` + noteLabel + html.EscapeString(reason) + `</p><p>` + next + `</p>`

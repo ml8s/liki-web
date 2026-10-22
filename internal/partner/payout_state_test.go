@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestDecidePayoutStatus(t *testing.T) {
+func TestPayoutStatusTransitions(t *testing.T) {
 	if got, err := decidePayoutStatus(PayoutRequested, true); err != nil || got != PayoutApproved {
 		t.Fatalf("approve = %v, %v", got, err)
 	}
@@ -15,9 +15,6 @@ func TestDecidePayoutStatus(t *testing.T) {
 	if _, err := decidePayoutStatus(PayoutApproved, true); !errors.Is(err, ErrPayoutInvalidTransition) {
 		t.Fatalf("approve from approved = %v", err)
 	}
-}
-
-func TestMarkPayoutPaidStatus(t *testing.T) {
 	if got, err := markPayoutPaidStatus(PayoutApproved); err != nil || got != PayoutPaid {
 		t.Fatalf("paid = %v, %v", got, err)
 	}
@@ -28,7 +25,10 @@ func TestMarkPayoutPaidStatus(t *testing.T) {
 
 func TestPayoutInputValidation(t *testing.T) {
 	if err := (PayoutDecision{}).validate(); err == nil {
-		t.Fatal("empty decision must fail")
+		t.Fatal("empty rejection must fail")
+	}
+	if err := (PayoutApproval{}).validate(); err == nil {
+		t.Fatal("empty approval must fail")
 	}
 	if err := (PayoutPayment{Actor: "admin"}).validate(); err == nil {
 		t.Fatal("payment without payout/reference must fail")

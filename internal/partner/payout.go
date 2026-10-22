@@ -250,17 +250,15 @@ func (s *Store) DecidePayout(ctx context.Context, decision PayoutDecision) error
 		return err
 	}
 	status := PayoutStatus(current)
-	newStatus, err := decidePayoutStatus(status, decision.Approved)
+	newStatus, err := decidePayoutStatus(status, false)
 	if err != nil {
 		return err
 	}
 	now := formatTime(s.nowFunc())
-	if !decision.Approved {
-		if _, err := tx.ExecContext(ctx, `
+	if _, err := tx.ExecContext(ctx, `
 UPDATE partner_commission_entries SET payout_id=NULL,updated_at=?
 WHERE payout_id=? AND status=?`, now, decision.PayoutID, string(CommissionPending)); err != nil {
-			return err
-		}
+		return err
 	}
 	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(newStatus)})
 	if _, err := tx.ExecContext(ctx, `
@@ -268,19 +266,48 @@ UPDATE partner_payouts SET status=?,rejection_reason=?,updated_at=? WHERE id=?`,
 		string(newStatus), decision.Reason, now, decision.PayoutID); err != nil {
 		return err
 	}
-	if err := recordReferralActionTx(ctx, tx, s.idFunc(), decision.Actor, "payout.decided", "payout",
+	if err := recordReferralActionTx(ctx, tx, s.idFunc(), decision.Actor, "payout.rejected", "payout",
 		decision.PayoutID, string(status), string(newStatus), decision.Reason); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
-func (s *Store) ApprovePayout(ctx context.Context, approval PayoutDecision) error {
-	approval.Approved = true
-	if strings.TrimSpace(approval.Reason) == "" {
-		approval.Reason = "approved"
+func (s *Store) ApprovePayout(ctx context.Context, approval PayoutApproval) error {
+	if err := approval.validate(); err != nil {
+		return err
 	}
-	return s.DecidePayout(ctx, approval)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var current string
+	err = tx.QueryRowContext(ctx, `SELECT status FROM partner_payouts WHERE id=?`, approval.PayoutID).Scan(&current)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrPayoutNotFound
+	}
+	if err != nil {
+		return err
+	}
+	status := PayoutStatus(current)
+	newStatus, err := decidePayoutStatus(status, true)
+	if err != nil {
+		return err
+	}
+	now := formatTime(s.nowFunc())
+	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(newStatus)})
+	if _, err := tx.ExecContext(ctx, `
+UPDATE partner_payouts SET status=?,rejection_reason='',updated_at=? WHERE id=?`,
+		string(newStatus), now, approval.PayoutID); err != nil {
+		return err
+	}
+	if err := recordReferralActionTx(ctx, tx, s.idFunc(), approval.Actor, "payout.approved", "payout",
+		approval.PayoutID, string(status), string(newStatus), "approved"); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (s *Store) MarkPayoutPaid(ctx context.Context, payment PayoutPayment) error {

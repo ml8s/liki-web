@@ -158,7 +158,7 @@ func TestMarkPayoutPaidMarksCommissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.ApprovePayout(ctx, PayoutDecision{PayoutID: payout.ID, Actor: "admin"}); err != nil {
+	if err := store.ApprovePayout(ctx, PayoutApproval{PayoutID: payout.ID, Actor: "admin"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.MarkPayoutPaid(ctx, PayoutPayment{PayoutID: payout.ID, Actor: "admin", PaymentReference: "transfer-1"}); err != nil {
@@ -260,7 +260,7 @@ func TestKOLAndScoutPayoutsAreIndependent(t *testing.T) {
 	if kolPayout.AmountMinor != 25000 {
 		t.Fatalf("kol payout = %+v", kolPayout)
 	}
-	if err := store.ApprovePayout(ctx, PayoutDecision{PayoutID: scoutPayout.ID, Actor: "admin"}); err != nil {
+	if err := store.ApprovePayout(ctx, PayoutApproval{PayoutID: scoutPayout.ID, Actor: "admin"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.MarkPayoutPaid(ctx, PayoutPayment{PayoutID: scoutPayout.ID, Actor: "admin", PaymentReference: "scout-transfer"}); err != nil {

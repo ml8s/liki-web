@@ -24,11 +24,14 @@ func NewStore(db *sql.DB) *Store {
 
 func (s *Store) Create(ctx context.Context, userID string, in BirthProfileDraft) (BirthProfile, error) {
 	nowTime := s.nowFunc()
-	if err := ValidateBirthProfileDraft(nowTime, in); err != nil {
+	if err := ValidateBirthProfileMetadata(in); err != nil {
+		return BirthProfile{}, err
+	}
+	birth, err := NewBirthFacts(nowTime, in.Birth)
+	if err != nil {
 		return BirthProfile{}, err
 	}
 	now := formatTime(nowTime)
-	birth, err := NewBirthFacts(nowTime, in.Birth)
 	if err != nil {
 		return BirthProfile{}, err
 	}
@@ -77,18 +80,22 @@ func timeArg(value *time.Time) any {
 }
 
 func projectBirthFacts(profile *BirthProfile) {
-	profile.Birth.Date = ""
-	profile.Birth.Time = ""
-	if profile.Birth.Instant == nil || profile.Birth.Location.Timezone == nil {
+	projectBirthFactsValue(&profile.Birth)
+}
+
+func projectBirthFactsValue(facts *BirthFacts) {
+	facts.Date = ""
+	facts.Time = ""
+	if facts.Instant == nil || facts.Location.Timezone == nil {
 		return
 	}
-	location, err := time.LoadLocation(*profile.Birth.Location.Timezone)
+	location, err := time.LoadLocation(*facts.Location.Timezone)
 	if err != nil {
 		return
 	}
-	local := profile.Birth.Instant.In(location)
-	profile.Birth.Date = local.Format("2006-01-02")
-	profile.Birth.Time = local.Format("15:04")
+	local := facts.Instant.In(location)
+	facts.Date = local.Format("2006-01-02")
+	facts.Time = local.Format("15:04")
 }
 
 func (s *Store) Get(ctx context.Context, userID, id string) (BirthProfile, error) {
@@ -220,15 +227,15 @@ WHERE user_id=? AND deleted_at IS NULL`
 // Update applies a full user-info replacement guarded by an optimistic lock.
 // Returns ErrConflict when expectedVersion does not match the stored version.
 func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion int, in BirthProfileDraft) (BirthProfile, error) {
-	now := formatTime(s.nowFunc())
-	if err := ValidateBirthProfileDraft(s.nowFunc(), in); err != nil {
+	nowTime := s.nowFunc()
+	if err := ValidateBirthProfileMetadata(in); err != nil {
 		return BirthProfile{}, err
 	}
-	birth, err := NewBirthFacts(s.nowFunc(), in.Birth)
+	birth, err := NewBirthFacts(nowTime, in.Birth)
 	if err != nil {
 		return BirthProfile{}, err
 	}
-	_ = birth
+	now := formatTime(nowTime)
 	result, err := s.db.ExecContext(ctx, `
 UPDATE birth_profiles SET
   version=version+1,

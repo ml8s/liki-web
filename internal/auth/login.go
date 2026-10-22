@@ -322,7 +322,7 @@ ON CONFLICT(provider, provider_user_id) DO UPDATE SET last_used_at=excluded.last
 }
 
 func (s *Store) enforceSessionCap(ctx context.Context, tx *sql.Tx, userID, currentSessionID string) error {
-	if s.SessionCap <= 0 {
+	if s.config.MaxSessions <= 0 {
 		return nil
 	}
 	_, err := tx.ExecContext(ctx, `
@@ -331,7 +331,7 @@ WHERE user_id=? AND id<>? AND id NOT IN (
 	SELECT id FROM auth_sessions
 	WHERE user_id=? AND id<>?
 	ORDER BY created_at DESC, id DESC LIMIT ?
-)`, userID, currentSessionID, userID, currentSessionID, s.SessionCap-1)
+)`, userID, currentSessionID, userID, currentSessionID, s.config.MaxSessions-1)
 	if err != nil {
 		return fmt.Errorf("enforce session cap: %w", err)
 	}

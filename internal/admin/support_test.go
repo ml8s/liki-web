@@ -27,7 +27,7 @@ func TestCompensationEndpointRequiresActivePlatformUserAndCreatesAuditedGrant(t 
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = authDB.Close() })
-	users := auth.NewStore(authDB, []byte("test-secret"))
+	users := auth.NewStore(authDB, []byte("test-secret"), auth.DefaultConfig())
 	if err := users.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestCompensationNotificationFailureIsAudited(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = authDB.Close() })
-	users := auth.NewStore(authDB, []byte("test-secret"))
+	users := auth.NewStore(authDB, []byte("test-secret"), auth.DefaultConfig())
 	if err := users.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}

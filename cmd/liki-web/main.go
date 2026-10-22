@@ -70,7 +70,10 @@ func main() {
 	likiDB, aipayDB := dbs.Liki, dbs.Aipay
 
 	// ── platform (auth + payment runtime) ──
-	authStore := auth.NewStore(platformDB, []byte(cfg.JWTSecret))
+	authConfig := auth.DefaultConfig()
+	authConfig.SecureCookie = !cfg.DevelopmentMode
+	authConfig.ExposeDevCode = cfg.DevelopmentMode
+	authStore := auth.NewStore(platformDB, []byte(cfg.JWTSecret), authConfig)
 
 	// ── profiles ──
 	profileStore := birthprofile.NewStore(profilesDB)
@@ -134,9 +137,6 @@ func main() {
 
 	authMailer := newAuthMailer(emailClient, cfg.PublicBaseURL)
 	partnerDecisionEmail := newPartnerDecisionNotifier(emailClient, authStore, cfg.PublicBaseURL)
-	authConfig := auth.DefaultConfig()
-	authConfig.SecureCookie = !cfg.DevelopmentMode
-	authConfig.ExposeDevCode = cfg.DevelopmentMode
 	authService, err := auth.NewService(authStore, authMailer, authConfig)
 	if err != nil {
 		slog.Error("init auth service", "err", err)

@@ -118,13 +118,21 @@ func ValidateBirthFacts(now time.Time, facts BirthFactsInput) error {
 	return nil
 }
 
-// ValidateBirthProfileDraft validates profile metadata and complete birth facts.
-func ValidateBirthProfileDraft(now time.Time, draft BirthProfileDraft) error {
+// ValidateBirthProfileMetadata validates non-chart profile metadata.
+func ValidateBirthProfileMetadata(draft BirthProfileDraft) error {
 	if strings.TrimSpace(draft.Nickname) == "" {
 		return errors.New("nickname is required")
 	}
 	if len([]rune(draft.Nickname)) > 40 {
 		return errors.New("nickname is too long")
+	}
+	return nil
+}
+
+// ValidateBirthProfileDraft validates profile metadata and complete birth facts.
+func ValidateBirthProfileDraft(now time.Time, draft BirthProfileDraft) error {
+	if err := ValidateBirthProfileMetadata(draft); err != nil {
+		return err
 	}
 	return ValidateBirthFacts(now, draft.Birth)
 }
@@ -188,15 +196,15 @@ func NewBirthFacts(now time.Time, facts BirthFactsInput) (BirthFacts, error) {
 	if err != nil {
 		return BirthFacts{}, err
 	}
-	return BirthFacts{
+	factsOut := BirthFacts{
 		Gender: facts.Gender,
-		Date:   facts.Date,
-		Time:   facts.Time,
 		Location: BirthLocation{
 			Place:     strings.TrimSpace(facts.Location.Place),
 			Longitude: facts.Location.Longitude,
 			Timezone:  facts.Location.Timezone,
 		},
 		Instant: &instant,
-	}, nil
+	}
+	projectBirthFactsValue(&factsOut)
+	return factsOut, nil
 }

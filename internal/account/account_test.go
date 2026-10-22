@@ -71,7 +71,7 @@ func TestHandleErasure(t *testing.T) {
 	if err := referralStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	authStore := auth.NewStore(db, []byte("test-auth-hmac"))
+	authStore := auth.NewStore(db, []byte("test-auth-hmac"), auth.DefaultConfig())
 	if err := authStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}

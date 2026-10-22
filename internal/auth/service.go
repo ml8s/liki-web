@@ -89,9 +89,6 @@ func NewService(store *Store, mailer Mailer, config Config) (*Service, error) {
 	if err := config.normalize(); err != nil {
 		return nil, err
 	}
-	if store != nil {
-		store.SessionCap = config.MaxSessions
-	}
 	return &Service{store: store, mailer: mailer, config: config}, nil
 }
 

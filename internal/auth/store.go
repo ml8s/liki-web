@@ -26,24 +26,26 @@ const (
 )
 
 type Store struct {
-	db         *sql.DB
-	hmacKey    []byte
-	config     Config
-	nowFunc    func() time.Time
-	idFunc     func() string
-	codeFun    func() (string, error)
-	SessionCap int
+	db      *sql.DB
+	hmacKey []byte
+	config  Config
+	nowFunc func() time.Time
+	idFunc  func() string
+	codeFun func() (string, error)
 }
 
-func NewStore(db *sql.DB, hmacKey []byte) *Store {
-	config := DefaultConfig()
+func NewStore(db *sql.DB, hmacKey []byte, config Config) *Store {
+	if err := config.normalize(); err != nil {
+		// Config.normalize currently only supplies defaults; this defensive
+		// branch keeps construction safe if validation is strengthened later.
+		config = DefaultConfig()
+	}
 	return &Store{
-		db:         db,
-		hmacKey:    hmacKey,
-		config:     config,
-		SessionCap: config.MaxSessions,
-		nowFunc:    func() time.Time { return time.Now().UTC() },
-		idFunc:     func() string { return uuid.NewString() },
+		db:      db,
+		hmacKey: hmacKey,
+		config:  config,
+		nowFunc: func() time.Time { return time.Now().UTC() },
+		idFunc:  func() string { return uuid.NewString() },
 		codeFun: func() (string, error) {
 			b := make([]byte, 3)
 			if _, err := rand.Read(b); err != nil {

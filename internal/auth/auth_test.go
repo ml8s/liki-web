@@ -38,7 +38,7 @@ func newTestStore(t *testing.T) *Store {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	store := NewStore(db, []byte("test-hmac-key"))
+	store := NewStore(db, []byte("test-hmac-key"), DefaultConfig())
 	if err := store.Migrate(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -435,8 +435,17 @@ func TestAuthJSONEncoding(t *testing.T) {
 }
 
 func TestSessionCapEnforced(t *testing.T) {
-	store := newTestStore(t)
-	store.SessionCap = 5
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "auth.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	config := DefaultConfig()
+	config.MaxSessions = 5
+	store := NewStore(db, []byte("test-hmac-key"), config)
+	if err := store.Migrate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 	userID, email := "user-cap", "cap@example.com"
 	now := time.Now().UTC().Format(time.RFC3339)

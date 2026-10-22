@@ -98,7 +98,7 @@ func TestRefundDoesNotChangePaidLedgerAutomatically(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.ApprovePayout(ctx, PayoutDecision{PayoutID: payout.ID, Actor: "admin"}); err != nil {
+	if err := store.ApprovePayout(ctx, PayoutApproval{PayoutID: payout.ID, Actor: "admin"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.MarkPayoutPaid(ctx, PayoutPayment{PayoutID: payout.ID, Actor: "admin", PaymentReference: "transfer-paid"}); err != nil {

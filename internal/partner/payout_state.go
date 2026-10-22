@@ -5,12 +5,11 @@ import (
 	"strings"
 )
 
-// PayoutDecision is an explicit finance review fact. Approve and reject share
-// one state boundary because both are transitions from Requested.
+// PayoutDecision is an explicit rejection fact. Approvals use PayoutApproval
+// because they do not populate rejection_reason.
 type PayoutDecision struct {
 	PayoutID string
 	Actor    string
-	Approved bool
 	Reason   string
 }
 
@@ -23,6 +22,22 @@ func (decision PayoutDecision) validate() error {
 	}
 	if strings.TrimSpace(decision.Reason) == "" {
 		return errors.New("partner: reason is required")
+	}
+	return nil
+}
+
+// PayoutApproval is an explicit approval fact. Its audit reason is canonical.
+type PayoutApproval struct {
+	PayoutID string
+	Actor    string
+}
+
+func (approval PayoutApproval) validate() error {
+	if strings.TrimSpace(approval.PayoutID) == "" {
+		return errors.New("partner: payout id is required")
+	}
+	if strings.TrimSpace(approval.Actor) == "" {
+		return errors.New("partner: actor is required")
 	}
 	return nil
 }

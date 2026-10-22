@@ -53,9 +53,11 @@ type paymentPersistence struct {
 	Events        *payment.PaymentEventStore
 }
 
-type paymentRuntimeStores struct {
-	Commerce    paymentStores
-	Persistence paymentPersistence
+type paymentCommerceStores struct {
+	Orders        *sales.OrderStore
+	Subscriptions *sales.SubscriptionStore
+	Entitlements  *entitlement.Store
+	Partners      *partner.Store
 }
 
 func newPaymentWiring(
@@ -91,18 +93,24 @@ func newPaymentWiring(
 		Fulfillments:  payment.NewPaymentCompletionTaskStore(stores.Platform),
 		Events:        payment.NewPaymentEventStore(stores.Platform),
 	}
-	for _, migration := range []interface{ Migrate(context.Context) error }{
-		persistence.Intents, persistence.Notifications,
-		persistence.Fulfillments, persistence.Events,
-	} {
-		if err := migration.Migrate(ctx); err != nil {
-			return nil, err
-		}
+	if err := persistence.Intents.Migrate(ctx); err != nil {
+		return nil, fmt.Errorf("init payment intents: %w", err)
 	}
-	runtime, processor, err := buildPaymentRuntime(ctx, config, paymentRuntimeStores{
-		Commerce:    stores,
-		Persistence: persistence,
-	}, clients)
+	if err := persistence.Notifications.Migrate(ctx); err != nil {
+		return nil, fmt.Errorf("init payment notifications: %w", err)
+	}
+	if err := persistence.Fulfillments.Migrate(ctx); err != nil {
+		return nil, fmt.Errorf("init payment fulfillment tasks: %w", err)
+	}
+	if err := persistence.Events.Migrate(ctx); err != nil {
+		return nil, fmt.Errorf("init payment events: %w", err)
+	}
+	runtime, processor, err := buildPaymentRuntime(ctx, config, paymentCommerceStores{
+		Orders:        stores.Orders,
+		Subscriptions: stores.Subscriptions,
+		Entitlements:  stores.Entitlements,
+		Partners:      stores.Partners,
+	}, persistence, clients)
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +125,10 @@ func newPaymentWiring(
 func buildPaymentRuntime(
 	ctx context.Context,
 	config Config,
-	stores paymentRuntimeStores,
+	commerce paymentCommerceStores,
+	persistence paymentPersistence,
 	clients paymentClients,
 ) (*payment.Runtime, *sales.SubscriptionEventProcessor, error) {
-	commerce := stores.Commerce
 	dodoConfigured := config.DodoAPIKey != "" && config.DodoWebhookKey != ""
 	if dodoConfigured && config.DodoProductLikiChatOneTime == "" {
 		slog.Warn("dodo one-time product is not configured for liki-chat; USD chat checkout will fail")
@@ -154,9 +162,9 @@ func buildPaymentRuntime(
 			commerce.Orders, commerce.Entitlements, product.Chat, chatDuration,
 		),
 	}
-	runtime := payment.NewRuntime(gateways, flows, stores.Persistence.Intents,
-		stores.Persistence.Notifications, stores.Persistence.Fulfillments,
-		stores.Persistence.Events, paymentEmailSender{client: clients.Mailer},
+	runtime := payment.NewRuntime(gateways, flows, persistence.Intents,
+		persistence.Notifications, persistence.Fulfillments,
+		persistence.Events, paymentEmailSender{client: clients.Mailer},
 		payment.RuntimeOptions{
 			BaseURL:    config.PublicBaseURL,
 			AdminEmail: config.AdminEmail,

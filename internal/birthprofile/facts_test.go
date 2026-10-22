@@ -20,17 +20,19 @@ func birthFacts() BirthFactsInput {
 	}
 }
 
-func TestNewBirthFactsResolvesCanonicalInstant(t *testing.T) {
+func TestNewBirthFactsDerivesProjectionFromInstant(t *testing.T) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	facts, err := NewBirthFacts(now, birthFacts())
+	input := birthFacts()
+
+	facts, err := NewBirthFacts(now, input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if facts.Instant == nil || facts.Instant.Format(time.RFC3339) != "1958-05-11T22:00:00Z" {
-		t.Fatalf("facts = %+v", facts)
+		t.Fatalf("instant = %+v", facts.Instant)
 	}
 	if facts.Date != "1958-05-12" || facts.Time != "06:00" {
-		t.Fatalf("projections = %s %s", facts.Date, facts.Time)
+		t.Fatalf("derived projection = %s %s", facts.Date, facts.Time)
 	}
 }
 
