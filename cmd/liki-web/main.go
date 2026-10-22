@@ -2,24 +2,18 @@ package main
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
-	"html"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/ml8s/liki-web/internal/account"
 	"github.com/ml8s/liki-web/internal/adminauth"
-	"github.com/ml8s/liki-web/internal/aipay"
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/birthprofile"
-	"github.com/ml8s/liki-web/internal/chat"
 	"github.com/ml8s/liki-web/internal/dodo"
 	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/partner"
@@ -30,11 +24,7 @@ import (
 	"github.com/ml8s/liki-web/internal/feedback"
 	apphttp "github.com/ml8s/liki-web/internal/http"
 	"github.com/ml8s/liki-web/internal/httputil"
-	"github.com/ml8s/liki-web/internal/metrics"
-	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/product"
-	"github.com/ml8s/liki-web/internal/records"
-	"github.com/ml8s/liki-web/internal/runcontrol"
 )
 
 // Build-time variables injected via -ldflags.
@@ -42,10 +32,6 @@ var (
 	BuildTime = "dev"
 	Version   = "dev"
 )
-
-// maxAgentRunTimeout matches the bounded AG-UI product run deadline. The HTTP
-// writer keeps an additional margin so a completed response can be flushed.
-const maxAgentRunTimeout = 600 * time.Second
 
 func main() {
 	cfg := LoadConfig()
@@ -146,58 +132,8 @@ func main() {
 		slog.Warn("LIKI_ADMIN_EMAIL is empty; admin console capabilities are disabled")
 	}
 
-	// ── Callbacks ──
-	authMailer := auth.MailerFunc(func(ctx context.Context, recipient, code, locale string) error {
-		subject, body := "Liki login code", `<p>Your Liki login code:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">`+code+`</p><p>The code is valid for 10 minutes.</p>`
-		switch locale {
-		case "zh-Hant":
-			subject, body = "Liki 登入驗證碼", `<p>你的 Liki 登入驗證碼：</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">`+code+`</p><p>驗證碼 10 分鐘內有效。</p>`
-		case "zh-Hans", "":
-			subject, body = "Liki 登录验证码", `<p>你的 Liki 登录验证码：</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">`+code+`</p><p>验证码 10 分钟内有效。</p>`
-		}
-		return emailClient.SendReport(ctx, recipient, subject, email.Document(locale, cfg.PublicBaseURL, body))
-	})
-	partnerDecisionEmail := func(ctx context.Context, item partner.PartnerApplication, approved bool, reason string) error {
-		applicant, err := authStore.GetUser(ctx, item.UserID)
-		if err != nil {
-			return err
-		}
-		role := "KOL"
-		if item.Type == partner.RoleScout {
-			role = "Scout"
-		}
-		var subject, opening, noteLabel, next string
-		switch applicant.Locale {
-		case "en":
-			noteLabel, next = "Reviewer note: ", "You may submit a new application with additional details."
-			if approved {
-				subject, opening, next =
-					"Your Liki partner application has been approved",
-					"Your "+role+" application was approved.",
-					"Sign in to Liki to open your partner workspace."
-			} else {
-				subject, opening = "Your Liki partner application decision", "Your "+role+" application was not approved."
-			}
-		case "zh-Hant":
-			subject, noteLabel, next = "Liki 合作申請審核結果", "審核意見：", "你可以補充材料後重新提交申請。"
-			if approved {
-				opening, next = "你的 "+role+" 合作申請已通過。", "登入 Liki 後即可進入對應合作工作台。"
-			} else {
-				opening = "你的 " + role + " 合作申請未通過。"
-			}
-		}
-		if applicant.Locale != "en" && applicant.Locale != "zh-Hant" {
-			subject, noteLabel, next = "Liki 合作申请审核结果", "审核意见：", "你可以补充材料后重新提交申请。"
-			if approved {
-				opening, next = "你的 "+role+" 合作申请已通过。", "登录 Liki 后即可进入对应合作工作台。"
-			} else {
-				opening = "你的 " + role + " 合作申请未通过。"
-			}
-		}
-		body := `<p>` + opening + `</p><p>` + noteLabel + html.EscapeString(reason) + `</p><p>` + next + `</p>`
-		return emailClient.SendReport(ctx, applicant.Email, subject, email.Document(applicant.Locale, cfg.PublicBaseURL, body))
-	}
-
+	authMailer := newAuthMailer(emailClient, cfg.PublicBaseURL)
+	partnerDecisionEmail := newPartnerDecisionNotifier(emailClient, authStore, cfg.PublicBaseURL)
 	authConfig := auth.DefaultConfig()
 	authConfig.SecureCookie = !cfg.DevelopmentMode
 	authConfig.ExposeDevCode = cfg.DevelopmentMode
@@ -248,65 +184,12 @@ func main() {
 	partnerHandler.SetAttributionTTL(time.Duration(cfg.ReferralAttributionTTLDays) * 24 * time.Hour)
 	authHandler.SetPostLoginHook(partnerHandler.PostLoginHook)
 	authHandler.SetPartnerRolesProvider(partnerStore.PartnerRoles)
-	chatStore := chat.NewChatStore(likiDB)
-	if err := chatStore.Migrate(ctx); err != nil {
-		slog.Error("init chat schema", "err", err)
+	chats, err := newChatSystem(ctx, cfg, likiDB, entitlements, profileStore)
+	if err != nil {
+		slog.Error("init chat system", "err", err)
 		os.Exit(1)
 	}
-	runcontrolStore := runcontrol.NewStore(likiDB)
-	if err := runcontrolStore.Migrate(ctx); err != nil {
-		slog.Error("init run registry schema", "err", err)
-		os.Exit(1)
-	}
-	var runCallbackHandler http.HandlerFunc
-	if cfg.RunCallbackSecret != "" {
-		runCallbackHandler, err = runcontrol.NewCallbackHandler(runcontrol.CallbackConfig{
-			Secret:  cfg.RunCallbackSecret,
-			Store:   runcontrolStore,
-			History: chatStore,
-		})
-		if err != nil {
-			slog.Error("init run callback receiver", "err", err)
-			os.Exit(1)
-		}
-	}
-	recordsStore := records.NewStore(likiDB)
-	if err := recordsStore.Migrate(ctx); err != nil {
-		slog.Error("init records schema", "err", err)
-		os.Exit(1)
-	}
-	chatService := chat.NewService(chatStore, entitlements, profileStore)
-	if cfg.AgentInternalToken == "" {
-		slog.Error("LIKI_AGENTS_INTERNAL_TOKEN is required")
-		os.Exit(1)
-	}
-	agentTimeout := time.Duration(cfg.AgentTimeoutSeconds) * time.Second
-	if agentTimeout <= 0 || agentTimeout > maxAgentRunTimeout {
-		agentTimeout = maxAgentRunTimeout
-	}
-	runners := make(map[string]chat.Runner, len(chat.ExpertOrder))
-	for _, expert := range chat.ExpertOrder {
-		baseURL := cfg.AgentURLs[expert]
-		if baseURL == "" {
-			slog.Error("missing agent endpoint",
-				"expert", expert,
-				"env", "LIKI_AGENTS_"+strings.ToUpper(expert)+"_URL",
-			)
-			os.Exit(1)
-		}
-		runner, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
-			BaseURL: baseURL,
-			Token:   cfg.AgentInternalToken,
-			Timeout: agentTimeout,
-			Product: "liki",
-		})
-		if err != nil {
-			slog.Error("init liki agent runner", "expert", expert, "err", err)
-			os.Exit(1)
-		}
-		runners[expert] = runner
-	}
-	chatService.SetAgentRunners(runners)
+
 	productCatalog := product.NewCatalog(product.CatalogConfig{
 		OneTimePriceMinorCNY:      cfg.ChatOneTimePriceMinorCNY,
 		OneTimePriceMinorUSD:      cfg.ChatOneTimePriceMinorUSD,
@@ -317,132 +200,17 @@ func main() {
 		slog.Error("init sales schema", "err", err)
 		os.Exit(1)
 	}
-	aipayStore := aipay.NewStore(aipayDB)
-	if err := aipayStore.Migrate(ctx); err != nil {
-		slog.Error("init aipay schema", "err", err)
-		os.Exit(1)
-	}
-	var aipayGateway aipay.Gateway
-	if cfg.AlipayConfig.Enabled() {
-		client, err := aipay.NewClient(cfg.AlipayConfig)
-		if err != nil {
-			slog.Error("init alipay aipay client", "err", err)
-			os.Exit(1)
-		}
-		aipayGateway = client
-	} else {
-		slog.Warn("alipay aipay is not fully configured; it is disabled")
-	}
-	aipayHandler, err := aipay.NewHandler(aipayStore, aipayGateway, cfg.AlipayConfig)
-	if err != nil {
-		slog.Error("init aipay handler", "err", err)
-		os.Exit(1)
-	}
-	chatDuration := time.Duration(cfg.ChatOneTimeAccessDays) * 24 * time.Hour
-
-	intents := payment.NewIntentStore(platformDB)
-	notifications := payment.NewNotificationStore(platformDB)
-	fulfillments := payment.NewPaymentCompletionTaskStore(platformDB)
-	events := payment.NewPaymentEventStore(platformDB)
-	if err := intents.Migrate(ctx); err != nil {
-		slog.Error("init payment intents", "err", err)
-		os.Exit(1)
-	}
-	if err := notifications.Migrate(ctx); err != nil {
-		slog.Error("init payment notifications", "err", err)
-		os.Exit(1)
-	}
-	if err := fulfillments.Migrate(ctx); err != nil {
-		slog.Error("init payment fulfillment tasks", "err", err)
-		os.Exit(1)
-	}
-	compensationEmail := func(ctx context.Context, user auth.User, grant entitlement.Entitlement, template string) error {
-		message, err := email.BuildCompensationEmail(
-			user.Locale, template, grant.StartsAt, grant.ExpiresAt, cfg.PublicBaseURL,
-		)
-		if err != nil {
-			return err
-		}
-		return notifications.EnqueueOnce(ctx, "entitlement:"+grant.ID,
-			payment.NotificationEntitlementCompensation, payment.EmailMessage{
-				To:      user.Email,
-				Subject: message.Subject,
-				Body:    message.Body,
-			})
-	}
-
-	if err := events.Migrate(ctx); err != nil {
-		slog.Error("init payment events", "err", err)
-		os.Exit(1)
-	}
-	dodoConfigured := cfg.DodoAPIKey != "" && cfg.DodoWebhookKey != ""
-	if dodoConfigured && cfg.DodoProductLikiChatOneTime == "" {
-		slog.Warn("dodo one-time product is not configured for liki-chat; USD chat checkout will fail")
-	}
-	if dodoConfigured && cfg.DodoProductLikiChatSubscription == "" {
-		slog.Warn("dodo subscription product is not configured for liki-chat; the subscription offer stays disabled")
-	}
-	xunhuConfigured := cfg.XunhuAppID != "" && cfg.XunhuAppSecret != "" && cfg.PaymentWebhookURL != ""
-	if dodoConfigured || xunhuConfigured {
-		if err := validateHTTPURL("LIKI_PUBLIC_BASE_URL", cfg.PublicBaseURL); err != nil {
-			slog.Error("payment runtime requires an absolute public LIKI_PUBLIC_BASE_URL", "err", err)
-			os.Exit(1)
-		}
-	}
-	if !dodoConfigured && !xunhuConfigured {
-		slog.Error("no payment provider is fully configured")
-		os.Exit(1)
-	}
-	gateways := map[payment.Provider]payment.Gateway{}
-	if dodoConfigured {
-		gateways[payment.ProviderDodo] = dodoClient
-	} else {
-		slog.Warn("dodo payment provider is not fully configured; it is disabled")
-	}
-	if xunhuConfigured {
-		gateways[payment.ProviderXunhu] = xunhuClient
-	} else {
-		slog.Warn("xunhu payment provider is not fully configured; it is disabled")
-	}
-	flows := map[string]payment.ProductFlow{
-		string(product.Chat): sales.NewProductPaymentFlow(salesOrders, entitlements, product.Chat, chatDuration),
-	}
-	paymentSender := paymentEmailSender{client: emailClient}
-	paymentRuntime := payment.NewRuntime(gateways, flows, intents, notifications, fulfillments, events, paymentSender, payment.RuntimeOptions{
-		BaseURL:    cfg.PublicBaseURL,
-		AdminEmail: cfg.AdminEmail,
-	})
-	paymentRuntime.SetPaymentCompletionObserver(func(ctx context.Context, intent payment.PaymentIntent) {
-		sale := payment.CommissionablePayment{
-			ID: intent.ID, BusinessOrderID: intent.BusinessOrderID, UserID: intent.UserID,
-			Product: intent.Product, Provider: intent.Provider,
-			AmountMinor: intent.AmountMinor, Currency: intent.Currency, Email: intent.Email,
-		}
-		if _, _, err := partnerStore.EnqueueCommissionPayment(ctx, sale); err != nil {
-			slog.Error("referral: enqueue fulfilled payment", "payment_id", sale.ID, "err", err)
-		}
-	})
-	paymentRuntime.SetRefundObserver(func(ctx context.Context, event payment.WebhookEvent, intent payment.PaymentIntent) error {
-		sale := payment.CommissionablePayment{
-			ID: intent.ID, BusinessOrderID: intent.BusinessOrderID, UserID: intent.UserID,
-			Product: intent.Product, Provider: intent.Provider,
-			AmountMinor: intent.AmountMinor, Currency: intent.Currency, Email: intent.Email,
-		}
-		return partnerStore.EnqueueCommissionRefund(ctx, event, sale)
-	})
-	subscriptionProcessor := sales.NewSubscriptionEventProcessor(
-		subscriptionStore,
-		entitlements,
-		cfg.DodoProductLikiChatSubscription,
-		func(ctx context.Context, sale payment.CommissionablePayment) error {
-			_, _, err := partnerStore.EnqueueCommissionPayment(ctx, sale)
-			return err
-		},
+	payments, err := newPaymentSystem(
+		ctx, cfg, platformDB, aipayDB, salesOrders, subscriptionStore,
+		entitlements, partnerStore, emailClient, dodoClient, xunhuClient,
 	)
-	subscriptionProcessor.SetCommissionRefundObserver(func(ctx context.Context, event payment.WebhookEvent, sale payment.CommissionablePayment) error {
-		return partnerStore.EnqueueCommissionRefund(ctx, event, sale)
-	})
-	paymentRuntime.SetSubscriptionProcessor(subscriptionProcessor)
+	if err != nil {
+		slog.Error("init payment system", "err", err)
+		os.Exit(1)
+	}
+	aipayStore := payments.AipayStore
+	paymentRuntime := payments.Runtime
+
 	erasureQueue := account.NewErasureStore(platformDB)
 	if err := erasureQueue.Migrate(ctx); err != nil {
 		slog.Error("account: migrate erasure queue", "err", err)
@@ -464,112 +232,34 @@ func main() {
 	verifyLimiter := apphttp.NewRateLimiter()
 	defer rateLimiter.Stop()
 
-	readiness := func(ctx context.Context) error {
-		for name, db := range map[string]*sql.DB{
-			"platform": platformDB, "profiles": profilesDB, "feedback": feedbackDB,
-			"liki": likiDB, "aipay": aipayDB,
-		} {
-			if err := db.PingContext(ctx); err != nil {
-				return fmt.Errorf("database %s: %w", name, err)
-			}
-		}
-		for _, expert := range chat.ExpertOrder {
-			if err := checkAgentReadiness(ctx, agentOpsURL(cfg.AgentURLs[expert], cfg.AgentsOpsPort)); err != nil {
-				return fmt.Errorf("expert %s: %w", expert, err)
-			}
-		}
-		return nil
-	}
-
-	mux := http.NewServeMux()
-	accountHandler := account.NewHandler(
-		profileStore,
-		chatStore,
-		authStore,
-		salesOrders,
-		entitlements,
-		intents,
-		notifications,
-		partnerStore,
-		adminAuthorizer,
-		erasureQueue,
-		authHandler.RequireUser,
-	)
-	accountHandler.SetSubscriptionEraser(subscriptionStore)
-
-	// 订阅 checkout 只在订阅商品配置好后注册：/api/sales/products 按
-	// subscriptionCheckout 是否可用决定要不要下发订阅 offer，商品缺失时下发等于
-	// 让买家点一个必然 502 的按钮。
-	var subscriptionCheckout sales.SubscriptionCheckoutCreator
-	if cfg.DodoProductLikiChatSubscription != "" {
-		subscriptionCheckout = dodoClient
-	}
-
-	h := apphttp.RegisterRoutes(mux, apphttp.ServerDeps{
-		PaymentRuntime: paymentRuntime,
-		AuthHandler:    authHandler,
-		PartnerHandler: partnerHandler,
-		PartnerStore:   partnerStore,
-		SalesHandler: sales.NewHandler(
-			salesOrders,
-			paymentRuntime,
-			authHandler.RequireUser,
-			func(next http.HandlerFunc) http.HandlerFunc {
-				return rateLimiter.Wrap(5.0/60, 6, next)
-			},
-			sales.WithCurrencyResolver(currencyResolver),
-			sales.WithCatalog(productCatalog),
-			sales.WithSkillAuthorizer(entitlements),
-			sales.WithSubscriptions(
-				subscriptionStore,
-				subscriptionCheckout,
-				dodoClient,
-				cfg.PublicBaseURL,
-			),
-			sales.WithSubscriptionReconciliation(
-				dodoClient,
-				subscriptionProcessor.HandleSubscriptionEvent,
-			),
-		),
-		EntitlementHandler: entitlement.NewHandler(entitlements, authHandler.RequireUser),
-		ChatHandler: chat.NewHandler(chatService, authHandler.RequireUser, func(next http.HandlerFunc) http.HandlerFunc {
-			return rateLimiter.Wrap(5.0/60, 6, next)
-		}),
-		RecordsHandler: records.NewHandler(recordsStore, authHandler.RequireUser, func(next http.HandlerFunc) http.HandlerFunc {
-			return rateLimiter.Wrap(20.0/60, 10, next)
-		}),
-		AipayHandler:         aipayHandler,
-		ProfileHandler:       birthprofile.NewHandler(profileStore, authHandler.RequireUser),
-		AccountHandler:       accountHandler,
-		Entitlements:         entitlements,
-		FeedbackStore:        feedbackStore,
-		FeedbackAPIKey:       cfg.FeedbackAPIKey,
-		AdminEmail:           cfg.AdminEmail,
-		AdminAuthorizer:      adminAuthorizer,
-		AuthUsers:            authStore,
-		SessionCookieName:    authConfig.CookieName,
-		RunCallbackHandler:   runCallbackHandler,
-		SalesStores:          sales.NewSalesStores(salesOrders, subscriptionStore),
-		CompensationNotifier: compensationEmail,
-		PartnerNotifier: func(ctx context.Context, item partner.PartnerApplication, approved bool, reason string) {
-			// The decision is already committed; delivery must not be
-			// cancelled with the request context.
+	handler, accountHandler := newHTTPHandler(httpWiring{
+		config:     cfg,
+		platformDB: platformDB, profilesDB: profilesDB, feedbackDB: feedbackDB,
+		likiDB: likiDB, aipayDB: aipayDB,
+		authStore: authStore, authConfig: authConfig, authHandler: authHandler,
+		profiles: profileStore, feedback: feedbackStore,
+		chats: chats, payments: payments,
+		partners: partnerStore, partnerHandler: partnerHandler,
+		entitlements: entitlements, orders: salesOrders, subscriptions: subscriptionStore,
+		currency: currencyResolver, catalog: productCatalog, dodo: dodoClient,
+		erasureQueue: erasureQueue, adminAuthorizer: adminAuthorizer,
+		rateLimiter: rateLimiter, verifyLimiter: verifyLimiter,
+		partnerNotifier: func(ctx context.Context, item partner.PartnerApplication, approved bool, reason string) {
+			// The decision is already committed; delivery must not be cancelled
+			// with the request context.
 			ctx = context.WithoutCancel(ctx)
 			if err := partnerDecisionEmail(ctx, item, approved, reason); err != nil {
 				slog.Warn("send partner decision notification", "application_id", item.ID, "err", err)
 			}
 		},
-		MetricsHandler: metrics.Handler(cfg.MetricsToken),
-		Readiness:      readiness,
-		DevMode:        cfg.DevelopmentMode,
-	}, BuildTime, Version, rateLimiter, verifyLimiter)
+	})
 
 	startErasureWorker(workers, ctx, erasureQueue, accountHandler)
 
 	// Write timeout must accommodate LLM calls (~120s)
 	srv := &http.Server{
 		Addr:         cfg.HTTPListenAddress,
-		Handler:      h,
+		Handler:      handler,
 		BaseContext:  func(_ net.Listener) context.Context { return ctx },
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 610 * time.Second,
