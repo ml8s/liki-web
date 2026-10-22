@@ -184,7 +184,7 @@ Paid chat operations recheck entitlement server-side.
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/chat/sessions` | user | List sessions |
-| POST | `/api/chat/sessions` | entitled user | Create session |
+| POST | `/api/chat/sessions` | entitled user | Create session; returns `201 Created` |
 | GET | `/api/chat/sessions/{id}` | owner + entitled | Read session |
 | PATCH | `/api/chat/sessions/{id}` | owner | Rename session (title, 1-60 chars) |
 | DELETE | `/api/chat/sessions/{id}` | owner | Soft-delete session |
@@ -203,11 +203,27 @@ Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshu
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/records?kind=` | user | List tool records (newest 50; `kind` one of `liuyao`, `huangli`, `bond`, `bazhai`) |
-| POST | `/api/records` | user | Save a tool record (`{kind, title, input, output?}`; JSON-object input/output snapshots) |
+| POST | `/api/records` | user | Save a tool record; returns `201 Created` |
 | PATCH | `/api/records/{id}` | owner | Rename a record (title, 1-60 chars) |
 | DELETE | `/api/records/{id}` | owner | Soft-delete a record |
 
 Records are opaque engine I/O snapshots for the service pages; the engine contract stays authoritative for their shape.
+
+A record response is owner-scoped and exposes only:
+
+```json
+{
+  "id": "...",
+  "kind": "liuyao",
+  "title": "...",
+  "input": {},
+  "output": {},
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+`output` is omitted until a result exists. Requests reject unknown members; `kind` must be one of the four values above, `input` and `output` must be JSON objects, and `title` is 1-60 characters.
 
 ## Orders
 
@@ -240,13 +256,11 @@ Erasure is rate limited and spans identity, birth profiles, chat, sales, entitle
 | GET | `/api/partner-portal/scout/application` | user | Read Scout role/application state |
 | POST | `/api/partner-portal/scout/application` | user | Submit a Scout application |
 | GET | `/api/partner-portal/kol/session` | active KOL | Read KOL dashboard summary |
-| GET | `/api/partner-portal/kol/overview` | active KOL | Alias of the KOL session route |
 | GET | `/api/partner-portal/kol/commissions` | active KOL | List KOL commission entries |
 | GET | `/api/partner-portal/kol/payouts` | active or retired KOL | List payouts |
 | POST | `/api/partner-portal/kol/payouts` | active or retired KOL | Request a payout |
 | GET | `/api/partner-portal/kol/settlement` | active or retired KOL | Read money-only settlement state |
 | GET | `/api/partner-portal/scout/session` | active Scout | Read Scout dashboard summary |
-| GET | `/api/partner-portal/scout/overview` | active Scout | Alias of the Scout session route |
 | GET | `/api/partner-portal/scout/recruits` | active Scout | List recruited KOL partners |
 | GET | `/api/partner-portal/scout/commissions` | active Scout | List Scout commission entries |
 | GET | `/api/partner-portal/scout/payouts` | active or retired Scout | List payouts |

@@ -49,9 +49,18 @@ func (k Kind) Valid() bool {
 	return ok
 }
 
+// ValidateTitle shares the HTTP and store validation contract.
+func ValidateTitle(title string) error {
+	title = strings.TrimSpace(title)
+	if title == "" || utf8.RuneCountInString(title) > MaxTitleRunes {
+		return errors.New("records: title must be 1-60 characters")
+	}
+	return nil
+}
+
 type Record struct {
 	ID        string          `json:"id"`
-	UserID    string          `json:"user_id"`
+	UserID    string          `json:"-"`
 	Kind      Kind            `json:"kind"`
 	Title     string          `json:"title"`
 	Input     json.RawMessage `json:"input"`
@@ -71,9 +80,8 @@ func (in CreateInput) Validate() error {
 	if !in.Kind.Valid() {
 		return errors.New("records: unknown kind")
 	}
-	title := strings.TrimSpace(in.Title)
-	if title == "" || utf8.RuneCountInString(title) > MaxTitleRunes {
-		return errors.New("records: title must be 1-60 characters")
+	if err := ValidateTitle(in.Title); err != nil {
+		return err
 	}
 	if len(in.Input) == 0 || in.Input[0] != '{' || !json.Valid(in.Input) {
 		return errors.New("records: input must be a JSON object")

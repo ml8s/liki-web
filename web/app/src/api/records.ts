@@ -5,7 +5,6 @@ export type RecordKind = 'liuyao' | 'huangli' | 'bond' | 'bazhai'
 
 export interface ToolRecord {
   id: string
-  user_id: string
   kind: RecordKind
   title: string
   input: Record<string, unknown>

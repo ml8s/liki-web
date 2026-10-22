@@ -70,7 +70,7 @@ func (h *Handler) HandleSessions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
-	req, ok := httputil.Decode[createSessionRequest](w, r)
+	req, ok := httputil.DecodeStrict[createSessionRequest](w, r)
 	if !ok {
 		return
 	}
@@ -97,7 +97,7 @@ func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
 		httputil.InternalError(w)
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, session)
+	httputil.RespondJSON(w, http.StatusCreated, session)
 }
 
 func (h *Handler) HandleMessages(w http.ResponseWriter, r *http.Request) {

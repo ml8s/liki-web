@@ -41,14 +41,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit RateLimiterFunc) {
 	mux.HandleFunc("POST /api/partner-portal/scout/application", h.requireUser(limit(h.HandleSubmitScoutApplication)))
 
 	mux.HandleFunc("GET /api/partner-portal/kol/session", h.requireUser(h.requireKOL(h.HandleKOLSession)))
-	mux.HandleFunc("GET /api/partner-portal/kol/overview", h.requireUser(h.requireKOL(h.HandleKOLSession)))
 	mux.HandleFunc("GET /api/partner-portal/kol/commissions", h.requireUser(h.requireKOL(h.HandleKOLCommissions)))
 	mux.HandleFunc("GET /api/partner-portal/kol/payouts", h.requireUser(h.HandleKOLPayouts))
 	mux.HandleFunc("POST /api/partner-portal/kol/payouts", h.requireUser(limit(h.HandleCreateKOLPayout)))
 	mux.HandleFunc("GET /api/partner-portal/kol/settlement", h.requireUser(h.HandleKOLSettlement))
 
 	mux.HandleFunc("GET /api/partner-portal/scout/session", h.requireUser(h.requireScout(h.HandleScoutSession)))
-	mux.HandleFunc("GET /api/partner-portal/scout/overview", h.requireUser(h.requireScout(h.HandleScoutSession)))
 	mux.HandleFunc("GET /api/partner-portal/scout/recruits", h.requireUser(h.requireScout(h.HandleScoutRecruits)))
 	mux.HandleFunc("GET /api/partner-portal/scout/commissions", h.requireUser(h.requireScout(h.HandleScoutCommissions)))
 	mux.HandleFunc("GET /api/partner-portal/scout/payouts", h.requireUser(h.HandleScoutPayouts))

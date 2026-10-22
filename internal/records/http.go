@@ -46,6 +46,14 @@ type createRequest struct {
 	Output json.RawMessage `json:"output"`
 }
 
+func (r createRequest) Validate() error {
+	input := CreateInput{
+		Kind: Kind(r.Kind), Title: r.Title,
+		Input: r.Input, Output: r.Output,
+	}
+	return input.Validate()
+}
+
 func (h *Handler) HandleList(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
@@ -72,7 +80,7 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	req, ok := httputil.Decode[createRequest](w, r)
+	req, ok := httputil.DecodeStrict[createRequest](w, r)
 	if !ok {
 		return
 	}
@@ -86,11 +94,15 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		writeRecordError(r.Context(), w, err, "create")
 		return
 	}
-	httputil.RespondJSON(w, http.StatusOK, record)
+	httputil.RespondJSON(w, http.StatusCreated, record)
 }
 
 type renameRequest struct {
 	Title string `json:"title"`
+}
+
+func (r renameRequest) Validate() error {
+	return ValidateTitle(r.Title)
 }
 
 func (h *Handler) HandleRename(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +111,7 @@ func (h *Handler) HandleRename(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	req, ok := httputil.Decode[renameRequest](w, r)
+	req, ok := httputil.DecodeStrict[renameRequest](w, r)
 	if !ok {
 		return
 	}

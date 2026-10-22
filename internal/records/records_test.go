@@ -137,6 +137,25 @@ func TestHandlerRoutesAndOwnership(t *testing.T) {
 	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Body.String(), `"择日 · 婚礼"`) {
 		t.Fatalf("list = %d %s", recorder.Code, recorder.Body.String())
 	}
+	if strings.Contains(recorder.Body.String(), `"user_id"`) {
+		t.Fatalf("record response must not expose user_id: %s", recorder.Body.String())
+	}
+
+	recorder = httptest.NewRecorder()
+	createBody := `{"kind":"huangli","title":"新建","input":{"event":"test"},"unknown":true}`
+	handler.HandleCreate(recorder, recordRequest(http.MethodPost, "/api/records", createBody, "user-1", ""))
+	if recorder.Code != http.StatusBadRequest || !strings.Contains(recorder.Body.String(), `"invalid_request"`) {
+		t.Fatalf("unknown create field = %d %s", recorder.Code, recorder.Body.String())
+	}
+
+	recorder = httptest.NewRecorder()
+	handler.HandleCreate(recorder, recordRequest(http.MethodPost, "/api/records", `{"kind":"huangli","title":"新建","input":{"event":"test"}}`, "user-1", ""))
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("create = %d %s", recorder.Code, recorder.Body.String())
+	}
+	if strings.Contains(recorder.Body.String(), `"user_id"`) {
+		t.Fatalf("created record response must not expose user_id: %s", recorder.Body.String())
+	}
 
 	recorder = httptest.NewRecorder()
 	handler.HandleList(recorder, recordRequest(http.MethodGet, "/api/records?kind=qimen", "", "user-1", record.ID))
@@ -146,7 +165,7 @@ func TestHandlerRoutesAndOwnership(t *testing.T) {
 
 	recorder = httptest.NewRecorder()
 	handler.HandleRename(recorder, recordRequest(http.MethodPatch, "/api/records/rec-1", `{"title":"  "}`, "user-1", record.ID))
-	if recorder.Code != http.StatusBadRequest || !strings.Contains(recorder.Body.String(), `"invalid_request"`) {
+	if recorder.Code != http.StatusUnprocessableEntity || !strings.Contains(recorder.Body.String(), `"validation_error"`) {
 		t.Fatalf("invalid rename = %d %s", recorder.Code, recorder.Body.String())
 	}
 
