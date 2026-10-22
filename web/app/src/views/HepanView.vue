@@ -144,12 +144,8 @@ import { computed, reactive, ref, toRef } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
-import {
-  engineBaziBond,
-  engineBaziChart,
-  type BaziBondResult,
-  type BaziChartData,
-} from '@/api/engine'
+import { baziChartForChartInput, type BaziChartData } from '@shared/domain/natal'
+import { hepanForChartInputs, type Hepan } from '@shared/domain/hepan'
 import { useToolRecords } from '@/composables/useToolRecords'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
@@ -158,12 +154,12 @@ import ServicePageShell from '@/components/app/ServicePageShell.vue'
 import HepanPanel from '@shared/components/paipan/HepanPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import {
-  birthInfoFromFields,
+  birthInputFromFields,
   createBirthFieldLabels,
   createBirthFieldsValue,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import { resolvePaipanContext } from '@/utils/paipan'
+import { chartInputFromBirth } from '@shared/domain/birth'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -184,7 +180,7 @@ const profileAId = toRef(formA, 'profileAId')
 const chartA = ref<BaziChartData | null>(null)
 const bChart = ref<BaziChartData | null>(null)
 const b = ref<BirthFieldsValue>({ ...createBirthFieldsValue(), gender: 'female' })
-const result = ref<BaziBondResult | null>(null)
+const result = ref<Hepan['bond'] | null>(null)
 const loading = ref(false)
 const error = ref('')
 
@@ -197,8 +193,8 @@ const rulesA = computed<FormRules>(() => ({
   profileAId: [{ required: true, message: t('chat.selectBirthProfileFirst'), trigger: 'change' }],
 }))
 const rulesB = computed<FormRules>(() => ({
-  birth_date: [{ required: true, message: t('profiles.form.errors.birthDateRequired'), trigger: 'change' }],
-  birth_time: [{ required: true, message: t('profiles.form.errors.exactTimeRequired'), trigger: 'change' }],
+  date: [{ required: true, message: t('profiles.form.errors.birthDateRequired'), trigger: 'change' }],
+  time: [{ required: true, message: t('profiles.form.errors.exactTimeRequired'), trigger: 'change' }],
   location: [{
     validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
       if (value === null || value === undefined) callback(new Error(t('profiles.form.errors.birthPlaceRequired')))
@@ -226,7 +222,7 @@ async function loadA() {
       error.value = t('profiles.chart.errors.missingTime')
       return
     }
-    chartA.value = await engineBaziChart({
+    chartA.value = await baziChartForChartInput({
       instant: p.birth_instant,
       timezone: p.birth_timezone,
       longitude: p.birth_longitude,
@@ -250,11 +246,26 @@ async function compute() {
   bChart.value = null
   loading.value = true
   try {
-    if (!chartA.value) await loadA()
-    if (!chartA.value) return
-    const context = await resolvePaipanContext(birthInfoFromFields(b.value))
-    bChart.value = await engineBaziChart({ ...context, gender: b.value.gender })
-    result.value = await engineBaziBond(chartA.value, bChart.value)
+    const p = profileA.value
+    if (!p) return
+    if (!p.birth_instant || !p.birth_timezone || p.birth_longitude == null) {
+      error.value = t('profiles.chart.errors.missingTime')
+      return
+    }
+    const birthB = birthInputFromFields(b.value)
+    const inputB = await chartInputFromBirth(birthB)
+    const hepan = await hepanForChartInputs(
+      {
+        instant: p.birth_instant,
+        timezone: p.birth_timezone,
+        longitude: p.birth_longitude,
+        gender: p.gender,
+      },
+      { ...inputB, gender: birthB.gender },
+    )
+    chartA.value = hepan.chartA
+    bChart.value = hepan.chartB
+    result.value = hepan.bond
   } catch (err) {
     error.value = toUserMessage(err, t('services.hepan.failed'))
   } finally {
@@ -265,7 +276,7 @@ async function compute() {
 function saveRecord() {
   if (!result.value) return
   void saveToolRecord(
-    t('records.titleBond', { a: aName.value, b: b.value.birth_date }),
+    t('records.titleBond', { a: aName.value, b: b.value.date }),
     { profile_id: profileAId.value, b: { ...b.value } },
   )
 }
@@ -276,8 +287,8 @@ function openRecord(record: ToolRecord) {
   // 保持 b 对象引用稳定：form 的 model 指向同一对象，替换引用会让校验读到旧值。
   Object.assign(b.value, {
     gender: inputB.gender ?? 'female',
-    birth_date: String(inputB.birth_date ?? ''),
-    birth_time: String(inputB.birth_time ?? ''),
+    date: String(inputB.date ?? ''),
+    time: String(inputB.time ?? ''),
     location: inputB.location ?? null,
   })
   chartA.value = null
@@ -290,8 +301,8 @@ async function startInterpretation() {
   const bBirthProfile = b.value
   const bInfo = t('services.hepan.otherBirthProfileSummary', {
     gender: bBirthProfile.gender === 'male' ? t('profiles.male') : t('profiles.female'),
-    date: bBirthProfile.birth_date,
-    time: bBirthProfile.birth_time,
+    date: bBirthProfile.date,
+    time: bBirthProfile.time,
     place: bBirthProfile.location?.place
       ? t('services.hepan.otherPlace', { place: bBirthProfile.location.place })
       : '',

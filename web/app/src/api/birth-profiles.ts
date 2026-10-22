@@ -1,6 +1,6 @@
 import { get, post, request } from './http'
 import { i18n } from '@/i18n'
-import { formatInstant } from '@shared/utils/paipan'
+import { formatInstant } from '@shared/domain/time'
 
 export interface BirthProfile {
   id: string

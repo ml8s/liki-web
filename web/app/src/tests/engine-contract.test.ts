@@ -2,17 +2,11 @@
 // 字段名须与引擎/counsel mcpcontract 一字不差，防前端臆造参数或误包协议。
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/http'
-import {
-  engineBaziChart,
-  engineBaziBond,
-  engineHuangliDays,
-  engineLiuyaoChart,
-  engineLiuyaoQigua,
-  engineTool,
-  engineZiweiChart,
-  engineZiweiDaXian,
-  engineZiweiLiuNian,
-} from '@/api/engine'
+import { mcpTool } from '@shared/api/mcp/client'
+import { engineBaziBond, engineBaziChart } from '@shared/api/engine/bazi'
+import { engineHuangliDays } from '@shared/api/engine/huangli'
+import { engineLiuyaoChart, engineLiuyaoQigua } from '@shared/api/engine/liuyao'
+import { engineZiweiChart, engineZiweiDaXian, engineZiweiLiuNian } from '@shared/api/engine/ziwei'
 
 const mcpOk = (data: unknown, status = 200): Response =>
   new Response(
@@ -63,7 +57,7 @@ describe('engine request contract', () => {
 
   it('routes counsel tools to /counsel/mcp', async () => {
     stubFetch(mcpOk({ selected: {} }))
-    await engineTool('bazi_yongshen', { chart: {} })
+    await mcpTool('bazi_yongshen', { chart: {} })
     expect(lastCall().url).toBe('/counsel/mcp')
   })
 

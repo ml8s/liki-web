@@ -1,6 +1,6 @@
 // 引擎契约夹具（共享单源）：排盘/合盘工具的 mock 数据。
 // 修改此处即同时影响 natal / liunian / hepan / naming 工具岛测试与契约断言。
-import type { BaziChartData, BaziFullChartData, BaziLiuNianOutput } from '@shared/api/engine'
+import type { BaziChartData, BaziFullChartData, BaziLiuNianOutput } from '@shared/api/engine/bazi'
 
 export const baziChart: BaziChartData = {
   nian: { gan: '庚', zhi: '午', na_yin: '路旁土' },

@@ -3,14 +3,14 @@
 // 盘面组件来自共享层（与 App 的 FengshuiView 同源）。
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { bazhaiPanFor } from '@shared/utils/paipan'
 import {
-  engineBazhaiLayout,
-  engineXuankongChart,
+  bazhaiChartFor,
+  bazhaiLayoutFor,
+  xuankongChartFor,
   type BazhaiChart,
   type BazhaiLayout,
   type XuankongChart,
-} from '@shared/api/engine'
+} from '@shared/domain/fengshui'
 import MingGuaSection from '@shared/components/paipan/MingGuaSection.vue'
 import LiuNianFlySection from '@shared/components/paipan/LiuNianFlySection.vue'
 import XuankongPanel from '@shared/components/paipan/XuankongPanel.vue'
@@ -54,7 +54,7 @@ async function submit() {
     chart.value = null
     layoutResult.value = null
   try {
-    chart.value = await bazhaiPanFor(value, birth.gender)
+    chart.value = await bazhaiChartFor(value, birth.gender)
     void runXuankong()
   } catch {
     failed.value = true
@@ -65,7 +65,7 @@ async function submit() {
 
 async function runXuankong() {
   try {
-    xuankong.value = await engineXuankongChart(layout.periodDate, layout.zuoShan, (layout.zuoShan + 12) % 24)
+    xuankong.value = await xuankongChartFor(layout.periodDate, layout.zuoShan)
   } catch {
     xuankong.value = null
   }
@@ -75,7 +75,7 @@ async function runLayout() {
   const bazhai = chart.value
   if (!layoutReady.value || !bazhai) return
   try {
-    layoutResult.value = await engineBazhaiLayout(bazhai.ming_gua.gua.name, layout.doorGua, layout.masterGua, layout.stoveGua)
+    layoutResult.value = await bazhaiLayoutFor(bazhai.ming_gua.gua.name, layout.doorGua, layout.masterGua, layout.stoveGua)
   } catch {
     layoutResult.value = null
   }

@@ -1,7 +1,33 @@
+import {
+  engineLiuyaoChart,
+  engineLiuyaoQigua,
+  type LiuyaoChartResult,
+  type LiuyaoCasting,
+  type LiuyaoQiguaInput,
+} from '../api/engine/liuyao'
+import type { ChartInput } from './time'
+
+/** Generate a casting receipt; chart interpretation is a separate engine call. */
+export type { LiuyaoCasting, LiuyaoChartResult, LiuyaoQiguaInput }
+
+export function divinationCastingFor(input: LiuyaoQiguaInput) {
+  return engineLiuyaoQigua(input)
+}
+
+export interface DivinationChartInput extends ChartInput {
+  casting: LiuyaoCasting
+  yongShen?: string
+}
+
+/** Explicit casting time + location + receipt -> complete divination chart. */
+export function divinationChartFor(
+  input: DivinationChartInput,
+): Promise<LiuyaoChartResult> {
+  return engineLiuyaoChart(input)
+}
+
 // 六爻起卦（免费层）的本卦/变卦推断：由 casting 的六爻值自行推演，无需求解卦。
 // 上下卦名表由 engine 的 liuyao/data/hexagrams.json 生成（同一数据源，勿手改）。
-
-import type { LiuyaoCasting } from '../api/engine'
 
 export interface YiGuaReading {
   /** 自下而上的六爻值（6 老阴 · 7 少阳 · 8 少阴 · 9 老阳）。 */

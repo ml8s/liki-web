@@ -91,7 +91,7 @@ import { computed, reactive, ref, toRef, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
-import { engineHuangliDays, type HuangliDay } from '@/api/engine'
+import { huangliDaysFor, type HuangliDays } from '@shared/domain/huangli'
 import HuangliDaysPanel from '@shared/components/paipan/HuangliDaysPanel.vue'
 import HuangliRangeFields from '@shared/components/huangli/HuangliRangeFields.vue'
 import { useToolRecords } from '@/composables/useToolRecords'
@@ -117,7 +117,7 @@ const form = reactive({ event: 'wedding', startDate: '', endDate: '' })
 const event = toRef(form, 'event')
 const startDate = toRef(form, 'startDate')
 const endDate = toRef(form, 'endDate')
-const result = ref<HuangliDay[] | null>(null)
+const result = ref<HuangliDays | null>(null)
 const loading = ref(false)
 const error = ref('')
 
@@ -160,7 +160,7 @@ async function calc() {
   error.value = ''
   result.value = null
   try {
-    result.value = await engineHuangliDays(event.value, startDate.value, spanDays.value)
+    result.value = await huangliDaysFor(event.value, startDate.value, spanDays.value)
   } catch (err) {
     error.value = toUserMessage(err, t('services.huangli.failed'))
   } finally {

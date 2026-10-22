@@ -30,9 +30,9 @@
 
 <script setup lang="ts">
 // 六爻起卦结果展示（免费层）：本卦/变卦名 + 六爻爻线（自下而上，动爻标注）。
-// 由 casting 推演（见 shared/utils/liuyao.ts）；完整解卦（六亲/纳甲）在 App 侧。
+// 由 casting 推演（见 shared/domain/divination.ts）；完整解卦（六亲/纳甲）在 App 侧。
 import { computed } from 'vue'
-import { readCasting, type YiGuaReading } from '../../utils/liuyao'
+import { readCasting, type YiGuaReading } from '../../domain/divination'
 import type { LiuyaoCasting } from '../../api/engine'
 
 const props = defineProps<{ casting: LiuyaoCasting }>()

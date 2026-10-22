@@ -53,7 +53,7 @@ describe('BirthFields', () => {
     const location = {
       place: '上海', longitude: 121.4737, timezone: 'Asia/Shanghai', source: 'city' as const,
     }
-    const exact = { ...base, gender: 'female' as const, birth_date: '1958-05-12', birth_time: '06:00', location }
+    const exact = { ...base, gender: 'female' as const, date: '1958-05-12', time: '06:00', location }
     expect(isBirthInputReady(exact)).toBe(true)
     expect(isBirthInputReady({ ...exact, location: null })).toBe(false)
   })

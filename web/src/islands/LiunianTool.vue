@@ -3,14 +3,14 @@
 // 盘面组件来自共享层（BaziPanel 的流年列与流年详览），与 App 同源。
 import { reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { baziPanFor, type BaziPan } from '@shared/utils/paipan'
-import { engineBaziLiunian, type BaziLiuNianOutput } from '@shared/api/engine'
+import { baziFullChartFor, type BaziFullChart } from '@shared/domain/natal'
+import { baziLiunianFor, type BaziLiuNianOutput } from '@shared/domain/natal'
 import BaziPanel from '@shared/components/paipan/BaziPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import YearField from '@shared/components/form/YearField.vue'
 import {
-  birthInfoFromFields,
+  birthInputFromFields,
   createBirthFieldsValue,
   isBirthInputReady,
   type BirthFieldLabels,
@@ -36,7 +36,7 @@ const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
 const year = ref(new Date().getFullYear())
 const loading = ref(false)
 const failed = ref(false)
-const pan = ref<BaziPan | null>(null)
+const pan = ref<BaziFullChart | null>(null)
 const liunian = ref<BaziLiuNianOutput | null>(null)
 
 // 流年盘（bazi.liunian）：随年份切换刷新；失败不阻塞主盘。
@@ -44,7 +44,7 @@ async function loadLiunian() {
   const current = pan.value
   if (!current) return
   try {
-    liunian.value = await engineBaziLiunian(current.chart, Number(year.value))
+    liunian.value = await baziLiunianFor(current.chart, Number(year.value))
   } catch {
     liunian.value = null
   }
@@ -57,7 +57,7 @@ async function submit() {
   pan.value = null
   liunian.value = null
   try {
-    pan.value = await baziPanFor(birthInfoFromFields(birth))
+    pan.value = await baziFullChartFor(birthInputFromFields(birth))
     await loadLiunian()
   } catch {
     failed.value = true

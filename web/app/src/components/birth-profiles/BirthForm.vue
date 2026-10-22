@@ -91,8 +91,8 @@ type Gender = BirthProfileInput['gender'] | ''
 interface BirthFormValues {
   nickname: string
   gender: Gender
-  birth_date: string
-  birth_time: string
+  date: string
+  time: string
   location: BirthFieldsValue['location']
   note: string
   third_party_consent: boolean
@@ -104,8 +104,8 @@ function formValuesFromInitial(initial?: Partial<BirthProfile>): BirthFormValues
   return {
     nickname: initial?.nickname ?? '',
     gender: initial?.gender ?? '',
-    birth_date: initial?.birth_date ?? '',
-    birth_time: initial?.birth_time ?? '',
+    date: initial?.birth_date ?? '',
+    time: initial?.birth_time ?? '',
     location: initial?.birth_longitude != null && initial?.birth_timezone
       ? {
           place: initial?.birth_place ?? '',
@@ -135,8 +135,8 @@ function birthFormDraftFromValues(values: BirthFormValues): BirthFormDraft {
   return {
     nickname: values.nickname,
     gender: values.gender,
-    birth_date: values.birth_date,
-    birth_time: values.birth_time,
+    date: values.date,
+    time: values.time,
     location: values.location,
     note: values.note,
   }
@@ -167,11 +167,11 @@ function validateLocation(_rule: unknown, value: BirthFieldsValue['location'], c
 const rules = computed<FormRules>(() => ({
   nickname: [{ required: true, whitespace: true, message: t('profiles.form.errors.nicknameRequired'), trigger: 'blur' }],
   gender: [{ required: true, message: t('profiles.form.errors.genderRequired'), trigger: 'change' }],
-  birth_date: [
+  date: [
     { required: true, message: t('profiles.form.errors.birthDateRequired'), trigger: 'change' },
     { validator: validateBirthDate, trigger: ['blur', 'change'] },
   ],
-  birth_time: [
+  time: [
     {
       required: true,
       message: t('profiles.form.errors.exactTimeRequired'),
@@ -184,15 +184,15 @@ const rules = computed<FormRules>(() => ({
 
 function patchBirthFields(patch: Partial<BirthFieldsValue>) {
   if (patch.gender !== undefined) form.gender = patch.gender
-  if (patch.birth_date !== undefined) form.birth_date = patch.birth_date
-  if (patch.birth_time !== undefined) form.birth_time = patch.birth_time
+  if (patch.date !== undefined) form.date = patch.date
+  if (patch.time !== undefined) form.time = patch.time
   if (patch.location !== undefined) form.location = patch.location
 }
 
 const birthFields = computed<BirthFieldsValue>(() => ({
   gender: form.gender,
-  birth_date: form.birth_date,
-  birth_time: form.birth_time,
+  date: form.date,
+  time: form.time,
   location: form.location,
 }))
 
@@ -200,8 +200,8 @@ function snapshotOf(profile: typeof props.initial) {
   return JSON.stringify({
     nickname: profile?.nickname ?? '',
     gender: profile?.gender ?? '',
-    birth_date: profile?.birth_date ?? '',
-    birth_time: profile?.birth_time ?? '',
+    date: profile?.birth_date ?? '',
+    time: profile?.birth_time ?? '',
     location: profile?.birth_longitude != null && profile?.birth_timezone
       ? [profile.birth_place, profile.birth_longitude, profile.birth_timezone]
       : null,
@@ -216,8 +216,8 @@ function currentSnapshot() {
   return JSON.stringify({
     nickname: form.nickname,
     gender: form.gender,
-    birth_date: form.birth_date,
-    birth_time: form.birth_time,
+    date: form.date,
+    time: form.time,
     location: form.location,
     note: form.note,
     third_party_consent: form.third_party_consent,
@@ -254,8 +254,8 @@ async function submit() {
   emit('submit', {
     nickname: form.nickname.trim(),
     gender: form.gender || 'female',
-    birth_date: form.birth_date,
-    birth_time: form.birth_time,
+    birth_date: form.date,
+    birth_time: form.time,
     birth_place: form.location?.place ?? '',
     birth_longitude: form.location?.longitude ?? 0,
     birth_timezone: form.location?.timezone ?? '',

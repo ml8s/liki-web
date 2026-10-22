@@ -17,7 +17,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BirthProfile } from '@/api/birth-profiles'
-import { formatInstant } from '@shared/utils/paipan'
+import { formatInstant } from '@shared/domain/time'
 
 const props = defineProps<{ content: string }>()
 const { t } = useI18n()

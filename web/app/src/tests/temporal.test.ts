@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { wallTimeToInstantCandidates, wallTimeToInstant } from '@shared/utils/temporal'
+import { wallTimeToInstantCandidates, wallTimeToInstant } from '@shared/domain/time'
 
 describe('temporal', () => {
   it('converts a Gregorian wall time to UTC', async () => {

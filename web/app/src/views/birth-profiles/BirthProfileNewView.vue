@@ -96,12 +96,12 @@ onBeforeRouteLeave(async () => {
   }
 })
 
-// 跨端 handoff（营销站→App）：读后即清，带 TTL 与版本校验。
+// 跨端 handoff（营销站→App）：读后即清，带 TTL。
 const handoff = consumeHandoff<BirthFieldsValue>(HANDOFF_KEYS.birth)
-if (handoff?.birth_date && handoff.location) {
+if (handoff?.date && handoff.location) {
   draft.value = {
-    birth_date: handoff.birth_date,
-    birth_time: handoff.birth_time,
+    birth_date: handoff.date,
+    birth_time: handoff.time,
     gender: handoff.gender === 'male' ? 'male' : 'female',
     birth_place: handoff.location.place,
     birth_longitude: handoff.location.longitude,

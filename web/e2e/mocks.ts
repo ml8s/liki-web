@@ -68,7 +68,7 @@ export const mcpToolError = (message: string) => ({
   result: { content: [{ type: 'text', text: message }], isError: true },
 })
 
-import { COUNSEL_TOOLS } from '../shared/api/engine'
+import { COUNSEL_TOOLS } from '../shared/api/mcp/client'
 
 /** 按请求体里的工具名声明单条 MCP 工具路由（同 URL 承载任意工具，用 fallback 串接）。 */
 export async function mockMcpTool(page: Page, url: '**/engine/mcp' | '**/counsel/mcp', tool: string, data: unknown) {

@@ -2,7 +2,7 @@
 // 排盘/合盘 = 前端调用 web BFF，BFF 服务端调用 engine-mcp（只读）。
 import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
-import { ENGINE_TOOLS } from '../../app/src/api/engine'
+import { ENGINE_TOOLS } from '../../shared/api/engine/tools'
 import { json, mockWorkspace, testUser } from '../mocks'
 
 test.use({ locale: 'zh-Hant' })

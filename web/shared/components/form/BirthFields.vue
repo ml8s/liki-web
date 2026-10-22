@@ -6,8 +6,9 @@ import {
 import RegionField from './RegionField.vue'
 import ElementPlusProvider from './ElementPlusProvider.vue'
 import type {
-  BirthFieldLabels, BirthFieldsValue, BirthGender,
+  BirthFieldLabels, BirthFieldsValue,
 } from './birth-fields'
+import type { BirthGender } from '@shared/domain/birth'
 import '@shared/styles/element-plus/index.css'
 
 const props = withDefaults(defineProps<{
@@ -57,32 +58,32 @@ function disabledDate(date: Date) {
 
     <el-form-item
       :label="props.labels.birthDate"
-      prop="birth_date"
+      prop="date"
     >
       <el-date-picker
-        :model-value="value.birth_date"
+        :model-value="value.date"
         type="date"
         value-format="YYYY-MM-DD"
         :aria-label="props.labels.birthDate"
         :placeholder="props.labels.selectDate"
         :disabled-date="disabledDate"
         class="w-full"
-        @update:model-value="update('birth_date', $event)"
+        @update:model-value="update('date', $event)"
       />
     </el-form-item>
 
     <el-form-item
       :label="props.labels.birthTime"
-      prop="birth_time"
+      prop="time"
     >
       <el-time-picker
-        :model-value="value.birth_time"
+        :model-value="value.time"
         :aria-label="props.labels.birthTime"
         format="HH:mm"
         value-format="HH:mm"
         :placeholder="props.labels.timePlaceholder"
         class="w-full"
-        @update:model-value="update('birth_time', $event)"
+        @update:model-value="update('time', $event)"
       />
     </el-form-item>
 

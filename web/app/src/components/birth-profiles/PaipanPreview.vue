@@ -159,27 +159,22 @@
 // 档案详情的一屏三盘编排器（App 专属）：数据链 + tab 外壳；
 // 三块盘面来自共享层（web/shared/components/paipan），营销站 island 单独复用。
 import { toUserMessage } from '@/utils/errors'
-import { BaziFullChartData } from '@/api/engine'
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import {
-  engineBazhaiChart,
-  engineBaziChart,
-  engineBaziFullChart,
-  engineBaziLiunian,
-  engineZiweiChart,
-  engineZiweiDaXian,
-  engineZiweiFullChart,
-  engineZiweiLiuNian,
-  type BazhaiChart,
+  baziLiunianFor,
+  natalChartForChartInput,
+  ziweiLiunianFor,
   type BaziChartData,
+  type BaziFullChartData,
   type BaziLiuNianOutput,
   type BaziYongShen,
   type ZiweiChart,
   type ZiweiDaXianItem,
   type ZiweiLiuNianData,
-} from '@/api/engine'
+} from '@shared/domain/natal'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { bazhaiChartFor, type BazhaiChart } from '@shared/domain/fengshui'
 import type { BirthProfile } from '@/api/birth-profiles'
 import BaziPanel from '@shared/components/paipan/BaziPanel.vue'
 import ZiweiPanel from '@shared/components/paipan/ZiweiPanel.vue'
@@ -241,7 +236,7 @@ const liuNianPlaced = computed(() => {
 async function loadLiuNian() {
   if (!ziwei.value) return
   try {
-    liuNian.value = await engineZiweiLiuNian(ziwei.value, liuNianYear.value)
+    liuNian.value = await ziweiLiunianFor(ziwei.value, liuNianYear.value)
   } catch (err) {
     error.value = toUserMessage(err, t('profiles.chart.failed'))
   }
@@ -251,7 +246,7 @@ async function loadLiuNian() {
 async function loadBaziLiuNian() {
   if (!baziChart.value) return
   try {
-    baziLiuNian.value = await engineBaziLiunian(baziChart.value, baziLiuNianYear.value)
+    baziLiuNian.value = await baziLiunianFor(baziChart.value, baziLiuNianYear.value)
   } catch {
     baziLiuNian.value = null
   }
@@ -286,26 +281,15 @@ async function compute() {
     }
     correction.value = t('profiles.chart.correctedLongitude', { lng: Number(ctx.longitude).toFixed(4) })
 
-    baziChart.value = await engineBaziChart({
-      instant: ctx.instant,
-      timezone: ctx.timezone,
-      longitude: ctx.longitude,
-      gender: p.gender,
-    })
-    const full = await engineBaziFullChart(baziChart.value)
-    baziFull.value = full
-    yongShen.value = full.yong_shen ?? null
+    const chart = await natalChartForChartInput({ ...ctx, gender: p.gender })
+    baziChart.value = chart.bazi
+    baziFull.value = chart.baziDetail
+    yongShen.value = chart.baziDetail.yong_shen ?? null
+    ziwei.value = chart.ziwei
+    daXianRaw.value = chart.ziweiDaXian
     await loadBaziLiuNian()
-    const zwChart = await engineZiweiChart({
-      instant: ctx.instant,
-      timezone: ctx.timezone,
-      longitude: ctx.longitude,
-      gender: p.gender,
-    })
-    ziwei.value = await engineZiweiFullChart(zwChart)
     const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
-    bazhai.value = await engineBazhaiChart(birthYear, p.gender)
-    daXianRaw.value = await engineZiweiDaXian(ziwei.value)
+    bazhai.value = await bazhaiChartFor(birthYear, p.gender)
     if (tab.value === 'ziwei') void loadLiuNian()
   } catch (err) {
     error.value = toUserMessage(err, t('profiles.chart.failed'))

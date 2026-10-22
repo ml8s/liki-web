@@ -161,7 +161,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
-import { engineBazhaiChart, engineBazhaiLayout, engineXuankongChart, type BazhaiChart, type BazhaiLayout, type XuankongChart } from '@/api/engine'
+import { bazhaiChartFor, bazhaiLayoutFor, xuankongChartFor, type BazhaiChart, type BazhaiLayout, type XuankongChart } from '@shared/domain/fengshui'
 import { useToolRecords } from '@/composables/useToolRecords'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
@@ -228,7 +228,7 @@ function patchFengshuiLayout(patch: FengshuiLayoutPatch) {
 async function loadXuankong() {
   xuankongLoading.value = true
   try {
-    xuankong.value = await engineXuankongChart(fengshuiLayout.periodDate, fengshuiLayout.zuoShan, (fengshuiLayout.zuoShan + 12) % 24)
+    xuankong.value = await xuankongChartFor(fengshuiLayout.periodDate, fengshuiLayout.zuoShan)
   } catch {
     xuankong.value = null
   } finally {
@@ -241,7 +241,7 @@ async function loadLayout() {
   if (!layoutReady.value || !chart) return
   layoutLoading.value = true
   try {
-    layoutResult.value = await engineBazhaiLayout(chart.ming_gua.gua.name, fengshuiLayout.doorGua, fengshuiLayout.masterGua, fengshuiLayout.stoveGua)
+    layoutResult.value = await bazhaiLayoutFor(chart.ming_gua.gua.name, fengshuiLayout.doorGua, fengshuiLayout.masterGua, fengshuiLayout.stoveGua)
   } catch {
     layoutResult.value = null
   } finally {
@@ -297,7 +297,7 @@ async function loadPreview() {
       return
     }
     const birthYear = parseInt(p.birth_date.slice(0, 4), 10)
-    bazhai.value = await engineBazhaiChart(birthYear, p.gender)
+    bazhai.value = await bazhaiChartFor(birthYear, p.gender)
     void loadXuankong()
   } catch (err) {
     error.value = toUserMessage(err, t('services.fengshui.failed'))

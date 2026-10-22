@@ -4,15 +4,15 @@
 // 组件文案（profiles.chart.*）由挂载脚本安装的 vue-i18n 提供。
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { baziPanFor, ziweiPanFor, type BaziPan, type ZiweiPan } from '@shared/utils/paipan'
-import { engineBaziLiunian, type BaziLiuNianOutput } from '@shared/api/engine'
+import { natalChartFor, type NatalChart } from '@shared/domain/natal'
+import { baziLiunianFor, type BaziLiuNianOutput } from '@shared/domain/natal'
 import { WUXING_LUCKY } from '@shared/utils/wuxing'
 import BaziPanel from '@shared/components/paipan/BaziPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import YearField from '@shared/components/form/YearField.vue'
 import {
-  birthInfoFromFields,
+  birthInputFromFields,
   createBirthFieldsValue,
   isBirthInputReady,
   type BirthFieldLabels,
@@ -40,17 +40,16 @@ const { t } = useI18n()
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
 const loading = ref(false)
 const failed = ref(false)
-const bazi = ref<BaziPan | null>(null)
-const ziwei = ref<ZiweiPan | null>(null)
+const natal = ref<NatalChart | null>(null)
 const liunian = ref<BaziLiuNianOutput | null>(null)
 const liunianYear = ref(new Date().getFullYear())
 
 // 流年盘（bazi.liunian）：随八字盘加载；失败不阻塞主盘。
 async function loadLiunian() {
-  const pan = bazi.value
-  if (!pan) return
+  const chart = natal.value?.bazi
+  if (!chart) return
   try {
-    liunian.value = await engineBaziLiunian(pan.chart, Number(liunianYear.value))
+    liunian.value = await baziLiunianFor(chart, Number(liunianYear.value))
   } catch {
     liunian.value = null
   }
@@ -59,7 +58,7 @@ async function loadLiunian() {
 // 幸运元素（五行统计/状态由共享 BaziPanel 用引擎数据展示）。
 const luckyElements = computed(() => {
   // full.yong_shen 的喜用来自扶抑（xi/yong）与调候（yong），值为五行串（如「水金」）。
-  const yong = bazi.value?.full?.yong_shen
+  const yong = natal.value?.baziDetail?.yong_shen
   if (!yong) return null
   const raw = [yong.fu_yi?.xi, yong.fu_yi?.yong, yong.tiao_hou?.yong].filter(Boolean).join('')
   const elements = [...new Set(Array.from(raw).filter(w => w in WUXING_LUCKY))]
@@ -75,10 +74,8 @@ async function submit() {
   ziwei.value = null
   liunian.value = null
   try {
-    const pan = await baziPanFor(birthInfoFromFields(birth))
-    bazi.value = pan
+    natal.value = await natalChartFor(birthInputFromFields(birth))
     await loadLiunian()
-    ziwei.value = await ziweiPanFor(pan.ctx, birth.gender)
   } catch {
     failed.value = true
   } finally {
@@ -100,7 +97,7 @@ async function submit() {
 
   <p v-if="failed" class="tool-error" role="alert">{{ labels.error }}</p>
 
-  <template v-if="bazi">
+  <template v-if="natal">
     <section class="tool-pan">
       <h3 class="tool-pan-title">
         {{ labels.bazi }}
@@ -111,8 +108,8 @@ async function submit() {
         @update:model-value="loadLiunian"
       />
       <BaziPanel
-        :chart="bazi.chart"
-        :full="bazi.full"
+        :chart="natal.bazi"
+        :full="natal.baziDetail"
         :liunian="liunian"
       />
       <div v-if="luckyElements" class="wuxing-row">
@@ -126,15 +123,15 @@ async function submit() {
       </div>
     </section>
     <section
-      v-if="ziwei"
+      v-if="natal.ziwei"
       class="tool-pan"
     >
       <h3 class="tool-pan-title">
         {{ labels.ziwei }}
       </h3>
       <ZiweiPanel
-        :chart="ziwei.chart"
-        :da-xian="ziwei.daXian"
+        :chart="natal.ziwei"
+        :da-xian="natal.ziweiDaXian"
       />
     </section>
     <a class="btn-purple tool-cta" :href="appUrl">{{ labels.cta }}</a>

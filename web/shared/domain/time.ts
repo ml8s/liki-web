@@ -1,5 +1,12 @@
 type TemporalApi = typeof import('@js-temporal/polyfill').Temporal
 
+/** Explicit engine chart input; no implicit now or client location defaults. */
+export interface ChartInput {
+  instant: string
+  timezone: string
+  longitude: number
+}
+
 let polyfill: Promise<TemporalApi> | null = null
 
 /** Native Temporal first; lazy polyfill only for browsers without it. */
@@ -12,7 +19,7 @@ async function temporal(): Promise<TemporalApi> {
   return polyfill
 }
 
-/** RFC 3339 UTC instants for a Gregorian wall time in an IANA time zone. */
+/** RFC 3339 instants for a Gregorian wall time in an IANA time zone. */
 export async function wallTimeToInstantCandidates(
   date: string,
   time: string,
@@ -35,7 +42,7 @@ export async function wallTimeToInstantCandidates(
     .sort((a, b) => a.localeCompare(b))
 }
 
-/** Standard wall-clock + IANA -> UTC. Gaps and folds remain explicit errors. */
+/** Unambiguous wall-clock + IANA -> instant. Gaps and folds remain explicit errors. */
 export async function wallTimeToInstant(date: string, time: string, timezone: string): Promise<string> {
   const candidates = await wallTimeToInstantCandidates(date, time, timezone)
   if (candidates.length === 0) {
@@ -45,4 +52,19 @@ export async function wallTimeToInstant(date: string, time: string, timezone: st
     throw new RangeError(`Wall time ${date}T${time} is ambiguous in ${timezone}`)
   }
   return candidates[0]
+}
+
+/** Display-only zoned formatting; callers never do timezone arithmetic. */
+export function formatInstant(
+  instant: string,
+  timezone: string,
+  locale?: string,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    ...options,
+  }).format(new Date(instant))
 }

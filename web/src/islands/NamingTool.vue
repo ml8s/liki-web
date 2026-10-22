@@ -2,12 +2,12 @@
 // naming 页免费用神查询岛：出生信息 → bazi_chart（engine）→ bazi_yongshen（counsel）。
 // 只展示用神方向（指导起名）；名字生成在 App 侧进行——公开工具层只暴露确定性裁决。
 import { reactive, ref } from 'vue'
-import { engineBaziYongShen, type BaziYongShenResult } from '@shared/api/engine'
-import { baziChartFor } from '@shared/utils/paipan'
+import { namingAssessmentFor, type NamingAssessment } from '@shared/domain/naming'
+import { baziChartFor } from '@shared/domain/natal'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import {
-  birthInfoFromFields,
+  birthInputFromFields,
   createBirthFieldsValue,
   isBirthInputReady,
   type BirthFieldLabels,
@@ -31,7 +31,7 @@ const props = defineProps<{
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
 const loading = ref(false)
 const failed = ref(false)
-const result = ref<BaziYongShenResult | null>(null)
+const result = ref<NamingAssessment | null>(null)
 
 async function submit() {
   if (!isBirthInputReady(birth) || loading.value) return
@@ -39,8 +39,8 @@ async function submit() {
   failed.value = false
   result.value = null
   try {
-    const chart = await baziChartFor(birthInfoFromFields(birth))
-    result.value = await engineBaziYongShen(chart)
+    const chart = await baziChartFor(birthInputFromFields(birth))
+    result.value = await namingAssessmentFor(chart)
   } catch {
     failed.value = true
   } finally {

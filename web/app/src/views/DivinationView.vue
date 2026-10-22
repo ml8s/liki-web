@@ -214,10 +214,10 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import {
-  engineLiuyaoQigua,
-  engineLiuyaoChart,
+  divinationCastingFor,
+  divinationChartFor,
   type LiuyaoChartResult,
-} from '@/api/engine'
+} from '@shared/domain/divination'
 import { useToolRecords } from '@/composables/useToolRecords'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
@@ -303,8 +303,8 @@ async function cast(context: DivinationCastingFormValue) {
   const castingInstant = new Date().toISOString()
   snapshot.value = null
   try {
-    const { casting } = await engineLiuyaoQigua({ mode: context.castingMode })
-    snapshot.value = await engineLiuyaoChart({
+    const { casting } = await divinationCastingFor({ mode: context.castingMode })
+    snapshot.value = await divinationChartFor({
       instant: castingInstant,
       timezone: location.timezone,
       longitude: location.longitude,

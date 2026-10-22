@@ -94,6 +94,8 @@ test('工具岛：八字盘 + 紫微盘按共享组件渲染', async ({ page }) 
 test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await mockPageview(page);
   await mockMcpToolError(page, '**/engine/mcp', 'bazi_chart', 'engine_unavailable: boom');
+  // natalChartForChartInput 并行请求八字与紫微；失败用例也显式声明两个工具。
+  await mockMcpToolError(page, '**/engine/mcp', 'ziwei_chart', 'engine_unavailable: boom');
   await page.goto('/en/natal/');
 
   const tool = page.locator('#natal-tool');

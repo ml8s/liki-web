@@ -3,7 +3,7 @@
 // 完整解卦（六亲/纳甲/用神）在 App 侧进行——公开工具层只暴露确定性计算。
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { engineLiuyaoQigua, type LiuyaoCasting } from '@shared/api/engine'
+import { divinationCastingFor, type LiuyaoCasting } from '@shared/domain/divination'
 import DivinationCastPanel from '@shared/components/paipan/DivinationCastPanel.vue'
 import DivinationCastingForm from '@shared/components/divination/DivinationCastingForm.vue'
 import type { DivinationCastingFormValue } from '@shared/components/divination/types'
@@ -31,7 +31,7 @@ async function submit(value: DivinationCastingFormValue) {
   casting.value = null
   question.value = value.question.trim()
   try {
-    const result = await engineLiuyaoQigua({ mode: value.castingMode })
+    const result = await divinationCastingFor({ mode: value.castingMode })
     casting.value = result.casting
   } catch {
     failed.value = true

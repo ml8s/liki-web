@@ -41,7 +41,7 @@ Authenticated routes live under `/app`:
 /app/birth-profiles
 /app/birth-profiles/new
 /app/birth-profiles/:id
-/app/synastry
+/app/hepan
 /app/divination
 /app/fengshui
 /app/huangli
@@ -84,6 +84,28 @@ surfaces (`/{locale}/natal/` ↔ `/app?scenario=natal`):
   profile data has loaded, and falls unknown values back to the general
   workspace.
 
+## Shared frontend layers
+
+Both surfaces consume the same function layers under `web/shared`:
+
+```text
+api/mcp       Streamable MCP transport only
+api/engine/*  one wire adapter per engine domain
+domain/*      explicit domain inputs and use-case functions
+components/*  shared Element Plus form and chart components
+stores/*      cross-surface persisted form state
+```
+
+The dependency direction is fixed:
+
+```text
+island/view/component -> domain function -> engine adapter -> MCP client
+```
+
+Views do not construct engine wire arguments. They create a complete domain
+input (for example `BirthInput`), which is converted once to the canonical
+`ChartInput` of `{instant, timezone, longitude}`.
+
 ## State
 
 Pinia stores are the frontend server-state layer.
@@ -114,7 +136,7 @@ the engine `city_coords` fallback. It emits one atomic location value:
   is rejected rather than guessed.
 - Profiles persist `birth_longitude`, `birth_timezone`, and `birth_instant`.
 
-### Paipan time normalization
+### Chart time normalization
 
 Birth input is complete Gregorian wall time (`YYYY-MM-DD` + `HH:mm`). The
 shared Temporal adapter rejects DST gaps/folds and passes only

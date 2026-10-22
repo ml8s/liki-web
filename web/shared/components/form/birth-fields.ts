@@ -1,8 +1,6 @@
+import type { BirthGender, BirthInput } from '@shared/domain/birth'
 import type { BirthLocation } from '@shared/domain/location'
-import type { BirthInfo } from '@shared/utils/paipan'
 import type { RegionFieldLabels } from './region-field'
-
-export type BirthGender = 'female' | 'male'
 
 export interface BirthFieldLabels {
   gender: string
@@ -19,8 +17,8 @@ export interface BirthFieldLabels {
 /** Complete chart input; an incomplete form is simply not a chart input. */
 export interface BirthFieldsValue {
   gender: BirthGender | ''
-  birth_date: string
-  birth_time: string
+  date: string
+  time: string
   location: BirthLocation | null
 }
 
@@ -56,21 +54,21 @@ export function createBirthFieldLabels(t: BirthLabelTranslate): BirthFieldLabels
 export function createBirthFieldsValue(): BirthFieldsValue {
   return {
     gender: '',
-    birth_date: '',
-    birth_time: '',
+    date: '',
+    time: '',
     location: null,
   }
 }
 
 export function isBirthInputReady(value: BirthFieldsValue): boolean {
   return (value.gender === 'female' || value.gender === 'male')
-    && /^\d{4}-\d{2}-\d{2}$/.test(value.birth_date)
-    && /^\d{2}:\d{2}$/.test(value.birth_time)
+    && /^\d{4}-\d{2}-\d{2}$/.test(value.date)
+    && /^\d{2}:\d{2}$/.test(value.time)
     && value.location !== null
 }
 
-/** Adapter at the component boundary: shared form state → domain BirthInfo. */
-export function birthInfoFromFields(value: BirthFieldsValue): BirthInfo {
+/** Adapter at the component boundary: shared form state → domain BirthInput. */
+export function birthInputFromFields(value: BirthFieldsValue): BirthInput {
   if (!isBirthInputReady(value) || !value.location) {
     throw new TypeError('Complete birth information is required')
   }
@@ -80,10 +78,8 @@ export function birthInfoFromFields(value: BirthFieldsValue): BirthInfo {
   }
   return {
     gender,
-    birth_date: value.birth_date,
-    birth_time: value.birth_time,
-    birth_place: value.location.place,
-    birth_longitude: value.location.longitude,
-    birth_timezone: value.location.timezone,
+    date: value.date,
+    time: value.time,
+    location: value.location,
   }
 }

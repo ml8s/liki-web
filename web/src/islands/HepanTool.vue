@@ -3,17 +3,16 @@
 // 盘面组件来自共享层（web/shared/components/paipan），与 App HepanView 同源；
 // 表单用共享 tool-form 的纵向变体（.tool-form--stack + fieldset），不自定义字段样式。
 import { reactive, ref } from 'vue'
-import { baziChartFor } from '@shared/utils/paipan'
+import { hepanFor, type Hepan } from '@shared/domain/hepan'
 import HepanBirthFields from '@shared/components/hepan/HepanBirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import {
-  birthInfoFromFields,
+  birthInputFromFields,
   createBirthFieldsValue,
   isBirthInputReady,
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import { engineBaziBond, type BaziBondResult, type BaziChartData } from '@shared/api/engine'
 import HepanPanel from '@shared/components/paipan/HepanPanel.vue'
 
 const props = defineProps<{
@@ -43,25 +42,15 @@ function patchPeople(patch: Partial<{ personA: unknown; personB: unknown }>) {
 }
 
 const failed = ref(false)
-const chartA = ref<BaziChartData | null>(null)
-const chartB = ref<BaziChartData | null>(null)
-const bond = ref<BaziBondResult | null>(null)
+const hepan = ref<Hepan | null>(null)
 
 async function submit() {
   if (!isBirthInputReady(a) || !isBirthInputReady(b) || loading.value) return
   loading.value = true
   failed.value = false
-  chartA.value = null
-  chartB.value = null
-  bond.value = null
+  hepan.value = null
   try {
-    const [ca, cb] = await Promise.all([
-      baziChartFor(birthInfoFromFields(a)),
-      baziChartFor(birthInfoFromFields(b)),
-    ])
-    chartA.value = ca
-    chartB.value = cb
-    bond.value = await engineBaziBond(ca, cb)
+    hepan.value = await hepanFor(birthInputFromFields(a), birthInputFromFields(b))
   } catch {
     failed.value = true
   } finally {
@@ -88,15 +77,15 @@ async function submit() {
 
   <p v-if="failed" class="tool-error" role="alert">{{ labels.error }}</p>
 
-  <template v-if="bond">
+  <template v-if="hepan">
     <section class="tool-pan">
       <h3 class="tool-pan-title">
         {{ labels.result }}
       </h3>
       <HepanPanel
-        :chart-a="chartA"
-        :chart-b="chartB"
-        :bond="bond"
+        :chart-a="hepan.chartA"
+        :chart-b="hepan.chartB"
+        :bond="hepan.bond"
         :name-a="labels.you"
       />
     </section>

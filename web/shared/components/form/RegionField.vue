@@ -4,7 +4,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import {
   ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect,
 } from 'element-plus'
-import { engineCityCandidates } from '@shared/api/engine'
+import { locationCandidatesFor } from '@shared/domain/location'
 import type { BirthLocation } from '@shared/domain/location'
 import { loadCityIndex, searchCities, type CityMatch } from '@shared/utils/citySearch'
 import type { RegionFieldLabels } from './region-field'
@@ -110,7 +110,7 @@ async function resolvePlace() {
       list = []
     }
     if (!list.length) {
-      const fallback = await engineCityCandidates(text)
+      const fallback = await locationCandidatesFor(text)
       list = fallback.candidates.map(item => ({
         name: item.name,
         region: item.region,

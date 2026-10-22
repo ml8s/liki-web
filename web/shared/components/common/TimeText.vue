@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatInstant } from '../../utils/paipan'
+import { formatInstant } from '../domain/time'
 
 const props = withDefaults(defineProps<{
   instant: string

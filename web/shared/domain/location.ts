@@ -1,3 +1,5 @@
+import { engineCityCandidates } from '../api/engine/city'
+
 export type LocationSource = 'city' | 'browser' | 'manual' | 'saved'
 
 /**
@@ -22,4 +24,9 @@ export function isValidBirthLocation(value: unknown): value is BirthLocation {
     && location.longitude <= 180
     && typeof location.timezone === 'string'
     && /^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+$|^UTC$/.test(location.timezone)
+}
+
+/** Free-text location search fallback; callers still choose one atomic candidate. */
+export function locationCandidatesFor(place: string) {
+  return engineCityCandidates(place)
 }

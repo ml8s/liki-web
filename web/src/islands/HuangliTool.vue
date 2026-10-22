@@ -3,7 +3,7 @@
 // 结果组件来自共享层（与 App 的 HuangliView 同源）。
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { engineHuangliDays, type HuangliDay } from '@shared/api/engine'
+import { huangliDaysFor, type HuangliDays } from '@shared/domain/huangli'
 import { EVENT_KEYS } from '@shared/utils/huangli'
 import HuangliDaysPanel from '@shared/components/paipan/HuangliDaysPanel.vue'
 import HuangliRangeFields from '@shared/components/huangli/HuangliRangeFields.vue'
@@ -26,7 +26,7 @@ const { t } = useI18n()
 const form = reactive({ event: 'wedding', startDate: '', endDate: '' })
 const loading = ref(false)
 const failed = ref(false)
-const result = ref<HuangliDay[] | null>(null)
+const result = ref<HuangliDays | null>(null)
 
 const spanDays = computed(() => {
   if (!form.startDate || !form.endDate) return 0
@@ -44,7 +44,7 @@ async function submit() {
   failed.value = false
   result.value = null
   try {
-    result.value = await engineHuangliDays(form.event, form.startDate, count)
+    result.value = await huangliDaysFor(form.event, form.startDate, count)
   } catch {
     failed.value = true
   } finally {
