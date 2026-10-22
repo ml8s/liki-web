@@ -44,7 +44,7 @@ const pages = [
   { path: '/app/', name: 'dashboard', marker: '.service-entries' },
   { path: '/app/birth-profiles', name: 'profiles', marker: '.profile-card' },
   { path: '/app/birth-profiles/new', name: 'profile-new', marker: '.birth-form' },
-  { path: '/app/birth-profiles/p_1', name: 'profile-detail', marker: '.paipan-preview' },
+  { path: '/app/birth-profiles/p_1', name: 'profile-detail', marker: '.chart-preview' },
   { path: '/app/hepan', name: 'hepan', marker: '.b-form' },
   { path: '/app/divination', name: 'divination', marker: '.el-input' },
   { path: '/app/fengshui', name: 'fengshui', marker: '.el-select' },

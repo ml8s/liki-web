@@ -151,7 +151,7 @@ import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
-import HepanPanel from '@shared/components/paipan/HepanPanel.vue'
+import HepanPanel from '@shared/components/charts/HepanPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import {
   birthInputFromFields,

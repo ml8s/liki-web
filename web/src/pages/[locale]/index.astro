@@ -78,18 +78,18 @@ const homeSchema = {
     <h1 class="landing-h1">{t(locale, 'index.hero.title')}</h1>
     <p class="landing-sub">{t(locale, 'index.hero.subtitle')}</p>
     <div class="landing-actions">
-      <LikiChatCta locale={locale} labelKey="index.cta.paipan" />
+      <LikiChatCta locale={locale} labelKey="index.cta.chart" />
       <a href="#services" class="btn-ghost">{t(locale, 'index.cta.learn')}</a>
     </div>
   </section>
 
-  <section class="landing-paipan">
-    <h2>{t(locale, 'index.paipan.title')}</h2>
-    <p>{t(locale, 'index.paipan.desc')}</p>
+  <section class="landing-chart">
+    <h2>{t(locale, 'index.chart.title')}</h2>
+    <p>{t(locale, 'index.chart.desc')}</p>
     <div id="quick-birth-tool" data-props={JSON.stringify(quickBirthProps)}>
       <QuickBirthTool {...quickBirthProps} />
     </div>
-    <p class="paipan-hint">{t(locale, 'index.paipan.hint')}</p>
+    <p class="chart-hint">{t(locale, 'index.chart.hint')}</p>
     <script>
       import '../../scripts/quick-birth-tool';
     </script>
@@ -170,6 +170,6 @@ const homeSchema = {
 
   <section class="landing-cta">
     <p class="font-serif">{t(locale, 'index.cta.bottom')}</p>
-    <LikiChatCta locale={locale} labelKey="index.cta.paipan" />
+    <LikiChatCta locale={locale} labelKey="index.cta.chart" />
   </section>
 </BaseLayout>

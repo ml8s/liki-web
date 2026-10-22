@@ -409,9 +409,9 @@ th {
 .landing-h1 { font-size:clamp(2rem,6vw,3.25rem); font-weight:650; letter-spacing:-.04em; line-height:1.15; text-wrap:balance; }
 .landing-sub { color:var(--color-text-muted); margin-top:14px; font-size:1.125rem; }
 .landing-actions { display:flex; gap:14px; justify-content:center; margin-top:var(--space-8); flex-wrap:wrap; }
-.landing-paipan { background:var(--color-accent); color:var(--color-white); text-align:center; padding:var(--space-14) var(--space-6); }
-.landing-paipan h2 { font-family:var(--font-serif); margin-bottom:10px; }
-.landing-paipan > p { opacity:.9; margin-bottom:22px; }
+.landing-chart { background:var(--color-accent); color:var(--color-white); text-align:center; padding:var(--space-14) var(--space-6); }
+.landing-chart h2 { font-family:var(--font-serif); margin-bottom:10px; }
+.landing-chart > p { opacity:.9; margin-bottom:22px; }
 .landing-services,
 .landing-steps,
 .landing-ai,
@@ -435,8 +435,8 @@ th {
 .landing-cta { text-align:center; }
 .landing-cta p { font-size:1.5rem; margin-bottom:22px; }
 
-.landing-paipan .tool-form { max-width:760px; margin-inline:auto; }
-.paipan-hint { opacity:.8; font-size:.8125rem; margin-top:14px; }
+.landing-chart .tool-form { max-width:760px; margin-inline:auto; }
+.chart-hint { opacity:.8; font-size:.8125rem; margin-top:14px; }
 .card-link { display:inline-flex; align-items:center; min-height:44px; margin-top:10px; color:var(--color-accent); font-size:.875rem; text-decoration:none; }
 .card-link:hover { text-decoration:underline; }
 .card-link-secondary { margin-inline-start:14px; color:var(--color-text-muted); }

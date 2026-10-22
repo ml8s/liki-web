@@ -4,7 +4,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { divinationCastingFor, type LiuyaoCasting } from '@shared/domain/divination'
-import DivinationCastPanel from '@shared/components/paipan/DivinationCastPanel.vue'
+import DivinationCastPanel from '@shared/components/charts/DivinationCastPanel.vue'
 import DivinationCastingForm from '@shared/components/divination/DivinationCastingForm.vue'
 import type { DivinationCastingFormValue } from '@shared/components/divination/types'
 

@@ -38,7 +38,7 @@
       <span
         v-for="(r, i) in nayinRows"
         :key="i"
-        class="paipan-chip"
+        class="chart-chip"
       >
         <span class="nr-pos">{{ r.pos }}</span>
         <span class="nr-rel">{{ r.text }}</span>
@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BaziChartData, BaziFullChartData } from '../../../api/engine/bazi'
@@ -117,7 +118,6 @@ const nayinRows = computed(() => (props.full?.nayin_rel ?? []).map(r => ({
 })))
 </script>
 
-<style scoped src="../../../styles/paipan.css"></style>
 
 <style scoped>
 .sec-note { font-size: var(--font-size-caption); color: var(--liki-text-3); margin: calc(-1 * var(--space-1)) 0 var(--space-2); }

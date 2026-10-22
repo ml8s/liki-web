@@ -45,7 +45,7 @@
         @update="update"
       />
 
-      <PaipanPreview
+      <ChartPreview
         :profile="detail"
         auto
       />
@@ -118,7 +118,7 @@ import { useEntitlementsStore } from '@/stores/entitlements'
 import { useAuthStore } from '@/stores/auth'
 import type { BirthProfileInput } from '@/api/birth-profiles'
 import { chatUrl, scenarioById, scenarioEntryItems } from '@/config/chat'
-import PaipanPreview from '@/components/birth-profiles/PaipanPreview.vue'
+import ChartPreview from '@/components/birth-profiles/ChartPreview.vue'
 import BirthProfileInfo from '@/components/birth-profiles/BirthProfileInfo.vue'
 import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'

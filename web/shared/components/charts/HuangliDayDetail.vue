@@ -74,6 +74,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 黄历单日详情（值神/星宿/纳音/吉神方位/节气/人元/彭祖百忌/十二时辰吉凶）——
 // 纯展示、数据驱动；由 HuangliDaysPanel 展开后渲染，App 与营销岛共用。
 import { computed } from 'vue'

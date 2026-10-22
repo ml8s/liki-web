@@ -12,7 +12,7 @@
       <span>{{ $t('services.fengshui.xiangStar') }}</span>
       <span>{{ $t('services.fengshui.yunStar') }}</span>
     </div>
-    <div class="paipan-grid">
+    <div class="chart-grid">
       <div
         v-for="p in palaces"
         :key="p.gong_num"
@@ -54,7 +54,7 @@
       <span
         v-for="item in timelyItems"
         :key="item.label"
-        :class="['paipan-chip', 'xk-timely-item', { on: item.on }]"
+        :class="['chart-chip', 'xk-timely-item', { on: item.on }]"
       >{{ item.label }}<i class="xk-mark">{{ item.on ? '✓' : '—' }}</i></span>
     </div>
     <div class="xk-sub">
@@ -78,7 +78,7 @@
         <span
           v-for="layer in fuYinLayers"
           :key="layer"
-          class="paipan-chip"
+          class="chart-chip"
         >{{ layer }}</span>
       </template>
       <template v-if="fanYinLayers.length">
@@ -86,7 +86,7 @@
         <span
           v-for="layer in fanYinLayers"
           :key="layer"
-          class="paipan-chip"
+          class="chart-chip"
         >{{ layer }}</span>
       </template>
     </div>
@@ -111,6 +111,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 玄空飞星宅盘（xuankong_chart）——标准九宫排布：山星左上、向星右上（阿拉伯数字），
 // 运星居中下（中文数字）；坐/向角标；当令星主色。补充四大格局/收山出煞/伏吟反吟/星加会。
 // App 风水页与营销站 fengshui 岛共用；文案取 services.fengshui.*（共享拷贝见 chart-messages.<locale>.json）。
@@ -153,7 +154,6 @@ const xingJiaHui = computed(() =>
 )
 </script>
 
-<style scoped src="../../styles/paipan.css"></style>
 
 <style scoped>
 .xk-head { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); align-items: baseline; font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: var(--space-2); }

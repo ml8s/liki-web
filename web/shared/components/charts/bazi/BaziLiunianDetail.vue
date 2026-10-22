@@ -10,7 +10,7 @@
         <span
           v-for="s in liunianShensha"
           :key="s.name"
-          :class="['paipan-chip', categoryClass(s.category)]"
+          :class="['chart-chip', categoryClass(s.category)]"
           :title="s.description"
         >{{ s.name }}<i class="ln-cat">{{ categoryLabel(s.category) }}</i></span>
       </div>
@@ -22,7 +22,7 @@
         <span
           v-for="(f, i) in liunianFuyin"
           :key="i"
-          class="paipan-chip"
+          class="chart-chip"
         >{{ f.detail || f.type }}</span>
       </div>
       <template
@@ -41,7 +41,7 @@
               <span
                 v-for="(c, i) in row.items"
                 :key="i"
-                class="paipan-chip"
+                class="chart-chip"
               >
                 <span class="rel-main">{{ c.text }}</span>
                 <span
@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BaziChartData, BaziFullChartData, BaziLiuNianInteraction, BaziLiuNianOutput } from '../../../api/engine/bazi'
@@ -129,7 +130,6 @@ const liunianInteractionBlocks = computed(() => {
 })
 </script>
 
-<style scoped src="../../../styles/paipan.css"></style>
 
 <style scoped>
 .liunian-detail { display: flex; flex-direction: column; gap: var(--space-2); }

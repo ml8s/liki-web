@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // natal 页免费排盘岛（营销站）：出生信息 → 共享排盘链路 → 八字盘 + 紫微盘。
-// 盘面组件来自共享层（web/shared/components/paipan），与 App 使用同一实现；
+// 盘面组件来自共享层（web/shared/components/charts），与 App 使用同一实现；
 // 组件文案（profiles.chart.*）由挂载脚本安装的 vue-i18n 提供。
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { natalChartFor, type NatalChart } from '@shared/domain/natal'
 import { baziLiunianFor, type BaziLiuNianOutput } from '@shared/domain/natal'
 import { WUXING_LUCKY } from '@shared/utils/wuxing'
-import BaziPanel from '@shared/components/paipan/BaziPanel.vue'
+import BaziPanel from '@shared/components/charts/BaziPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import YearField from '@shared/components/form/YearField.vue'
@@ -18,7 +18,7 @@ import {
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import ZiweiPanel from '@shared/components/paipan/ZiweiPanel.vue'
+import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
 
 const props = defineProps<{
   locale: string

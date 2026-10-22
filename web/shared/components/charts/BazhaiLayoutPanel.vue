@@ -5,7 +5,7 @@
   >
     <div
       v-if="bazhai"
-      class="paipan-grid"
+      class="chart-grid"
     >
       <template
         v-for="s in gridSlots"
@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 八宅布局判断（bazhai_layout）——标准八宅方位图（九宫：方位/卦/游年星，四吉四凶着色）
 // + 《阳宅三要》门/主/灶三要判断表。App 风水页与营销站 fengshui 岛共用。
 import { computed } from 'vue'
@@ -207,7 +208,6 @@ const verdictRows = computed(() => {
 })
 </script>
 
-<style scoped src="../../styles/paipan.css"></style>
 
 <style scoped>
 .bz-cell { background: var(--liki-surface); padding: 8px 6px; text-align: center; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }

@@ -47,7 +47,7 @@ const PAGES: PageCase[] = [
   // 着陆页（C 端）：slogan + 免费排盘 + 服务 + 信任
   { path: '/zh-Hans/',        name: 'index (C-end landing)',
     checks: [
-      { selector: '.landing-paipan', text: '免费排盘' },
+      { selector: '.landing-chart', text: '免费排盘' },
       { selector: '.landing-services', text: '七项服务：命理、流年、合盘、问卦、择日、风水与起名' },
       { selector: '.landing-trust', text: '引擎排盘，结论可验证' },
     ] },

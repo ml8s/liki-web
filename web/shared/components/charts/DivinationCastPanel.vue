@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 六爻起卦结果展示（免费层）：本卦/变卦名 + 六爻爻线（自下而上，动爻标注）。
 // 由 casting 推演（见 shared/domain/divination.ts）；完整解卦（六亲/纳甲）在 App 侧。
 import { computed } from 'vue'

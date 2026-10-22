@@ -1845,7 +1845,7 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
   await expect(page.locator('.pillars.with-liunian .pillar.liunian')).toContainText('丙午')
   await expect(page.locator('.pillar.liunian')).toContainText('正官')
   await expect(page.locator('.pillar.liunian')).toContainText('生數 0')
-  await expect(page.locator('.liunian-detail .paipan-chip').first()).toContainText('天乙贵人')
+  await expect(page.locator('.liunian-detail .chart-chip').first()).toContainText('天乙贵人')
   await expect(page.locator('.ln-block-title').first()).toContainText('與命局')
   await expect(page.locator('.ln-block-title').nth(1)).toContainText('與大運')
   await expect(page.locator('.liunian-detail')).toContainText('丙克庚')
@@ -1966,7 +1966,7 @@ test('风水页按真实契约渲染（命卦/玄空飞星/八宅布局）', asy
   await expect(page.locator('.mingua')).toHaveText('艮')
 
   // 玄空飞星盘（xuankong_chart）：标准九宫（山星左上/向星右上/运星下）+ 坐向角标
-  await expect(page.locator('.paipan-grid .xk-cell')).toHaveCount(9)
+  await expect(page.locator('.chart-grid .xk-cell')).toHaveCount(9)
   await expect(page.locator('.xk-head')).toContainText('九运')
   await expect(page.locator('.xk-head')).toContainText('子')
   await expect(page.locator('.xk-head')).toContainText('午')
@@ -1974,7 +1974,7 @@ test('风水页按真实契约渲染（命卦/玄空飞星/八宅布局）', asy
   await expect(page.locator('.xk-cell.face')).toContainText('向')
   await expect(page.locator('.xuankong-panel')).toContainText('双星会坐')
   await expect(page.locator('.xk-combo-name')).toContainText(['七二同道', '二七同道'])
-  await expect(page.locator('.paipan-chip', { hasText: '山星反吟' })).toHaveCount(1)
+  await expect(page.locator('.chart-chip', { hasText: '山星反吟' })).toHaveCount(1)
 
   // 八宅布局（bazhai_layout）：门/主/灶三要判断
   await page.locator('.fx-select').nth(1).click()

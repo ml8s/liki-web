@@ -13,7 +13,7 @@ import {
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import YongShenPanel from '@shared/components/paipan/YongShenPanel.vue'
+import YongShenPanel from '@shared/components/charts/YongShenPanel.vue'
 
 const props = defineProps<{
   locale: string

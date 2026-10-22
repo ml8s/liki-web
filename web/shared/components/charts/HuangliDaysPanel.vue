@@ -97,6 +97,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 黄历择日结果展示（区间信息 + 宜/平/忌三组 + 每日详情展开）——纯展示、数据驱动。
 // App 的 HuangliView 与营销站 huangli 岛共用；文案同取 services.huangli.*（共享拷贝见 chart-messages.<locale>.json）。
 import { computed } from 'vue'
@@ -123,7 +124,6 @@ function riZhuText(d: HuangliDay): string {
 }
 </script>
 
-<style scoped src="../../styles/paipan.css"></style>
 
 <style scoped>
 .range-info { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: var(--space-3); font-variant-numeric: tabular-nums; }

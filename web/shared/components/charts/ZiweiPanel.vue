@@ -93,7 +93,7 @@
         <span
           v-for="p in chart.patterns"
           :key="p.name"
-          class="paipan-chip"
+          class="chart-chip"
           :title="p.description"
         >{{ p.name }}</span>
       </div>
@@ -138,7 +138,7 @@
         <span
           v-for="k in chart.kong_gong"
           :key="k.gong_name"
-          class="paipan-chip"
+          class="chart-chip"
         >{{ $t('profiles.chart.kongJieValue', { gong: k.gong_name, dui: k.dui_gong, stars: k.jie_xing.join(' ') }) }}</span>
       </div>
     </div>
@@ -171,8 +171,9 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 紫微本命盘展示（十二宫格/格局/三方/空劫/大运）——纯展示、数据驱动。
-// 流年区块（含年份选择）由宿主编排器自行组合（App 的 PaipanPreview）。
+// 流年区块（含年份选择）由宿主编排器自行组合（App 的 ChartPreview）。
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ZiweiChart, ZiweiDaXianItem, ZiweiStarInfo } from '../../api/engine/ziwei'
@@ -244,7 +245,6 @@ const daXian = computed(() => {
 })
 </script>
 
-<style scoped src="../../styles/paipan.css"></style>
 
 <style scoped>
 .zw-grid {

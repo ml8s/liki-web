@@ -23,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // BaziPanel is now an orchestrator. Each section owns its own projection logic.
 import BaziPillars from './bazi/BaziPillars.vue'
 import BaziRelations from './bazi/BaziRelations.vue'

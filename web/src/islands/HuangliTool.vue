@@ -5,7 +5,7 @@ import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { huangliDaysFor, type HuangliDays } from '@shared/domain/huangli'
 import { EVENT_KEYS } from '@shared/utils/huangli'
-import HuangliDaysPanel from '@shared/components/paipan/HuangliDaysPanel.vue'
+import HuangliDaysPanel from '@shared/components/charts/HuangliDaysPanel.vue'
 import HuangliRangeFields from '@shared/components/huangli/HuangliRangeFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 

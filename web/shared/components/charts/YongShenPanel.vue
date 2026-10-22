@@ -45,6 +45,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 用神裁决展示（用神/喜神/忌神 + 判据 + 复核提示）——纯展示、数据驱动。
 // 数据来自 counsel 的 bazi_yongshen（App 与营销站 naming 岛共用）。
 import { computed } from 'vue'

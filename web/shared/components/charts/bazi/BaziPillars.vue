@@ -88,13 +88,14 @@
       <span
         v-for="s in shenShaList"
         :key="s"
-        class="paipan-chip"
+        class="chart-chip"
       >{{ s }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BaziChartData, BaziFullChartData, BaziLiuNianOutput, BaziZhuFull } from '../../../api/engine/bazi'
@@ -159,7 +160,6 @@ const shenShaList = computed(() => {
 })
 </script>
 
-<style scoped src="../../../styles/paipan.css"></style>
 
 <style scoped>
 .pillars {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // hepan 页免费合盘岛（营销站）：双方出生信息 → 共享排盘链路 → 合盘盘面。
-// 盘面组件来自共享层（web/shared/components/paipan），与 App HepanView 同源；
+// 盘面组件来自共享层（web/shared/components/charts），与 App HepanView 同源；
 // 表单用共享 tool-form 的纵向变体（.tool-form--stack + fieldset），不自定义字段样式。
 import { reactive, ref } from 'vue'
 import { hepanFor, type Hepan } from '@shared/domain/hepan'
@@ -13,7 +13,7 @@ import {
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import HepanPanel from '@shared/components/paipan/HepanPanel.vue'
+import HepanPanel from '@shared/components/charts/HepanPanel.vue'
 
 const props = defineProps<{
   locale: string

@@ -15,6 +15,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BaziFullChartData } from '../../../api/engine/bazi'
@@ -50,7 +51,6 @@ const rows = computed(() => {
 })
 </script>
 
-<style scoped src="../../../styles/paipan.css"></style>
 
 <style scoped>
 .ys { border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; }

@@ -12,7 +12,7 @@
           <span
             v-for="(c, i) in row.items"
             :key="i"
-            class="paipan-chip"
+            class="chart-chip"
           >
             <span class="rel-main font-serif">{{ c.text }}</span>
             <span
@@ -123,7 +123,7 @@
     <span
       v-for="r in luRoots"
       :key="`${r.gan}${r.zhi}`"
-      class="paipan-chip"
+      class="chart-chip"
     >
       <span class="font-serif">{{ r.gan }}禄{{ r.zhi }}</span><span class="lu-shen">{{ r.shi_shen }}</span>
     </span>
@@ -131,6 +131,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BaziFullChartData, BaziJuRelation } from '../../../api/engine/bazi'
@@ -239,7 +240,6 @@ const luRoots = computed(() => {
 })
 </script>
 
-<style scoped src="../../../styles/paipan.css"></style>
 
 <style scoped>
 .rel-table { border: 1px solid var(--liki-line); border-radius: var(--radius-small); overflow: hidden; }

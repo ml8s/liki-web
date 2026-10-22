@@ -67,15 +67,15 @@ test('工具岛：命卦与八宅方位按共享组件渲染', async ({ page }) 
   await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=fengshui/);
 
   // 玄空飞星盘（xuankong_chart）：标准九宫 + 坐/向角标 + 补充判断
-  await expect(tool.locator('.paipan-grid .xk-cell')).toHaveCount(9);
+  await expect(tool.locator('.chart-grid .xk-cell')).toHaveCount(9);
   await expect(tool.locator('.xk-head')).toContainText('九运');
   await expect(tool.locator('.xk-cell.sit')).toContainText('坐');
   await expect(tool.locator('.xk-cell.face')).toContainText('向');
   await expect(tool.locator('.xuankong-panel')).toContainText('双星会坐');
-  await expect(tool.locator('.paipan-chip', { hasText: '山星反吟' })).toHaveCount(1);
+  await expect(tool.locator('.chart-chip', { hasText: '山星反吟' })).toHaveCount(1);
 
   // 八宅布局（bazhai_layout）：方位图 + 门/主/灶三要判断
-  await expect(tool.locator('.paipan-grid .bz-cell')).toHaveCount(9);
+  await expect(tool.locator('.chart-grid .bz-cell')).toHaveCount(9);
   const pickGua = async (label: string, gua: string) => {
     const input = tool.getByRole('combobox', { name: label });
     await input.click({ force: true });

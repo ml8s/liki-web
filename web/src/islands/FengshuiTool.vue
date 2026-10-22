@@ -11,10 +11,10 @@ import {
   type BazhaiLayout,
   type XuankongChart,
 } from '@shared/domain/fengshui'
-import MingGuaSection from '@shared/components/paipan/MingGuaSection.vue'
-import LiuNianFlySection from '@shared/components/paipan/LiuNianFlySection.vue'
-import XuankongPanel from '@shared/components/paipan/XuankongPanel.vue'
-import BazhaiLayoutPanel from '@shared/components/paipan/BazhaiLayoutPanel.vue'
+import MingGuaSection from '@shared/components/charts/MingGuaSection.vue'
+import LiuNianFlySection from '@shared/components/charts/LiuNianFlySection.vue'
+import XuankongPanel from '@shared/components/charts/XuankongPanel.vue'
+import BazhaiLayoutPanel from '@shared/components/charts/BazhaiLayoutPanel.vue'
 import FengshuiBirthFields from '@shared/components/fengshui/FengshuiBirthFields.vue'
 import FengshuiLayoutFields from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'

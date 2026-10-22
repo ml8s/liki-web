@@ -5,7 +5,7 @@
   <div class="ln-row">
     {{ $t('profiles.chart.centerStar') }}<strong>{{ liuNian.ru_zhong }}</strong>
   </div>
-  <div class="paipan-grid">
+  <div class="chart-grid">
     <div
       v-for="f in flyStars"
       :key="f.gong_num"
@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 import { computed } from 'vue'
 import { LUOSHU_ORDER } from '../../utils/bazhai'
 import type { BazhaiLiuNianXing } from '../../api/engine/fengshui'
@@ -45,7 +46,6 @@ const flyStars = computed<FlyItem[]>(() => {
 })
 </script>
 
-<style scoped src="../../styles/paipan.css"></style>
 
 <style scoped>
 .ln-row { font-size: var(--font-size-label); color: var(--liki-text-2); margin-bottom: var(--space-3); }

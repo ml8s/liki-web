@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 合盘结果盘面（共享展示组件）：两盘四柱对照 + 日主/地支/纳音/神煞/十神互看。
 // App HepanView 与营销站 hepan 岛共用同一实现；文案取自共享消息拷贝
 // （profiles.chart.* / services.hepan.*）。
@@ -244,7 +245,6 @@ const shiShenRows = computed(() => {
   </div>
 </template>
 
-<style scoped src="../../styles/paipan.css"></style>
 <style scoped>
 .charts { display: grid; gap: var(--space-3); }
 .chart-row { display: flex; align-items: center; gap: var(--space-3); }

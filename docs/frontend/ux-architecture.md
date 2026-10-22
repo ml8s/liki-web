@@ -224,7 +224,7 @@ in the URL merely because they are state.
 | Admin filters and page | yes |
 | Marketing locale | yes, through path/query handoff |
 | Scenario entry | yes |
-| Paipan tab on a profile | yes, `?tab=` |
+| Chart tab on a profile | yes, `?tab=` |
 | Fengshui selected profile | yes, `?profile=` |
 | Payment return | yes, then cleaned after handling |
 | Birth form while typing | no |

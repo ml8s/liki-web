@@ -32,6 +32,7 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 import { computed } from 'vue'
 import { BAZHAI_AUS } from '../../utils/bazhai'
 import type { BazhaiChart } from '../../api/engine/fengshui'

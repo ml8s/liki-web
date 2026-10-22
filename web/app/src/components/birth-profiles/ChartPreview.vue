@@ -1,6 +1,6 @@
 <template>
   <el-card
-    class="app-card paipan-preview"
+    class="app-card chart-preview"
     shadow="never"
   >
     <template #header>
@@ -156,8 +156,9 @@
 </template>
 
 <script setup lang="ts">
+import '@shared/styles/chart-panel.css'
 // 档案详情的一屏三盘编排器（App 专属）：数据链 + tab 外壳；
-// 三块盘面来自共享层（web/shared/components/paipan），营销站 island 单独复用。
+// 三块盘面来自共享层（web/shared/components/charts），营销站 island 单独复用。
 import { toUserMessage } from '@/utils/errors'
 import {
   baziLiunianFor,
@@ -176,10 +177,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { bazhaiChartFor, type BazhaiChart } from '@shared/domain/fengshui'
 import type { BirthProfile } from '@/api/birth-profiles'
-import BaziPanel from '@shared/components/paipan/BaziPanel.vue'
-import ZiweiPanel from '@shared/components/paipan/ZiweiPanel.vue'
-import MingGuaSection from '@shared/components/paipan/MingGuaSection.vue'
-import LiuNianFlySection from '@shared/components/paipan/LiuNianFlySection.vue'
+import BaziPanel from '@shared/components/charts/BaziPanel.vue'
+import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
+import MingGuaSection from '@shared/components/charts/MingGuaSection.vue'
+import LiuNianFlySection from '@shared/components/charts/LiuNianFlySection.vue'
 
 const props = defineProps<{ profile: BirthProfile; auto?: boolean }>()
 const { t } = useI18n()
@@ -313,10 +314,9 @@ watch(() => props.profile?.id, () => {
 }, { immediate: true })
 </script>
 
-<style scoped src="@shared/styles/paipan.css"></style>
 
 <style scoped>
-.paipan-preview {
+.chart-preview {
   border-radius: var(--radius-lg); margin-bottom: var(--space-5);
   position: relative;
   border-top: 2px solid var(--liki-primary);
