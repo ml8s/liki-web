@@ -360,14 +360,16 @@ func (s Subscription) providerSyncedAtOr(fallback time.Time) time.Time {
 	return *s.ProviderSyncedAt
 }
 
-func subscriptionStatusFor(eventType, providerStatus string) SubscriptionStatus {
-	switch eventType {
+// subscriptionStatusForEvent is the single projection from a provider
+// lifecycle event to the local subscription status.
+func subscriptionStatusForEvent(event payment.WebhookEvent) SubscriptionStatus {
+	switch event.Type {
 	case payment.EventSubscriptionActive, payment.EventSubscriptionRenewed:
 		return SubscriptionActive
 	case payment.EventSubscriptionUpdated:
-		switch providerStatus {
+		switch event.Data.Status {
 		case "active", "on_hold", "cancelled", "expired", "failed":
-			return SubscriptionStatus(providerStatus)
+			return SubscriptionStatus(event.Data.Status)
 		default:
 			return SubscriptionOnHold
 		}

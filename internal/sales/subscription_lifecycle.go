@@ -40,7 +40,7 @@ func (s *SubscriptionStore) ApplyWebhook(ctx context.Context, entitlements Entit
 		return nil
 	}
 
-	status := subscriptionStatusFor(event.Type, data.Status)
+	status := subscriptionStatusForEvent(event)
 	cancelledAt := existing.CancelledAt
 	if status == SubscriptionCancelled && cancelledAt == nil {
 		cancelledAt = &syncedAt

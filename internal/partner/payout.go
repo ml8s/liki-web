@@ -231,9 +231,9 @@ LIMIT ? OFFSET ?`
 	return NewAdminPage(page, result.Items, result.Total), nil
 }
 
-func (s *Store) DecidePayout(ctx context.Context, payoutID, actor string, approved bool, reason string) error {
-	if strings.TrimSpace(actor) == "" || strings.TrimSpace(reason) == "" {
-		return errors.New("partner: actor and reason are required")
+func (s *Store) DecidePayout(ctx context.Context, decision PayoutDecision) error {
+	if err := decision.validate(); err != nil {
+		return err
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -241,48 +241,51 @@ func (s *Store) DecidePayout(ctx context.Context, payoutID, actor string, approv
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var status string
-	err = tx.QueryRowContext(ctx, `SELECT status FROM partner_payouts WHERE id=?`, payoutID).Scan(&status)
+	var current string
+	err = tx.QueryRowContext(ctx, `SELECT status FROM partner_payouts WHERE id=?`, decision.PayoutID).Scan(&current)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrPayoutNotFound
 	}
 	if err != nil {
 		return err
 	}
-	if status != string(PayoutRequested) {
-		return ErrPayoutInvalidTransition
+	status := PayoutStatus(current)
+	newStatus, err := decidePayoutStatus(status, decision.Approved)
+	if err != nil {
+		return err
 	}
 	now := formatTime(s.nowFunc())
-	newStatus := PayoutRejected
-	if approved {
-		newStatus = PayoutApproved
-	} else {
+	if !decision.Approved {
 		if _, err := tx.ExecContext(ctx, `
 UPDATE partner_commission_entries SET payout_id=NULL,updated_at=?
-WHERE payout_id=? AND status=?`, now, payoutID, string(CommissionPending)); err != nil {
+WHERE payout_id=? AND status=?`, now, decision.PayoutID, string(CommissionPending)); err != nil {
 			return err
 		}
 	}
 	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(newStatus)})
 	if _, err := tx.ExecContext(ctx, `
 UPDATE partner_payouts SET status=?,rejection_reason=?,updated_at=? WHERE id=?`,
-		string(newStatus), reason, now, payoutID); err != nil {
+		string(newStatus), decision.Reason, now, decision.PayoutID); err != nil {
 		return err
 	}
-	if err := recordReferralActionTx(ctx, tx, s.idFunc(), actor, "payout.decided", "payout", payoutID,
-		string(PayoutRequested), string(newStatus), reason); err != nil {
+	if err := recordReferralActionTx(ctx, tx, s.idFunc(), decision.Actor, "payout.decided", "payout",
+		decision.PayoutID, string(status), string(newStatus), decision.Reason); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
-func (s *Store) ApprovePayout(ctx context.Context, payoutID, actor string) error {
-	return s.DecidePayout(ctx, payoutID, actor, true, "approved")
+func (s *Store) ApprovePayout(ctx context.Context, approval PayoutDecision) error {
+	approval.Approved = true
+	if strings.TrimSpace(approval.Reason) == "" {
+		approval.Reason = "approved"
+	}
+	return s.DecidePayout(ctx, approval)
 }
 
-func (s *Store) MarkPayoutPaid(ctx context.Context, payoutID, actor, paymentReference string) error {
-	if strings.TrimSpace(actor) == "" || strings.TrimSpace(paymentReference) == "" {
-		return errors.New("partner: actor and payment reference are required")
+func (s *Store) MarkPayoutPaid(ctx context.Context, payment PayoutPayment) error {
+	if err := payment.validate(); err != nil {
+		return err
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -290,33 +293,35 @@ func (s *Store) MarkPayoutPaid(ctx context.Context, payoutID, actor, paymentRefe
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var status string
-	err = tx.QueryRowContext(ctx, `SELECT status FROM partner_payouts WHERE id=?`, payoutID).Scan(&status)
+	var current string
+	err = tx.QueryRowContext(ctx, `SELECT status FROM partner_payouts WHERE id=?`, payment.PayoutID).Scan(&current)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrPayoutNotFound
 	}
 	if err != nil {
 		return err
 	}
-	if status != string(PayoutApproved) {
-		return ErrPayoutInvalidTransition
+	status := PayoutStatus(current)
+	nextStatus, err := markPayoutPaidStatus(status)
+	if err != nil {
+		return err
 	}
 	now := formatTime(s.nowFunc())
-	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(PayoutPaid)})
+	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(nextStatus)})
 	if _, err := tx.ExecContext(ctx, `
 UPDATE partner_payouts
 SET status=?,payment_reference=?,paid_at=?,updated_at=? WHERE id=?`,
-		string(PayoutPaid), paymentReference, now, now, payoutID); err != nil {
+		string(nextStatus), payment.PaymentReference, now, now, payment.PayoutID); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `
 UPDATE partner_commission_entries SET status=?,paid_at=?,updated_at=?
 WHERE payout_id=? AND status=?`,
-		string(CommissionPaid), now, now, payoutID, string(CommissionPending)); err != nil {
+		string(CommissionPaid), now, now, payment.PayoutID, string(CommissionPending)); err != nil {
 		return err
 	}
-	if err := recordReferralActionTx(ctx, tx, s.idFunc(), actor, "payout.marked_paid", "payout", payoutID,
-		status, string(PayoutPaid), paymentReference); err != nil {
+	if err := recordReferralActionTx(ctx, tx, s.idFunc(), payment.Actor, "payout.marked_paid", "payout",
+		payment.PayoutID, string(status), string(nextStatus), payment.PaymentReference); err != nil {
 		return err
 	}
 	return tx.Commit()

@@ -136,7 +136,7 @@ func TestRejectPayoutReleasesCommissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.DecidePayout(ctx, payout.ID, "admin", false, "invalid account"); err != nil {
+	if err := store.DecidePayout(ctx, PayoutDecision{PayoutID: payout.ID, Actor: "admin", Reason: "invalid account"}); err != nil {
 		t.Fatal(err)
 	}
 	got, err := store.PayoutByID(ctx, payout.ID)
@@ -158,10 +158,10 @@ func TestMarkPayoutPaidMarksCommissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.ApprovePayout(ctx, payout.ID, "admin"); err != nil {
+	if err := store.ApprovePayout(ctx, PayoutDecision{PayoutID: payout.ID, Actor: "admin"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.MarkPayoutPaid(ctx, payout.ID, "admin", "transfer-1"); err != nil {
+	if err := store.MarkPayoutPaid(ctx, PayoutPayment{PayoutID: payout.ID, Actor: "admin", PaymentReference: "transfer-1"}); err != nil {
 		t.Fatal(err)
 	}
 	got, err := store.PayoutByID(ctx, payout.ID)
@@ -213,7 +213,7 @@ func TestMarkPayoutPaidRequiresApproval(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.MarkPayoutPaid(ctx, payout.ID, "admin", "transfer-1"); !errors.Is(err, ErrPayoutInvalidTransition) {
+	if err := store.MarkPayoutPaid(ctx, PayoutPayment{PayoutID: payout.ID, Actor: "admin", PaymentReference: "transfer-1"}); !errors.Is(err, ErrPayoutInvalidTransition) {
 		t.Fatalf("err = %v, want ErrPayoutInvalidTransition", err)
 	}
 }
@@ -260,10 +260,10 @@ func TestKOLAndScoutPayoutsAreIndependent(t *testing.T) {
 	if kolPayout.AmountMinor != 25000 {
 		t.Fatalf("kol payout = %+v", kolPayout)
 	}
-	if err := store.ApprovePayout(ctx, scoutPayout.ID, "admin"); err != nil {
+	if err := store.ApprovePayout(ctx, PayoutDecision{PayoutID: scoutPayout.ID, Actor: "admin"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.MarkPayoutPaid(ctx, scoutPayout.ID, "admin", "scout-transfer"); err != nil {
+	if err := store.MarkPayoutPaid(ctx, PayoutPayment{PayoutID: scoutPayout.ID, Actor: "admin", PaymentReference: "scout-transfer"}); err != nil {
 		t.Fatal(err)
 	}
 	var kolStatus, scoutStatus string

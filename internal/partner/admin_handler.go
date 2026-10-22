@@ -221,11 +221,17 @@ func (h *AdminHandler) HandlePayoutAction() http.HandlerFunc {
 		var err error
 		switch action {
 		case "approve":
-			err = h.store.ApprovePayout(r.Context(), id, actorFromRequest(r))
+			err = h.store.ApprovePayout(r.Context(), PayoutDecision{
+				PayoutID: id, Actor: actorFromRequest(r), Reason: req.Reason,
+			})
 		case "reject":
-			err = h.store.DecidePayout(r.Context(), id, actorFromRequest(r), false, req.Reason)
+			err = h.store.DecidePayout(r.Context(), PayoutDecision{
+				PayoutID: id, Actor: actorFromRequest(r), Reason: req.Reason,
+			})
 		case "mark-paid":
-			err = h.store.MarkPayoutPaid(r.Context(), id, actorFromRequest(r), req.PaymentReference)
+			err = h.store.MarkPayoutPaid(r.Context(), PayoutPayment{
+				PayoutID: id, Actor: actorFromRequest(r), PaymentReference: req.PaymentReference,
+			})
 		default:
 			httputil.RespondError(w, http.StatusNotFound, "not_found", "未知操作")
 			return

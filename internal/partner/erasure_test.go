@@ -32,7 +32,7 @@ func TestEraseUserFreezesPartnerAndPreservesPendingLedger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := store.DecidePayout(ctx, payout.ID, "admin", false, "erasure requested"); err != nil {
+	if err := store.DecidePayout(ctx, PayoutDecision{PayoutID: payout.ID, Actor: "admin", Reason: "erasure requested"}); err != nil {
 		t.Fatal(err)
 	}
 
