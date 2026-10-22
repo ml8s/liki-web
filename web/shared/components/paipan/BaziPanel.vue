@@ -430,7 +430,7 @@ import type {
   BaziLiuNianInteraction,
   BaziLiuNianOutput,
   BaziZhuFull,
-} from '../../api/engine'
+} from '../../api/engine/bazi'
 
 const props = defineProps<{
   chart: BaziChartData | null

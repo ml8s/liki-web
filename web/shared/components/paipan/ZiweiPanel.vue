@@ -175,7 +175,7 @@
 // 流年区块（含年份选择）由宿主编排器自行组合（App 的 PaipanPreview）。
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ZiweiChart, ZiweiDaXianItem, ZiweiStarInfo } from '../../api/engine'
+import type { ZiweiChart, ZiweiDaXianItem, ZiweiStarInfo } from '../../api/engine/ziwei'
 
 const props = defineProps<{
   chart: ZiweiChart

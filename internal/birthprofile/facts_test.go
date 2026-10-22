@@ -28,11 +28,12 @@ func TestNewBirthFactsDerivesProjectionFromInstant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.Instant == nil || facts.Instant.Format(time.RFC3339) != "1958-05-11T22:00:00Z" {
+	view := NewBirthFactsView(facts)
+	if view.Instant == nil || view.Instant.Format(time.RFC3339) != "1958-05-11T22:00:00Z" {
 		t.Fatalf("instant = %+v", facts.Instant)
 	}
-	if facts.Date != "1958-05-12" || facts.Time != "06:00" {
-		t.Fatalf("derived projection = %s %s", facts.Date, facts.Time)
+	if view.Date != "1958-05-12" || view.Time != "06:00" {
+		t.Fatalf("derived projection = %s %s", view.Date, view.Time)
 	}
 }
 

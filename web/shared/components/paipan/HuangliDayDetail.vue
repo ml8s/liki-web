@@ -78,7 +78,7 @@
 // 纯展示、数据驱动；由 HuangliDaysPanel 展开后渲染，App 与营销岛共用。
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { HuangliDay } from '../../api/engine'
+import type { HuangliDay } from '../../api/engine/huangli'
 
 const props = defineProps<{ day: HuangliDay }>()
 const { t } = useI18n()

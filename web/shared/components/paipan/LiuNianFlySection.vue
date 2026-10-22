@@ -27,7 +27,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { LUOSHU_ORDER } from '../../utils/bazhai'
-import type { BazhaiLiuNianXing } from '../../api/engine'
+import type { BazhaiLiuNianXing } from '../../api/engine/fengshui'
 
 interface FlyItem {
   gong_num: number

@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import LikiChatCta from '../../components/LikiChatCta.astro';
-import NatalTool from '../../islands/NatalTool.vue';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -13,11 +12,11 @@ const ns = 'natal';
 const cards = (prefix: string, keys: string[]) => keys.map(key => `${prefix}.benefit.${key}`);
 const baziCards = cards('scenario.bazi', ['structure', 'insight', 'timing', 'action']);
 const ziweiCards = cards(`${ns}.ziwei`, ['palaces', 'stars', 'cycles', 'career']);
-const readingCards = cards('scenario.mingshu', ['personality', 'career', 'relationship', 'timing']);
+const readingCards = cards('scenario.natalReading', ['personality', 'career', 'relationship', 'timing']);
 const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
 const questions = [
   'scenario.bazi.q1', 'scenario.bazi.q2', 'scenario.bazi.q3',
-  'scenario.mingshu.q1', 'scenario.mingshu.q2',
+  'scenario.natalReading.q1', 'scenario.natalReading.q2',
 ];
 const birthLabels = birthFieldLabels(locale);
 const toolProps = {
@@ -124,7 +123,7 @@ const breadcrumbSchema = {
     id="reading"
     class="landing-services scenario-section"
   >
-    <h2>{t(locale, 'scenario.mingshu.benefitsTitle')}</h2>
+    <h2>{t(locale, 'scenario.natalReading.benefitsTitle')}</h2>
     <div class="service-grid">
       {readingCards.map(key => (
         <div class="card">

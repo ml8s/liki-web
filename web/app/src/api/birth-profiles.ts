@@ -2,7 +2,7 @@ import { get, post, request } from './http'
 import { i18n } from '@/i18n'
 import { formatInstant } from '@shared/domain/time'
 
-export interface BirthLocation {
+export interface BirthProfileLocation {
   place: string
   longitude: number | null
   timezone: string | null
@@ -12,7 +12,7 @@ export interface BirthFacts {
   gender: 'male' | 'female'
   date: string | null
   time: string | null
-  location: BirthLocation
+  location: BirthProfileLocation
   instant: string | null
 }
 

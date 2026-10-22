@@ -38,11 +38,10 @@ func (s *Store) Create(ctx context.Context, userID string, in BirthProfileDraft)
 	p := BirthProfile{
 		ID: s.idFunc(), UserID: userID, Version: 1,
 		Nickname: strings.TrimSpace(in.Nickname), Name: strings.TrimSpace(in.Name),
-		Birth: birth,
+		Birth: NewBirthFactsView(birth),
 		Note:  strings.TrimSpace(in.Note), ThirdPartyConsent: in.ThirdPartyConsent,
 		CreatedAt: mustTime(now), UpdatedAt: mustTime(now),
 	}
-	projectBirthFacts(&p)
 	result, err := s.db.ExecContext(ctx, `
 INSERT INTO birth_profiles
 (id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
@@ -68,7 +67,7 @@ SELECT created_at,updated_at FROM birth_profiles WHERE id=? AND user_id=?`,
 	}
 	p.CreatedAt = mustTime(createdAt)
 	p.UpdatedAt = mustTime(updatedAt)
-	projectBirthFacts(&p)
+	p.Birth = NewBirthFactsView(p.Birth.BirthFacts)
 	return p, nil
 }
 
@@ -77,25 +76,6 @@ func timeArg(value *time.Time) any {
 		return nil
 	}
 	return formatTime(*value)
-}
-
-func projectBirthFacts(profile *BirthProfile) {
-	projectBirthFactsValue(&profile.Birth)
-}
-
-func projectBirthFactsValue(facts *BirthFacts) {
-	facts.Date = ""
-	facts.Time = ""
-	if facts.Instant == nil || facts.Location.Timezone == nil {
-		return
-	}
-	location, err := time.LoadLocation(*facts.Location.Timezone)
-	if err != nil {
-		return
-	}
-	local := facts.Instant.In(location)
-	facts.Date = local.Format("2006-01-02")
-	facts.Time = local.Format("15:04")
 }
 
 func (s *Store) Get(ctx context.Context, userID, id string) (BirthProfile, error) {
@@ -141,7 +121,7 @@ FROM birth_profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID
 	}
 	p.CreatedAt = mustTime(createdAt)
 	p.UpdatedAt = mustTime(updatedAt)
-	projectBirthFacts(&p)
+	p.Birth = NewBirthFactsView(p.Birth.BirthFacts)
 	return p, nil
 }
 
@@ -208,7 +188,7 @@ WHERE user_id=? AND deleted_at IS NULL`
 		}
 		p.CreatedAt = mustTime(createdAt)
 		p.UpdatedAt = mustTime(updatedAt)
-		projectBirthFacts(&p)
+		p.Birth = NewBirthFactsView(p.Birth.BirthFacts)
 		out = append(out, p)
 	}
 	if err := rows.Err(); err != nil {

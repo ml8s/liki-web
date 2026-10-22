@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { BAZHAI_AUS } from '../../utils/bazhai'
-import type { BazhaiChart } from '../../api/engine'
+import type { BazhaiChart } from '../../api/engine/fengshui'
 
 const props = defineProps<{ bazhai: BazhaiChart }>()
 

@@ -116,7 +116,7 @@
 // App 风水页与营销站 fengshui 岛共用；文案取 services.fengshui.*（共享拷贝见 chart-messages.<locale>.json）。
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { XuankongChart } from '../../api/engine'
+import type { XuankongChart } from '../../api/engine/fengshui'
 import { LUOSHU_ORDER } from '../../utils/bazhai'
 import { cnNumber, mountainGong } from '../../utils/xuankong'
 

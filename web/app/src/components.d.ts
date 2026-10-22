@@ -77,6 +77,7 @@ declare module 'vue' {
     ServiceEntryList: typeof import('./components/app/ServiceEntryList.vue')['default']
     ServicePageShell: typeof import('./components/app/ServicePageShell.vue')['default']
     SessionList: typeof import('./components/chat/SessionList.vue')['default']
+    SubscriptionCard: typeof import('./components/orders/SubscriptionCard.vue')['default']
     SystemBirthProfileCard: typeof import('./components/chat/SystemBirthProfileCard.vue')['default']
   }
   export interface GlobalDirectives {
@@ -151,5 +152,6 @@ declare global {
   const ServiceEntryList: typeof import('./components/app/ServiceEntryList.vue')['default']
   const ServicePageShell: typeof import('./components/app/ServicePageShell.vue')['default']
   const SessionList: typeof import('./components/chat/SessionList.vue')['default']
+  const SubscriptionCard: typeof import('./components/orders/SubscriptionCard.vue')['default']
   const SystemBirthProfileCard: typeof import('./components/chat/SystemBirthProfileCard.vue')['default']
 }

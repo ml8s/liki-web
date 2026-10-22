@@ -95,41 +95,6 @@ func (s *Store) DeleteRun(ctx context.Context, runID string) error {
 	return nil
 }
 
-// GetRun returns one run record by id.
-func (s *Store) GetRun(ctx context.Context, runID string) (RunRecord, bool, error) {
-	var record RunRecord
-	var startedAt, finishedAt, receivedAt string
-	err := s.db.QueryRowContext(ctx, `
-SELECT run_id,user_id,thread_id,profile,status,answer,error,llm_calls,prompt_tokens,completion_tokens,thought_tokens,started_at,finished_at,received_at
-FROM run_records WHERE run_id=?`, runID).Scan(
-		&record.RunID, &record.UserID, &record.ThreadID, &record.Profile, &record.Status,
-		&record.Answer, &record.Error, &record.LLMCalls, &record.PromptTokens,
-		&record.CompletionTokens, &record.ThoughtTokens, &startedAt, &finishedAt, &receivedAt,
-	)
-	if err == sql.ErrNoRows {
-		return RunRecord{}, false, nil
-	}
-	if err != nil {
-		return RunRecord{}, false, fmt.Errorf("get run record: %w", err)
-	}
-	started, err := time.Parse(time.RFC3339Nano, startedAt)
-	if err != nil {
-		return RunRecord{}, false, fmt.Errorf("parse started_at: %w", err)
-	}
-	finished, err := time.Parse(time.RFC3339Nano, finishedAt)
-	if err != nil {
-		return RunRecord{}, false, fmt.Errorf("parse finished_at: %w", err)
-	}
-	received, err := time.Parse(time.RFC3339Nano, receivedAt)
-	if err != nil {
-		return RunRecord{}, false, fmt.Errorf("parse received_at: %w", err)
-	}
-	record.StartedAt = started
-	record.FinishedAt = finished
-	record.ReceivedAt = received
-	return record, true, nil
-}
-
 func runFormatTime(value time.Time) string {
 	return value.UTC().Format(time.RFC3339Nano)
 }

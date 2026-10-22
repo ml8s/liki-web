@@ -290,19 +290,6 @@ Orders expose user-safe state, not provider secrets or internal metadata. Owner
 order responses omit `user_id` and `email`; authentication already proves
 ownership and account email remains in identity/account APIs.
 
-Subscription browser APIs:
-
-| Method | Path | Auth | Purpose |
-| --- | --- | --- | --- |
-| GET | `/api/sales/subscriptions` | user | List owned subscriptions |
-| GET | `/api/sales/subscription-payments` | user | List owned subscription payments |
-| POST | `/api/sales/subscriptions/{id}/cancellation` | owner | Schedule cancellation at period end |
-| DELETE | `/api/sales/subscriptions/{id}/cancellation` | owner | Cancel the scheduled cancellation |
-
-Subscription responses omit user/contact and provider customer/checkout
-bookkeeping. They expose only buyer-visible state, period, renewal, and
-cancellation facts.
-
 ## Account
 
 | Method | Path | Auth | Purpose |

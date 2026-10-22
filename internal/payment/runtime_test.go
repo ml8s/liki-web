@@ -120,6 +120,11 @@ func newRuntimeTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
+func handleWebhookEvent(r *Runtime, ctx context.Context, raw []byte, header http.Header) error {
+	_, err := r.HandleWebhookEventWithAck(ctx, raw, header)
+	return err
+}
+
 func newTestRuntime(t *testing.T) (*Runtime, *fakeGateway, *fakeFlow, *fakeSender, *IntentStore, *NotificationStore) {
 	t.Helper()
 	db := newRuntimeTestDB(t)
@@ -202,7 +207,7 @@ func TestQueuePaidNotificationsUsesUnifiedTemplateData(t *testing.T) {
 			PaymentID: "pay-1",
 		},
 	}
-	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("event"), nil); err != nil {
 		t.Fatal(err)
 	}
 	updated, err := intents.GetIntent(ctx, intent.ID)
@@ -272,7 +277,7 @@ func TestQueuePaidNotificationsLocalizesCustomerReceipt(t *testing.T) {
 			PaymentID: "pay-en",
 		},
 	}
-	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("event"), nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -413,7 +418,7 @@ func TestRuntimeWebhookMarksPaidDispatchesOnceAndQueuesNotifications(t *testing.
 
 	raw := []byte("provider=webhook")
 	gateway.event = checkoutEvent(intent)
-	if err := runtime.HandleWebhookEvent(ctx, raw, nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, raw, nil); err != nil {
 		t.Fatal(err)
 	}
 	if flow.onPaid != 0 {
@@ -445,7 +450,7 @@ func TestRuntimeWebhookMarksPaidDispatchesOnceAndQueuesNotifications(t *testing.
 		t.Fatalf("messages = %d, want customer and admin", len(sender.messages))
 	}
 
-	if err := runtime.HandleWebhookEvent(ctx, raw, nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, raw, nil); err != nil {
 		t.Fatal(err)
 	}
 	if n, err := runtime.ProcessPaymentCompletionTasks(ctx, 10); err != nil || n != 0 {
@@ -468,7 +473,7 @@ func TestRuntimeWebhookRejectsAmountMismatch(t *testing.T) {
 	gateway.event = checkoutEvent(intent)
 	gateway.event.Data.Amount = int64(1)
 
-	if err := runtime.HandleWebhookEvent(ctx, []byte("x"), nil); err == nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("x"), nil); err == nil {
 		t.Fatal("expected amount mismatch error")
 	}
 	if flow.onPaid != 0 {
@@ -501,7 +506,7 @@ func TestRuntimeCaptureQueuesNotificationsBeforeProductFulfillment(t *testing.T)
 		t.Fatal(err)
 	}
 	gateway.event = checkoutEvent(intent)
-	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("event"), nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -621,11 +626,11 @@ func TestRuntimeDuplicateWebhookIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	gateway.event = checkoutEvent(intent)
-	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("event"), nil); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := runtime.HandleWebhookEvent(ctx, []byte("event-duplicate"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("event-duplicate"), nil); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -675,7 +680,7 @@ func TestPaymentCompletionObserverCannotFailProductFulfillment(t *testing.T) {
 		t.Fatal(err)
 	}
 	gateway.event = checkoutEvent(intent)
-	if err := runtime.HandleWebhookEvent(ctx, []byte("event"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("event"), nil); err != nil {
 		t.Fatal(err)
 	}
 	if n, err := runtime.ProcessPaymentCompletionTasks(ctx, 10); err != nil || n != 1 {
@@ -709,7 +714,7 @@ func TestRefundWebhookMarksIntentAndNotifiesObserver(t *testing.T) {
 		t.Fatal(err)
 	}
 	gateway.event = checkoutEvent(intent)
-	if err := runtime.HandleWebhookEvent(ctx, []byte("paid"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("paid"), nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := runtime.ProcessPaymentCompletionTasks(ctx, 10); err != nil {
@@ -722,7 +727,7 @@ func TestRefundWebhookMarksIntentAndNotifiesObserver(t *testing.T) {
 	refund := checkoutEvent(intent)
 	refund.Type = EventPaymentRefunded
 	gateway.event = refund
-	if err := runtime.HandleWebhookEvent(ctx, []byte("refund"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("refund"), nil); err != nil {
 		t.Fatalf("refund webhook: %+v", err)
 	}
 	got, err := storeGetIntent(runtime, intent.ID)
@@ -735,7 +740,7 @@ func TestRefundWebhookMarksIntentAndNotifiesObserver(t *testing.T) {
 
 	// A duplicate refund webhook must remain idempotent and must not re-run the
 	// downstream observer.
-	if err := runtime.HandleWebhookEvent(ctx, []byte("refund"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("refund"), nil); err != nil {
 		t.Fatal(err)
 	}
 	if refunds != 1 || flow.onPaid != 1 {
@@ -782,7 +787,7 @@ func TestPartialRefundWebhookRecordsLedgerAndKeepsIntentPaid(t *testing.T) {
 		t.Fatal(err)
 	}
 	gateway.event = checkoutEvent(intent)
-	if err := runtime.HandleWebhookEvent(ctx, []byte("paid"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("paid"), nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -791,7 +796,7 @@ func TestPartialRefundWebhookRecordsLedgerAndKeepsIntentPaid(t *testing.T) {
 	refund.Data.PaymentID = "refund-partial"
 	refund.Data.Amount = 400
 	gateway.event = refund
-	if err := runtime.HandleWebhookEvent(ctx, []byte("partial"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("partial"), nil); err != nil {
 		t.Fatal(err)
 	}
 	got, err := runtime.GetIntent(ctx, intent.ID)
@@ -803,13 +808,13 @@ func TestPartialRefundWebhookRecordsLedgerAndKeepsIntentPaid(t *testing.T) {
 	}
 
 	// The same provider refund ID is at-least-once by nature.
-	if err := runtime.HandleWebhookEvent(ctx, []byte("partial"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("partial"), nil); err != nil {
 		t.Fatal(err)
 	}
 	refund.Data.PaymentID = "refund-final"
 	refund.Data.Amount = 590
 	gateway.event = refund
-	if err := runtime.HandleWebhookEvent(ctx, []byte("final"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("final"), nil); err != nil {
 		t.Fatal(err)
 	}
 	got, err = runtime.GetIntent(ctx, intent.ID)
@@ -835,7 +840,7 @@ func TestRefundWebhookRejectsOverdraftAndZeroMeansRemaining(t *testing.T) {
 		t.Fatal(err)
 	}
 	gateway.event = checkoutEvent(intent)
-	if err := runtime.HandleWebhookEvent(ctx, []byte("paid"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("paid"), nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -844,7 +849,7 @@ func TestRefundWebhookRejectsOverdraftAndZeroMeansRemaining(t *testing.T) {
 	refund.Data.PaymentID = "refund-partial"
 	refund.Data.Amount = 400
 	gateway.event = refund
-	if err := runtime.HandleWebhookEvent(ctx, []byte("partial"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("partial"), nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -853,7 +858,7 @@ func TestRefundWebhookRejectsOverdraftAndZeroMeansRemaining(t *testing.T) {
 	refund.Data.PaymentID = "refund-overdraft"
 	refund.Data.Amount = 700
 	gateway.event = refund
-	if err := runtime.HandleWebhookEvent(ctx, []byte("overdraft"), nil); err == nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("overdraft"), nil); err == nil {
 		t.Fatal("overdraft refund webhook: want error, got nil")
 	}
 	got, err := runtime.GetIntent(ctx, intent.ID)
@@ -869,7 +874,7 @@ func TestRefundWebhookRejectsOverdraftAndZeroMeansRemaining(t *testing.T) {
 	refund.Data.PaymentID = "refund-rest"
 	refund.Data.Amount = 0
 	gateway.event = refund
-	if err := runtime.HandleWebhookEvent(ctx, []byte("rest"), nil); err != nil {
+	if err := handleWebhookEvent(runtime, ctx, []byte("rest"), nil); err != nil {
 		t.Fatalf("remaining refund webhook: %+v", err)
 	}
 	got, err = runtime.GetIntent(ctx, intent.ID)

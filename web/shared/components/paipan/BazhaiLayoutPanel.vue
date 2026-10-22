@@ -104,7 +104,7 @@
 // + 《阳宅三要》门/主/灶三要判断表。App 风水页与营销站 fengshui 岛共用。
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { BazhaiChart, BazhaiDoorStove, BazhaiLayout } from '../../api/engine'
+import type { BazhaiChart, BazhaiDoorStove, BazhaiLayout } from '../../api/engine/fengshui'
 import { BAZHAI_AUS } from '../../utils/bazhai'
 
 const props = defineProps<{

@@ -10,11 +10,6 @@ import (
 	"net/http"
 )
 
-func (r *Runtime) HandleWebhookEvent(ctx context.Context, raw []byte, header http.Header) error {
-	_, err := r.HandleWebhookEventWithAck(ctx, raw, header)
-	return err
-}
-
 // HandleWebhookEventWithAck returns the provider-specific acknowledgement body.
 // Xunhu requires exactly "success"; an otherwise successful empty response can
 // make the provider retry a payment that has already been captured.

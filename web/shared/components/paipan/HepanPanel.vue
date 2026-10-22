@@ -4,7 +4,7 @@
 // （profiles.chart.* / services.hepan.*）。
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { BaziBondResult, BaziChartData } from '../../api/engine'
+import type { BaziBondResult, BaziChartData } from '../../api/engine/bazi'
 
 const props = defineProps<{
   chartA: BaziChartData | null

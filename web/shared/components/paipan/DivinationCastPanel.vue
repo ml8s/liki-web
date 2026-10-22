@@ -33,7 +33,7 @@
 // 由 casting 推演（见 shared/domain/divination.ts）；完整解卦（六亲/纳甲）在 App 侧。
 import { computed } from 'vue'
 import { readCasting, type YiGuaReading } from '../../domain/divination'
-import type { LiuyaoCasting } from '../../api/engine'
+import type { LiuyaoCasting } from '../../api/engine/liuyao'
 
 const props = defineProps<{ casting: LiuyaoCasting }>()
 

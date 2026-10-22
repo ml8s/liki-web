@@ -105,23 +105,6 @@ func scanPartner(scan func(dest ...any) error) (Partner, error) {
 	return item, nil
 }
 
-// CreateKOLPartner creates the KOL role directly. Production applications use
-// SubmitApplication and admin approval; this helper is available for migrations
-// and trusted seed flows that must bypass an application decision.
-func (s *Store) createKOLPartner(ctx context.Context, userID string) (Partner, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return Partner{}, err
-	}
-	defer func() { _ = tx.Rollback() }()
-	if err := ensurePartnerTx(ctx, tx, s, strings.TrimSpace(userID), RoleKOL); err != nil {
-		return Partner{}, err
-	}
-	if err := tx.Commit(); err != nil {
-		return Partner{}, err
-	}
-	return s.PartnerByUser(ctx, strings.TrimSpace(userID))
-}
 func (s *Store) PartnerByUser(ctx context.Context, userID string) (Partner, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT user_id,code,role,status,recruiter_id,created_at,updated_at
@@ -201,10 +184,6 @@ func commission_parts(amount int64, rate int) int64 {
 // RecordCommission records one dodo/xunhu paid intent exactly once. Missing
 // attribution is a normal no-op, while a conflict with different data is an
 // error so retry can surface corruption instead of hiding it.
-func (s *Store) commission(ctx context.Context, provider, paymentID string) (Commission, error) {
-	return s.commissionTx(ctx, s.db, provider, paymentID)
-}
-
 func (s *Store) commissionTx(ctx context.Context, runner interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }, provider, paymentID string) (Commission, error) {

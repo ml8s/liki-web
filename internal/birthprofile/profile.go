@@ -23,29 +23,36 @@ type BirthLocation struct {
 	Timezone  *string  `json:"timezone"`
 }
 
-// BirthFacts is the canonical chartable subject. Date and time are projections
-// of Instant in Location.Timezone; Instant is the canonical stored fact.
+// BirthFacts is the canonical chartable subject. It intentionally does not
+// contain date/time projections: those are derived from Instant and
+// Location.Timezone for API responses.
 type BirthFacts struct {
 	Gender   string        `json:"gender"`
-	Date     string        `json:"date"`
-	Time     string        `json:"time"`
 	Location BirthLocation `json:"location"`
 	Instant  *time.Time    `json:"instant"`
 }
 
+// BirthFactsView is the API projection of canonical birth facts. Date and time
+// always derive from Instant in Location.Timezone.
+type BirthFactsView struct {
+	BirthFacts
+	Date string `json:"date"`
+	Time string `json:"time"`
+}
+
 type BirthProfile struct {
-	ID                string     `json:"id"`
-	UserID            string     `json:"user_id"`
-	Version           int        `json:"version"`
-	Nickname          string     `json:"nickname"`
-	Name              string     `json:"name"`
-	Birth             BirthFacts `json:"birth"`
-	Note              string     `json:"note"`
-	ThirdPartyConsent bool       `json:"third_party_consent"`
-	LastUsedAt        *time.Time `json:"last_used_at"`
-	DeletedAt         *time.Time `json:"deleted_at"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
+	ID                string         `json:"id"`
+	UserID            string         `json:"user_id"`
+	Version           int            `json:"version"`
+	Nickname          string         `json:"nickname"`
+	Name              string         `json:"name"`
+	Birth             BirthFactsView `json:"birth"`
+	Note              string         `json:"note"`
+	ThirdPartyConsent bool           `json:"third_party_consent"`
+	LastUsedAt        *time.Time     `json:"last_used_at"`
+	DeletedAt         *time.Time     `json:"deleted_at"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
 }
 
 // BirthFactsInput is the mutable birth subset of a profile. Instant is never
@@ -196,7 +203,7 @@ func NewBirthFacts(now time.Time, facts BirthFactsInput) (BirthFacts, error) {
 	if err != nil {
 		return BirthFacts{}, err
 	}
-	factsOut := BirthFacts{
+	return BirthFacts{
 		Gender: facts.Gender,
 		Location: BirthLocation{
 			Place:     strings.TrimSpace(facts.Location.Place),
@@ -204,7 +211,21 @@ func NewBirthFacts(now time.Time, facts BirthFactsInput) (BirthFacts, error) {
 			Timezone:  facts.Location.Timezone,
 		},
 		Instant: &instant,
+	}, nil
+}
+
+// NewBirthFactsView derives the API date/time projection from canonical facts.
+func NewBirthFactsView(facts BirthFacts) BirthFactsView {
+	view := BirthFactsView{BirthFacts: facts}
+	if facts.Instant == nil || facts.Location.Timezone == nil {
+		return view
 	}
-	projectBirthFactsValue(&factsOut)
-	return factsOut, nil
+	location, err := time.LoadLocation(*facts.Location.Timezone)
+	if err != nil {
+		return view
+	}
+	local := facts.Instant.In(location)
+	view.Date = local.Format("2006-01-02")
+	view.Time = local.Format("15:04")
+	return view
 }

@@ -40,7 +40,7 @@ before implementation.
 | Legal / reading | make policy readable | title, scoped sections | terms, privacy, disclaimer, about |
 | Product dashboard | continue the user's next task | state-driven hero, services, recent activity | `/app` |
 | Profile management | manage birth profiles | list/detail/new/edit, confirmation for delete | birth profiles |
-| Form + result | input data and receive a domain result | header, error, input, result, consultation CTA | synastry, divination, fengshui, huangli |
+| Form + result | input data and receive a domain result | header, error, input, result, consultation CTA | hepan, divination, fengshui, huangli |
 | Conversation | conduct a consultation | context, stream, composer, status, viewport-bound scroll region | chat |
 | Commerce | show ownership and billing | subscription, one-time orders, history | orders |
 | Partner workspace | show partner performance and earnings | role state, stats, lists, settlement | partner center/KOL/Scout |
@@ -112,7 +112,7 @@ Domain-specific states are listed in the route inventory below.
 | `/app/birth-profiles` | profile management | open/create profile | loading, empty, list ready, load more, delete confirmation |
 | `/app/birth-profiles/new` | profile management | save profile | draft restored, validation failed, save failed |
 | `/app/birth-profiles/:id` | profile management | inspect/update profile | loading, error, ready, update failed, free chart, paid interpretation |
-| `/app/synastry` | form + result | select profiles and interpret bond | profiles missing, validation, computing, error, result, locked |
+| `/app/hepan` | form + result | select profiles and interpret bond | profiles missing, validation, computing, error, result, locked |
 | `/app/divination` | form + result | cast/read divination | empty question, validation, casting, error, result |
 | `/app/fengshui` | form + result | select profile and inspect house | no profile, loading, error, result |
 | `/app/huangli` | form + result | select date range and inspect days | invalid range, range too long, loading, error, result |
