@@ -31,9 +31,9 @@ export const baziFull: BaziFullChartData = {
   ri: { ...baziChart.ri, cang_gan: { main: '庚', mid: '壬', minor: '戊' }, shi_shens: [{ shi_shen: '日主' }], shen_sha: [], is_void: false },
   shi: { ...baziChart.shi, cang_gan: { main: '乙' }, shi_shens: [{ shi_shen: '伤官' }], shen_sha: [{ name: '羊刃' }], is_void: true },
   san_yuan: { tai_yuan: { gan: '壬', zhi: '午' }, ming_gong: { gan: '癸', zhi: '未' }, shen_gong: { gan: '甲', zhi: '申' } },
-  fu_yi: { qiangruo: '身旺', xi: '木', ji: '土' },
-  tiao_hou: { yong: '木', xi: '水' },
-  ge_ju: { ge_ju: '正财格', yong_fa: '顺用', xi: '金', ji: '火' },
+  fu_yi: { qiangruo: '身旺', yong: '木', xi: '水', ji: '土' },
+  tiao_hou: { primary_wuxing: '木', secondary_wuxing: '水' },
+  ge_ju: { ge_ju: '正财格', yong_fa: '顺用' },
 };
 
 export const baziLiunian: BaziLiuNianOutput = {

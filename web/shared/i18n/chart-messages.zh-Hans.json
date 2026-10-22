@@ -109,8 +109,6 @@
       "tiaoHou": "调候",
       "geJu": "格局",
       "favorAvoid": "{value} · 喜 {favorable} 忌 {unfavorable}",
-      "useFavor": "用 {value} · 喜 {favorable}",
-      "patternValue": "{value} · 喜 {favorable} 忌 {unfavorable}",
       "correctedLongitude": "已做真太阳时修正（东经 {lng}°）",
       "failed": "排盘失败",
       "pillar": {

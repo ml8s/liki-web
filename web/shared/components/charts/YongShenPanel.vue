@@ -55,6 +55,7 @@ const props = defineProps<{ result: BaziYongShenResult }>()
 
 const needsReview = computed(() =>
   props.result.status === 'needs_review'
+  || props.result.selected.yong === null
   || props.result.selected.confidence === 'low'
   || !!props.result.conflicts?.length,
 )

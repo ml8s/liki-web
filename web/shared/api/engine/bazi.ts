@@ -2,6 +2,11 @@ import type { ChartInput } from '../../domain/time'
 import { mcpTool } from '../mcp/client'
 import { ENGINE_TOOLS } from './tools'
 
+export type BaziElement = '木' | '火' | '土' | '金' | '水'
+
+/** Engine/counsel publish candidate absence as explicit null, not "". */
+export type BaziElementCandidate = BaziElement | null
+
 export interface BaziZhu {
   gan: string
   zhi: string
@@ -68,14 +73,28 @@ export interface BaziFuYiBasis {
 
 export interface BaziFuYi {
   qiangruo?: string
-  yong?: string
-  xi?: string
-  ji?: string
+  yong: BaziElementCandidate
+  xi: BaziElementCandidate
+  ji: BaziElementCandidate
   wuxing_count?: Record<string, number>
   wang_shuai?: Record<string, string>
   pattern?: string
   model?: string
   basis?: BaziFuYiBasis
+}
+
+export interface BaziTiaoHouCandidate {
+  stem?: string
+  transparent?: boolean
+  hidden?: boolean
+  occurrences?: Array<{ branch?: string; pillar?: string; source?: string; stem?: string }>
+  relation_facts?: Array<{
+    branches?: string[]
+    field?: string
+    group?: string
+    pillars?: string[]
+    targets?: string[]
+  }>
 }
 
 export interface BaziTiaoHouAvailability {
@@ -86,13 +105,14 @@ export interface BaziTiaoHouAvailability {
 }
 
 export interface BaziTiaoHou {
-  yong?: string
-  xi?: string
+  primary_wuxing: BaziElement
+  secondary_wuxing: BaziElementCandidate
   season?: string
   detail?: string
   model?: string
   primary?: BaziTiaoHouAvailability
   secondary?: BaziTiaoHouAvailability
+  secondary_condition?: string | null
 }
 
 export interface BaziGeJuStructure {
@@ -107,9 +127,6 @@ export interface BaziGeJuStructure {
 export interface BaziGeJu {
   ge_ju?: string
   yong_fa?: string
-  yong?: string
-  xi?: string
-  ji?: string
   pattern_god?: string
   pattern_god_ten_god?: string
   pattern_god_source?: string
@@ -119,12 +136,6 @@ export interface BaziGeJu {
     generator?: BaziGeJuStructure
     relation_facts?: Array<{ field: string; group: string; pillars?: string[]; branches?: string[]; targets?: string[] }>
   }
-}
-
-export interface BaziYongShen {
-  fu_yi?: BaziFuYi
-  tiao_hou?: BaziTiaoHou
-  ge_ju?: BaziGeJu
 }
 
 export interface BaziShenSha {
@@ -151,7 +162,8 @@ export interface BaziZhuFull extends BaziZhu {
   is_void?: boolean
   is_self_he?: boolean
   is_kui_gang?: boolean
-  self_he_name?: string
+  /** 无自合为 null。 */
+  self_he_name?: string | null
 }
 
 export interface BaziSanYuan {
@@ -289,7 +301,6 @@ export interface BaziFullChartData {
   da_yun?: BaziDaYun
   gender?: string
   birth_year?: number
-  yong_shen?: BaziYongShen
   fu_yi?: BaziFuYi
   tiao_hou?: BaziTiaoHou
   ge_ju?: BaziGeJu
@@ -382,7 +393,7 @@ export function engineBaziBond(chartA: unknown, chartB: unknown): Promise<BaziBo
 
 export interface BaziYongShenResult {
   selected: {
-    yong: '' | '木' | '火' | '土' | '金' | '水'
+    yong: BaziElementCandidate
     xi: string[]
     ji: string[]
     /** 判据来源：tiao_hou / fu_yi / ge_ju … */

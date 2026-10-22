@@ -572,8 +572,6 @@
       "tiaoHou": "Seasonal adjustment",
       "geJu": "Pattern",
       "favorAvoid": "{value} · favorable {favorable} · unfavorable {unfavorable}",
-      "useFavor": "Use {value} · favorable {favorable}",
-      "patternValue": "{value} · favorable {favorable} · unfavorable {unfavorable}",
       "correctedLongitude": "True solar time corrected · {lng}°E",
       "failed": "Chart generation failed",
       "pillar": {

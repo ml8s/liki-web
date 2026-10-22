@@ -5,7 +5,6 @@ import {
   engineBaziFullChart,
   engineBaziLiunian,
   type BaziLiuNianOutput,
-  type BaziYongShen,
 } from '../api/engine/bazi'
 import {
   type ZiweiChart,
@@ -77,7 +76,6 @@ export type {
   BaziChartData,
   BaziFullChartData,
   BaziLiuNianOutput,
-  BaziYongShen,
   ZiweiChart,
   ZiweiLiuNianData,
   ZiweiDaXianItem,

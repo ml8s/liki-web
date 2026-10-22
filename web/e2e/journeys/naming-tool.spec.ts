@@ -12,7 +12,7 @@ const yongShen = {
 };
 
 const yongShenReview = {
-  selected: { yong: '', xi: [], ji: [], source: 'tiao_hou', confidence: 'low' },
+  selected: { yong: null, xi: [], ji: [], source: 'tiao_hou', confidence: 'low', known_fields: [] },
   status: 'needs_review',
   conflicts: [{ code: 'tiaohou_fuyi_conflict', message: '调候用神与扶抑忌神直接相反，不硬判' }],
 };

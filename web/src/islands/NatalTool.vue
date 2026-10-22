@@ -57,10 +57,15 @@ async function loadLiunian() {
 
 // 幸运元素（五行统计/状态由共享 BaziPanel 用引擎数据展示）。
 const luckyElements = computed(() => {
-  // full.yong_shen 的喜用来自扶抑（xi/yong）与调候（yong），值为五行串（如「水金」）。
-  const yong = natal.value?.baziDetail?.yong_shen
-  if (!yong) return null
-  const raw = [yong.fu_yi?.xi, yong.fu_yi?.yong, yong.tiao_hou?.yong].filter(Boolean).join('')
+  // 幸运元素只消费确定性候选：扶抑 yong/xi，调候 primary/secondary。null 表示无候选。
+  const full = natal.value?.baziDetail
+  if (!full) return null
+  const raw = [
+    full.fu_yi?.xi,
+    full.fu_yi?.yong,
+    full.tiao_hou?.primary_wuxing,
+    full.tiao_hou?.secondary_wuxing,
+  ].map(value => value ?? '').join('')
   const elements = [...new Set(Array.from(raw).filter(w => w in WUXING_LUCKY))]
   if (!elements.length) return null
   return elements.map(w => ({ element: w, ...WUXING_LUCKY[w] }))

@@ -34,17 +34,16 @@ const rows = computed(() => {
       text: t('profiles.chart.favorAvoid', { value: fu_yi.qiangruo, favorable: fu_yi.xi ?? '—', unfavorable: fu_yi.ji ?? '—' }),
     })
   }
-  if (tiao_hou?.yong) {
-    out.push({ label: t('profiles.chart.tiaoHou'), text: t('profiles.chart.useFavor', { value: tiao_hou.yong, favorable: tiao_hou.xi ?? '—' }) })
+  if (tiao_hou?.primary_wuxing) {
+    const candidates = [tiao_hou.primary_wuxing, tiao_hou.secondary_wuxing]
+      .filter(Boolean)
+      .join(' · ')
+    out.push({ label: t('profiles.chart.tiaoHou'), text: candidates })
   }
   if (ge_ju?.ge_ju) {
     out.push({
       label: t('profiles.chart.geJu'),
-      text: t('profiles.chart.patternValue', {
-        value: `${ge_ju.ge_ju}${ge_ju.yong_fa ? ` · ${ge_ju.yong_fa}` : ''}`,
-        favorable: ge_ju.xi ?? '—',
-        unfavorable: ge_ju.ji ?? '—',
-      }),
+      text: `${ge_ju.ge_ju}${ge_ju.yong_fa ? ` · ${ge_ju.yong_fa}` : ''}`,
     })
   }
   return out

@@ -168,7 +168,6 @@ import {
   type BaziChartData,
   type BaziFullChartData,
   type BaziLiuNianOutput,
-  type BaziYongShen,
   type ZiweiChart,
   type ZiweiDaXianItem,
   type ZiweiLiuNianData,
@@ -201,7 +200,6 @@ const baziLiuNian = ref<BaziLiuNianOutput | null>(null)
 const baziLiuNianYear = ref(new Date().getFullYear())
 const ziwei = ref<ZiweiChart | null>(null)
 const bazhai = ref<BazhaiChart | null>(null)
-const yongShen = ref<BaziYongShen | null>(null)
 const daXianRaw = ref<ZiweiDaXianItem[]>([])
 const liuNianYear = ref(new Date().getFullYear())
 const liuNian = ref<ZiweiLiuNianData | null>(null)
@@ -261,7 +259,6 @@ async function compute() {
   baziChart.value = null
   baziFull.value = null
   baziLiuNian.value = null
-  yongShen.value = null
   ziwei.value = null
   bazhai.value = null
   daXianRaw.value = []
@@ -286,7 +283,6 @@ async function compute() {
     const chart = await natalChartForChartInput({ ...ctx, gender: p.birth.gender })
     baziChart.value = chart.bazi
     baziFull.value = chart.baziDetail
-    yongShen.value = chart.baziDetail.yong_shen ?? null
     ziwei.value = chart.ziwei
     daXianRaw.value = chart.ziweiDaXian
     await loadBaziLiuNian()
