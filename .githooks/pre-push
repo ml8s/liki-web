@@ -1,6 +1,0 @@
-#!/bin/bash
-# pre-push — 本地源码门槛：static checks + tests；镜像测试由 release workflow 兜底
-set -eo pipefail
-cd "$(git rev-parse --show-toplevel)"
-make gate
-echo "✓ pre-push ok"

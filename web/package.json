@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "astro check && tsc --noEmit -p e2e/tsconfig.json",
     "test": "vitest run test/",
-    "lint:docs": "npx --yes markdownlint-cli2@0.23.3 --config ../.markdownlint-cli2.jsonc \"../README.md\" \"../ARCHITECTURE.md\" \"../DOMAIN_MODEL.md\" \"../API.md\" \"../FRONTEND.md\" \"../LEGACY_PRODUCTS.md\" \"../CONTRIBUTING.md\" \"../SECURITY.md\" \\\"../BRAND.md\\\" \\\"../SEO.md\\\" \"../docs/**/*.md\""
+    "lint:docs": "markdownlint-cli2 --config ../.markdownlint-cli2.jsonc \"../README.md\" \"../ARCHITECTURE.md\" \"../DOMAIN_MODEL.md\" \"../API.md\" \"../FRONTEND.md\" \"../LEGACY_PRODUCTS.md\" \"../CONTRIBUTING.md\" \"../SECURITY.md\" \\\"../BRAND.md\\\" \\\"../SEO.md\\\" \"../docs/**/*.md\""
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
@@ -22,6 +22,7 @@
     "astro": "^7.3.8",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
+    "markdownlint-cli2": "0.23.3",
     "typescript": "~5.6.3",
     "typescript-eslint": "^8.71.2",
     "vitest": "^4.1.11",
@@ -33,8 +34,8 @@
     "node": "24.14.1"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
     "element-plus": "^2.14.7",
-    "pinia": "^2.3.0",
-    "@js-temporal/polyfill": "^0.5.1"
+    "pinia": "^2.3.0"
   }
 }

@@ -45,6 +45,7 @@ web/skills/
 
 # Generated
 /build/release/
+.venv/
 web/sitemap.xml
 web/dist/
 web/.astro/

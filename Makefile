@@ -11,22 +11,43 @@ export RELEASE_VERSION
 #   make smoke  本仓镜像启动 + health/page 冒烟
 .PHONY: help check test gate smoke e2e \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
-        check-web-static check-release-transport check-security check-go-version runtime-version-check \
+        check-web-static check-release-transport check-security check-go-version runtime-version-check python-env \
         check-version check-actions check-caddy check-skills check-packaging \
         build build-skills build-sitemap build-web build-go image test-go test-go-race test-go-coverage test-js-coverage \
-        dev clean hooks version
+        dev clean version
 
 # ── 环境 ──
 NODE_BIN := $(HOME)/.nvm/versions/node/v$(shell cat .nvmrc)/bin
 VERSION_FILE := cmd/liki-web/VERSION
-PYTHON_BIN := $(HOME)/app/python3.12.14/bin
+PYTHON_HOST := $(shell UV_CACHE_DIR=/tmp/uv-cache uv python find 3.12.14 2>/dev/null || command -v python3)
+PYTHON_BIN := $(CURDIR)/.venv/bin/python
+export PYTHON_BIN
 GOPATH := $(HOME)/app/go-tools
 GOBIN := $(GOPATH)/bin
-GOMODCACHE := $(GOPATH)/pkg/mod
-GOCACHE ?= $(GOPATH)/build-cache
-GOLANGCI_LINT_CACHE ?= $(GOPATH)/golangci-lint-cache
+GO_BIN := $(HOME)/app/go/bin/go
+GO_CACHE_FALLBACK_DEFAULT := $(if $(TMPDIR),$(patsubst %/,%,$(TMPDIR)),/tmp)/liki-web-go-cache
+GO_CACHE_FALLBACK := $(or $(GO_CACHE_FALLBACK),$(GO_CACHE_FALLBACK_DEFAULT))
+
+# Never bind the build to a possibly read-only host cache. Prefer Go's normal
+# cache when it is writable, including an explicit environment override; when
+# it is not writable, deterministically fall back to a writable cache.
+go_writable_cache = $(shell \
+	preferred='$(1)'; fallback='$(2)'; \
+	if [ -n "$$preferred" ]; then mkdir -p "$$preferred" 2>/dev/null || true; fi; \
+	if [ -n "$$preferred" ] && [ -d "$$preferred" ] && [ -w "$$preferred" ]; then \
+		printf '%s' "$$preferred"; \
+	else \
+		mkdir -p "$$fallback" && printf '%s' "$$fallback"; \
+	fi)
+GO_INPUT_MODCACHE := $(if $(filter undefined,$(origin GOMODCACHE)),$(shell $(GO_BIN) env GOMODCACHE 2>/dev/null),$(GOMODCACHE))
+GO_INPUT_BUILDCACHE := $(if $(filter undefined,$(origin GOCACHE)),$(shell $(GO_BIN) env GOCACHE 2>/dev/null),$(GOCACHE))
+GO_INPUT_LINTCACHE := $(if $(filter undefined,$(origin GOLANGCI_LINT_CACHE)),,$(GOLANGCI_LINT_CACHE))
+GOMODCACHE := $(call go_writable_cache,$(GO_INPUT_MODCACHE),$(GO_CACHE_FALLBACK)/mod)
+GOCACHE := $(call go_writable_cache,$(GO_INPUT_BUILDCACHE),$(GO_CACHE_FALLBACK)/build)
+GOLANGCI_LINT_CACHE := $(call go_writable_cache,$(GO_INPUT_LINTCACHE),$(GO_CACHE_FALLBACK)/golangci-lint)
+GATE_JOBS ?= $(shell nproc 2>/dev/null || echo 4)
 export PATH := $(PYTHON_BIN):$(NODE_BIN):$(HOME)/app/go/bin:$(GOBIN):$(PATH)
-export GOPATH GOBIN GOMODCACHE GOLANGCI_LINT_CACHE
+export GOPATH GOBIN GOMODCACHE GOCACHE GOLANGCI_LINT_CACHE GO_CACHE_FALLBACK GATE_JOBS
 export GOTOOLCHAIN ?= go1.26.10
 
 # ════════════════════════════════════════════════════════════
@@ -60,16 +81,25 @@ test-js-coverage: ## Run Vue/TS tests with V8 coverage
 	cd web/app && npx vitest run --coverage
 
 
-gate: check test ## 源码门槛：check + test；镜像冒烟在 release.yml 发布链执行
+gate: ## 源码门槛：check + test；镜像冒烟在 release.yml 发布链执行
+	$(MAKE) --jobs=$(GATE_JOBS) --output-sync=target check test
 
 check-go-version: ## Require the security-supported Go toolchain
 	scripts/check-go-version.sh
 
-runtime-version-check: ## 本地 node/python 必须等于 .nvmrc/.python-version（与 CI 同源）
+runtime-version-check: python-env ## 本地 node/python 必须等于 .nvmrc/.python-version（与 CI 同源）
 	scripts/check-runtime-versions.sh
 
-check-actions: ## Reject mutable reusable workflow/action references
-	python3 scripts/check_actions_pinned.py
+python-env: ## Provision the repository-local Python test environment
+	@expected="$$(cat .python-version)"; \
+		if [ ! -x "$(PYTHON_BIN)" ] || [ "$$($(PYTHON_BIN) -V 2>&1 | sed 's/^Python //')" != "$$expected" ]; then \
+			rm -rf .venv; \
+			"$(PYTHON_HOST)" -m venv .venv; \
+		fi; \
+		"$(PYTHON_BIN)" -m pip install --disable-pip-version-check --requirement scripts/requirements-dev.txt
+
+check-actions: python-env ## Reject mutable reusable workflow/action references
+	"$(PYTHON_BIN)" scripts/check_actions_pinned.py
 
 smoke: image ## 本仓镜像冒烟：health + rendered homepage
 	IMAGE_TAG=$(IMAGE_TAG) scripts/smoke-image.sh
@@ -100,9 +130,9 @@ test-js: ## vitest（静态站点 + Vue SPA）
 	cd web && PATH="$(NODE_BIN):$$PATH" npm run test
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npm run test
 
-test-python: ## Python helper tests
-	python3 -m unittest discover -s web/test -p '*_test.py' -q
-	python3 -m unittest discover -s scripts/tests -p 'test_*.py' -q
+test-python: python-env ## Python helper tests
+	"$(PYTHON_BIN)" -m unittest discover -s web/test -p '*_test.py' -q
+	"$(PYTHON_BIN)" -m unittest discover -s scripts/tests -p 'test_*.py' -q
 
 test-skills: ## Python skill 测试
 	scripts/verify-prepared-skills.sh
@@ -127,9 +157,6 @@ dev: build ## 本地开发
 
 clean: ## 清理构建产物
 	rm -rf bin/ web/dist/ web/app/dist/ coverage.out web/sitemap.xml web/.astro web/app/coverage test-results
-
-hooks: ## 安装 git hooks
-	git config core.hooksPath .githooks
 
 version: ## bump patch（CalVer date）
 	@DATE="$$(date +%Y.%m.%d)"; CURRENT=$$(cat $(VERSION_FILE) 2>/dev/null || echo 0.0.0.0); \

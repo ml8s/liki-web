@@ -19,13 +19,14 @@ else
 fi
 
 want_py="$(cat "$ROOT/.python-version")"
-if ! command -v python3 >/dev/null 2>&1; then
+python_bin="${PYTHON_BIN:-python3}"
+if ! command -v "$python_bin" >/dev/null 2>&1; then
     echo "python $want_py is required; see .python-version." >&2
     fail=1
 else
-    have_py="$(python3 -V | sed 's/^Python //')"
+    have_py="$("$python_bin" -V | sed 's/^Python //')"
     if [ "$have_py" != "$want_py" ]; then
-        echo "python $want_py is required; found $have_py at $(command -v python3)." >&2
+        echo "python $want_py is required; found $have_py at $(command -v "$python_bin")." >&2
         echo "  CI installs $want_py from .python-version; point python3 at a $want_py interpreter." >&2
         fail=1
     fi

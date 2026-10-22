@@ -1,4 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -7,6 +9,10 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import compression from 'vite-plugin-compression'
 
 export default defineConfig({
+  // Same disposable-cache contract as the Astro site: never assume
+  // node_modules is writable; deployments can redirect VITE_CACHE_DIR.
+  cacheDir:
+    process.env.VITE_CACHE_DIR ?? join(tmpdir(), 'liki-web-vite-cache', 'app'),
   base: '/app/',
   plugins: [
     vue(),
