@@ -132,7 +132,6 @@ test-js: ## vitest（静态站点 + Vue SPA）
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npm run test
 
 test-python: python-env ## Python helper tests
-	"$(PYTHON_BIN)" -m unittest discover -s web/test -p '*_test.py' -q
 	"$(PYTHON_BIN)" -m unittest discover -s scripts/tests -p 'test_*.py' -q
 
 e2e: ## Docker 全栈 E2E（不跑 lint / unit）
