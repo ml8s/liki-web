@@ -131,20 +131,6 @@ Human finance queue for refunds against paid commission entries.
 `user_id`, `referrer_id`, `recruiter_id`, and `buyer_user_id` are soft references  
 to `platform.db.users.id`; no cross-database foreign keys are allowed.
 
-## Migration notes
+## Naming rule
 
-- `005_scout_role` renames historical `channel_partner` partners to `scout`.
-- The same migration rebuilds referral applications with `type='scout'`.
-- Do not reuse the legacy `channel_partner` value in new code.
-- `006_commission_entries` splits sale commissions into beneficiary-owned
-  entries. Historical payouts are attached only to the entry matching the
-  payout owner's role.
-- `007_commission_refund_intake` makes refund handling retryable and idempotent.
-- `008_partner_roles` separates role capability from primary display role.
-- `009_financial_ledger` adds failed refund intake, payout role/original amount,
-  payout adjustments, refund allocations and encrypted payout accounts.
-- `010_finance_tasks` creates an explicit queue for paid-entry refund clawback.
-- `011_finance_task_erasure` permits `user_erasure_review`; account erasure freezes partners, redacts payout accounts after settlement, and queues unpaid obligations for finance.
-- `012_application_roles` permits KOL and Scout applications and preserves all historical applications as Scout applications.
-- `013_canonical_partner_tables` renames legacy referral tables to canonical partner-owned names. It must still run on fresh databases: migration 001 creates the legacy table names that 013 canonicalizes.
-- `014_canonical_payout_owner` renames `partner_payouts.referrer_id` to `beneficiary_id`; payouts are beneficiary-owned, not referral-owned.
+Do not reuse the retired `channel_partner` value in new code. `013_canonical_partner_tables` renamed the historical referral tables to the current partner-owned names; 001 still creates those historical names for fresh databases before 013 runs.

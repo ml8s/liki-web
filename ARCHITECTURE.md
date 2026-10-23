@@ -94,8 +94,7 @@ a session, on another device, or after session expiry. The credential is a
 scoped token that is accepted only by these read-only status endpoints. The
 status responses carry no PII (status, order id, redirect URLs only). Because
 the return endpoint may trigger one provider reconciliation call, all three
-endpoints carry a rate-limit tier; a return-URL nonce is a pre-planned
-hardening if the status surface ever grows sensitive fields.
+endpoints carry a rate-limit tier.
 
 ### Liki Chat run
 

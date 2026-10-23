@@ -1,8 +1,7 @@
 # Frontend UX architecture
 
-This document is the working contract for page planning, page states, and the
-shared UI system. `FRONTEND.md` records the stack and product behavior; this
-document records how pages are classified and how they should behave.
+This document defines page states, route inventory, and shared UI rules.
+`FRONTEND.md` records the stack and product behavior.
 
 ## Principles
 
@@ -239,7 +238,6 @@ There are three distinct URL types. Do not mix them.
 | --- | --- | --- | --- |
 | Referral share | `/r/{code}` | public marketing traffic | current |
 | App private permalink | `/app/chat/{session_id}` | signed-in owner only | current |
-| Public result share | `/s/{share_token}` | explicit recipient, expirable | deferred |
 
 ### Current referral contract
 
@@ -272,45 +270,18 @@ not expose raw resource IDs or private resource paths.
 
 ## Result state policy
 
-The primary paid interpretation lives in a Chat session. Its private permalink
-is:
+The primary paid interpretation lives in a Chat session; its permalink is:
 
 ```text
 /app/chat/{session_id}
 ```
 
-That permalink is enough for an owner to return to the conversation after
-sign-in. Chat content is private and conversational, so generic result sharing
-is deferred.
+Chat content is private. Result state levels:
 
-Do not build a public result-sharing page until there is an explicit product
-requirement and the following decisions are made:
-
-1. what fields are safe to expose;
-2. whether the recipient must sign in;
-3. whether the link expires;
-4. whether it can be revoked;
-5. what disclaimer is required.
-
-### Service result state levels
-
-| Level | URL | Scope | Status |
-| --- | --- | --- | --- |
-| Page state | service path only | result disappears on refresh | current |
-| Input state | deterministic input query | restores inputs, then may recompute | optional, service-by-service |
-| Private result permalink | `/app/results/{result_id}` | owner-only saved result | deferred |
-| Public share snapshot | `/s/{share_token}` | explicit, limited share payload | deferred |
-
-If input state is added later, use only low-sensitivity deterministic inputs and
-never place full birth data in the query. Random or conversational results need a
-persisted snapshot and cannot be restored by input query alone.
-
-### Attribution and future result shares
-
-If public result sharing is introduced later, generated links should pass
-through a share resolver rather than appending `referrer_id` to a private app
-URL. The resolver would attribute the referral, validate permission/expiry, and
-then redirect to the authorized target.
+| Level | URL | Scope |
+| --- | --- | --- |
+| Page state | service path only | result disappears on refresh |
+| Input state | deterministic input query | restores inputs, then may recompute (per service) |
 
 ## Component rules
 
