@@ -2,7 +2,7 @@
 
 `liki-web` is the web and BFF service for [Liki](https://liki.hk). It owns the authenticated product experience, birth profiles, orders, payments, entitlements, Liki Chat sessions, and account governance.
 
-It is not the metaphysics engine and not a generic agent runtime. Deterministic domain computation comes from `liki`; generic AG-UI execution can come from `liki-agents`; production deployment belongs to `liki-deploy`.
+It is not the metaphysics engine and not a generic agent runtime. Deterministic domain computation comes from `liki`; generic AG-UI execution comes from `liki-agent-runtime`; production deployment belongs to `liki-deploy`.
 
 ## Architecture
 
@@ -15,15 +15,15 @@ liki-web HTTP/BFF service
   ↓
 Bounded SQLite contexts
   ↓
-liki engine  /  liki-agents  /  payment providers
+liki engine  /  liki-agent-runtime  /  payment providers
 ```
 
 | Repository | Responsibility |
 | --- | --- |
 | `liki-web` | Product BFF, platform identity, profiles, commerce, entitlements, Liki Chat |
 | `liki` | deterministic engine, skills, Engine MCP, Counsel MCP source |
-| `liki-agents` | generic agent runtime, AG-UI/A2A protocol adapters, execution audit |
-| `liki-deploy` | deployment locks, Compose, Caddy, release and rollback |
+| `liki-agent-runtime` | generic agent runtime, AG-UI/A2A protocol adapters, execution audit |
+| `liki-deploy` | local images, Compose, Caddy, deploy and rollback |
 
 Liki Chat has two transports: the BFF relay (`/api/chat/sessions/<id>/ag-ui`)
 and, behind the build-time `VITE_CHAT_TRANSPORT=direct` flag, a direct route
@@ -97,16 +97,8 @@ In development, the login page shows a local verification code when the email se
 
 Never commit real environment files or secrets.
 
-CI consumes an exact liki release through repository variables:
-
-```text
-LIKI_SKILLS_RELEASE_TAG
-LIKI_SKILLS_BUNDLE_SHA256
-```
-
-The composite action downloads that release asset, verifies SHA256 and the
-embedded archive digest, and prepares `web/skills`. It never checks out or
-rebuilds the liki source repository.
+CI runs source gates only; it does not build images. Docker E2E runs locally
+via `make e2e`, and the cross-repository flow runs via `liki-deploy`.
 
 ## Payment
 

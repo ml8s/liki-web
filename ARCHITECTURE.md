@@ -18,7 +18,7 @@
 | `internal/partner` | KOL/Scout applications, attribution, commission, and payout domain |
 | `internal/account` | account erasure orchestration |
 | `internal/admin` | admin operations and audit |
-| `internal/agent` | AG-UI event adapter shared with the liki-agents runtime |
+| `internal/agent` | AG-UI event adapter shared with the liki-agent-runtime |
 | `internal/adminauth` | admin console session gate |
 | `internal/aipay` | Alipay A2M gateway, sandbox proof-of-payment records |
 | `internal/dodo` | Dodo payment gateway client |
@@ -53,9 +53,9 @@ and the Vue app.
 | Repository / service | Responsibility |
 | --- | --- |
 | `liki` | deterministic engine, skills, Engine MCP, Counsel MCP source |
-| `liki-agents` | generic agent runtime, AG-UI/A2A adapters, execution audit |
+| `liki-agent-runtime` | generic agent runtime, AG-UI/A2A adapters, execution audit |
 | payment providers | XunHuPay and Dodo |
-| `liki-deploy` | images, Compose, Caddy, release and rollback |
+| `liki-deploy` | local images, Compose, Caddy, deploy and rollback |
 
 `liki-web` never accepts browser-supplied identity, entitlement, price, or provider state as authoritative.
 
@@ -103,7 +103,7 @@ hardening if the status surface ever grows sensitive fields.
 Vue App sends AG-UI to /api/chat/sessions/{id}/ag-ui
 → liki-web checks identity, entitlement, session ownership, and rate limits
 → liki-web loads trusted persisted history
-→ liki-web routes every session (profile-bound or not) to the liki-agents runtime
+→ liki-web routes the session to its profile's experts runtime
 → profile birth facts travel in trusted AG-UI forwardedProps, not system prompts
 → liki-web persists the authoritative final answer
 ```
@@ -137,7 +137,7 @@ Cross-context writes are orchestrated in application code. There is no ad hoc fo
 | --- | --- |
 | application behavior | `liki-web` |
 | domain rules and deterministic tools | `liki` |
-| generic agent runtime and protocol adapters | `liki-agents` |
+| generic agent runtime and protocol adapters | `liki-agent-runtime` |
 | images, Compose, Caddy, rollback | `liki-deploy` |
 | rate limiting state | in-memory, per-instance; scale-out requires a shared limiter |
 

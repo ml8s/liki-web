@@ -180,7 +180,7 @@ The Vue app uses the official AG-UI client against:
 /rt/<profile>/ag-ui                  (direct, VITE_CHAT_TRANSPORT=direct)
 ```
 
-The relay reaches `liki-agents` through the liki-web BFF. The direct transport
+The relay reaches `liki-agent-runtime` through the liki-web BFF. The direct transport
 is a build-time switch: Caddy (same origin) performs ForwardAuth introspection
 and a mutual-TLS upstream, and the client carries the conversation history and
 profile context because the runtime is stateless; history is persisted by the

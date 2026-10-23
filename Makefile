@@ -148,7 +148,7 @@ build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前
 
 # ── 镜像（本地开发，非发布路径）──
 # 本地镜像 tag 由 IMAGE_TAG 指定；部署由 liki-deploy 按 sha 组装。
-IMAGE_REGISTRY ?= ghcr.io/ml8s
+IMAGE_REGISTRY ?= liki-local
 IMAGE_TAG ?= local
 
 image: build ## Build the local development image

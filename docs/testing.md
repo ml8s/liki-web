@@ -25,7 +25,7 @@ tests. It is a stable guide, not a task list.
 | First-party HTTP contract | Does the BFF accept and return the precise JSON, status, error, and transport contract? | Package handler tests plus `internal/httputil` transport tests | Visual rendering |
 | Engine/Counsel MCP contract | Does the frontend send the exact tool request and consume the exact envelope/result? | `web/app/src/tests/engine-contract.test.ts` | Domain correctness behind the adapter |
 | Browser integration | Does a production-built page assemble and complete the user task? | `web/e2e/journeys` | Restating every unit-level branch |
-| Release system | Does the built image start and expose the expected surface? | `make smoke` and the release workflow | Product-policy edge cases |
+| Release system | Does the built image start and expose the expected surface? | `make smoke` | Product-policy edge cases |
 
 ## Contract ownership
 
