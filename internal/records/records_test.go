@@ -115,6 +115,7 @@ func TestCreateValidatesInput(t *testing.T) {
 
 func recordRequest(method, target, body, userID, recordID string) *http.Request {
 	request := httptest.NewRequest(method, target, strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
 	request.SetPathValue("id", recordID)
 	return request.WithContext(auth.WithAuth(request.Context(), auth.User{ID: userID}, auth.AuthSession{}, ""))
 }

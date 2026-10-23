@@ -226,7 +226,7 @@ func (h *Handler) HandleCreateScoutPayout(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) createPayout(w http.ResponseWriter, r *http.Request, user auth.User, role PartnerRole) {
-	req, ok := httputil.DecodeAndValidate[payoutRequest](w, r)
+	req, ok := httputil.DecodeStrict[payoutRequest](w, r)
 	if !ok {
 		return
 	}

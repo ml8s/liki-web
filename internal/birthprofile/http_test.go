@@ -99,6 +99,38 @@ func TestHTTPValidation(t *testing.T) {
 	}
 }
 
+func TestHTTPRejectsRetiredSemanticFields(t *testing.T) {
+	h := newHandlerFixture(t)
+	payload := completePayload("妈妈")
+	payload["calendar"] = "solar"
+	payload["birth"].(map[string]any)["birth_time_known"] = "known"
+
+	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", payload)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for retired semantic fields, got %d body=%s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestHTTPUpdateRequiresExpectedVersion(t *testing.T) {
+	h := newHandlerFixture(t)
+	rr := doJSON(t, h, http.MethodPost, "/api/birth-profiles", completePayload("妈妈"))
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("create status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	var created struct {
+		Data BirthProfile `json:"data"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+
+	payload := completePayload("妈妈（新）")
+	rr = doJSON(t, h, http.MethodPatch, "/api/birth-profiles/"+created.Data.ID, payload)
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 without expected_version, got %d body=%s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestHTTPRequiresCompleteChartInput(t *testing.T) {
 	h := newHandlerFixture(t)
 	payload := completePayload("妈妈")

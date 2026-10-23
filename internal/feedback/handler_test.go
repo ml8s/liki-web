@@ -197,6 +197,7 @@ func TestHandleUpdate_Success(t *testing.T) {
 
 	body, _ := json.Marshal(UpdateRequest{Status: "done", IssueURL: "https://github.com/ml8s/liki/issues/1"})
 	req := httptest.NewRequest("PATCH", "/api/feedback/"+id, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "my-key")
 	req.SetPathValue("id", id)
 	w := httptest.NewRecorder()
@@ -211,6 +212,7 @@ func TestHandleUpdate_NotFound(t *testing.T) {
 	s := setup(t)
 	body, _ := json.Marshal(UpdateRequest{Status: "done"})
 	req := httptest.NewRequest("PATCH", "/api/feedback/no-such", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "my-key")
 	req.SetPathValue("id", "no-such")
 	w := httptest.NewRecorder()

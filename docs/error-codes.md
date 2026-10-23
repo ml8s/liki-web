@@ -66,8 +66,9 @@
 | `subscription_unavailable` | `internal/sales/subscription_http.go` |
 | `subscription_update_failed` | `internal/sales/subscription_http.go` |
 | `super_requires_super` | `internal/adminauth/http.go` |
-| `too_large` | `internal/httputil/response.go` |
+| `too_large` | `internal/httputil/json.go` |
 | `unauthorized` | `internal/httputil/errors.go` |
+| `unsupported_media_type` | `internal/httputil/json.go` |
 | `user_disabled` | `internal/auth/http.go` |
 | `user_not_active` | `internal/admin/support.go` |
 | `user_not_found` | `internal/admin/support.go` |

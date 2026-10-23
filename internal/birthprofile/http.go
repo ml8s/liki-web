@@ -1,7 +1,6 @@
 package birthprofile
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -36,24 +35,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit LimitFunc) {
 	mux.HandleFunc("DELETE /api/birth-profiles/{id}", h.requireUser(limit(h.HandleDelete)))
 }
 
-type createRequest struct {
-	BirthProfileDraft
-}
-
 type updateRequest struct {
 	BirthProfileDraft
 	ExpectedVersion int `json:"expected_version"`
-}
-
-func (r createRequest) Validate(now time.Time) error {
-	return ValidateBirthProfileDraft(now, r.BirthProfileDraft)
-}
-
-func (r updateRequest) Validate(now time.Time) error {
-	if r.ExpectedVersion <= 0 {
-		return errors.New("expected_version is required")
-	}
-	return ValidateBirthProfileDraft(now, r.BirthProfileDraft)
 }
 
 func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
@@ -62,15 +46,20 @@ func (h *Handler) HandleCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	var req createRequest
-	if !decode(w, r, &req) {
+
+	req, ok := httputil.DecodeStrictJSON[BirthProfileDraft](
+		w,
+		r,
+		httputil.DecodeOptions{},
+	)
+	if !ok {
 		return
 	}
-	if err := req.Validate(time.Now()); err != nil {
+	if err := ValidateBirthProfileDraft(time.Now(), req); err != nil {
 		validation(w, err.Error())
 		return
 	}
-	p, err := h.store.Create(r.Context(), user.ID, req.BirthProfileDraft)
+	p, err := h.store.Create(r.Context(), user.ID, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrQuotaExceeded):
@@ -131,12 +120,17 @@ func (h *Handler) HandleUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	var req updateRequest
-	if !decode(w, r, &req) {
+
+	req, ok := httputil.DecodeStrictJSON[updateRequest](
+		w,
+		r,
+		httputil.DecodeOptions{},
+	)
+	if !ok {
 		return
 	}
-	if err := req.Validate(time.Now()); err != nil {
-		validation(w, err.Error())
+	if req.ExpectedVersion <= 0 {
+		validation(w, "expected_version is required")
 		return
 	}
 	if err := ValidateBirthProfileDraft(time.Now(), req.BirthProfileDraft); err != nil {
@@ -177,18 +171,6 @@ func (h *Handler) HandleDelete(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondRawJSON(w, http.StatusOK, map[string]any{"data": map[string]string{"status": "deleted"}})
 }
 
-func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
-	// Birth profile fields are a precise contract. Retired semantic fields such
-	// as calendar/birth_time_known must not be silently accepted.
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(dst); err != nil {
-		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
-		return false
-	}
-	return true
-}
-
 func validation(w http.ResponseWriter, message string) {
-	httputil.RespondRawJSON(w, http.StatusUnprocessableEntity, map[string]any{"error": map[string]string{"code": "validation_error", "message": message}})
+	httputil.RespondError(w, http.StatusUnprocessableEntity, "validation_error", message)
 }

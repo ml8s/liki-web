@@ -68,26 +68,33 @@ VALUES('user-deleted','deleted@example.com','deleted','zh-Hans',?,?,'2026-01-01T
 		entitlements, users, nil, nil, notifications.record)
 
 	disabledRecorder := httptest.NewRecorder()
-	mux.ServeHTTP(disabledRecorder, httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
-		strings.NewReader(`{"email":"disabled@example.com","template":"support_7d","reason":"check"}`)))
+	disabledRequest := httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
+		strings.NewReader(`{"email":"disabled@example.com","template":"support_7d","reason":"check"}`))
+	disabledRequest.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(disabledRecorder, disabledRequest)
 	if disabledRecorder.Code != http.StatusConflict {
 		t.Fatalf("disabled user status=%d body=%s", disabledRecorder.Code, disabledRecorder.Body.String())
 	}
 	deletedRecorder := httptest.NewRecorder()
-	mux.ServeHTTP(deletedRecorder, httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
-		strings.NewReader(`{"email":"deleted@example.com","template":"support_7d","reason":"check"}`)))
+	deletedRequest := httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
+		strings.NewReader(`{"email":"deleted@example.com","template":"support_7d","reason":"check"}`))
+	deletedRequest.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(deletedRecorder, deletedRequest)
 	if deletedRecorder.Code != http.StatusNotFound {
 		t.Fatalf("deleted user status=%d body=%s", deletedRecorder.Code, deletedRecorder.Body.String())
 	}
 	invalidRecorder := httptest.NewRecorder()
-	mux.ServeHTTP(invalidRecorder, httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
-		strings.NewReader(`{"email":"customer@example.com","template":"support_999d","reason":"check"}`)))
+	invalidRequest := httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
+		strings.NewReader(`{"email":"customer@example.com","template":"support_999d","reason":"check"}`))
+	invalidRequest.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(invalidRecorder, invalidRequest)
 	if invalidRecorder.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("invalid template status=%d body=%s", invalidRecorder.Code, invalidRecorder.Body.String())
 	}
 
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
 		strings.NewReader(`{"email":"customer@example.com","template":"support_30d","reason":"service incident","idempotency_key":"ticket-1"}`))
+	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 	mux.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusCreated {
@@ -111,6 +118,7 @@ VALUES('user-deleted','deleted@example.com','deleted','zh-Hans',?,?,'2026-01-01T
 	// A timeout followed by the same operator retry must not stack access.
 	request = httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
 		strings.NewReader(`{"email":"customer@example.com","template":"support_30d","reason":"service incident","idempotency_key":"ticket-1"}`))
+	request.Header.Set("Content-Type", "application/json")
 	recorder = httptest.NewRecorder()
 	mux.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusCreated {
@@ -123,6 +131,7 @@ VALUES('user-deleted','deleted@example.com','deleted','zh-Hans',?,?,'2026-01-01T
 
 	request = httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
 		strings.NewReader(`{"email":"missing@example.com","template":"support_7d","reason":"support"}`))
+	request.Header.Set("Content-Type", "application/json")
 	recorder = httptest.NewRecorder()
 	mux.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusNotFound {
@@ -166,9 +175,11 @@ VALUES('user-1','customer@example.com','active','en',?,?)`, now, now); err != ni
 		entitlements, users, nil, nil, func(context.Context, auth.User, entitlement.Entitlement, string) error {
 			return errors.New("outbox unavailable")
 		})
+	request := httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
+		strings.NewReader(`{"email":"customer@example.com","template":"support_7d","reason":"incident"}`))
+	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
-	mux.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/api/admin/entitlements/compensation",
-		strings.NewReader(`{"email":"customer@example.com","template":"support_7d","reason":"incident"}`)))
+	mux.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
 	}

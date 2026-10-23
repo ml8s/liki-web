@@ -12,6 +12,7 @@ func TestAdminApplicationDecisionRequiresReason(t *testing.T) {
 	store := newAdminStore(t)
 	handler := NewAdminHandler(store, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/partner-applications/app/decision", strings.NewReader(`{"approve":true}`))
+	request.Header.Set("Content-Type", "application/json")
 	request.SetPathValue("id", "app")
 	recorder := httptest.NewRecorder()
 	handler.HandleApplicationDecision()(recorder, request)
@@ -35,6 +36,7 @@ func TestAdminApplicationDecisionNotifiesAfterCommit(t *testing.T) {
 		}
 	})
 	request := httptest.NewRequest(http.MethodPost, "/decision", strings.NewReader(`{"approve":true,"reason":"qualified"}`))
+	request.Header.Set("Content-Type", "application/json")
 	request.SetPathValue("id", app.ID)
 	recorder := httptest.NewRecorder()
 	handler.HandleApplicationDecision()(recorder, request)
@@ -47,6 +49,7 @@ func TestAdminPartnerStatusRequiresReason(t *testing.T) {
 	store := newAdminStore(t)
 	handler := NewAdminHandler(store, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/partners/kol/freeze", strings.NewReader(`{}`))
+	request.Header.Set("Content-Type", "application/json")
 	request.SetPathValue("userId", "kol")
 	recorder := httptest.NewRecorder()
 	handler.HandlePartnerFreeze()(recorder, request)
@@ -64,6 +67,7 @@ func TestAdminPartnerStatusFreezeAndUnfreeze(t *testing.T) {
 	}
 	handler := NewAdminHandler(store, nil)
 	request := httptest.NewRequest(http.MethodPost, "/api/admin/partners/kol/freeze", strings.NewReader(`{"reason":"manual review"}`))
+	request.Header.Set("Content-Type", "application/json")
 	request.SetPathValue("userId", kol.UserID)
 	recorder := httptest.NewRecorder()
 	handler.HandlePartnerFreeze()(recorder, request)
@@ -78,6 +82,7 @@ func TestAdminPartnerStatusFreezeAndUnfreeze(t *testing.T) {
 		t.Fatalf("partner = %+v", partner)
 	}
 	unfreeze := httptest.NewRequest(http.MethodPost, "/api/admin/partners/kol/unfreeze", strings.NewReader(`{"reason":"verified"}`))
+	unfreeze.Header.Set("Content-Type", "application/json")
 	unfreeze.SetPathValue("userId", kol.UserID)
 	recorder = httptest.NewRecorder()
 	handler.HandlePartnerUnfreeze()(recorder, unfreeze)

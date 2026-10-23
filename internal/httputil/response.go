@@ -95,37 +95,13 @@ func Decode[T any](w http.ResponseWriter, r *http.Request) (T, bool) {
 	return req, true
 }
 
-// DecodeStrict behaves like DecodeAndValidate but additionally rejects
-// unknown fields. Use it for first-party request DTOs; never for
-// third-party payloads such as AG-UI input.
+// DecodeStrict decodes and validates a first-party JSON request. Transport
+// rules live in DecodeStrictJSON; domain rules remain in T.Validate. Use it
+// for first-party request DTOs; never for third-party payloads such as AG-UI
+// input.
 func DecodeStrict[T validator](w http.ResponseWriter, r *http.Request) (T, bool) {
-	var req T
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
-			RespondAppError(w, &AppError{Code: "too_large", Message: "Request body too large", HTTPStatus: http.StatusRequestEntityTooLarge})
-			return req, false
-		}
-		RespondAppError(w, &AppError{Code: ErrCodeInvalidRequest, Message: "请求无效", HTTPStatus: http.StatusBadRequest})
-		return req, false
-	}
-	if err := req.Validate(); err != nil {
-		slog.WarnContext(r.Context(), "validation failed", "err", err)
-		RespondAppError(w, &AppError{Code: "validation_error", Message: "Invalid request parameters", HTTPStatus: http.StatusUnprocessableEntity})
-		return req, false
-	}
-	return req, true
-}
-
-func DecodeAndValidate[T validator](w http.ResponseWriter, r *http.Request) (T, bool) {
-	var req T
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
-			RespondAppError(w, &AppError{Code: "too_large", Message: "Request body too large", HTTPStatus: http.StatusRequestEntityTooLarge})
-			return req, false
-		}
-		RespondAppError(w, &AppError{Code: ErrCodeInvalidRequest, Message: "请求无效", HTTPStatus: http.StatusBadRequest})
+	req, ok := DecodeStrictJSON[T](w, r, DecodeOptions{})
+	if !ok {
 		return req, false
 	}
 	if err := req.Validate(); err != nil {

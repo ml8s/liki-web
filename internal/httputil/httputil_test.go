@@ -4,13 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
-
-type testValid struct{ Name string }
-
-func (t testValid) Validate() error { return nil }
 
 func TestRespondJSON(t *testing.T) {
 	w := httptest.NewRecorder()
@@ -48,29 +43,6 @@ func TestRespondAppError(t *testing.T) {
 	}
 	if resp.Detail != "test msg" {
 		t.Errorf("detail = %q", resp.Detail)
-	}
-}
-
-func TestDecodeAndValidate_Valid(t *testing.T) {
-	r := httptest.NewRequest("POST", "/", strings.NewReader(`{"Name":"hello"}`))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	v, ok := DecodeAndValidate[testValid](w, r)
-	if !ok {
-		t.Error("expected ok")
-	}
-	if v.Name != "hello" {
-		t.Errorf("name = %q", v.Name)
-	}
-}
-
-func TestDecodeAndValidate_InvalidJSON(t *testing.T) {
-	r := httptest.NewRequest("POST", "/", strings.NewReader(`{bad`))
-	r.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	_, ok := DecodeAndValidate[testValid](w, r)
-	if ok {
-		t.Error("expected not ok")
 	}
 }
 

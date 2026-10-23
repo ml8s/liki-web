@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/ml8s/liki-web/internal/auth"
@@ -125,5 +126,31 @@ func TestHandleProductsOffersOnlyRegionPurchasableOptions(t *testing.T) {
 				t.Fatalf("purchase options = %v, want %v", options, tc.wantOptions)
 			}
 		})
+	}
+}
+
+func TestHandleCheckoutRejectsUnknownFields(t *testing.T) {
+	handler := NewHandler(nil, nil, nil, nil)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/sales/checkouts",
+		strings.NewReader(`{"product_id":"liki-chat","billing_mode":"one_time","schema_version":"2"}`),
+	)
+	request.Header.Set("Content-Type", "application/json")
+	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{ID: "user-1"}, auth.AuthSession{}, ""))
+	recorder := httptest.NewRecorder()
+	handler.HandleCheckout(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s, want 400", recorder.Code, recorder.Body.String())
+	}
+	var problem struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &problem); err != nil {
+		t.Fatal(err)
+	}
+	if problem.Type != "invalid_request" {
+		t.Fatalf("problem type = %q, want invalid_request", problem.Type)
 	}
 }

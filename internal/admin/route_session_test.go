@@ -61,6 +61,9 @@ func TestAdminSessionReturnsCapabilitiesAndEntitlementRoutes(t *testing.T) {
 	execute := func(method, target, body string) *httptest.ResponseRecorder {
 		t.Helper()
 		request := httptest.NewRequest(method, target, strings.NewReader(body))
+		if body != "" {
+			request.Header.Set("Content-Type", "application/json")
+		}
 		recorder := httptest.NewRecorder()
 		mux.ServeHTTP(recorder, request)
 		return recorder

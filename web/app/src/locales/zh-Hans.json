@@ -966,7 +966,8 @@
       "subscription_unavailable": "订阅在当前区域不可用",
       "subscription_conflict": "已有有效订阅，无法重复创建",
       "subscription_failed": "创建订阅失败，请稍后重试",
-      "subscription_update_failed": "更新订阅状态失败，请稍后重试"
+      "subscription_update_failed": "更新订阅状态失败，请稍后重试",
+      "unsupported_media_type": "Content-Type 必须是 application/json"
     }
   },
   "notFound": {

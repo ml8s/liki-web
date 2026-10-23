@@ -20,6 +20,7 @@ func testUser(id string) auth.User {
 
 func authedRequest(user auth.User) *http.Request {
 	r := httptest.NewRequest(http.MethodPost, "/api/partner-portal/kol/application", strings.NewReader(`{"note":"metaphysics creator"}`))
+	r.Header.Set("Content-Type", "application/json")
 	return r.WithContext(auth.WithAuth(r.Context(), user, auth.AuthSession{ID: "session"}, "token"))
 }
 

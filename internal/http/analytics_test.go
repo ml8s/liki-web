@@ -12,6 +12,7 @@ import (
 func TestHandlePageViewRecordsAggregateCounter(t *testing.T) {
 	before := metrics.Default.Snapshot()["analytics_pageview_total"]
 	request := httptest.NewRequest(http.MethodPost, "/api/analytics/pageview", strings.NewReader(`{"path":"/zh-Hans/"}`))
+	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 
 	handlePageView()(recorder, request)
@@ -27,6 +28,7 @@ func TestHandlePageViewRecordsAggregateCounter(t *testing.T) {
 func TestHandlePageViewRejectsInvalidJSON(t *testing.T) {
 	before := metrics.Default.Snapshot()["analytics_pageview_total"]
 	request := httptest.NewRequest(http.MethodPost, "/api/analytics/pageview", strings.NewReader(`{`))
+	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 
 	handlePageView()(recorder, request)

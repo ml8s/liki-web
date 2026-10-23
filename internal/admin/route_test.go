@@ -88,6 +88,9 @@ func TestAdminManagementRoutes(t *testing.T) {
 			reader = strings.NewReader(body)
 		}
 		request := httptest.NewRequest(method, target, reader)
+		if body != "" {
+			request.Header.Set("Content-Type", "application/json")
+		}
 		recorder := httptest.NewRecorder()
 		mux.ServeHTTP(recorder, request)
 		return recorder

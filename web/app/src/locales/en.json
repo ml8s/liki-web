@@ -966,7 +966,8 @@
       "subscription_unavailable": "Subscriptions are unavailable in your region.",
       "subscription_conflict": "An active subscription already exists.",
       "subscription_failed": "Could not create the subscription. Try again later.",
-      "subscription_update_failed": "Could not update the subscription. Try again later."
+      "subscription_update_failed": "Could not update the subscription. Try again later.",
+      "unsupported_media_type": "Content-Type must be application/json"
     }
   },
   "notFound": {

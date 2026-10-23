@@ -146,7 +146,7 @@ func (h *Handler) submitApplication(w http.ResponseWriter, r *http.Request, role
 		httputil.RespondAppError(w, httputil.ErrUnauthorized)
 		return
 	}
-	req, ok := httputil.DecodeAndValidate[applicationRequest](w, r)
+	req, ok := httputil.DecodeStrict[applicationRequest](w, r)
 	if !ok {
 		return
 	}

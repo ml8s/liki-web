@@ -91,7 +91,7 @@ func (h *AdminHandler) HandleApplicationDecision() http.HandlerFunc {
 			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "application id 不能为空")
 			return
 		}
-		req, ok := httputil.DecodeAndValidate[applicationDecisionRequest](w, r)
+		req, ok := httputil.DecodeStrict[applicationDecisionRequest](w, r)
 		if !ok {
 			return
 		}
@@ -149,7 +149,7 @@ func (h *AdminHandler) handlePartnerStatus(status PartnerStatus) http.HandlerFun
 			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "user id 不能为空")
 			return
 		}
-		req, ok := httputil.DecodeAndValidate[partnerStatusRequest](w, r)
+		req, ok := httputil.DecodeStrict[partnerStatusRequest](w, r)
 		if !ok {
 			return
 		}
@@ -214,7 +214,7 @@ func (h *AdminHandler) HandlePayoutAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		action := r.PathValue("action")
-		req, ok := httputil.DecodeAndValidate[payoutActionRequest](w, r)
+		req, ok := httputil.DecodeStrict[payoutActionRequest](w, r)
 		if !ok {
 			return
 		}
@@ -283,7 +283,7 @@ func (r financeTaskRequest) Validate() error {
 func (h *AdminHandler) HandleResolveFinanceTask() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		req, ok := httputil.DecodeAndValidate[financeTaskRequest](w, r)
+		req, ok := httputil.DecodeStrict[financeTaskRequest](w, r)
 		if !ok {
 			return
 		}
@@ -318,7 +318,7 @@ func (r revealPayoutRequest) Validate() error {
 func (h *AdminHandler) HandleRevealPayoutAccount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		req, ok := httputil.DecodeAndValidate[revealPayoutRequest](w, r)
+		req, ok := httputil.DecodeStrict[revealPayoutRequest](w, r)
 		if !ok {
 			return
 		}

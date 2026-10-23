@@ -45,6 +45,7 @@ func roleAPIRequest(user auth.User, method, target string, body string) *http.Re
 		return httptest.NewRequest(method, target, nil).WithContext(auth.WithAuth(context.Background(), user, auth.AuthSession{}, ""))
 	}
 	request := httptest.NewRequest(method, target, strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
 	return request.WithContext(auth.WithAuth(request.Context(), user, auth.AuthSession{}, ""))
 }
 

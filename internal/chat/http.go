@@ -160,21 +160,25 @@ type renameSessionRequest struct {
 	Title string `json:"title"`
 }
 
+func (r renameSessionRequest) Validate() error {
+	title := strings.TrimSpace(r.Title)
+	if title == "" || len([]rune(title)) > maxSessionTitleRunes {
+		return errors.New("title must contain 1-60 characters")
+	}
+	return nil
+}
+
 func (h *Handler) HandleRenameSession(w http.ResponseWriter, r *http.Request) {
 	user, ok := auth.UserFromContext(r.Context())
 	if !ok {
 		httputil.Unauthorized(w)
 		return
 	}
-	req, ok := httputil.Decode[renameSessionRequest](w, r)
+	req, ok := httputil.DecodeStrict[renameSessionRequest](w, r)
 	if !ok {
 		return
 	}
 	title := strings.TrimSpace(req.Title)
-	if title == "" || len([]rune(title)) > maxSessionTitleRunes {
-		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "会话标题需为 1-60 个字符")
-		return
-	}
 	session, err := h.service.RenameSession(r.Context(), user.ID, r.PathValue("id"), title)
 	if err != nil {
 		writeSessionError(r.Context(), w, err)

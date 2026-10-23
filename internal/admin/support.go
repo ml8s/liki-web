@@ -54,7 +54,7 @@ func (r compensationRequest) Validate() error {
 
 func (h *AdminService) HandleCompensateEntitlement() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, ok := httputil.DecodeAndValidate[compensationRequest](w, r)
+		req, ok := httputil.DecodeStrict[compensationRequest](w, r)
 		if !ok {
 			return
 		}

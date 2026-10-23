@@ -82,7 +82,7 @@ func (h *AdminService) HandleEntitlements() http.HandlerFunc {
 func (h *AdminService) HandleExpireEntitlement() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		req, ok := httputil.DecodeAndValidate[entitlementExpireRequest](w, r)
+		req, ok := httputil.DecodeStrict[entitlementExpireRequest](w, r)
 		if !ok || id == "" {
 			return
 		}
@@ -103,7 +103,7 @@ func (h *AdminService) HandleExpireEntitlement() http.HandlerFunc {
 func (h *AdminService) HandleRevokeEntitlement() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
-		req, ok := httputil.DecodeAndValidate[entitlementRevokeRequest](w, r)
+		req, ok := httputil.DecodeStrict[entitlementRevokeRequest](w, r)
 		if !ok || id == "" {
 			return
 		}

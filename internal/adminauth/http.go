@@ -84,7 +84,7 @@ func (h *Handler) HandleListAdmins() http.HandlerFunc {
 
 func (h *Handler) HandleCreateAdmin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, ok := httputil.DecodeAndValidate[createAdminRequest](w, r)
+		req, ok := httputil.DecodeStrict[createAdminRequest](w, r)
 		if !ok {
 			return
 		}
@@ -99,7 +99,7 @@ func (h *Handler) HandleCreateAdmin() http.HandlerFunc {
 
 func (h *Handler) HandleGrantCapability() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, ok := httputil.DecodeAndValidate[capabilityRequest](w, r)
+		req, ok := httputil.DecodeStrict[capabilityRequest](w, r)
 		if !ok {
 			return
 		}
@@ -115,7 +115,7 @@ func (h *Handler) HandleGrantCapability() http.HandlerFunc {
 
 func (h *Handler) HandleRevokeCapability() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, ok := httputil.DecodeAndValidate[capabilityRequest](w, r)
+		req, ok := httputil.DecodeStrict[capabilityRequest](w, r)
 		if !ok {
 			return
 		}
@@ -139,7 +139,7 @@ func (h *Handler) HandleDisableAdmin() http.HandlerFunc {
 
 func (h *Handler) handleStatus(status AdminStatus) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		req, ok := httputil.DecodeAndValidate[adminStatusRequest](w, r)
+		req, ok := httputil.DecodeStrict[adminStatusRequest](w, r)
 		if !ok {
 			return
 		}

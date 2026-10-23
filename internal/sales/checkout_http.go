@@ -1,7 +1,6 @@
 package sales
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -23,9 +22,13 @@ func (h *Handler) HandleCheckout(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	var req checkoutRequest
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil {
-		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "Invalid JSON body")
+
+	req, ok := httputil.DecodeStrictJSON[checkoutRequest](
+		w,
+		r,
+		httputil.DecodeOptions{},
+	)
+	if !ok {
 		return
 	}
 	if req.BillingMode == "" {

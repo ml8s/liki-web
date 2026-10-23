@@ -69,6 +69,7 @@ func TestSubscriptionCheckoutStoresLocalKeyAndOmitsAmount(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodPost, "/api/sales/checkouts",
 		strings.NewReader(`{"product_id":"liki-chat","billing_mode":"subscription","locale":"en"}`))
+	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("CF-IPCountry", "US")
 	request.SetPathValue("id", string(product.Chat))
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
@@ -135,6 +136,7 @@ func TestSubscriptionCheckoutRejectsCurrencyWithoutSubscriptionPrice(t *testing.
 
 	request := httptest.NewRequest(http.MethodPost, "/api/sales/checkouts",
 		strings.NewReader(`{"product_id":"liki-chat","billing_mode":"subscription","locale":"zh-Hans"}`))
+	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("CF-IPCountry", "CN")
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
 		ID: "user-1", Email: "user@example.com",
@@ -384,6 +386,7 @@ func TestSubscriptionCheckoutRejectsActiveSubscription(t *testing.T) {
 	)
 	request := httptest.NewRequest(http.MethodPost, "/api/sales/checkouts",
 		strings.NewReader(`{"product_id":"liki-chat","billing_mode":"subscription","locale":"en"}`))
+	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("CF-IPCountry", "US")
 	request.SetPathValue("id", string(product.Chat))
 	request = request.WithContext(auth.WithAuth(request.Context(), auth.User{
