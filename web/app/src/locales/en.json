@@ -447,6 +447,7 @@
         "thirdPartyConsentRequired": "Please confirm that you have this person’s consent"
       },
       "birthYear": "Birth year",
+      "birthYearGregorian": "Uses the Gregorian year; January before Lichun still uses that Gregorian year.",
       "birthTime": "Birth time"
     },
     "list": {

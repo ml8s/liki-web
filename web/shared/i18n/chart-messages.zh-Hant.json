@@ -169,6 +169,7 @@
         "thirdPartyConsentRequired": "請先確認已獲得該人的同意"
       },
       "birthYear": "出生年份",
+      "birthYearGregorian": "以公曆年計算；立春前的 1 月仍使用該公曆年。",
       "birthTime": "出生時間"
     },
     "female": "女",

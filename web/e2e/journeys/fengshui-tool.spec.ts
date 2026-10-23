@@ -53,6 +53,7 @@ test('工具岛：命卦与八宅方位按共享组件渲染', async ({ page }) 
   await page.goto('/zh-Hans/fengshui/');
 
   const tool = page.locator('#fengshui-tool');
+  await expect(tool.getByText('以公历年计算；立春前的 1 月仍使用该公历年。')).toBeVisible();
   await tool.getByRole('spinbutton', { name: '出生年份' }).fill('1990');
   await tool.locator('.choice-card .el-radio-button').first().click();
   await tool.locator('button[type=submit]').click();

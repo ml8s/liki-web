@@ -27,6 +27,7 @@ function update<K extends keyof FengshuiBirthValue>(key: K, value: FengshuiBirth
       :model-value="value.year"
       name="fengshui-birth-year"
       :label="t('profiles.form.birthYear')"
+      :hint="t('profiles.form.birthYearGregorian')"
       :min="1900"
       :max="2100"
       @update:model-value="update('year', $event)"
