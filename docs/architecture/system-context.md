@@ -56,11 +56,8 @@ liki release bundle → 校验 SHA256 / archive digest
 
 ### 3.3 镜像发布（release）
 
-`release.yml` 在 Git tag `v<CalVer>` 上触发：release gate（check/test/静态门）通过后，
-CI 内 `docker buildx build` 构建并推送 `ghcr.io/ml8s/liki-web:<tag>`（+`latest`），
-随后镜像冒烟、cosign 签名与签名验证，最后发布 GitHub Release 并上传
-`candidate-digests.json`（liki-deploy 经 fetch-release-manifests 消费的跨仓合同）。
-源码门不构建镜像；`make image` 仅用于本地开发。
+镜像由本仓在本地构建（`make image`），tag = commit sha；CI 不构建镜像。
+`liki-deploy` 用这批本地镜像跑全系统 e2e，再传输并部署。
 
 - 镜像依赖预构建产物（bin + web/dist + web/app/dist + web/skills）
 - **web/skills 来自 prepare-skills**（消费 liki bundle），非本仓源码

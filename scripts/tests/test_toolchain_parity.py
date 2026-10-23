@@ -1,6 +1,6 @@
 """Toolchain pins must be single-sourced: local `make lint-go` and CI run the
 same golangci-lint. 一个 pin 两处版本 = 本地过、CI 挂（或反过来）。
-对账四方：deps/golangci-lint.version、ci.yml、release.yml、本地 lint 脚本。
+对账三方：deps/golangci-lint.version、ci.yml、本地 lint 脚本。
 """
 from __future__ import annotations
 
@@ -37,11 +37,6 @@ class ToolchainParityTest(unittest.TestCase):
     def test_ci_matches_pin(self):
         versions = _action_versions(ROOT / ".github" / "workflows" / "ci.yml")
         self.assertTrue(versions, "CI must run golangci-lint-action")
-        self.assertEqual(versions, {_pin()})
-
-    def test_release_matches_pin(self):
-        versions = _action_versions(ROOT / ".github" / "workflows" / "release.yml")
-        self.assertTrue(versions, "release must run golangci-lint-action")
         self.assertEqual(versions, {_pin()})
 
     def test_lint_go_uses_the_pin_script(self):

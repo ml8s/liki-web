@@ -5,7 +5,7 @@ export RELEASE_VERSION
 # 统一语义（四仓一致）：
 #   make check  纯静态检查（lint+格式+类型+安全+skills；不跑测试、不构建）
 #   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
-#   make gate   check + test ＝ 源码门槛；镜像冒烟在 release.yml 发布链执行
+#   make gate   check + test ＝ 源码门槛；镜像在本地构建
 #   make build  本仓产物（前端+二进制）
 #   make e2e    浏览器 E2E（本仓视角）
 #   make smoke  本仓镜像启动 + health/page 冒烟
@@ -81,7 +81,7 @@ test-js-coverage: ## Run Vue/TS tests with V8 coverage
 	cd web/app && npx vitest run --coverage
 
 
-gate: ## 源码门槛：check + test；镜像冒烟在 release.yml 发布链执行
+gate: ## 源码门槛：check + test
 	$(MAKE) --jobs=$(GATE_JOBS) --output-sync=target check test
 	$(MAKE) e2e-a11y
 
@@ -147,7 +147,7 @@ e2e-a11y: build ## Run the accessibility E2E contract in make gate
 build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）
 
 # ── 镜像（本地开发，非发布路径）──
-# 本地开发镜像使用 local tag；发版镜像由 release.yml 在 v<CalVer> tag 上构建推送。
+# 本地镜像 tag 由 IMAGE_TAG 指定；部署由 liki-deploy 按 sha 组装。
 IMAGE_REGISTRY ?= ghcr.io/ml8s
 IMAGE_TAG ?= local
 
