@@ -12,7 +12,8 @@ interface EngineToolEnvelope {
   error?: { code?: number; message?: string }
 }
 
-const MCP_PROTOCOL_VERSION = '2026-07-28'
+/** Single source for both the HTTP contract and the in-band metadata contract. */
+export const MCP_PROTOCOL_VERSION = '2026-07-28'
 
 function endpoint(tool: string): string {
   return COUNSEL_TOOLS.has(tool) ? '/counsel/mcp' : '/engine/mcp'
@@ -27,6 +28,7 @@ export async function mcpTool<T = unknown>(tool: string, params: unknown): Promi
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json, text/event-stream',
+        'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
