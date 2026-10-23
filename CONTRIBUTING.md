@@ -37,6 +37,11 @@ For release review:
 make gate
 ```
 
+Before adding or changing tests, read [`docs/testing.md`](./docs/testing.md).
+Choose the one layer that owns the failure question; do not add parallel
+assertions for a contract already owned by another layer. A defect found in
+system testing, release, or production must map to the owning regression guard.
+
 Changed areas must at least pass:
 
 ```bash
