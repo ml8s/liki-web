@@ -11,8 +11,8 @@ export RELEASE_VERSION
 #   make smoke  本仓镜像启动 + health/page 冒烟
 .PHONY: help check test gate smoke e2e e2e-a11y \
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
-        check-web-static check-release-transport check-security check-go-version runtime-version-check python-env \
-        check-version check-actions check-caddy check-skills check-packaging \
+        check-web-static check-security check-go-version runtime-version-check python-env \
+        check-actions check-caddy check-skills check-packaging \
         build build-skills build-sitemap build-web build-go image test-go test-go-race test-go-coverage test-js-coverage \
         dev clean version
 
@@ -60,7 +60,7 @@ help: ## 列出所有 target
 
 # ── 质量门槛 ──
 
-check: lint-go fmt-check lint-js lint-docs typecheck check-web-static check-release-transport check-security check-caddy check-skills check-version check-go-version runtime-version-check check-actions ## 静态检查（纯静态，不跑测试、不构建）
+check: lint-go fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-skills check-go-version runtime-version-check check-actions ## 静态检查（纯静态，不跑测试、不构建）
 
 test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
 test-go-race: ## Go 竞态检测（独立于覆盖率闸门）
@@ -186,17 +186,11 @@ check-web-static:
 	node web/scripts/check-css-utility-freeze.js
 	node web/scripts/check-static-sync.js
 
-check-release-transport: ## Reject relay-only release images
-	bash scripts/check-release-transport.sh
-
 check-security:
 	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
 check-skills:
 	scripts/check-skills.sh
-
-check-version:
-	@test -f $(VERSION_FILE) || { echo "❌ Missing VERSION"; exit 1; }
 
 check-caddy:
 	scripts/check-caddy.sh

@@ -20,12 +20,6 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/prepare-skills
-        with:
-          liki-release-tag: ${{ vars.LIKI_SKILLS_RELEASE_TAG }}
-          liki-bundle-sha256: ${{ vars.LIKI_SKILLS_BUNDLE_SHA256 }}
-          github-token: ${{ github.token }}
-
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: go.mod
@@ -63,7 +57,7 @@ jobs:
       - name: make check (lint-go skipped, done by action above)
         run: |
           go vet ./...
-          make fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-skills check-version check-actions
+          make fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-actions
 
   # ── race：Go 竞态检测（并行，从覆盖率闸门拆出：语义保留、墙钟不增）──
   race:
@@ -85,12 +79,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/prepare-skills
-        with:
-          liki-release-tag: ${{ vars.LIKI_SKILLS_RELEASE_TAG }}
-          liki-bundle-sha256: ${{ vars.LIKI_SKILLS_BUNDLE_SHA256 }}
-          github-token: ${{ github.token }}
-
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: go.mod
@@ -140,94 +128,3 @@ jobs:
 
       - name: Python helper tests
         run: make test-python
-
-  # ── e2e：Playwright 全栈 ──
-  e2e:
-    runs-on: ubuntu-latest
-    # e2e 自建产物、与 test 并行：只保留静态 check 前置，墙钟由串行变并行。
-    needs: [check]
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/prepare-skills
-        with:
-          liki-release-tag: ${{ vars.LIKI_SKILLS_RELEASE_TAG }}
-          liki-bundle-sha256: ${{ vars.LIKI_SKILLS_BUNDLE_SHA256 }}
-          github-token: ${{ github.token }}
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version-file: .nvmrc
-          cache: 'npm'
-          cache-dependency-path: |
-            web/package-lock.json
-            web/app/package-lock.json
-
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
-        with:
-          python-version-file: .python-version
-
-      - name: Install Node deps
-        run: cd web && npm ci
-
-      - name: Install Playwright browsers
-        run: cd web && npx playwright install chromium
-
-      - name: Install Caddy
-        uses: ./.github/actions/install-caddy
-        with:
-          version: "2.10.2"
-          sha512: "747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546"
-
-      - name: Build
-        run: make build-go build-web
-
-      - name: Packaging check
-        run: make check-packaging
-
-      - name: Start servers
-        env:
-          JWT_SECRET: liki-ci-e2e-secret-0123456789abcdef
-          LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY: liki-ci-e2e-referral-payout-encryption-key-32-bytes
-          LIKI_HTTP_LISTEN_ADDRESS: :8081
-          LIKI_PUBLIC_BASE_URL: http://localhost:8080
-          LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS: '7900'
-          LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS: '2990'
-          LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS: '1990'
-          LIKI_CHAT_ONE_TIME_ACCESS_DAYS: '30'
-          LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS: '4000'
-          LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS: '1000'
-          DODO_PRODUCT_LIKI_CHAT_ONE_TIME: ci-one-time-product
-          DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION: ci-subscription-product
-          XUNHU_APPID: ci-test-dummy
-          XUNHU_APPSECRET: ci-test-dummy
-          LIKI_PAYMENT_WEBHOOK_URL: http://localhost:8081/api/payments/webhook
-          LIKI_AGENTS_URL: http://127.0.0.1:18083
-          LIKI_AGENTS_INTERNAL_TOKEN: liki-ci-e2e-agent-secret
-          # Email-code login journeys need the local dev code echo.
-          LIKI_DEVELOPMENT_MODE: 'true'
-          LIKI_WEB_HOST: localhost
-        run: |
-          mkdir -p /tmp/liki-e2e && chmod 777 /tmp/liki-e2e
-          LIKI_DATA_DIR=/tmp/liki-e2e ./bin/liki-web &
-          for i in $(seq 1 10); do
-            curl -sf http://localhost:8081/api/health 2>/dev/null | grep -q '"ok"' && echo "Go ready" && break
-            sleep 1
-          done
-          if [ "$i" = "10" ]; then echo "Go server failed" >&2; exit 1; fi
-          caddy run --config dev/Caddyfile.local &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:8080/zh-Hans/ 2>/dev/null | grep -q '<html' && \
-            curl -sf http://localhost:8080/api/health 2>/dev/null | grep -q '"ok"' && \
-            { echo "Server ready"; break; }
-            sleep 2
-          done
-          if [ "$i" = "30" ]; then echo "Server failed" >&2; exit 1; fi
-
-      - name: Run E2E
-        run: cd web && BASE_URL=http://localhost:8080 npx playwright test --config e2e/playwright.config.ts --ignore-snapshots

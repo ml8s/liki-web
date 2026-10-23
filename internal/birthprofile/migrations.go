@@ -223,16 +223,16 @@ SELECT id,calendar,birth_date,birth_time,birth_time_known FROM birth_profiles;
 				for rows.Next() {
 					var r legacyRow
 					if err := rows.Scan(&r.id, &r.date, &r.clock); err != nil {
-						rows.Close()
+						_ = rows.Close()
 						return err
 					}
 					pending = append(pending, r)
 				}
 				if err := rows.Err(); err != nil {
-					rows.Close()
+					_ = rows.Close()
 					return err
 				}
-				rows.Close()
+				_ = rows.Close()
 
 				location, err := time.LoadLocation("Asia/Shanghai")
 				if err != nil {
