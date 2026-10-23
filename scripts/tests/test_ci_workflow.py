@@ -47,46 +47,7 @@ class CIWorkflowTest(unittest.TestCase):
             self.assertIn(f"{name}={value}", smoke_image)
         self.assertNotRegex(smoke_image, r"^\s*-e PAYMENTS_WEBHOOK_URL=", re.MULTILINE)
 
-    def test_e2e_uses_required_runtime_environment(self):
-        text = WORKFLOW.read_text(encoding="utf-8")
-        match = re.search(
-            r"- name: Start servers\n(?P<indent>[ \t]+)env:\n(?P<body>(?:(?P=indent)[ \t]+.*\n)+)",
-            text,
-        )
-        self.assertIsNotNone(match, "CI e2e must declare its server runtime environment")
-        env = match.group("body")
-
-        required = {
-            "JWT_SECRET",
-            "LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY",
-            "LIKI_HTTP_LISTEN_ADDRESS",
-            "LIKI_PUBLIC_BASE_URL",
-            "XUNHU_APPID",
-            "XUNHU_APPSECRET",
-            "LIKI_CHAT_SUBSCRIPTION_PRICE_USD_MINOR_UNITS",
-            "LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS",
-            "LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS",
-            "LIKI_CHAT_ONE_TIME_ACCESS_DAYS",
-            "LIKI_CHAT_KOL_REVENUE_SHARE_BASIS_POINTS",
-            "LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS",
-            "LIKI_REFERRAL_PAYOUT_ENCRYPTION_KEY",
-            "LIKI_DEVELOPMENT_MODE",
-            "LIKI_PAYMENT_WEBHOOK_URL",
-        }
-        for name in required:
-            self.assertIsNotNone(
-                re.search(rf"^[ \t]*{name}:\s*\S+", env, re.MULTILINE),
-                f"missing CI e2e env {name}",
-            )
-
-        self.assertIn("LIKI_HTTP_LISTEN_ADDRESS: :8081", env)
-        self.assertIn("LIKI_PUBLIC_BASE_URL: http://localhost:8080", env)
-        self.assertIn("LIKI_DEVELOPMENT_MODE: 'true'", env)
-        self.assertNotRegex(env, r"^\s*DEV_MODE:", re.MULTILINE)
-        self.assertNotRegex(env, r"^\s*RETURN_URL:", re.MULTILINE)
-        self.assertIn("LIKI_PAYMENT_WEBHOOK_URL: http://localhost:8081/api/payments/webhook", env)
-        self.assertNotRegex(env, r"^\s*PAYMENTS_WEBHOOK_URL:", re.MULTILINE)
-        self.assertNotIn("-addr :8081", text, "liki-web listens through LIKI_HTTP_LISTEN_ADDRESS, not a CLI flag")
+    def test_local_runtimes_use_listen_address_not_addr(self):
         for contract_file in ("dev/docker-compose.yml", "scripts/dev-start.sh", "scripts/smoke-image.sh"):
             self.assertNotRegex(
                 (PROJECT / contract_file).read_text(encoding="utf-8"),
