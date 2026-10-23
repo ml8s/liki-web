@@ -18,6 +18,8 @@ import (
 	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/product"
+	"github.com/ml8s/liki-web/internal/records"
+	"github.com/ml8s/liki-web/internal/runcontrol"
 	"github.com/ml8s/liki-web/internal/sales"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 
@@ -56,6 +58,14 @@ func TestHandleErasure(t *testing.T) {
 	entitlementStore := entitlement.NewStore(db)
 	paymentStore := payment.NewIntentStore(db)
 	notificationStore := payment.NewNotificationStore(db)
+	recordStore := records.NewStore(db)
+	if err := recordStore.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	runRecordStore := runcontrol.NewStore(db)
+	if err := runRecordStore.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
 	referralDBPath := filepath.Join(t.TempDir(), "referral.db")
 	referralDB, err := sqliteutil.Open(referralDBPath)
 	if err != nil {
@@ -108,7 +118,8 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 
 	// user_1 建档案 + 会话 + system_profile 消息（含 PII）
 	p, err := profileStore.Create(ctx, "user_1", birthprofile.BirthProfileDraft{
-		Nickname: "妈妈",
+		Nickname:          "妈妈",
+		ThirdPartyConsent: true,
 		Birth: birthprofile.BirthFactsInput{
 			Gender: "female", Date: "1958-05-12", Time: "06:00",
 			Location: birthprofile.BirthLocationInput{
@@ -120,7 +131,10 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if err != nil {
 		t.Fatal(err)
 	}
-	session, err := chatStore.CreateSession(ctx, "user_1", "liki", "natal", "标题", p.ID)
+	session, err := chatStore.CreateSessionWithContext(
+		ctx, "user_1", "liki", "natal", "标题", p.ID,
+		json.RawMessage(`{"version":1,"scenario":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03"}`),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,6 +143,28 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 	if _, err := chatStore.AppendMessage(ctx, "user_1", session.ID, "user", chat.KindText, "我出生于 1958 年闰五月十二，想问婚姻"); err != nil {
 		t.Fatal(err)
+	}
+	toolRecord, err := recordStore.Create(ctx, "user_1", records.CreateInput{
+		Kind:   records.KindBond,
+		Title:  "妈妈与对方",
+		Input:  json.RawMessage(`{"b":{"date":"1990-05-12","time":"08:30"}}`),
+		Output: json.RawMessage(`{"bond":{"summary":"test"}}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	runInserted, err := runRecordStore.InsertRun(ctx, runcontrol.RunRecord{
+		RunID:      "run_1",
+		UserID:     "user_1",
+		ThreadID:   session.ID,
+		Profile:    chat.ExpertNatal,
+		Status:     "completed",
+		Answer:     "这是需要清除的 AI 回答",
+		StartedAt:  time.Now().UTC().Add(-time.Minute),
+		FinishedAt: time.Now().UTC(),
+	})
+	if err != nil || !runInserted {
+		t.Fatalf("InsertRun() inserted=%v err=%v", runInserted, err)
 	}
 
 	handler := NewHandler(profileStore, chatStore, authStore,
@@ -141,6 +177,8 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 				next(w, r)
 			}
 		})
+	handler.SetToolRecordEraser(recordStore)
+	handler.SetRunRecordEraser(runRecordStore)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/account/erasure", nil)
 	w := httptest.NewRecorder()
@@ -159,7 +197,8 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 			AuthSessionsCleared   int64 `json:"auth_sessions_cleared"`
 			AuthCodesCleared      int64 `json:"auth_codes_cleared"`
 
-			PartnerFinanceTasks int64 `json:"partner_finance_tasks"`
+			PartnerFinanceTasks int64            `json:"partner_finance_tasks"`
+			Domains             map[string]int64 `json:"domains"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
@@ -167,7 +206,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 	if resp.Data.Status != "erased" || resp.Data.ProfilesCleared != 1 || resp.Data.MessagesCleared != 2 ||
 		resp.Data.AuthIdentitiesCleared != 1 || resp.Data.AuthSessionsCleared != 1 || resp.Data.AuthCodesCleared != 1 ||
-		resp.Data.PartnerFinanceTasks != 0 {
+		resp.Data.PartnerFinanceTasks != 0 || resp.Data.Domains["tool_records"] != 1 || resp.Data.Domains["run_records"] != 1 {
 		t.Fatalf("bad erasure result: %+v", resp.Data)
 	}
 
@@ -181,6 +220,31 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 	if len(msgs) != 2 || strings.TrimSpace(msgs[0].Content) != "" || strings.TrimSpace(msgs[1].Content) != "" {
 		t.Fatalf("message PII not cleared: %+v", msgs)
+	}
+	var sessionContext any
+	if err := db.QueryRowContext(ctx, `SELECT context_json FROM chat_sessions WHERE id=?`, session.ID).Scan(&sessionContext); err != nil {
+		t.Fatal(err)
+	}
+	if sessionContext != nil {
+		t.Fatalf("session consultation context not cleared: %#v", sessionContext)
+	}
+	if _, err := recordStore.Get(ctx, "user_1", toolRecord.ID); err != records.ErrNotFound {
+		t.Fatalf("erased tool record should be unavailable, err=%v", err)
+	}
+	var erasedInput string
+	var erasedOutput any
+	if err := db.QueryRowContext(ctx, `SELECT input,output FROM tool_records WHERE id=?`, toolRecord.ID).Scan(&erasedInput, &erasedOutput); err != nil {
+		t.Fatal(err)
+	}
+	if erasedInput != "{}" || erasedOutput != nil {
+		t.Fatalf("tool record PII not cleared: input=%q output=%v", erasedInput, erasedOutput)
+	}
+	var runAnswer string
+	if err := db.QueryRowContext(ctx, `SELECT answer FROM run_records WHERE run_id='run_1'`).Scan(&runAnswer); err != nil {
+		t.Fatal(err)
+	}
+	if runAnswer != "" {
+		t.Fatalf("run answer not cleared: %q", runAnswer)
 	}
 
 	var email, status string

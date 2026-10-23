@@ -95,6 +95,17 @@ func (s *Store) DeleteRun(ctx context.Context, runID string) error {
 	return nil
 }
 
+// AnonymizeUser clears generated answers and provider/runtime errors while
+// retaining pseudonymous counters and timestamps for operational audit.
+func (s *Store) AnonymizeUser(ctx context.Context, userID string) (int64, error) {
+	result, err := s.db.ExecContext(ctx, `
+UPDATE run_records SET answer='', error='' WHERE user_id=?`, userID)
+	if err != nil {
+		return 0, fmt.Errorf("anonymize run records: %w", err)
+	}
+	return result.RowsAffected()
+}
+
 func runFormatTime(value time.Time) string {
 	return value.UTC().Format(time.RFC3339Nano)
 }

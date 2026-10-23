@@ -24,6 +24,7 @@ type chatWiring struct {
 	Store              *chat.ChatStore
 	Service            *chat.Service
 	Records            *records.Store
+	RunRecords         *runcontrol.Store
 	RunCallbackHandler http.HandlerFunc
 }
 
@@ -39,6 +40,7 @@ func newChatWiring(
 		return nil, fmt.Errorf("init chat schema: %w", err)
 	}
 	runControl := runcontrol.NewStore(db)
+	system.RunRecords = runControl
 	if err := runControl.Migrate(ctx); err != nil {
 		return nil, fmt.Errorf("init run registry schema: %w", err)
 	}

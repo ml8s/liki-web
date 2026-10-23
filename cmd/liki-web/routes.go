@@ -88,6 +88,8 @@ func newHTTPHandler(wiring httpWiring) (http.Handler, *account.Handler) {
 		wiring.authHandler.RequireUser,
 	)
 	accountHandler.SetSubscriptionEraser(wiring.subscriptions)
+	accountHandler.SetToolRecordEraser(wiring.chats.Records)
+	accountHandler.SetRunRecordEraser(wiring.chats.RunRecords)
 
 	var subscriptionCheckout sales.SubscriptionCheckoutCreator
 	if wiring.config.DodoProductLikiChatSubscription != "" {

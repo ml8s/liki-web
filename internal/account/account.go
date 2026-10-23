@@ -39,6 +39,14 @@ type SubscriptionEraser interface {
 	AnonymizeUser(ctx context.Context, userID, oldEmail, tombstone string) (int64, error)
 }
 
+type ToolRecordEraser interface {
+	AnonymizeUser(ctx context.Context, userID string) (int64, error)
+}
+
+type RunRecordEraser interface {
+	AnonymizeUser(ctx context.Context, userID string) (int64, error)
+}
+
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
@@ -50,6 +58,8 @@ type Handler struct {
 	payments      *payment.IntentStore
 	notifications *payment.NotificationStore
 	subscriptions SubscriptionEraser
+	toolRecords   ToolRecordEraser
+	runRecords    RunRecordEraser
 	partner       PartnerEraser
 	adminAudit    AdminAuditEraser
 	erasureQueue  *ErasureStore
@@ -88,6 +98,14 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, limit func(http.HandlerFunc
 // newer sales domain explicit in production wiring.
 func (h *Handler) SetSubscriptionEraser(subscriptions SubscriptionEraser) {
 	h.subscriptions = subscriptions
+}
+
+func (h *Handler) SetToolRecordEraser(toolRecords ToolRecordEraser) {
+	h.toolRecords = toolRecords
+}
+
+func (h *Handler) SetRunRecordEraser(runRecords RunRecordEraser) {
+	h.runRecords = runRecords
 }
 
 // HandleErasure 合规强删（个保法删除权）：匿名化该用户全部档案（清除出生信息等
@@ -179,6 +197,25 @@ func (h *Handler) runErasureSteps(ctx context.Context, user auth.User, tombstone
 	}
 	for _, domain := range domains {
 		cleared, err := domain.erase(ctx)
+		if err != nil {
+			return outcome, err
+		}
+		if cleared > 0 {
+			outcome.Erased[domain.name] = cleared
+		}
+		mark(domain.name)
+	}
+	for _, domain := range []struct {
+		name  string
+		erase ToolRecordEraser
+	}{
+		{name: "tool_records", erase: h.toolRecords},
+		{name: "run_records", erase: h.runRecords},
+	} {
+		if domain.erase == nil {
+			continue
+		}
+		cleared, err := domain.erase.AnonymizeUser(ctx, user.ID)
 		if err != nil {
 			return outcome, err
 		}

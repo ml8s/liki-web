@@ -11,6 +11,7 @@ import (
 
 	"github.com/ml8s/liki-web/internal/auth"
 	"github.com/ml8s/liki-web/internal/httputil"
+	"github.com/ml8s/liki-web/internal/i18n"
 )
 
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
@@ -237,23 +238,14 @@ func referralRedirectPath(r *http.Request) string {
 	return landingPath(r)
 }
 
-// landingPath preserves campaign query parameters and selects a supported
-// locale from an explicit query value, then Accept-Language.
+// landingPath preserves campaign query parameters and uses the same marketing
+// locale contract as the static file server.
 func landingPath(r *http.Request) string {
-	locale := "/zh-Hans/"
 	lang := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("lang")))
 	if lang == "" {
-		lang = strings.TrimSpace(strings.Split(r.Header.Get("Accept-Language"), ",")[0])
-		if before, _, found := strings.Cut(lang, ";"); found {
-			lang = strings.TrimSpace(before)
-		}
+		lang = r.Header.Get("Accept-Language")
 	}
-	switch lang {
-	case "en":
-		locale = "/en/"
-	case "zh-hant", "zh-tw", "zh-hk", "zh":
-		locale = "/zh-Hant/"
-	}
+	locale := "/" + i18n.NegotiateMarketingLocale(lang) + "/"
 	query := r.URL.Query()
 	query.Del("to")
 	target := &url.URL{Path: locale, RawQuery: query.Encode()}

@@ -141,6 +141,9 @@ func ValidateBirthProfileDraft(now time.Time, draft BirthProfileDraft) error {
 	if err := ValidateBirthProfileMetadata(draft); err != nil {
 		return err
 	}
+	if !draft.ThirdPartyConsent {
+		return errors.New("third_party_consent is required")
+	}
 	return ValidateBirthFacts(now, draft.Birth)
 }
 

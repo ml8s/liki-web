@@ -34,7 +34,8 @@ func validInput() BirthProfileDraft {
 	lng := 121.4737
 	tz := "Asia/Shanghai"
 	return BirthProfileDraft{
-		Nickname: "妈妈",
+		Nickname:          "妈妈",
+		ThirdPartyConsent: true,
 		Birth: BirthFactsInput{
 			Gender: "female", Date: "1958-05-12", Time: "06:00",
 			Location: BirthLocationInput{Place: "上海", Longitude: &lng, Timezone: &tz},

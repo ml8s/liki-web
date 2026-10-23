@@ -51,7 +51,8 @@ func wrap(h *Handler) http.Handler {
 
 func completePayload(nickname string) map[string]any {
 	return map[string]any{
-		"nickname": nickname,
+		"nickname":            nickname,
+		"third_party_consent": true,
 		"birth": map[string]any{
 			"gender": "female", "date": "1958-05-12", "time": "06:00",
 			"location": map[string]any{

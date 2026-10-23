@@ -180,6 +180,13 @@ const rules = computed<FormRules>(() => ({
     { pattern: /^\d{2}:\d{2}$/, message: t('profiles.form.errors.timeFormat'), trigger: 'change' },
   ],
   location: [{ validator: validateLocation, trigger: 'change' }],
+  third_party_consent: [{
+    validator: (_rule: unknown, value: boolean, callback: (error?: Error) => void) => {
+      if (!value) callback(new Error(t('profiles.form.errors.thirdPartyConsentRequired')))
+      else callback()
+    },
+    trigger: 'change',
+  }],
 }))
 
 function patchBirthFields(patch: Partial<BirthFieldsValue>) {

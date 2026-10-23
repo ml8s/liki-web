@@ -16,6 +16,7 @@ import (
 	"github.com/ml8s/liki-web/internal/chat"
 	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/feedback"
+	appi18n "github.com/ml8s/liki-web/internal/i18n"
 	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/records"
@@ -257,19 +258,8 @@ func marketingPathLocale(clean string) (string, bool) {
 	return "", false
 }
 
-// negotiateLocale 按 Accept-Language 协商营销语言，与裸路径重定向契约一致。
 func negotiateLocale(r *http.Request) string {
-	accept := strings.ToLower(r.Header.Get("Accept-Language"))
-	switch {
-	case strings.HasPrefix(accept, "zh-cn"), strings.HasPrefix(accept, "zh-sg"), strings.HasPrefix(accept, "zh-hans"):
-		return "zh-Hans"
-	case strings.HasPrefix(accept, "zh-tw"), strings.HasPrefix(accept, "zh-hk"), strings.HasPrefix(accept, "zh-mo"), strings.HasPrefix(accept, "zh-hant"):
-		return "zh-Hant"
-	case strings.HasPrefix(accept, "en"):
-		return "en"
-	default:
-		return "zh-Hant"
-	}
+	return appi18n.NegotiateMarketingLocale(r.Header.Get("Accept-Language"))
 }
 
 func fileServer(webDir string, next http.Handler) http.Handler {

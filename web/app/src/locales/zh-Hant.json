@@ -113,6 +113,7 @@
       "placeMatched": "已匹配起卦地點 · 東經 {lng}°",
       "longitudeLabel": "經度",
       "longitudeHint": "用於真太陽時校正；可手動填寫",
+      "manualToggle": "手動填寫經度",
       "placeRequired": "請填寫起卦地點",
       "useCurrentLocation": "使用當前定位",
       "locating": "正在定位…",
@@ -442,7 +443,8 @@
         "birthDateRequired": "請選擇出生日期",
         "exactTimeRequired": "請選擇精確時間",
         "timeFormat": "時間格式應為 HH:mm",
-        "birthPlaceRequired": "請選擇出生地並確認時區"
+        "birthPlaceRequired": "請選擇出生地並確認時區",
+        "thirdPartyConsentRequired": "請先確認已獲得該人的同意"
       },
       "birthYear": "出生年份",
       "birthTime": "出生時間"
@@ -864,6 +866,7 @@
       "forbidden": "暫無權限",
       "not_found": "資源不存在",
       "validation_error": "請求參數無效",
+      "invalid_consultation_context": "諮詢上下文無效，請重新從工具發起",
       "generation_failed": "生成失敗",
       "generation_cancelled": "生成已取消",
       "missing_result": "生成結果缺少完成事件",

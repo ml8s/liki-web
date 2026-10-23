@@ -113,6 +113,7 @@
       "placeMatched": "已匹配起卦地点 · 东经 {lng}°",
       "longitudeLabel": "经度",
       "longitudeHint": "用于真太阳时校正；可手动填写",
+      "manualToggle": "手动填写经度",
       "placeRequired": "请填写起卦地点",
       "useCurrentLocation": "使用当前定位",
       "locating": "正在定位…",
@@ -442,7 +443,8 @@
         "birthDateRequired": "请选择出生日期",
         "exactTimeRequired": "请选择精确时间",
         "timeFormat": "时间格式应为 HH:mm",
-        "birthPlaceRequired": "请选择出生地并确认时区"
+        "birthPlaceRequired": "请选择出生地并确认时区",
+        "thirdPartyConsentRequired": "请先确认已获得该人的同意"
       },
       "birthYear": "出生年份",
       "birthTime": "出生时间"
@@ -864,6 +866,7 @@
       "forbidden": "暂无权限",
       "not_found": "资源不存在",
       "validation_error": "请求参数无效",
+      "invalid_consultation_context": "咨询上下文无效，请重新从工具发起",
       "generation_failed": "生成失败",
       "generation_cancelled": "生成已取消",
       "missing_result": "生成结果缺少完成事件",

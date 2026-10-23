@@ -127,5 +127,16 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_session_created
 				return err
 			},
 		},
+		{
+			// Tool-to-Chat continuity: deterministic/non-reproducible consultation
+			// facts are attached to the durable session and forwarded to the expert.
+			ID: "chat_008_consultation_context",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE chat_sessions ADD COLUMN context_json TEXT;
+`)
+				return err
+			},
+		},
 	})
 }

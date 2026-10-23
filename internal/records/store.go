@@ -258,3 +258,21 @@ UPDATE tool_records SET deleted_at=? WHERE id=? AND user_id=? AND deleted_at IS 
 	}
 	return nil
 }
+
+// AnonymizeUser clears user-authored titles and opaque engine I/O for both
+// live and previously soft-deleted records. Record structure remains available
+// for row-count audit, but no personal or third-party birth facts survive.
+func (s *Store) AnonymizeUser(ctx context.Context, userID string) (int64, error) {
+	now := s.nowFunc().Format(time.RFC3339)
+	result, err := s.db.ExecContext(ctx, `
+UPDATE tool_records
+SET title='', input='{}', output=NULL,
+    deleted_at=COALESCE(deleted_at, ?), updated_at=?
+WHERE user_id=?`,
+		now, now, userID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

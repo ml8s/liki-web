@@ -113,6 +113,7 @@
       "placeMatched": "Matched casting place · {lng}°E",
       "longitudeLabel": "Longitude",
       "longitudeHint": "Used for true solar time correction; manual entry is allowed",
+      "manualToggle": "Enter longitude manually",
       "placeRequired": "Enter the casting place",
       "useCurrentLocation": "Use current location",
       "locating": "Locating…",
@@ -442,7 +443,8 @@
         "birthDateRequired": "Please select a birth date",
         "exactTimeRequired": "Please select an exact time",
         "timeFormat": "Time must use HH:mm",
-        "birthPlaceRequired": "Choose a birth place and confirm its timezone"
+        "birthPlaceRequired": "Choose a birth place and confirm its timezone",
+        "thirdPartyConsentRequired": "Please confirm that you have this person’s consent"
       },
       "birthYear": "Birth year",
       "birthTime": "Birth time"
@@ -864,6 +866,7 @@
       "forbidden": "You do not have access.",
       "not_found": "Resource not found.",
       "validation_error": "Invalid request.",
+      "invalid_consultation_context": "Invalid consultation context. Please start again from the tool.",
       "generation_failed": "Generation failed.",
       "generation_cancelled": "Generation canceled.",
       "missing_result": "The generation stream ended without a final result.",

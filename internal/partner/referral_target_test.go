@@ -27,6 +27,24 @@ func TestReferralLinkSupportsAllowlistedTarget(t *testing.T) {
 	}
 }
 
+func TestReferralLinkUsesMarketingLocaleDefault(t *testing.T) {
+	store := newHandlerStore(t)
+	kol, err := store.createKOLPartner(context.Background(), "kol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandler(store, func(next http.HandlerFunc) http.HandlerFunc { return next }, true)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/r/"+kol.Code, nil)
+	request.Header.Set("Accept-Language", "ja-JP,ja;q=0.9")
+	handler.HandleLink(recorder, request)
+
+	if location := recorder.Header().Get("Location"); location != "/zh-Hant/" {
+		t.Fatalf("location=%q, want /zh-Hant/", location)
+	}
+}
+
 func TestReferralLinkAllowsCurrentLandingPages(t *testing.T) {
 	store := newHandlerStore(t)
 	kol, err := store.createKOLPartner(context.Background(), "kol")
