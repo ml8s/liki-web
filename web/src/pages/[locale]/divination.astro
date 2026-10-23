@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import SeoTopics from '../../components/SeoTopics.astro';
 import { t, locales } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -11,9 +12,15 @@ const ns = 'scenario.divination';
 const benefits = ['structure', 'insight', 'timing', 'action'].map(key => `${ns}.benefit.${key}`);
 const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
 const questions = ['q1', 'q2', 'q3'].map(key => `${ns}.${key}`);
-const faqs = ['paid', 'data', 'accuracy'].map(key => ({
-  questionKey: `scenario.faq.${key}.q`,
-  answerKey: `scenario.faq.${key}.a`,
+const faqs = [
+  { questionKey: 'divination.faq.cast.q', answerKey: 'divination.faq.cast.a' },
+  { questionKey: 'divination.faq.multi.q', answerKey: 'divination.faq.multi.a' },
+  { questionKey: 'divination.faq.timing.q', answerKey: 'divination.faq.timing.a' },
+  { questionKey: 'scenario.faq.accuracy.q', answerKey: 'scenario.faq.accuracy.a' },
+];
+const topics = ['a', 'b', 'c'].map(k => ({
+  titleKey: `divination.topics.${k}.title`,
+  bodyKey: `divination.topics.${k}.body`,
 }));
 const toolProps = {
   locale,
@@ -47,6 +54,15 @@ const toolProps = {
     <p>{t(locale, 'divination.tool.intro')}</p>
     <div id="divination-tool" data-props={JSON.stringify(toolProps)}>
     </div>
+  </Fragment>
+  <Fragment slot="topics">
+    <SeoTopics
+      locale={locale}
+      titleKey="divination.topics.title"
+      items={topics}
+      linkHref={`/${locale}/natal/`}
+      linkKey="divination.topics.link"
+    />
   </Fragment>
 </ScenarioLanding>
 

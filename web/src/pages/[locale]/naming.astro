@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import SeoTopics from '../../components/SeoTopics.astro';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -11,11 +12,21 @@ const ns = 'naming.example';
 const benefits = ['birth', 'elements', 'meaning', 'review'].map(key => `scenario.naming.benefit.${key}`);
 const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
 const questions = ['q1', 'q2', 'q3'].map(key => `scenario.naming.${key}`);
-const faqs = ['paid', 'data', 'accuracy'].map(key => ({
-  questionKey: `scenario.faq.${key}.q`,
-  answerKey: `scenario.faq.${key}.a`,
-}));
+const faqs = [
+  { questionKey: 'naming.faq.bazi.q', answerKey: 'naming.faq.bazi.a' },
+  { questionKey: 'naming.faq.free.q', answerKey: 'naming.faq.free.a' },
+  { questionKey: 'naming.faq.gender.q', answerKey: 'naming.faq.gender.a' },
+  { questionKey: 'naming.faq.rename.q', answerKey: 'naming.faq.rename.a' },
+  { questionKey: 'naming.faq.score.q', answerKey: 'naming.faq.score.a' },
+  { questionKey: 'naming.faq.generator.q', answerKey: 'naming.faq.generator.a' },
+  { questionKey: 'scenario.faq.accuracy.q', answerKey: 'scenario.faq.accuracy.a' },
+];
 const cardIndexes = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+const topics = ['newborn', 'bazi', 'free', 'generator'].map(k => ({
+  titleKey: `naming.scenes.${k}.title`,
+  bodyKey: `naming.scenes.${k}.body`,
+  ...(k === 'generator' ? { ctaService: 'naming', ctaKey: 'naming.generator.cta' } : {}),
+}));
 const birthLabels = birthFieldLabels(locale);
 const toolProps = {
   locale,
@@ -109,6 +120,16 @@ const toolProps = {
       </article>
     </div>
   </div>
+
+  <Fragment slot="topics">
+    <SeoTopics
+      locale={locale}
+      titleKey="naming.scenes.title"
+      items={topics}
+      linkHref={`/${locale}/natal/`}
+      linkKey="naming.scenes.natalCta"
+    />
+  </Fragment>
 </ScenarioLanding>
 
 <script>

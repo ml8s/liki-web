@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import SeoTopics from '../../components/SeoTopics.astro';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -11,9 +12,15 @@ const ns = 'scenario.liunian';
 const benefits = ['structure', 'insight', 'timing', 'action'].map(key => `${ns}.benefit.${key}`);
 const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
 const questions = ['q1', 'q2', 'q3'].map(key => `${ns}.${key}`);
-const faqs = ['paid', 'data', 'accuracy'].map(key => ({
-  questionKey: `scenario.faq.${key}.q`,
-  answerKey: `scenario.faq.${key}.a`,
+const faqs = [
+  { questionKey: 'liunian.faq.taisui.q', answerKey: 'liunian.faq.taisui.a' },
+  { questionKey: 'liunian.faq.dayun.q', answerKey: 'liunian.faq.dayun.a' },
+  { questionKey: 'liunian.faq.wealth.q', answerKey: 'liunian.faq.wealth.a' },
+  { questionKey: 'scenario.faq.accuracy.q', answerKey: 'scenario.faq.accuracy.a' },
+];
+const topics = ['a', 'b', 'c'].map(k => ({
+  titleKey: `liunian.topics.${k}.title`,
+  bodyKey: `liunian.topics.${k}.body`,
 }));
 const staticSections = ['taisui', 'relations', 'howto'].map(key => ({
   title: t(locale, `${ns}.static.${key}.title`),
@@ -65,6 +72,15 @@ const toolProps = {
       </details>
     ))}
   </div>
+  <Fragment slot="topics">
+    <SeoTopics
+      locale={locale}
+      titleKey="liunian.topics.title"
+      items={topics}
+      linkHref={`/${locale}/natal/`}
+      linkKey="liunian.topics.link"
+    />
+  </Fragment>
 </ScenarioLanding>
 
 <script>

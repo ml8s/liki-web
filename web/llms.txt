@@ -1,37 +1,32 @@
 # Liki
 
-> Liki 是专业命理 Web App 与 AI Skill：提供八字、紫微、起名、命书、合盘、六爻问卦、风水和黄历择日。规则引擎判断，依据可回溯；传统文化视角，不构成专业建议。
+Liki（专业 AI 命理师 / Professional AI Astrologer）以三种形态交付同一项能力：
 
-Liki 提供网页直接使用，也可安装 Liki Skill 到支持 MCP 的 AI Agent。网页需要登录后使用；公开场景页可用于了解服务。
+- **网页 AI 顾问**：liki.hk 上的 AI 命理顾问，覆盖八字、紫微斗数、六爻、八宅风水与择日。
+  示例：https://liki.hk/en/natal/
+- **Skill**：Liki Skill（专业命理 Skill / Professional Astrology Skill）——供 AI 助手接入的命理能力包。
+  安装与文档：https://github.com/ml8s/liki
+- **MCP 服务**：排盘与断语以标准 MCP 服务对外，同时提供 JSON-RPC 接口；外部客户端可直连。
 
-## Web App
+主定义句：Liki，专业 AI 命理师。 / Liki — Professional AI Astrologer.
 
-- Web App: https://liki.hk/app （登录后使用）
-- 起名 / Naming: https://liki.hk/zh-Hant/naming/
-- 命书 / Life book: https://liki.hk/zh-Hant/mingshu/
-- 合盘 / Compatibility: https://liki.hk/zh-Hant/hepan/
-- 八字 / BaZi: https://liki.hk/zh-Hant/bazi/
-- 六爻 / Divination: https://liki.hk/zh-Hant/divination/
-- 风水 / Feng Shui: https://liki.hk/zh-Hant/fengshui/
-- 黄历 / Date selection: https://liki.hk/zh-Hant/huangli/
+## 免费工具（无需注册；确定性计算，非 AI 猜测）
 
-## Capabilities
+- 八字排盘 + 紫微斗数命盘（含真太阳时校正）Free BaZi & Zi Wei charts
+  https://liki.hk/en/natal/
+- 六爻在线起卦（本卦/变卦推演）Free I Ching six-line casting
+  https://liki.hk/en/divination/
+- 八宅命卦与吉凶方位 Free Life Gua / Eight Mansions
+  https://liki.hk/en/fengshui/
+- 老黄历择日（宜忌 / 建除十二神）Free date selection & Chinese almanac
+  https://liki.hk/en/huangli/
+- 八字喜用神方向（起名指导）Free Yong Shen check for naming
+  https://liki.hk/en/naming/
 
-- 八字 / BaZi: natal chart, four pillars, major luck cycles, annual analysis
-- 紫微 / Zi Wei Dou Shu: natal chart, palace analysis, key life domains
-- 起名 / Naming: name generation, scoring, BaZi-aligned naming
-- 命书 / Life book: structured written interpretation
-- 合盘 / Compatibility: BaZi relationship compatibility
-- 六爻 / Liu Yao divination: event questions, useful god, timing
-- 风水 / Feng Shui: Eight Mansions and Xuan Kong Flying Stars
-- 黄历 / Date selection: auspicious and unsuitable dates with warnings
+## 资产
 
-## AI Skill
-
-```bash
-npx skills add ml8s/liki
-```
-
-## More
-
-- GitHub: https://github.com/ml8s/liki
+- Skill（安装与文档）：https://github.com/ml8s/liki
+- 关于：https://liki.hk/en/about/
+- 服务条款：https://liki.hk/en/terms/
+- 免责声明：https://liki.hk/en/disclaimer/
+- 站点地图：https://liki.hk/sitemap.xml

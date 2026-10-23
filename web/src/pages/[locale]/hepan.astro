@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import SeoTopics from '../../components/SeoTopics.astro';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -15,9 +16,15 @@ const staticSections = ['overview', 'dayMaster', 'branches', 'zodiac', 'wuxing']
   title: t(locale, `${ns}.static.${key}.title`),
   body: t(locale, `${ns}.static.${key}.body`),
 }));
-const faqs = ['paid', 'data', 'accuracy'].map(key => ({
-  questionKey: `scenario.faq.${key}.q`,
-  answerKey: `scenario.faq.${key}.a`,
+const faqs = [
+  { questionKey: 'hepan.faq.overview.q', answerKey: 'hepan.faq.overview.a' },
+  { questionKey: 'hepan.faq.zodiac.q', answerKey: 'hepan.faq.zodiac.a' },
+  { questionKey: 'hepan.faq.friction.q', answerKey: 'hepan.faq.friction.a' },
+  { questionKey: 'scenario.faq.accuracy.q', answerKey: 'scenario.faq.accuracy.a' },
+];
+const topics = ['a', 'b', 'c'].map(k => ({
+  titleKey: `hepan.topics.${k}.title`,
+  bodyKey: `hepan.topics.${k}.body`,
 }));
 const birthLabels = birthFieldLabels(locale);
 const toolProps = {
@@ -34,6 +41,8 @@ const toolProps = {
     result: t(locale, 'hepan.tool.result'),
     cta: t(locale, 'tool.cta'),
     privacy: t(locale, 'tool.privacy'),
+    consent: t(locale, 'hepan.tool.consent'),
+    consentRequired: t(locale, 'hepan.tool.consentRequired'),
   },
 };
 ---
@@ -68,6 +77,15 @@ const toolProps = {
       </details>
     ))}
   </div>
+  <Fragment slot="topics">
+    <SeoTopics
+      locale={locale}
+      titleKey="hepan.topics.title"
+      items={topics}
+      linkHref={`/${locale}/natal/`}
+      linkKey="hepan.topics.link"
+    />
+  </Fragment>
 </ScenarioLanding>
 
 <script>

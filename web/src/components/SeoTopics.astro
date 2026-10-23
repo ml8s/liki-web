@@ -1,0 +1,30 @@
+---
+import { t } from '../i18n.ts';
+import LikiChatCta from './LikiChatCta.astro';
+
+export interface Props {
+  locale: string;
+  titleKey: string;
+  items: Array<{ titleKey: string; bodyKey: string; ctaService?: string; ctaKey?: string }>;
+  linkHref: string;
+  linkKey: string;
+}
+
+const { locale, titleKey, items, linkHref, linkKey } = Astro.props;
+---
+
+<div class="scenario-content-blocks">
+  <h2 class="seo-topics-title">{t(locale, titleKey)}</h2>
+  <div class="segments-grid">
+    {items.map(item => (
+      <article>
+        <h3>{t(locale, item.titleKey)}</h3>
+        <p>{t(locale, item.bodyKey)}</p>
+        {item.ctaService && item.ctaKey && (
+          <LikiChatCta locale={locale} service={item.ctaService} labelKey={item.ctaKey} class="card-link" />
+        )}
+      </article>
+    ))}
+  </div>
+  <p><a href={linkHref} class="card-link card-link-secondary">{t(locale, linkKey)}</a></p>
+</div>

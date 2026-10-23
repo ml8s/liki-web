@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import LikiChatCta from '../../components/LikiChatCta.astro';
+import SeoTopics from '../../components/SeoTopics.astro';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -34,10 +35,23 @@ const toolProps = {
     privacy: t(locale, 'tool.privacy'),
   },
 };
-const faqs = ['paid', 'data', 'accuracy'].map(key => ({
-  questionKey: `scenario.faq.${key}.q`,
-  answerKey: `scenario.faq.${key}.a`,
+const faqs = [
+  { questionKey: 'natal.faq.bazi.q', answerKey: 'natal.faq.bazi.a' },
+  { questionKey: 'natal.faq.ziwei.q', answerKey: 'natal.faq.ziwei.a' },
+  { questionKey: 'natal.faq.solar.q', answerKey: 'natal.faq.solar.a' },
+  { questionKey: 'scenario.faq.accuracy.q', answerKey: 'scenario.faq.accuracy.a' },
+];
+const topics = ['a', 'b', 'c'].map(k => ({
+  titleKey: `natal.topics.${k}.title`,
+  bodyKey: `natal.topics.${k}.body`,
 }));
+const related = [
+  ['liunian', 'scenario.liunian.title'],
+  ['hepan', 'scenario.hepan.title'],
+  ['divination', 'scenario.divination.title'],
+  ['fengshui', 'scenario.fengshui.title'],
+  ['huangli', 'scenario.huangli.title'],
+] as const;
 const faqSchema = faqs.map(item => ({
   '@type': 'Question',
   name: t(locale, item.questionKey),
@@ -152,6 +166,16 @@ const breadcrumbSchema = {
     <p><a class="card-link" href={`/app?locale=${locale}`}>{t(locale, 'natal.rectification.link')}</a></p>
   </section>
 
+  <section class="landing-services scenario-section">
+    <SeoTopics
+      locale={locale}
+      titleKey="natal.topics.title"
+      items={topics}
+      linkHref={`/${locale}/naming/`}
+      linkKey="natal.topics.link"
+    />
+  </section>
+
   <section
     id="how-it-works"
     class="landing-steps"
@@ -179,6 +203,17 @@ const breadcrumbSchema = {
         <p>{t(locale, item.answerKey)}</p>
       </details>
     ))}
+  </section>
+
+  <section class="landing-services scenario-section">
+    <h2>{t(locale, 'natal.related.title')}</h2>
+    <div class="segments-grid">
+      {related.map(([slug, key]) => (
+        <article>
+          <h3 class="font-serif"><a class="card-link" href={`/${locale}/${slug}/`}>{t(locale, key)}</a></h3>
+        </article>
+      ))}
+    </div>
   </section>
 
   <section class="landing-cta">

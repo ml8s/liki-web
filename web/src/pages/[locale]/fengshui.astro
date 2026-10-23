@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import SeoTopics from '../../components/SeoTopics.astro';
 import { t, locales } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -11,9 +12,16 @@ const ns = 'scenario.fengshui';
 const benefits = ['structure', 'insight', 'timing', 'action'].map(key => `${ns}.benefit.${key}`);
 const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
 const questions = ['q1', 'q2', 'q3'].map(key => `${ns}.${key}`);
-const faqs = ['paid', 'data', 'accuracy'].map(key => ({
-  questionKey: `scenario.faq.${key}.q`,
-  answerKey: `scenario.faq.${key}.a`,
+const faqs = [
+  { questionKey: 'fengshui.faq.bazhai.q', answerKey: 'fengshui.faq.bazhai.a' },
+  { questionKey: 'fengshui.faq.plan.q', answerKey: 'fengshui.faq.plan.a' },
+  { questionKey: 'fengshui.faq.rent.q', answerKey: 'fengshui.faq.rent.a' },
+  { questionKey: 'fengshui.faq.dongsi.q', answerKey: 'fengshui.faq.dongsi.a' },
+  { questionKey: 'scenario.faq.accuracy.q', answerKey: 'scenario.faq.accuracy.a' },
+];
+const topics = ['a', 'b', 'c'].map(k => ({
+  titleKey: `fengshui.topics.${k}.title`,
+  bodyKey: `fengshui.topics.${k}.body`,
 }));
 const staticSections = ['focus', 'method', 'output'].map(key => ({
   title: t(locale, `${ns}.static.${key}.title`),
@@ -62,6 +70,15 @@ const toolProps = {
       </details>
     ))}
   </div>
+  <Fragment slot="topics">
+    <SeoTopics
+      locale={locale}
+      titleKey="fengshui.topics.title"
+      items={topics}
+      linkHref={`/${locale}/huangli/`}
+      linkKey="fengshui.topics.link"
+    />
+  </Fragment>
 </ScenarioLanding>
 
 <script>

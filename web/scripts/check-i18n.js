@@ -288,7 +288,7 @@ function addKnownCompoundKeys(used) {
     'brand', 'cta.primary', 'cta.secondary', 'cta.bottom', 'stepsTitle', 'faqTitle',
     'steps.s1', 'steps.s2', 'steps.s3', 'steps.s4',
   ]) used.add(`scenario.${key}`);
-  for (const faq of ['paid', 'data', 'accuracy']) {
+  for (const faq of ['accuracy']) {
     used.add(`scenario.faq.${faq}.q`);
     used.add(`scenario.faq.${faq}.a`);
   }
@@ -344,6 +344,40 @@ function addKnownCompoundKeys(used) {
     for (let n=1;n<=36;n++) used.add(`naming.example.${f}${n}`);
   }
   for (let n=1;n<=36;n++) for (const t of ['a','b','c','d']) used.add(`naming.example.tag${n}${t}`);
+  // naming FAQ 由 naming.astro 的 faqs 数组以对象字面量引用，静态扫描无法识别。
+  for (const k of ['bazi', 'free', 'gender', 'rename', 'score', 'generator']) {
+    used.add(`naming.faq.${k}.q`);
+    used.add(`naming.faq.${k}.a`);
+  }
+  // naming topics 通过 SeoTopics props 引用。
+  used.add('naming.scenes.title');
+  used.add('naming.generator.cta');
+  used.add('naming.scenes.natalCta');
+  for (const k of ['newborn', 'bazi', 'free', 'generator']) {
+    used.add(`naming.scenes.${k}.title`);
+    used.add(`naming.scenes.${k}.body`);
+  }
+  // 营销场景页的 topics/FAQ 通过 props 与对象字面量引用，静态扫描无法识别。
+  const seoPageFaqKeys = {
+    natal: ['bazi', 'ziwei', 'solar'],
+    liunian: ['taisui', 'dayun', 'wealth'],
+    hepan: ['overview', 'zodiac', 'friction'],
+    divination: ['cast', 'multi', 'timing'],
+    fengshui: ['bazhai', 'plan', 'rent', 'dongsi'],
+    huangli: ['accuracy', 'move', 'wedding', 'opening'],
+  };
+  for (const [page, faqKeys] of Object.entries(seoPageFaqKeys)) {
+    used.add(`${page}.topics.title`);
+    used.add(`${page}.topics.link`);
+    for (const k of ['a', 'b', 'c']) {
+      used.add(`${page}.topics.${k}.title`);
+      used.add(`${page}.topics.${k}.body`);
+    }
+    for (const f of faqKeys) {
+      used.add(`${page}.faq.${f}.q`);
+      used.add(`${page}.faq.${f}.a`);
+    }
+  }
   const namingStatic = ['a11y.examples'];
   for (const k of namingStatic) used.add(`naming.${k}`);
   for (const key of [

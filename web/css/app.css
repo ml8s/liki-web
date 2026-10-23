@@ -451,6 +451,8 @@ th {
 /* 内容区块（WP4 词嵌入）：article 语义 + 与 details 加速器并列的常青内容。 */
 .scenario-content-blocks { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); }
 .scenario-content-blocks article { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--color-surface); }
+.seo-topics-title { margin: 0 0 var(--space-2); font-size: var(--font-size-title-sm); color: var(--color-text); }
+.scenario-content-blocks .segments-grid h3 { margin: 0 0 var(--space-1); font-size: var(--font-size-body-lg); color: var(--color-text); }
 .scenario-content-blocks h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-title-sm); color: var(--color-text); }
 .scenario-content-blocks h4 { margin: 0 0 var(--space-1); font-size: var(--font-size-body-lg); color: var(--color-text); }
 .scenario-content-blocks p { margin: 0; font-size: var(--font-size-body); color: var(--color-text-muted); line-height: 1.6; }

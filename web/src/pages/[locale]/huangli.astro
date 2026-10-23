@@ -1,5 +1,6 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import SeoTopics from '../../components/SeoTopics.astro';
 import { t, locales } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -11,9 +12,15 @@ const ns = 'scenario.huangli';
 const benefits = ['structure', 'insight', 'timing', 'action'].map(key => `${ns}.benefit.${key}`);
 const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
 const questions = ['q1', 'q2', 'q3'].map(key => `${ns}.${key}`);
-const faqs = ['paid', 'data', 'accuracy'].map(key => ({
-  questionKey: `scenario.faq.${key}.q`,
-  answerKey: `scenario.faq.${key}.a`,
+const faqs = [
+  { questionKey: 'huangli.faq.accuracy.q', answerKey: 'huangli.faq.accuracy.a' },
+  { questionKey: 'huangli.faq.move.q', answerKey: 'huangli.faq.move.a' },
+  { questionKey: 'huangli.faq.wedding.q', answerKey: 'huangli.faq.wedding.a' },
+  { questionKey: 'huangli.faq.opening.q', answerKey: 'huangli.faq.opening.a' },
+];
+const topics = ['a', 'b', 'c'].map(k => ({
+  titleKey: `huangli.topics.${k}.title`,
+  bodyKey: `huangli.topics.${k}.body`,
 }));
 const staticSections = ['focus', 'method', 'output'].map(key => ({
   title: t(locale, `${ns}.static.${key}.title`),
@@ -80,6 +87,15 @@ const toolProps = {
       <p>{t(locale, 'huangli.events.body')}</p>
     </article>
   </div>
+  <Fragment slot="topics">
+    <SeoTopics
+      locale={locale}
+      titleKey="huangli.topics.title"
+      items={topics}
+      linkHref={`/${locale}/natal/`}
+      linkKey="huangli.topics.link"
+    />
+  </Fragment>
 </ScenarioLanding>
 
 <script>

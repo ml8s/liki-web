@@ -28,6 +28,30 @@ const ogImage = `${siteOrigin}/img/og-image.png`;
 const pageTitle = t(locale, `${page}.title`);
 const siteName = t(locale, 'site.name');
 const documentTitle = pageTitle.includes(siteName) ? pageTitle : `${pageTitle} · ${siteName}`;
+
+const pageDescription = t(locale, `${page}.metaDesc`);
+// 只有内容型信息页需要页面级 schema；场景页与首页已各自提供 Service/FAQ/Organization。
+const legalSchemaTypes: Record<string, string> = {
+  about: 'AboutPage',
+  contact: 'ContactPage',
+  privacy: 'WebPage',
+  terms: 'WebPage',
+  disclaimer: 'WebPage',
+};
+const webPageSchemaType = legalSchemaTypes[page];
+const webPageSchema = webPageSchemaType
+  ? {
+      '@context': 'https://schema.org',
+      '@type': webPageSchemaType,
+      '@id': `${canonical}#webpage`,
+      url: canonical,
+      name: documentTitle,
+      description: pageDescription,
+      inLanguage: locale,
+      isPartOf: { '@type': 'WebSite', '@id': 'https://liki.hk/#website', url: 'https://liki.hk/', name: siteName },
+      publisher: { '@type': 'Organization', '@id': 'https://liki.hk/#organization', name: siteName, url: 'https://liki.hk/' },
+    }
+  : null;
 ---
 
 <!DOCTYPE html>
@@ -42,7 +66,7 @@ const documentTitle = pageTitle.includes(siteName) ? pageTitle : `${pageTitle} �
 <link rel="alternate" hreflang="en" href={`${siteOrigin}/en/${pagePath ? pagePath + '/' : ''}`}>
 <link rel="alternate" hreflang="x-default" href={`${siteOrigin}/zh-Hant/${pagePath ? pagePath + '/' : ''}`}>
 
-<meta name="description" content={t(locale, `${page}.metaDesc`)}>
+<meta name="description" content={pageDescription}>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#111f2e">
 <meta name="color-scheme" content="light">
@@ -59,6 +83,8 @@ const documentTitle = pageTitle.includes(siteName) ? pageTitle : `${pageTitle} �
 <meta name="twitter:image" content={ogImage}>
 
 <title>{documentTitle}</title>
+
+{webPageSchema && <script type="application/ld+json" set:html={JSON.stringify(webPageSchema)} />}
 
 <slot name="head" />
 

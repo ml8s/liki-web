@@ -119,6 +119,12 @@ if (!scenario && !service) {
     </div>
   </section>
 
+  {Astro.slots.has('topics') && (
+    <section class="landing-services scenario-section">
+      <slot name="topics" />
+    </section>
+  )}
+
   <section class="landing-services scenario-section">
     <h2>{t(locale, questionsTitleKey)}</h2>
     <div class="scenario-questions">

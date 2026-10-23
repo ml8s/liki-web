@@ -1,6 +1,1 @@
-User-agent: *
-Allow: /
-Disallow: /app/
-Disallow: /api/
-
-Sitemap: https://liki.hk/sitemap.xml
+../robots.txt
