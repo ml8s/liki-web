@@ -1928,6 +1928,7 @@ test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await page.getByRole('combobox', { name: '出生時間' }).fill('08:00')
   await page.locator('input[name="birth-place"]').fill('上海')
   await page.locator('input[name="birth-place"]').blur()
+  await page.locator('.region-manual-toggle').click()
   await expect(page.locator('input[name="birth-longitude"]')).toHaveValue('121.4726')
   await page.locator('.b-form button[type="submit"]').click()
   await page.waitForSelector('.rel-sec', { timeout: 12000 })

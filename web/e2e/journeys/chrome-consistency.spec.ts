@@ -5,7 +5,7 @@ import { test, expect } from '../fixtures'
 import { mockPageview } from '../mocks'
 
 const LOCALES = ['zh-Hant', 'zh-Hans', 'en']
-const PAGES = ['', 'skills', 'naming', 'natal', 'partner/kol', 'partner/scout', 'about', 'contact', 'disclaimer', 'privacy', 'terms']
+const PAGES = ['', 'naming', 'natal', 'partner/kol', 'partner/scout', 'about', 'contact', 'disclaimer', 'privacy', 'terms']
 
 test.describe.configure({ mode: 'serial' })
 

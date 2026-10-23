@@ -35,13 +35,9 @@ Thumbs.db
 test-results/
 web/test-results/
 __pycache__/
-skills-lock.json
 
 # Node
 node_modules/
-
-# Skills (synced from ../liki)
-web/skills/
 
 # Generated
 /build/release/
@@ -60,7 +56,6 @@ web/.astro/
 
 # Temp
 social.md
-web/.well-known/
 /keys/
 /.env.production.alipay
 

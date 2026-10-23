@@ -2,9 +2,10 @@
 // 六爻起卦表单：App 完整上下文和营销站免费起卦共用同一字段与提交契约。
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElButton, ElInput, ElTag } from 'element-plus'
+import { ElButton, ElTag } from 'element-plus'
+import TextareaField from '@shared/components/form/fields/TextareaField.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
-import RegionField from '@shared/components/form/RegionField.vue'
+import RegionAutocompleteField from '@shared/components/form/fields/RegionAutocompleteField.vue'
 import type { RegionFieldLabels } from '@shared/components/form/region-field'
 import {
   createDivinationCastingFormValue,
@@ -55,6 +56,10 @@ const regionLabels = computed<RegionFieldLabels>(() => ({
   timezone: t('profiles.form.timezone'),
   timezonePlaceholder: t('profiles.form.timezonePlaceholder'),
   timezoneHint: t('profiles.form.timezoneHint'),
+  manualToggle: t('services.divination.manualToggle'),
+  kindCity: t('services.divination.kindCity'),
+  kindCounty: t('services.divination.kindCounty'),
+  kindWorld: t('services.divination.kindWorld'),
 }))
 
 const locationStatus = computed(() => {
@@ -149,19 +154,17 @@ defineExpose({ getContext, restore })
     :submit-label="t('services.divination.cast')"
     @submit="onSubmit"
   >
-    <el-form-item
+    <TextareaField
+      v-model="form.question"
+      name="divination-question"
       prop="question"
       :label="t('services.divination.questionLabel')"
-    >
-      <el-input
-        v-model="form.question"
-        name="divination-question"
-        autocomplete="off"
-        maxlength="200"
-        :placeholder="t('services.divination.questionPlaceholder')"
-        show-word-limit
-      />
-    </el-form-item>
+      :placeholder="t('services.divination.questionPlaceholder')"
+      :maxlength="200"
+      :show-word-limit="true"
+      :autosize="{ minRows: 1, maxRows: 5 }"
+      resize="none"
+    />
 
     <el-form-item
       v-if="variant === 'full'"
@@ -178,7 +181,7 @@ defineExpose({ getContext, restore })
     </el-form-item>
 
     <template v-if="variant === 'full'">
-      <RegionField
+      <RegionAutocompleteField
         :location="form.location"
         :labels="regionLabels"
         name-prefix="casting"

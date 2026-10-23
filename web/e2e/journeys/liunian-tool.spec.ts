@@ -17,6 +17,7 @@ test('工具岛：流年盘按共享 BaziPanel 渲染（流年列 + 流年详览
   await fillBirthFields(page, tool, { date: '1990-05-12', time: '08:30', gender: 'female' });
   await tool.locator('input[name="birth-place"]').fill('上海');
   await tool.locator('input[name="birth-place"]').blur();
+  await tool.locator('.region-manual-toggle').click();
   await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
   await tool.locator('input[name="liunian-year"]').fill('2026');
   await tool.locator('button[type=submit]').click();
@@ -40,6 +41,7 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await fillBirthFields(page, tool, { date: '1990-05-12', time: '08:30', gender: 'male' });
   await tool.locator('input[name="birth-place"]').fill('Shanghai');
   await tool.locator('input[name="birth-place"]').blur();
+  await tool.locator('.region-manual-toggle').click();
   await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 

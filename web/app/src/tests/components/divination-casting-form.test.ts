@@ -6,7 +6,7 @@ import { readStoredDivinationCastingValue } from '@shared/components/divination/
 describe('DivinationCastingForm', () => {
   it('emits a public qigua payload after validation', async () => {
     const wrapper = mount(DivinationCastingForm, { props: { variant: 'public-qigua' } })
-    await wrapper.find('input[name="divination-question"]').setValue('這個項目能成嗎')
+    await wrapper.find('textarea[name="divination-question"]').setValue('這個項目能成嗎')
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 

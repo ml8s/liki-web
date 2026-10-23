@@ -348,14 +348,9 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 			return
 		}
 		clean := filepath.Clean(r.URL.Path)
-		// 裸入口协商（与静态部署契约一致）：/, /skills → 本地化页面；
-		// /skills/liki/... 子路径保持直接访问（agent artifact）。
+		// 裸入口协商（与静态部署契约一致）：/ → 本地化首页。
 		if clean == "/" {
 			http.Redirect(w, r, "/"+negotiateLocale(r)+"/", http.StatusFound)
-			return
-		}
-		if clean == "/skills" || clean == "/skills/" {
-			http.Redirect(w, r, "/"+negotiateLocale(r)+"/skills/", http.StatusFound)
 			return
 		}
 		if clean == "/admin.html" {

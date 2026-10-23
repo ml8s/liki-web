@@ -214,7 +214,7 @@ func safeReferralTarget(rawTarget string) (string, bool) {
 		allowedPaths["/"+locale] = true
 		allowedPaths["/"+locale+"/"] = true
 		for _, slug := range []string{
-			"natal", "liunian", "hepan", "divination", "fengshui", "huangli", "naming", "skills",
+			"natal", "liunian", "hepan", "divination", "fengshui", "huangli", "naming",
 			"about", "contact", "privacy", "terms", "disclaimer",
 		} {
 			allowedPaths["/"+locale+"/"+slug] = true

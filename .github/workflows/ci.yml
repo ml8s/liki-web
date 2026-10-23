@@ -73,7 +73,7 @@ jobs:
       - name: Go race detector
         run: make test-go-race
 
-  # ── test：对应 make test-go + test-js + test-python + build + check-packaging（e2e 单独 job）──
+  # ── test：对应 make test-go + test-js + test-python（e2e 单独 job）──
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30

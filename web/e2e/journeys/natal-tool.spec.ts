@@ -69,6 +69,7 @@ test('工具岛：八字盘 + 紫微盘按共享组件渲染', async ({ page }) 
   await fillBirthFields(page, tool, { date: '1990-05-12', time: '08:30', gender: 'female' });
   await tool.locator('input[name="birth-place"]').fill('上海');
   await tool.locator('input[name="birth-place"]').blur();
+  await tool.locator('.region-manual-toggle').click();
   await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
@@ -103,6 +104,7 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await mockCityCoords(page, { name: '上海市', region: '上海市', longitude: 121.4726, latitude: 31.2304 });
   await tool.locator('input[name="birth-place"]').fill('上海');
   await tool.locator('input[name="birth-place"]').blur();
+  await tool.locator('.region-manual-toggle').click();
   await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 

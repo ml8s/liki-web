@@ -51,19 +51,12 @@ const PAGES: PageCase[] = [
       { selector: '.landing-services', text: '七项服务：命理、流年、合盘、问卦、择日、风水与起名' },
       { selector: '.landing-trust', text: '引擎排盘，结论可验证' },
     ] },
-  // Skill 能力发现页（保留机器可读 SKILL.md 作为独立入口）
-  { path: '/zh-Hans/skills/', name: 'skills (localized page)',
-    checks: [
-      { selector: '.scenario-hero h1', text: 'Liki Skill' },
-      { selector: '.install-cmd', text: 'npx skills add ml8s/liki' },
-    ] },
   // Legal pages — marker renders, i18n resolves, keys don't leak
   { path: '/zh-Hans/about',    name: 'about (static)' },
   { path: '/zh-Hans/contact',  name: 'contact (static)' },
   { path: '/zh-Hans/privacy',  name: 'privacy (static)' },
   { path: '/zh-Hans/terms',    name: 'terms (static)' },
   // Static resources
-  { path: '/skills/liki/SKILL.md', marker: null,          name: 'skills',   resource: true },
   { path: '/zh-Hans/natal',   name: 'natal (merged landing)',
     checks: [
       { selector: 'h1', text: '在线命理：八字、紫微与命书' },
@@ -100,24 +93,6 @@ test.describe('Static page interactions', () => {
     const response = await request.get('/zh-Hans/')
     const id = response.headers()['x-request-id'] ?? ''
     expect(id.length).toBeGreaterThan(8)
-  });
-
-  test('bare skills entry negotiates a localized human-facing page', async ({ request }) => {
-    const cases = [
-      ['zh-Hans,zh;q=0.9', '/zh-Hans/skills'],
-      ['zh-TW,zh;q=0.9', '/zh-Hant/skills'],
-      ['en-US,en;q=0.9', '/en/skills'],
-      ['ko-KR,ko;q=0.9', '/zh-Hant/skills'],
-    ];
-
-    for (const [language, location] of cases) {
-      const response = await request.get('/skills', {
-        headers: { 'Accept-Language': language },
-        maxRedirects: 0,
-      });
-      expect(response.status()).toBe(302);
-      expect(response.headers().location).toBe(location);
-    }
   });
 
   test('bare capability entries negotiate a localized landing page', async ({ request }) => {
@@ -199,21 +174,6 @@ test.describe('Static page interactions', () => {
       },
     });
     expect(typeof envelope?.createdAt).toBe('number');
-  });
-
-  test('skills page copies install commands with temporary feedback', async ({ page }) => {
-    await page.addInitScript(() => {
-      Object.defineProperty(navigator, 'clipboard', {
-        value: { writeText: (text: string) => Promise.resolve(text) },
-      });
-    });
-
-    await page.goto('/zh-Hans/skills/');
-    const button = page.locator('.copy-btn').first();
-    const original = await button.innerHTML();
-    await button.click();
-    await expect(button).toHaveText('✓');
-    await expect.poll(() => button.innerHTML()).toBe(original);
   });
 });
 

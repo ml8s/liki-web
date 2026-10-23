@@ -11,7 +11,7 @@
 ## 2. Positioning（定位）
 
 - **整体定位（对外主定义句）**：**专业 AI 命理师** ／ **Professional AI Astrologer**——人的 AI 顾问、AI 的能力、系统的服务，同一身份。
-- **能力面产品名**（AI 生态与工程面；liki 仓库 README、SKILL、skills 页使用）：**Liki Skill**；描述用语：专业命理 Skill ／ Professional Astrology Skill。
+- **能力面产品名**（AI 生态与工程面；liki 仓库 README、SKILL 使用）：**Liki Skill**；描述用语：专业命理 Skill ／ Professional Astrology Skill。
 - **领域**：命理（English: Astrology），以中华命理为核心体系——
   八字 · 紫微斗数 · 六爻 · 奇门 · 风水 · 起名 · 择日 · 历法 · 考时；
   体系可扩展（西方占星、印度占星等），支持跨体系合参。

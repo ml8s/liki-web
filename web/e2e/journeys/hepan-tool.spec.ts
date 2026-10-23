@@ -21,9 +21,11 @@ test('工具岛：合盘盘面按共享 HepanPanel 渲染', async ({ page }) => 
   await fillBirthFields(page, personB, { date: '1992-08-20', time: '10:15', gender: 'male' });
   await personA.locator('input[name="person-a-place"]').fill('上海');
   await personA.locator('input[name="person-a-place"]').blur();
+  await personA.locator('.region-manual-toggle').click();
   await expect(personA.locator('input[name="person-a-longitude"]')).toHaveValue('121.4726');
   await personB.locator('input[name="person-b-place"]').fill('上海');
   await personB.locator('input[name="person-b-place"]').blur();
+  await personB.locator('.region-manual-toggle').click();
   await expect(personB.locator('input[name="person-b-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
@@ -58,9 +60,11 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await fillBirthFields(page, tool.locator('fieldset').nth(1), { date: '1992-08-20', time: '10:15', gender: 'male' });
   await tool.locator('fieldset').nth(0).locator('input[name="person-a-place"]').fill('Shanghai');
   await tool.locator('fieldset').nth(0).locator('input[name="person-a-place"]').blur();
+  await tool.locator('fieldset').nth(0).locator('.region-manual-toggle').click();
   await expect(tool.locator('fieldset').nth(0).locator('input[name="person-a-longitude"]')).toHaveValue('121.4726');
   await tool.locator('fieldset').nth(1).locator('input[name="person-b-place"]').fill('Shanghai');
   await tool.locator('fieldset').nth(1).locator('input[name="person-b-place"]').blur();
+  await tool.locator('fieldset').nth(1).locator('.region-manual-toggle').click();
   await expect(tool.locator('fieldset').nth(1).locator('input[name="person-b-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 

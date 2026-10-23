@@ -46,6 +46,7 @@ test('工具岛：用神/喜忌按共享组件渲染，低置信度显示复核�
   await fillBirthFields(page, tool, { date: '1990-05-12', time: '08:30', gender: 'female' });
   await tool.locator('input[name=naming-birth-place]').fill('上海');
   await tool.locator('input[name=naming-birth-place]').blur();
+  await tool.locator('.region-manual-toggle').click();
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
@@ -69,6 +70,7 @@ test('工具岛：正常盘渲染喜/忌五行', async ({ page }) => {
   await fillBirthFields(page, tool, { date: '1990-05-12', time: '08:30', gender: 'female' });
   await tool.locator('input[name=naming-birth-place]').fill('上海');
   await tool.locator('input[name=naming-birth-place]').blur();
+  await tool.locator('.region-manual-toggle').click();
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
@@ -93,6 +95,7 @@ test('工具岛：counsel 失败时展示错误文案', async ({ page }) => {
   await fillBirthFields(page, tool, { date: '1990-05-12', time: '08:30', gender: 'female' });
   await tool.locator('input[name=naming-birth-place]').fill('上海');
   await tool.locator('input[name=naming-birth-place]').blur();
+  await tool.locator('.region-manual-toggle').click();
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 

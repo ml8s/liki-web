@@ -47,6 +47,10 @@ export function createBirthFieldLabels(t: BirthLabelTranslate): BirthFieldLabels
       timezone: t('profiles.form.timezone'),
       timezonePlaceholder: t('profiles.form.timezonePlaceholder'),
       timezoneHint: t('profiles.form.timezoneHint'),
+      manualToggle: t('profiles.form.manualToggle'),
+      kindCity: t('profiles.form.kindCity'),
+      kindCounty: t('profiles.form.kindCounty'),
+      kindWorld: t('profiles.form.kindWorld'),
     },
   }
 }

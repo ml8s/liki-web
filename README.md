@@ -39,8 +39,7 @@ Requirements are documented by:
 - `.nvmrc` for Node.js;
 - `.python-version` for Python;
 - `go.mod` for Go;
-- `deps/golangci-lint.version` for golangci-lint;
-- a prepared immutable `liki-web-skill-bundle.tar.gz` under `web/skills`.
+- `deps/golangci-lint.version` for golangci-lint.
 
 `make check` fails when your local runtimes differ from those declarations.
 
@@ -68,9 +67,9 @@ In development, the login page shows a local verification code when the email se
 | Command | Purpose |
 | --- | --- |
 | `make dev` | Build and start the local stack |
-| `make test` | Unit, integration, and skill tests (Go/JS/Python) |
+| `make test` | Unit and integration tests (Go/JS/Python) |
 | `make gate` | `check` + `test` |
-| `make build` | Verify the prepared skill artifact, then build static assets and Go service |
+| `make build` | Build static assets and Go service |
 | `make clean` | Remove local build artifacts |
 
 ## Configuration
@@ -127,7 +126,7 @@ CNY subscription price, so subscription options are never listed for CNY buyers 
 make gate
 ```
 
-This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static frontend/i18n checks, and Go race tests. Docker E2E runs separately via `make e2e`; packaging is verified by `make check-packaging`.
+This runs Go lint/vet, frontend lint/typecheck, JS and Python tests, static frontend/i18n checks, and Go race tests. Docker E2E runs separately via `make e2e`.
 
 Images are built locally; CI never builds them. The image tag is the commit
 sha, and `liki-deploy` assembles, tests, and deploys that exact set. See

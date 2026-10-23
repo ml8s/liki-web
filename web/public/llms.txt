@@ -5,7 +5,7 @@ Liki（专业 AI 命理师 / Professional AI Astrologer）以三种形态交付�
 - **网页 AI 顾问**：liki.hk 上的 AI 命理顾问，覆盖八字、紫微斗数、六爻、八宅风水与择日。
   示例：https://liki.hk/en/natal/
 - **Skill**：Liki Skill（专业命理 Skill / Professional Astrology Skill）——供 AI 助手接入的命理能力包。
-  文件：https://liki.hk/skills/liki/SKILL.md
+  安装与文档：https://github.com/ml8s/liki
 - **MCP 服务**：排盘与断语以标准 MCP 服务对外，同时提供 JSON-RPC 接口；外部客户端可直连。
 
 主定义句：Liki，专业 AI 命理师。 / Liki — Professional AI Astrologer.
@@ -25,7 +25,7 @@ Liki（专业 AI 命理师 / Professional AI Astrologer）以三种形态交付�
 
 ## 资产
 
-- Skill 文件：https://liki.hk/skills/liki/SKILL.md
+- Skill（安装与文档）：https://github.com/ml8s/liki
 - 关于：https://liki.hk/en/about/
 - 服务条款：https://liki.hk/en/terms/
 - 免责声明：https://liki.hk/en/disclaimer/

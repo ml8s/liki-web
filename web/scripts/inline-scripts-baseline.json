@@ -13,7 +13,5 @@
   "src/pages/[locale]/liunian.astro:astro-processed": 1,
   "src/pages/[locale]/naming.astro:astro-processed": 1,
   "src/pages/[locale]/natal.astro:astro-processed": 1,
-  "src/pages/[locale]/natal.astro:data-block": 1,
-  "src/pages/[locale]/skills.astro:astro-processed": 1,
-  "src/pages/[locale]/skills.astro:data-block": 1
+  "src/pages/[locale]/natal.astro:data-block": 1
 }

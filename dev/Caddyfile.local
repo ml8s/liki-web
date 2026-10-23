@@ -113,14 +113,10 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	redir /divination /{marketing_lang}/divination 302
 	redir /fengshui /{marketing_lang}/fengshui 302
 	redir /huangli /{marketing_lang}/huangli 302
-	redir /skills /{marketing_lang}/skills 302
 
 	# /chat — legacy chat landing now lives in the Liki Chat app
 	redir /chat /app/chat 302
 	redir /naming/chat /app/chat 302
-
-	# Agent artifact — raw SKILL.md remains available at /skills/liki/SKILL.md.
-	header /skills/* Cache-Control "public, max-age=60"
 
 	# All other routes → Go handles API + static files
 	handle {

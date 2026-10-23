@@ -154,6 +154,40 @@
   --z-skip-link: 100;
   --scroll-margin-header: 88px;
   --color-white: #ffffff;
+
+  /* Shared form-control contract. Components consume these aliases only;
+   * Element Plus bridge values are mapped in the Element Plus theme layer. */
+  --control-height-sm: 32px;
+  --control-height-md: 40px;
+  --control-height-lg: 48px;
+  --control-height-touch: 44px;
+
+  --control-padding-x-sm: 10px;
+  --control-padding-x-md: 12px;
+  --control-padding-x-lg: 14px;
+
+  --control-font-sm: var(--font-size-label);
+  --control-font-md: var(--font-size-body);
+  --control-font-lg: var(--font-size-body-lg);
+
+  --control-surface: var(--brand-surface);
+  --control-text: var(--brand-text);
+  --control-placeholder: var(--brand-text-faint);
+  --control-border: var(--brand-line);
+  --control-border-hover: var(--brand-line-strong);
+  --control-border-focus: var(--brand-primary);
+  --control-focus-ring: var(--color-accent-focus);
+  --control-radius: var(--radius-control);
+
+  --field-label: var(--brand-text);
+  --field-hint: var(--brand-text-muted);
+  --field-error: var(--color-error);
+  --field-error-surface: var(--color-danger-surface);
+
+  --choice-surface: var(--brand-surface);
+  --choice-selected-surface: var(--brand-primary-soft);
+  --choice-selected-border: var(--brand-primary);
+  --choice-selected-text: var(--brand-primary);
 }
 
 /* Static pages retain a few legacy aliases. Product code must use the canonical

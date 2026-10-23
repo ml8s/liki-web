@@ -29,6 +29,10 @@ const labels: BirthFieldLabels = {
     timezone: 'Timezone',
     timezonePlaceholder: 'Asia/Shanghai',
     timezoneHint: 'Timezone hint',
+    manualToggle: 'Enter manually',
+    kindCity: 'City',
+    kindCounty: 'County',
+    kindWorld: 'International',
   },
 }
 

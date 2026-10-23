@@ -3,17 +3,17 @@ export RELEASE_VERSION
 
 .DEFAULT_GOAL := help
 # 统一语义（四仓一致）：
-#   make check  纯静态检查（lint+格式+类型+安全+skills；不跑测试、不构建）
-#   make test   本仓全部测试（单元/集成/skill 验证；E2E 走 make e2e、构建走 make build）
+#   make check  纯静态检查（lint+格式+类型+安全；不跑测试、不构建）
+#   make test   本仓全部测试（单元/集成；E2E 走 make e2e、构建走 make build）
 #   make gate   check + test ＝ 源码门槛；镜像在本地构建
 #   make build  本仓产物（前端+二进制）
 #   make e2e    浏览器 E2E（本仓视角）
 #   make smoke  本仓镜像启动 + health/page 冒烟
 .PHONY: help check test gate smoke e2e e2e-a11y \
-        lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python test-skills \
+        lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python \
         check-web-static check-security check-go-version runtime-version-check python-env \
-        check-actions check-caddy check-skills check-packaging \
-        build build-skills build-sitemap build-web build-go image test-go test-go-race test-go-coverage test-js-coverage \
+        check-actions check-caddy \
+        build build-sitemap build-web build-go image test-go test-go-race test-go-coverage test-js-coverage \
         dev clean version
 
 # ── 环境 ──
@@ -60,9 +60,9 @@ help: ## 列出所有 target
 
 # ── 质量门槛 ──
 
-check: lint-go fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-skills check-go-version runtime-version-check check-actions ## 静态检查（纯静态，不跑测试、不构建）
+check: lint-go fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-go-version runtime-version-check check-actions ## 静态检查（纯静态，不跑测试、不构建）
 
-test: test-go test-js test-python test-skills ## 本仓测试（单元+集成+skill 验证）。E2E 走 make e2e；构建走 make build。
+test: test-go test-js test-python ## 本仓测试（单元+集成）。E2E 走 make e2e；构建走 make build。
 test-go-race: ## Go 竞态检测（独立于覆盖率闸门）
 	go test -race -count=1 ./...
 
@@ -135,16 +135,13 @@ test-python: python-env ## Python helper tests
 	"$(PYTHON_BIN)" -m unittest discover -s web/test -p '*_test.py' -q
 	"$(PYTHON_BIN)" -m unittest discover -s scripts/tests -p 'test_*.py' -q
 
-test-skills: ## Python skill 测试
-	scripts/verify-prepared-skills.sh
-
 e2e: ## Docker 全栈 E2E（不跑 lint / unit）
 	scripts/e2e.sh
 
 e2e-a11y: build ## Run the accessibility E2E contract in make gate
 	scripts/e2e-a11y.sh
 
-build: build-skills build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）
+build: build-sitemap build-web build-go ## 构建本仓产物（前端+二进制）
 
 # ── 镜像（本地开发，非发布路径）──
 # 本地镜像 tag 由 IMAGE_TAG 指定；部署由 liki-deploy 按 sha 组装。
@@ -177,6 +174,7 @@ check-web-static:
 	node web/scripts/check-design-tokens.js
 	node web/scripts/check-frontend-tokens.js
 	node web/scripts/check-css-vars.js
+	node web/scripts/check-form-kit.js
 	node web/scripts/check-performance.js
 	node web/scripts/check-mobile-responsive.js
 	node web/scripts/check-i18n.js
@@ -189,14 +187,8 @@ check-web-static:
 check-security:
 	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
-check-skills:
-	scripts/check-skills.sh
-
 check-caddy:
 	scripts/check-caddy.sh
-
-build-skills:
-	scripts/verify-prepared-skills.sh
 
 build-sitemap:
 	node web/scripts/build-sitemap.js
@@ -206,6 +198,3 @@ build-web:
 
 build-go:
 	scripts/build-go.sh
-
-check-packaging:
-	scripts/check-packaging.sh

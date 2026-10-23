@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
-import { ElSelect } from 'element-plus'
+import { ElAutocomplete } from 'element-plus'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
 import { resetCityIndexCache } from '@shared/utils/citySearch'
 
@@ -24,6 +24,16 @@ function mountForm(initial: Record<string, unknown> = {}) {
 const longitudeValue = (wrapper: ReturnType<typeof mountForm>) =>
   (wrapper.find('input[name="birth-longitude"]').element as HTMLInputElement).value
 
+async function settleBlur() {
+  await flushPromises()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  await flushPromises()
+}
+
+function openManualFields(wrapper: ReturnType<typeof mountForm>) {
+  return wrapper.find('.region-manual-toggle').trigger('click')
+}
+
 describe('BirthForm place resolution', () => {
   beforeEach(() => { resetCityIndexCache() })
 
@@ -37,7 +47,8 @@ describe('BirthForm place resolution', () => {
     const wrapper = mountForm()
     await wrapper.find('input[name="birth-place"]').setValue('上海')
     await wrapper.find('input[name="birth-place"]').trigger('blur')
-    await flushPromises()
+    await settleBlur()
+    await openManualFields(wrapper)
     expect(longitudeValue(wrapper)).toBe('121.4737')
   })
 
@@ -50,12 +61,21 @@ describe('BirthForm place resolution', () => {
     )))
     const wrapper = mountForm()
     await wrapper.find('input[name="birth-place"]').setValue('长沙')
+    await new Promise(resolve => setTimeout(resolve, 130))
+    await flushPromises()
     await wrapper.find('input[name="birth-place"]').trigger('blur')
+    await settleBlur()
+    const autocomplete = wrapper.findComponent(ElAutocomplete)
+    const componentVm = (autocomplete as unknown as { vm?: unknown }).vm
+    const exposed = componentVm as {
+      suggestions: Array<{ candidate: unknown }>
+      handleSelect: (item: unknown) => void
+    }
+    const choice = exposed.suggestions[1]
+    expect(choice).toBeTruthy()
+    exposed.handleSelect(choice)
     await flushPromises()
-    const choice = wrapper.findAllComponents(ElSelect).at(-1)!
-    expect(choice.exists()).toBe(true)
-    choice.vm.$emit('change', '1')
-    await flushPromises()
+    await openManualFields(wrapper)
     expect(longitudeValue(wrapper)).toBe('113.0750')
   })
 
@@ -68,6 +88,9 @@ describe('BirthForm place resolution', () => {
     )))
     const wrapper = mountForm({ nickname: '妈妈', birth: { location: { place: '上海' } } })
     await flushPromises()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    await flushPromises()
+    await openManualFields(wrapper)
     expect(longitudeValue(wrapper)).toBe('121.4737')
   })
 })

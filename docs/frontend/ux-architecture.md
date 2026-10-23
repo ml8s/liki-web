@@ -35,7 +35,6 @@ before implementation.
 | --- | --- | --- | --- |
 | Marketing landing | convert visitor to app | hero, proof, capability grid, primary CTA | home |
 | Scenario SEO | qualify a scenario and hand off to chat | scenario explanation, free tool, examples, FAQ, CTA | natal, liunian, hepan, divination, huangli, fengshui, naming |
-| Developer tool | make integration/installation easy | install commands, skill contract, links | skills |
 | Legal / reading | make policy readable | title, scoped sections | terms, privacy, disclaimer, about |
 | Product dashboard | continue the user's next task | state-driven hero, services, recent activity | `/app` |
 | Profile management | manage birth profiles | list/detail/new/edit, confirmation for delete | birth profiles |
@@ -92,9 +91,6 @@ Domain-specific states are listed in the route inventory below.
 | `/{locale}/huangli` | scenario SEO | open the date-selection scenario | free almanac tool; CTA sends `/app?service=huangli` |
 | `/{locale}/naming` | scenario SEO | open the naming scenario | free yong-shen tool; CTA sends `/app?scenario=naming` |
 | `/{locale}/bazi`, `/{locale}/mingshu` | legacy | — | 301 to `/natal` |
-| `/{locale}/skills` | capability discovery | install the Liki skill | human-facing localized page; public and SEO-discoverable |
-| `/skills` | localized entry | choose language by `Accept-Language` | redirects to one of the localized Skills pages |
-| `/skills/liki/SKILL.md` | agent artifact | install raw skill metadata | stable resource; not the human-facing page |
 | `/{locale}/partner/kol`, `/{locale}/partner/scout` | partner landing | invite-only entry | noindex, unlisted, not in sitemap |
 | `/{locale}/about` | legal / reading | learn about Liki | no primary conversion |
 | `/{locale}/contact` | legal / reading | contact | contains external links |

@@ -24,7 +24,6 @@ const DEFAULT_PAGE_META = { freq: 'monthly', priority: '0.5' };
 // 嵌套页天然不进 sitemap，无需排除表。
 const PAGE_META = {
   '':          { freq: 'weekly', priority: '1.0' },
-  skills:      { freq: 'monthly', priority: '0.6' },
   naming:      { freq: 'weekly', priority: '0.8' },
   hepan:       { freq: 'weekly', priority: '0.8' },
   liunian:     { freq: 'weekly', priority: '0.8' },
@@ -50,7 +49,6 @@ const PAGES = discoverPages();
 
 const SPECIAL = [
   { loc: `${SITE_ORIGIN}/llms.txt`,        src: 'web/llms.txt',           freq: 'weekly',  priority: '0.7' },
-  { loc: `${SITE_ORIGIN}/skills/liki/SKILL.md`, src: 'web/skills/liki/SKILL.md', freq: 'monthly', priority: '0.5' },
 ];
 
 function gitLastmod(file) {

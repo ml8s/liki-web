@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ElDatePicker, ElFormItem, ElOption, ElSelect } from 'element-plus'
+import DateField from '@shared/components/form/fields/DateField.vue'
+import SelectField from '@shared/components/form/fields/SelectField.vue'
 import { EVENT_KEYS } from '@shared/utils/huangli'
-import ElementPlusProvider from '@shared/components/form/ElementPlusProvider.vue'
-import '@shared/styles/element-plus/index.css'
 
 export interface HuangliRangeValue {
   event: string
@@ -25,53 +24,33 @@ function update<K extends keyof HuangliRangeValue>(key: K, value: HuangliRangeVa
 </script>
 
 <template>
-  <ElementPlusProvider>
-    <div class="huangli-range-fields">
-    <el-form-item :label="t('services.huangli.event')">
-      <el-select
-        :model-value="value.event"
-        :aria-label="t('services.huangli.event')"
-        class="w-full"
-        @update:model-value="update('event', $event as string)"
-      >
-        <el-option
-          v-for="key in EVENT_KEYS"
-          :key="key"
-          :value="key"
-          :label="t(`services.huangli.events.${key}`)"
-        />
-      </el-select>
-    </el-form-item>
+  <div class="huangli-range-fields">
+    <SelectField
+      :model-value="value.event"
+      name="huangli-event"
+      :label="t('services.huangli.event')"
+      :options="EVENT_KEYS.map(key => ({ value: key, label: t(`services.huangli.events.${key}`) }))"
+      @update:model-value="update('event', $event as string)"
+    />
 
-    <el-form-item
-      :label="t('services.huangli.startDate')"
+    <DateField
+      :model-value="value.startDate"
+      name="huangli-start-date"
       prop="startDate"
-    >
-      <el-date-picker
-        :model-value="value.startDate"
-        type="date"
-        value-format="YYYY-MM-DD"
-        :placeholder="t('services.huangli.startDate')"
-        class="w-full"
-        @update:model-value="update('startDate', $event as string)"
-      />
-    </el-form-item>
+      :label="t('services.huangli.startDate')"
+      :placeholder="t('services.huangli.startDate')"
+      @update:model-value="update('startDate', $event)"
+    />
 
-    <el-form-item
-      :label="t('services.huangli.endDate')"
+    <DateField
+      :model-value="value.endDate"
+      name="huangli-end-date"
       prop="endDate"
-    >
-      <el-date-picker
-        :model-value="value.endDate"
-        type="date"
-        value-format="YYYY-MM-DD"
-        :placeholder="t('services.huangli.endDate')"
-        class="w-full"
-        @update:model-value="update('endDate', $event as string)"
-      />
-    </el-form-item>
-    </div>
-  </ElementPlusProvider>
+      :label="t('services.huangli.endDate')"
+      :placeholder="t('services.huangli.endDate')"
+      @update:model-value="update('endDate', $event)"
+    />
+  </div>
 </template>
 
 <style scoped>

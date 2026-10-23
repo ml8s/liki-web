@@ -1,9 +1,7 @@
 <script setup lang="ts">
 // 统一流年/年份输入：App 与营销岛共用同一 Element Plus 交互契约。
 import { useI18n } from 'vue-i18n'
-import { ElFormItem, ElInputNumber } from 'element-plus'
-import ElementPlusProvider from './ElementPlusProvider.vue'
-import '@shared/styles/element-plus/index.css'
+import NumberField from './fields/NumberField.vue'
 
 withDefaults(defineProps<{
   modelValue: number
@@ -21,19 +19,19 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+function updateYear(value: number | null) {
+  if (value !== null) emit('update:modelValue', value)
+}
 </script>
 
 <template>
-  <ElementPlusProvider>
-    <el-form-item :label="t('profiles.chart.liunianYear')">
-      <el-input-number
-        :model-value="modelValue"
-        :min="min"
-        :max="max"
-        :name="name"
-        controls-position="right"
-        @update:model-value="emit('update:modelValue', Number($event))"
-      />
-    </el-form-item>
-  </ElementPlusProvider>
+  <NumberField
+    :model-value="modelValue"
+    :name="name"
+    :label="t('profiles.chart.liunianYear')"
+    :min="min"
+    :max="max"
+    @update:model-value="updateYear"
+  />
 </template>

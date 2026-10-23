@@ -11,4 +11,8 @@ export interface RegionFieldLabels {
   timezone: string
   timezonePlaceholder: string
   timezoneHint: string
+  manualToggle: string
+  kindCity: string
+  kindCounty: string
+  kindWorld: string
 }

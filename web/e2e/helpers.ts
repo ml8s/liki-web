@@ -58,5 +58,8 @@ export async function fillBirthFields(
   if (options.place) {
     await scope.getByRole('textbox', { name: /出生地|Birth place/ }).fill(options.place)
     await scope.getByRole('textbox', { name: /出生地|Birth place/ }).blur()
+    // Autocomplete keeps manual correction fields progressively hidden after a
+    // successful city match; reveal them so callers can assert the atomic pair.
+    await scope.locator('.region-manual-toggle').click()
   }
 }

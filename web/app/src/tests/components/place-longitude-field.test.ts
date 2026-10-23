@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import { ElForm } from 'element-plus'
-import RegionField from '@shared/components/form/RegionField.vue'
+import RegionAutocompleteField from '@shared/components/form/fields/RegionAutocompleteField.vue'
 import type { BirthLocation } from '@shared/domain/location'
 import type { RegionFieldLabels } from '@shared/components/form/region-field'
 import { resetCityIndexCache } from '@shared/utils/citySearch'
@@ -20,6 +20,10 @@ const labels: RegionFieldLabels = {
   timezone: 'Timezone',
   timezonePlaceholder: 'Asia/Shanghai',
   timezoneHint: 'Timezone hint',
+  manualToggle: 'Enter manually',
+  kindCity: 'City',
+  kindCounty: 'County',
+  kindWorld: 'International',
 }
 
 const shanghai: BirthLocation = {
@@ -32,14 +36,14 @@ const shanghai: BirthLocation = {
 function mountField(initial: BirthLocation | null = null) {
   const location = ref<BirthLocation | null>(initial)
   const wrapper = mount({
-    components: { ElForm, RegionField },
+    components: { ElForm, RegionAutocompleteField },
     setup: () => ({ location, labels }),
-    template: `<el-form :model="{}"><RegionField v-model:location="location" :labels="labels" /></el-form>`,
+    template: `<el-form :model="{}"><RegionAutocompleteField v-model:location="location" :labels="labels" /></el-form>`,
   })
   return { wrapper, location }
 }
 
-describe('RegionField', () => {
+describe('RegionAutocompleteField', () => {
   beforeEach(() => resetCityIndexCache())
 
   it('keeps an externally restored longitude/timezone pair', async () => {
@@ -64,6 +68,7 @@ describe('RegionField', () => {
     expect(location.value).toBeNull()
     await input.trigger('blur')
     await flushPromises()
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(location.value).toMatchObject({
       place: '上海市',
       longitude: 121.4737,
@@ -76,6 +81,7 @@ describe('RegionField', () => {
     const { wrapper, location } = mountField(shanghai)
     await wrapper.find('input[name="birth-place"]').setValue('杭州')
     expect(location.value).toBeNull()
+    await wrapper.find('.region-manual-toggle').trigger('click')
     // A city-derived timezone must not silently pair with a new manual place.
     expect((wrapper.find('input[name="birth-timezone"]').element as HTMLInputElement).value).toBe('')
   })

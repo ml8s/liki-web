@@ -54,11 +54,7 @@ test('工具岛：命卦与八宅方位按共享组件渲染', async ({ page }) 
 
   const tool = page.locator('#fengshui-tool');
   await tool.getByRole('spinbutton', { name: '出生年份' }).fill('1990');
-  const genderInput = tool.getByRole('combobox', { name: '性别' });
-  await genderInput.click({ force: true });
-  await page.locator(`[id="${await genderInput.getAttribute('aria-controls')}"]`)
-    .getByRole('option', { name: '女', exact: true })
-    .click();
+  await tool.locator('.choice-card .el-radio-button').first().click();
   await tool.locator('button[type=submit]').click();
 
   await expect(tool.locator('.mingua')).toHaveText('艮');
@@ -102,11 +98,7 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
 
   const tool = page.locator('#fengshui-tool');
   await tool.getByRole('spinbutton', { name: 'Birth year' }).fill('1990');
-  const genderInput = tool.getByRole('combobox', { name: 'Gender' });
-  await genderInput.click({ force: true });
-  await page.locator(`[id="${await genderInput.getAttribute('aria-controls')}"]`)
-    .getByRole('option', { name: 'Male', exact: true })
-    .click();
+  await tool.locator('.choice-card .el-radio-button').nth(1).click();
   await tool.locator('button[type=submit]').click();
 
   await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
