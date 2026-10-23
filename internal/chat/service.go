@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
@@ -17,10 +18,11 @@ import (
 )
 
 var (
-	ErrSkillForbidden    = errors.New("liki: skill forbidden")
-	ErrMessageEmpty      = errors.New("liki: message empty")
-	ErrRunnerUnavailable = errors.New("liki: runner unavailable for skill")
-	ErrExpertInvalid     = errors.New("liki: invalid expert")
+	ErrSkillForbidden             = errors.New("liki: skill forbidden")
+	ErrMessageEmpty               = errors.New("liki: message empty")
+	ErrRunnerUnavailable          = errors.New("liki: runner unavailable for skill")
+	ErrExpertInvalid              = errors.New("liki: invalid expert")
+	ErrConsultationContextInvalid = errors.New("liki: invalid consultation context")
 )
 
 // Expert identifies one independently deployed expert app (ADK deployment).
@@ -151,8 +153,26 @@ func (s *Service) acquireRef(sessionID string) *refcountedMutex {
 }
 
 func (s *Service) CreateSession(ctx context.Context, userID, skill, expert, title, profileID string) (Session, error) {
+	return s.CreateSessionWithContext(ctx, userID, skill, expert, title, profileID, nil)
+}
+
+func (s *Service) CreateSessionWithContext(
+	ctx context.Context,
+	userID, skill, expert, title, profileID string,
+	consultationContext json.RawMessage,
+) (Session, error) {
 	if !ValidExpert(expert) {
 		return Session{}, ErrExpertInvalid
+	}
+	if len(consultationContext) > 0 {
+		normalized, context, err := normalizeConsultationContext(consultationContext)
+		if err != nil {
+			return Session{}, err
+		}
+		if consultationExpert(context.Scenario) != expert {
+			return Session{}, fmt.Errorf("%w: scenario %s cannot use expert %s", ErrConsultationContextInvalid, context.Scenario, expert)
+		}
+		consultationContext = normalized
 	}
 	ok, err := s.authorizer.HasSkill(ctx, userID, product.Skill(skill))
 	if err != nil {
@@ -169,7 +189,7 @@ func (s *Service) CreateSession(ctx context.Context, userID, skill, expert, titl
 			return Session{}, err
 		}
 	}
-	session, err := s.store.CreateSession(ctx, userID, skill, expert, title, profileID)
+	session, err := s.store.CreateSessionWithContext(ctx, userID, skill, expert, title, profileID, consultationContext)
 	if err != nil {
 		return Session{}, err
 	}
@@ -227,11 +247,19 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
+	_, storedContext, err := normalizeConsultationContext(session.Context)
+	if err != nil {
+		return Message{}, Message{}, Session{}, err
+	}
+	if storedContext != nil && consultationExpert(storedContext.Scenario) != session.Expert {
+		return Message{}, Message{}, Session{}, fmt.Errorf("%w: scenario %s cannot use expert %s", ErrConsultationContextInvalid, storedContext.Scenario, session.Expert)
+	}
 
 	binding := sessionBinding{
-		UserID:    userID,
-		SessionID: session.ID,
-		ProfileID: session.ProfileID,
+		UserID:              userID,
+		SessionID:           session.ID,
+		ProfileID:           session.ProfileID,
+		ConsultationContext: session.Context,
 	}
 	if session.ProfileID != "" && s.profiles != nil {
 		p, err := s.profiles.Get(ctx, userID, session.ProfileID)

@@ -68,6 +68,11 @@
           :labels="birthLabels"
           @update:patch="patchB"
         />
+        <el-form-item prop="third_party_consent">
+          <el-checkbox v-model="b.third_party_consent">
+            {{ $t('profiles.form.consent') }}
+          </el-checkbox>
+        </el-form-item>
         <el-button
           type="primary"
           native-type="submit"
@@ -140,7 +145,7 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, reactive, ref, toRef } from 'vue'
+import { computed, reactive, ref, toRef, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
@@ -160,6 +165,8 @@ import {
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
 import { chartInputFromBirth } from '@shared/domain/birth'
+import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
+import { consumeConsultationHandoff } from '@shared/utils/handoff'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -179,10 +186,35 @@ const formA = reactive({ profileAId: '' })
 const profileAId = toRef(formA, 'profileAId')
 const chartA = ref<BaziChartData | null>(null)
 const bChart = ref<BaziChartData | null>(null)
-const b = ref<BirthFieldsValue>({ ...createBirthFieldsValue(), gender: 'female' })
+const b = ref<BirthFieldsValue & { third_party_consent: boolean }>({
+  ...createBirthFieldsValue(),
+  gender: 'female',
+  third_party_consent: false,
+})
+const publicConsultation = consumeConsultationHandoff<ConsultationContext>('hepan')
+if (publicConsultation?.scenario === 'hepan' && publicConsultation.second_birth) {
+  const second = publicConsultation.second_birth
+  b.value = {
+    gender: second.gender,
+    date: second.date,
+    time: second.time,
+    location: {
+      place: '',
+      longitude: second.location.longitude,
+      timezone: second.location.timezone,
+      source: 'saved',
+    },
+    third_party_consent: true,
+  }
+}
 const result = ref<Hepan['bond'] | null>(null)
 const loading = ref(false)
 const error = ref('')
+
+// 撤回第三方同意后，已有合盘结果不得再进入付费咨询上下文。
+watch(() => b.value.third_party_consent, consent => {
+  if (!consent) result.value = null
+})
 
 const formARef = ref<FormInstance>()
 const formBRef = ref<FormInstance>()
@@ -198,6 +230,13 @@ const rulesB = computed<FormRules>(() => ({
   location: [{
     validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
       if (value === null || value === undefined) callback(new Error(t('profiles.form.errors.birthPlaceRequired')))
+      else callback()
+    },
+    trigger: 'change',
+  }],
+  third_party_consent: [{
+    validator: (_rule: unknown, value: boolean, callback: (error?: Error) => void) => {
+      if (!value) callback(new Error(t('profiles.form.errors.thirdPartyConsentRequired')))
       else callback()
     },
     trigger: 'change',
@@ -263,6 +302,7 @@ async function compute() {
       },
       { ...inputB, gender: birthB.gender },
     )
+    if (!b.value.third_party_consent) return
     chartA.value = hepan.chartA
     bChart.value = hepan.chartB
     result.value = hepan.bond
@@ -277,7 +317,11 @@ function saveRecord() {
   if (!result.value) return
   void saveToolRecord(
     t('records.titleBond', { a: aName.value, b: b.value.date }),
-    { profile_id: profileAId.value, b: { ...b.value } },
+    {
+      profile_id: profileAId.value,
+      b: { ...b.value },
+      third_party_consent: b.value.third_party_consent,
+    },
   )
 }
 
@@ -290,6 +334,7 @@ function openRecord(record: ToolRecord) {
     date: String(inputB.date ?? ''),
     time: String(inputB.time ?? ''),
     location: inputB.location ?? null,
+    third_party_consent: true,
   })
   chartA.value = null
   void compute()
@@ -297,7 +342,7 @@ function openRecord(record: ToolRecord) {
 
 async function startInterpretation() {
   const p = profileA.value
-  if (!p) return
+  if (!p || !b.value.third_party_consent) return
   const bBirthProfile = b.value
   const bInfo = t('services.hepan.otherBirthProfileSummary', {
     gender: bBirthProfile.gender === 'male' ? t('profiles.male') : t('profiles.female'),
@@ -307,8 +352,20 @@ async function startInterpretation() {
       ? t('services.hepan.otherPlace', { place: bBirthProfile.location.place })
       : '',
   })
+  let context: ConsultationContext
+  try {
+    context = {
+      version: 1,
+      scenario: 'hepan',
+      second_birth: consultationBirthFromFields(b.value),
+      third_party_consent: true,
+    }
+  } catch {
+    error.value = t('services.hepan.failed')
+    return
+  }
   chat.pendingIntent = t('services.hepan.intent', { a: p.nickname, info: bInfo })
-  await openServiceChat(p.id, 'hepan', message => { error.value = message })
+  await openServiceChat(p.id, 'hepan', message => { error.value = message }, context)
 }
 </script>
 

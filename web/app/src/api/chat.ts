@@ -1,6 +1,7 @@
 import { HttpAgent, type AgentSubscriber } from '@ag-ui/client'
 import { del, get, patch, post, redirectToLogin } from './http'
 import { i18n } from '../i18n'
+import type { ConsultationContext } from '@shared/domain/consultation'
 
 export interface SSEError extends Error {
   status?: number
@@ -26,6 +27,7 @@ export interface ChatSession {
   created_at: string
   updated_at: string
   last_message_at: string | null
+  context?: ConsultationContext
 }
 
 export type ChatMessageKind = 'text' | 'system_profile'
@@ -51,8 +53,20 @@ export function fetchChatSession(sessionId: string): Promise<ChatSession> {
   return get<ChatSession>(`/api/chat/sessions/${sessionId}`)
 }
 
-export function createChatSession(profileId: string, skill: string, expert: string, title?: string): Promise<ChatSession> {
-  return post<ChatSession>('/api/chat/sessions', { profile_id: profileId, skill, expert, title })
+export function createChatSession(
+  profileId: string,
+  skill: string,
+  expert: string,
+  title?: string,
+  context?: ConsultationContext,
+): Promise<ChatSession> {
+  return post<ChatSession>('/api/chat/sessions', {
+    profile_id: profileId,
+    skill,
+    expert,
+    title,
+    context,
+  })
 }
 
 export function renameChatSession(sessionId: string, title: string): Promise<ChatSession> {
@@ -117,6 +131,7 @@ export interface AgentProfile {
 export interface DirectChatContext {
   history?: ChatTurn[]
   profile?: AgentProfile | null
+  consultationContext?: ConsultationContext
 }
 
 export async function streamChatMessage(
@@ -148,6 +163,9 @@ export async function streamChatMessage(
   const forwardedProps: Record<string, unknown> = { product: 'liki', locale: i18n.global.locale.value }
   if (context?.profile) {
     forwardedProps.profile = context.profile
+  }
+  if (context?.consultationContext) {
+    forwardedProps.consultation_context = context.consultationContext
   }
   const agent = new HttpAgent({
     url,

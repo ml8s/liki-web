@@ -76,7 +76,7 @@ describe('streamChatMessage against the official HttpAgent parser', () => {
 
     const events: unknown[] = []
     const result = await streamChatMessage(
-      { id: 'session_1', expert: 'natal' },
+      { id: 'session_1', expert: 'divination' },
       '继续',
       event => events.push(event),
       undefined,
@@ -85,9 +85,23 @@ describe('streamChatMessage against the official HttpAgent parser', () => {
           { id: 'm1', role: 'user', content: '你好' },
           { id: 'm2', role: 'assistant', content: '你好，请提供信息。' },
         ],
-        profile: {
-          gender: 'male',
+      profile: {
+        gender: 'male',
+      },
+      consultationContext: {
+        version: 1,
+        scenario: 'divination',
+        question: '這個項目能成嗎',
+        casting: {
+          mode: 'auto',
+          order: 'bottom_up',
+          yaos: [7, 8, 8, 7, 8, 9],
+          dong_yao: [6],
+          casting_id: 'cast_1',
         },
+        casting_instant: '2026-10-23T12:00:00Z',
+        location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
+      },
       },
     )
 
@@ -99,7 +113,7 @@ describe('streamChatMessage against the official HttpAgent parser', () => {
 
     // 直连必须携带历史与档案上下文（runtime 无状态；中继由 BFF 从数据库补）。
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit]
-    expect(String(url)).toContain('/rt/natal/ag-ui')
+    expect(String(url)).toContain('/rt/divination/ag-ui')
     const requestBody = JSON.parse(String(init.body)) as {
       messages: Array<{ id: string; role: string; content: string }>
       forwardedProps: Record<string, unknown>
@@ -112,6 +126,20 @@ describe('streamChatMessage against the official HttpAgent parser', () => {
     expect(requestBody.forwardedProps.product).toBe('liki')
     expect(requestBody.forwardedProps.profile).toEqual({
       gender: 'male',
+    })
+    expect(requestBody.forwardedProps.consultation_context).toEqual({
+      version: 1,
+      scenario: 'divination',
+      question: '這個項目能成嗎',
+      casting: {
+        mode: 'auto',
+        order: 'bottom_up',
+        yaos: [7, 8, 8, 7, 8, 9],
+        dong_yao: [6],
+        casting_id: 'cast_1',
+      },
+      casting_instant: '2026-10-23T12:00:00Z',
+      location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
     })
     expect(typeof requestBody.forwardedProps.locale).toBe('string')
 

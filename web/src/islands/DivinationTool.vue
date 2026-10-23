@@ -7,6 +7,8 @@ import { divinationCastingFor, type LiuyaoCasting } from '@shared/domain/divinat
 import DivinationCastPanel from '@shared/components/charts/DivinationCastPanel.vue'
 import DivinationCastingForm from '@shared/components/divination/DivinationCastingForm.vue'
 import type { DivinationCastingFormValue } from '@shared/components/divination/types'
+import type { ConsultationContext } from '@shared/domain/consultation'
+import { saveConsultationHandoff } from '@shared/utils/handoff'
 
 const props = defineProps<{
   appUrl: string
@@ -20,6 +22,8 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const question = ref('')
+const castingInstant = ref('')
+const castingLocation = ref<DivinationCastingFormValue['location']>(null)
 const loading = ref(false)
 const failed = ref(false)
 const casting = ref<LiuyaoCasting | null>(null)
@@ -31,8 +35,11 @@ async function submit(value: DivinationCastingFormValue) {
   casting.value = null
   question.value = value.question.trim()
   try {
+    const submittedAt = new Date().toISOString()
     const result = await divinationCastingFor({ mode: value.castingMode })
     casting.value = result.casting
+    castingInstant.value = submittedAt
+    castingLocation.value = value.location
   } catch {
     failed.value = true
   } finally {
@@ -57,7 +64,21 @@ async function submit(value: DivinationCastingFormValue) {
       </h3>
       <DivinationCastPanel :casting="casting" />
     </div>
-    <a class="btn-purple tool-cta" :href="appUrl">{{ labels.cta }}</a>
+    <a
+      class="btn-purple tool-cta"
+      :href="appUrl"
+      @click="saveConsultationHandoff({
+        version: 1,
+        scenario: 'divination',
+        question: question,
+        casting,
+        casting_instant: castingInstant,
+        location: castingLocation && {
+          longitude: castingLocation.longitude,
+          timezone: castingLocation.timezone,
+        },
+      } as ConsultationContext)"
+    >{{ labels.cta }}</a>
     <p class="tool-privacy">{{ labels.privacy }}</p>
   </template>
 </template>

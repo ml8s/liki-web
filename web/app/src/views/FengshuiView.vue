@@ -172,6 +172,8 @@ import LiuNianFlySection from '@shared/components/charts/LiuNianFlySection.vue'
 import XuankongPanel from '@shared/components/charts/XuankongPanel.vue'
 import BazhaiLayoutPanel from '@shared/components/charts/BazhaiLayoutPanel.vue'
 import FengshuiLayoutFields from '@shared/components/fengshui/FengshuiLayoutFields.vue'
+import type { ConsultationContext } from '@shared/domain/consultation'
+import { consumeConsultationHandoff } from '@shared/utils/handoff'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -214,6 +216,14 @@ const fengshuiLayout = reactive({
   masterGua: '',
   stoveGua: '',
 })
+const publicConsultation = consumeConsultationHandoff<ConsultationContext>('fengshui')
+if (publicConsultation?.scenario === 'fengshui' && publicConsultation.layout) {
+  fengshuiLayout.zuoShan = publicConsultation.layout.zuo_shan
+  fengshuiLayout.periodDate = publicConsultation.layout.period_date
+  fengshuiLayout.doorGua = publicConsultation.layout.door_gua ?? ''
+  fengshuiLayout.masterGua = publicConsultation.layout.master_gua ?? ''
+  fengshuiLayout.stoveGua = publicConsultation.layout.stove_gua ?? ''
+}
 const layoutResult = ref<BazhaiLayout | null>(null)
 const layoutLoading = ref(false)
 const layoutReady = computed(() => !!(bazhai.value && fengshuiLayout.doorGua && fengshuiLayout.masterGua && fengshuiLayout.stoveGua))
@@ -299,6 +309,7 @@ async function loadPreview() {
     const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
     bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
     void loadXuankong()
+    if (layoutReady.value) void loadLayout()
   } catch (err) {
     error.value = toUserMessage(err, t('services.fengshui.failed'))
   } finally {
@@ -309,11 +320,23 @@ async function loadPreview() {
 function saveRecord() {
   const p = profile.value
   if (!bazhai.value || !p) return
-  void saveToolRecord(t('records.titleBazhai', { nickname: p.nickname }), { profile_id: p.id })
+  void saveToolRecord(
+    t('records.titleBazhai', { nickname: p.nickname }),
+    {
+      profile_id: p.id,
+      layout: { ...fengshuiLayout },
+    },
+  )
 }
 
 function openRecord(record: ToolRecord) {
   profileId.value = String(record.input.profile_id ?? '')
+  const layout = (record.input.layout ?? {}) as Partial<typeof fengshuiLayout>
+  if (layout.zuoShan !== undefined) fengshuiLayout.zuoShan = layout.zuoShan
+  if (layout.periodDate) fengshuiLayout.periodDate = layout.periodDate
+  if (layout.doorGua !== undefined) fengshuiLayout.doorGua = layout.doorGua
+  if (layout.masterGua !== undefined) fengshuiLayout.masterGua = layout.masterGua
+  if (layout.stoveGua !== undefined) fengshuiLayout.stoveGua = layout.stoveGua
   void onProfileChange()
 }
 
@@ -321,7 +344,18 @@ function startChat() {
   const p = profile.value
   if (!p) return
   chat.pendingIntent = t('services.fengshui.intent')
-  void openServiceChat(p.id, 'fengshui', message => { error.value = message })
+  const context: ConsultationContext = {
+    version: 1,
+    scenario: 'fengshui',
+    layout: {
+      zuo_shan: fengshuiLayout.zuoShan,
+      period_date: fengshuiLayout.periodDate,
+      door_gua: fengshuiLayout.doorGua,
+      master_gua: fengshuiLayout.masterGua,
+      stove_gua: fengshuiLayout.stoveGua,
+    },
+  }
+  void openServiceChat(p.id, 'fengshui', message => { error.value = message }, context)
 }
 </script>
 

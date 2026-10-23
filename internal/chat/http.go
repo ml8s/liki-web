@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -44,10 +45,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 }
 
 type createSessionRequest struct {
-	Skill     string `json:"skill"`
-	Expert    string `json:"expert"`
-	Title     string `json:"title"`
-	ProfileID string `json:"profile_id"`
+	Skill     string               `json:"skill"`
+	Expert    string               `json:"expert"`
+	Title     string               `json:"title"`
+	ProfileID string               `json:"profile_id"`
+	Context   *ConsultationContext `json:"context,omitempty"`
 }
 
 func (r createSessionRequest) Validate() error {
@@ -57,6 +59,8 @@ func (r createSessionRequest) Validate() error {
 	if !ValidExpert(strings.TrimSpace(r.Expert)) {
 		return errors.New("expert must be one of natal, divination, fengshui, naming")
 	}
+	// Consultation validation is handled after strict transport decoding so the
+	// endpoint can return its domain-specific invalid_consultation_context code.
 	return nil
 }
 
@@ -79,7 +83,27 @@ func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
 		httputil.Unauthorized(w)
 		return
 	}
-	session, err := h.service.CreateSession(r.Context(), user.ID, req.Skill, strings.TrimSpace(req.Expert), req.Title, req.ProfileID)
+	if err := req.Context.Validate(); err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_consultation_context", err.Error())
+		return
+	}
+	if req.Context != nil && consultationExpert(req.Context.Scenario) != strings.TrimSpace(req.Expert) {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_consultation_context", "consultation scenario does not match the selected expert")
+		return
+	}
+	var consultationContext json.RawMessage
+	if req.Context != nil {
+		raw, err := json.Marshal(req.Context)
+		if err != nil {
+			slog.ErrorContext(r.Context(), "chat: encode consultation context", "user_id", user.ID, "err", err)
+			httputil.InternalError(w)
+			return
+		}
+		consultationContext = raw
+	}
+	session, err := h.service.CreateSessionWithContext(
+		r.Context(), user.ID, req.Skill, strings.TrimSpace(req.Expert), req.Title, req.ProfileID, consultationContext,
+	)
 	if err != nil {
 		if errors.Is(err, ErrExpertInvalid) {
 			httputil.RespondError(w, http.StatusBadRequest, "invalid_request", "expert must be one of natal, divination, fengshui, naming")

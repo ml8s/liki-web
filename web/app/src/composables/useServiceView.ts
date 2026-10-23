@@ -5,6 +5,7 @@ import { toUserMessage } from '@/utils/errors'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useChatStore } from '@/stores/chat'
+import type { ConsultationContext } from '@shared/domain/consultation'
 
 /**
  * 服务视图公共逻辑：加载档案、权益、会话列表。
@@ -28,9 +29,10 @@ export function useServiceView() {
     profileId: string,
     scenarioId: string,
     onError: (message: string) => void,
+    context?: ConsultationContext,
   ) {
     try {
-      const session = await chat.ensureSession(profileId, scenarioId)
+      const session = await chat.ensureSession(profileId, scenarioId, context)
       if (session) void router.push(`/chat/${session.id}`)
     } catch (error) {
       onError(toUserMessage(error, t('chat.createFailed')))

@@ -165,7 +165,8 @@
         "birthDateRequired": "Please select a birth date",
         "exactTimeRequired": "Please select an exact time",
         "timeFormat": "Time must use HH:mm",
-        "birthPlaceRequired": "Choose a birth place and confirm its timezone"
+        "birthPlaceRequired": "Choose a birth place and confirm its timezone",
+        "thirdPartyConsentRequired": "Please confirm that you have this person’s consent"
       },
       "birthYear": "Birth year",
       "birthTime": "Birth time"
@@ -318,10 +319,6 @@
       "castingModeHint": "The system casts with secure randomness and fixes the casting time at submission.",
       "placeLabel": "Casting place",
       "placePlaceholder": "e.g. Shanghai…",
-      "manualToggle": "Enter longitude manually",
-      "kindCity": "City",
-      "kindCounty": "County / district",
-      "kindWorld": "International",
       "placeResolving": "Matching casting place…",
       "placeAmbiguous": "Multiple places match. Choose one:",
       "placePick": "Choose a place",
@@ -329,6 +326,7 @@
       "placeMatched": "Matched casting place · {lng}°E",
       "longitudeLabel": "Longitude",
       "longitudeHint": "Used for true solar time correction; manual entry is allowed",
+      "manualToggle": "Enter longitude manually",
       "placeRequired": "Enter the casting place",
       "useCurrentLocation": "Use current location",
       "locating": "Locating…",

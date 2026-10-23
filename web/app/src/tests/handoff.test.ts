@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useFormDraftsStore } from '@shared/stores/form-drafts'
-import { saveHandoff, consumeHandoff, HANDOFF_KEYS } from '@shared/utils/handoff'
+import type { ConsultationContext } from '@shared/domain/consultation'
+import {
+  consumeConsultationHandoff,
+  consumeHandoff,
+  saveConsultationHandoff,
+  saveHandoff,
+  HANDOFF_KEYS,
+} from '@shared/utils/handoff'
 
 describe('handoff', () => {
   beforeEach(() => {
@@ -36,5 +43,13 @@ describe('handoff', () => {
     // Write garbage (no envelope) directly.
     useFormDraftsStore().set('bad', { foo: 'bar' })
     expect(consumeHandoff('bad')).toBeNull()
+  })
+
+  it('consumes a matching consultation handoff exactly once', () => {
+    saveConsultationHandoff({ version: 1, scenario: 'divination', question: '項目能否成交' })
+
+    const first = consumeConsultationHandoff<ConsultationContext>('divination')
+    expect(first).toMatchObject({ scenario: 'divination', question: '項目能否成交' })
+    expect(consumeConsultationHandoff('divination')).toBeNull()
   })
 })

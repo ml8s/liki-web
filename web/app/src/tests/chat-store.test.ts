@@ -48,7 +48,19 @@ describe('chat store', () => {
   it('restores a direct session link when the list cache is empty', async () => {
     const chat = useChatStore()
     const chatApi = await import('@/api/chat')
-    const sessionSpy = vi.spyOn(chatApi, 'fetchChatSession').mockResolvedValue(session)
+    const durableContext = {
+      version: 1,
+      scenario: 'hepan',
+      second_birth: {
+        gender: 'female',
+        date: '1990-05-12',
+        time: '08:30',
+        location: { longitude: 112.9823, timezone: 'Asia/Shanghai' },
+      },
+      third_party_consent: true,
+    } as const
+    const detailedSession = { ...session, context: durableContext }
+    const sessionSpy = vi.spyOn(chatApi, 'fetchChatSession').mockResolvedValue(detailedSession)
     const messagesSpy = vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue({ messages: [userMessage, assistantMessage], next_cursor: '' })
 
     await chat.openSession(session.id)
@@ -56,6 +68,7 @@ describe('chat store', () => {
     expect(sessionSpy).toHaveBeenCalledWith(session.id)
     expect(messagesSpy).toHaveBeenCalledWith(session.id)
     expect(chat.activeSession?.id).toBe(session.id)
+    expect(chat.activeSession?.context).toEqual(durableContext)
     expect(chat.messages).toHaveLength(2)
   })
 
@@ -82,11 +95,67 @@ describe('chat store', () => {
     chat.activeSession = session
     await chat.send(' 你好 ')
 
-    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '命理解读')
+    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '命理解读', undefined)
     // 中继模式不携带直连上下文（第 5 参为 undefined）。
     expect(sendSpy).toHaveBeenCalledWith(session, '你好', expect.any(Function), expect.any(AbortSignal), undefined)
     expect(chat.messages).toEqual([userMessage, assistantMessage])
     expect(chat.activeSession?.id).toBe(session.id)
+  })
+
+  it('sends durable consultation context when creating a tool-originated session', async () => {
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    entitlements.allowedSkills = ['liki']
+    entitlements.loaded = true
+    const chatApi = await import('@/api/chat')
+    const createSpy = vi.spyOn(chatApi, 'createChatSession').mockResolvedValue(session)
+    const context = {
+      version: 1,
+      scenario: 'divination',
+      question: '這個項目能成嗎',
+    } as const
+
+    await chat.createSession('profile-1', 'divination', context)
+
+    expect(createSpy).toHaveBeenCalledWith(
+      'profile-1',
+      'liki',
+      'divination',
+      '问卦解读',
+      context,
+    )
+  })
+
+  it('always creates a new session when a tool supplies consultation context', async () => {
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    entitlements.allowedSkills = ['liki']
+    entitlements.loaded = true
+    chat.sessions = [{ ...session, profile_id: 'profile-1' }]
+
+    const chatApi = await import('@/api/chat')
+    const createSpy = vi.spyOn(chatApi, 'createChatSession').mockResolvedValue(session)
+    const context = {
+      version: 1,
+      scenario: 'hepan',
+      second_birth: {
+        gender: 'female',
+        date: '1990-05-12',
+        time: '08:30',
+        location: { longitude: 112.9823, timezone: 'Asia/Shanghai' },
+      },
+      third_party_consent: true,
+    } as const
+
+    await chat.ensureSession('profile-1', 'hepan', context)
+
+    expect(createSpy).toHaveBeenCalledWith(
+      'profile-1',
+      'liki',
+      'natal',
+      expect.any(String),
+      context,
+    )
   })
 
   it('localizes tool phases from raw tool names', async () => {
@@ -150,7 +219,13 @@ describe('direct transport context', () => {
     entitlements.allowedSkills = ['liki']
     entitlements.loaded = true
 
-    const profileSession = { ...session, profile_id: 'prof_1' }
+    const consultationContext = {
+      version: 1,
+      scenario: 'divination',
+      question: '項目能否成交',
+      casting_instant: '2026-10-23T04:00:00Z',
+    } as const
+    const profileSession = { ...session, profile_id: 'prof_1', context: consultationContext }
     const chatApi = await import('@/api/chat')
     const birthApi = await import('@/api/birth-profiles')
     const profileSpy = vi.spyOn(birthApi, 'fetchBirthProfile').mockResolvedValue({
@@ -192,11 +267,12 @@ describe('direct transport context', () => {
         instant: '1990-05-20T03:00:00Z',
         location: { longitude: 116.4074, timezone: 'Asia/Shanghai' },
       },
+      consultationContext,
     })
     vi.unstubAllEnvs()
   })
 
-  it('degrades to no profile context when the profile lookup fails', async () => {
+  it('fails closed when a profile-bound direct run cannot load context', async () => {
     vi.stubEnv('VITE_CHAT_TRANSPORT', 'direct')
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
@@ -215,10 +291,9 @@ describe('direct transport context', () => {
     chat.activeSession = profileSession
     await chat.send('你好')
 
-    expect(sendSpy).toHaveBeenCalledWith(profileSession, '你好', expect.any(Function), expect.any(AbortSignal), {
-      history: [],
-      profile: null,
-    })
+    expect(sendSpy).not.toHaveBeenCalled()
+    expect(chat.error).toBeTruthy()
+    expect(chat.sending).toBe(false)
     vi.unstubAllEnvs()
   })
 })

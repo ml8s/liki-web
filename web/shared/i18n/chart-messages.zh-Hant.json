@@ -165,7 +165,8 @@
         "birthDateRequired": "請選擇出生日期",
         "exactTimeRequired": "請選擇精確時間",
         "timeFormat": "時間格式應為 HH:mm",
-        "birthPlaceRequired": "請選擇出生地並確認時區"
+        "birthPlaceRequired": "請選擇出生地並確認時區",
+        "thirdPartyConsentRequired": "請先確認已獲得該人的同意"
       },
       "birthYear": "出生年份",
       "birthTime": "出生時間"
@@ -318,10 +319,6 @@
       "castingModeHint": "系統使用安全隨機數起卦；提交時會固定起卦時間。",
       "placeLabel": "起卦地點",
       "placePlaceholder": "如：上海 / 上海市…",
-      "manualToggle": "手動填寫經度",
-      "kindCity": "城市",
-      "kindCounty": "區縣",
-      "kindWorld": "國際",
       "placeResolving": "正在匹配起卦地點…",
       "placeAmbiguous": "找到多個同名地點，請選擇：",
       "placePick": "請選擇地點",
@@ -329,6 +326,7 @@
       "placeMatched": "已匹配起卦地點 · 東經 {lng}°",
       "longitudeLabel": "經度",
       "longitudeHint": "用於真太陽時校正；可手動填寫",
+      "manualToggle": "手動填寫經度",
       "placeRequired": "請填寫起卦地點",
       "useCurrentLocation": "使用當前定位",
       "locating": "正在定位…",

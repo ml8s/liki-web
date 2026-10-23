@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -11,10 +12,11 @@ type sessionBindingKey struct{}
 // execution so a server-side tool can prove which profile it is allowed to
 // touch. Set by Service.SendMessage before the runner runs.
 type sessionBinding struct {
-	UserID    string
-	SessionID string
-	ProfileID string
-	Profile   *AgentProfile
+	UserID              string
+	SessionID           string
+	ProfileID           string
+	Profile             *AgentProfile
+	ConsultationContext json.RawMessage
 }
 
 // AgentBirthLocation is the minimal computation location. Place is omitted so

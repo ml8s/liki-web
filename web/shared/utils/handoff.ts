@@ -1,15 +1,32 @@
 import { useFormDraftsStore } from '../stores/form-drafts'
+import type { ConsultationContext, ConsultationScenario } from '../domain/consultation'
 
 const HANDOFF_TTL_MS = 30 * 60 * 1000
 
 /** Semantic keys for cross-surface handoff data. */
 export const HANDOFF_KEYS = {
   birth: 'handoff:birth',
+  consultation: 'handoff:consultation',
 } as const
 
 interface HandoffEnvelope<T> {
   data: T
   createdAt: number
+}
+
+export function saveConsultationHandoff(context: unknown): void {
+  saveHandoff(HANDOFF_KEYS.consultation, context)
+}
+
+export function consumeConsultationHandoff<T extends ConsultationContext>(
+  scenario: ConsultationScenario,
+): T | null {
+	const store = useFormDraftsStore()
+	const envelope = store.consume<HandoffEnvelope<T>>(HANDOFF_KEYS.consultation)
+	if (!envelope || typeof envelope.createdAt !== 'number') return null
+	if (Date.now() - envelope.createdAt > HANDOFF_TTL_MS) return null
+	if (!envelope.data || envelope.data.scenario !== scenario) return null
+	return envelope.data
 }
 
 /** Save data with a timestamp for cross-surface handoff. */

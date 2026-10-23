@@ -154,6 +154,13 @@ func (r *AgentRunner) newRunInput(
 	if binding.Profile != nil {
 		forwardedProps["profile"] = binding.Profile
 	}
+	if len(binding.ConsultationContext) > 0 {
+		var consultationContext map[string]any
+		if err := json.Unmarshal(binding.ConsultationContext, &consultationContext); err != nil {
+			return aguitypes.RunAgentInput{}, fmt.Errorf("liki: decode consultation context: %w", err)
+		}
+		forwardedProps["consultation_context"] = consultationContext
+	}
 	input := aguitypes.RunAgentInput{
 		ThreadID:       threadID,
 		RunID:          uuid.NewString(),

@@ -178,6 +178,7 @@ check-web-static:
 	node web/scripts/check-performance.js
 	node web/scripts/check-mobile-responsive.js
 	node web/scripts/check-i18n.js
+	node web/scripts/check-chart-messages.js
 	node web/scripts/check-error-codes.js
 	node web/scripts/check-service-parity.js
 	node web/scripts/check-classes.js

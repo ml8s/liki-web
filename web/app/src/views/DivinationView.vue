@@ -198,7 +198,7 @@
 
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import {
@@ -213,6 +213,8 @@ import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
 import DivinationCastingForm from '@shared/components/divination/DivinationCastingForm.vue'
 import type { DivinationCastingFormValue } from '@shared/components/divination/types'
+import type { ConsultationContext } from '@shared/domain/consultation'
+import { consumeConsultationHandoff } from '@shared/utils/handoff'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -225,9 +227,25 @@ const {
   confirmRemove: removeToolRecord,
 } = useToolRecords('liuyao')
 void loadRecords()
+const publicConsultation = consumeConsultationHandoff<ConsultationContext>('divination')
 
 const castingFormRef = ref<InstanceType<typeof DivinationCastingForm>>()
 const snapshot = ref<LiuyaoChartResult | null>(null)
+const lastCasting = ref<LiuyaoChartResult['casting'] | null>(null)
+const lastCastingInstant = ref('')
+const lastCastingLocation = ref<DivinationCastingFormValue['location']>(null)
+if (publicConsultation?.scenario === 'divination') {
+  lastCasting.value = publicConsultation.casting ?? null
+  lastCastingInstant.value = publicConsultation.casting_instant ?? ''
+  lastCastingLocation.value = publicConsultation.location
+    ? {
+        place: '',
+        longitude: publicConsultation.location.longitude,
+        timezone: publicConsultation.location.timezone,
+        source: 'saved',
+      }
+    : null
+}
 const loading = ref(false)
 const error = ref('')
 
@@ -293,6 +311,9 @@ async function cast(context: DivinationCastingFormValue) {
   snapshot.value = null
   try {
     const { casting } = await divinationCastingFor({ mode: context.castingMode })
+    lastCasting.value = casting
+    lastCastingInstant.value = castingInstant
+    lastCastingLocation.value = location
     snapshot.value = await divinationChartFor({
       instant: castingInstant,
       timezone: location.timezone,
@@ -325,14 +346,41 @@ function recordTitle(question: string): string {
 function openRecord(record: ToolRecord) {
   castingFormRef.value?.restore(record.input)
   snapshot.value = (record.output as unknown as LiuyaoChartResult | undefined) ?? null
+  const input = record.input as {
+    casting_instant?: string
+    location?: DivinationCastingFormValue['location']
+  }
+  lastCasting.value = snapshot.value?.casting ?? null
+  lastCastingInstant.value = input.casting_instant ?? ''
+  lastCastingLocation.value = input.location ?? null
 }
+
+onMounted(() => {
+  if (publicConsultation?.scenario !== 'divination') return
+  castingFormRef.value?.restore({
+    question: publicConsultation.question ?? '',
+    location: lastCastingLocation.value,
+  })
+})
 
 function startChat() {
   const profile = profiles.list[0]
   if (!profile) return
   const question = castingFormRef.value?.getContext().question.trim() ?? ''
   chat.pendingIntent = t('services.divination.intent', { question })
-  void openServiceChat(profile.id, 'divination', message => { error.value = message })
+  if (!lastCasting.value || !lastCastingInstant.value || !lastCastingLocation.value) return
+  const consultationContext: ConsultationContext = {
+    version: 1,
+    scenario: 'divination',
+    question,
+    casting: lastCasting.value,
+    casting_instant: lastCastingInstant.value,
+    location: {
+      longitude: lastCastingLocation.value.longitude,
+      timezone: lastCastingLocation.value.timezone,
+    },
+  }
+  void openServiceChat(profile.id, 'divination', message => { error.value = message }, consultationContext)
 }
 </script>
 

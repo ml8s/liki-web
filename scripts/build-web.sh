@@ -11,6 +11,9 @@ cd "$PROJECT_DIR/web"
 
 echo "[build-web] public/ contents: $(ls public/ | tr '\n' ' ')"
 
+echo "[build-web] shared chart messages..."
+node scripts/check-chart-messages.js
+
 echo "[build-web] Astro..."
 npx astro build
 

@@ -75,9 +75,11 @@ test('问卦自动保存记录，打开历史回放快照不再重摇', async ({
   })
 
   await page.goto('/app/divination')
-  await page.locator('input[placeholder*="項目"]').fill('這個項目能成嗎')
+  await page.locator('textarea[placeholder*="項目"]').fill('這個項目能成嗎')
   await page.locator('input[name="casting-place"]').fill('上海')
   await page.locator('input[name="casting-place"]').blur()
+  await expect(page.locator('.region-status')).toContainText('已匹配')
+  await page.getByRole('button', { name: '手動填寫經度' }).click()
   await expect(page.locator('input[name="casting-longitude"]')).toHaveValue('121.4726')
   await page.getByRole('button', { name: '搖卦', exact: true }).click()
   await page.waitForSelector('.gua-name')
@@ -123,8 +125,8 @@ test('问卦缺少完整地点时不调用排盘引擎', async ({ page }) => {
   const counts = countEngineCalls(page)
 
   await page.goto('/app/divination')
-  await page.locator('input[placeholder*="項目"]').fill('這個項目能成嗎')
-  await page.locator('form').dispatchEvent('submit')
+  await page.locator('textarea[placeholder*="項目"]').fill('這個項目能成嗎')
+  await page.getByRole('button', { name: '搖卦', exact: true }).click()
 
   await expect(page.getByText('請填寫起卦地點')).toBeVisible()
   expect(counts.qigua).toBe(0)
@@ -138,6 +140,7 @@ test('浏览器定位只预填可见表单，仍可手动修改', async ({ page 
   await page.goto('/app/divination')
   await page.getByRole('button', { name: '使用當前定位' }).click()
   await expect(page.locator('input[name="casting-place"]')).toHaveValue('當前設備位置')
+  await page.getByRole('button', { name: '手動填寫經度' }).click()
   await expect(page.locator('input[name="casting-longitude"]')).toHaveValue('121.4726')
   await expect(page.locator('input[name="casting-timezone"]')).toHaveValue(Intl.DateTimeFormat().resolvedOptions().timeZone)
   await expect(page.locator('.location-status')).toContainText('定位精度約')

@@ -99,6 +99,8 @@ import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
+import type { ConsultationContext } from '@shared/domain/consultation'
+import { consumeConsultationHandoff } from '@shared/utils/handoff'
 
 const { t } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
@@ -114,6 +116,12 @@ void loadRecords()
 
 // 表单模型保持稳定对象，v-model 写入同一引用，change 当拍校验才能读到新值。
 const form = reactive({ event: 'wedding', startDate: '', endDate: '' })
+const publicConsultation = consumeConsultationHandoff<ConsultationContext>('huangli')
+if (publicConsultation?.scenario === 'huangli') {
+  form.event = publicConsultation.event ?? form.event
+  form.startDate = publicConsultation.start_date ?? ''
+  form.endDate = publicConsultation.end_date ?? ''
+}
 const event = toRef(form, 'event')
 const startDate = toRef(form, 'startDate')
 const endDate = toRef(form, 'endDate')
@@ -188,7 +196,14 @@ function startChat() {
   if (!profile) return
   chat.pendingIntent = t('services.huangli.intent', { event: eventLabel(event.value) })
   // 择日属占卜域：场景走 huangli（标题/意图），内部路由到 divination 专家部署。
-  void openServiceChat(profile.id, 'huangli', message => { error.value = message })
+  const context: ConsultationContext = {
+    version: 1,
+    scenario: 'huangli',
+    event: event.value,
+    start_date: startDate.value,
+    end_date: endDate.value,
+  }
+  void openServiceChat(profile.id, 'huangli', message => { error.value = message }, context)
 }
 
 </script>

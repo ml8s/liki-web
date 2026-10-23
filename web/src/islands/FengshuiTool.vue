@@ -18,6 +18,7 @@ import BazhaiLayoutPanel from '@shared/components/charts/BazhaiLayoutPanel.vue'
 import FengshuiBirthFields from '@shared/components/fengshui/FengshuiBirthFields.vue'
 import FengshuiLayoutFields from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
+import { saveConsultationHandoff } from '@shared/utils/handoff'
 
 const props = defineProps<{
   locale: string
@@ -125,7 +126,23 @@ function patchLayout(patch: Partial<typeof layout>) {
         :bazhai="chart"
       />
     </div>
-    <a class="btn-purple tool-cta" :href="appUrl">{{ labels.cta }}</a>
+    <a
+      class="btn-purple tool-cta"
+      :href="appUrl"
+      @click="saveConsultationHandoff({
+        version: 1,
+        scenario: 'fengshui',
+        birth_year: birth.year ?? undefined,
+        gender: birth.gender || undefined,
+        layout: {
+          zuo_shan: layout.zuoShan,
+          period_date: layout.periodDate,
+          door_gua: layout.doorGua,
+          master_gua: layout.masterGua,
+          stove_gua: layout.stoveGua,
+        },
+      })"
+    >{{ labels.cta }}</a>
     <p class="tool-privacy">{{ labels.privacy }}</p>
   </template>
 </template>

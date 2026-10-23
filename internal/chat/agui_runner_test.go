@@ -75,8 +75,9 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 
 	runner := newTestAgentRunner(t, server)
 	ctx := withSessionBinding(context.Background(), sessionBinding{
-		UserID:    "user-1",
-		SessionID: "session-1",
+		UserID:              "user-1",
+		SessionID:           "session-1",
+		ConsultationContext: json.RawMessage(`{"version":1,"scenario":"divination","question":"這個項目能成嗎","casting":{"mode":"auto","order":"bottom_up","yaos":[7,8,8,7,8,9],"dong_yao":[6],"casting_id":"cast_1"},"casting_instant":"2026-10-23T12:00:00Z","location":{"longitude":121.4726,"timezone":"Asia/Shanghai"}}`),
 		Profile: &AgentProfile{
 			Gender: "male",
 			Location: &AgentBirthLocation{
@@ -117,6 +118,14 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	}
 	if len(request.Messages) != 3 {
 		t.Fatalf("request message count = %d, want user/assistant/user only", len(request.Messages))
+	}
+	consultation, ok := props["consultation_context"].(map[string]any)
+	if !ok || consultation["scenario"] != "divination" || consultation["question"] != "這個項目能成嗎" {
+		t.Fatalf("consultation ForwardedProps = %#v", props["consultation_context"])
+	}
+	casting, ok := consultation["casting"].(map[string]any)
+	if !ok || casting["casting_id"] != "cast_1" || casting["order"] != "bottom_up" {
+		t.Fatalf("casting ForwardedProps = %#v", consultation["casting"])
 	}
 	for index, want := range []aguitypes.Role{aguitypes.RoleUser, aguitypes.RoleAssistant, aguitypes.RoleUser} {
 		if request.Messages[index].Role != want {

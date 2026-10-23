@@ -134,7 +134,8 @@ func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
 	ctx := context.Background()
 	profileStore := service.profiles
 	created, err := profileStore.Create(ctx, "user-1", birthprofile.BirthProfileDraft{
-		Nickname: "Test",
+		Nickname:          "Test",
+		ThirdPartyConsent: true,
 		Birth: birthprofile.BirthFactsInput{
 			Gender: "male", Date: "1990-06-01", Time: "12:00",
 			Location: birthprofile.BirthLocationInput{

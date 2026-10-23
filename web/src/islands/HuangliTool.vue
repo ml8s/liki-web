@@ -8,6 +8,7 @@ import { EVENT_KEYS } from '@shared/utils/huangli'
 import HuangliDaysPanel from '@shared/components/charts/HuangliDaysPanel.vue'
 import HuangliRangeFields from '@shared/components/huangli/HuangliRangeFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
+import { saveConsultationHandoff } from '@shared/utils/handoff'
 
 const props = defineProps<{
   locale: string
@@ -73,7 +74,17 @@ async function submit() {
       </h3>
       <HuangliDaysPanel :days="result" />
     </div>
-    <a class="btn-purple tool-cta" :href="appUrl">{{ labels.cta }}</a>
+    <a
+      class="btn-purple tool-cta"
+      :href="appUrl"
+      @click="saveConsultationHandoff({
+        version: 1,
+        scenario: 'huangli',
+        event: form.event,
+        start_date: form.startDate,
+        end_date: form.endDate,
+      })"
+    >{{ labels.cta }}</a>
     <p class="tool-privacy">{{ labels.privacy }}</p>
   </template>
 </template>

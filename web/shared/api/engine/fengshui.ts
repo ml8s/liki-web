@@ -3,12 +3,19 @@ import { ENGINE_TOOLS } from './tools'
 
 export interface BazhaiLiuNianXing {
   year?: number
+  /** Engine boundary contract; current value is `gregorian_calendar_year`. */
+  year_boundary?: string
   ru_zhong?: string
   gong_wei?: Array<{ gong_num: number; xing_name: string; wuxing?: string; ru_zhong?: boolean }>
 }
 
 export interface BazhaiChart {
-  ming_gua: { gua: { name: string; wuxing?: string }; group: string }
+  ming_gua: {
+    gua: { name: string; wuxing?: string }
+    group: string
+    /** Engine boundary contract; current value is `gregorian_calendar_year`. */
+    year_boundary?: string
+  }
   ba_zhai_dirs: {
     sheng_qi: string
     tian_yi: string

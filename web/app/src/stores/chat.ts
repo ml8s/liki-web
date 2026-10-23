@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { AgentProfile, ChatMessage, ChatSession, ChatTurn } from '@/api/chat'
+import type { ConsultationContext } from '@shared/domain/consultation'
 
 // @ag-ui/client 较重（~292KB raw）：仅在真正发送消息时动态加载，
 // 避免 dashboard 依赖链把 chat transport 拖入首屏。
@@ -29,22 +30,18 @@ function localId(): string {
 
 // 直连时 runtime 无状态：中继时代由 BFF 从数据库补上的既有对话与出生档案
 // 上下文，必须由客户端携带（契约 C3）。档案与中继一致做实时查询（会话创建
-// 后档案可能被编辑）；查询失败降级为不带档案，模型可向用户询问。
+// 后档案可能被编辑）；查询失败必须终止本轮，不能让 profile-bound 会话退化成
+// 无档案的泛化建议。
 async function loadProfileContext(profileId: string): Promise<AgentProfile | null> {
   if (!profileId) return null
-  try {
-    const profile = await fetchBirthProfile(profileId)
-    const context: AgentProfile = {
-      gender: profile.birth.gender,
-      instant: profile.birth.instant,
-      location: {
-        longitude: profile.birth.location.longitude,
-        timezone: profile.birth.location.timezone,
-      },
-    }
-    return context
-  } catch {
-    return null
+  const profile = await fetchBirthProfile(profileId)
+  return {
+    gender: profile.birth.gender,
+    instant: profile.birth.instant,
+    location: {
+      longitude: profile.birth.location.longitude,
+      timezone: profile.birth.location.timezone,
+    },
   }
 }
 
@@ -92,7 +89,7 @@ export const useChatStore = defineStore('chat', {
       }
     },
     /** 按用户场景创建会话：标题用场景名（命理/流年/…），内部路由到场景对应专家。 */
-    async createSession(profileId: string, scenarioId: string) {
+    async createSession(profileId: string, scenarioId: string, context?: ConsultationContext) {
       const entitlements = useEntitlementsStore()
       await entitlements.load()
       if (!entitlements.hasSkill('liki')) {
@@ -105,18 +102,26 @@ export const useChatStore = defineStore('chat', {
       const title = nickname
         ? t('chat.sessionTitleWithBirthProfile', { nickname, skill: label })
         : t('chat.sessionTitle', { skill: label })
-      const session = await (await chatApiLazy()).createChatSession(profileId, 'liki', expert, title)
+      const session = await (await chatApiLazy()).createChatSession(
+        profileId,
+        'liki',
+        expert,
+        title,
+        context,
+      )
       this.sessions.unshift(session)
       // 返回数组内的响应式代理：返回 unshift 前的原始对象会让后续写入绕过
       // 响应式（与聊天气泡同类的历史 bug，见 stores/chat.ts send()）。
       return this.sessions[0]
     },
     /** 取该档案与场景对应专家的会话：有则复用（继续），无则新建。 */
-    async ensureSession(profileId: string, scenarioId: string) {
+    async ensureSession(profileId: string, scenarioId: string, context?: ConsultationContext) {
       const expert = scenarioById(scenarioId)?.expert ?? 'natal'
-      const existing = this.sessions.find(s => s.profile_id === profileId && s.expert === expert)
-      if (existing) return existing
-      return this.createSession(profileId, scenarioId)
+      if (!context) {
+        const existing = this.sessions.find(s => s.profile_id === profileId && s.expert === expert)
+        if (existing) return existing
+      }
+      return this.createSession(profileId, scenarioId, context)
     },
     async renameSession(sessionId: string, title: string) {
       const updated = await (await chatApiLazy()).renameChatSession(sessionId, title)
@@ -134,11 +139,9 @@ export const useChatStore = defineStore('chat', {
       this.stopGeneration()
       this.loadingMessages = true
       this.error = ''
-      this.activeSession = this.sessions.find(item => item.id === sessionId) ?? null
       try {
-        if (!this.activeSession) {
-          this.activeSession = await (await chatApiLazy()).fetchChatSession(sessionId)
-        }
+        // Detail response owns consultation context; list responses are projections.
+        this.activeSession = await (await chatApiLazy()).fetchChatSession(sessionId)
         const page = await (await chatApiLazy()).fetchChatMessages(sessionId)
         this.messages = page.messages
         this.messagesCursor = page.next_cursor
@@ -205,7 +208,11 @@ export const useChatStore = defineStore('chat', {
         // 只有直连需要客户端携带上下文（中继由 BFF 自行组装，且 locale 走
         // forwardedProps）；避免中继模式多一次档案查询。
         const context = import.meta.env.VITE_CHAT_TRANSPORT === 'direct'
-          ? { history, profile: await loadProfileContext(session.profile_id) }
+          ? {
+              history,
+              profile: await loadProfileContext(session.profile_id),
+              consultationContext: session.context,
+            }
           : undefined
         const result = await (await chatApiLazy()).streamChatMessage(session, message, event => {
           if (event.type === 'phase') {
