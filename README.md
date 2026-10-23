@@ -50,11 +50,11 @@ make build
 make dev
 ```
 
-Docker E2E requires an explicit immutable engine reference and does not build
-the sibling liki repository:
+Docker E2E requires an explicit engine image reference and does not build the
+sibling liki repository:
 
 ```bash
-LIKI_ENGINE_IMAGE=ghcr.io/ml8s/liki-engine@sha256:<verified-digest> make e2e
+LIKI_ENGINE_IMAGE=liki-local/liki-engine:<sha> make e2e
 ```
 
 `liki-web` deliberately keeps no default engine matrix; the production
@@ -149,13 +149,10 @@ sha, and `liki-deploy` assembles, tests, and deploys that exact set. See
 | [`DOMAIN_MODEL.md`](./DOMAIN_MODEL.md) | Stable entities, relationships, and invariants |
 | [`API.md`](./API.md) | Stable HTTP API |
 | [`FRONTEND.md`](./FRONTEND.md) | Astro marketing pages, Vue App, and frontend state |
-| [`LEGACY_PRODUCTS.md`](./LEGACY_PRODUCTS.md) | retired-product compatibility boundary |
 | [`BRAND.md`](./BRAND.md) | Brand definition: positioning, language, and principles |
-| [`SEO.md`](./SEO.md) | Search and GEO plan: per-page keyword targets |
 | [`docs/database/overview.md`](./docs/database/overview.md) | SQLite bounded-context inventory |
 | [`docs/database/partner.md`](./docs/database/partner.md) | Partner database schema |
 | [`docs/database/platform-admin.md`](./docs/database/platform-admin.md) | Platform admin auth & audit schema |
-| [`docs/architecture/system-context.md`](./docs/architecture/system-context.md) | Cross-repository system context |
 | [`docs/integrations/mcp.md`](./docs/integrations/mcp.md) | Engine/Counsel MCP compatibility boundary |
 | [`docs/payments/aipay.md`](./docs/payments/aipay.md) | AI Pay boundary and configuration |
 

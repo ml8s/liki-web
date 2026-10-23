@@ -44,7 +44,6 @@ Liki 以三种形态交付同一套专业能力，三者共享同一引擎与规
   - AI 生态面使用产品名：«Liki Skill»
 - **宣传可用词**（marketing / search terms，非品牌定位）：Chinese Astrology、Bazi Astrology、Feng Shui、Ziwei Dou Shu。
 - **不使用**：旧北极星句；「装进 AI 助手的技能」「AI 算命插件」等安装视角或降格表述；与娱乐化 AI 产品的对比句式。
-- **搜索语言**：中英文搜索各自独立规划；目标词与逐页落位见 [SEO.md](./SEO.md)。
 
 ## 5. Principles（品牌原则）
 

@@ -20,17 +20,17 @@ do_up() {
     cat >&2 <<'EOF'
 LIKI_ENGINE_IMAGE is required for Docker E2E.
 
-Set it to an immutable, verified engine release digest, for example:
+Set it to the engine image for the current commit, for example:
 
-  LIKI_ENGINE_IMAGE=ghcr.io/ml8s/liki-engine@sha256:<digest> make e2e
+  LIKI_ENGINE_IMAGE=liki-local/liki-engine:<sha> make e2e
 
-This repository intentionally does not keep a second default engine matrix.
-The production combination remains owned by liki-deploy.
+This repository intentionally keeps no default engine image;
+the deployed combination is owned by liki-deploy.
 EOF
     exit 1
   fi
-  if ! printf '%s' "$LIKI_ENGINE_IMAGE" | grep -Eq '@sha256:[0-9a-f]{64}$'; then
-    echo "LIKI_ENGINE_IMAGE must be an immutable sha256 digest reference: $LIKI_ENGINE_IMAGE" >&2
+  if ! printf '%s' "$LIKI_ENGINE_IMAGE" | grep -Eq '(@sha256:[0-9a-f]{64}|:[0-9a-f]{7,40})$'; then
+    echo "LIKI_ENGINE_IMAGE must be an immutable digest or commit-sha tag: $LIKI_ENGINE_IMAGE" >&2
     exit 1
   fi
 
