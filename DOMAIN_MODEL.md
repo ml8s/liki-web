@@ -74,6 +74,9 @@ Invariants:
 - There is no approximate/unknown time state. If canonical fields are absent,
   the profile cannot be charted until the user supplies complete information.
 - New/updated profile input is Gregorian-only and must be complete.
+- Creating or updating another person's profile requires affirmative
+  `third_party_consent`. Ephemeral He Pan input that is persisted as a tool
+  record or converted into a paid consultation follows the same rule.
 
 ## Product and price
 
@@ -209,11 +212,21 @@ Invariants:
 - `RUN_FINISHED.result.answer` is the authoritative assistant answer.
 - `RUN_ERROR` does not persist a formal assistant message.
 - Browser AG-UI events are transport, not a substitute for persisted state.
+- A tool-originated session may carry one versioned consultation context. The
+  context stores deterministic inputs and non-reproducible receipts (especially
+  LiuYao casting), is attached when the session is created, and is the same for
+  relay and direct transports. Prose intent never replaces longitude, timezone,
+  canonical instants, dates, or a casting receipt.
 
 ### Scenario
 
 A scenario is an entry intent for Liki Chat, not a product. Its public page is a CTA surface into the app, comparable to the home page.
 The seven public scenarios are `natal`, `liunian`, `hepan`, `divination`, `huangli`, `fengshui`, and `naming` — one vocabulary shared by marketing slugs and App handoff parameters. Each scenario routes to an internal expert deployment; the expert layer is never presented to users. `mingshu` (life reading) is the deliverable of the `natal` scenario, not a scenario of its own.
+
+Eight Mansions uses the Gregorian calendar year for both `birth_year` and
+annual flying-star boundaries. The engine explicitly returns
+`year_boundary: "gregorian_calendar_year"`; it does not apply a Lichun
+boundary. Public form copy and fixtures must preserve that contract.
 
 ## Notification
 
@@ -240,7 +253,8 @@ Erasure balances privacy with financial auditability.
 
 Invariants:
 
-- Birth profile data and chat-embedded personal context are anonymized.
+- Birth profile data, chat-embedded personal context, tool-record engine I/O,
+  and generated direct-run answers are anonymized or cleared.
 - Authentication sessions and verification codes are removed or anonymized.
 - Commerce and payment records may remain for accounting, but user identity is anonymized.
 - Referral payouts with financial holds block erasure until resolved.

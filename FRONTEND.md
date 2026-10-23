@@ -158,6 +158,21 @@ timezone, while denial or failure leaves the normal city-resolution and manual
 location path. No hidden longitude or timezone default is sent, and chart
 requests carry no raw place text.
 
+### Tool-to-Chat consultation context
+
+A paid consultation that starts from a tool result must create its chat session
+with `consultation_context_v1`. The context is durable server-side state, not
+URL state or prose. It carries the minimum deterministic inputs and, for
+divination, the non-reproducible casting receipt and ritual instant. He Pan
+requires an explicit third-party consent control before computation and sends
+the affirmative domain fact with the second person's atomic birth facts. Both
+relay and direct transports forward the same context.
+
+Public tools use the same-origin session-storage handoff for at most thirty
+minutes and never place personal facts in a URL. The matching App service view
+consumes it once, converts it into local form state, and never reconstructs it
+from the URL.
+
 ## Dashboard states
 
 The dashboard is state-driven.

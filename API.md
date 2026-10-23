@@ -114,10 +114,13 @@ Input requires `gender`, `date` (`YYYY-MM-DD`), `time` (`HH:mm`), and
 `instant`; responses project `date` and `time` for editing and display. There
 is no approximate/unknown time state. Incomplete profiles cannot be charted
 until they are edited and completed.
+`third_party_consent: true` is required; the account owner must confirm consent
+before storing another person's birth facts.
 
 ```json
 {
   "nickname": "妈妈",
+  "third_party_consent": true,
   "birth": {
     "gender": "female",
     "date": "1958-05-12",
@@ -211,7 +214,7 @@ Paid chat operations recheck entitlement server-side.
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | `/api/chat/sessions` | user | List sessions |
-| POST | `/api/chat/sessions` | entitled user | Create session; returns `201 Created` |
+| POST | `/api/chat/sessions` | entitled user | Create session, optionally attaching deterministic tool context; returns `201 Created` |
 | GET | `/api/chat/sessions/{id}` | owner + entitled | Read session |
 | PATCH | `/api/chat/sessions/{id}` | owner | Rename session (title, 1-60 chars) |
 | DELETE | `/api/chat/sessions/{id}` | owner | Soft-delete session |
@@ -225,6 +228,32 @@ runtime posts `/api/internal/runs/completed` back. Both internal endpoints are
 
 Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
 
+`POST /api/chat/sessions` accepts an optional strict `context` object. The
+versioned context preserves the exact tool facts required to continue a paid
+consultation. It is persisted with the session, returned only by the session
+detail endpoint (not the list projection), placed under
+`forwardedProps.consultation_context` by both transports, and cleared by
+account erasure. Invalid or unknown context shapes return HTTP 400 with
+`invalid_consultation_context` or `invalid_request`, respectively.
+
+Scenario-specific requirements include:
+
+| Scenario | Required context |
+| --- | --- |
+| `hepan` | `second_birth` with date, time, longitude, timezone, and `third_party_consent: true` |
+| `divination` | `question`, non-reproducible `casting`, `casting_instant`, and atomic `location` |
+| `huangli` | `event`, `start_date`, and `end_date` |
+| `fengshui` | `layout` with `zuo_shan` and `period_date` |
+| `natal`, `naming` | atomic `birth` facts |
+| `liunian` | atomic `birth` facts and `year` |
+
+The object rejects unknown members, invalid calendar dates/times, invalid
+longitude or IANA timezone, incomplete or internally inconsistent casting
+receipts, unsupported versions, and contexts that do not route to the selected
+expert. A persisted context is revalidated before relay generation, so corrupt
+tool state fails closed instead of becoming generic advice. Natural-language
+intent is never a substitute for these computation facts.
+
 ### AG-UI forwardedProps
 
 Both the relay runner and direct browser transport use one profile shape:
@@ -233,6 +262,20 @@ Both the relay runner and direct browser transport use one profile shape:
 {
   "product": "liki",
   "locale": "zh-Hant",
+  "consultation_context": {
+    "version": 1,
+    "scenario": "divination",
+    "question": "項目能否成交",
+    "casting": {
+      "mode": "auto",
+      "order": "bottom_up",
+      "yaos": [7, 8, 8, 7, 8, 9],
+      "dong_yao": [6],
+      "casting_id": "..."
+    },
+    "casting_instant": "2026-10-23T04:00:00Z",
+    "location": { "longitude": 121.4726, "timezone": "Asia/Shanghai" }
+  },
   "profile": {
     "gender": "female",
     "instant": "1958-05-11T22:00:00Z",
@@ -247,8 +290,9 @@ Both the relay runner and direct browser transport use one profile shape:
 `profile` is present only for profile-bound sessions. The relay transport
 constructs it server-side from the owned profile; direct transport may send the
 same trusted shape after the browser loads it from `/api/birth-profiles/{id}`.
-`location.place`, identity, contact, consent, notes, and database IDs are
-deliberately excluded.
+`location.place`, identity, contact details, notes, and database IDs are
+deliberately excluded. The only consent fact in this object is the required
+affirmative `third_party_consent` for He Pan.
 
 ## Records
 
@@ -298,7 +342,8 @@ ownership and account email remains in identity/account APIs.
 | DELETE | `/api/me/sessions/{id}` | user | Revoke one session |
 | POST | `/api/account/erasure` | user | Erase or anonymize account |
 
-Erasure is rate limited and spans identity, birth profiles, chat, sales, entitlements, payment, and partner contexts.
+Erasure is rate limited and spans identity, birth profiles, chat, tool records,
+direct-run answers, sales, entitlements, payment, and partner contexts.
 
 ## Partners
 

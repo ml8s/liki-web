@@ -33,6 +33,7 @@
 | `invalid_callback` | `internal/runcontrol/callback.go` |
 | `invalid_capability` | `internal/adminauth/http.go` |
 | `invalid_code` | `internal/auth/http.go` |
+| `invalid_consultation_context` | `internal/chat/http.go` |
 | `invalid_email` | `internal/auth/http.go` |
 | `invalid_request` | `internal/admin/handler.go` |
 | `invalid_signature` | `internal/runcontrol/callback.go` |

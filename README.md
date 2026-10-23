@@ -141,6 +141,7 @@ sha, and `liki-deploy` assembles, tests, and deploys that exact set. See
 | [`API.md`](./API.md) | Stable HTTP API |
 | [`FRONTEND.md`](./FRONTEND.md) | Astro marketing pages, Vue App, and frontend state |
 | [`BRAND.md`](./BRAND.md) | Brand definition: positioning, language, and principles |
+| [`docs/seo/keyword-strategy.md`](./docs/seo/keyword-strategy.md) | SEO page rules and keyword lock |
 | [`docs/database/overview.md`](./docs/database/overview.md) | SQLite bounded-context inventory |
 | [`docs/database/partner.md`](./docs/database/partner.md) | Partner database schema |
 | [`docs/database/platform-admin.md`](./docs/database/platform-admin.md) | Platform admin auth & audit schema |
