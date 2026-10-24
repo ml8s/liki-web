@@ -92,7 +92,7 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 
 	redir / /{marketing_lang}/ 302
 	redir /index.html /{marketing_lang}/ 302
-# generated:bare-redirects begin
+	# generated:bare-redirects begin
 	redir /natal /{marketing_lang}/natal 302
 	redir /liunian /{marketing_lang}/liunian 302
 	redir /hepan /{marketing_lang}/hepan 302
@@ -100,7 +100,7 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	redir /fengshui /{marketing_lang}/fengshui 302
 	redir /huangli /{marketing_lang}/huangli 302
 	redir /naming /{marketing_lang}/naming 302
-# generated:bare-redirects end
+	# generated:bare-redirects end
 
 
 	redir /about /{marketing_lang}/about 302

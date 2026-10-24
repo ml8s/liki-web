@@ -21,10 +21,10 @@ artifacts.set(path.join(generatedDir, 'scenarios.generated.ts'), `// generated b
 
 const redirects = marketing.bareRedirects.map(item =>
   `\tredir ${item.path} /{marketing_lang}/${item.slug} ${item.status}`).join('\n');
-const caddyBlock = `# generated:bare-redirects begin\n${redirects}\n# generated:bare-redirects end\n`;
+const caddyBlock = `\t# generated:bare-redirects begin\n${redirects}\n\t# generated:bare-redirects end\n`;
 const caddyFiles = [
   path.resolve(root, '../dev/Caddyfile.local'),
-  '/home/sq/wsp/liki/liki-deploy/caddy/Caddyfile',
+  process.env.LIKI_DEPLOY_CADDYFILE ?? path.resolve(root, '../../liki-deploy/caddy/Caddyfile'),
 ];
 
 for (const [destination, content] of artifacts) {
@@ -46,8 +46,8 @@ for (const destination of caddyFiles) {
     throw new Error(`Caddyfile not found: ${destination}`);
   }
   const source = fs.readFileSync(destination, 'utf8');
-  const begin = '# generated:bare-redirects begin';
-  const end = '# generated:bare-redirects end';
+  const begin = '\t# generated:bare-redirects begin';
+  const end = '\t# generated:bare-redirects end';
   const startIndex = source.indexOf(begin);
   const endIndex = source.indexOf(end);
   if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
