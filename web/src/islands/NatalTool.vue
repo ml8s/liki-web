@@ -19,6 +19,8 @@ import {
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
 import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
+import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
+import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
 
 const props = defineProps<{
   locale: string
@@ -75,8 +77,6 @@ async function submit() {
   if (!isBirthInputReady(birth) || loading.value) return
   loading.value = true
   failed.value = false
-  bazi.value = null
-  ziwei.value = null
   liunian.value = null
   try {
     natal.value = await natalChartFor(birthInputFromFields(birth))
@@ -86,6 +86,16 @@ async function submit() {
   } finally {
     loading.value = false
   }
+}
+
+function continueToApp() {
+  if (!natal.value) return
+  saveConsultationHandoff({
+    version: 1,
+    scenario: 'natal',
+    birth: consultationBirthFromFields(birth),
+  } satisfies ConsultationContext)
+  saveHandoff(HANDOFF_KEYS.birth, { ...birth })
 }
 </script>
 
@@ -139,7 +149,11 @@ async function submit() {
         :da-xian="natal.ziweiDaXian"
       />
     </section>
-    <a class="btn-purple tool-cta" :href="appUrl">{{ labels.cta }}</a>
+    <a
+      class="btn-purple tool-cta"
+      :href="appUrl"
+      @click="continueToApp"
+    >{{ labels.cta }}</a>
     <p class="tool-privacy">{{ labels.privacy }}</p>
   </template>
 </template>

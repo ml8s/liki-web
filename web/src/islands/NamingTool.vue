@@ -14,6 +14,8 @@ import {
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
 import YongShenPanel from '@shared/components/charts/YongShenPanel.vue'
+import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
+import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
 
 const props = defineProps<{
   locale: string
@@ -47,6 +49,16 @@ async function submit() {
     loading.value = false
   }
 }
+
+function continueToApp() {
+  if (!result.value) return
+  saveConsultationHandoff({
+    version: 1,
+    scenario: 'naming',
+    birth: consultationBirthFromFields(birth),
+  } satisfies ConsultationContext)
+  saveHandoff(HANDOFF_KEYS.birth, { ...birth })
+}
 </script>
 
 <template>
@@ -67,7 +79,11 @@ async function submit() {
       <YongShenPanel :result="result" />
     </div>
     <p class="tool-privacy">{{ labels.note }}</p>
-    <a class="btn-purple tool-cta" :href="appUrl">{{ labels.cta }}</a>
+    <a
+      class="btn-purple tool-cta"
+      :href="appUrl"
+      @click="continueToApp"
+    >{{ labels.cta }}</a>
     <p class="tool-privacy">{{ labels.privacy }}</p>
   </template>
 </template>

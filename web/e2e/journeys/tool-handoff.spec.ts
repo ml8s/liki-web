@@ -1,7 +1,7 @@
 import { expect, test } from '../fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { mockEngineTool, mockPageview } from '../mocks'
-import { baziChart, bond } from '../engine-fixtures'
+import { baziChart, baziFull, baziLiunian, bond } from '../engine-fixtures'
 import { fillBirthFields } from '../helpers'
 
 async function clickWithoutNavigation(target: Locator) {
@@ -130,6 +130,104 @@ test.describe('public tool consultation handoff', () => {
       birth_year: 1990,
       gender: 'male',
       layout: { zuo_shan: 0 },
+    })
+  })
+
+  test('Natal preserves atomic birth facts', async ({ page }) => {
+    await mockEngineTool(page, 'bazi_chart', baziChart)
+    await mockEngineTool(page, 'bazi_fullchart', baziFull)
+    await mockEngineTool(page, 'bazi_liunian', baziLiunian)
+    await mockEngineTool(page, 'ziwei_chart', {})
+    await mockEngineTool(page, 'ziwei_fullchart', {})
+    await mockEngineTool(page, 'ziwei_daxian', [])
+    await page.goto('/zh-Hant/natal/')
+
+    const tool = page.locator('#natal-tool')
+    await fillBirthFields(page, tool, {
+      date: '1990-05-12',
+      time: '08:30',
+      gender: 'female',
+      place: '上海',
+    })
+    await tool.locator('input[name="birth-timezone"]').fill('Asia/Shanghai')
+    await tool.locator('input[name="birth-longitude"]').fill('121.4726')
+    await tool.locator('button[type="submit"]').click()
+    await expect(tool.locator('.tool-cta')).toBeVisible()
+    await clickWithoutNavigation(tool.locator('.tool-cta'))
+
+    await expect.poll(() => consultationHandoff(page)).toMatchObject({
+      version: 1,
+      scenario: 'natal',
+      birth: {
+        date: '1990-05-12',
+        time: '08:30',
+        location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
+      },
+    })
+  })
+
+  test('Liu Nian preserves birth facts and the selected year', async ({ page }) => {
+    await mockEngineTool(page, 'bazi_chart', baziChart)
+    await mockEngineTool(page, 'bazi_fullchart', baziFull)
+    await mockEngineTool(page, 'bazi_liunian', baziLiunian)
+    await page.goto('/zh-Hant/liunian/')
+
+    const tool = page.locator('#liunian-tool')
+    await fillBirthFields(page, tool, {
+      date: '1990-05-12',
+      time: '08:30',
+      gender: 'female',
+      place: '上海',
+    })
+    await tool.locator('input[name="birth-timezone"]').fill('Asia/Shanghai')
+    await tool.locator('input[name="birth-longitude"]').fill('121.4726')
+    await tool.locator('input[name="liunian-year"]').fill('2027')
+    await tool.locator('button[type="submit"]').click()
+    await expect(tool.locator('.tool-cta')).toBeVisible()
+    await clickWithoutNavigation(tool.locator('.tool-cta'))
+
+    await expect.poll(() => consultationHandoff(page)).toMatchObject({
+      version: 1,
+      scenario: 'liunian',
+      birth: {
+        date: '1990-05-12',
+        time: '08:30',
+        location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
+      },
+      year: 2027,
+    })
+  })
+
+  test('Naming preserves birth facts', async ({ page }) => {
+    await mockEngineTool(page, 'bazi_chart', baziChart)
+    await mockEngineTool(page, 'bazi_yongshen', {
+      selected: { yong: '木', xi: ['水'], ji: ['土'], source: 'tiao_hou', confidence: 'high' },
+      status: 'ok',
+      rule_id: 'YS-TH-1',
+    })
+    await page.goto('/zh-Hant/naming/')
+
+    const tool = page.locator('#naming-tool')
+    await fillBirthFields(page, tool, {
+      date: '1990-05-12',
+      time: '08:30',
+      gender: 'female',
+      place: '上海',
+    })
+    await tool.locator('input[name="naming-birth-timezone"]').fill('Asia/Shanghai')
+    await tool.locator('input[name="naming-birth-longitude"]').fill('121.4726')
+    await tool.locator('button[type="submit"]').click()
+    await expect(tool.locator('.tool-cta')).toBeVisible()
+    await clickWithoutNavigation(tool.locator('.tool-cta'))
+
+    await expect.poll(() => consultationHandoff(page)).toMatchObject({
+      version: 1,
+      scenario: 'naming',
+      birth: {
+        date: '1990-05-12',
+        time: '08:30',
+        location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
+      },
     })
   })
 })

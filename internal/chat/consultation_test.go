@@ -196,6 +196,48 @@ func TestSendMessageFailsClosedWhenPersistedContextIsInvalid(t *testing.T) {
 	}
 }
 
+func TestConsultationContextRequiresBirthScenarios(t *testing.T) {
+	birth := &ConsultationBirth{
+		Gender:   "female",
+		Date:     "1990-05-12",
+		Time:     "08:30",
+		Location: ConsultationLocation{Longitude: 121.4726, Timezone: "Asia/Shanghai"},
+	}
+	year := 2026
+
+	tests := map[string]ConsultationContext{
+		"natal": {
+			Version: 1, Scenario: "natal", Birth: birth,
+		},
+		"liunian": {
+			Version: 1, Scenario: "liunian", Birth: birth, Year: &year,
+		},
+		"naming": {
+			Version: 1, Scenario: "naming", Birth: birth,
+		},
+	}
+	for name, context := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := context.Validate(); err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+		})
+	}
+
+	emptyNatal := ConsultationContext{Version: 1, Scenario: "natal"}
+	if err := emptyNatal.Validate(); err == nil {
+		t.Fatal("Validate() should reject natal context without birth facts")
+	}
+	emptyNaming := ConsultationContext{Version: 1, Scenario: "naming"}
+	if err := emptyNaming.Validate(); err == nil {
+		t.Fatal("Validate() should reject naming context without birth facts")
+	}
+	liunianWithoutYear := ConsultationContext{Version: 1, Scenario: "liunian", Birth: birth}
+	if err := liunianWithoutYear.Validate(); err == nil {
+		t.Fatal("Validate() should reject liunian context without year")
+	}
+}
+
 func TestChatStorePersistsContextButOmitsItFromListProjection(t *testing.T) {
 	ctx := context.Background()
 	db, err := sqliteutil.Open(filepath.Join(t.TempDir(), "chat.db"))

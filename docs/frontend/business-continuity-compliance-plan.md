@@ -188,8 +188,8 @@ to the matching App service. The handoff:
 
 Acceptance:
 
-- public He Pan, divination, Huangli, and Feng Shui CTAs preserve deterministic
-  facts into the authenticated surface;
+- all seven public tool CTAs preserve deterministic facts into the
+  authenticated surface;
 - no personal data is placed in a URL;
 - opening the CTA in a new tab does not leak the current tab's tool data.
 
@@ -255,5 +255,6 @@ No phase may widen scope into unrelated UI restyling or payment behavior.
 - `scripts/build-web.sh`
 - `web/app`: lint, typecheck, and 195 unit tests
 - `web`: lint, typecheck, static tests, and i18n/chart-message/error-code checks
-- Playwright: 15 tool-context/record tests, 3 shared-input tests, 2 Feng Shui
-  year-basis tests, and 17 all-page console/page-error smoke tests
+- Playwright: 14 tool-context handoffs, one Chat List profile-context creation,
+  3 shared-input tests, 2 Feng Shui year-basis tests, and 17 all-page
+  console/page-error smoke tests

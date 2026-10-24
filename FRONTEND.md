@@ -169,7 +169,8 @@ the affirmative domain fact with the second person's atomic birth facts. Both
 relay and direct transports forward the same context.
 
 Public tools use the same-origin session-storage handoff for at most thirty
-minutes and never place personal facts in a URL. The matching App service view
+minutes and never place personal facts in a URL. All seven scenarios carry the
+minimum deterministic context; the matching App service view or Chat List
 consumes it once, converts it into local form state, and never reconstructs it
 from the URL.
 

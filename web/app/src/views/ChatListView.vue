@@ -168,6 +168,13 @@ import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useSalesStore } from '@/stores/sales-store'
+import {
+  consultationBirthFromFields,
+  type ConsultationContext,
+  type ConsultationScenario,
+} from '@shared/domain/consultation'
+import { consumeConsultationHandoff } from '@shared/utils/handoff'
+import type { BirthFieldsValue } from '@shared/components/form/birth-fields'
 import { scenarioByIntent, scenarioById, scenarioEntryItems } from '@/config/chat'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import AppEmptyState from '@/components/app/AppEmptyState.vue'
@@ -261,12 +268,53 @@ async function create(scenarioId: string) {
   creating.value = scenarioId
   sales.actionError = ''
   try {
-    const session = await chat.createSession(activeBirthProfileId.value, scenarioId)
+    const profile = profiles.list.find(item => item.id === activeBirthProfileId.value)
+    const session = await chat.createSession(
+      activeBirthProfileId.value,
+      scenarioId,
+      profile ? consultationContextFor(scenarioId as ConsultationScenario, profile) ?? undefined : undefined,
+    )
     await router.push(`/chat/${session.id}`)
   } catch (error) {
     sales.actionError = toUserMessage(error, t('chat.createFailed'))
   } finally {
     creating.value = ''
+  }
+}
+
+function birthFieldsOf(profile: (typeof profiles.list)[number]): BirthFieldsValue | null {
+  const { gender, date, time, location } = profile.birth
+  if (!date || !time || location.longitude == null || !location.timezone) return null
+  return {
+    gender,
+    date,
+    time,
+    location: {
+      place: location.place,
+      longitude: location.longitude,
+      timezone: location.timezone,
+      source: 'saved',
+    },
+  }
+}
+
+function consultationContextFor(scenarioId: ConsultationScenario, profile: (typeof profiles.list)[number]): ConsultationContext | null {
+  const fields = birthFieldsOf(profile)
+  if (!fields) return null
+  const handoff = consumeConsultationHandoff<ConsultationContext>(scenarioId)
+  const birth = consultationBirthFromFields(fields)
+  if (scenarioId === 'liunian') {
+    return {
+      version: 1,
+      scenario: 'liunian',
+      birth,
+      year: typeof handoff?.year === 'number' ? handoff.year : new Date().getFullYear(),
+    }
+  }
+  return {
+    version: 1,
+    scenario: scenarioId === 'naming' ? 'naming' : 'natal',
+    birth,
   }
 }
 
@@ -282,7 +330,7 @@ onMounted(async () => {
       activeBirthProfileId.value = profiles.list[0].id
     }
     // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
-    const presetService = firstQueryValue(route.query.service)
+    const presetService = firstQueryValue(route.query.service) ?? firstQueryValue(route.query.scenario)
     const svc = scenarioById(presetService)
     if (svc) chat.pendingIntent = t(svc.intentKey)
 

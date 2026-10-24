@@ -9,6 +9,8 @@ import BaziPanel from '@shared/components/charts/BaziPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import YearField from '@shared/components/form/YearField.vue'
+import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
+import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
 import {
   birthInputFromFields,
   createBirthFieldsValue,
@@ -65,6 +67,17 @@ async function submit() {
     loading.value = false
   }
 }
+
+function continueToApp() {
+  if (!pan.value) return
+  saveConsultationHandoff({
+    version: 1,
+    scenario: 'liunian',
+    birth: consultationBirthFromFields(birth),
+    year: Number(year.value),
+  } satisfies ConsultationContext)
+  saveHandoff(HANDOFF_KEYS.birth, { ...birth })
+}
 </script>
 
 <template>
@@ -96,7 +109,11 @@ async function submit() {
         :liunian="liunian"
       />
     </section>
-    <a class="btn-purple tool-cta" :href="appUrl">{{ labels.cta }}</a>
+    <a
+      class="btn-purple tool-cta"
+      :href="appUrl"
+      @click="continueToApp"
+    >{{ labels.cta }}</a>
     <p class="tool-privacy">{{ labels.privacy }}</p>
   </template>
 </template>
