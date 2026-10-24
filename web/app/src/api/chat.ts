@@ -1,5 +1,6 @@
 import { HttpAgent, type AgentSubscriber } from '@ag-ui/client'
 import { del, get, patch, post, redirectToLogin } from './http'
+import { chatTransport } from './transport'
 import { i18n } from '../i18n'
 import type { ConsultationContext } from '@shared/domain/consultation'
 
@@ -134,6 +135,7 @@ export interface DirectChatContext {
   consultationContext?: ConsultationContext
 }
 
+
 export async function streamChatMessage(
   session: ChatSessionRef,
   content: string,
@@ -142,9 +144,11 @@ export async function streamChatMessage(
   context?: DirectChatContext,
 ): Promise<ChatCompletion> {
   const messageId = `web-${crypto.randomUUID()}`
-  // 传输面开关：构建期注入 VITE_CHAT_TRANSPORT=direct 时走直连（Caddy mTLS），
-  // 否则保持中继（回滚杆：部署上一版镜像即回到中继）。
-  const directTransport = import.meta.env.VITE_CHAT_TRANSPORT === 'direct'
+  // 传输面：direct（Caddy mTLS 直连）为默认且唯一战略方向；构建期注入
+  // VITE_CHAT_TRANSPORT=relay 显式回退到已弃用的中继（回滚杆：部署上一版
+  // 镜像即回到中继，中继退役计划见 deploy docs）。
+  // DEPRECATED: relay 传输面已弃用，仅作回滚杆保留。
+  const directTransport = chatTransport() === 'direct'
   const url = directTransport
     ? `/rt/${session.expert}/ag-ui`
     : `/api/chat/sessions/${session.id}/ag-ui`

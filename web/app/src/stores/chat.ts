@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { chatTransport } from '@/api/transport'
 import type { AgentProfile, ChatMessage, ChatSession, ChatTurn } from '@/api/chat'
 import type { ConsultationContext } from '@shared/domain/consultation'
 
@@ -207,7 +208,7 @@ export const useChatStore = defineStore('chat', {
       try {
         // 只有直连需要客户端携带上下文（中继由 BFF 自行组装，且 locale 走
         // forwardedProps）；避免中继模式多一次档案查询。
-        const context = import.meta.env.VITE_CHAT_TRANSPORT === 'direct'
+        const context = chatTransport() !== 'relay'
           ? {
               history,
               profile: await loadProfileContext(session.profile_id),

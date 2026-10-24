@@ -5,6 +5,8 @@ const sseEvent = (payload: Record<string, unknown>) => `data: ${JSON.stringify(p
 
 describe('streamChatMessage against the official HttpAgent parser', () => {
   it('parses an AG-UI SSE stream and returns RUN_FINISHED.result', async () => {
+    // 中继形态的 RUN_FINISHED（无 answer 字段）：显式钉住被弃用的中继路径。
+    vi.stubEnv('VITE_CHAT_TRANSPORT', 'relay')
     const body = [
       sseEvent({ type: 'RUN_STARTED', threadId: 'session_1', runId: 'run_1' }),
       sseEvent({ type: 'CUSTOM', name: 'hk.liki.phase', value: 'bazi_chart' }),
@@ -48,6 +50,7 @@ describe('streamChatMessage against the official HttpAgent parser', () => {
       }),
     })
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
   })
 
   it('normalizes the runtime completion on the direct transport', async () => {

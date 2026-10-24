@@ -73,6 +73,7 @@ describe('chat store', () => {
   })
 
   it('persists both returned messages and activates the session', async () => {
+    vi.stubEnv('VITE_CHAT_TRANSPORT', 'relay')
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
     entitlements.allowedSkills = ['liki']

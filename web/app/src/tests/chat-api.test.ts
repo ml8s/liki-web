@@ -41,6 +41,7 @@ beforeEach(() => {
 
 describe('streamChatMessage with AG-UI HttpAgent', () => {
   it('maps AG-UI events and returns RUN_FINISHED result', async () => {
+    vi.stubEnv('VITE_CHAT_TRANSPORT', 'relay')
     runAgent.mockResolvedValue({ result, newMessages: [] })
     const events: ChatStreamEvent[] = []
     const pending = streamChatMessage(sessionRef, '你好', event => events.push(event))
@@ -67,6 +68,7 @@ describe('streamChatMessage with AG-UI HttpAgent', () => {
   })
 
   it('ignores unknown custom events and empty phase values', async () => {
+    vi.stubEnv('VITE_CHAT_TRANSPORT', 'relay')
     runAgent.mockResolvedValue({ result, newMessages: [] })
     const events: ChatStreamEvent[] = []
     const pending = streamChatMessage(sessionRef, '你好', event => events.push(event))
@@ -106,7 +108,8 @@ describe('streamChatMessage with AG-UI HttpAgent', () => {
   })
 
   it('maps standard tool-call events to phase labels on the direct transport', async () => {
-    runAgent.mockResolvedValue({ result, newMessages: [] })
+    // direct 分支契约：RUN_FINISHED.result 必须携带 answer。
+    runAgent.mockResolvedValue({ result: { ...result, answer: '答案' }, newMessages: [] })
     const events: ChatStreamEvent[] = []
     const pending = streamChatMessage(sessionRef, '你好', event => events.push(event))
     await Promise.resolve()

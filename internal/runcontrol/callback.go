@@ -127,6 +127,12 @@ func (cfg CallbackConfig) persistExchange(ctx context.Context, data completionDa
 		return fmt.Errorf("load session: %w", err)
 	}
 	exchange := []chat.PendingMessage{{Role: "user", Kind: chat.KindText, Content: data.UserMessage}}
+	// 对账告警：completed 的 run 必须携带答案；缺失即"答案静默丢失"
+	//（direct 持久化契约的兜底观测），响亮失败而非悄然降级。
+	if data.Status == "completed" && data.Answer == "" {
+		logger.Error("run_answer_missing",
+			"run_id", data.RunID, "thread_id", data.ThreadID, "profile", data.Profile)
+	}
 	if data.Status == "completed" && data.Answer != "" {
 		exchange = append(exchange, chat.PendingMessage{Role: "assistant", Kind: chat.KindText, Content: data.Answer})
 	}
