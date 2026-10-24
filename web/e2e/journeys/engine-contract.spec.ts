@@ -1937,10 +1937,13 @@ test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await page.getByRole('combobox', { name: '出生日期' }).click()
   await page.locator('.el-picker-panel .el-date-table td.available').first().click()
   await page.getByRole('combobox', { name: '出生時間' }).fill('08:00')
-  await page.locator('input[name="birth-place"]').fill('上海')
-  await page.locator('input[name="birth-place"]').blur()
+  // Engine-contract tests own engine rendering, not city autocomplete: use the
+  // explicit manual location path so this test does not depend on the city index.
   await page.locator('.region-manual-toggle').click()
+  await page.locator('input[name="birth-longitude"]').fill('121.4726')
+  await page.locator('input[name="birth-timezone"]').fill('Asia/Shanghai')
   await expect(page.locator('input[name="birth-longitude"]')).toHaveValue('121.4726')
+  await page.locator('.b-form .el-checkbox').click()
   await page.locator('.b-form button[type="submit"]').click()
   await page.waitForSelector('.rel-sec', { timeout: 12000 })
   const dayMaster = page.locator('.rel-sec', { hasText: '日主關係' })
@@ -1961,12 +1964,15 @@ test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
   await routeEngine(page)
 
   await page.goto('/app/divination')
-  await page.waitForSelector('input[placeholder*="項目"]', { timeout: 10000 })
-  await page.locator('input[placeholder*="項目"]').fill('這個項目能成嗎')
+  const question = page.getByRole('textbox', { name: /你想問的一件事/ })
+  await question.fill('這個項目能成嗎')
   await page.locator('input[name="casting-place"]').fill('上海')
   await page.locator('input[name="casting-place"]').blur()
+  await page.locator('.region-manual-toggle').click()
+  await page.locator('input[name="casting-longitude"]').fill('121.4726')
+  await page.locator('input[name="casting-timezone"]').fill('Asia/Shanghai')
   await expect(page.locator('input[name="casting-longitude"]')).toHaveValue('121.4726')
-  await page.click('button:has-text("搖卦")')
+  await page.getByRole('button', { name: '搖卦' }).click()
   await page.waitForSelector('.gua-name', { timeout: 12000 })
   await expect(page.locator('.gua-name')).toHaveText('水火既济') // board.name
   await expect(page.locator('.gua-info')).toContainText('坎') // board.gong
