@@ -1,6 +1,7 @@
 import { HttpAgent, type AgentSubscriber } from '@ag-ui/client'
 import { del, get, patch, post, redirectToLogin } from './http'
 import { chatTransport } from './transport'
+import { toWire } from './wire'
 import { i18n } from '../i18n'
 import type { ConsultationContext } from '@shared/domain/consultation'
 
@@ -60,6 +61,7 @@ export function createChatSession(
   expert: string,
   title?: string,
   context?: ConsultationContext,
+  scenario?: string,
 ): Promise<ChatSession> {
   return post<ChatSession>('/api/chat/sessions', {
     profile_id: profileId,
@@ -67,6 +69,7 @@ export function createChatSession(
     expert,
     title,
     context,
+    ...(scenario ? { scenario } : {}),
   })
 }
 
@@ -154,9 +157,19 @@ export async function streamChatMessage(
     : `/api/chat/sessions/${session.id}/ag-ui`
   // 直连的 runtime 是无状态的：中继时代由 BFF 从数据库补上的对话历史与出生
   // 档案上下文，必须由客户端随请求携带（契约 C3）。中继分支忽略 context。
+  // Wire boundary: session/profile/context come from reactive stores, but the
+  // AG-UI client structured-clones forwardedProps. Convert once here so the
+  // SDK never receives a Proxy.
+  const wireContext = context
+    ? {
+        history: toWire(context.history ?? []),
+        profile: toWire(context.profile),
+        consultationContext: toWire(context.consultationContext),
+      }
+    : undefined
   // 按角色窄化：AG-UI 的 Message 是可辨识联合，role 为宽联合的对象字面量
   // 无法直接分配到联合成员上。
-  const historyMessages = (context?.history ?? []).map(turn => (
+  const historyMessages = (wireContext?.history ?? []).map(turn => (
     turn.role === 'user'
       ? { id: turn.id, role: 'user' as const, content: turn.content }
       : { id: turn.id, role: 'assistant' as const, content: turn.content }
@@ -165,11 +178,11 @@ export async function streamChatMessage(
   // SDK 只在 runAgent 参数读取 forwardedProps（构造器配置被忽略）。中继的
   // gateway 从 locale 取界面语言，直连额外携带 product/profile（契约 C3）。
   const forwardedProps: Record<string, unknown> = { product: 'liki', locale: i18n.global.locale.value }
-  if (context?.profile) {
-    forwardedProps.profile = context.profile
+  if (wireContext?.profile) {
+    forwardedProps.profile = wireContext.profile
   }
-  if (context?.consultationContext) {
-    forwardedProps.consultation_context = context.consultationContext
+  if (wireContext?.consultationContext) {
+    forwardedProps.consultation_context = wireContext.consultationContext
   }
   const agent = new HttpAgent({
     url,

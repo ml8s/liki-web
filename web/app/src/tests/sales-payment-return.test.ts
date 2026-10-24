@@ -38,6 +38,7 @@ async function stubWorkspace(entitledAfter: number) {
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  sessionStorage.clear()
 })
 
 afterEach(() => {
@@ -64,7 +65,7 @@ describe('sales handlePaymentReturn', () => {
     const sales = useSalesStore()
     const pending = sales.handlePaymentReturn({ order_id: 'order_1', status: 'paid' })
     await vi.advanceTimersByTimeAsync(1_000)
-    await expect(pending).resolves.toEqual({ action: 'enter_chat' })
+    await expect(pending).resolves.toEqual({ action: 'enter_chat', scenarioId: 'natal' })
     expect(refreshes()).toBe(2)
     expect(sales.paymentState).toBe('confirmed')
     expect(sales.paymentMessage).toBe(i18n.global.t('commerce.payment.active'))
@@ -86,3 +87,14 @@ describe('sales handlePaymentReturn', () => {
     expect(sales.paymentMessage).not.toBe(i18n.global.t('commerce.payment.active'))
   })
 })
+
+
+  it('preserves the scenario selected before checkout', async () => {
+    vi.useFakeTimers()
+    await stubWorkspace(1)
+    sessionStorage.setItem('liki.pending-payment-scenario', 'divination')
+    const sales = useSalesStore()
+    const pending = sales.handlePaymentReturn({ order_id: 'order_1', status: 'paid' })
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(pending).resolves.toEqual({ action: 'enter_chat', scenarioId: 'divination' })
+  })

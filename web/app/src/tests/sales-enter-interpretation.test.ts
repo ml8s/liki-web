@@ -74,3 +74,31 @@ describe('sales enterInterpretation', () => {
     })
   })
 })
+
+
+  it('preserves the selected scenario and only builds birth contexts for birth scenarios', async () => {
+    const profiles = useBirthProfilesStore()
+    profiles.list = [profile('profile_selected')]
+    const createSession = vi.fn().mockResolvedValue({ id: 'session_divination' })
+    useChatStore().createSession = createSession
+
+    const sessionId = await useSalesStore().enterInterpretation('profile_selected', 'divination')
+
+    expect(sessionId).toBe('session_divination')
+    expect(createSession).toHaveBeenCalledWith('profile_selected', 'divination', undefined)
+  })
+
+  it('builds a liunian context with the current year', async () => {
+    const profiles = useBirthProfilesStore()
+    profiles.list = [profile('profile_selected')]
+    const createSession = vi.fn().mockResolvedValue({ id: 'session_liunian' })
+    useChatStore().createSession = createSession
+
+    await useSalesStore().enterInterpretation('profile_selected', 'liunian')
+
+    expect(createSession).toHaveBeenCalledWith('profile_selected', 'liunian', expect.objectContaining({
+      version: 1,
+      scenario: 'liunian',
+      year: new Date().getFullYear(),
+    }))
+  })

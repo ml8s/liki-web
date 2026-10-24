@@ -18,6 +18,7 @@ import { fetchBirthProfile } from '@/api/birth-profiles'
 import { toolPhaseKey } from '@/utils/toolPhase'
 import { scenarioById } from '@/config/chat'
 import { i18n } from '@/i18n'
+import { reportClientError } from '@shared/utils/client-error'
 
 function t(key: string, values?: Record<string, unknown>): string {
   return i18n.global.t(key, values ?? {})
@@ -109,6 +110,7 @@ export const useChatStore = defineStore('chat', {
         expert,
         title,
         context,
+        scenarioId,
       )
       this.sessions.unshift(session)
       // 返回数组内的响应式代理：返回 unshift 前的原始对象会让后续写入绕过
@@ -261,6 +263,13 @@ export const useChatStore = defineStore('chat', {
           assistant.stopped = true
           return
         }
+        reportClientError({
+          code: (error as { code?: string } | null)?.code ?? 'chat_send_failed',
+          detail: error instanceof Error ? error.message : String(error),
+          transport: chatTransport(),
+          agent: session.expert,
+          view: 'chat-session',
+        })
         this.error = errorMessage(error)
         try {
           const page = await (await chatApiLazy()).fetchChatMessages(session.id)

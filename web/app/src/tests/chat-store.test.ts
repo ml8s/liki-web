@@ -96,7 +96,7 @@ describe('chat store', () => {
     chat.activeSession = session
     await chat.send(' 你好 ')
 
-    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '命理解读', undefined)
+    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '命理解读', undefined, 'natal')
     // 中继模式不携带直连上下文（第 5 参为 undefined）。
     expect(sendSpy).toHaveBeenCalledWith(session, '你好', expect.any(Function), expect.any(AbortSignal), undefined)
     expect(chat.messages).toEqual([userMessage, assistantMessage])
@@ -124,6 +124,7 @@ describe('chat store', () => {
       'divination',
       '问卦解读',
       context,
+      'divination',
     )
   })
 
@@ -156,6 +157,7 @@ describe('chat store', () => {
       'natal',
       expect.any(String),
       context,
+      'hepan',
     )
   })
 

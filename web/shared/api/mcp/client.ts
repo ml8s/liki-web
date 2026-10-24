@@ -1,4 +1,5 @@
 import { ApiError } from '../http'
+import { reportClientError } from '../../utils/client-error'
 
 /** counsel（裁决/问卦/起名）工具走 /counsel/mcp；排盘/历法工具走 /engine/mcp。 */
 export const COUNSEL_TOOLS = new Set<string>([
@@ -15,6 +16,21 @@ interface EngineToolEnvelope {
 /** Single source for both the HTTP contract and the in-band metadata contract. */
 export const MCP_PROTOCOL_VERSION = '2026-07-28'
 
+/**
+ * Streamable HTTP carries the JSON-RPC method and tool name in headers so the
+ * server can route before parsing the body. Engine/counsel require them for
+ * every tools/call request.
+ */
+export function mcpHeaders(tool: string): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+    'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
+    'Mcp-Method': 'tools/call',
+    'Mcp-Name': tool,
+  }
+}
+
 function endpoint(tool: string): string {
   return COUNSEL_TOOLS.has(tool) ? '/counsel/mcp' : '/engine/mcp'
 }
@@ -25,11 +41,7 @@ export async function mcpTool<T = unknown>(tool: string, params: unknown): Promi
   try {
     response = await fetch(endpoint(tool), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json, text/event-stream',
-        'Mcp-Protocol-Version': MCP_PROTOCOL_VERSION,
-      },
+      headers: mcpHeaders(tool),
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
@@ -48,7 +60,17 @@ export async function mcpTool<T = unknown>(tool: string, params: unknown): Promi
     throw new ApiError(0, 'network_error', 'Network request failed')
   }
   if (!response.ok) {
-    throw new ApiError(response.status, 'engine_unavailable', `Engine HTTP ${response.status}`)
+    let detail = `Engine HTTP ${response.status}`
+    let code = 'engine_unavailable'
+    try {
+      const envelope = await response.json() as EngineToolEnvelope
+      if (envelope.error?.message) detail = envelope.error.message
+      if (envelope.error?.code === -32020) code = 'engine_protocol_mismatch'
+    } catch {
+      // Keep the HTTP status fallback.
+    }
+    reportClientError({ code, detail })
+    throw new ApiError(response.status, code, detail)
   }
   let envelope: EngineToolEnvelope
   try {
@@ -57,7 +79,9 @@ export async function mcpTool<T = unknown>(tool: string, params: unknown): Promi
     throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
   }
   if (envelope.error) {
-    throw new ApiError(response.status, 'engine_tool_failed', envelope.error.message || 'Engine tool failed')
+    const code = envelope.error.code === -32020 ? 'engine_protocol_mismatch' : 'engine_tool_failed'
+    reportClientError({ code, detail: envelope.error.message })
+    throw new ApiError(response.status, code, envelope.error.message || 'Engine tool failed')
   }
   const content = envelope.result?.content?.[0]
   const text = content?.type === 'text' ? content.text : undefined

@@ -53,6 +53,9 @@ describe('engine request contract', () => {
     expect(meta?.['io.modelcontextprotocol/protocolVersion']).toBe('2026-07-28')
     // MCP Streamable HTTP 规范：客户端必须同时接受 JSON 与 SSE 形态。
     expect(headers.Accept).toBe('application/json, text/event-stream')
+    // 2026-07-28 起 Method/Name 进入 HTTP header，服务端在解析 body 前校验。
+    expect(headers['Mcp-Method']).toBe('tools/call')
+    expect(headers['Mcp-Name']).toBe('huangli_days')
   })
 
   it('routes counsel tools to /counsel/mcp', async () => {

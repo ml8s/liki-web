@@ -7,7 +7,7 @@
       >
         <template #content>
           <div class="page-heading">
-            <h1>{{ chat.activeSession?.title || $t('common.loading') }}</h1>
+            <h1>{{ chat.activeSession?.title || (sessionUnavailable ? $t('chat.sessionUnavailable') : $t('common.loading')) }}</h1>
           </div>
         </template>
       </el-page-header>
@@ -51,6 +51,14 @@
           show-icon
         />
         <el-button
+          v-if="sessionUnavailable"
+          size="small"
+          @click="goBack"
+        >
+          {{ $t('chat.backToSessions') }}
+        </el-button>
+        <el-button
+          v-else
           size="small"
           @click="retry"
         >
@@ -58,7 +66,10 @@
         </el-button>
       </div>
 
-      <div class="composer-area">
+      <div
+        v-if="!sessionUnavailable"
+        class="composer-area"
+      >
         <button
           v-if="!nearBottom"
           type="button"
@@ -94,6 +105,8 @@ const draft = ref('')
 const threadElement = ref<HTMLElement | null>(null)
 const nearBottom = ref(true)
 const sessionId = computed(() => String(route.params.sessionId ?? ''))
+const sessionUnavailable = computed(() =>
+  !chat.loadingMessages && !chat.activeSession && !!chat.error)
 const DRAFT_KEY = 'chat-draft'
 const drafts = useFormDraftsStore()
 

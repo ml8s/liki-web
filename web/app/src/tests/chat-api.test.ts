@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { isReactive, reactive } from 'vue'
 
 const mocks = vi.hoisted(() => {
   const runAgent = vi.fn()
@@ -134,6 +135,45 @@ describe('streamChatMessage with AG-UI HttpAgent', () => {
     await mocks.subscriber.onRunFinishedEvent?.({ outcome: 'success', result: { answer: '答案' }, event: { type: 'RUN_FINISHED' } } as any)
     const returned = await pending
     expect(returned).toEqual({ transport: 'direct', answer: '答案' })
+    vi.unstubAllEnvs()
+  })
+
+  it('serializes reactive context into structured-cloneable wire values', async () => {
+    vi.stubEnv('VITE_CHAT_TRANSPORT', 'direct')
+    runAgent.mockResolvedValue({ result: { answer: 'ok' }, newMessages: [] })
+    const context = reactive({
+      history: [{ id: 'message_0', role: 'user' as const, content: '之前的问题' }],
+      profile: {
+        gender: 'female',
+        instant: '1990-01-01T04:00:00Z',
+        location: { longitude: 114.169, timezone: 'Asia/Hong_Kong' },
+      },
+      consultationContext: {
+        version: 1 as const,
+        scenario: 'natal' as const,
+        birth: {
+          gender: 'female' as const,
+          date: '1990-01-01',
+          time: '12:00',
+          location: { longitude: 114.169, timezone: 'Asia/Hong_Kong' },
+        },
+      },
+    })
+    const pending = streamChatMessage(sessionRef, '你好', () => {}, undefined, context)
+    await Promise.resolve()
+
+    const forwardedProps = runAgent.mock.calls[0]?.[0]?.forwardedProps
+    expect(forwardedProps).toMatchObject({
+      product: 'liki',
+      profile: context.profile,
+      consultation_context: context.consultationContext,
+    })
+    // The AG-UI SDK structured-clones this object; Vue proxies would throw here.
+    expect(() => structuredClone(forwardedProps)).not.toThrow()
+    expect(isReactive(forwardedProps)).toBe(false)
+
+    await mocks.subscriber.onRunFinishedEvent?.({ outcome: 'success', result: { answer: 'ok' }, event: { type: 'RUN_FINISHED' } } as any)
+    await pending
     vi.unstubAllEnvs()
   })
 })

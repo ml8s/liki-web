@@ -9,8 +9,10 @@ import { i18n } from '@/i18n'
 import {
   consultationBirthFromFields,
   type ConsultationContext,
+  type ConsultationScenario,
 } from '@shared/domain/consultation'
 import type { BirthFieldsValue } from '@shared/components/form/birth-fields'
+import { consumeConsultationHandoff } from '@shared/utils/handoff'
 
 function t(key: string): string {
   return i18n.global.t(key)
@@ -22,8 +24,37 @@ type PaymentState = 'idle' | 'verifying' | 'confirmed' | 'unpaid'
 export interface PaymentReturnResult {
   action: 'none' | 'enter_chat' | 'show_message'
   sessionId?: string
+  scenarioId?: ConsultationScenario
   message?: string
   state?: PaymentState
+}
+
+const PAYMENT_SCENARIO_KEY = 'liki.pending-payment-scenario'
+const consultationScenarios: ConsultationScenario[] = [
+  'natal', 'liunian', 'hepan', 'divination', 'huangli', 'fengshui', 'naming',
+]
+
+function savePaymentScenario(scenario: string): void {
+  try {
+    if (consultationScenarios.includes(scenario as ConsultationScenario)) {
+      sessionStorage.setItem(PAYMENT_SCENARIO_KEY, scenario)
+    }
+  } catch {
+    // Storage may be unavailable; the chat default remains natal.
+  }
+}
+
+function takePaymentScenario(): ConsultationScenario {
+  try {
+    const value = sessionStorage.getItem(PAYMENT_SCENARIO_KEY)
+    sessionStorage.removeItem(PAYMENT_SCENARIO_KEY)
+    if (value && consultationScenarios.includes(value as ConsultationScenario)) {
+      return value as ConsultationScenario
+    }
+  } catch {
+    // Fall through to the default.
+  }
+  return 'natal'
 }
 
 interface SalesState {
@@ -94,11 +125,15 @@ export const useSalesStore = defineStore('sales', {
       }
       this.actionError = message
     },
-    async buy(billingMode: 'one_time' | 'subscription' = 'one_time') {
+    async buy(
+      billingMode: 'one_time' | 'subscription' = 'one_time',
+      scenarioId: ConsultationScenario | string = 'natal',
+    ) {
       const product = this.chatProduct
       if (!product || this.buying) return
       this.buying = true
       this.actionError = ''
+      savePaymentScenario(scenarioId)
       try {
         const checkout = await checkoutProduct(product.id, billingMode, i18n.global.locale.value)
         // 只跟随相对路径或 https 支付域：防御后端配置错误导致的开放重定向。
@@ -147,7 +182,7 @@ export const useSalesStore = defineStore('sales', {
             this.paymentState = 'confirmed'
             this.paymentMessage = t('commerce.payment.active')
             // 轮询成功后由调用方 enterInterpretation
-            return { action: 'enter_chat' }
+            return { action: 'enter_chat', scenarioId: takePaymentScenario() }
           }
           const delay = Math.min(1000 * Math.pow(2, attempt), 5000)
           await this.wait(delay)
@@ -164,7 +199,11 @@ export const useSalesStore = defineStore('sales', {
       return { action: 'show_message', message: this.paymentMessage, state: this.paymentState }
     },
     // 支付成功后直达解读。优先使用用户当前选择的档案；没有选择时才退回第一个档案。
-    async enterInterpretation(preferredProfileId?: string): Promise<string | null> {
+    // scenarioId 保留用户在支付前选择的场景，避免所有支付都落到 natal（或错误的专家）。
+    async enterInterpretation(
+      preferredProfileId?: string,
+      scenarioId: ConsultationScenario = 'natal',
+    ): Promise<string | null> {
       const profiles = useBirthProfilesStore()
       if (!profiles.list.length) {
         await profiles.loadList()
@@ -172,10 +211,13 @@ export const useSalesStore = defineStore('sales', {
       const profileId = preferredProfileId || profiles.list[0]?.id || ''
       if (!profileId) return null
       try {
-        // 支付成功后直达解读：默认进入旗舰的本命专家会话，并固化档案事实。
         const profile = profiles.list.find(item => item.id === profileId)
-        const context = profile ? consultationContextFor(profile) : null
-        const session = await useChatStore().createSession(profileId, 'natal', context ?? undefined)
+        // Tool handoffs carry the facts the user already computed (for example
+        // a divination casting). Consume it once; otherwise build the minimal
+        // profile-derived context for birth-based scenarios.
+        const handoff = consumeConsultationHandoff<ConsultationContext>(scenarioId)
+        const context = handoff ?? (profile ? consultationContextFor(profile, scenarioId) : null)
+        const session = await useChatStore().createSession(profileId, scenarioId, context ?? undefined)
         return session.id
       } catch (error) {
         this.actionError = toUserMessage(error, t('chat.createFailed'))
@@ -192,7 +234,8 @@ function consultationContextFor(profile: {
     time: string | null
     location: { longitude: number | null; timezone: string | null }
   }
-}): ConsultationContext | null {
+}, scenarioId: ConsultationScenario): ConsultationContext | null {
+  if (!['natal', 'liunian', 'naming'].includes(scenarioId)) return null
   const { gender, date, time, location } = profile.birth
   if (!date || !time || location.longitude == null || !location.timezone) return null
   const birth: BirthFieldsValue = {
@@ -206,9 +249,18 @@ function consultationContextFor(profile: {
       source: 'saved',
     },
   }
+  const birthFacts = consultationBirthFromFields(birth)
+  if (scenarioId === 'liunian') {
+    return {
+      version: 1,
+      scenario: 'liunian',
+      birth: birthFacts,
+      year: new Date().getFullYear(),
+    }
+  }
   return {
     version: 1,
-    scenario: 'natal',
-    birth: consultationBirthFromFields(birth),
+    scenario: scenarioId,
+    birth: birthFacts,
   }
 }

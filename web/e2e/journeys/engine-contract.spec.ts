@@ -1821,8 +1821,19 @@ const bazhaiLayout = {
 
 function routeEngine(page: Page) {
   return page.route(/\/(engine|counsel)\/mcp$/, async route => {
-    const body = JSON.parse(route.request().postData() ?? '{}') as { params?: { name?: string } }
+    const headers = route.request().headers()
+    const body = JSON.parse(route.request().postData() ?? '{}') as {
+      params?: { name?: string; _meta?: Record<string, unknown> }
+    }
     const tool = body.params?.name ?? ''
+    // Browser-to-MCP contract: the edge requires the method/name headers before
+    // it parses the JSON-RPC body. These assertions catch a client that still
+    // sends only the protocol version.
+    expect(headers['mcp-method']).toBe('tools/call')
+    expect(headers['mcp-name']).toBe(tool)
+    expect(headers['mcp-protocol-version']).toBe('2026-07-28')
+    expect(headers['accept']).toContain('text/event-stream')
+    expect(body.params?._meta?.['io.modelcontextprotocol/protocolVersion']).toBe('2026-07-28')
     let data: unknown
     switch (tool) {
       case ENGINE_TOOLS.CityCoords: data = { candidates: [{ name: '上海', region: '上海市', country: '中国', level: 'city', longitude: 121.47, latitude: 31.23, timezone: 'Asia/Shanghai' }] }; break

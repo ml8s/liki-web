@@ -56,7 +56,7 @@
         id="chat-purchase"
         :product="sales.chatProduct"
         :buying="sales.buying"
-        @purchase="billingMode => sales.buy(billingMode)"
+        @purchase="billingMode => sales.buy(billingMode, selectedScenario || pendingService?.id || 'natal')"
       />
 
       <el-card
@@ -197,6 +197,7 @@ const drafts = useFormDraftsStore()
 
 const activeBirthProfileId = ref('')
 const creating = ref('')
+const selectedScenario = ref('')
 
 const chatPurchased = computed(() => entitlements.purchased)
 const profilePickerEl = ref<HTMLElement | null>(null)
@@ -217,6 +218,7 @@ const scenarioEntries = computed(() =>
 
 // 选择场景：未开通 → 滚到开通卡；方案未含 → 订单页；缺档案 → 建档案；就绪 → 创建会话。
 function selectScenario(id: string) {
+  selectedScenario.value = id
   if (!chatPurchased.value) {
     document.getElementById('chat-purchase')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     return
@@ -302,27 +304,34 @@ function birthFieldsOf(profile: (typeof profiles.list)[number]): BirthFieldsValu
 }
 
 function consultationContextFor(scenarioId: ConsultationScenario, profile: (typeof profiles.list)[number]): ConsultationContext | null {
+  const handoff = peekConsultationHandoff<ConsultationContext>(scenarioId)
+  if (handoff) {
+    const profileMatches = !handoff.birth || profileMatchesConsultationBirth(profile, handoff.birth)
+    if (profileMatches) {
+      consumeConsultationHandoff<ConsultationContext>(scenarioId)
+      return handoff
+    }
+    clearConsultationHandoff()
+  }
+  // Only birth-based scenarios can be built from a saved profile. Tool
+  // scenarios (divination/huangli/fengshui/hepan) must use their handoff; a
+  // fabricated natal context would be rejected by the server and is exactly
+  // the wrong-agent class of bug this guard prevents.
+  if (!isBirthConsultationScenario(scenarioId)) return null
   const fields = birthFieldsOf(profile)
   if (!fields) return null
   const birth = consultationBirthFromFields(fields)
-  const handoff = peekConsultationHandoff<ConsultationContext>(scenarioId)
-  if (handoff?.birth && (!profileMatchesConsultationBirth(profile, handoff.birth))) {
-    clearConsultationHandoff()
-  }
-  else if (handoff) {
-    consumeConsultationHandoff<ConsultationContext>(scenarioId)
-  }
   if (scenarioId === 'liunian') {
     return {
       version: 1,
       scenario: 'liunian',
       birth,
-      year: typeof handoff?.year === 'number' ? handoff.year : new Date().getFullYear(),
+      year: new Date().getFullYear(),
     }
   }
   return {
     version: 1,
-    scenario: scenarioId === 'naming' ? 'naming' : 'natal',
+    scenario: scenarioId,
     birth,
   }
 }
@@ -376,7 +385,7 @@ onMounted(async () => {
     // 支付回调处理：store 返回结果，由 view 决定路由。
     const paymentResult = await sales.handlePaymentReturn(route.query)
     if (paymentResult.action === 'enter_chat') {
-      const sessionId = await sales.enterInterpretation(activeBirthProfileId.value)
+      const sessionId = await sales.enterInterpretation(activeBirthProfileId.value, paymentResult.scenarioId)
       if (sessionId) {
         await router.replace({ path: '/chat', query: {} })
         await router.push(`/chat/${sessionId}`)
