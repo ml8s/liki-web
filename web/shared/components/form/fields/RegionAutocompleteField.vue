@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 统一出生/起卦地点：单字段候选 + 手动经度/IANA 时区逃生口，输出原子 location。
-import { computed, nextTick, onMounted, ref, useId, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, useId, watch, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElAutocomplete } from 'element-plus'
 import FieldShell from '../FieldShell.vue'
 import NumberField from './NumberField.vue'
@@ -8,6 +9,7 @@ import TextField from './TextField.vue'
 import { locationCandidatesFor } from '@shared/domain/location'
 import type { BirthLocation } from '@shared/domain/location'
 import { loadCityIndex, searchCities, type CityMatch } from '@shared/utils/citySearch'
+import { formatLongitude, formatPlace, localizedCityName, localizedRegion, type PlaceLocale } from '@shared/utils/placeDisplay'
 import type { RegionFieldLabels } from '../region-field'
 import '@shared/styles/element-plus/index.css'
 
@@ -24,14 +26,30 @@ const props = withDefaults(defineProps<{
   labels: RegionFieldLabels
   namePrefix?: string
   initialPlace?: string
+  locale?: string
 }>(), {
   namePrefix: 'birth',
   initialPlace: '',
+  locale: '',
 })
 
 const emit = defineEmits<{
   'update:location': [value: BirthLocation | null]
 }>()
+
+// Place labels are presentation data. Marketing islands and the app both
+// install vue-i18n; tests may mount this component without it.
+let i18nLocale: Ref<string> | null = null
+try {
+  i18nLocale = useI18n().locale as Ref<string>
+} catch {
+  i18nLocale = null
+}
+
+const activeLocale = computed<PlaceLocale>(() => {
+  const value = props.locale || i18nLocale?.value || 'zh-Hant'
+  return value === 'en' || value === 'zh-Hans' ? value : 'zh-Hant'
+})
 
 interface AutocompleteExposed {
 	highlightedIndex?: { value: number }
@@ -40,6 +58,7 @@ interface AutocompleteExposed {
 
 const autocompleteRef = ref<AutocompleteExposed>()
 const query = ref(props.location?.place ?? props.initialPlace)
+const manualLongitude = ref<number | null>(props.location?.source === 'manual' ? props.location.longitude : null)
 const manualTimezone = ref(props.location?.timezone ?? '')
 const suggestions = ref<RegionSuggestion[]>([])
 const resolving = ref(false)
@@ -56,12 +75,26 @@ function sanitizeActiveDescendant() {
 const fieldId = useId()
 const statusId = `${fieldId}-status`
 
-const longitude = computed(() => props.location?.longitude ?? null)
+const longitude = computed(() => props.location?.longitude ?? manualLongitude.value)
 const timezone = computed(() => props.location?.timezone ?? manualTimezone.value)
 const showManual = computed(() =>
   manualOpen.value
   || failed.value
   || props.location?.source === 'manual')
+
+const longitudeError = computed(() => {
+  const value = longitude.value
+  if (!showManual.value || value == null) return ''
+  return value < -180 || value > 180 ? props.labels.longitudeInvalid : ''
+})
+
+const timezoneError = computed(() => {
+  const value = timezone.value.trim()
+  if (!showManual.value || !value) return ''
+  return /^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+$|^UTC$/.test(value)
+    ? ''
+    : props.labels.timezoneInvalid
+})
 
 const statusText = computed(() => {
   if (resolving.value) return props.labels.placeResolving
@@ -72,7 +105,10 @@ const statusText = computed(() => {
     && (props.location.source === 'city' || props.location.source === 'browser')
     && query.value.trim() === props.location.place
   ) {
-    return props.labels.placeMatched.replace('{lng}', props.location.longitude.toFixed(4))
+    return props.labels.placeMatched.replace(
+      '{longitude}',
+      formatLongitude(props.location.longitude, activeLocale.value),
+    )
   }
   return ''
 })
@@ -84,20 +120,17 @@ function kindLabel(candidate: CityMatch) {
 }
 
 function canonicalLabel(candidate: CityMatch) {
-  return [...new Set([candidate.region, candidate.city, candidate.name])]
-    .filter(Boolean)
-    .join('')
+  return formatPlace(candidate, activeLocale.value)
 }
 
 function toSuggestion(candidate: CityMatch): RegionSuggestion {
   const value = canonicalLabel(candidate)
-  const subtitle = [candidate.city, candidate.region]
-    .filter(Boolean)
-    .filter(part => part !== candidate.name)
+  const title = localizedCityName(candidate, activeLocale.value)
+  const region = localizedRegion(candidate, activeLocale.value)
   return {
     value,
-    title: candidate.name,
-    subtitle: [...new Set(subtitle)].join(' · '),
+    title,
+    subtitle: region && region !== title ? region : '',
     kindLabel: kindLabel(candidate),
     candidate,
   }
@@ -135,8 +168,14 @@ async function fetchSuggestions(
 }
 
 function emitManualLocation(nextLongitude: number | null, nextTimezone: string) {
+  manualLongitude.value = nextLongitude
   manualTimezone.value = nextTimezone
-  if (nextLongitude == null || !/^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+$|^UTC$/.test(nextTimezone)) {
+  if (
+    nextLongitude == null
+    || nextLongitude < -180
+    || nextLongitude > 180
+    || !/^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+$|^UTC$/.test(nextTimezone)
+  ) {
     emit('update:location', null)
     return
   }
@@ -273,7 +312,12 @@ function onAutocompleteSelect(item: Record<string, unknown>) {
 }
 
 watch(() => props.location, (value) => {
-  if (value?.source === 'manual') manualOpen.value = true
+  if (value?.source === 'manual') {
+    manualOpen.value = true
+    manualLongitude.value = value.longitude
+  } else if (value) {
+    manualLongitude.value = null
+  }
   if (value?.place === query.value && value.timezone === manualTimezone.value) return
   if (value) {
     query.value = value.place
@@ -362,8 +406,7 @@ onMounted(() => {
       :name="`${namePrefix}-longitude`"
       :label="labels.longitude"
       :hint="labels.longitudeHint"
-      :min="-180"
-      :max="180"
+      :error="longitudeError"
       :step="0.0001"
       :precision="4"
       @update:model-value="onLongitudeChange"
@@ -373,6 +416,7 @@ onMounted(() => {
       :name="`${namePrefix}-timezone`"
       :label="labels.timezone"
       :hint="labels.timezoneHint"
+      :error="timezoneError"
       :placeholder="labels.timezonePlaceholder"
       autocomplete="off"
       :spellcheck="false"

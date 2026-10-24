@@ -8,9 +8,11 @@ export interface RegionFieldLabels {
   placeMatched: string
   longitude: string
   longitudeHint: string
+  longitudeInvalid: string
   timezone: string
   timezonePlaceholder: string
   timezoneHint: string
+  timezoneInvalid: string
   manualToggle: string
   kindCity: string
   kindCounty: string

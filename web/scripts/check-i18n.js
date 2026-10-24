@@ -392,6 +392,9 @@ function addKnownCompoundKeys(used) {
     used.add(`scenario.natalReading.benefit.${benefit}.title`);
     used.add(`scenario.natalReading.benefit.${benefit}.body`);
   }
+  // natal.astro renders its question list through a key array; static scan
+  // cannot see the individual keys.
+  for (let n = 1; n <= 2; n++) used.add(`scenario.natalReading.q${n}`);
   for (const benefit of ['palaces', 'stars', 'cycles', 'career']) {
     used.add(`natal.ziwei.benefit.${benefit}.title`);
     used.add(`natal.ziwei.benefit.${benefit}.body`);
