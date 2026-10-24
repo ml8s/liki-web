@@ -8,6 +8,7 @@
       <header class="admin-topbar">
         <div class="brand">
           Liki <span>Admin</span>
+          <small class="brand-locale">简体中文 · 运营台</small>
         </div>
         <nav
           v-if="admin.status === 'ready'"
@@ -214,6 +215,11 @@ async function logout() {
 }
 .brand { font-weight: 700; font-size: var(--font-size-title-xs); letter-spacing: 1px; }
 .brand span { color: var(--liki-accent-on-ink); }
+.brand-locale {
+  margin-left: 8px; padding: 2px 7px; border: 1px solid var(--liki-on-ink-line);
+  border-radius: 999px; color: var(--liki-on-ink-subtle); font-size: var(--font-size-caption, 11px);
+  font-weight: 500; letter-spacing: 0; white-space: nowrap;
+}
 .admin-nav { display: flex; align-items: center; gap: 4px; flex: 1; overflow-x: auto; }
 .admin-nav a {
   color: var(--liki-on-ink-subtle); text-decoration: none; padding: 8px 12px;
