@@ -165,7 +165,8 @@ The server selects currency, amount, provider, and provider SKU. A client provid
 The product response carries the server-selected `display_currency` and `display_amount_minor`, and
 `purchase_options` lists only the offers that currency can settle — every option's currency equals
 `display_currency`. The UI renders those fields as-is: a CNY buyer sees Xunhu one-time pricing while an
-overseas buyer sees Dodo one-time and subscription pricing.
+overseas buyer sees Dodo one-time and subscription pricing. Missing trusted geo information defaults to
+USD, so an unclassified buyer is routed to Dodo rather than Xunhu.
 
 ## Payments
 
@@ -227,6 +228,11 @@ runtime posts `/api/internal/runs/completed` back. Both internal endpoints are
 404 on the public path; see liki-deploy's `docs/DIRECT_CONNECT.md`.
 
 Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
+
+`scenario` is the authoritative routing input. The server derives `expert` from
+it; a client-supplied `expert` is only an assertion and a mismatch is rejected.
+When a `context` is present, `context.scenario` takes precedence. Sessions
+without a context can still omit `expert` and send `scenario` alone.
 
 `POST /api/chat/sessions` accepts an optional strict `context` object. The
 versioned context preserves the exact tool facts required to continue a paid
@@ -434,13 +440,19 @@ they never establish a session or grant an entitlement.
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/health` | public | Liveness |
-| GET | `/api/ready` | public, rate limited | Readiness |
+| GET | `/api/health` | public | Liveness: dependency-free process check, `Cache-Control: no-store` |
+| GET | `/api/ready` | public, rate limited | Readiness: DB and expert dependencies, 503 when not ready, `Cache-Control: no-store` |
 | POST | `/api/analytics/pageview` | public, rate limited | Increment aggregate page-view counter |
+| POST | `/api/client-errors` | public, rate limited | Record a PII-free client failure (`code`, `view`, `locale`, optional technical `detail`) |
 | GET | `/api/version` | public | Build time and version |
 | GET | `/api/internal/metrics` | token | JSON or Prometheus counters |
 
 Metrics are disabled when `LIKI_METRICS_TOKEN` is empty.
+
+`POST /api/client-errors` is a bounded, PII-free telemetry surface. Payloads
+must never contain birth data, chat content, email addresses, or raw provider
+payloads. Metric labels use a code allowlist; unknown codes are logged and
+folded into `other` to keep cardinality bounded.
 
 ## Admin
 

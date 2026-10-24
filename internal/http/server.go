@@ -172,6 +172,10 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		return rl.Wrap(30.0/60, 30, next)
 	}
 	mux.HandleFunc("POST /api/analytics/pageview", analyticsLimit(handlePageView()))
+	clientErrorLimit := func(next http.HandlerFunc) http.HandlerFunc {
+		return rl.Wrap(12.0/60, 6, next)
+	}
+	mux.HandleFunc("POST /api/client-errors", clientErrorLimit(handleClientError()))
 	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
 	// 内部面共用限流档：边缘 forward_auth 与抓取都属低频小突发调用。
 	rlInternal := func(next http.HandlerFunc) http.HandlerFunc {
@@ -266,6 +270,25 @@ func negotiateLocale(r *http.Request) string {
 	return appi18n.NegotiateMarketingLocale(r.Header.Get("Accept-Language"))
 }
 
+// setStaticCacheHeaders applies the static-asset cache policy. HTML is kept
+// revalidatable; hashed assets are immutable. The edge may add s-maxage for
+// marketing HTML, while the authenticated app shell is never cached.
+func setStaticCacheHeaders(w http.ResponseWriter, r *http.Request) {
+	clean := filepath.Clean(r.URL.Path)
+	switch {
+	case strings.HasPrefix(clean, "/assets/"), strings.HasPrefix(clean, "/app/assets/"):
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	case strings.HasPrefix(clean, "/css/"),
+		strings.HasPrefix(clean, "/img/"),
+		strings.HasPrefix(clean, "/data/"),
+		clean == "/favicon.svg",
+		clean == "/llms.txt":
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+	case strings.HasSuffix(clean, ".html"), strings.HasSuffix(r.URL.Path, "/"):
+		w.Header().Set("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=600")
+	}
+}
+
 func fileServer(webDir string, next http.Handler) http.Handler {
 	distDir := filepath.Join(webDir, "dist")
 	_, distErr := os.Stat(distDir)
@@ -282,13 +305,16 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 					http.Redirect(w, r, r.URL.Path+"/", http.StatusMovedPermanently)
 					return true
 				}
+				setStaticCacheHeaders(w, r)
 				serveFileNoRedirect(w, r, filepath.Join(p, "index.html"))
 				return true
 			}
+			setStaticCacheHeaders(w, r)
 			http.ServeFile(w, r, p)
 			return true
 		}
 		if _, err := os.Stat(p + ".html"); err == nil {
+			setStaticCacheHeaders(w, r)
 			serveFileNoRedirect(w, r, p+".html")
 			return true
 		}
@@ -356,6 +382,7 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 		if clean == "/app" || strings.HasPrefix(clean, "/app/") {
 			appIndex := filepath.Join(distDir, "app", "index.html")
 			if _, err := os.Stat(appIndex); err == nil {
+				w.Header().Set("Cache-Control", "no-store")
 				serveFileNoRedirect(w, r, appIndex)
 				return
 			}
@@ -398,6 +425,9 @@ func serveFileStatus(w http.ResponseWriter, r *http.Request, status int, path st
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if status == http.StatusNotFound {
+		w.Header().Set("Cache-Control", "no-store")
+	}
 	w.WriteHeader(status)
 	_, _ = io.Copy(w, f)
 }

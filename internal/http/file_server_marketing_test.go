@@ -86,3 +86,37 @@ func TestFileServerMarketingContract(t *testing.T) {
 		})
 	}
 }
+
+func TestFileServerCachePolicy(t *testing.T) {
+	root := t.TempDir()
+	writeTestFile(t, filepath.Join(root, "dist", "zh-Hant", "index.html"), "<html>home</html>")
+	writeTestFile(t, filepath.Join(root, "dist", "assets", "app.abc123.js"), "export {}")
+	writeTestFile(t, filepath.Join(root, "dist", "css", "app.css"), "body{}")
+	writeTestFile(t, filepath.Join(root, "dist", "app", "index.html"), "<html>app</html>")
+	writeTestFile(t, filepath.Join(root, "404.html"), "<html>not found</html>")
+
+	handler := fileServer(root, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("next invoked for %s", r.URL.Path)
+	}))
+
+	tests := []struct {
+		path      string
+		wantCache string
+	}{
+		{"/zh-Hant/", "public, max-age=0, s-maxage=300, stale-while-revalidate=600"},
+		{"/assets/app.abc123.js", "public, max-age=31536000, immutable"},
+		{"/css/app.css", "public, max-age=86400"},
+		{"/app", "no-store"},
+		{"/does-not-exist", "no-store"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if got := rec.Header().Get("Cache-Control"); got != tc.wantCache {
+				t.Fatalf("cache-control = %q, want %q", got, tc.wantCache)
+			}
+		})
+	}
+}

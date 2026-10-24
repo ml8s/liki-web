@@ -13,12 +13,16 @@ type ReadinessChecker func(context.Context) error
 
 func handleHealth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Liveness is intentionally dependency-free: a DB or expert outage must
+		// not restart a healthy process. Readiness carries dependency state.
+		w.Header().Set("Cache-Control", "no-store")
 		httputil.RespondJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }
 
 func handleReady(check ReadinessChecker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		if check == nil {
 			httputil.RespondJSON(w, http.StatusServiceUnavailable, map[string]any{
 				"status": "unready", "error": "readiness_not_configured",
