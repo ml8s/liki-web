@@ -13,7 +13,7 @@ export RELEASE_VERSION
         lint-go fmt-check lint-js lint-docs typecheck test-go test-js test-python \
         check-web-static check-security check-go-version runtime-version-check python-env \
         check-actions check-caddy \
-        build build-sitemap build-web build-go image test-go test-go-race test-go-coverage test-js-coverage \
+        build build-sitemap build-web build-go image sync-city-data test-go test-go-race test-go-coverage test-js-coverage \
         dev clean version
 
 # ── 环境 ──
@@ -171,6 +171,7 @@ version: ## bump patch（CalVer date）
 check-web-static:
 	node web/scripts/check-route-contracts.mjs
 	node web/scripts/generate-route-artifacts.mjs --check
+	node web/scripts/check-city-data-sync.js
 	node web/scripts/check-inline-scripts.js
 	node web/scripts/check-design-tokens.js
 	node web/scripts/check-frontend-tokens.js
@@ -191,6 +192,9 @@ check-security:
 
 check-caddy:
 	scripts/check-caddy.sh
+
+sync-city-data:
+	cp ../liki/engine/internal/engine/city/cities_data.json web/public/data/cities_data.json
 
 build-sitemap:
 	node web/scripts/build-sitemap.js

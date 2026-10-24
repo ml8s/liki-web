@@ -109,6 +109,7 @@ function formValuesFromInitial(initial?: Partial<BirthProfile> | Partial<BirthPr
     location: initial?.birth?.location?.longitude != null && initial?.birth?.location?.timezone
       ? {
           place: initial?.birth?.location?.place ?? '',
+          ...(initial.birth.location.place_id ? { place_id: initial.birth.location.place_id } : {}),
           longitude: initial.birth.location.longitude,
           timezone: initial.birth.location.timezone,
           source: 'saved',
@@ -266,6 +267,7 @@ async function submit() {
       time: form.time,
       location: {
         place: form.location?.place ?? '',
+        ...(form.location?.place_id ? { place_id: form.location.place_id } : {}),
         longitude: form.location?.longitude ?? 0,
         timezone: form.location?.timezone ?? '',
       },

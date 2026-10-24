@@ -66,7 +66,7 @@ func validInput() BirthProfileDraft {
 		ThirdPartyConsent: true,
 		Birth: BirthFactsInput{
 			Gender: "female", Date: "1958-05-12", Time: "06:00",
-			Location: BirthLocationInput{Place: "上海", Longitude: &lng, Timezone: &tz},
+			Location: BirthLocationInput{Place: "上海", PlaceID: "CN-310000", Longitude: &lng, Timezone: &tz},
 		},
 	}
 }
@@ -86,6 +86,9 @@ func TestStoreCreateGetRoundtrip(t *testing.T) {
 	}
 	if got.ID != p.ID || got.Birth.Date != "1958-05-12" || got.Birth.Time != "06:00" {
 		t.Fatalf("roundtrip mismatch: %+v", got)
+	}
+	if got.Birth.Location.PlaceID != "CN-310000" {
+		t.Fatalf("place id roundtrip = %q", got.Birth.Location.PlaceID)
 	}
 	if _, err := store.Get(context.Background(), "other_user", p.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-user read must 404, got %v", err)
@@ -194,6 +197,7 @@ func TestInputValidation(t *testing.T) {
 		{"missing longitude", func(in *BirthProfileDraft) { in.Birth.Location.Longitude = nil }},
 		{"longitude out of range", func(in *BirthProfileDraft) { lng := 181.0; in.Birth.Location.Longitude = &lng }},
 		{"longitude NaN", func(in *BirthProfileDraft) { lng := math.NaN(); in.Birth.Location.Longitude = &lng }},
+		{"place id too long", func(in *BirthProfileDraft) { in.Birth.Location.PlaceID = string(make([]byte, 81)) }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -236,9 +240,9 @@ func TestStore_AnonymizeUser(t *testing.T) {
 		t.Fatalf("anonymize user_1: want 2, got %d", n)
 	}
 	var erasedLongitude sql.NullFloat64
-	var erasedTimezone, erasedInstant sql.NullString
+	var erasedTimezone, erasedInstant, erasedPlaceID sql.NullString
 	if err := store.db.QueryRowContext(context.Background(),
-		`SELECT longitude,timezone,instant FROM birth_profiles WHERE user_id='user_1' LIMIT 1`).Scan(&erasedLongitude, &erasedTimezone, &erasedInstant); err != nil {
+		`SELECT longitude,timezone,instant,place_id FROM birth_profiles WHERE user_id='user_1' LIMIT 1`).Scan(&erasedLongitude, &erasedTimezone, &erasedInstant, &erasedPlaceID); err != nil {
 		t.Fatal(err)
 	}
 	if erasedLongitude.Valid {
@@ -246,6 +250,9 @@ func TestStore_AnonymizeUser(t *testing.T) {
 	}
 	if erasedTimezone.Valid || erasedInstant.Valid {
 		t.Fatalf("anonymized profile must clear canonical fields, got tz=%v instant=%v", erasedTimezone, erasedInstant)
+	}
+	if erasedPlaceID.Valid && erasedPlaceID.String != "" {
+		t.Fatalf("anonymized profile must clear place id, got %q", erasedPlaceID.String)
 	}
 	list, _, err := store.List(context.Background(), "user_1", "", 10)
 	if err != nil {

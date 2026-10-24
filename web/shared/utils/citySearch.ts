@@ -1,6 +1,11 @@
 /** Local city search over the canonical cities_data.json (same file the engine embeds). */
 
+export type CityLocale = 'zh-Hans' | 'zh-Hant' | 'en'
+
+type LocalizedNames = Partial<Record<CityLocale, string>>
+
 export interface CityRecord {
+  id?: string
   name: string
   region: string
   city?: string
@@ -9,6 +14,8 @@ export interface CityRecord {
   tz?: string
   bbox?: { west: number; east: number; south: number; north: number }
   aliases?: string[]
+  names?: LocalizedNames
+  region_names?: LocalizedNames
 }
 
 export interface CityIndex {
@@ -48,7 +55,7 @@ export async function loadCityIndex(url = '/data/cities_data.json'): Promise<Cit
   return loading
 }
 
-const SUFFIXES = ['市', '区', '县', '自治县', '旗', '盟', '地区', '特别行政区']
+const SUFFIXES = ['特别行政区', '自治州', '自治县', '自治区', '地区', '盟', '市', '区', '县', '旗']
 
 function stripSuffix(value: string): string {
   for (const suffix of SUFFIXES) {
@@ -57,12 +64,21 @@ function stripSuffix(value: string): string {
   return value
 }
 
+function normalize(value: string): string {
+  return value.normalize('NFKC').trim().toLocaleLowerCase()
+}
+
 function matchClass(query: string, record: CityRecord): number | null {
-  const base = stripSuffix(query)
-  const names = [record.name, ...(record.aliases ?? [])]
-  if (names.includes(query)) return 0
-  if (names.some((name) => stripSuffix(name) === base && base)) return 1
-  if (names.some((name) => name.startsWith(query))) return 2
+  const text = normalize(query)
+  const base = stripSuffix(text)
+  const names = [
+    record.name,
+    ...Object.values(record.names ?? {}),
+    ...(record.aliases ?? []),
+  ].filter((name): name is string => Boolean(name)).map(normalize)
+  if (names.includes(text)) return 0
+  if (base && names.some((name) => stripSuffix(name) === base)) return 1
+  if (names.some((name) => name.startsWith(text))) return 2
   if (base && names.some((name) => name.includes(base))) return 3
   return null
 }

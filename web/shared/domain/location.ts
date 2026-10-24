@@ -8,6 +8,7 @@ export type LocationSource = 'city' | 'browser' | 'manual' | 'saved'
  */
 export interface BirthLocation {
   place: string
+  place_id?: string
   longitude: number
   timezone: string
   source: LocationSource
@@ -27,6 +28,6 @@ export function isValidBirthLocation(value: unknown): value is BirthLocation {
 }
 
 /** Free-text location search fallback; callers still choose one atomic candidate. */
-export function locationCandidatesFor(place: string) {
-  return engineCityCandidates(place)
+export function locationCandidatesFor(place: string, locale?: string) {
+  return engineCityCandidates(place, locale)
 }

@@ -296,6 +296,7 @@ function birthFieldsOf(profile: (typeof profiles.list)[number]): BirthFieldsValu
     time,
     location: {
       place: location.place,
+      ...(location.place_id ? { place_id: location.place_id } : {}),
       longitude: location.longitude,
       timezone: location.timezone,
       source: 'saved',

@@ -4,6 +4,7 @@ import { formatInstant } from '@shared/domain/time'
 
 export interface BirthProfileLocation {
   place: string
+  place_id?: string
   longitude: number | null
   timezone: string | null
 }
@@ -39,6 +40,7 @@ export interface BirthProfileInput {
     time: string
     location: {
       place?: string
+      place_id?: string
       longitude: number
       timezone: string
     }

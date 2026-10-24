@@ -19,6 +19,7 @@ var (
 // requires longitude and timezone together.
 type BirthLocation struct {
 	Place     string   `json:"place"`
+	PlaceID   string   `json:"place_id,omitempty"`
 	Longitude *float64 `json:"longitude"`
 	Timezone  *string  `json:"timezone"`
 }
@@ -66,6 +67,7 @@ type BirthFactsInput struct {
 
 type BirthLocationInput struct {
 	Place     string   `json:"place"`
+	PlaceID   string   `json:"place_id,omitempty"`
 	Longitude *float64 `json:"longitude"`
 	Timezone  *string  `json:"timezone"`
 }
@@ -111,6 +113,9 @@ func ValidateBirthFacts(now time.Time, facts BirthFactsInput) error {
 	longitude := *facts.Location.Longitude
 	if math.IsNaN(longitude) || math.IsInf(longitude, 0) || longitude < -180 || longitude > 180 {
 		return errors.New("birth.location.longitude must be a finite number between -180 and 180")
+	}
+	if len(facts.Location.PlaceID) > 80 {
+		return errors.New("birth.location.place_id is too long")
 	}
 	if facts.Location.Timezone == nil {
 		return errors.New("birth.location.timezone is required")
@@ -210,6 +215,7 @@ func NewBirthFacts(now time.Time, facts BirthFactsInput) (BirthFacts, error) {
 		Gender: facts.Gender,
 		Location: BirthLocation{
 			Place:     strings.TrimSpace(facts.Location.Place),
+			PlaceID:   strings.TrimSpace(facts.Location.PlaceID),
 			Longitude: facts.Location.Longitude,
 			Timezone:  facts.Location.Timezone,
 		},

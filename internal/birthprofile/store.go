@@ -44,11 +44,11 @@ func (s *Store) Create(ctx context.Context, userID string, in BirthProfileDraft)
 	}
 	result, err := s.db.ExecContext(ctx, `
 INSERT INTO birth_profiles
-(id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
-SELECT ?,?,1,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?
+(id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,place_id,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at)
+SELECT ?,?,1,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?
 WHERE (SELECT COUNT(1) FROM birth_profiles WHERE user_id=? AND deleted_at IS NULL) < ?`,
 		p.ID, userID, p.Nickname, p.Name, p.Birth.Gender, timeArg(p.Birth.Instant),
-		p.Birth.Location.Timezone, p.Birth.Location.Longitude, p.Birth.Location.Place, p.Note, p.ThirdPartyConsent,
+		p.Birth.Location.Timezone, p.Birth.Location.Longitude, p.Birth.Location.Place, p.Birth.Location.PlaceID, p.Note, p.ThirdPartyConsent,
 		now, now, userID, MaxProfilesPerUser,
 	)
 	if err != nil {
@@ -86,10 +86,10 @@ func (s *Store) Get(ctx context.Context, userID, id string) (BirthProfile, error
 	var thirdParty, deletedAt, lastUsedAt sql.NullString
 	var createdAt, updatedAt string
 	err := s.db.QueryRowContext(ctx, `
-SELECT id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
+SELECT id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,place_id,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
 FROM birth_profiles WHERE id=? AND user_id=? AND deleted_at IS NULL`, id, userID).Scan(
 		&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Birth.Gender,
-		&instant, &timezone, &longitude, &p.Birth.Location.Place, &p.Note, &thirdParty,
+		&instant, &timezone, &longitude, &p.Birth.Location.Place, &p.Birth.Location.PlaceID, &p.Note, &thirdParty,
 		&lastUsedAt, &deletedAt, &createdAt, &updatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -132,7 +132,7 @@ func (s *Store) List(ctx context.Context, userID, cursor string, limit int) ([]B
 		limit = 50
 	}
 	query := `
-SELECT id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
+SELECT id,user_id,version,nickname,name,gender,instant,timezone,longitude,place,place_id,note,third_party_consent,last_used_at,deleted_at,created_at,updated_at
 FROM birth_profiles
 WHERE user_id=? AND deleted_at IS NULL`
 	args := []any{userID}
@@ -161,7 +161,7 @@ WHERE user_id=? AND deleted_at IS NULL`
 		var timezone, instant, thirdParty, lastUsedAt, deletedAt sql.NullString
 		var createdAt, updatedAt string
 		if err := rows.Scan(&p.ID, &p.UserID, &version, &p.Nickname, &p.Name, &p.Birth.Gender,
-			&instant, &timezone, &longitude, &p.Birth.Location.Place, &p.Note, &thirdParty,
+			&instant, &timezone, &longitude, &p.Birth.Location.Place, &p.Birth.Location.PlaceID, &p.Note, &thirdParty,
 			&lastUsedAt, &deletedAt, &createdAt, &updatedAt); err != nil {
 			return nil, "", err
 		}
@@ -219,11 +219,11 @@ func (s *Store) Update(ctx context.Context, userID, id string, expectedVersion i
 	result, err := s.db.ExecContext(ctx, `
 UPDATE birth_profiles SET
   version=version+1,
-  nickname=?, name=?, gender=?, place=?, longitude=?, timezone=?, instant=?, note=?, third_party_consent=?,
+  nickname=?, name=?, gender=?, place=?, place_id=?, longitude=?, timezone=?, instant=?, note=?, third_party_consent=?,
   updated_at=?
 WHERE id=? AND user_id=? AND deleted_at IS NULL AND version=?`,
 		strings.TrimSpace(in.Nickname), strings.TrimSpace(in.Name), in.Birth.Gender,
-		birth.Location.Place, birth.Location.Longitude, birth.Location.Timezone,
+		birth.Location.Place, birth.Location.PlaceID, birth.Location.Longitude, birth.Location.Timezone,
 		timeArg(birth.Instant), strings.TrimSpace(in.Note), in.ThirdPartyConsent, now,
 		id, userID, expectedVersion,
 	)

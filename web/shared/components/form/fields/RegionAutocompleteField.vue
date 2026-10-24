@@ -201,6 +201,7 @@ function applyCandidate(candidate: CityMatch) {
     ?? (candidate.bbox ? { west: candidate.bbox.west, east: candidate.bbox.east } : undefined)
   emit('update:location', {
     place: value,
+    ...(candidate.id ? { place_id: candidate.id } : {}),
     longitude: Math.round(candidate.lng * 10000) / 10000,
     timezone: candidate.tz,
     source: 'city',
@@ -255,7 +256,7 @@ async function resolvePlace() {
     if (sequence !== searchSequence) return
 
     if (!matches.length) {
-      const fallback = await locationCandidatesFor(text)
+      const fallback = await locationCandidatesFor(text, activeLocale.value)
       if (sequence !== searchSequence) return
       matches = fallback.candidates.map(item => ({
         name: item.name,

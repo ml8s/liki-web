@@ -14,10 +14,10 @@ export interface CityCandidate {
   longitude_range?: { west: number; east: number }
 }
 
-export function engineCityCandidates(city: string): Promise<{ candidates: CityCandidate[] }> {
+export function engineCityCandidates(city: string, locale?: string): Promise<{ candidates: CityCandidate[] }> {
   return mcpTool<{ candidates?: CityCandidate[] }>(
     ENGINE_TOOLS.CityCoords,
-    { city },
+    { city, ...(locale ? { locale } : {}) },
   ).then((result) => ({
     candidates: result.candidates ?? [],
   }))

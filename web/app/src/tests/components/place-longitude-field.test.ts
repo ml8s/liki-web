@@ -57,7 +57,7 @@ describe('RegionAutocompleteField', () => {
     const index = {
       counties: [],
       cities: [{
-        name: '上海市', region: '上海市', lng: 121.4737, lat: 31.2304, tz: 'Asia/Shanghai',
+        id: 'CN-310000', name: '上海市', region: '上海市', lng: 121.4737, lat: 31.2304, tz: 'Asia/Shanghai',
       }],
       world: [],
     }
@@ -73,6 +73,7 @@ describe('RegionAutocompleteField', () => {
     await new Promise(resolve => setTimeout(resolve, 0))
     expect(location.value).toMatchObject({
       place: '上海市',
+      place_id: 'CN-310000',
       longitude: 121.4737,
       timezone: 'Asia/Shanghai',
       source: 'city',

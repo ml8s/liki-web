@@ -106,6 +106,7 @@ if (handoff?.date && handoff.location) {
       gender: handoff.gender === 'male' ? 'male' : 'female',
       location: {
         place: handoff.location.place,
+        ...(handoff.location.place_id ? { place_id: handoff.location.place_id } : {}),
         longitude: handoff.location.longitude,
         timezone: handoff.location.timezone,
       },

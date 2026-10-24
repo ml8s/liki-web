@@ -295,6 +295,15 @@ CREATE INDEX idx_birth_profiles_user_created
 				return err
 			},
 		},
+		{
+			ID: "011_profiles_place_id",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE birth_profiles ADD COLUMN place_id TEXT NOT NULL DEFAULT '';
+`)
+				return err
+			},
+		},
 	})
 }
 

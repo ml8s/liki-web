@@ -38,7 +38,7 @@ func (s *Store) AnonymizeUser(ctx context.Context, userID string) (int64, error)
 	now := formatTime(s.nowFunc())
 	result, err := s.db.ExecContext(ctx, `
 UPDATE birth_profiles SET
-  nickname='', name='', gender='', place='', longitude=NULL, timezone=NULL, instant=NULL, note='',
+  nickname='', name='', gender='', place='', place_id='', longitude=NULL, timezone=NULL, instant=NULL, note='',
   third_party_consent=0,
   version=version+1, deleted_at=?, updated_at=?
 WHERE user_id=? AND deleted_at IS NULL`, now, now, userID)

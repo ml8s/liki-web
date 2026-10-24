@@ -56,7 +56,7 @@ func completePayload(nickname string) map[string]any {
 		"birth": map[string]any{
 			"gender": "female", "date": "1958-05-12", "time": "06:00",
 			"location": map[string]any{
-				"place": "上海", "longitude": 121.4737, "timezone": "Asia/Shanghai",
+				"place": "上海", "place_id": "CN-310000", "longitude": 121.4737, "timezone": "Asia/Shanghai",
 			},
 		},
 	}
@@ -77,6 +77,9 @@ func TestHTTPCreateAndGet(t *testing.T) {
 	if env.Data.ID == "" || env.Data.Birth.Instant == nil || env.Data.Birth.Date != "1958-05-12" {
 		t.Fatalf("unexpected profile: %+v", env.Data)
 	}
+	if env.Data.Birth.Location.PlaceID != "CN-310000" {
+		t.Fatalf("place id = %q", env.Data.Birth.Location.PlaceID)
+	}
 
 	rr = doJSON(t, h, http.MethodGet, "/api/birth-profiles/"+env.Data.ID, nil)
 	if rr.Code != http.StatusOK {
@@ -91,7 +94,7 @@ func TestHTTPValidation(t *testing.T) {
 		"birth": map[string]any{
 			"gender": "female", "date": "1958-05-12", "time": "06:00",
 			"location": map[string]any{
-				"place": "上海", "longitude": 121.4737, "timezone": "Asia/Shanghai",
+				"place": "上海", "place_id": "CN-310000", "longitude": 121.4737, "timezone": "Asia/Shanghai",
 			},
 		},
 	})

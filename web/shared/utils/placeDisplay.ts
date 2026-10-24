@@ -13,6 +13,8 @@ export interface PlaceRecord {
   region: string
   city?: string
   aliases?: string[]
+  names?: Partial<Record<PlaceLocale, string>>
+  region_names?: Partial<Record<PlaceLocale, string>>
 }
 
 type LocalizedNames = { en?: string; 'zh-Hant'?: string }
@@ -243,18 +245,23 @@ function englishAlias(record: PlaceRecord): string | undefined {
 
 export function localizedCityName(record: PlaceRecord, locale: PlaceLocale): string {
   if (locale === 'en') {
-    return CITY_NAMES[record.name]?.en ?? englishAlias(record) ?? record.name
+    return CITY_NAMES[record.name]?.en
+      ?? record.names?.en
+      ?? englishAlias(record)
+      ?? record.name
   }
   if (locale === 'zh-Hant') {
-    return CITY_NAMES[record.name]?.['zh-Hant'] ?? record.name
+    return CITY_NAMES[record.name]?.['zh-Hant']
+      ?? record.names?.['zh-Hant']
+      ?? record.name
   }
-  return record.name
+  return record.names?.['zh-Hans'] ?? record.name
 }
 
 export function localizedRegion(record: PlaceRecord, locale: PlaceLocale): string {
-  if (locale === 'en') return REGION_NAMES[record.region]?.en ?? record.region
-  if (locale === 'zh-Hant') return REGION_NAMES[record.region]?.['zh-Hant'] ?? record.region
-  return record.region
+  if (locale === 'en') return REGION_NAMES[record.region]?.en ?? record.region_names?.en ?? record.region
+  if (locale === 'zh-Hant') return REGION_NAMES[record.region]?.['zh-Hant'] ?? record.region_names?.['zh-Hant'] ?? record.region
+  return record.region_names?.['zh-Hans'] ?? record.region
 }
 
 /**
