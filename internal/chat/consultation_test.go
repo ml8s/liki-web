@@ -12,6 +12,8 @@ import (
 
 func stringPointer(value string) *string { return &value }
 
+func intPointer(value int) *int { return &value }
+
 func boolPointer(value bool) *bool { return &value }
 
 func TestConsultationContextValidatesScenarioContract(t *testing.T) {
@@ -165,6 +167,58 @@ func TestConsultationContextRejectsIrrelevantConsent(t *testing.T) {
 	}
 	if err := context.Validate(); err == nil {
 		t.Fatal("Validate() should reject third-party consent outside He Pan")
+	}
+}
+
+func TestConsultationContextRejectsIrrelevantFields(t *testing.T) {
+	birth := &ConsultationBirth{
+		Gender:   "female",
+		Date:     "1990-05-12",
+		Time:     "08:30",
+		Location: ConsultationLocation{Longitude: 121.4726, Timezone: "Asia/Shanghai"},
+	}
+	year := 2026
+
+	tests := map[string]ConsultationContext{
+		"natal question": {
+			Version: 1, Scenario: "natal", Birth: birth, Question: stringPointer("无关问题"),
+		},
+		"liunian casting": {
+			Version: 1, Scenario: "liunian", Birth: birth, Year: &year,
+			Casting: json.RawMessage(`{"mode":"auto","order":"bottom_up","yaos":[7,7,7,7,7,7],"dong_yao":[],"casting_id":"cast"}`),
+		},
+		"hepan birth": {
+			Version: 1, Scenario: "hepan", Birth: birth, SecondBirth: birth,
+			ThirdPartyConsent: boolPointer(true),
+		},
+		"fengshui question": {
+			Version: 1, Scenario: "fengshui",
+			Layout:   &ConsultationLayout{ZuoShan: 0, PeriodDate: "2026-02-01"},
+			Question: stringPointer("无关问题"),
+		},
+	}
+	for name, context := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := context.Validate(); err == nil {
+				t.Fatal("Validate() should reject an irrelevant context field")
+			}
+		})
+	}
+}
+
+func TestConsultationContextRequiresPairedFengShuiBirthFacts(t *testing.T) {
+	context := ConsultationContext{
+		Version:   1,
+		Scenario:  "fengshui",
+		Layout:    &ConsultationLayout{ZuoShan: 0, PeriodDate: "2026-02-01"},
+		BirthYear: intPointer(1990),
+	}
+	if err := context.Validate(); err == nil {
+		t.Fatal("Validate() should reject birth_year without gender")
+	}
+	context.Gender = stringPointer("female")
+	if err := context.Validate(); err != nil {
+		t.Fatalf("Validate() error = %v", err)
 	}
 }
 

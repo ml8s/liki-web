@@ -155,8 +155,8 @@ Acceptance:
 - relay and direct forwarded props are equivalent;
 - context survives refresh;
 - context is cleared by account erasure;
-- unknown, scenario-mismatched, incomplete, or persisted-but-corrupt context
-  shapes fail closed.
+- unknown, irrelevant, scenario-mismatched, incomplete, or
+  persisted-but-corrupt context shapes fail closed.
 
 ### 2.3 App tool integration
 
@@ -191,7 +191,9 @@ Acceptance:
 - all seven public tool CTAs preserve deterministic facts into the
   authenticated surface;
 - no personal data is placed in a URL;
-- opening the CTA in a new tab does not leak the current tab's tool data.
+- opening the CTA in a new tab does not leak the current tab's tool data;
+- Chat List does not replace public-tool birth facts with an unrelated default
+  profile.
 
 ## Phase 3 — Domain boundary confirmation
 
@@ -233,7 +235,7 @@ acceptance:
 | Consent | component + HTTP validation tests |
 | Record replay | Playwright save/refresh/reopen for every tool |
 | Locale | HTTP negotiation table |
-| Security | unknown-member JSON, owner/entitlement, no URL PII |
+| Security | unknown/irrelevant-member JSON, owner/entitlement, no URL PII |
 | Domain boundary | engine fixture for pre-Lichun birth |
 
 ## Rollout order
@@ -255,6 +257,6 @@ No phase may widen scope into unrelated UI restyling or payment behavior.
 - `scripts/build-web.sh`
 - `web/app`: lint, typecheck, and 195 unit tests
 - `web`: lint, typecheck, static tests, and i18n/chart-message/error-code checks
-- Playwright: 14 tool-context handoffs, one Chat List profile-context creation,
-  3 shared-input tests, 2 Feng Shui year-basis tests, and 17 all-page
+- Playwright: 7 public-tool handoffs, 3 Chat List context/profile-selection
+  tests, 3 shared-input tests, 2 Feng Shui year-basis tests, and 17 all-page
   console/page-error smoke tests

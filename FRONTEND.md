@@ -172,7 +172,10 @@ Public tools use the same-origin session-storage handoff for at most thirty
 minutes and never place personal facts in a URL. All seven scenarios carry the
 minimum deterministic context; the matching App service view or Chat List
 consumes it once, converts it into local form state, and never reconstructs it
-from the URL.
+from the URL. For birth-based tools, Chat List first selects an existing profile
+whose atomic facts match the handoff. If no profile matches, it routes to profile
+creation with the visible birth-form handoff rather than silently substituting
+the most recently used profile.
 
 ## Dashboard states
 

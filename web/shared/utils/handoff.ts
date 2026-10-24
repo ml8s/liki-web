@@ -15,11 +15,22 @@ interface HandoffEnvelope<T> {
 }
 
 export function saveConsultationHandoff(context: unknown): void {
-  saveHandoff(HANDOFF_KEYS.consultation, context)
+	saveHandoff(HANDOFF_KEYS.consultation, context)
+}
+
+export function peekConsultationHandoff<T extends ConsultationContext>(
+	scenario: ConsultationScenario,
+): T | null {
+	const store = useFormDraftsStore()
+	const envelope = store.get<HandoffEnvelope<T>>(HANDOFF_KEYS.consultation)
+	if (!envelope || typeof envelope.createdAt !== 'number') return null
+	if (Date.now() - envelope.createdAt > HANDOFF_TTL_MS) return null
+	if (!envelope.data || envelope.data.scenario !== scenario) return null
+	return envelope.data
 }
 
 export function consumeConsultationHandoff<T extends ConsultationContext>(
-  scenario: ConsultationScenario,
+	scenario: ConsultationScenario,
 ): T | null {
 	const store = useFormDraftsStore()
 	const envelope = store.consume<HandoffEnvelope<T>>(HANDOFF_KEYS.consultation)
@@ -27,6 +38,10 @@ export function consumeConsultationHandoff<T extends ConsultationContext>(
 	if (Date.now() - envelope.createdAt > HANDOFF_TTL_MS) return null
 	if (!envelope.data || envelope.data.scenario !== scenario) return null
 	return envelope.data
+}
+
+export function clearConsultationHandoff(): void {
+	useFormDraftsStore().clear(HANDOFF_KEYS.consultation)
 }
 
 /** Save data with a timestamp for cross-surface handoff. */

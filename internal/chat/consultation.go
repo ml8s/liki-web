@@ -295,6 +295,9 @@ func (context *ConsultationContext) Validate() error {
 	if !validConsultationScenario(context.Scenario) {
 		return errors.New("consultation context scenario is invalid")
 	}
+	if err := context.validateAllowedFields(); err != nil {
+		return err
+	}
 	if err := validateConsultationBirth(context.Birth); err != nil {
 		return err
 	}
@@ -356,6 +359,59 @@ func (context *ConsultationContext) Validate() error {
 		return err
 	}
 	return context.validateScenarioRequirements()
+}
+
+func (context *ConsultationContext) validateAllowedFields() error {
+	allowed := map[string]bool{}
+	switch context.Scenario {
+	case "natal", "naming":
+		allowed["birth"] = true
+	case "liunian":
+		allowed["birth"] = true
+		allowed["year"] = true
+	case "hepan":
+		allowed["second_birth"] = true
+		allowed["third_party_consent"] = true
+	case "divination":
+		allowed["question"] = true
+		allowed["casting"] = true
+		allowed["casting_instant"] = true
+		allowed["location"] = true
+	case "huangli":
+		allowed["event"] = true
+		allowed["start_date"] = true
+		allowed["end_date"] = true
+	case "fengshui":
+		allowed["layout"] = true
+		allowed["birth_year"] = true
+		allowed["gender"] = true
+	}
+
+	present := map[string]bool{
+		"birth":               context.Birth != nil,
+		"second_birth":        context.SecondBirth != nil,
+		"birth_year":          context.BirthYear != nil,
+		"gender":              context.Gender != nil,
+		"year":                context.Year != nil,
+		"question":            context.Question != nil,
+		"casting":             len(context.Casting) != 0,
+		"casting_instant":     context.CastingInstant != nil,
+		"location":            context.Location != nil,
+		"event":               context.Event != nil,
+		"start_date":          context.StartDate != nil,
+		"end_date":            context.EndDate != nil,
+		"layout":              context.Layout != nil,
+		"third_party_consent": context.ThirdPartyConsent != nil,
+	}
+	for name, isPresent := range present {
+		if !allowed[name] && isPresent {
+			return fmt.Errorf("%s is not valid for %s consultation", name, context.Scenario)
+		}
+	}
+	if context.Scenario == "fengshui" && (context.BirthYear == nil) != (context.Gender == nil) {
+		return errors.New("fengshui birth_year and gender must be provided together")
+	}
+	return nil
 }
 
 func (context *ConsultationContext) validateScenarioRequirements() error {

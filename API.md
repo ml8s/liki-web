@@ -247,12 +247,16 @@ Scenario-specific requirements include:
 | `natal`, `naming` | atomic `birth` facts |
 | `liunian` | atomic `birth` facts and `year` |
 
-The object rejects unknown members, invalid calendar dates/times, invalid
-longitude or IANA timezone, incomplete or internally inconsistent casting
-receipts, unsupported versions, and contexts that do not route to the selected
-expert. A persisted context is revalidated before relay generation, so corrupt
-tool state fails closed instead of becoming generic advice. Natural-language
-intent is never a substitute for these computation facts.
+The object also enforces a per-scenario allowlist. For example, a divination
+context cannot smuggle in birth facts, and a He Pan context cannot carry a
+casting receipt. Feng Shui public-handoff facts use `birth_year` and `gender`
+only as a pair. Beyond unknown members, the object rejects invalid calendar
+dates/times, invalid longitude or IANA timezone, incomplete or internally
+inconsistent casting receipts, unsupported versions, and contexts that do not
+route to the selected expert. A persisted context is revalidated before relay
+generation, so corrupt tool state fails closed instead of becoming generic
+advice. Natural-language intent is never a substitute for these computation
+facts.
 
 ### AG-UI forwardedProps
 

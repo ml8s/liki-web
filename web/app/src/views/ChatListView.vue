@@ -169,11 +169,12 @@ import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useSalesStore } from '@/stores/sales-store'
 import {
+  type ConsultationBirth,
   consultationBirthFromFields,
   type ConsultationContext,
   type ConsultationScenario,
 } from '@shared/domain/consultation'
-import { consumeConsultationHandoff } from '@shared/utils/handoff'
+import { clearConsultationHandoff, consumeConsultationHandoff, peekConsultationHandoff } from '@shared/utils/handoff'
 import type { BirthFieldsValue } from '@shared/components/form/birth-fields'
 import { scenarioByIntent, scenarioById, scenarioEntryItems } from '@/config/chat'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
@@ -182,6 +183,7 @@ import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
 import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
 import SessionList from '@/components/chat/SessionList.vue'
 import BirthProfilePicker from '@/components/chat/BirthProfilePicker.vue'
+import { useFormDraftsStore } from '@shared/stores/form-drafts'
 import type { ChatSession } from '@/api/chat'
 
 const route = useRoute()
@@ -191,6 +193,7 @@ const chat = useChatStore()
 const entitlements = useEntitlementsStore()
 const profiles = useBirthProfilesStore()
 const sales = useSalesStore()
+const drafts = useFormDraftsStore()
 
 const activeBirthProfileId = ref('')
 const creating = ref('')
@@ -301,8 +304,14 @@ function birthFieldsOf(profile: (typeof profiles.list)[number]): BirthFieldsValu
 function consultationContextFor(scenarioId: ConsultationScenario, profile: (typeof profiles.list)[number]): ConsultationContext | null {
   const fields = birthFieldsOf(profile)
   if (!fields) return null
-  const handoff = consumeConsultationHandoff<ConsultationContext>(scenarioId)
   const birth = consultationBirthFromFields(fields)
+  const handoff = peekConsultationHandoff<ConsultationContext>(scenarioId)
+  if (handoff?.birth && (!profileMatchesConsultationBirth(profile, handoff.birth))) {
+    clearConsultationHandoff()
+  }
+  else if (handoff) {
+    consumeConsultationHandoff<ConsultationContext>(scenarioId)
+  }
   if (scenarioId === 'liunian') {
     return {
       version: 1,
@@ -316,6 +325,18 @@ function consultationContextFor(scenarioId: ConsultationScenario, profile: (type
     scenario: scenarioId === 'naming' ? 'naming' : 'natal',
     birth,
   }
+}
+
+function profileMatchesConsultationBirth(profile: (typeof profiles.list)[number], birth: ConsultationBirth): boolean {
+  const fields = birthFieldsOf(profile)
+  if (!fields || !fields.location) return false
+  return fields.gender === birth.gender && fields.date === birth.date && fields.time === birth.time
+    && fields.location.timezone === birth.location.timezone
+    && Math.abs(fields.location.longitude - birth.location.longitude) < 0.000001
+}
+
+function isBirthConsultationScenario(value: string): value is ConsultationScenario {
+  return value === 'natal' || value === 'liunian' || value === 'naming'
 }
 
 onMounted(async () => {
@@ -333,6 +354,24 @@ onMounted(async () => {
     const presetService = firstQueryValue(route.query.service) ?? firstQueryValue(route.query.scenario)
     const svc = scenarioById(presetService)
     if (svc) chat.pendingIntent = t(svc.intentKey)
+    if (svc && !preset && isBirthConsultationScenario(svc.id)) {
+      const handoff = peekConsultationHandoff<ConsultationContext>(svc.id)
+      const handoffBirth = handoff?.birth
+      const matchingProfile = handoffBirth
+        ? profiles.list.find(profile => profileMatchesConsultationBirth(profile, handoffBirth))
+        : undefined
+      if (matchingProfile) {
+        activeBirthProfileId.value = matchingProfile.id
+      }
+      else if (handoffBirth) {
+        drafts.set('service', svc.id)
+        await router.replace({
+          path: '/birth-profiles/new',
+          query: route.query.locale ? { locale: firstQueryValue(route.query.locale) } : {},
+        })
+        return
+      }
+    }
 
     // 支付回调处理：store 返回结果，由 view 决定路由。
     const paymentResult = await sales.handlePaymentReturn(route.query)
