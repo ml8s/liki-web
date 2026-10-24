@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { loadCityIndex } from '@shared/utils/citySearch'
 import { errorMessage } from '@/utils/errors'
 import {
   createBirthProfile,
@@ -9,6 +10,11 @@ import {
   type BirthProfile,
   type BirthProfileInput,
 } from '@/api/birth-profiles'
+
+async function ensurePlaceIndex(profiles: BirthProfile[]) {
+  if (!profiles.some(profile => profile.birth.location.place_id)) return
+  await loadCityIndex().catch(() => undefined)
+}
 
 interface BirthProfilesState {
   list: BirthProfile[]
@@ -44,6 +50,7 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
       this.error = ''
       try {
         const result = await fetchBirthProfiles(effectiveCursor)
+        await ensurePlaceIndex(result.profiles)
         this.list = result.profiles
         // 下一页 cursor（若后端返回非空，则下次传入）
         // 每次以响应为准：空 cursor 表示已到末页，必须重置。
@@ -63,6 +70,7 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
       this.error = ''
       try {
         const result = await fetchBirthProfiles(this.next_cursor)
+        await ensurePlaceIndex(result.profiles)
         this.list = [...this.list, ...result.profiles]
         this.next_cursor = result.next_cursor ?? ''
       } catch (error) {
@@ -76,6 +84,7 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
       this.error = ''
       try {
         this.detail = await fetchBirthProfile(id)
+        await ensurePlaceIndex([this.detail])
       } catch (error) {
         this.detail = null
         this.error = errorMessage(error)

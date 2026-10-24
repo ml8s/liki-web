@@ -1,6 +1,7 @@
 import { get, post, request } from './http'
 import { i18n } from '@/i18n'
 import { formatInstant } from '@shared/domain/time'
+import { formatSavedPlace, type PlaceLocale } from '@shared/utils/placeDisplay'
 
 export interface BirthProfileLocation {
   place: string
@@ -82,7 +83,9 @@ export function deleteBirthProfile(id: string): Promise<{ status: string }> {
 export function birthSummary(profile: BirthProfile): string {
   const t = i18n.global.t
   const gender = profile.birth.gender === 'male' ? t('profiles.male') : t('profiles.female')
-  const place = profile.birth.location.place ? ` · ${profile.birth.location.place}` : ''
+  const place = profile.birth.location.place
+    ? ` · ${formatSavedPlace(profile.birth.location, i18n.global.locale.value as PlaceLocale)}`
+    : ''
   const canonicalTime = profile.birth.instant && profile.birth.location.timezone
     ? formatInstant(profile.birth.instant, profile.birth.location.timezone)
     : ''

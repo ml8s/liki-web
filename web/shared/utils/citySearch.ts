@@ -83,6 +83,15 @@ function matchClass(query: string, record: CityRecord): number | null {
   return null
 }
 
+export function cachedCityById(id?: string): CityRecord | undefined {
+  if (!id || !cache) return undefined
+  for (const table of [cache.cities, cache.counties, cache.world]) {
+    const record = table.find(item => item.id === id)
+    if (record) return record
+  }
+  return undefined
+}
+
 export function searchCities(index: CityIndex, query: string, limit = 20): CityMatch[] {
   const text = query.trim()
   if (!text) return []

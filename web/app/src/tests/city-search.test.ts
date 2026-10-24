@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
-import { searchCities, type CityIndex, type CityMatch } from '@shared/utils/citySearch'
-import { formatPlace } from '@shared/utils/placeDisplay'
+import { describe, expect, it, vi } from 'vitest'
+import { loadCityIndex, resetCityIndexCache, searchCities, type CityIndex, type CityMatch } from '@shared/utils/citySearch'
+import { formatPlace, formatSavedPlace } from '@shared/utils/placeDisplay'
 
 const index = JSON.parse(
   fs.readFileSync(path.resolve(process.cwd(), '../public/data/cities_data.json'), 'utf8'),
@@ -15,6 +15,19 @@ function first(query: string): CityMatch {
 }
 
 describe('city search localization', () => {
+  it('re-localizes a saved profile place from its place id', async () => {
+    resetCityIndexCache()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(index), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })))
+    await loadCityIndex()
+    const saved = { place: '北京市', place_id: 'CN-110000' }
+    expect(formatSavedPlace(saved, 'en')).toBe('Beijing')
+    expect(formatSavedPlace(saved, 'zh-Hant')).toBe('北京市')
+    vi.unstubAllGlobals()
+  })
+
   it('finds the same Chinese city from Simplified, Traditional and English', () => {
     for (const query of ['北京', '北京市', 'Beijing', 'beijing']) {
       expect(first(query).id).toBe('CN-110000')
