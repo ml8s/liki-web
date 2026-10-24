@@ -4,7 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const rootArg = process.argv[2];
+const ROOT = rootArg ? path.resolve(rootArg) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+if (!fs.existsSync(path.join(ROOT, 'css/app.css')) || !fs.existsSync(path.join(ROOT, 'src'))) {
+  console.error('usage: check-classes.js [project-root-with-css/app.css-and-src]');
+  process.exit(1);
+}
 
 // ── Load CSS classes via simple line scanning ──
 const css = ['app.css']

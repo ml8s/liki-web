@@ -3,15 +3,16 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const SCRIPT = path.join(ROOT, 'web/scripts/check-classes.js');
-const INVALID_TEMPLATE = path.join(ROOT, 'web/src/_temp_invalid.astro');
+const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
+const WEB_ROOT = fileURLToPath(new URL('../', import.meta.url));
+const SCRIPT = path.join(REPO_ROOT, 'web/scripts/check-classes.js');
 
 // 检查脚本用非零退出码报失败，消息在 stderr；这里统一成可直接断言的结果。
-function runCheck(): { status: number; stdout: string; stderr: string } {
+function runCheck(projectRoot = WEB_ROOT): { status: number; stdout: string; stderr: string } {
   try {
-    const result = spawnSync(process.execPath, [SCRIPT], { cwd: ROOT, encoding: 'utf8' });
+    const result = spawnSync(process.execPath, [SCRIPT, projectRoot], { cwd: REPO_ROOT, encoding: 'utf8' });
     if (result.error) return { status: result.status ?? 1, stdout: result.stdout ?? '', stderr: String(result.error) };
     return { status: result.status ?? 1, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
   } catch (error) {
@@ -24,48 +25,44 @@ describe('check-classes.js', () => {
     expect(runCheck().status).toBe(0);
   });
 
+  function isolatedProject(): string {
+    const project = fs.mkdtempSync(path.join(os.tmpdir(), 'check-classes-'));
+    fs.mkdirSync(path.join(project, 'css'), { recursive: true });
+    fs.mkdirSync(path.join(project, 'src'), { recursive: true });
+    fs.copyFileSync(path.join(WEB_ROOT, 'css/app.css'), path.join(project, 'css/app.css'));
+    return project;
+  }
+
   it('fails and names the offending class when a template uses an undefined class', () => {
-    fs.writeFileSync(INVALID_TEMPLATE, '<div class="this-class-does-not-exist"></div>');
-    try {
-      const { status, stderr } = runCheck();
-      expect(status).toBe(1);
-      expect(stderr).toContain('this-class-does-not-exist');
-    } finally {
-      fs.unlinkSync(INVALID_TEMPLATE);
-    }
+    const project = isolatedProject();
+    const invalidTemplate = path.join(project, 'src/invalid.astro');
+    fs.writeFileSync(invalidTemplate, '<div class="this-class-does-not-exist"></div>');
+    const { status, stderr } = runCheck(project);
+    expect(status).toBe(1);
+    expect(stderr).toContain('this-class-does-not-exist');
   });
 
-  // 契约：模板化属性里的字面量也参与检查——`class={`...`}` 只算 `${...}` 之外的片段
-  // （曾经整条跳过，页脚 border-t/py-8 因此长期没定义也没人发现）。
+  // 契约：模板化属性里的字面量也参与检查——`class={`...`}` 只算 `${...}` 之外的片段。
   it('fails on an undefined class inside a templated class attribute', () => {
-    fs.writeFileSync(INVALID_TEMPLATE, '<footer class={`mt-6 this-class-does-not-exist${x ? " y" : ""}`}></footer>');
-    try {
-      const { status, stderr } = runCheck();
-      expect(status).toBe(1);
-      expect(stderr).toContain('this-class-does-not-exist');
-    } finally {
-      fs.unlinkSync(INVALID_TEMPLATE);
-    }
+    const project = isolatedProject();
+    const invalidTemplate = path.join(project, 'src/invalid.astro');
+    fs.writeFileSync(invalidTemplate, '<footer class={`mt-6 this-class-does-not-exist${x ? " y" : ""}`}></footer>');
+    const { status, stderr } = runCheck(project);
+    expect(status).toBe(1);
+    expect(stderr).toContain('this-class-does-not-exist');
   });
 
   it('fails on an undefined class in a ternary branch too', () => {
-    fs.writeFileSync(INVALID_TEMPLATE, "<main class={kind === 'article' ? 'mt-6 this-class-does-not-exist' : 'mt-6'}></main>");
-    try {
-      const { status, stderr } = runCheck();
-      expect(status).toBe(1);
-      expect(stderr).toContain('this-class-does-not-exist');
-    } finally {
-      fs.unlinkSync(INVALID_TEMPLATE);
-    }
+    const project = isolatedProject();
+    const invalidTemplate = path.join(project, 'src/invalid.astro');
+    fs.writeFileSync(invalidTemplate, "<main class={kind === 'article' ? 'mt-6 this-class-does-not-exist' : 'mt-6'}></main>");
+    const { status, stderr } = runCheck(project);
+    expect(status).toBe(1);
+    expect(stderr).toContain('this-class-does-not-exist');
   });
 
   // 比较运算里的字符串是数据（kind === 'article'），不是类名：不能误报。
   it('ignores comparison operands in a templated class attribute', () => {
-    fs.writeFileSync(INVALID_TEMPLATE, "<main class={kind === 'article' ? 'mt-6' : 'mt-6'}></main>");
-    try {
-      expect(runCheck().status).toBe(0);
-    } finally {
-      fs.unlinkSync(INVALID_TEMPLATE);
-    }
+    expect(runCheck().status).toBe(0);
   });
 });
