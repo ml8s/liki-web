@@ -139,6 +139,7 @@ func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
 		Birth: birthprofile.BirthFactsInput{
 			Gender: "male", Date: "1990-06-01", Time: "12:00",
 			Location: birthprofile.BirthLocationInput{
+				Place:     "北京",
 				Timezone:  &[]string{"Asia/Shanghai"}[0],
 				Longitude: &[]float64{116.4074}[0],
 			},

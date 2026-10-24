@@ -123,6 +123,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 		Birth: birthprofile.BirthFactsInput{
 			Gender: "female", Date: "1958-05-12", Time: "06:00",
 			Location: birthprofile.BirthLocationInput{
+				Place:     "上海",
 				Timezone:  &[]string{"Asia/Shanghai"}[0],
 				Longitude: &[]float64{121.4737}[0],
 			},
