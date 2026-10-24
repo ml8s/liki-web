@@ -320,7 +320,7 @@ function viewChart() {
 
 function startInterpretation() {
   if (!primaryBirthProfile.value) return
-  void router.push(chatUrl(primaryBirthProfile.value.id, 'bazi'))
+  void router.push(chatUrl(primaryBirthProfile.value.id, 'natal'))
 }
 
 function startService(key: string) {

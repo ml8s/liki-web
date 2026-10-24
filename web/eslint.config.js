@@ -21,7 +21,7 @@ export default [
   },
   {
     // Node 侧：构建脚本、检查脚本、测试与工具配置。
-    files: ['scripts/**/*.js', 'test/**/*.ts', '**/*.config.{js,mjs,ts}'],
+    files: ['scripts/**/*.{js,mjs}', 'test/**/*.ts', '**/*.config.{js,mjs,ts}'],
     languageOptions: { globals: globals.node },
   },
   {

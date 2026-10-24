@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "routes": [
+    "/app",
+    "/app/login",
+    "/app/birth-profiles",
+    "/app/birth-profiles/new",
+    "/app/birth-profiles/:id",
+    "/app/hepan",
+    "/app/divination",
+    "/app/fengshui",
+    "/app/huangli",
+    "/app/chat",
+    "/app/chat/:sessionId",
+    "/app/orders",
+    "/app/partners",
+    "/app/partners/kol",
+    "/app/partners/scout",
+    "/app/account",
+    "/app/admin"
+  ]
+}

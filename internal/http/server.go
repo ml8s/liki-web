@@ -1,6 +1,9 @@
 package http
 
 import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -23,6 +26,30 @@ import (
 	"github.com/ml8s/liki-web/internal/runcontrol"
 	"github.com/ml8s/liki-web/internal/sales"
 )
+
+//go:embed routes.generated.json
+var generatedRouteData []byte
+
+type generatedRoute struct {
+	Path   string `json:"path"`
+	Slug   string `json:"slug"`
+	Status int    `json:"status"`
+}
+
+type generatedRoutes struct {
+	Locales        []string         `json:"locales"`
+	CanonicalSlugs []string         `json:"canonicalSlugs"`
+	BareRedirects  []generatedRoute `json:"bareRedirects"`
+	Retired        []generatedRoute `json:"retired"`
+}
+
+var routeContract generatedRoutes
+
+func init() {
+	if err := json.Unmarshal(generatedRouteData, &routeContract); err != nil {
+		panic(fmt.Sprintf("parse generated route contract: %v", err))
+	}
+}
 
 type ServerDeps struct {
 	PaymentRuntime       *payment.Runtime
@@ -224,12 +251,10 @@ func findWebDir() string {
 	return ""
 }
 
-// marketingLocales 是营销站的语言前缀。
-var marketingLocales = []string{"/zh-Hans", "/zh-Hant", "/en"}
-
 // marketingPathLocale 返回路径的营销语言前缀；无前缀返回 false。
 func marketingPathLocale(clean string) (string, bool) {
-	for _, loc := range marketingLocales {
+	for _, locale := range routeContract.Locales {
+		loc := "/" + locale
 		if clean == loc || strings.HasPrefix(clean, loc+"/") {
 			return loc, true
 		}
@@ -305,6 +330,18 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 		if clean == "/admin.html" {
 			http.Redirect(w, r, "/app/admin", http.StatusMovedPermanently)
 			return
+		}
+		for _, route := range routeContract.Retired {
+			if clean == route.Path && route.Status == 404 {
+				http.NotFound(w, r)
+				return
+			}
+		}
+		for _, redirect := range routeContract.BareRedirects {
+			if clean == redirect.Path && redirect.Status == 302 {
+				http.Redirect(w, r, "/"+negotiateLocale(r)+"/"+redirect.Slug+"/", redirect.Status)
+				return
+			}
 		}
 		if strings.HasPrefix(clean, "/app/assets/") {
 			assetPath := filepath.Join(distDir, "app", strings.TrimPrefix(clean, "/app/"))

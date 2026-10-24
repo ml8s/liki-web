@@ -92,16 +92,22 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 
 	redir / /{marketing_lang}/ 302
 	redir /index.html /{marketing_lang}/ 302
+# generated:bare-redirects begin
+	redir /natal /{marketing_lang}/natal 302
+	redir /liunian /{marketing_lang}/liunian 302
+	redir /hepan /{marketing_lang}/hepan 302
+	redir /divination /{marketing_lang}/divination 302
+	redir /fengshui /{marketing_lang}/fengshui 302
+	redir /huangli /{marketing_lang}/huangli 302
 	redir /naming /{marketing_lang}/naming 302
-	redir /hepan /{marketing_lang}/natal 302
+# generated:bare-redirects end
+
+
 	redir /about /{marketing_lang}/about 302
 	redir /contact /{marketing_lang}/contact 302
 	redir /disclaimer /{marketing_lang}/disclaimer 302
 	redir /privacy /{marketing_lang}/privacy 302
 	redir /terms /{marketing_lang}/terms 302
-	redir /divination /{marketing_lang}/divination 302
-	redir /fengshui /{marketing_lang}/fengshui 302
-	redir /huangli /{marketing_lang}/huangli 302
 
 	# All other routes → Go handles API + static files
 	handle {

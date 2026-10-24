@@ -169,6 +169,8 @@ version: ## bump patch（CalVer date）
 # ════════════════════════════════════════════════════════════
 
 check-web-static:
+	node web/scripts/check-route-contracts.mjs
+	node web/scripts/generate-route-artifacts.mjs --check
 	node web/scripts/check-inline-scripts.js
 	node web/scripts/check-design-tokens.js
 	node web/scripts/check-frontend-tokens.js

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "locales": ["zh-Hans", "zh-Hant", "en"],
+  "bareRedirects": [
+    { "path": "/natal", "slug": "natal", "status": 302 },
+    { "path": "/liunian", "slug": "liunian", "status": 302 },
+    { "path": "/hepan", "slug": "hepan", "status": 302 },
+    { "path": "/divination", "slug": "divination", "status": 302 },
+    { "path": "/fengshui", "slug": "fengshui", "status": 302 },
+    { "path": "/huangli", "slug": "huangli", "status": 302 },
+    { "path": "/naming", "slug": "naming", "status": 302 }
+  ],
+  "retired": [
+    { "path": "/bazi", "status": 404 },
+    { "path": "/mingshu", "status": 404 },
+    { "path": "/partners", "status": 404 },
+    { "path": "/chat", "status": 404 },
+    { "path": "/naming/chat", "status": 404 },
+    { "path": "/zh", "status": 404 },
+    { "path": "/hk", "status": 404 },
+    { "path": "/skills", "status": 404 }
+  ]
+}

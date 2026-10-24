@@ -1,10 +1,11 @@
 import { i18n } from '@/i18n'
+import scenarioContract from '@shared/config/scenarios.json'
 
 /** 内部专家部署（四专家独立部署；会话创建时按场景路由，不呈现给用户）。 */
-export type ExpertId = 'natal' | 'divination' | 'fengshui' | 'naming'
+export type ExpertId = (typeof scenarioContract.experts)[number]
 
 /** 用户面价值场景（七场景）：与营销页 slug 一一对应（一页一入口）。 */
-export type ScenarioId = 'natal' | 'liunian' | 'hepan' | 'divination' | 'huangli' | 'fengshui' | 'naming'
+export type ScenarioId = (typeof scenarioContract.scenarios)[number]['id']
 
 export interface ChatScenario {
   id: ScenarioId
@@ -23,17 +24,17 @@ export interface ChatScenario {
 }
 
 // 价值入口：按用户场景命名（命理/流年/合盘/问卦/择日/风水/起名），不按引擎 skill。
-// route：多数入口有免费盘面页（命理/风水→人列表排盘、问卦/择日/合盘→独立工具页）；
-// 流年/起名无独立 App 页，付费解读统一进 Chat。
-export const chatScenarios: ChatScenario[] = [
-  { id: 'natal', glyphKey: 'services.glyph.natal', labelKey: 'services.natal.label', descKey: 'services.natal.description', intentKey: 'services.natal.intent', route: '/birth-profiles', ctaKey: 'services.natal.cta', expert: 'natal' },
-  { id: 'liunian', glyphKey: 'services.glyph.liunian', labelKey: 'services.liunian.label', descKey: 'services.liunian.description', intentKey: 'services.liunian.intent', ctaKey: 'services.liunian.cta', expert: 'natal' },
-  { id: 'hepan', glyphKey: 'services.glyph.hepan', labelKey: 'services.hepan.label', descKey: 'services.hepan.description', intentKey: 'services.hepan.intent', route: '/hepan', ctaKey: 'services.hepan.cta', expert: 'natal' },
-  { id: 'divination', glyphKey: 'services.glyph.divination', labelKey: 'services.divination.label', descKey: 'services.divination.description', intentKey: 'services.divination.intent', route: '/divination', ctaKey: 'services.divination.cta', expert: 'divination' },
-  { id: 'huangli', glyphKey: 'services.glyph.huangli', labelKey: 'services.huangli.label', descKey: 'services.huangli.description', intentKey: 'services.huangli.intent', route: '/huangli', ctaKey: 'services.huangli.cta', expert: 'divination' },
-  { id: 'fengshui', glyphKey: 'services.glyph.fengshui', labelKey: 'services.fengshui.label', descKey: 'services.fengshui.description', intentKey: 'services.fengshui.intent', route: '/fengshui', ctaKey: 'services.fengshui.cta', expert: 'fengshui' },
-  { id: 'naming', glyphKey: 'services.glyph.naming', labelKey: 'services.naming.label', descKey: 'services.naming.description', intentKey: 'services.naming.intent', ctaKey: 'services.naming.cta', expert: 'naming' },
-]
+// route 来自 scenario contract 的 public App path；UI key 由稳定 scenario id 生成。
+export const chatScenarios: ChatScenario[] = scenarioContract.scenarios.map(scenario => ({
+  id: scenario.id as ScenarioId,
+  glyphKey: `services.glyph.${scenario.id}`,
+  labelKey: `services.${scenario.id}.label`,
+  descKey: `services.${scenario.id}.description`,
+  intentKey: `services.${scenario.id}.intent`,
+  route: scenario.appPath ? scenario.appPath.replace(/^\/app/, '') || '/' : undefined,
+  ctaKey: `services.${scenario.id}.cta`,
+  expert: scenario.expert as ExpertId,
+}))
 
 export function scenarioById(key: string | null | undefined): ChatScenario | undefined {
   if (!key) return undefined

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "experts": ["natal", "divination", "fengshui", "naming"],
+  "scenarios": [
+    {
+      "id": "natal",
+      "expert": "natal",
+      "marketingSlug": "natal",
+      "serviceParam": "natal",
+      "appPath": "/app/birth-profiles"
+    },
+    {
+      "id": "liunian",
+      "expert": "natal",
+      "marketingSlug": "liunian",
+      "serviceParam": "liunian",
+      "appPath": null
+    },
+    {
+      "id": "hepan",
+      "expert": "natal",
+      "marketingSlug": "hepan",
+      "serviceParam": "hepan",
+      "appPath": "/app/hepan"
+    },
+    {
+      "id": "divination",
+      "expert": "divination",
+      "marketingSlug": "divination",
+      "serviceParam": "divination",
+      "appPath": "/app/divination"
+    },
+    {
+      "id": "huangli",
+      "expert": "divination",
+      "marketingSlug": "huangli",
+      "serviceParam": "huangli",
+      "appPath": "/app/huangli"
+    },
+    {
+      "id": "fengshui",
+      "expert": "fengshui",
+      "marketingSlug": "fengshui",
+      "serviceParam": "fengshui",
+      "appPath": "/app/fengshui"
+    },
+    {
+      "id": "naming",
+      "expert": "naming",
+      "marketingSlug": "naming",
+      "serviceParam": "naming",
+      "appPath": null
+    }
+  ]
+}
