@@ -18,10 +18,11 @@ var (
 // BirthLocation is one atomic place fact. Place is display-only; computation
 // requires longitude and timezone together.
 type BirthLocation struct {
-	Place     string   `json:"place"`
-	PlaceID   string   `json:"place_id,omitempty"`
-	Longitude *float64 `json:"longitude"`
-	Timezone  *string  `json:"timezone"`
+	Place           string   `json:"place"`
+	PlaceID         string   `json:"place_id,omitempty"`
+	LocationVersion int      `json:"location_version"`
+	Longitude       *float64 `json:"longitude"`
+	Timezone        *string  `json:"timezone"`
 }
 
 // BirthFacts is the canonical chartable subject. It intentionally does not
@@ -116,6 +117,9 @@ func ValidateBirthFacts(now time.Time, facts BirthFactsInput) error {
 	}
 	if len(facts.Location.PlaceID) > 80 {
 		return errors.New("birth.location.place_id is too long")
+	}
+	if strings.TrimSpace(facts.Location.Place) == "" && strings.TrimSpace(facts.Location.PlaceID) == "" {
+		return errors.New("birth.location.place or place_id is required")
 	}
 	if facts.Location.Timezone == nil {
 		return errors.New("birth.location.timezone is required")
@@ -214,10 +218,11 @@ func NewBirthFacts(now time.Time, facts BirthFactsInput) (BirthFacts, error) {
 	return BirthFacts{
 		Gender: facts.Gender,
 		Location: BirthLocation{
-			Place:     strings.TrimSpace(facts.Location.Place),
-			PlaceID:   strings.TrimSpace(facts.Location.PlaceID),
-			Longitude: facts.Location.Longitude,
-			Timezone:  facts.Location.Timezone,
+			Place:           strings.TrimSpace(facts.Location.Place),
+			PlaceID:         strings.TrimSpace(facts.Location.PlaceID),
+			LocationVersion: 2,
+			Longitude:       facts.Location.Longitude,
+			Timezone:        facts.Location.Timezone,
 		},
 		Instant: &instant,
 	}, nil

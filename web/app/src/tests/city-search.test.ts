@@ -15,19 +15,18 @@ function first(query: string): CityMatch {
 }
 
 describe('city search localization', () => {
-  it('re-localizes a saved profile place from its place id', async () => {
+  it('only renders v2 saved places, without guessing legacy rows', async () => {
     resetCityIndexCache()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(index), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })))
     await loadCityIndex()
-    const saved = { place: '北京市', place_id: 'CN-110000' }
+    const saved = { place: '北京市', place_id: 'CN-110000', location_version: 2 }
     expect(formatSavedPlace(saved, 'en')).toBe('Beijing')
     expect(formatSavedPlace(saved, 'zh-Hant')).toBe('北京市')
-    const legacy = { place: '北京市海淀区', longitude: 116.298, timezone: 'Asia/Shanghai' }
-    expect(formatSavedPlace(legacy, 'en')).toBe('Haidian, Beijing')
-    expect(formatSavedPlace(legacy, 'zh-Hant')).toBe('北京市海淀區')
+    expect(formatSavedPlace({ place: '北京市', location_version: 0 }, 'en')).toBe('')
+    expect(formatSavedPlace({ place: '手写地点', location_version: 2 }, 'en')).toBe('手写地点')
     vi.unstubAllGlobals()
   })
 

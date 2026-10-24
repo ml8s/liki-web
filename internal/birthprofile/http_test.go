@@ -80,6 +80,9 @@ func TestHTTPCreateAndGet(t *testing.T) {
 	if env.Data.Birth.Location.PlaceID != "CN-310000" {
 		t.Fatalf("place id = %q", env.Data.Birth.Location.PlaceID)
 	}
+	if env.Data.Birth.Location.LocationVersion != 2 {
+		t.Fatalf("location version = %d", env.Data.Birth.Location.LocationVersion)
+	}
 
 	rr = doJSON(t, h, http.MethodGet, "/api/birth-profiles/"+env.Data.ID, nil)
 	if rr.Code != http.StatusOK {

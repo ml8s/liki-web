@@ -6,6 +6,7 @@ import { formatSavedPlace, type PlaceLocale } from '@shared/utils/placeDisplay'
 export interface BirthProfileLocation {
   place: string
   place_id?: string
+  location_version?: number
   longitude: number | null
   timezone: string | null
 }

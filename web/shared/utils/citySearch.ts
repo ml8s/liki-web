@@ -106,50 +106,6 @@ export function cachedCityById(id?: string): CityRecord | undefined {
   return undefined
 }
 
-export function cachedCityForPlace(
-  place: string,
-  longitude?: number | null,
-  timezone?: string | null,
-): CityRecord | undefined {
-  if (!cache || !place.trim()) return undefined
-  const text = normalize(place)
-  let best: { record: CityRecord; score: number } | undefined
-  let ambiguous = false
-  for (const table of [cache.cities, cache.counties, cache.world]) {
-    for (const record of table) {
-      const values = [
-        record.name,
-        ...Object.values(record.names ?? {}),
-        ...(record.aliases ?? []),
-      ].filter((value): value is string => Boolean(value)).map(normalize)
-      let match = 0
-      for (const value of values) {
-        if (value === text) {
-          match = 3
-          break
-        }
-        if (text.includes(value) || value.includes(text)) match = Math.max(match, 2)
-      }
-      if (!match) continue
-      if (timezone && record.tz !== timezone) continue
-      let distance = 0
-      if (longitude != null && Number.isFinite(longitude)) {
-        if (typeof record.lng !== 'number') continue
-        distance = Math.abs(record.lng - longitude)
-        if (distance > 0.25) continue
-      }
-      const score = match * 1000 - distance
-      if (!best || score > best.score) {
-        best = { record, score }
-        ambiguous = false
-      } else if (Math.abs(score - best.score) < 0.0001) {
-        ambiguous = true
-      }
-    }
-  }
-  return ambiguous ? undefined : best?.record
-}
-
 export function searchCities(index: CityIndex, query: string, limit = 20): CityMatch[] {
   const text = query.trim()
   if (!text) return []

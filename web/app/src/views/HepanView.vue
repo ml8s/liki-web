@@ -148,6 +148,7 @@ import { toUserMessage } from '@/utils/errors'
 import { computed, reactive, ref, toRef, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { formatSavedPlace, type PlaceLocale } from '@shared/utils/placeDisplay'
 import { useServiceView } from '@/composables/useServiceView'
 import { baziChartForChartInput, type BaziChartData } from '@shared/domain/natal'
 import { hepanForChartInputs, type Hepan } from '@shared/domain/hepan'
@@ -168,7 +169,7 @@ import { chartInputFromBirth } from '@shared/domain/birth'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { consumeConsultationHandoff } from '@shared/utils/handoff'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { profiles, entitlements, chat, openServiceChat } = useServiceView()
 const {
   records: toolRecords,
@@ -344,13 +345,14 @@ async function startInterpretation() {
   const p = profileA.value
   if (!p || !b.value.third_party_consent) return
   const bBirthProfile = b.value
+  const bPlace = bBirthProfile.location
+    ? formatSavedPlace(bBirthProfile.location, locale.value as PlaceLocale)
+    : ''
   const bInfo = t('services.hepan.otherBirthProfileSummary', {
     gender: bBirthProfile.gender === 'male' ? t('profiles.male') : t('profiles.female'),
     date: bBirthProfile.date,
     time: bBirthProfile.time,
-    place: bBirthProfile.location?.place
-      ? t('services.hepan.otherPlace', { place: bBirthProfile.location.place })
-      : '',
+    place: bPlace ? t('services.hepan.otherPlace', { place: bPlace }) : '',
   })
   let context: ConsultationContext
   try {

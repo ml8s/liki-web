@@ -18,9 +18,10 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BirthProfile } from '@/api/birth-profiles'
 import { formatInstant } from '@shared/domain/time'
+import { formatSavedPlace, type PlaceLocale } from '@shared/utils/placeDisplay'
 
 const props = defineProps<{ content: string }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const data = computed<Partial<BirthProfile>>(() => {
   try {
@@ -35,11 +36,13 @@ const nickname = computed(() => data.value.nickname ?? t('profiles.profile'))
 const summary = computed(() => {
   const d = data.value
   const gender = d.birth?.gender === 'male' ? t('profiles.male') : d.birth?.gender === 'female' ? t('profiles.female') : ''
-  const place = d.birth?.location?.place ? ` · ${d.birth.location.place}` : ''
+  const place = d.birth?.location
+    ? formatSavedPlace(d.birth.location, locale.value as PlaceLocale)
+    : ''
   const canonicalTime = d.birth?.instant && d.birth?.location?.timezone
     ? formatInstant(d.birth.instant, d.birth.location.timezone)
     : [d.birth?.date, d.birth?.time].filter(Boolean).join(' ')
-  return [canonicalTime, gender, place].filter(Boolean).join(' ')
+  return [canonicalTime, gender, place ? ` · ${place}` : ''].filter(Boolean).join(' ')
 })
 </script>
 

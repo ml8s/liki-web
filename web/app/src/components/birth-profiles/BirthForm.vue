@@ -100,18 +100,29 @@ interface BirthFormValues {
 
 type BirthFormDraft = Omit<BirthFormValues, 'third_party_consent'>
 
+type InitialLocation = BirthProfile['birth']['location'] | BirthProfileInput['birth']['location']
+
+function hasV2Location(location?: InitialLocation): boolean {
+  if (!location) return false
+  return Boolean(location.place_id)
+    || ('location_version' in location && (location.location_version ?? 0) >= 2)
+}
+
 function formValuesFromInitial(initial?: Partial<BirthProfile> | Partial<BirthProfileInput>): BirthFormValues {
+  const initialLocation = initial?.birth?.location
   return {
     nickname: initial?.nickname ?? '',
     gender: initial?.birth?.gender ?? '',
     date: initial?.birth?.date ?? '',
     time: initial?.birth?.time ?? '',
-    location: initial?.birth?.location?.longitude != null && initial?.birth?.location?.timezone
+    location: initialLocation?.longitude != null
+      && initialLocation.timezone
+      && hasV2Location(initialLocation)
       ? {
-          place: initial?.birth?.location?.place ?? '',
-          ...(initial.birth.location.place_id ? { place_id: initial.birth.location.place_id } : {}),
-          longitude: initial.birth.location.longitude,
-          timezone: initial.birth.location.timezone,
+          place: initialLocation.place ?? '',
+          ...(initialLocation.place_id ? { place_id: initialLocation.place_id } : {}),
+          longitude: initialLocation.longitude,
+          timezone: initialLocation.timezone,
           source: 'saved',
         }
       : null,
@@ -151,7 +162,10 @@ if (savedDraft.value) emit('dirty', true)
 
 const formRef = ref<FormInstance>()
 const birthLabels = computed(() => createBirthFieldLabels(t))
-const initialBirthPlace = props.initial?.birth?.location?.place ?? ''
+const initialLocation = props.initial?.birth?.location
+const initialBirthPlace = initialLocation?.place && hasV2Location(initialLocation)
+  ? initialLocation.place
+  : ''
 
 function validateBirthDate(_rule: unknown, value: string, callback: (error?: Error) => void) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {

@@ -6,7 +6,7 @@
  * This prevents duplicated labels (region + city), leaked Simplified Chinese
  * on Traditional pages, and hard-coded hemisphere markers in copy.
  */
-import { cachedCityById, cachedCityForPlace } from './citySearch'
+import { cachedCityById } from './citySearch'
 
 export type PlaceLocale = 'zh-Hans' | 'zh-Hant' | 'en'
 
@@ -267,12 +267,16 @@ export function localizedRegion(record: PlaceRecord, locale: PlaceLocale): strin
 }
 
 export function formatSavedPlace(
-  location: { place: string; place_id?: string; longitude?: number | null; timezone?: string | null },
+  location: { place: string; place_id?: string; location_version?: number },
   locale: PlaceLocale,
 ): string {
-  const record = cachedCityById(location.place_id)
-    ?? cachedCityForPlace(location.place, location.longitude, location.timezone)
-  return record ? formatPlace(record, locale) : location.place
+  if (location.place_id) {
+    const record = cachedCityById(location.place_id)
+    if (record) return formatPlace(record, locale)
+  }
+  // Version 0 is the pre-place-id shape. Do not guess or backfill: the profile
+  // shows an empty place until the user supplies a v2 location.
+  return (location.location_version ?? 0) >= 2 ? location.place : ''
 }
 
 /**

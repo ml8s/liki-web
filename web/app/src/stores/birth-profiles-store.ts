@@ -12,7 +12,7 @@ import {
 } from '@/api/birth-profiles'
 
 async function ensurePlaceIndex(profiles: BirthProfile[]) {
-  if (!profiles.some(profile => profile.birth.location.place)) return
+  if (!profiles.some(profile => profile.birth.location.place_id)) return
   await loadCityIndex().catch(() => undefined)
 }
 

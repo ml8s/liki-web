@@ -304,6 +304,15 @@ ALTER TABLE birth_profiles ADD COLUMN place_id TEXT NOT NULL DEFAULT '';
 				return err
 			},
 		},
+		{
+			ID: "012_profiles_location_version",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+ALTER TABLE birth_profiles ADD COLUMN location_version INTEGER NOT NULL DEFAULT 0;
+`)
+				return err
+			},
+		},
 	})
 }
 

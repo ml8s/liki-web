@@ -79,18 +79,11 @@ describe('BirthForm place resolution', () => {
     expect(longitudeValue(wrapper)).toBe('113.0750')
   })
 
-  it('resolves legacy profiles that have a place but no longitude', async () => {
-    const index = { counties: [], cities: [{ name: '上海市', region: '上海市', lng: 121.4737, lat: 31.2304, tz: 'Asia/Shanghai' }], world: [] }
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve(
-      String(url).includes('cities_data.json')
-        ? new Response(JSON.stringify(index), { status: 200, headers: { 'Content-Type': 'application/json' } })
-        : toolOk({ candidates: [] }),
-    )))
-    const wrapper = mountForm({ nickname: '妈妈', birth: { location: { place: '上海' } } })
-    await flushPromises()
-    await new Promise(resolve => setTimeout(resolve, 0))
+  it('does not infer a location for legacy v0 profiles', async () => {
+    const wrapper = mountForm({ nickname: '妈妈', birth: { location: { place: '上海', location_version: 0 } } })
     await flushPromises()
     await openManualFields(wrapper)
-    expect(longitudeValue(wrapper)).toBe('121.4737')
+    expect(longitudeValue(wrapper)).toBe('')
+    expect((wrapper.find('input[name="birth-place"]').element as HTMLInputElement).value).toBe('')
   })
 })
