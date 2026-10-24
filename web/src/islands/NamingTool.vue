@@ -14,6 +14,7 @@ import {
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
 import YongShenPanel from '@shared/components/charts/YongShenPanel.vue'
+import { birthFormRules } from '@shared/components/form/birth-rules'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
 
@@ -30,6 +31,7 @@ const props = defineProps<{
     }
 }>()
 
+const rules = birthFormRules(props.labels)
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
 const loading = ref(false)
 const failed = ref(false)
@@ -65,6 +67,7 @@ function continueToApp() {
   <FormShell
     form-class="tool-form"
     :model="birth"
+    :rules="rules"
     :submit-label="loading ? labels.computing : labels.submit"
     :loading="loading"
     @submit="submit"

@@ -17,7 +17,7 @@
       </div>
     </template>
 
-    <p>{{ product.description }}</p>
+    <p>{{ $t('chat.productDescription') }}</p>
     <ul class="skills">
       <li
         v-for="s in chatScenarios"

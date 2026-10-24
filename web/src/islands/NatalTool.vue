@@ -19,6 +19,7 @@ import {
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
 import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
+import { birthFormRules } from '@shared/components/form/birth-rules'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
 
@@ -38,6 +39,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const rules = birthFormRules(props.labels)
 
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
 const loading = ref(false)
@@ -103,6 +105,7 @@ function continueToApp() {
   <FormShell
     form-class="tool-form"
     :model="birth"
+    :rules="rules"
     :submit-label="loading ? labels.computing : labels.submit"
     :loading="loading"
     @submit="submit"

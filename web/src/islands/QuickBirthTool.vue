@@ -9,6 +9,7 @@ import {
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
+import { birthFormRules } from '@shared/components/form/birth-rules'
 import { saveHandoff, HANDOFF_KEYS } from '@shared/utils/handoff'
 
 const props = defineProps<{
@@ -19,6 +20,7 @@ const props = defineProps<{
   }
 }>()
 
+const rules = birthFormRules(props.labels)
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
 
 function submit() {
@@ -32,6 +34,7 @@ function submit() {
   <FormShell
     form-class="tool-form"
     :model="birth"
+    :rules="rules"
     :submit-label="labels.submit"
     @submit="submit"
   >

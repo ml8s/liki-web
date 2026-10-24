@@ -369,6 +369,8 @@ th {
 .landing-cta p { font-size:1.5rem; margin-bottom:22px; }
 
 .landing-chart .tool-form { max-width:760px; margin-inline:auto; }
+/* White-on-accent section: keep labels readable instead of the default dark field label. */
+.landing-chart .tool-form .el-form-item__label { color: var(--color-white); }
 .chart-hint { opacity:.8; font-size:.8125rem; margin-top:14px; }
 .card-link { display:inline-flex; align-items:center; min-height:44px; margin-top:10px; color:var(--color-accent); font-size:.875rem; text-decoration:none; }
 .card-link:hover { text-decoration:underline; }

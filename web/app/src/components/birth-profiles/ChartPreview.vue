@@ -181,9 +181,10 @@ import BaziPanel from '@shared/components/charts/BaziPanel.vue'
 import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
 import MingGuaSection from '@shared/components/charts/MingGuaSection.vue'
 import LiuNianFlySection from '@shared/components/charts/LiuNianFlySection.vue'
+import { formatLongitude, type PlaceLocale } from '@shared/utils/placeDisplay'
 
 const props = defineProps<{ profile: BirthProfile; auto?: boolean }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -278,7 +279,9 @@ async function compute() {
       timezone: p.birth.location.timezone,
       longitude: p.birth.location.longitude,
     }
-    correction.value = t('profiles.chart.correctedLongitude', { lng: Number(ctx.longitude).toFixed(4) })
+    correction.value = t('profiles.chart.correctedLongitude', {
+      longitude: formatLongitude(Number(ctx.longitude), locale.value as PlaceLocale),
+    })
 
     const chart = await natalChartForChartInput({ ...ctx, gender: p.birth.gender })
     baziChart.value = chart.bazi

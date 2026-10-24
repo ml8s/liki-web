@@ -9,6 +9,7 @@ import BaziPanel from '@shared/components/charts/BaziPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import YearField from '@shared/components/form/YearField.vue'
+import { birthFormRules } from '@shared/components/form/birth-rules'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
 import {
@@ -33,6 +34,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const rules = birthFormRules(props.labels)
 
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
 const year = ref(new Date().getFullYear())
@@ -84,6 +86,7 @@ function continueToApp() {
   <FormShell
     form-class="tool-form"
     :model="birth"
+    :rules="rules"
     :submit-label="loading ? labels.computing : labels.submit"
     :loading="loading"
     @submit="submit"
