@@ -68,6 +68,15 @@ function normalize(value: string): string {
   return value.normalize('NFKC').trim().toLocaleLowerCase()
 }
 
+function isLatin(value: string): boolean {
+  return /^[a-z][a-z .'-]*$/.test(value)
+}
+
+function latinWordMatch(name: string, text: string): boolean {
+  const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`, 'i').test(name)
+}
+
 function matchClass(query: string, record: CityRecord): number | null {
   const text = normalize(query)
   const base = stripSuffix(text)
@@ -78,8 +87,13 @@ function matchClass(query: string, record: CityRecord): number | null {
   ].filter((name): name is string => Boolean(name)).map(normalize)
   if (names.includes(text)) return 0
   if (base && names.some((name) => stripSuffix(name) === base)) return 1
-  if (names.some((name) => name.startsWith(text))) return 2
-  if (base && names.some((name) => name.includes(base))) return 3
+  if (isLatin(text)) {
+    if (names.some((name) => latinWordMatch(name, text))) return 2
+    if (base && names.some((name) => latinWordMatch(name, base))) return 3
+  } else {
+    if (names.some((name) => name.startsWith(text))) return 2
+    if (base && names.some((name) => name.includes(base))) return 3
+  }
   return null
 }
 
@@ -153,5 +167,10 @@ export function searchCities(index: CityIndex, query: string, limit = 20): CityM
     }
   }
   out.sort((a, b) => a.cls - b.cls || a.level - b.level || b.match.lng - a.match.lng)
-  return out.slice(0, limit).map((item) => item.match)
+  // An exact/alias hit means prefix-only rows are noise (Changshan for
+  // changsha). Keep the exact tier when it exists; partial queries still
+  // search prefixes.
+  const best = out[0]?.cls ?? 0
+  const filtered = best <= 1 ? out.filter((item) => item.cls === best) : out
+  return filtered.slice(0, limit).map((item) => item.match)
 }

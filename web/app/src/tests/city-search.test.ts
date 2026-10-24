@@ -52,6 +52,8 @@ describe('city search localization', () => {
 
   it('keeps city before county for ambiguous names', () => {
     expect(first('长沙').name).toBe('长沙市')
+    expect(first('changsha').name).toBe('长沙市')
+    expect(searchCities(index, 'changsha').map(match => match.name)).not.toContain('常山县')
   })
 
   it('renders the selected record in the active locale', () => {
