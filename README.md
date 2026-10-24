@@ -68,9 +68,14 @@ In development, the login page shows a local verification code when the email se
 | --- | --- |
 | `make dev` | Build and start the local stack |
 | `make test` | Unit and integration tests (Go/JS/Python) |
+| `cd web && npm run system:check` | Manual deep system check (not monitoring) |
 | `make gate` | `check` + `test` |
 | `make build` | Build static assets and Go service |
 | `make clean` | Remove local build artifacts |
+
+Deep manual system-check configuration is documented in
+[`web/scripts/SMOKE.md`](web/scripts/SMOKE.md). Deploy smoke remains the
+automated gate.
 
 ## Configuration
 
@@ -102,6 +107,8 @@ via `make e2e`, and the cross-repository flow runs via `liki-deploy`.
 ## Payment
 
 CNY checkout uses XunHuPay. USD and other supported non-CNY currencies use Dodo.
+When trusted geo headers are absent, billing defaults to USD/Dodo rather than
+CNY/XunHu.
 
 The server owns:
 
