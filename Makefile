@@ -172,6 +172,7 @@ check-web-static:
 	node web/scripts/check-route-contracts.mjs
 	node web/scripts/generate-route-artifacts.mjs --check
 	node web/scripts/check-city-data-sync.js
+	node web/scripts/generate-city-data-version.mjs --check
 	node web/scripts/check-inline-scripts.js
 	node web/scripts/check-design-tokens.js
 	node web/scripts/check-frontend-tokens.js
@@ -195,11 +196,13 @@ check-caddy:
 
 sync-city-data:
 	cp ../liki/engine/internal/engine/city/cities_data.json web/public/data/cities_data.json
+	node web/scripts/generate-city-data-version.mjs
 
 build-sitemap:
 	node web/scripts/build-sitemap.js
 
 build-web:
+	node web/scripts/generate-city-data-version.mjs
 	scripts/build-web.sh
 
 build-go:

@@ -176,6 +176,7 @@ import {
 } from '@shared/domain/consultation'
 import { clearConsultationHandoff, consumeConsultationHandoff, peekConsultationHandoff } from '@shared/utils/handoff'
 import type { BirthFieldsValue } from '@shared/components/form/birth-fields'
+import { isCurrentLocation } from '@shared/domain/location'
 import { scenarioByIntent, scenarioById, scenarioEntryItems } from '@/config/chat'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import AppEmptyState from '@/components/app/AppEmptyState.vue'
@@ -295,8 +296,8 @@ function birthFieldsOf(profile: (typeof profiles.list)[number]): BirthFieldsValu
     date,
     time,
     location: {
-      place: location.place,
-      ...(location.place_id ? { place_id: location.place_id } : {}),
+      place: isCurrentLocation(location) ? location.place : '',
+      ...(isCurrentLocation(location) && location.place_id ? { place_id: location.place_id } : {}),
       longitude: location.longitude,
       timezone: location.timezone,
       source: 'saved',

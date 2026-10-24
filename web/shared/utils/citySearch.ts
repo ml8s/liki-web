@@ -1,4 +1,5 @@
 /** Local city search over the canonical cities_data.json (same file the engine embeds). */
+import { CITY_DATA_URL } from '../generated/cityData'
 
 export type CityLocale = 'zh-Hans' | 'zh-Hant' | 'en'
 
@@ -19,6 +20,7 @@ export interface CityRecord {
 }
 
 export interface CityIndex {
+  meta?: { schema_version?: number }
   counties: CityRecord[]
   cities: CityRecord[]
   world: CityRecord[]
@@ -38,7 +40,7 @@ export function resetCityIndexCache(): void {
   loading = null
 }
 
-export async function loadCityIndex(url = '/data/cities_data.json?v=2'): Promise<CityIndex> {
+export async function loadCityIndex(url = CITY_DATA_URL): Promise<CityIndex> {
   if (cache) return cache
   if (!loading) {
     loading = fetch(url)
@@ -47,6 +49,10 @@ export async function loadCityIndex(url = '/data/cities_data.json?v=2'): Promise
         return response.json() as Promise<CityIndex>
       })
       .then((data) => {
+        const schema = data.meta?.schema_version
+        if (schema !== undefined && schema !== 2) {
+          throw new Error(`city index: unsupported schema ${schema}`)
+        }
         cache = data
         return data
       })

@@ -3,12 +3,12 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { formatLongitude, formatPlace } from '@shared/utils/placeDisplay'
 
-const hongKong = { name: '香港', region: '中国香港', aliases: ['Hong Kong', 'HK', '香港'] }
-const macau = { name: '澳门', region: '中国澳门', aliases: ['Macau', 'MO', '澳门'] }
-const taipei = { name: '台北', region: '中国台湾', aliases: ['Taipei', 'TPE', '台北'] }
-const beijing = { name: '北京市', region: '北京市' }
-const london = { name: '伦敦', region: '英国', aliases: ['London', 'LON', '伦敦'] }
-const newYork = { name: '纽约', region: '美国', aliases: ['New York City', 'NYC', '纽约'] }
+const hongKong = { name: '香港', region: '中国香港', aliases: ['Hong Kong', 'HK', '香港'], names: { 'zh-Hans': '香港', 'zh-Hant': '香港', en: 'Hong Kong' }, region_names: { 'zh-Hans': '中国香港', 'zh-Hant': '中國香港', en: 'Hong Kong' } }
+const macau = { name: '澳门', region: '中国澳门', aliases: ['Macau', 'MO', '澳门'], names: { 'zh-Hans': '澳门', 'zh-Hant': '澳門', en: 'Macau' }, region_names: { 'zh-Hans': '中国澳门', 'zh-Hant': '中國澳門', en: 'Macau' } }
+const taipei = { name: '台北', region: '中国台湾', aliases: ['Taipei', 'TPE', '台北'], names: { 'zh-Hans': '台北', 'zh-Hant': '台北', en: 'Taipei' }, region_names: { 'zh-Hans': '中国台湾', 'zh-Hant': '中國台灣', en: 'Taiwan' } }
+const beijing = { name: '北京市', region: '北京市', names: { 'zh-Hans': '北京市', 'zh-Hant': '北京市', en: 'Beijing' }, region_names: { 'zh-Hans': '北京市', 'zh-Hant': '北京市', en: 'Beijing' } }
+const london = { name: '伦敦', region: '英国', aliases: ['London', 'LON', '伦敦'], names: { 'zh-Hans': '伦敦', 'zh-Hant': '倫敦', en: 'London' }, region_names: { 'zh-Hans': '英国', 'zh-Hant': '英國', en: 'United Kingdom' } }
+const newYork = { name: '纽约', region: '美国', aliases: ['New York City', 'NYC', '纽约'], names: { 'zh-Hans': '纽约', 'zh-Hant': '紐約', en: 'New York' }, region_names: { 'zh-Hans': '美国', 'zh-Hant': '美國', en: 'United States' } }
 
 describe('formatPlace', () => {
   it('does not repeat a city already contained in the region', () => {

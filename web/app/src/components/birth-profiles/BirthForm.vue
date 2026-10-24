@@ -78,6 +78,7 @@ import {
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
 import { useFormDraftsStore } from '@shared/stores/form-drafts'
+import { isCurrentLocation } from '@shared/domain/location'
 const props = withDefaults(defineProps<{
   submitting?: boolean
   initial?: Partial<BirthProfile> | Partial<BirthProfileInput>
@@ -100,14 +101,6 @@ interface BirthFormValues {
 
 type BirthFormDraft = Omit<BirthFormValues, 'third_party_consent'>
 
-type InitialLocation = BirthProfile['birth']['location'] | BirthProfileInput['birth']['location']
-
-function hasV2Location(location?: InitialLocation): boolean {
-  if (!location) return false
-  return Boolean(location.place_id)
-    || ('location_version' in location && (location.location_version ?? 0) >= 2)
-}
-
 function formValuesFromInitial(initial?: Partial<BirthProfile> | Partial<BirthProfileInput>): BirthFormValues {
   const initialLocation = initial?.birth?.location
   return {
@@ -117,7 +110,7 @@ function formValuesFromInitial(initial?: Partial<BirthProfile> | Partial<BirthPr
     time: initial?.birth?.time ?? '',
     location: initialLocation?.longitude != null
       && initialLocation.timezone
-      && hasV2Location(initialLocation)
+      && isCurrentLocation(initialLocation)
       ? {
           place: initialLocation.place ?? '',
           ...(initialLocation.place_id ? { place_id: initialLocation.place_id } : {}),
@@ -163,7 +156,7 @@ if (savedDraft.value) emit('dirty', true)
 const formRef = ref<FormInstance>()
 const birthLabels = computed(() => createBirthFieldLabels(t))
 const initialLocation = props.initial?.birth?.location
-const initialBirthPlace = initialLocation?.place && hasV2Location(initialLocation)
+const initialBirthPlace = initialLocation?.place && isCurrentLocation(initialLocation)
   ? initialLocation.place
   : ''
 

@@ -2,6 +2,16 @@ import { engineCityCandidates } from '../api/engine/city'
 
 export type LocationSource = 'city' | 'browser' | 'manual' | 'saved'
 
+export interface VersionedLocation {
+  location_version?: number
+}
+
+/** The only location shape the UI is allowed to render. */
+export function isCurrentLocation(value: unknown): boolean {
+  return typeof value === 'object' && value !== null
+    && (value as VersionedLocation).location_version === 2
+}
+
 /**
  * Atomic birth/casting location. Longitude and IANA timezone form one wire fact;
  * place is display-only and must never be used to derive a partial location.

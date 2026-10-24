@@ -25,7 +25,8 @@ describe('city search localization', () => {
     const saved = { place: '北京市', place_id: 'CN-110000', location_version: 2 }
     expect(formatSavedPlace(saved, 'en')).toBe('Beijing')
     expect(formatSavedPlace(saved, 'zh-Hant')).toBe('北京市')
-    expect(formatSavedPlace({ place: '北京市', location_version: 0 }, 'en')).toBe('')
+    expect(formatSavedPlace({ place: '北京市', place_id: 'CN-110000', location_version: 0 }, 'en')).toBe('')
+    expect(formatSavedPlace({ place: '手写地点', location_version: 0 }, 'en')).toBe('')
     expect(formatSavedPlace({ place: '手写地点', location_version: 2 }, 'en')).toBe('手写地点')
     vi.unstubAllGlobals()
   })
@@ -47,6 +48,12 @@ describe('city search localization', () => {
 
   it('finds subdivisions by English or pinyin', () => {
     expect(first('Haidian').id).toBe('CN-110108')
+  })
+
+  it('normalizes Latin case and word boundaries', () => {
+    expect(first('london').id).toBe('GN-2643743')
+    expect(first('New York').id).toBe('GN-5128581')
+    expect(searchCities(index, 'changsha').map(match => match.name)).not.toContain('常山县')
   })
 
   it('keeps city before county for ambiguous names', () => {
