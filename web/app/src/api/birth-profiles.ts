@@ -84,9 +84,11 @@ export function deleteBirthProfile(id: string): Promise<{ status: string }> {
 export function birthSummary(profile: BirthProfile): string {
   const t = i18n.global.t
   const gender = profile.birth.gender === 'male' ? t('profiles.male') : t('profiles.female')
-  const place = profile.birth.location.place
-    ? ` · ${formatSavedPlace(profile.birth.location, i18n.global.locale.value as PlaceLocale)}`
-    : ''
+  const placeLabel = formatSavedPlace(
+    profile.birth.location,
+    i18n.global.locale.value as PlaceLocale,
+  )
+  const place = placeLabel ? ` · ${placeLabel}` : ''
   const canonicalTime = profile.birth.instant && profile.birth.location.timezone
     ? formatInstant(profile.birth.instant, profile.birth.location.timezone)
     : ''

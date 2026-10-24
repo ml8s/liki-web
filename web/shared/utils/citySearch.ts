@@ -38,7 +38,7 @@ export function resetCityIndexCache(): void {
   loading = null
 }
 
-export async function loadCityIndex(url = '/data/cities_data.json'): Promise<CityIndex> {
+export async function loadCityIndex(url = '/data/cities_data.json?v=2'): Promise<CityIndex> {
   if (cache) return cache
   if (!loading) {
     loading = fetch(url)
