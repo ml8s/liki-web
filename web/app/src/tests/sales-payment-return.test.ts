@@ -98,3 +98,27 @@ describe('sales handlePaymentReturn', () => {
     await vi.advanceTimersByTimeAsync(1)
     await expect(pending).resolves.toEqual({ action: 'enter_chat', scenarioId: 'divination' })
   })
+
+describe('sales subscription return', () => {
+  it('waits for the entitlement after a subscription checkout', async () => {
+    vi.useFakeTimers()
+    const refreshes = await stubWorkspace(1)
+    const sales = useSalesStore()
+    const pending = sales.handlePaymentReturn({ subscription_id: 'sub_1' })
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(pending).resolves.toEqual({ action: 'enter_chat', scenarioId: 'natal' })
+    expect(refreshes()).toBe(1)
+    expect(sales.paymentState).toBe('confirmed')
+  })
+
+  it('reports a cancelled subscription checkout without polling', async () => {
+    const sales = useSalesStore()
+    const result = await sales.handlePaymentReturn({ subscription_state: 'cancelled' })
+    expect(result).toEqual({
+      action: 'show_message',
+      message: i18n.global.t('commerce.payment.cancelled'),
+      state: 'unpaid',
+    })
+    expect(sales.paymentState).toBe('unpaid')
+  })
+})

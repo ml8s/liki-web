@@ -169,10 +169,26 @@ export const useSalesStore = defineStore('sales', {
     async handlePaymentReturn(query: Record<string, unknown>): Promise<PaymentReturnResult> {
       const orderId = firstQueryValue(query.order_id)
       const paymentIntentId = firstQueryValue(query.payment_intent_id)
+      const subscriptionId = firstQueryValue(query.subscription_id)
+      const subscriptionState = firstQueryValue(query.subscription_state)
       const status = firstQueryValue(query.status)
-      if (!orderId && !paymentIntentId) return { action: 'none' }
+      if (!orderId && !paymentIntentId && !subscriptionId && !subscriptionState) {
+        return { action: 'none' }
+      }
 
-      if (status === 'paid') {
+      if (subscriptionState === 'cancelled') {
+        this.paymentState = 'unpaid'
+        this.paymentMessage = t('commerce.payment.cancelled')
+        return { action: 'show_message', message: this.paymentMessage, state: this.paymentState }
+      }
+
+      if (status === 'unpaid') {
+        this.paymentState = 'unpaid'
+        this.paymentMessage = t('commerce.payment.pending')
+        return { action: 'show_message', message: this.paymentMessage, state: this.paymentState }
+      }
+
+      if (status === 'paid' || subscriptionId) {
         this.paymentState = 'verifying'
         this.paymentMessage = t('commerce.payment.confirmed')
         // Webhook 与 durable fulfillment 可能晚于浏览器返回，短暂轮询而非误报未开通。
@@ -192,10 +208,6 @@ export const useSalesStore = defineStore('sales', {
         return { action: 'show_message', message: this.paymentMessage, state: 'verifying' }
       }
 
-      if (status === 'unpaid') {
-        this.paymentState = 'unpaid'
-        this.paymentMessage = t('commerce.payment.pending')
-      }
       return { action: 'show_message', message: this.paymentMessage, state: this.paymentState }
     },
     // 支付成功后直达解读。优先使用用户当前选择的档案；没有选择时才退回第一个档案。

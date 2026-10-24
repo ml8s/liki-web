@@ -631,8 +631,10 @@
       "confirmed": "支付已確認，正在開通 Liki Chat…",
       "active": "支付成功，Liki Chat 已開通。",
       "processing": "支付已收到，權益開通仍在處理。請稍後重新整理本頁。",
-      "pending": "支付尚未完成。如已完成付款，請稍後重新整理訂單狀態。"
-    }
+      "pending": "支付尚未完成。如已完成付款，請稍後重新整理訂單狀態。",
+      "cancelled": "訂閱支付已取消。你可以隨時重新訂閱。"
+    },
+    "desktopWechatHint": "桌面端會跳轉到微信支付收銀台；請用手機掃碼，或在微信中開啟後完成支付。"
   },
   "chat": {
     "pendingService": "準備開始：{service}",

@@ -62,6 +62,12 @@
       </button>
     </div>
     <p
+      v-if="hasCnyOption"
+      class="desktop-wechat-hint"
+    >
+      {{ $t('commerce.desktopWechatHint') }}
+    </p>
+    <p
       v-if="buying"
       class="plans-pending"
       role="status"
@@ -99,6 +105,10 @@ const oneTimeOption = computed(() =>
   props.product.purchase_options?.find(option => option.billing_mode === 'one_time') ?? null,
 )
 
+const hasCnyOption = computed(() =>
+  props.product.purchase_options?.some(option => option.price.currency_code === 'CNY') ?? false,
+)
+
 function formatPrice(price: MoneyMinor) {
   return new Intl.NumberFormat(locale.value, {
     style: 'currency',
@@ -125,6 +135,10 @@ p { color: var(--liki-text-2); margin: 0 0 12px; }
 .plan__note { color: var(--liki-text-3); font-size: var(--font-size-caption); }
 .plans-empty { margin: 0; color: var(--liki-text-3); font-size: var(--font-size-label); }
 .plans-pending { margin: 10px 0 0; color: var(--liki-text-3); font-size: var(--font-size-caption); }
+.desktop-wechat-hint { display: none; margin: 10px 0 0; color: var(--liki-text-3); font-size: var(--font-size-caption); }
+@media (min-width: 721px) {
+  .desktop-wechat-hint { display: block; }
+}
 .disclaimer {
   margin: 14px 0 0;
   color: var(--liki-text-3);

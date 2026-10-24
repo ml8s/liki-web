@@ -631,8 +631,10 @@
       "confirmed": "Payment confirmed. Activating Liki Chat…",
       "active": "Payment successful. Liki Chat is active.",
       "processing": "Payment received. Access is still being activated; refresh this page shortly.",
-      "pending": "Payment is not complete yet. If you paid, refresh your order status shortly."
-    }
+      "pending": "Payment is not complete yet. If you paid, refresh your order status shortly.",
+      "cancelled": "Subscription checkout was cancelled. You can subscribe again at any time."
+    },
+    "desktopWechatHint": "On desktop you will be redirected to WeChat Pay; scan the QR code with your phone or open the checkout in WeChat."
   },
   "chat": {
     "pendingService": "Ready to start: {service}",
