@@ -285,7 +285,10 @@ func setStaticCacheHeaders(w http.ResponseWriter, r *http.Request) {
 		clean == "/llms.txt":
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 	case strings.HasSuffix(clean, ".html"), strings.HasSuffix(r.URL.Path, "/"):
-		w.Header().Set("Cache-Control", "public, max-age=0, s-maxage=300, stale-while-revalidate=600")
+		// HTML carries a per-request CSP nonce. Shared caching would reuse that
+		// nonce across visitors, so nonce-bearing HTML must never be stored by
+		// an edge or shared cache.
+		w.Header().Set("Cache-Control", "private, no-store")
 	}
 }
 

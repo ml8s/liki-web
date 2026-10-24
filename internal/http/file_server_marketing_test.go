@@ -103,7 +103,7 @@ func TestFileServerCachePolicy(t *testing.T) {
 		path      string
 		wantCache string
 	}{
-		{"/zh-Hant/", "public, max-age=0, s-maxage=300, stale-while-revalidate=600"},
+		{"/zh-Hant/", "private, no-store"},
 		{"/assets/app.abc123.js", "public, max-age=31536000, immutable"},
 		{"/css/app.css", "public, max-age=86400"},
 		{"/app", "no-store"},
