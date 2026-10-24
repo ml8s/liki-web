@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // 统一出生/起卦地点：单字段候选 + 手动经度/IANA 时区逃生口，输出原子 location。
-import { computed, onMounted, ref, useId, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, useId, watch } from 'vue'
 import { ElAutocomplete } from 'element-plus'
 import FieldShell from '../FieldShell.vue'
 import NumberField from './NumberField.vue'
@@ -34,7 +34,8 @@ const emit = defineEmits<{
 }>()
 
 interface AutocompleteExposed {
-  highlightedIndex?: { value: number }
+	highlightedIndex?: { value: number }
+	inputRef?: { ref?: HTMLInputElement }
 }
 
 const autocompleteRef = ref<AutocompleteExposed>()
@@ -45,6 +46,12 @@ const resolving = ref(false)
 const failed = ref(false)
 const manualOpen = ref(false)
 let searchSequence = 0
+
+function sanitizeActiveDescendant() {
+	const input = autocompleteRef.value?.inputRef?.ref
+	const highlightedIndex = autocompleteRef.value?.highlightedIndex?.value ?? -1
+	if (input && highlightedIndex < 0) input.removeAttribute('aria-activedescendant')
+}
 
 const fieldId = useId()
 const statusId = `${fieldId}-status`
@@ -242,7 +249,8 @@ async function resolvePlace() {
 }
 
 function onPlaceEnter(event: KeyboardEvent) {
-  if (event.isComposing || event.keyCode === 229) return
+	void nextTick(sanitizeActiveDescendant)
+	if (event.isComposing || event.keyCode === 229) return
   const highlighted = autocompleteRef.value?.highlightedIndex?.value ?? -1
   if (highlighted >= 0) return
   window.setTimeout(() => { void resolvePlace() }, 0)
@@ -275,8 +283,14 @@ watch(() => props.location, (value) => {
   }
 })
 
+watch(
+	() => autocompleteRef.value?.highlightedIndex?.value,
+	() => void nextTick(sanitizeActiveDescendant),
+)
+
 onMounted(() => {
-  if (query.value.trim() && !props.location) void resolvePlace()
+	void nextTick(sanitizeActiveDescendant)
+	if (query.value.trim() && !props.location) void resolvePlace()
 })
 </script>
 
