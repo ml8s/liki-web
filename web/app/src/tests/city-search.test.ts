@@ -25,6 +25,9 @@ describe('city search localization', () => {
     const saved = { place: '北京市', place_id: 'CN-110000' }
     expect(formatSavedPlace(saved, 'en')).toBe('Beijing')
     expect(formatSavedPlace(saved, 'zh-Hant')).toBe('北京市')
+    const legacy = { place: '北京市海淀区', longitude: 116.298, timezone: 'Asia/Shanghai' }
+    expect(formatSavedPlace(legacy, 'en')).toBe('Haidian, Beijing')
+    expect(formatSavedPlace(legacy, 'zh-Hant')).toBe('北京市海淀區')
     vi.unstubAllGlobals()
   })
 
