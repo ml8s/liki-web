@@ -285,6 +285,16 @@ CREATE INDEX idx_birth_profiles_user_created
 				return err
 			},
 		},
+		{
+			// The raw pre-canonical archive was only needed while 009 backfilled
+			// civil birth times. Canonical rows are authoritative; no compatibility
+			// reader exists.
+			ID: "010_drop_birth_profile_legacy_archive",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `DROP TABLE IF EXISTS birth_profiles_legacy;`)
+				return err
+			},
+		},
 	})
 }
 

@@ -49,36 +49,8 @@ func (s *Store) migrate() error {
 	if err != nil {
 		return err
 	}
-	// legacy 库（旧 category/message/context 结构）：补齐 payload/hash 列。
-	for _, col := range []struct{ name, def string }{
-		{"payload", "''"}, {"hash", "''"},
-	} {
-		if err := s.addColumnIfMissing(col.name, col.def); err != nil {
-			return err
-		}
-	}
-	// legacy 行回填为 raw JSON，便于排查（旧列保留不用）。
-	// Legacy rows are backfilled eagerly; a missing column must surface
-	// instead of silently leaving payloads empty forever. Fresh tables never
-	// had the legacy category/message columns, so the backfill is skipped.
-	var legacyCols int
-	if err := s.db.QueryRow(`
-		SELECT COUNT(*) FROM pragma_table_info('feedback')
-		WHERE name IN ('category','message')
-	`).Scan(&legacyCols); err != nil {
-		return err
-	}
-	if legacyCols == 2 {
-		if _, err := s.db.Exec(`
-			UPDATE feedback SET
-				payload = json_object('schema_version','legacy','category',category,'message',message)
-			WHERE payload = '' AND message != ''
-		`); err != nil {
-			return err
-		}
-	}
 	// Content-hash dedup is enforced at the schema level; empty hashes
-	// (legacy rows) are excluded from the unique scope.
+	// (empty hash rows) are excluded from the unique scope.
 	if _, err := s.db.Exec(`
 		DELETE FROM feedback WHERE hash != '' AND rowid NOT IN (
 			SELECT MIN(rowid) FROM feedback WHERE hash != '' GROUP BY hash
@@ -93,23 +65,6 @@ func (s *Store) migrate() error {
 		return err
 	}
 	return nil
-}
-
-func (s *Store) addColumnIfMissing(name, def string) error {
-	var found bool
-	rows, err := s.db.Query(`SELECT name FROM pragma_table_info('feedback') WHERE name = ?`, name)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = rows.Close() }()
-	for rows.Next() {
-		found = true
-	}
-	if found {
-		return nil
-	}
-	_, err = s.db.Exec(`ALTER TABLE feedback ADD COLUMN ` + name + ` TEXT NOT NULL DEFAULT ` + def)
-	return err
 }
 
 func (s *Store) Create(fb *Feedback) error {

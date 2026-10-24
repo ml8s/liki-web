@@ -45,22 +45,8 @@ func NewPaymentCompletionTaskStore(db *sql.DB) *PaymentCompletionTaskStore {
 }
 
 func (s *PaymentCompletionTaskStore) Migrate(ctx context.Context) error {
-	var canonicalTables int
-	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE type='table' AND name='payment_completion_tasks'`).Scan(&canonicalTables); err != nil {
-		return err
-	}
-	if canonicalTables > 0 {
-		if _, err := s.db.ExecContext(ctx, `
-CREATE INDEX IF NOT EXISTS idx_payment_completion_tasks_due
-    ON payment_completion_tasks(status, run_at);
-`); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	const legacySchema = `
-CREATE TABLE IF NOT EXISTS fulfillment_tasks (
+	_, err := s.db.ExecContext(ctx, `
+CREATE TABLE IF NOT EXISTS payment_completion_tasks (
     id TEXT PRIMARY KEY,
     payment_intent_id TEXT NOT NULL UNIQUE,
     business_order_id TEXT NOT NULL,
@@ -72,23 +58,10 @@ CREATE TABLE IF NOT EXISTS fulfillment_tasks (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_fulfillment_tasks_due
-    ON fulfillment_tasks(status, run_at);
-`
-	if _, err := s.db.ExecContext(ctx, legacySchema); err != nil {
-		return err
-	}
-	if _, err := s.db.ExecContext(ctx, `ALTER TABLE fulfillment_tasks RENAME TO payment_completion_tasks`); err != nil {
-		return err
-	}
-	if _, err := s.db.ExecContext(ctx, `
-DROP INDEX IF EXISTS idx_fulfillment_tasks_due;
 CREATE INDEX IF NOT EXISTS idx_payment_completion_tasks_due
     ON payment_completion_tasks(status, run_at);
-`); err != nil {
-		return err
-	}
-	return nil
+`)
+	return err
 }
 
 // EnsureQueued creates the one fulfillment task for a paid intent. A terminal

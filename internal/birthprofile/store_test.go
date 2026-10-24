@@ -11,6 +11,34 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+func TestMigrateDropsLegacyArchive(t *testing.T) {
+	db := openTestDB(t)
+	if _, err := db.Exec(`
+CREATE TABLE birth_profiles_legacy (
+    id TEXT PRIMARY KEY,
+    calendar TEXT NOT NULL DEFAULT '',
+    birth_date TEXT NOT NULL DEFAULT '',
+    birth_time TEXT NOT NULL DEFAULT '',
+    birth_time_known TEXT NOT NULL DEFAULT ''
+);
+INSERT INTO birth_profiles_legacy VALUES ('legacy','solar','1990-01-01','00:00','1');
+`); err != nil {
+		t.Fatal(err)
+	}
+
+	store := NewStore(db)
+	if err := store.Migrate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := db.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type='table' AND name='birth_profiles_legacy'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatal("birth_profiles_legacy must be dropped")
+	}
+}
+
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	db, err := sql.Open("sqlite", ":memory:")
