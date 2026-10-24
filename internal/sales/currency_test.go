@@ -37,3 +37,26 @@ func TestExplicitCurrencyResolverRequiresValidRegion(t *testing.T) {
 		t.Fatal("error = nil, want invalid region")
 	}
 }
+
+func TestTrustedEdgeCurrencyResolverDefaultsToUSDWithoutGeo(t *testing.T) {
+	resolver, err := NewCurrencyResolver(CurrencySourceTrustedEdge, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest("POST", "/", nil)
+	if got := resolver.CurrencyFor(request); got != product.USD {
+		t.Fatalf("currency = %q, want USD", got)
+	}
+}
+
+func TestDetectCurrencyUsesGeoFallbackAndDefaultsToUSD(t *testing.T) {
+	if got := DetectCurrency("", "CN"); got != product.CNY {
+		t.Fatalf("geo CN = %q, want CNY", got)
+	}
+	if got := DetectCurrency("", "US"); got != product.USD {
+		t.Fatalf("geo US = %q, want USD", got)
+	}
+	if got := DetectCurrency("", ""); got != product.USD {
+		t.Fatalf("no geo = %q, want USD", got)
+	}
+}

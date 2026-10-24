@@ -43,6 +43,13 @@ func TestHandleProductsOffersOnlyRegionPurchasableOptions(t *testing.T) {
 			wantOptions:     []string{"one_time/USD/2990", "subscription/USD/1990"},
 		},
 		{
+			name:            "missing geo defaults to Dodo",
+			country:         "",
+			wantCurrency:    "USD",
+			wantAmountMinor: 2990,
+			wantOptions:     []string{"one_time/USD/2990", "subscription/USD/1990"},
+		},
+		{
 			// 部署没配订阅商品时不要下发订阅 offer：点下去只会拿到 502。
 			name:                  "unconfigured subscription product is not advertised",
 			country:               "US",

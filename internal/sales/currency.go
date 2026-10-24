@@ -56,7 +56,9 @@ func normalizeBillingRegion(value string) string {
 
 // DetectCurrency derives billing currency from trusted edge/geo headers.
 // Cloudflare's country is authoritative; the fallback is set by the trusted
-// reverse proxy. Absence of geo information defaults to CNY.
+// reverse proxy. Absence of geo information defaults to USD so an unclassified
+// buyer uses Dodo (international) rather than being forced onto the mainland
+// Xunhu gateway.
 func DetectCurrency(cfCountry, geoCountry string) product.Currency {
 	switch {
 	case cfCountry != "":
@@ -70,6 +72,6 @@ func DetectCurrency(cfCountry, geoCountry string) product.Currency {
 		}
 		return product.USD
 	default:
-		return product.CNY
+		return product.USD
 	}
 }
