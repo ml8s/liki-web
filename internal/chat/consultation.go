@@ -73,6 +73,16 @@ func validConsultationScenario(scenario string) bool {
 	}
 }
 
+// ExpertForScenario is the single scenario→expert routing table used by the
+// HTTP boundary. It returns false for unknown scenarios; callers must fail
+// closed instead of defaulting to an arbitrary expert.
+func ExpertForScenario(scenario string) (string, bool) {
+	if !validConsultationScenario(scenario) {
+		return "", false
+	}
+	return consultationExpert(scenario), true
+}
+
 func consultationExpert(scenario string) string {
 	switch scenario {
 	case "divination", "huangli":

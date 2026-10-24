@@ -46,6 +46,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 type createSessionRequest struct {
 	Skill     string               `json:"skill"`
+	Scenario  string               `json:"scenario"`
 	Expert    string               `json:"expert"`
 	Title     string               `json:"title"`
 	ProfileID string               `json:"profile_id"`
@@ -56,12 +57,45 @@ func (r createSessionRequest) Validate() error {
 	if strings.TrimSpace(r.Skill) == "" {
 		return errors.New("skill is required")
 	}
-	if !ValidExpert(strings.TrimSpace(r.Expert)) {
+	if expert := strings.TrimSpace(r.Expert); expert != "" && !ValidExpert(expert) {
 		return errors.New("expert must be one of natal, divination, fengshui, naming")
+	}
+	if scenario := strings.TrimSpace(r.Scenario); scenario != "" {
+		if _, ok := ExpertForScenario(scenario); !ok {
+			return errors.New("scenario is invalid")
+		}
+	}
+	if strings.TrimSpace(r.Expert) == "" && strings.TrimSpace(r.Scenario) == "" && r.Context == nil {
+		return errors.New("expert or scenario is required")
 	}
 	// Consultation validation is handled after strict transport decoding so the
 	// endpoint can return its domain-specific invalid_consultation_context code.
 	return nil
+}
+
+// resolvedExpert derives the deployment route from the server-owned scenario
+// vocabulary. The client-supplied expert is an assertion, never the source of
+// truth; a mismatch fails closed.
+func (r createSessionRequest) resolvedExpert() (string, error) {
+	scenario := strings.TrimSpace(r.Scenario)
+	if r.Context != nil {
+		scenario = r.Context.Scenario
+	}
+	if scenario != "" {
+		expert, ok := ExpertForScenario(scenario)
+		if !ok {
+			return "", errors.New("scenario is invalid")
+		}
+		if asserted := strings.TrimSpace(r.Expert); asserted != "" && asserted != expert {
+			return "", errors.New("scenario does not match expert")
+		}
+		return expert, nil
+	}
+	expert := strings.TrimSpace(r.Expert)
+	if !ValidExpert(expert) {
+		return "", errors.New("expert or scenario is required")
+	}
+	return expert, nil
 }
 
 func (h *Handler) HandleSessions(w http.ResponseWriter, r *http.Request) {
@@ -87,8 +121,13 @@ func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondError(w, http.StatusBadRequest, "invalid_consultation_context", err.Error())
 		return
 	}
-	if req.Context != nil && consultationExpert(req.Context.Scenario) != strings.TrimSpace(req.Expert) {
+	if req.Context != nil && strings.TrimSpace(req.Expert) != "" && consultationExpert(req.Context.Scenario) != strings.TrimSpace(req.Expert) {
 		httputil.RespondError(w, http.StatusBadRequest, "invalid_consultation_context", "consultation scenario does not match the selected expert")
+		return
+	}
+	expert, err := req.resolvedExpert()
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
 	var consultationContext json.RawMessage
@@ -102,7 +141,7 @@ func (h *Handler) HandleCreateSession(w http.ResponseWriter, r *http.Request) {
 		consultationContext = raw
 	}
 	session, err := h.service.CreateSessionWithContext(
-		r.Context(), user.ID, req.Skill, strings.TrimSpace(req.Expert), req.Title, req.ProfileID, consultationContext,
+		r.Context(), user.ID, req.Skill, expert, req.Title, req.ProfileID, consultationContext,
 	)
 	if err != nil {
 		if errors.Is(err, ErrExpertInvalid) {

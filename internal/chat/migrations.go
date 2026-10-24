@@ -144,5 +144,18 @@ CREATE TABLE chat_consultation_contexts (
 				return err
 			},
 		},
+		{
+			// 四专家迁移前的会话没有可路由的 expert。它们无法打开，也不应
+			// 出现在「最近会话」里；保留行与消息，状态改为 closed。
+			ID: "chat_009_close_legacy_sessions",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `
+UPDATE chat_sessions
+SET status='closed'
+WHERE expert='' AND status='active' AND deleted_at IS NULL
+`)
+				return err
+			},
+		},
 	})
 }

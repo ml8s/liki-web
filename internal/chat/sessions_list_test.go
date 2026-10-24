@@ -61,3 +61,25 @@ func TestListSessionsOrderedAndLimited(t *testing.T) {
 		}
 	}
 }
+
+func TestListSessionsExcludesSessionsWithoutExpert(t *testing.T) {
+	ctx := context.Background()
+	chats := newExchangeTestStore(t)
+
+	// A pre-four-expert session has no routable expert. It must not appear in
+	// the recent list, otherwise the UI offers a link that always 404s.
+	if _, err := chats.CreateSession(ctx, "user-1", "liki", "", "legacy", ""); err != nil {
+		t.Fatal(err)
+	}
+	live, err := chats.CreateSession(ctx, "user-1", "liki", ExpertNatal, "live", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions, err := chats.ListSessions(ctx, "user-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sessions) != 1 || sessions[0].ID != live.ID {
+		t.Fatalf("sessions = %#v, want only live session", sessions)
+	}
+}

@@ -173,7 +173,7 @@ const sessionListLimit = 200
 func (s *ChatStore) ListSessions(ctx context.Context, userID string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at
-FROM chat_sessions WHERE user_id=? AND status='active' AND deleted_at IS NULL
+FROM chat_sessions WHERE user_id=? AND status='active' AND expert<>'' AND deleted_at IS NULL
 ORDER BY COALESCE(last_message_at,updated_at) DESC
 LIMIT ?`, userID, sessionListLimit)
 	if err != nil {
