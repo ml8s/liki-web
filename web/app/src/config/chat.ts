@@ -35,13 +35,9 @@ export const chatScenarios: ChatScenario[] = [
   { id: 'naming', glyphKey: 'services.glyph.naming', labelKey: 'services.naming.label', descKey: 'services.naming.description', intentKey: 'services.naming.intent', ctaKey: 'services.naming.cta', expert: 'naming' },
 ]
 
-// 兼容旧链接别名：bazi/mingshu 并入 natal，bond 即合盘。
-const SCENARIO_ALIASES: Record<string, ScenarioId> = { bazi: 'natal', mingshu: 'natal', bond: 'hepan' }
-
 export function scenarioById(key: string | null | undefined): ChatScenario | undefined {
   if (!key) return undefined
-  const id = SCENARIO_ALIASES[key] ?? key
-  return chatScenarios.find(s => s.id === id)
+  return chatScenarios.find(s => s.id === key)
 }
 
 export function scenarioByIntent(intent: string): ChatScenario | undefined {

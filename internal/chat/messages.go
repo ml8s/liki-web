@@ -162,8 +162,13 @@ func (s *ChatStore) TouchSession(ctx context.Context, sessionID string, now time
 // metadata are preserved for audit continuity.
 func (s *ChatStore) AnonymizeUserMessages(ctx context.Context, userID string) (int64, error) {
 	if _, err := s.db.ExecContext(ctx, `
-UPDATE chat_sessions SET title='', profile_id='', context_json=NULL
+UPDATE chat_sessions SET title='', profile_id=''
 WHERE user_id=?`, userID); err != nil {
+		return 0, err
+	}
+	if _, err := s.db.ExecContext(ctx, `
+DELETE FROM chat_consultation_contexts
+WHERE session_id IN (SELECT id FROM chat_sessions WHERE user_id=?)`, userID); err != nil {
 		return 0, err
 	}
 	result, err := s.db.ExecContext(ctx, `

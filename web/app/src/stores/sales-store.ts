@@ -6,6 +6,11 @@ import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { toUserMessage } from '@/utils/errors'
 import { firstQueryValue } from '@/utils/query'
 import { i18n } from '@/i18n'
+import {
+  consultationBirthFromFields,
+  type ConsultationContext,
+} from '@shared/domain/consultation'
+import type { BirthFieldsValue } from '@shared/components/form/birth-fields'
 
 function t(key: string): string {
   return i18n.global.t(key)
@@ -167,8 +172,10 @@ export const useSalesStore = defineStore('sales', {
       const profileId = preferredProfileId || profiles.list[0]?.id || ''
       if (!profileId) return null
       try {
-        // 支付成功后直达解读：默认进入旗舰的本命专家会话。
-        const session = await useChatStore().createSession(profileId, 'natal')
+        // 支付成功后直达解读：默认进入旗舰的本命专家会话，并固化档案事实。
+        const profile = profiles.list.find(item => item.id === profileId)
+        const context = profile ? consultationContextFor(profile) : null
+        const session = await useChatStore().createSession(profileId, 'natal', context ?? undefined)
         return session.id
       } catch (error) {
         this.actionError = toUserMessage(error, t('chat.createFailed'))
@@ -177,3 +184,31 @@ export const useSalesStore = defineStore('sales', {
     },
   },
 })
+
+function consultationContextFor(profile: {
+  birth: {
+    gender: 'female' | 'male'
+    date: string | null
+    time: string | null
+    location: { longitude: number | null; timezone: string | null }
+  }
+}): ConsultationContext | null {
+  const { gender, date, time, location } = profile.birth
+  if (!date || !time || location.longitude == null || !location.timezone) return null
+  const birth: BirthFieldsValue = {
+    gender,
+    date,
+    time,
+    location: {
+      place: '',
+      longitude: location.longitude,
+      timezone: location.timezone,
+      source: 'saved',
+    },
+  }
+  return {
+    version: 1,
+    scenario: 'natal',
+    birth: consultationBirthFromFields(birth),
+  }
+}

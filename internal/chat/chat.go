@@ -74,13 +74,6 @@ func NewChatStore(db *sql.DB) *ChatStore {
 	return &ChatStore{db: db, nowFunc: func() time.Time { return time.Now().UTC() }, idFunc: uuid.NewString}
 }
 
-func nullableJSON(value json.RawMessage) any {
-	if len(value) == 0 {
-		return nil
-	}
-	return string(value)
-}
-
 func (s *ChatStore) CreateSession(ctx context.Context, userID, skill, expert, title, profileID string) (Session, error) {
 	return s.CreateSessionWithContext(ctx, userID, skill, expert, title, profileID, nil)
 }
@@ -96,15 +89,30 @@ func (s *ChatStore) CreateSessionWithContext(
 		Title: title, ProfileID: profileID, Status: SessionActive,
 		Context: consultationContext,
 	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return Session{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
 	var createdAt, updatedAt string
-	err := s.db.QueryRowContext(ctx, `
-INSERT INTO chat_sessions (id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at,context_json)
-VALUES (?,?,?,?,?,?,?,?,?,?,?)
+	err = tx.QueryRowContext(ctx, `
+INSERT INTO chat_sessions (id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at)
+VALUES (?,?,?,?,?,?,?,?,?,?)
 RETURNING created_at,updated_at`,
 		session.ID, userID, profileID, skill, expert, title, string(SessionActive), now, now, now,
-		nullableJSON(session.Context),
 	).Scan(&createdAt, &updatedAt)
 	if err != nil {
+		return Session{}, err
+	}
+	if len(session.Context) != 0 {
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO chat_consultation_contexts (session_id,context_json) VALUES (?,?)`,
+			session.ID, string(session.Context)); err != nil {
+			return Session{}, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
 		return Session{}, err
 	}
 	session.CreatedAt = chatMustTime(createdAt)
@@ -112,14 +120,18 @@ RETURNING created_at,updated_at`,
 	return session, nil
 }
 
-func scanSession(scan func(dest ...any) error) (Session, error) {
+func scanSession(scan func(dest ...any) error, consultationContext *sql.NullString) (Session, error) {
 	var session Session
 	var status, createdAt, updatedAt string
-	var lastMessage, consultationContext sql.NullString
-	err := scan(
+	var lastMessage sql.NullString
+	dest := []any{
 		&session.ID, &session.UserID, &session.ProfileID, &session.Skill, &session.Expert,
-		&session.Title, &status, &createdAt, &updatedAt, &lastMessage, &consultationContext,
-	)
+		&session.Title, &status, &createdAt, &updatedAt, &lastMessage,
+	}
+	if consultationContext != nil {
+		dest = append(dest, consultationContext)
+	}
+	err := scan(dest...)
 	if err != nil {
 		return Session{}, err
 	}
@@ -130,18 +142,26 @@ func scanSession(scan func(dest ...any) error) (Session, error) {
 		t := chatMustTime(lastMessage.String)
 		session.LastMessageAt = &t
 	}
-	if consultationContext.Valid {
+	if consultationContext != nil && consultationContext.Valid {
 		session.Context = json.RawMessage(consultationContext.String)
 	}
 	return session, nil
 }
 
 func (s *ChatStore) GetSession(ctx context.Context, userID, sessionID string) (Session, error) {
+	var consultationContext sql.NullString
 	session, err := scanSession(s.db.QueryRowContext(ctx, `
-SELECT id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at,context_json
-FROM chat_sessions WHERE id=? AND user_id=? AND deleted_at IS NULL`, sessionID, userID).Scan)
+SELECT
+    s.id,s.user_id,s.profile_id,s.skill,s.expert,s.title,s.status,s.created_at,s.updated_at,s.last_message_at,
+    c.context_json
+FROM chat_sessions AS s
+LEFT JOIN chat_consultation_contexts AS c ON c.session_id=s.id
+WHERE s.id=? AND s.user_id=? AND s.deleted_at IS NULL`, sessionID, userID).Scan, &consultationContext)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Session{}, ErrSessionNotFound
+	}
+	if err != nil {
+		return Session{}, err
 	}
 	return session, err
 }
@@ -152,7 +172,7 @@ const sessionListLimit = 200
 
 func (s *ChatStore) ListSessions(ctx context.Context, userID string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx, `
-SELECT id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at,context_json
+SELECT id,user_id,profile_id,skill,expert,title,status,created_at,updated_at,last_message_at
 FROM chat_sessions WHERE user_id=? AND status='active' AND deleted_at IS NULL
 ORDER BY COALESCE(last_message_at,updated_at) DESC
 LIMIT ?`, userID, sessionListLimit)
@@ -162,7 +182,7 @@ LIMIT ?`, userID, sessionListLimit)
 	defer func() { _ = rows.Close() }()
 	out := make([]Session, 0)
 	for rows.Next() {
-		session, err := scanSession(rows.Scan)
+		session, err := scanSession(rows.Scan, nil)
 		if err != nil {
 			return nil, err
 		}

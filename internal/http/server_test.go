@@ -148,25 +148,6 @@ func TestEd3_Version_AllMethods(t *testing.T) {
 
 // ── fileServer ──
 
-func TestLegacyPageRedirectTargets(t *testing.T) {
-	tests := []struct {
-		path string
-		want string
-		ok   bool
-	}{
-		{"/zh-Hant/mingshu", "/zh-Hant/natal/", true},
-		{"/en/bazi", "/en/natal/", true},
-		{"/zh-Hans/partners", "/zh-Hans/", true},
-		{"/zh-Hant/natal", "", false},
-	}
-	for _, tc := range tests {
-		got, ok := legacyPageRedirect(tc.path)
-		if ok != tc.ok || got != tc.want {
-			t.Errorf("legacyPageRedirect(%q) = (%q,%v), want (%q,%v)", tc.path, got, ok, tc.want, tc.ok)
-		}
-	}
-}
-
 func TestFileServer_ServesDirIndex(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir+"/zh-Hans", 0755)                                         //nolint:errcheck

@@ -230,7 +230,7 @@ func TestSendMessageFailsClosedWhenPersistedContextIsInvalid(t *testing.T) {
 		t.Fatal(err)
 	}
 	invalid := `{"version":1,"scenario":"divination","question":"項目能否成交"}`
-	if _, err := chats.db.ExecContext(ctx, `UPDATE chat_sessions SET context_json = ? WHERE id = ?`, invalid, session.ID); err != nil {
+	if _, err := chats.db.ExecContext(ctx, `INSERT INTO chat_consultation_contexts (session_id,context_json) VALUES (?,?)`, session.ID, invalid); err != nil {
 		t.Fatal(err)
 	}
 

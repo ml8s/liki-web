@@ -101,9 +101,6 @@ fengshui   → expert fengshui
 naming     → expert naming
 ```
 
-Legacy ids `bazi` / `mingshu` normalize to `natal`; `bond` normalizes to
-`hepan`.
-
 ### Scenario naming convention
 
 Scenario identifiers use **pinyin** when they map to one specific Chinese

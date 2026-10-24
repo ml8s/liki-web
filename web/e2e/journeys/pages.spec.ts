@@ -97,8 +97,6 @@ test.describe('Static page interactions', () => {
 
   test('bare capability entries negotiate a localized landing page', async ({ request }) => {
     const cases = [
-      ['/bazi', 'zh-Hans,zh;q=0.9', '/zh-Hans/natal'],
-      ['/bazi', 'en-US,en;q=0.9', '/en/natal'],
       ['/divination', 'zh-TW,zh;q=0.9', '/zh-Hant/divination'],
       ['/fengshui', 'ja-JP,ja;q=0.9', '/zh-Hant/fengshui'],
       ['/huangli', 'zh-Hans,zh;q=0.9', '/zh-Hans/huangli'],

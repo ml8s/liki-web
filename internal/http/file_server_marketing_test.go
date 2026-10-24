@@ -21,7 +21,6 @@ func writeTestFile(t *testing.T, path, content string) {
 
 // TestFileServerMarketingContract 锁定营销站静态契约：
 //   - 不存在的语言路径必须 404（不得回落语言首页造成软 404）；
-//   - 旧 .html URL 301 到规范路径（bond 是合盘旧名）；
 //   - 目录 URL 301 到带斜杠版本；
 //   - / 按 Accept-Language 协商。
 func TestFileServerMarketingContract(t *testing.T) {
@@ -53,8 +52,7 @@ func TestFileServerMarketingContract(t *testing.T) {
 	}{
 		{name: "unknown locale path is 404", path: "/zh-Hans/does-not-exist", wantStatus: http.StatusNotFound, wantBody: "not found"},
 		{name: "locale home still serves", path: "/zh-Hans/", wantStatus: http.StatusOK, wantBody: "Hans home"},
-		{name: "legacy bond.html redirects to hepan", path: "/zh-Hant/bond.html", wantStatus: http.StatusMovedPermanently, wantLoc: "/zh-Hant/hepan/"},
-		{name: "legacy html without target stays 404", path: "/zh-Hant/naming.html", wantStatus: http.StatusNotFound, wantBody: "not found"},
+		{name: "legacy html path is 404", path: "/zh-Hant/naming.html", wantStatus: http.StatusNotFound, wantBody: "not found"},
 		{name: "directory without slash normalizes", path: "/en/terms", wantStatus: http.StatusMovedPermanently, wantLoc: "/en/terms/"},
 		{name: "root negotiates zh-Hans", path: "/", accept: "zh-CN", wantStatus: http.StatusFound, wantLoc: "/zh-Hans/"},
 		{name: "root defaults to zh-Hant", path: "/", wantStatus: http.StatusFound, wantLoc: "/zh-Hant/"},
@@ -64,8 +62,6 @@ func TestFileServerMarketingContract(t *testing.T) {
 		{name: "unprefixed path falls back when negotiated locale lacks page", path: "/hant-only/", accept: "en-US", wantStatus: http.StatusMovedPermanently, wantLoc: "/zh-Hant/hant-only/"},
 		{name: "removed skills entry is 404", path: "/skills", wantStatus: http.StatusNotFound, wantBody: "not found"},
 		{name: "removed skill artifact is 404", path: "/skills/liki/SKILL.md", wantStatus: http.StatusNotFound, wantBody: "not found"},
-		{name: "legacy bazi redirects to natal", path: "/zh-Hans/bazi", wantStatus: http.StatusMovedPermanently, wantLoc: "/zh-Hans/natal/"},
-		{name: "legacy mingshu redirects to natal", path: "/en/mingshu", wantStatus: http.StatusMovedPermanently, wantLoc: "/en/natal/"},
 		{name: "hepan page serves", path: "/zh-Hant/hepan/", wantStatus: http.StatusOK, wantBody: "Hant hepan"},
 		{name: "natal page serves", path: "/zh-Hans/natal/", wantStatus: http.StatusOK, wantBody: "Hans natal"},
 	}

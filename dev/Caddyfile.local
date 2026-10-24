@@ -73,14 +73,6 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	redir /zh-Hant /zh-Hant/ 308
 	redir /en /en/ 308
 
-	# Legacy redirects: old locale paths → new BCP 47 paths
-	redir /zh /zh-Hans/ 308
-	redir /hk /zh-Hant/ 308
-	@zh-legacy path_regexp zh ^/zh/(.*)
-	redir @zh-legacy /zh-Hans/{re.zh.1} 308
-	@hk-legacy path_regexp hk ^/hk/(.*)
-	redir @hk-legacy /zh-Hant/{re.hk.1} 308
-
 	# ── Bare-path → locale-prefixed redirects (Accept-Language) ──
 
 	# 裸路径 → 本地化页面（Accept-Language 协商）。map 单次求值 + 每条路径单条
@@ -102,21 +94,14 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 	redir /index.html /{marketing_lang}/ 302
 	redir /naming /{marketing_lang}/naming 302
 	redir /hepan /{marketing_lang}/natal 302
-	redir /mingshu /{marketing_lang}/natal 302
 	redir /about /{marketing_lang}/about 302
 	redir /contact /{marketing_lang}/contact 302
 	redir /disclaimer /{marketing_lang}/disclaimer 302
 	redir /privacy /{marketing_lang}/privacy 302
 	redir /terms /{marketing_lang}/terms 302
-	redir /partners /{marketing_lang}/ 302
-	redir /bazi /{marketing_lang}/natal 302
 	redir /divination /{marketing_lang}/divination 302
 	redir /fengshui /{marketing_lang}/fengshui 302
 	redir /huangli /{marketing_lang}/huangli 302
-
-	# /chat — legacy chat landing now lives in the Liki Chat app
-	redir /chat /app/chat 302
-	redir /naming/chat /app/chat 302
 
 	# All other routes → Go handles API + static files
 	handle {

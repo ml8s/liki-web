@@ -137,9 +137,10 @@ Exclusions:
 ### 2.2 API and storage
 
 Extend `POST /api/chat/sessions` with optional `context`. Validate the
-discriminated union, reject unknown members, and store it in a new nullable
-`context_json` column. Session reads return context only to the owner while
-entitled.
+discriminated union, reject unknown members, and store it in
+`chat_consultation_contexts.context_json` as a required JSON object. A session
+without tool context has no row; the column is never nullable. Session reads
+return context only to the owner while entitled.
 
 Relay generation reads the persisted context and places it under:
 

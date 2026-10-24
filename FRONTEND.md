@@ -78,8 +78,6 @@ surfaces (`/{locale}/natal/` ↔ `/app?scenario=natal`):
   (the seven user-facing scenarios). The internal expert deployment
   (`natal | divination | fengshui | naming`) is never presented to users;
 - tool-route entries use the same ids through `/app?service=…`;
-- legacy values are normalized for old links and stored session keys:
-  `bazi | mingshu → natal`, `bond → hepan`;
 - the app keeps the locale, authenticates the user, resolves the scenario after
   profile data has loaded, and falls unknown values back to the general
   workspace.
@@ -421,9 +419,9 @@ point that ends in the app.
 
 ## Retired product pages
 
-`/mingshu` is retired: the life reading is the deliverable of the natal
-scenario, not a separate page; `/mingshu` and `/bazi` 301 to `/natal`.
-`/naming` and `/hepan` are live scenario pages.
+`/mingshu` and `/bazi` are retired and return 404; the life reading is the
+deliverable of the natal scenario. `/naming` and `/hepan` are live scenario
+pages.
 
 The retired naming activation and chat URLs redirect to the Liki Chat scenario;
 the retired commerce backends, client-side report demo renderer, and vendored

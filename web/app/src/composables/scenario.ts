@@ -2,10 +2,9 @@ import type { ScenarioId as ValueScenarioId } from '@/config/chat'
 
 export type ScenarioId = 'general' | ValueScenarioId
 
-/** 营销落地页交接参数 → 场景 id；旧参数（bazi/mingshu）保留兼容。 */
+/** 营销落地页交接参数 → 场景 id；只接受现行七场景。 */
 export function normalizeScenario(value: unknown): ScenarioId {
   const scenario = String(value ?? '')
-  if (scenario === 'bazi' || scenario === 'mingshu') return 'natal'
   if (
     scenario === 'natal' || scenario === 'liunian' || scenario === 'hepan' ||
     scenario === 'divination' || scenario === 'huangli' || scenario === 'fengshui' ||

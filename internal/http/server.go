@@ -227,27 +227,6 @@ func findWebDir() string {
 // marketingLocales 是营销站的语言前缀。
 var marketingLocales = []string{"/zh-Hans", "/zh-Hant", "/en"}
 
-// legacyPageTargets 记录已合并/下线的营销页（v5：bazi/mingshu 并入 natal；
-// partners 下线为定向邀请制；hepan 已恢复独立页）。空目标表示落到语言首页。
-var legacyPageTargets = map[string]string{"bazi": "natal", "mingshu": "natal", "partners": ""}
-
-// legacyPageRedirect 返回下线页的 301 目标（/{locale}/{old}/ → /{locale}/{target}/ 或语言首页）。
-func legacyPageRedirect(clean string) (string, bool) {
-	for _, loc := range marketingLocales {
-		if !strings.HasPrefix(clean, loc+"/") {
-			continue
-		}
-		page := strings.TrimPrefix(clean, loc+"/")
-		if target, ok := legacyPageTargets[page]; ok {
-			if target == "" {
-				return loc + "/", true
-			}
-			return loc + "/" + target + "/", true
-		}
-	}
-	return "", false
-}
-
 // marketingPathLocale 返回路径的营销语言前缀；无前缀返回 false。
 func marketingPathLocale(clean string) (string, bool) {
 	for _, loc := range marketingLocales {
@@ -289,26 +268,6 @@ func fileServer(webDir string, next http.Handler) http.Handler {
 			return true
 		}
 		if _, ok := marketingPathLocale(clean); ok {
-			// 旧 .html 营销 URL（bond 为合盘旧名）：目标存在时 301 到规范路径。
-			if strings.HasSuffix(clean, ".html") {
-				base := strings.TrimSuffix(clean, ".html")
-				if strings.HasSuffix(base, "/bond") {
-					// bond 为合盘旧名；合盘页现为 hepan。
-					base = strings.TrimSuffix(base, "bond") + "hepan"
-				}
-				target := base + "/"
-				if _, ok := marketingPathLocale(target); ok {
-					if _, err := os.Stat(filepath.Join(root, target[1:], "index.html")); err == nil {
-						http.Redirect(w, r, target, http.StatusMovedPermanently)
-						return true
-					}
-				}
-			}
-			// 已合并页面（命理三页 → natal）：301 到新页，保留收取的权重。
-			if target, ok := legacyPageRedirect(clean); ok {
-				http.Redirect(w, r, target, http.StatusMovedPermanently)
-				return true
-			}
 			// 不存在的营销路径必须 404：回落到语言首页会造成软 404 与索引稀释。
 			return false
 		}

@@ -230,8 +230,9 @@ Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshu
 
 `POST /api/chat/sessions` accepts an optional strict `context` object. The
 versioned context preserves the exact tool facts required to continue a paid
-consultation. It is persisted with the session, returned only by the session
-detail endpoint (not the list projection), placed under
+consultation. It is persisted as a required JSON object in a session-owned
+consultation-context row, returned only by the session detail endpoint (not the
+list projection), placed under
 `forwardedProps.consultation_context` by both transports, and cleared by
 account erasure. Invalid or unknown context shapes return HTTP 400 with
 `invalid_consultation_context` or `invalid_request`, respectively.

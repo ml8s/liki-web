@@ -129,11 +129,17 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_session_created
 		},
 		{
 			// Tool-to-Chat continuity: deterministic/non-reproducible consultation
-			// facts are attached to the durable session and forwarded to the expert.
+			// facts live in their own required-value table. A session without a
+			// tool context is represented by the absence of a row, not NULL.
 			ID: "chat_008_consultation_context",
 			Up: func(ctx context.Context, tx *sql.Tx) error {
 				_, err := tx.ExecContext(ctx, `
-ALTER TABLE chat_sessions ADD COLUMN context_json TEXT;
+CREATE TABLE chat_consultation_contexts (
+    session_id TEXT PRIMARY KEY REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    context_json TEXT NOT NULL CHECK (
+        json_valid(context_json) AND json_type(context_json) = 'object'
+    )
+);
 `)
 				return err
 			},

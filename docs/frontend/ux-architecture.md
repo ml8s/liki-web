@@ -90,7 +90,6 @@ Domain-specific states are listed in the route inventory below.
 | `/{locale}/fengshui` | scenario SEO | open the fengshui scenario | free life-gua tool; CTA sends `/app?service=fengshui` |
 | `/{locale}/huangli` | scenario SEO | open the date-selection scenario | free almanac tool; CTA sends `/app?service=huangli` |
 | `/{locale}/naming` | scenario SEO | open the naming scenario | free yong-shen tool; CTA sends `/app?scenario=naming` |
-| `/{locale}/bazi`, `/{locale}/mingshu` | legacy | — | 301 to `/natal` |
 | `/{locale}/partner/kol`, `/{locale}/partner/scout` | partner landing | invite-only entry | noindex, unlisted, not in sitemap |
 | `/{locale}/about` | legal / reading | learn about Liki | no primary conversion |
 | `/{locale}/contact` | legal / reading | contact | contains external links |

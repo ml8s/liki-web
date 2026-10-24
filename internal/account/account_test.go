@@ -221,12 +221,12 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if len(msgs) != 2 || strings.TrimSpace(msgs[0].Content) != "" || strings.TrimSpace(msgs[1].Content) != "" {
 		t.Fatalf("message PII not cleared: %+v", msgs)
 	}
-	var sessionContext any
-	if err := db.QueryRowContext(ctx, `SELECT context_json FROM chat_sessions WHERE id=?`, session.ID).Scan(&sessionContext); err != nil {
+	var consultationRows int
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM chat_consultation_contexts WHERE session_id=?`, session.ID).Scan(&consultationRows); err != nil {
 		t.Fatal(err)
 	}
-	if sessionContext != nil {
-		t.Fatalf("session consultation context not cleared: %#v", sessionContext)
+	if consultationRows != 0 {
+		t.Fatalf("session consultation context rows = %d, want 0", consultationRows)
 	}
 	if _, err := recordStore.Get(ctx, "user_1", toolRecord.ID); err != records.ErrNotFound {
 		t.Fatalf("erased tool record should be unavailable, err=%v", err)

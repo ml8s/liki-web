@@ -161,22 +161,10 @@ if [ "$_caddy_check" = "302" ] || [ "$_caddy_check" = "308" ]; then
   check "  /naming zh-CN → /zh-Hans/naming"  "$BASE/zh-Hans/naming"  "$loc"
   loc=$(redir_to "en" /naming)
   check "  /naming en → /en/naming"          "$BASE/en/naming"       "$loc"
-  loc=$(redir_to "zh-CN" /mingshu)
-  check "  /mingshu zh-CN → /zh-Hans/natal" "$BASE/zh-Hans/natal" "$loc"
-  loc=$(redir_to "en" /mingshu)
-  check "  /mingshu en → /en/natal"        "$BASE/en/natal"       "$loc"
-  loc=$(redir_to "zh-CN" /hepan)
+	loc=$(redir_to "zh-CN" /hepan)
   check "  /hepan zh-CN → /zh-Hans/natal"    "$BASE/zh-Hans/natal"   "$loc"
   loc=$(redir_to "en" /hepan)
   check "  /hepan en → /en/natal"            "$BASE/en/natal"         "$loc"
-
-  # Legacy chat paths land in the Liki Chat app (product chat pages removed)
-  loc=$(redir_to "zh-CN" /chat)
-  check "  /chat zh-CN → /app/chat"          "$BASE/app/chat"         "$loc"
-  loc=$(redir_to "en" /chat)
-  check "  /chat en → /app/chat"             "$BASE/app/chat"         "$loc"
-  loc=$(redir_to "en" /naming/chat)
-  check "  /naming/chat → /app/chat"         "$BASE/app/chat"         "$loc"
 
   # Marketing naming was consolidated into natal: bare path goes to locale,
   # then locale naming redirects to natal.

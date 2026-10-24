@@ -3,7 +3,7 @@ import type {Page} from '@playwright/test'
 import { json, mockPageview, mockWorkspace, testUser } from '../mocks'
 
 
-// 现行场景落地页：naming 独立页 + natal 枢纽 + hepan 独立页（原 bazi/mingshu 已 301 合并进 natal）。
+// 现行场景落地页：naming 独立页 + natal 枢纽 + hepan 独立页。
 const pages = [
   { path: '/zh-Hans/naming/', heading: 'AI 起名与姓名解读', cta: 'naming', href: '/app?scenario=naming&locale=zh-Hans' },
   { path: '/zh-Hant/natal/', heading: '線上命理：八字、紫微與命書', cta: 'natal', href: '/app?service=natal&locale=zh-Hant' },
@@ -28,15 +28,6 @@ test.describe('Scenario landing pages', () => {
     })
   }
 
-  test('legacy scenario pages redirect to the natal hub', async ({ page }) => {
-    for (const [from, to] of [
-      ['/zh-Hans/bazi/', '/zh-Hans/natal/'],
-      ['/zh-Hant/mingshu/', '/zh-Hant/natal/'],
-    ]) {
-      await page.goto(from)
-      await expect(page).toHaveURL(new RegExp(`${to}$`))
-    }
-  })
 })
 
 test.describe('Authenticated scenario handoff', () => {
@@ -70,16 +61,6 @@ test.describe('Authenticated scenario handoff', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Compatibility' })).toBeVisible()
   })
 
-  test('legacy mingshu handoff guides profile creation as natal', async ({ page }) => {
-    await mockAuthenticated(page, { profiles: [] })
-    await page.goto('/app?scenario=mingshu&locale=en')
-    await expect(page).toHaveURL(/\/app\/birth-profiles\/new/)
-    await expect(page.getByRole('heading', { level: 1, name: 'New profile' })).toBeVisible()
-    // 旧参数 mingshu 归一为 natal（场景 id 与营销页 slug 一致）。
-    const raw = await page.evaluate(() => sessionStorage.getItem('liki:form-drafts') ?? '{}')
-    const drafts = JSON.parse(raw) as Record<string, unknown>
-    expect(drafts['service']).toBe('natal')
-  })
 })
 
 test('unauthenticated scenario handoff preserves locale and redirect', async ({ page }) => {

@@ -16,8 +16,8 @@ function profile(id: string): BirthProfile {
       gender: 'female',
       date: '1990-01-01',
       time: '10:00',
-      instant: null,
-      location: { place: '', longitude: null, timezone: null },
+      instant: '1990-01-01T02:00:00Z',
+      location: { place: '上海', longitude: 121.4726, timezone: 'Asia/Shanghai' },
     },
     note: '',
     third_party_consent: true,
@@ -41,7 +41,16 @@ describe('sales enterInterpretation', () => {
     const sessionId = await useSalesStore().enterInterpretation('profile_selected')
 
     expect(sessionId).toBe('session_selected')
-    expect(createSession).toHaveBeenCalledWith('profile_selected', 'natal')
+    expect(createSession).toHaveBeenCalledWith('profile_selected', 'natal', {
+      version: 1,
+      scenario: 'natal',
+      birth: {
+        gender: 'female',
+        date: '1990-01-01',
+        time: '10:00',
+        location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
+      },
+    })
   })
 
   it('falls back to the first profile when none is selected', async () => {
@@ -53,6 +62,15 @@ describe('sales enterInterpretation', () => {
     const sessionId = await useSalesStore().enterInterpretation()
 
     expect(sessionId).toBe('session_first')
-    expect(createSession).toHaveBeenCalledWith('profile_first', 'natal')
+    expect(createSession).toHaveBeenCalledWith('profile_first', 'natal', {
+      version: 1,
+      scenario: 'natal',
+      birth: {
+        gender: 'female',
+        date: '1990-01-01',
+        time: '10:00',
+        location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
+      },
+    })
   })
 })
