@@ -583,6 +583,18 @@
       "favorAvoid": "{value} · 喜 {favorable} 忌 {unfavorable}",
       "correctedLongitude": "已做真太陽時修正（{longitude}）",
       "failed": "排盤失敗",
+      "stageFailed": "{stage}計算失敗",
+      "partialFailed": "部分附加資訊計算失敗",
+      "stage": {
+        "bazi_chart": "八字命盤",
+        "ziwei_chart": "紫微命盤",
+        "bazi_fullchart": "八字詳盤",
+        "ziwei_fullchart": "紫微詳盤",
+        "ziwei_daxian": "紫微大限",
+        "bazi_liunian": "八字流年",
+        "ziwei_liunian": "紫微流年",
+        "bazhai_chart": "八宅盤"
+      },
       "pillar": {
         "year": "年柱",
         "month": "月柱",

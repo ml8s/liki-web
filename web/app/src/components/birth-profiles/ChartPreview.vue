@@ -36,6 +36,14 @@
         :closable="false"
         show-icon
       />
+      <el-alert
+        v-if="stageErrors.length"
+        :title="$t('profiles.chart.partialFailed')"
+        :description="stageErrorsText"
+        type="warning"
+        :closable="false"
+        show-icon
+      />
       <p
         v-if="!anyResult && !loading"
         class="hint"
@@ -176,6 +184,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { bazhaiChartFor, type BazhaiChart } from '@shared/domain/fengshui'
+import { NatalStageError } from '@shared/domain/natal'
 import type { BirthProfile } from '@/api/birth-profiles'
 import BaziPanel from '@shared/components/charts/BaziPanel.vue'
 import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
@@ -190,6 +199,7 @@ const router = useRouter()
 
 const loading = ref(false)
 const error = ref('')
+const stageErrors = ref<Array<{ stage: string; detail: string }>>([])
 const correction = ref('')
 // tab 状态同步到 URL（?tab=ziwei 可分享/刷新保留）；非法值回落八字。
 const TAB_NAMES = ['bazi', 'ziwei', 'bazhai']
@@ -200,6 +210,7 @@ const baziFull = ref<BaziFullChartData | null>(null)
 const baziLiuNian = ref<BaziLiuNianOutput | null>(null)
 const baziLiuNianYear = ref(new Date().getFullYear())
 const ziwei = ref<ZiweiChart | null>(null)
+const ziweiBase = ref<ZiweiChart | null>(null)
 const bazhai = ref<BazhaiChart | null>(null)
 const daXianRaw = ref<ZiweiDaXianItem[]>([])
 const liuNianYear = ref(new Date().getFullYear())
@@ -234,12 +245,52 @@ const liuNianPlaced = computed(() => {
   }))
 })
 
+function stageLabel(stage: string): string {
+  return t(`profiles.chart.stage.${stage}`)
+}
+
+function errorDetail(error: unknown): string {
+  if (error instanceof NatalStageError) {
+    return error.cause instanceof Error ? error.cause.message : String(error.cause)
+  }
+  return error instanceof Error ? error.message : ''
+}
+
+function setStageError(stage: string, error: unknown) {
+  const detail = errorDetail(error)
+  const index = stageErrors.value.findIndex(item => item.stage === stage)
+  const item = { stage, detail }
+  if (index >= 0) stageErrors.value[index] = item
+  else stageErrors.value.push(item)
+}
+
+function clearStageError(stage: string) {
+  stageErrors.value = stageErrors.value.filter(item => item.stage !== stage)
+}
+
+const stageErrorsText = computed(() =>
+  stageErrors.value
+    .map(item => `${stageLabel(item.stage)}（${item.stage}）${item.detail ? `：${item.detail}` : ''}`)
+    .join('；'),
+)
+
+function fatalStageMessage(error: unknown): string {
+  if (!(error instanceof NatalStageError)) {
+    return toUserMessage(error, t('profiles.chart.failed'))
+  }
+  const detail = errorDetail(error)
+  return `${t('profiles.chart.stageFailed', { stage: stageLabel(error.stage) })}（${error.stage}）${detail ? `：${detail}` : ''}`
+}
+
 async function loadLiuNian() {
-  if (!ziwei.value) return
+  if (!ziweiBase.value) return
   try {
-    liuNian.value = await ziweiLiunianFor(ziwei.value, liuNianYear.value)
+    liuNian.value = await ziweiLiunianFor(ziweiBase.value, liuNianYear.value)
+    clearStageError('ziwei_liunian')
   } catch (err) {
-    error.value = toUserMessage(err, t('profiles.chart.failed'))
+    // Optional annual view must not replace a successfully rendered natal chart.
+    liuNian.value = null
+    setStageError('ziwei_liunian', err)
   }
 }
 
@@ -248,19 +299,23 @@ async function loadBaziLiuNian() {
   if (!baziChart.value) return
   try {
     baziLiuNian.value = await baziLiunianFor(baziChart.value, baziLiuNianYear.value)
-  } catch {
+    clearStageError('bazi_liunian')
+  } catch (err) {
     baziLiuNian.value = null
+    setStageError('bazi_liunian', err)
   }
 }
 
 async function compute() {
   const p = props.profile
   error.value = ''
+  stageErrors.value = []
   correction.value = ''
   baziChart.value = null
   baziFull.value = null
   baziLiuNian.value = null
   ziwei.value = null
+  ziweiBase.value = null
   bazhai.value = null
   daXianRaw.value = []
   liuNian.value = null
@@ -287,13 +342,21 @@ async function compute() {
     baziChart.value = chart.bazi
     baziFull.value = chart.baziDetail
     ziwei.value = chart.ziwei
+    ziweiBase.value = chart.ziweiBase
     daXianRaw.value = chart.ziweiDaXian
     await loadBaziLiuNian()
     const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
-    bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
+    try {
+      bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
+      clearStageError('bazhai_chart')
+    } catch (err) {
+      // Bazhai is an optional extra panel; keep the main chart usable.
+      bazhai.value = null
+      setStageError('bazhai_chart', err)
+    }
     if (tab.value === 'ziwei') void loadLiuNian()
   } catch (err) {
-    error.value = toUserMessage(err, t('profiles.chart.failed'))
+    error.value = fatalStageMessage(err)
   } finally {
     loading.value = false
   }

@@ -583,6 +583,18 @@
       "favorAvoid": "{value} · favorable {favorable} · unfavorable {unfavorable}",
       "correctedLongitude": "True solar time corrected · {longitude}",
       "failed": "Chart generation failed",
+      "stageFailed": "{stage} failed",
+      "partialFailed": "Some optional charts could not be calculated",
+      "stage": {
+        "bazi_chart": "Bazi chart",
+        "ziwei_chart": "Ziwei chart",
+        "bazi_fullchart": "Bazi full chart",
+        "ziwei_fullchart": "Ziwei full chart",
+        "ziwei_daxian": "Ziwei major periods",
+        "bazi_liunian": "Bazi annual chart",
+        "ziwei_liunian": "Ziwei annual chart",
+        "bazhai_chart": "Bazhai chart"
+      },
       "pillar": {
         "year": "Year",
         "month": "Month",

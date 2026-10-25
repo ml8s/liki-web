@@ -7,7 +7,7 @@ import { engineBaziBond, engineBaziChart } from '@shared/api/engine/bazi'
 import { engineHuangliDays } from '@shared/api/engine/huangli'
 import { engineLiuyaoChart, engineLiuyaoQigua } from '@shared/api/engine/liuyao'
 import { engineZiweiChart, engineZiweiDaXian, engineZiweiLiuNian } from '@shared/api/engine/ziwei'
-import { natalChartForChartInput } from '@shared/domain/natal'
+import { NatalStageError, natalChartForChartInput } from '@shared/domain/natal'
 
 const mcpOk = (data: unknown, status = 200): Response =>
   new Response(
@@ -201,12 +201,13 @@ describe('natal chart fan-out', () => {
       return Promise.resolve(mcpOk(byTool[name]))
     }))
 
-    await natalChartForChartInput({
+    const natal = await natalChartForChartInput({
       instant: '1958-05-11T22:00:00Z',
       timezone: 'Asia/Shanghai',
       longitude: 121.47,
       gender: 'female',
     })
+    expect(natal.ziweiBase).toEqual(base)
 
     const daxianCall = vi.mocked(fetch).mock.calls.find(call => {
       const body = JSON.parse(String(call[1]?.body)) as { params?: { name?: string } }
@@ -218,5 +219,32 @@ describe('natal chart fan-out', () => {
     }
     expect(daxianBody.params.arguments.chart).toEqual(base)
     expect(daxianBody.params.arguments.chart).not.toEqual(full)
+  })
+
+  it('attributes a failed natal call to its exact stage', async () => {
+    const base = { gong_wei: [{ zhi: '子' }], ming_gong: '子' }
+    const full = { ...base, gong_wei: [{ zhi: '子', jiang_qian: 1, ages: [1] }] }
+    const byTool: Record<string, unknown> = {
+      bazi_chart: { nian: {}, yue: {}, ri: {}, shi: {}, birth_year: 1990, gender: 'female', zi_shi_rule: 'late' },
+      ziwei_chart: base,
+      bazi_fullchart: {},
+      ziwei_fullchart: full,
+      ziwei_daxian: [],
+    }
+    const stages = ['bazi_chart', 'ziwei_chart', 'bazi_fullchart', 'ziwei_fullchart', 'ziwei_daxian'] as const
+    for (const stage of stages) {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+        const name = JSON.parse(String(init.body)).params.name as string
+        return Promise.resolve(name === stage ? mcpIsError(`failed ${stage}`) : mcpOk(byTool[name]))
+      }))
+      const error = await natalChartForChartInput({
+        instant: '1958-05-11T22:00:00Z',
+        timezone: 'Asia/Shanghai',
+        longitude: 121.47,
+        gender: 'female',
+      }).catch(cause => cause)
+      expect(error).toBeInstanceOf(NatalStageError)
+      expect(error).toMatchObject({ stage })
+    }
   })
 })

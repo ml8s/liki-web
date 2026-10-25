@@ -19,6 +19,31 @@ import type { BirthInput } from './birth'
 import { chartInputFromBirth } from './birth'
 import type { ChartInput } from './time'
 
+export type NatalStage =
+  | 'bazi_chart'
+  | 'ziwei_chart'
+  | 'bazi_fullchart'
+  | 'ziwei_fullchart'
+  | 'ziwei_daxian'
+
+export class NatalStageError extends Error {
+  constructor(
+    readonly stage: NatalStage,
+    readonly cause: unknown,
+  ) {
+    super(`${stage}: ${cause instanceof Error ? cause.message : String(cause)}`)
+    this.name = 'NatalStageError'
+  }
+}
+
+async function atStage<T>(stage: NatalStage, task: Promise<T>): Promise<T> {
+  try {
+    return await task
+  } catch (error) {
+    throw new NatalStageError(stage, error)
+  }
+}
+
 export async function baziChartFor(birth: BirthInput): Promise<BaziChartData> {
   const input = await chartInputFromBirth(birth)
   return engineBaziChart({ ...input, gender: birth.gender })
@@ -48,6 +73,8 @@ export interface NatalChart {
   bazi: BaziChartData
   baziDetail: BaziFullChartData
   ziwei: ZiweiChart
+  /** Base chart for ziwei_daxian / ziwei_liunian; fullchart is display-only. */
+  ziweiBase: ZiweiChart
   ziweiDaXian: ZiweiDaXianItem[]
 }
 
@@ -55,15 +82,15 @@ export async function natalChartForChartInput(
   input: ChartInput & { gender: string },
 ): Promise<NatalChart> {
   const [bazi, ziweiBase] = await Promise.all([
-    engineBaziChart(input),
-    engineZiweiChart(input),
+    atStage('bazi_chart', engineBaziChart(input)),
+    atStage('ziwei_chart', engineZiweiChart(input)),
   ])
   const [baziDetail, ziwei] = await Promise.all([
-    engineBaziFullChart(bazi),
-    engineZiweiFullChart(ziweiBase),
+    atStage('bazi_fullchart', engineBaziFullChart(bazi)),
+    atStage('ziwei_fullchart', engineZiweiFullChart(ziweiBase)),
   ])
-  const ziweiDaXian = await engineZiweiDaXian(ziweiBase)
-  return { input, bazi, baziDetail, ziwei, ziweiDaXian }
+  const ziweiDaXian = await atStage('ziwei_daxian', engineZiweiDaXian(ziweiBase))
+  return { input, bazi, baziDetail, ziwei, ziweiBase, ziweiDaXian }
 }
 
 /** Birth facts -> complete natal chart (Bazi + Ziwei). */
