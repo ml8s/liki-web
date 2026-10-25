@@ -40,5 +40,8 @@
     "@js-temporal/polyfill": "^0.5.1",
     "element-plus": "^2.14.7",
     "pinia": "^2.3.0"
+  },
+  "overrides": {
+    "katex": "0.19.1"
   }
 }
