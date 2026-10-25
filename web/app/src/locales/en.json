@@ -608,7 +608,9 @@
       "remove": "Delete"
     },
     "profile": "Profile",
-    "summary": "{date} {time} · {gender}{place}"
+    "summary": "{date} {time} · {gender}{place}",
+    "placeIncomplete": "Place needed",
+    "placeIncompleteHint": "This profile predates versioned places. Edit it and choose a birthplace."
   },
   "commerce": {
     "oneTime": {

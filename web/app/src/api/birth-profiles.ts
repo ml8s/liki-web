@@ -1,6 +1,7 @@
 import { get, post, request } from './http'
 import { i18n } from '@/i18n'
 import { formatInstant } from '@shared/domain/time'
+import { isCurrentLocation } from '@shared/domain/location'
 import { formatSavedPlace, type PlaceLocale } from '@shared/utils/placeDisplay'
 
 export interface BirthProfileLocation {
@@ -88,7 +89,11 @@ export function birthSummary(profile: BirthProfile): string {
     profile.birth.location,
     i18n.global.locale.value as PlaceLocale,
   )
-  const place = placeLabel ? ` · ${placeLabel}` : ''
+  const place = placeLabel
+    ? ` · ${placeLabel}`
+    : !isCurrentLocation(profile.birth.location)
+      ? ` · ${t('profiles.placeIncomplete')}`
+      : ''
   const canonicalTime = profile.birth.instant && profile.birth.location.timezone
     ? formatInstant(profile.birth.instant, profile.birth.location.timezone)
     : ''

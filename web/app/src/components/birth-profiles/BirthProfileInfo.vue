@@ -38,6 +38,14 @@
       :closable="false"
       class="profile-edit-error"
     />
+    <el-alert
+      v-else-if="!editing && needsPlace"
+      :title="$t('profiles.placeIncompleteHint')"
+      type="warning"
+      show-icon
+      :closable="false"
+      class="profile-place-warning"
+    />
 
     <BirthForm
       v-if="editing"
@@ -83,15 +91,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { birthSummary, type BirthProfile, type BirthProfileInput } from '@/api/birth-profiles'
+import { isCurrentLocation } from '@shared/domain/location'
 import BirthForm from '@/components/birth-profiles/BirthForm.vue'
-defineProps<{ profile: BirthProfile; submitting?: boolean; draftKey?: string; error?: string }>()
+const props = defineProps<{ profile: BirthProfile; submitting?: boolean; draftKey?: string; error?: string }>()
 defineEmits<{ update: [BirthProfileInput] }>()
 const { t } = useI18n()
 
 const editing = ref(false)
+const needsPlace = computed(() => !isCurrentLocation(props.profile.birth.location))
 const dirty = ref(false)
 const formRef = ref<InstanceType<typeof BirthForm> | null>(null)
 

@@ -608,7 +608,9 @@
       "remove": "删除"
     },
     "profile": "档案",
-    "summary": "{date} {time} · {gender}{place}"
+    "summary": "{date} {time} · {gender}{place}",
+    "placeIncomplete": "地点待补充",
+    "placeIncompleteHint": "此档案来自旧版，请编辑并重新选择出生地。"
   },
   "commerce": {
     "oneTime": {

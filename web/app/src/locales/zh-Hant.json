@@ -608,7 +608,9 @@
       "remove": "刪除"
     },
     "profile": "檔案",
-    "summary": "{date} {time} · {gender}{place}"
+    "summary": "{date} {time} · {gender}{place}",
+    "placeIncomplete": "地點待補充",
+    "placeIncompleteHint": "此檔案來自舊版，請編輯並重新選擇出生地。"
   },
   "commerce": {
     "oneTime": {
