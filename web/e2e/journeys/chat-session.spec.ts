@@ -39,12 +39,7 @@ const successStream = sse([
     threadId: session.id,
     runId: RUN_ID,
     outcome: { type: 'success' },
-    result: {
-      session,
-      active_skill: 'liki',
-      user_message: message('msg_user', 'user', answer),
-      assistant_message: message('msg_assistant', 'assistant', answer),
-    },
+    result: { answer },
   },
 ])
 
