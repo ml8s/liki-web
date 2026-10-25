@@ -91,9 +91,9 @@ export function birthSummary(profile: BirthProfile): string {
   )
   const place = placeLabel
     ? ` · ${placeLabel}`
-    : !isCurrentLocation(profile.birth.location)
-      ? ` · ${t('profiles.placeIncomplete')}`
-      : ''
+    : isCurrentLocation(profile.birth.location)
+      ? ''
+      : ` · ${t('profiles.placeIncomplete')}`
   const canonicalTime = profile.birth.instant && profile.birth.location.timezone
     ? formatInstant(profile.birth.instant, profile.birth.location.timezone)
     : ''

@@ -291,13 +291,14 @@ async function create(scenarioId: string) {
 function birthFieldsOf(profile: (typeof profiles.list)[number]): BirthFieldsValue | null {
   const { gender, date, time, location } = profile.birth
   if (!date || !time || location.longitude == null || !location.timezone) return null
+  const current = isCurrentLocation(location)
   return {
     gender,
     date,
     time,
     location: {
-      place: isCurrentLocation(location) ? location.place : '',
-      ...(isCurrentLocation(location) && location.place_id ? { place_id: location.place_id } : {}),
+      place: current ? location.place : '',
+      ...(current && location.place_id ? { place_id: location.place_id } : {}),
       longitude: location.longitude,
       timezone: location.timezone,
       source: 'saved',
