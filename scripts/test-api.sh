@@ -158,16 +158,15 @@ if [ "$_caddy_check" = "302" ] || [ "$_caddy_check" = "308" ]; then
 
   # Bare paths → locale-prefixed (must have / between locale and path)
   loc=$(redir_to "zh-CN" /naming)
-  check "  /naming zh-CN → /zh-Hans/naming"  "$BASE/zh-Hans/naming"  "$loc"
+  check "  /naming zh-CN → /zh-Hans/naming/" "$BASE/zh-Hans/naming/" "$loc"
   loc=$(redir_to "en" /naming)
-  check "  /naming en → /en/naming"          "$BASE/en/naming"       "$loc"
+  check "  /naming en → /en/naming/"         "$BASE/en/naming/"      "$loc"
 	loc=$(redir_to "zh-CN" /hepan)
-  check "  /hepan zh-CN → /zh-Hans/natal"    "$BASE/zh-Hans/natal"   "$loc"
+  check "  /hepan zh-CN → /zh-Hans/hepan/"   "$BASE/zh-Hans/hepan/"  "$loc"
   loc=$(redir_to "en" /hepan)
-  check "  /hepan en → /en/natal"            "$BASE/en/natal"         "$loc"
+  check "  /hepan en → /en/hepan/"           "$BASE/en/hepan/"       "$loc"
 
-  # Marketing naming was consolidated into natal: bare path goes to locale,
-  # then locale naming redirects to natal.
+  # Bare service paths go to the locale-prefixed canonical route.
   s=$(caddy GET /zh-Hans/natal/)
   check_200 "GET /zh-Hans/natal (no redirect)" "$s"
   s=$(caddy GET /zh-Hant/natal/)
@@ -177,7 +176,7 @@ if [ "$_caddy_check" = "302" ] || [ "$_caddy_check" = "308" ]; then
 
   # No slash-loss regression: must not redirect to /zh-Hansnaming
   loc=$(redir_to "zh-CN" /naming)
-  check "  slash in path: NOT /zh-Hansnaming" "$BASE/zh-Hans/naming" "$loc"
+  check "  slash in path: NOT /zh-Hansnaming" "$BASE/zh-Hans/naming/" "$loc"
 else
   echo "  (Caddy not running — skipping static checks)"
 fi

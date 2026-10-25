@@ -10,7 +10,7 @@ const profile = {
   birth: {
     gender: 'female', date: '1958-05-12', time: '06:00',
     instant: '1958-05-11T22:00:00Z',
-    location: { place: '上海', longitude: 121.4726, timezone: 'Asia/Shanghai' },
+    location: { place: '上海', place_id: 'CN-310000', location_version: 2, longitude: 121.4726, timezone: 'Asia/Shanghai' },
   },
   note: '', third_party_consent: true, last_used_at: null,
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
@@ -18,6 +18,7 @@ const profile = {
 
 async function mockDetail(page: Page, onPatch: (route: Route) => unknown) {
   await mockWorkspace(page, { user })
+  await page.route('**/api/client-errors', route => route.fulfill({ status: 204 }))
   // 表单挂载会把旧档案的出生地匹配成经度（city_coords candidates 模式）；
   // 其余引擎工具显式失败，详情排盘走「未找到出生地座標」的降级路径。
   await page.route(/\/(engine|counsel)\/mcp$/, route => {
