@@ -133,6 +133,10 @@ test('paid return confirms entitlement and jumps straight into a session', async
     }
     return route.fulfill(json([]));
   });
+  await page.route('**/api/chat/sessions/chat_new', route => route.fulfill(json({
+    id: 'chat_new', user_id: 'usr_test', profile_id: profile.id, skill: 'liki', expert: 'natal', title: '八字紫微咨询',
+    status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', last_message_at: null,
+  })));
   await page.route('**/api/chat/sessions/chat_new/messages', route => route.fulfill(json({ messages: [], next_cursor: '' })));
 
   await page.goto('/app/chat?order_id=order_1&status=paid&payment_intent_id=pi_1&status_token=token');

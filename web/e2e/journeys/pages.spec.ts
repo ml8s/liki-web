@@ -97,9 +97,9 @@ test.describe('Static page interactions', () => {
 
   test('bare capability entries negotiate a localized landing page', async ({ request }) => {
     const cases = [
-      ['/divination', 'zh-TW,zh;q=0.9', '/zh-Hant/divination'],
-      ['/fengshui', 'ja-JP,ja;q=0.9', '/zh-Hant/fengshui'],
-      ['/huangli', 'zh-Hans,zh;q=0.9', '/zh-Hans/huangli'],
+      ['/divination', 'zh-TW,zh;q=0.9', '/zh-Hant/divination/'],
+      ['/fengshui', 'ja-JP,ja;q=0.9', '/zh-Hant/fengshui/'],
+      ['/huangli', 'zh-Hans,zh;q=0.9', '/zh-Hans/huangli/'],
     ];
 
     for (const [path, language, location] of cases) {

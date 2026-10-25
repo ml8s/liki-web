@@ -40,7 +40,7 @@ const successStream = sse([
 
 async function mockSession(page: Page, messages: unknown[]) {
   await mockWorkspace(page, { user, allowedSkills: ['liki'] })
-  await page.route('**/api/chat/sessions/chat_1', route => route.fulfill(json(session)))
+  await page.route(/\/api\/chat\/sessions\/chat_1$/, route => route.fulfill(json(session)))
   await page.route('**/api/chat/sessions/chat_1/messages', route =>
     route.fulfill(json({ messages, next_cursor: '' })))
 }
@@ -49,8 +49,8 @@ test('更早的消息按游标分页加载', async ({ page }) => {
   const older = message('msg_older', 'user', '更早的問題')
   const recent = message('msg_recent', 'assistant', '最近的回覆')
   await mockWorkspace(page, { user, allowedSkills: ['liki'] })
-  await page.route('**/api/chat/sessions/chat_1', route => route.fulfill(json(session)))
-  await page.route('**/api/chat/sessions/chat_1/messages**', route => {
+  await page.route(/\/api\/chat\/sessions\/chat_1$/, route => route.fulfill(json(session)))
+  await page.route(/\/api\/chat\/sessions\/chat_1\/messages(?:\?.*)?$/, route => {
     const before = new URL(route.request().url()).searchParams.get('before')
     if (before) {
       return route.fulfill(json({ messages: [older], next_cursor: '' }))
@@ -73,7 +73,7 @@ test('更早的消息按游标分页加载', async ({ page }) => {
 test('a failed stream offers retry and resending succeeds', async ({ page }) => {
   const sends: unknown[] = []
   await mockSession(page, [])
-  await page.route('**/api/chat/sessions/chat_1/ag-ui', route => {
+  await page.route(/\/api\/chat\/sessions\/chat_1\/ag-ui$/, route => {
     sends.push(route.request().postDataJSON())
     if (sends.length === 1) {
       return route.fulfill(stream(sse([{ type: 'RUN_ERROR', message: 'engine unavailable', runId: RUN_ID }])))
@@ -106,7 +106,7 @@ test('the conversation owns the viewport and follows the keyboard', async ({ pag
   // 输入框常驻可见；键盘弹起时（visualViewport 变矮）消息区跟到最新一条。
   const history = Array.from({ length: 40 }, (_, index) => message(`msg_${index}`, 'user', `第 ${index + 1} 則訊息`))
   await mockSession(page, history)
-  await page.route('**/api/chat/sessions/chat_1/ag-ui', route => route.fulfill(stream(successStream)))
+  await page.route(/\/api\/chat\/sessions\/chat_1\/ag-ui$/, route => route.fulfill(stream(successStream)))
 
   await page.goto('/app/chat/chat_1')
 
@@ -139,7 +139,7 @@ test('mobile: a message can be sent in a narrow viewport', async ({ page }) => {
     message(`msg_${index + 1}`, index % 2 ? 'assistant' : 'user', `第 ${index + 1} 條訊息`)
   ))
   await mockSession(page, history)
-  await page.route('**/api/chat/sessions/chat_1/ag-ui', route => route.fulfill(stream(successStream)))
+  await page.route(/\/api\/chat\/sessions\/chat_1\/ag-ui$/, route => route.fulfill(stream(successStream)))
 
   await page.goto('/app/chat/chat_1')
   const thread = page.getByRole('log', { name: '訊息列表' })

@@ -61,8 +61,11 @@ test('ambiguous birth place resolves to a persisted longitude', async ({ page })
     place: '长沙',
   })
   await expect(page.getByText(/找到多(个|個)同名地(点|點)/)).toBeVisible()
-  await page.locator('.el-select__wrapper').nth(0).click()
-  await page.locator('.el-select-dropdown:visible .el-select-dropdown__item').filter({ hasText: '长沙县' }).last().click()
+  // fillBirthFields 会展开手动字段并关闭候选层；重新聚焦输入框打开候选。
+  await page.locator('input[name="birth-place"]').click()
+  const options = page.locator('.lf-region-autocomplete li[role="option"]')
+  await expect(options).toHaveCount(2)
+  await options.filter({ hasText: /长沙县|長沙縣/ }).click()
   await expect(page.locator('input[name="birth-longitude"]')).toHaveValue('113.0801')
 
   await page.locator('.el-checkbox').last().click()
@@ -76,7 +79,7 @@ test('ambiguous birth place resolves to a persisted longitude', async ({ page })
       date: '1990-06-15',
       time: '08:30',
       location: {
-        place: '湖南省长沙市长沙县',
+        place_id: 'CN-430121',
         longitude: 113.0801,
         timezone: 'Asia/Shanghai',
       },

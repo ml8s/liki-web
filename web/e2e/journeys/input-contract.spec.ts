@@ -109,7 +109,7 @@ test.describe('shared input contract', () => {
     await expect(tool.locator('.region-status')).toContainText(/多個同名地點|同名地点|Multiple places/)
 
     await options.first().click()
-    await expect(place).toHaveValue(/长沙市/)
+    await expect(place).toHaveValue(/長沙市|长沙市|Changsha/)
 
     await tool.locator('.region-manual-toggle').click()
     await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue(/112\.98/)

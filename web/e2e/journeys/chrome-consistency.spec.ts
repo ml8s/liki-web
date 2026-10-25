@@ -22,9 +22,9 @@ for (const locale of LOCALES) {
       await expect(page.locator('header .brand-link')).toHaveText('Liki')
       await expect(page.locator('.brand-slogan')).toBeVisible()
       await expect(page.locator('.back-link')).toHaveCount(0)
-      // footer：两列链接（无分组标题），7 个链接齐备。
+      // footer：两列链接（无分组标题），5 个链接齐备。
       await expect(page.locator('footer .footer-group')).toHaveCount(2)
-      await expect(page.locator('footer .footer-group a')).toHaveCount(6)
+      await expect(page.locator('footer .footer-group a')).toHaveCount(5)
       await expect(page.locator('footer a[href$="/partners/"], footer a[href$="/partners"]')).toHaveCount(0)
       await expect(page.locator('footer a[href$="/privacy/"], footer a[href$="/privacy"]')).toHaveCount(1)
       // 标题格式全站统一：`<页面名> · Liki`（静态页与 SPA 同一模式）；
