@@ -845,7 +845,12 @@
         "xunhu": "虎皮椒",
         "dodo": "Dodo Payments"
       }
-    }
+    },
+    "returnPaidTitle": "支付已确认",
+    "returnPaidBody": "权益正在开通，订单状态会自动更新。",
+    "returnUnpaidTitle": "支付未完成",
+    "returnUnpaidBody": "该订单仍未支付，可以继续支付或取消。",
+    "paymentConfirming": "支付确认中"
   },
   "records": {
     "title": "历史记录",

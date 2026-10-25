@@ -8,7 +8,7 @@
         <el-button
           v-if="hasData"
           :loading="loading"
-          @click="load"
+          @click="load()"
         >
           {{ $t('common.refresh') }}
         </el-button>
@@ -24,7 +24,7 @@
       <template #extra>
         <el-button
           type="primary"
-          @click="load"
+          @click="load()"
         >
           {{ $t('common.retry') }}
         </el-button>
@@ -61,6 +61,16 @@
         show-icon
       />
 
+      <el-alert
+        v-if="returnNotice"
+        :title="returnNotice.title"
+        :description="returnNotice.body"
+        :type="returnNotice.type"
+        :closable="false"
+        show-icon
+        class="return-notice"
+      />
+
       <SubscriptionCard
         :subscriptions="subscriptions"
         :payments="subscriptionPayments"
@@ -83,6 +93,7 @@
         v-loading="loading"
         :aria-busy="loading"
         :data="orders"
+        :row-class-name="rowClassName"
         class="orders-table"
       >
         <el-table-column
@@ -170,6 +181,7 @@
           v-for="order in orders"
           :key="order.id"
           class="order-card"
+          :class="{ 'order-card--focus': order.id === returnedOrderId }"
         >
           <div class="order-top">
             <span class="order-id">{{ order.id }}</span>
@@ -330,8 +342,9 @@
 <script setup lang="ts">
 import { toUserMessage } from '@/utils/errors'
 import { confirmAction } from '@/utils/dialogs'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { cancelOrder as apiCancelOrder, fetchOrderDetail, fetchOrders, fetchSubscriptionPayments, fetchSubscriptions, resumeOrderCheckout, setSubscriptionCancellation, type Order, type OrderDetail, type Subscription, type SubscriptionPayment } from '@/api/orders'
 import { ApiError } from '@/api/http'
 import { useEntitlementsStore } from '@/stores/entitlements'
@@ -351,6 +364,7 @@ const loading = ref(false)
 const error = ref('')
 const isMobile = useMobile()
 const { t, te } = useI18n()
+const route = useRoute()
 const entitlements = useEntitlementsStore()
 
 const detailOpen = ref(false)
@@ -365,6 +379,19 @@ const activeEntitlement = computed(() =>
 const hasData = computed(() => orders.value.length > 0 || subscriptions.value.length > 0)
 
 const pendingOrders = computed(() => orders.value.filter(order => order.status === 'pending'))
+const returnedOrderId = computed(() => String(route.query.order_id ?? ''))
+const returnedStatus = computed(() => String(route.query.status ?? ''))
+const returnNotice = computed(() => {
+  if (!returnedStatus.value) return null
+  if (returnedStatus.value === 'paid') {
+    return { type: 'success' as const, title: t('orders.returnPaidTitle'), body: t('orders.returnPaidBody') }
+  }
+  if (returnedStatus.value === 'unpaid') {
+    return { type: 'warning' as const, title: t('orders.returnUnpaidTitle'), body: t('orders.returnUnpaidBody') }
+  }
+  return null
+})
+let pollTimer: number | undefined
 
 /** 行操作标准：每个订单都可打开详情，再按 订单态×intent 态 派生可用动作。 */
 function orderActions(order: Order): RecordAction[] {
@@ -400,7 +427,13 @@ function statusActions(order: Order): RecordAction[] {
 function intentBadge(order: Order): string {
   if (order.intent_status === 'refunded') return t('orders.statusRefunded')
   if (order.status === 'pending' && order.intent_status === 'expired') return t('orders.statusExpired')
+  if (order.status === 'pending' && order.intent_status === 'paid') return t('orders.paymentConfirming')
+  if (order.status === 'pending' && order.intent_status === 'failed') return t('orders.intentStatus.failed')
   return ''
+}
+
+function rowClassName({ row }: { row: Order }): string {
+  return row.id === returnedOrderId.value ? 'order-row-focus' : ''
 }
 
 function onOrderAction(key: string, order: Order) {
@@ -475,24 +508,34 @@ async function confirmCancelOrder(order: Order) {
   }
 }
 
-async function load() {
-  loading.value = true
-  error.value = ''
+async function load(silent = false) {
+  if (!silent) loading.value = true
+  if (!silent) error.value = ''
   try {
     const [orderItems, subscriptionItems, paymentItems] = await Promise.all([
       fetchOrders(),
       fetchSubscriptions(),
       fetchSubscriptionPayments(),
-      entitlements.load(),
+      entitlements.load(true),
     ])
     orders.value = orderItems
     subscriptions.value = subscriptionItems
     subscriptionPayments.value = paymentItems
   } catch (err) {
-    error.value = toUserMessage(err, t('orders.loadFailed'))
+    if (!silent) error.value = toUserMessage(err, t('orders.loadFailed'))
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
+}
+
+function schedulePoll() {
+  if (pollTimer) window.clearTimeout(pollTimer)
+  pollTimer = undefined
+  if (!pendingOrders.value.length) return
+  pollTimer = window.setTimeout(async () => {
+    await load(true)
+    schedulePoll()
+  }, 5000)
 }
 
 async function toggleCancellation(subscription: Subscription) {
@@ -535,13 +578,21 @@ function statusType(status: Order['status']) {
   return 'warning'
 }
 
-onMounted(() => {
-  load()
+onMounted(async () => {
+  await load()
+  schedulePoll()
+})
+
+onBeforeUnmount(() => {
+  if (pollTimer) window.clearTimeout(pollTimer)
 })
 </script>
 
 <style scoped>
 .orders-table { background: var(--liki-surface); border-radius: var(--radius-control); }
+:deep(.order-row-focus > td) { background: var(--liki-primary-tint); }
+.return-notice { margin-bottom: 4px; }
+.order-card--focus { border-color: var(--liki-primary); box-shadow: 0 0 0 1px var(--liki-primary) inset; }
 .orders-table, .subscription-meta, .payment-amount, .payment-date, .order-card { font-variant-numeric: tabular-nums; }
 .order-cards { display: grid; gap: 12px; }
 .order-card {

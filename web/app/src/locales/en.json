@@ -845,7 +845,12 @@
         "xunhu": "Xunhu Pay",
         "dodo": "Dodo Payments"
       }
-    }
+    },
+    "returnPaidTitle": "Payment confirmed",
+    "returnPaidBody": "Access is being activated; the order will update automatically.",
+    "returnUnpaidTitle": "Payment not completed",
+    "returnUnpaidBody": "This order is still unpaid. You can resume payment or cancel it.",
+    "paymentConfirming": "Confirming payment"
   },
   "records": {
     "title": "History",
