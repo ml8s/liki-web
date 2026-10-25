@@ -7,6 +7,7 @@ import { engineBaziBond, engineBaziChart } from '@shared/api/engine/bazi'
 import { engineHuangliDays } from '@shared/api/engine/huangli'
 import { engineLiuyaoChart, engineLiuyaoQigua } from '@shared/api/engine/liuyao'
 import { engineZiweiChart, engineZiweiDaXian, engineZiweiLiuNian } from '@shared/api/engine/ziwei'
+import { natalChartForChartInput } from '@shared/domain/natal'
 
 const mcpOk = (data: unknown, status = 200): Response =>
   new Response(
@@ -180,5 +181,42 @@ describe('engine request contract', () => {
     await expect(engineHuangliDays('wedding', '2026-10-01', 1)).resolves.toEqual([
       { date: '2026-10-11', suitability: 'recommended' },
     ])
+  })
+})
+
+
+describe('natal chart fan-out', () => {
+  it('sends the base ziwei chart to ziwei_daxian, not the full chart', async () => {
+    const base = { gong_wei: [{ zhi: '子' }], ming_gong: '子' }
+    const full = { ...base, gong_wei: [{ zhi: '子', jiang_qian: 1, ages: [1] }] }
+    const byTool: Record<string, unknown> = {
+      bazi_chart: { nian: {}, yue: {}, ri: {}, shi: {}, birth_year: 1990, gender: 'female', zi_shi_rule: 'late' },
+      ziwei_chart: base,
+      bazi_fullchart: {},
+      ziwei_fullchart: full,
+      ziwei_daxian: [],
+    }
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+      const name = JSON.parse(String(init.body)).params.name as string
+      return Promise.resolve(mcpOk(byTool[name]))
+    }))
+
+    await natalChartForChartInput({
+      instant: '1958-05-11T22:00:00Z',
+      timezone: 'Asia/Shanghai',
+      longitude: 121.47,
+      gender: 'female',
+    })
+
+    const daxianCall = vi.mocked(fetch).mock.calls.find(call => {
+      const body = JSON.parse(String(call[1]?.body)) as { params?: { name?: string } }
+      return body.params?.name === 'ziwei_daxian'
+    })
+    expect(daxianCall).toBeTruthy()
+    const daxianBody = JSON.parse(String(daxianCall![1]?.body)) as {
+      params: { arguments: { chart: unknown } }
+    }
+    expect(daxianBody.params.arguments.chart).toEqual(base)
+    expect(daxianBody.params.arguments.chart).not.toEqual(full)
   })
 })

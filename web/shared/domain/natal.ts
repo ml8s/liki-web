@@ -62,7 +62,7 @@ export async function natalChartForChartInput(
     engineBaziFullChart(bazi),
     engineZiweiFullChart(ziweiBase),
   ])
-  const ziweiDaXian = await engineZiweiDaXian(ziwei)
+  const ziweiDaXian = await engineZiweiDaXian(ziweiBase)
   return { input, bazi, baziDetail, ziwei, ziweiDaXian }
 }
 
