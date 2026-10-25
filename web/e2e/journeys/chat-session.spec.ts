@@ -17,6 +17,16 @@ const message = (id: string, role: string, content: string) => ({
   id, session_id: session.id, user_id: user.id, role, kind: 'text', content,
   created_at: '2026-01-01T00:01:00Z',
 })
+const profile = {
+  id: 'p_1', user_id: user.id, version: 1, nickname: '測試', name: '',
+  birth: {
+    gender: 'female', date: '1990-06-15', time: '08:30',
+    instant: '1990-06-14T23:30:00Z',
+    location: { place: '上海', place_id: 'CN-310000', location_version: 2, longitude: 121.4726, timezone: 'Asia/Shanghai' },
+  },
+  note: '', third_party_consent: true,
+  last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+}
 const RUN_ID = 'run_1'
 const answer = '先看你的八字，日主偏弱。'
 const successStream = sse([
@@ -40,7 +50,9 @@ const successStream = sse([
 
 async function mockSession(page: Page, messages: unknown[]) {
   await mockWorkspace(page, { user, allowedSkills: ['liki'] })
+  await page.route('**/api/client-errors', route => route.fulfill({ status: 204 }))
   await page.route(/\/api\/chat\/sessions\/chat_1$/, route => route.fulfill(json(session)))
+  await page.route('**/api/birth-profiles/p_1', route => route.fulfill(json(profile)))
   await page.route('**/api/chat/sessions/chat_1/messages', route =>
     route.fulfill(json({ messages, next_cursor: '' })))
 }
@@ -49,6 +61,7 @@ test('更早的消息按游标分页加载', async ({ page }) => {
   const older = message('msg_older', 'user', '更早的問題')
   const recent = message('msg_recent', 'assistant', '最近的回覆')
   await mockWorkspace(page, { user, allowedSkills: ['liki'] })
+  await page.route('**/api/client-errors', route => route.fulfill({ status: 204 }))
   await page.route(/\/api\/chat\/sessions\/chat_1$/, route => route.fulfill(json(session)))
   await page.route(/\/api\/chat\/sessions\/chat_1\/messages(?:\?.*)?$/, route => {
     const before = new URL(route.request().url()).searchParams.get('before')
@@ -73,7 +86,7 @@ test('更早的消息按游标分页加载', async ({ page }) => {
 test('a failed stream offers retry and resending succeeds', async ({ page }) => {
   const sends: unknown[] = []
   await mockSession(page, [])
-  await page.route(/\/api\/chat\/sessions\/chat_1\/ag-ui$/, route => {
+  await page.route(/\/rt\/natal\/ag-ui$/, route => {
     sends.push(route.request().postDataJSON())
     if (sends.length === 1) {
       return route.fulfill(stream(sse([{ type: 'RUN_ERROR', message: 'engine unavailable', runId: RUN_ID }])))
@@ -106,7 +119,7 @@ test('the conversation owns the viewport and follows the keyboard', async ({ pag
   // 输入框常驻可见；键盘弹起时（visualViewport 变矮）消息区跟到最新一条。
   const history = Array.from({ length: 40 }, (_, index) => message(`msg_${index}`, 'user', `第 ${index + 1} 則訊息`))
   await mockSession(page, history)
-  await page.route(/\/api\/chat\/sessions\/chat_1\/ag-ui$/, route => route.fulfill(stream(successStream)))
+  await page.route(/\/rt\/natal\/ag-ui$/, route => route.fulfill(stream(successStream)))
 
   await page.goto('/app/chat/chat_1')
 
@@ -139,7 +152,7 @@ test('mobile: a message can be sent in a narrow viewport', async ({ page }) => {
     message(`msg_${index + 1}`, index % 2 ? 'assistant' : 'user', `第 ${index + 1} 條訊息`)
   ))
   await mockSession(page, history)
-  await page.route(/\/api\/chat\/sessions\/chat_1\/ag-ui$/, route => route.fulfill(stream(successStream)))
+  await page.route(/\/rt\/natal\/ag-ui$/, route => route.fulfill(stream(successStream)))
 
   await page.goto('/app/chat/chat_1')
   const thread = page.getByRole('log', { name: '訊息列表' })
