@@ -1,4 +1,4 @@
-Contact: https://liki.hk/zh-Hant/contact/
+Contact: mailto:hi@liki.hk
 Expires: 2027-10-24T00:00:00.000Z
 Preferred-Languages: zh-Hant, zh-Hans, en
 Canonical: https://liki.hk/.well-known/security.txt
