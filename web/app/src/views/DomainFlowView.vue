@@ -12,38 +12,45 @@
       :class="{ 'artifact-layer--sidecar': selectedArtifact && artifactOpen }"
     >
       <div class="artifact-layer__document">
-        <el-alert
+        <AppStatusAlert
           v-if="chat.error"
+          class="flow-error"
+          type="error"
           :title="chat.error"
-          type="error"
-          :closable="false"
-          show-icon
-          class="flow-error"
         />
-        <el-alert
+        <AppStatusAlert
           v-if="consultationError"
+          class="flow-error"
+          type="error"
           :title="consultationError"
-          type="error"
-          :closable="false"
-          show-icon
-          class="flow-error"
         />
-        <el-alert
+        <AppStatusAlert
           v-if="sales.paymentMessage"
+          class="flow-error"
+          :type="sales.paymentState === 'confirmed'
+            ? 'success'
+            : sales.paymentState === 'unpaid' ? 'warning' : 'info'"
           :title="sales.paymentMessage"
-          :type="sales.paymentState === 'confirmed' ? 'success' : sales.paymentState === 'unpaid' ? 'warning' : 'info'"
-          :closable="false"
-          show-icon
-          class="flow-error"
         />
-        <el-alert
+        <AppStatusAlert
           v-if="sales.actionError"
-          :title="sales.actionError"
-          type="error"
-          :closable="false"
-          show-icon
           class="flow-error"
+          type="error"
+          :title="sales.actionError"
         />
+        <AppStatusAlert
+          v-if="sales.productsError"
+          class="flow-error"
+          type="error"
+          :title="sales.productsError"
+        >
+          <el-button
+            size="small"
+            @click="sales.loadProducts"
+          >
+            {{ $t('common.retry') }}
+          </el-button>
+        </AppStatusAlert>
 
         <ProductPurchaseCard
           v-if="sales.chatProduct && !sales.chatProduct.purchased"
@@ -59,7 +66,7 @@
           :error="profileError"
           :has-profile="hasVisibleProfile"
           @create-profile="openCreateProfile"
-          @retry-profiles="reloadProfiles"
+          @retry-profiles="retryWorkspace"
         >
           <ChatStreamStatus :phase="chat.phase" />
           <FlowHepanForm
@@ -108,13 +115,11 @@
             @submit="computeNaming"
           />
           <template v-if="showDivinationCasting">
-            <el-alert
+            <AppStatusAlert
               v-if="castingError"
-              :title="castingError"
-              type="error"
-              :closable="false"
-              show-icon
               class="flow-error"
+              type="error"
+              :title="castingError"
             />
             <FlowDivinationForm
               ref="castingFormRef"
@@ -231,6 +236,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AppFlowShell from '@/components/flow/AppFlowShell.vue'
 import AppExperienceSwitcher from '@/components/app/AppExperienceSwitcher.vue'
+import AppStatusAlert from '@/components/app/AppStatusAlert.vue'
 import FlowFollowButton from '@/components/flow/FlowFollowButton.vue'
 import ConsultationSpine from '@/components/flow/ConsultationSpine.vue'
 import ParameterComposer from '@/components/flow/ParameterComposer.vue'
@@ -728,6 +734,15 @@ onBeforeUnmount(() => {
 })
 async function reloadProfiles() {
   await profiles.loadList('', true)
+}
+
+async function retryWorkspace() {
+  await Promise.allSettled([
+    profiles.loadList('', true),
+    entitlements.load(true),
+    chat.loadSessions(true),
+    sales.loadProducts(),
+  ])
 }
 
 watch([() => flow.personId, () => flow.domainId], () => {

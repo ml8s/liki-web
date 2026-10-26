@@ -17,7 +17,7 @@ type AppDestination = AppExperience | 'mine'
 
 const props = defineProps<{
   target: AppDestination
-  variant?: 'sidebar' | 'topbar' | 'dock'
+  variant?: 'sidebar' | 'topbar' | 'dock' | 'surface'
 }>()
 
 const destinations = {
@@ -76,6 +76,23 @@ const destination = computed(() => destinations[props.target])
 .experience-switcher--topbar:hover {
   border-color: var(--liki-on-ink-hover);
   background: var(--liki-on-ink-hover);
+}
+
+/* Light surfaces need the same compact affordance without borrowing the
+   dark topbar palette, which fails contrast on paper. */
+.experience-switcher--surface {
+  padding: 6px 10px;
+  border: 1px solid var(--liki-line);
+  border-radius: var(--radius-full);
+  background: var(--liki-surface);
+  color: var(--liki-text-2);
+  font-size: var(--font-size-label);
+  white-space: nowrap;
+}
+
+.experience-switcher--surface:hover {
+  border-color: var(--liki-primary-border);
+  color: var(--liki-primary);
 }
 
 .experience-switcher--dock {

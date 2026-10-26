@@ -101,7 +101,13 @@ function onKeydown(event: KeyboardEvent) {
   background: currentColor;
   transform: translateX(-50%);
 }
-@media (max-width: 359.98px) {
-  .flow-domain-strip { grid-auto-columns: minmax(96px, 1fr); }
+/* At 320px a one-row strip clips primary domains. A 2×2 grid keeps every
+   destination visible without horizontal scrolling or shrinking text. */
+@media (max-width: 479.98px) {
+  .flow-domain-strip {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: visible;
+  }
 }
 </style>

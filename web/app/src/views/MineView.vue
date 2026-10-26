@@ -7,7 +7,7 @@
       <template #actions>
         <AppExperienceSwitcher
           target="consultation"
-          variant="topbar"
+          variant="surface"
         >
           {{ $t('nav.consultation') }}
         </AppExperienceSwitcher>

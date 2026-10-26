@@ -20,7 +20,7 @@
 
     <div
       class="spine-state"
-      role="status"
+      :role="error ? 'alert' : 'status'"
       aria-live="polite"
       :aria-busy="loading"
     >
