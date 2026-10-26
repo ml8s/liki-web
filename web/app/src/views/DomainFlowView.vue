@@ -56,6 +56,25 @@
               {{ $t('records.save') }}
             </el-button>
           </div>
+          <FlowFengshuiForm
+            v-if="showFengshuiForm"
+            :person-label="personLabel"
+            :birth-year="fengshuiBirthYear"
+            :gender="fengshuiGender"
+            :loading="fengshuiLoading"
+            @submit="computeFengshui"
+          />
+          <div
+            v-if="fengshuiArtifact"
+            class="flow-inline-actions"
+          >
+            <el-button
+              size="small"
+              @click="saveFengshuiRecord"
+            >
+              {{ $t('records.save') }}
+            </el-button>
+          </div>
           <template v-if="showDivinationCasting">
             <el-alert
               v-if="castingError"
@@ -170,6 +189,7 @@ import ConsultationDocument from '@/components/flow/ConsultationDocument.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
 import FlowDivinationForm from '@/components/flow/forms/FlowDivinationForm.vue'
 import FlowHepanForm, { type FlowHepanFormValue } from '@/components/flow/forms/FlowHepanForm.vue'
+import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
 import ArtifactCapsule from '@/components/flow/artifacts/ArtifactCapsule.vue'
 import ArtifactSurface from '@/components/flow/artifacts/ArtifactSurface.vue'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
@@ -189,6 +209,12 @@ import type { ConsultationContext } from '@shared/domain/consultation'
 import { birthInputFromFields } from '@shared/components/form/birth-fields'
 import { chartInputFromBirth } from '@shared/domain/birth'
 import { hepanForChartInputs } from '@shared/domain/hepan'
+import {
+  bazhaiChartFor,
+  bazhaiLayoutFor,
+  xuankongChartFor,
+} from '@shared/domain/fengshui'
+import type { FengshuiLayoutValue } from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 import { consultationBirthFromFields } from '@shared/domain/consultation'
 import type { ArtifactPayloadByKind } from '@/components/flow/artifacts/types'
 import {
@@ -235,6 +261,9 @@ const castingChart = ref<LiuyaoChartResult | null>(null)
 const hepanLoading = ref(false)
 const hepanInput = ref<FlowHepanFormValue | null>(null)
 const hepanResult = ref<ArtifactPayloadByKind['hepan'] | null>(null)
+const fengshuiLoading = ref(false)
+const fengshuiInput = ref<FengshuiLayoutValue | null>(null)
+const fengshuiResult = ref<ArtifactPayloadByKind['fengshui'] | null>(null)
 let mountToken = 0
 let artifactFocusToken = 0
 
@@ -279,6 +308,17 @@ const initialLoading = computed(() =>
 const profileError = computed(() => profiles.error || entitlements.error)
 const showDivinationCasting = computed(() => flow.domainId === 'divination' && !castingChart.value)
 const showHepanForm = computed(() => flow.domainId === 'natal' && routingSeed.value === 'hepan')
+const showFengshuiForm = computed(() => flow.domainId === 'fengshui' && routingSeed.value === 'fengshui')
+const fengshuiBirthYear = computed(() => {
+  const date = selectedProfile.value?.birth.date ?? ''
+  const year = Number.parseInt(date.slice(0, 4), 10)
+  return Number.isFinite(year) && year >= 1900 && year <= 2100 ? year : null
+})
+const fengshuiGender = computed(() =>
+  selectedProfile.value?.birth.gender === 'female' || selectedProfile.value?.birth.gender === 'male'
+    ? selectedProfile.value.birth.gender
+    : '',
+)
 
 const {
   save: saveToolRecord,
@@ -286,6 +326,9 @@ const {
 const {
   save: saveBondRecord,
 } = useToolRecords('bond')
+const {
+  save: saveBazhaiRecord,
+} = useToolRecords('bazhai')
 
 const artifactContext = computed(() => {
   const session = chat.activeSession
@@ -310,6 +353,7 @@ const {
   casting,
   chart: castingChart,
   hepan: hepanResult,
+  fengshui: fengshuiResult,
 })
 
 const routingSeed = computed(() => {
@@ -320,10 +364,15 @@ const routingSeed = computed(() => {
 const hepanArtifact = computed(() =>
   artifacts.value.find(artifact => artifact.kind === 'hepan' && artifact.state === 'ready') ?? null,
 )
+const fengshuiArtifact = computed(() =>
+  artifacts.value.find(artifact => artifact.kind === 'fengshui' && artifact.state === 'ready') ?? null,
+)
 
 function selectPerson(personId: string) {
   hepanInput.value = null
   hepanResult.value = null
+  fengshuiInput.value = null
+  fengshuiResult.value = null
   flow.setPerson(personId)
   personSheetOpen.value = false
 }
@@ -331,6 +380,8 @@ function selectPerson(personId: string) {
 function selectDomain(domainId: AppDomainId) {
   hepanInput.value = null
   hepanResult.value = null
+  fengshuiInput.value = null
+  fengshuiResult.value = null
   flow.setDomain(domainId)
   domainSheetOpen.value = false
 }
@@ -460,6 +511,92 @@ async function createAndSendWithHepanContext(content: string) {
   }
 }
 
+async function computeFengshui(value: FengshuiLayoutValue) {
+  if (fengshuiLoading.value) return
+  const profile = selectedProfile.value
+  const birthYear = fengshuiBirthYear.value
+  if (!profile || birthYear === null || !profile.birth.date) {
+    consultationError.value = t('services.fengshui.invalidBirthYear')
+    return
+  }
+
+  fengshuiLoading.value = true
+  consultationError.value = ''
+  fengshuiResult.value = null
+  try {
+    const [bazhai, xuankong] = await Promise.all([
+      bazhaiChartFor(birthYear, profile.birth.gender),
+      xuankongChartFor(value.periodDate, value.zuoShan),
+    ])
+    const layout = await bazhaiLayoutFor(
+      bazhai.ming_gua.gua.name,
+      value.doorGua,
+      value.masterGua,
+      value.stoveGua,
+    )
+    fengshuiInput.value = value
+    fengshuiResult.value = {
+      bazhai,
+      layout,
+      xuankong,
+    }
+  } catch (error) {
+    consultationError.value = toUserMessage(error, t('services.fengshui.failed'))
+  } finally {
+    fengshuiLoading.value = false
+  }
+}
+
+function saveFengshuiRecord() {
+  if (!fengshuiResult.value || !fengshuiInput.value || !selectedProfile.value) return
+  void saveBazhaiRecord(
+    t('records.titleBazhai', { nickname: personLabel.value }),
+    {
+      profile_id: selectedProfile.value.id,
+      layout: { ...fengshuiInput.value },
+    },
+  )
+}
+
+function sameFengshuiLayout(
+  left: ConsultationContext['layout'],
+  right: ConsultationContext['layout'],
+) {
+  if (!left || !right) return false
+  return left.zuo_shan === right.zuo_shan
+    && left.period_date === right.period_date
+    && left.door_gua === right.door_gua
+    && left.master_gua === right.master_gua
+    && left.stove_gua === right.stove_gua
+}
+
+async function createAndSendWithFengshuiContext(content: string) {
+  const input = fengshuiInput.value
+  const profile = selectedProfile.value
+  if (!input || !profile) return
+  const context: ConsultationContext = {
+    version: 1,
+    scenario: 'fengshui',
+    layout: {
+      zuo_shan: input.zuoShan,
+      period_date: input.periodDate,
+      door_gua: input.doorGua,
+      master_gua: input.masterGua,
+      stove_gua: input.stoveGua,
+    },
+  }
+
+  try {
+    const session = await chat.createSession(profile.id, 'fengshui', context)
+    chat.activeSession = session
+    chat.messages = []
+    chat.messagesCursor = ''
+    await sendUsingActiveSession(content)
+  } catch (error) {
+    consultationError.value = toUserMessage(error, t('chat.createFailed'))
+  }
+}
+
 async function submitQuestion() {
   const content = question.value.trim()
   if (!content || chat.sending) return
@@ -492,6 +629,34 @@ async function submitQuestion() {
 
   if (flow.domainId === 'natal' && routingSeed.value === 'hepan' && (!hepanResult.value || !hepanInput.value)) {
     consultationError.value = t('flow.hepanRequired')
+    return
+  }
+
+  if (flow.domainId === 'fengshui' && routingSeed.value === 'fengshui' && (!fengshuiResult.value || !fengshuiInput.value)) {
+    consultationError.value = t('flow.fengshuiRequired')
+    return
+  }
+
+  if (flow.domainId === 'fengshui' && fengshuiResult.value && fengshuiInput.value) {
+    const expectedLayout: ConsultationContext['layout'] = {
+      zuo_shan: fengshuiInput.value.zuoShan,
+      period_date: fengshuiInput.value.periodDate,
+      door_gua: fengshuiInput.value.doorGua,
+      master_gua: fengshuiInput.value.masterGua,
+      stove_gua: fengshuiInput.value.stoveGua,
+    }
+    const matchingSession = chat.sessions
+      .filter(session => (session.profile_id || null) === flow.personId)
+      .find(session => session.context?.scenario === 'fengshui'
+        && sameFengshuiLayout(session.context.layout, expectedLayout))
+
+    if (matchingSession) {
+      if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
+      await sendUsingActiveSession(content)
+      return
+    }
+
+    await createAndSendWithFengshuiContext(content)
     return
   }
 
@@ -674,6 +839,8 @@ async function reloadProfiles() {
 }
 
 watch([() => flow.personId, () => flow.domainId], () => {
+  fengshuiInput.value = null
+  fengshuiResult.value = null
   hepanInput.value = null
   hepanResult.value = null
   consultationError.value = ''

@@ -52,6 +52,7 @@ export function useDomainArtifacts(options: {
   casting?: MaybeRefOrGetter<LiuyaoCasting | null>
   chart?: MaybeRefOrGetter<LiuyaoChartResult | null>
   hepan?: MaybeRefOrGetter<ArtifactPayloadByKind['hepan'] | null>
+  fengshui?: MaybeRefOrGetter<ArtifactPayloadByKind['fengshui'] | null>
 }) {
   const channelStates = reactive<Record<string, ArtifactChannelState>>({})
 
@@ -69,6 +70,11 @@ export function useDomainArtifacts(options: {
     const casting = toValue(options.casting)
     const chart = toValue(options.chart)
     const hepan = toValue(options.hepan)
+    const fengshui = toValue(options.fengshui)
+
+    if (fengshui) {
+      return buildArtifactDescriptors(domainId, { fengshui })
+    }
 
     if (hepan) {
       return buildArtifactDescriptors(domainId, { hepan })

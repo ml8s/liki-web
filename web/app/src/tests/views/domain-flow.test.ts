@@ -13,6 +13,7 @@ import { useEntitlementsStore } from '@/stores/entitlements'
 import type { ChatSession } from '@/api/chat'
 import type { BirthProfile } from '@/api/birth-profiles'
 import FlowHepanForm from '@/components/flow/forms/FlowHepanForm.vue'
+import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
 import type { BaziBondResult, BaziChartData } from '@shared/api/engine/bazi'
 
 const mediaQuery = vi.hoisted(() => ({ matches: false }))
@@ -169,6 +170,7 @@ vi.mock('@shared/domain/divination', async importOriginal => ({
 
 const saveToolRecord = vi.fn(async () => undefined)
 const saveBondRecord = vi.fn(async () => undefined)
+const saveBazhaiRecord = vi.fn(async () => undefined)
 const hepanMocks = vi.hoisted(() => {
   const chart = {} as BaziChartData
   const bond = {} as BaziBondResult
@@ -179,13 +181,59 @@ const hepanMocks = vi.hoisted(() => {
   }
 })
 
+const fengshuiMocks = vi.hoisted(() => {
+  const bazhai = {
+    ming_gua: { gua: { name: '艮', wuxing: '土' }, group: '西四命' },
+    ba_zhai_dirs: {
+      sheng_qi: '西南',
+      tian_yi: '西北',
+      yan_nian: '西',
+      fu_wei: '东北',
+      huo_hai: '南',
+      wu_gui: '北',
+      liu_sha: '东',
+      jue_ming: '东南',
+    },
+  }
+  const layout = {
+    group: '西四命',
+    ming_gua: '艮',
+    door: { direction: '西南', gua_name: '坤', youxing: '生气', rating: '大吉', group: '西四卦', match: '吉' },
+    master: { direction: '西', gua_name: '兑', youxing: '延年', rating: '吉', group: '西四卦', match: '吉' },
+    stove: { direction: '西北', gua_name: '乾', youxing: '天医', rating: '吉', group: '西四卦', match: '吉' },
+  }
+  const xuankong = {
+    yun: { year: 2026, yun_number: 9, yun_name: '九运', start_year: 2024, end_year: 2043 },
+    gong_wei: Array.from({ length: 9 }, (_, index) => ({
+      gong_num: index + 1,
+      yun_xing: { number: 5, name: '五黄廉贞' },
+      shan_xing: { number: 9, name: '九紫右弼' },
+      xiang_xing: { number: 9, name: '九紫右弼' },
+    })),
+    four_situation: { name: '双星会坐', sit_mountain_timely: true, face_facing_timely: false, sit_facing_timely: true, face_mountain_timely: false },
+    zuo_shan: 0,
+    zuo_shan_name: '子',
+    xiang_shan: 12,
+    xiang_shan_name: '午',
+    shou_shan_chu_sha: { zheng_shen: 9, ling_shen: 1, shou_shan: true, chu_sha: false },
+  }
+  return { bazhai, layout, xuankong }
+})
+
+vi.mock('@shared/domain/fengshui', async importOriginal => ({
+  ...await importOriginal(),
+  bazhaiChartFor: vi.fn(async () => fengshuiMocks.bazhai),
+  bazhaiLayoutFor: vi.fn(async () => fengshuiMocks.layout),
+  xuankongChartFor: vi.fn(async () => fengshuiMocks.xuankong),
+}))
+
 vi.mock('@shared/domain/hepan', async importOriginal => ({
   ...await importOriginal(),
   hepanForChartInputs: vi.fn(async () => hepanMocks),
 }))
 
 vi.mock('@/composables/useToolRecords', () => ({
-  useToolRecords: (kind: string) => ({ save: kind === 'bond' ? saveBondRecord : saveToolRecord }),
+  useToolRecords: (kind: string) => ({ save: kind === 'bond' ? saveBondRecord : kind === 'bazhai' ? saveBazhaiRecord : saveToolRecord }),
 }))
 
 describe('DomainFlowView', () => {
@@ -504,6 +552,76 @@ describe('DomainFlowView', () => {
       }),
     )
     expect(send).toHaveBeenCalledWith('帮我们解读关系节奏')
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('computes fengshui artifacts and sends a fengshui-scoped follow-up', async () => {
+    const profiles = useBirthProfilesStore()
+    const entitlements = useEntitlementsStore()
+    const chat = useChatStore()
+    profiles.list = [birthProfile()]
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    const createSession = vi.spyOn(chat, 'createSession').mockResolvedValue(
+      chatSession({
+        id: 'fengshui-created',
+        expert: 'fengshui',
+        context: {
+          version: 1,
+          scenario: 'fengshui',
+          layout: {
+            zuo_shan: 0,
+            period_date: '2026-01-01',
+            door_gua: '乾',
+            master_gua: '坤',
+            stove_gua: '兑',
+          },
+        },
+      }),
+    )
+    const send = vi.spyOn(chat, 'send').mockResolvedValue(undefined)
+
+    const router = await createTestRouter('/?domain=fengshui&seed=fengshui')
+    const wrapper = mount(DomainFlowView, {
+      attachTo: document.body,
+      global: {
+        plugins: [router],
+        stubs: { ChatThread: true, ChatStreamStatus: true },
+      },
+    })
+    await flushAll()
+
+    const form = wrapper.getComponent(FlowFengshuiForm)
+    form.vm.$emit('submit', {
+      zuoShan: 0,
+      periodDate: '2026-01-01',
+      doorGua: '乾',
+      masterGua: '坤',
+      stoveGua: '兑',
+    })
+    await flushAll()
+
+    expect(wrapper.find('.artifact-capsule').exists()).toBe(true)
+    await wrapper.get('.flow-inline-actions button').trigger('click')
+    await flushPromises()
+    expect(saveBazhaiRecord).toHaveBeenCalledTimes(1)
+
+    await wrapper.find('textarea').setValue('帮我判断客厅布局')
+    await wrapper.find('form.flow-composer').trigger('submit')
+    await flushPromises()
+
+    expect(createSession).toHaveBeenCalledWith(
+      'person-1',
+      'fengshui',
+      expect.objectContaining({
+        version: 1,
+        scenario: 'fengshui',
+        layout: expect.objectContaining({ door_gua: '乾', master_gua: '坤', stove_gua: '兑' }),
+      }),
+    )
+    expect(send).toHaveBeenCalledWith('帮我判断客厅布局')
     wrapper.unmount()
     document.body.innerHTML = ''
   })

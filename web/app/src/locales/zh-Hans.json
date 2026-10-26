@@ -61,7 +61,8 @@
     "questionLabel": "问",
     "answerLabel": "解读",
     "newContent": "有新内容",
-    "hepanRequired": "合盘需要先完成对方信息和第三方同意。"
+    "hepanRequired": "合盘需要先完成对方信息和第三方同意。",
+    "fengshuiRequired": "风水需要先完成坐山与门主灶布局。"
   },
   "auth": {
     "brandTail": "命理",
