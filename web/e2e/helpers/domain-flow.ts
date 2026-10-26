@@ -70,7 +70,11 @@ export function flowMessage(
 /** 用简体中文固定界面文案，避免宿主机 Accept-Language 影响断言。 */
 export async function mockFlowWorkspace(
   page: Page,
-  options: { profiles?: JsonRecord[]; sessions?: JsonRecord[] } = {},
+  options: {
+    profiles?: JsonRecord[]
+    sessions?: JsonRecord[]
+    productEvents?: JsonRecord[]
+  } = {},
 ) {
   await mockWorkspace(page, {
     user: {
@@ -85,6 +89,10 @@ export async function mockFlowWorkspace(
     sessions: options.sessions ?? [],
   })
   await page.route('**/api/client-errors', route => route.fulfill({ status: 204 }))
+  await page.route('**/api/analytics/product-event', async route => {
+    options.productEvents?.push(await route.request().postDataJSON() as JsonRecord)
+    await route.fulfill({ status: 204 })
+  })
 }
 
 export async function openFlowDomainSheet(page: Page) {

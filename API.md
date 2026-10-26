@@ -443,6 +443,7 @@ they never establish a session or grant an entitlement.
 | GET | `/api/health` | public | Liveness: dependency-free process check, `Cache-Control: no-store` |
 | GET | `/api/ready` | public, rate limited | Readiness: DB and expert dependencies, 503 when not ready, `Cache-Control: no-store` |
 | POST | `/api/analytics/pageview` | public, rate limited | Increment aggregate page-view counter |
+| POST | `/api/analytics/product-event` | public, rate limited | Increment a bounded product funnel counter |
 | POST | `/api/client-errors` | public, rate limited | Record a PII-free client failure (`code`, `view`, `locale`, optional technical `detail`) |
 | GET | `/api/version` | public | Build time and version |
 | GET | `/api/internal/metrics` | token | JSON or Prometheus counters |
@@ -453,6 +454,12 @@ Metrics are disabled when `LIKI_METRICS_TOKEN` is empty.
 must never contain birth data, chat content, email addresses, or raw provider
 payloads. Metric labels use a code allowlist; unknown codes are logged and
 folded into `other` to keep cardinality bounded.
+
+`POST /api/analytics/product-event` is the Consultation funnel counterpart.
+It accepts only event/domain/source/scenario/status/failure values from closed
+vocabularies and rejects person IDs, session IDs, questions, birth data, and
+any free-form dimension. The payload is reduced to bounded metric labels and a
+structured log line.
 
 ## Admin
 

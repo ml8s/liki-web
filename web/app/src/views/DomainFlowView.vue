@@ -278,6 +278,7 @@ import { firstQueryValue } from '@/utils/query'
 import { toUserMessage } from '@/utils/errors'
 import { useNearBottom } from '@/composables/useNearBottom'
 import { useConsultationTools } from '@/composables/useConsultationTools'
+import { useConsultationTelemetry } from '@/composables/useConsultationTelemetry'
 import { useOnline } from '@vueuse/core'
 import { classifyResourceFailure, type ResourceFailureKind } from '@/utils/resourceStatus'
 
@@ -291,6 +292,7 @@ const chat = useChatStore()
 const flow = useDomainFlowStore()
 const sales = useSalesStore()
 const isOnline = useOnline()
+const telemetry = useConsultationTelemetry()
 
 const personSheetOpen = ref(false)
 const domainSheetOpen = ref(false)
@@ -423,6 +425,23 @@ const routingSeed = computed(() => {
   return normalizeLegacyScenario(value)
 })
 
+const entrySource = computed<'direct' | 'legacy_redirect' | 'marketing' | 'payment'>(() => {
+  if (isLegacyAppRedirect()) return 'legacy_redirect'
+  if ([
+    'order_id',
+    'payment_intent_id',
+    'subscription_id',
+    'subscription_state',
+  ].some(key => firstQueryValue(route.query[key]))) return 'payment'
+  if (firstQueryValue(route.query.service) || firstQueryValue(route.query.utm_source)) return 'marketing'
+  return 'direct'
+})
+
+function isLegacyAppRedirect(): boolean {
+  return (history.state as { likiAppFlowLegacyRedirect?: unknown } | null)
+    ?.likiAppFlowLegacyRedirect === true
+}
+
 const hepanArtifact = computed(() =>
   artifacts.value.find(artifact => artifact.kind === 'hepan' && artifact.state === 'ready') ?? null,
 )
@@ -433,12 +452,14 @@ const fengshuiArtifact = computed(() =>
 function selectPerson(personId: string) {
   resetResults()
   flow.setPerson(personId)
+  telemetry.trackPersonSelect(flow.domainId)
   personSheetOpen.value = false
 }
 
 function selectDomain(domainId: AppDomainId) {
   resetResults()
   flow.setDomain(domainId)
+  telemetry.trackDomainSelect(domainId)
   domainSheetOpen.value = false
 }
 
@@ -471,11 +492,21 @@ async function restoreLatest() {
     return
   }
   await chat.openSession(latest.id)
+  telemetry.trackRestore({
+    domainId: flow.domainId,
+    source: 'latest',
+    restored: chat.activeSession?.id === latest.id,
+  })
 }
 
 async function openHistorySession(session: ChatSession) {
   if (chat.activeSession?.id === session.id) return
   await chat.openSession(session.id)
+  telemetry.trackRestore({
+    domainId: flow.domainId,
+    source: 'history',
+    restored: chat.activeSession?.id === session.id,
+  })
 }
 
 async function renameHistorySession(session: ChatSession) {
@@ -512,6 +543,11 @@ function purchaseConsultation(billingMode: 'one_time' | 'subscription') {
 }
 
 function projectBridgeFailure(result: Extract<LegacyIntentBridgeResult, { status: 'cross-domain' | 'pending-backend' | 'invalid' }>) {
+  telemetry.trackBridge({
+    domainId: flow.domainId,
+    seed: routingSeed.value,
+    result,
+  })
   if (result.status === 'cross-domain') {
     const label = t(appDomainById(result.suggestedDomainId).labelKey)
     consultationError.value = t('flow.crossDomain', { domain: label })
@@ -551,6 +587,7 @@ function sameFengshuiLayout(
 async function openMatchingAndSend(
   matcher: (session: ChatSession) => boolean,
   content: string,
+  source: 'composer' | 'focused_form' | 'casting',
 ) {
   const matchingSession = chat.sessions
     .filter(session => (session.profile_id || null) === flow.personId)
@@ -558,6 +595,11 @@ async function openMatchingAndSend(
 
   if (!matchingSession) return false
   if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
+  telemetry.trackSubmit({
+    domainId: flow.domainId,
+    source,
+    created: false,
+  })
   await sendUsingActiveSession(content)
   return true
 }
@@ -566,6 +608,7 @@ async function createAndSendWithSession(
   skill: string,
   context: ConsultationContext | undefined,
   content: string,
+  source: 'composer' | 'focused_form' | 'casting',
 ) {
   try {
     const session = context === undefined
@@ -574,9 +617,15 @@ async function createAndSendWithSession(
     chat.activeSession = session
     chat.messages = []
     chat.messagesCursor = ''
+    telemetry.trackSubmit({
+      domainId: flow.domainId,
+      source,
+      created: true,
+    })
     await sendUsingActiveSession(content)
   } catch (error) {
     consultationError.value = toUserMessage(error, t('chat.createFailed'))
+    telemetry.trackFailure(flow.domainId, classifyResourceFailure(error))
   }
 }
 
@@ -590,6 +639,7 @@ async function submitQuestion() {
     const sent = await openMatchingAndSend(
       session => session.context?.casting?.casting_id === casting.value?.casting_id,
       content,
+      'casting',
     )
     if (sent) return
     await createAndSendWithSession('divination', {
@@ -604,7 +654,7 @@ async function submitQuestion() {
             timezone: castingLocation.value.timezone,
           }
         : undefined,
-    }, content)
+    }, content, 'casting')
     return
   }
 
@@ -638,9 +688,10 @@ async function submitQuestion() {
       session => session.context?.scenario === 'naming'
         && sameConsultationBirth(session.context.birth, context.birth),
       content,
+      'focused_form',
     )
     if (sent) return
-    await createAndSendWithSession('naming', context, content)
+    await createAndSendWithSession('naming', context, content, 'focused_form')
     return
   }
 
@@ -660,9 +711,10 @@ async function submitQuestion() {
       session => session.context?.scenario === 'fengshui'
         && sameFengshuiLayout(session.context.layout, context.layout),
       content,
+      'focused_form',
     )
     if (sent) return
-    await createAndSendWithSession('fengshui', context, content)
+    await createAndSendWithSession('fengshui', context, content, 'focused_form')
     return
   }
 
@@ -677,15 +729,21 @@ async function submitQuestion() {
       session => session.context?.scenario === 'hepan'
         && sameConsultationBirth(session.context.second_birth, context.second_birth),
       content,
+      'focused_form',
     )
     if (sent) return
-    await createAndSendWithSession('hepan', context, content)
+    await createAndSendWithSession('hepan', context, content, 'focused_form')
     return
   }
 
   const existing = latestVisibleSession.value
   if (existing) {
     if (chat.activeSession?.id !== existing.id) await chat.openSession(existing.id)
+    telemetry.trackSubmit({
+      domainId: flow.domainId,
+      source: 'composer',
+      created: false,
+    })
     await sendUsingActiveSession(content)
     return
   }
@@ -700,8 +758,13 @@ async function submitQuestion() {
     projectBridgeFailure(bridgeResult)
     return
   }
+  telemetry.trackBridge({
+    domainId: flow.domainId,
+    seed: routingSeed.value,
+    result: bridgeResult,
+  })
 
-  await createAndSendWithSession(bridgeResult.skill, undefined, content)
+  await createAndSendWithSession(bridgeResult.skill, undefined, content, 'composer')
 }
 
 async function sendUsingActiveSession(content: string) {
@@ -751,6 +814,7 @@ async function reloadProfiles() {
 }
 
 async function retryWorkspace() {
+  telemetry.trackRecovery(flow.domainId)
   await Promise.allSettled([
     profiles.loadList('', true),
     entitlements.load(true),
@@ -767,6 +831,10 @@ watch([() => flow.personId, () => flow.domainId], () => {
 
 watch(nearBottom, (value) => {
   followVisible.value = !value && chat.messages.length > 0
+})
+
+watch(workspaceFailure, (failure) => {
+  if (failure) telemetry.trackFailure(flow.domainId, failure)
 })
 
 watch(() => `${chat.messages.length}:${chat.messages.at(-1)?.content.length ?? 0}`, () => {
@@ -787,6 +855,12 @@ onMounted(async () => {
   if (token !== mountToken) return
 
   if (!flow.personId) flow.setPerson(profiles.list[0]?.id ?? null)
+  telemetry.trackEntry({
+    domainId: flow.domainId,
+    seed: routingSeed.value,
+    source: entrySource.value,
+    restorable: Boolean(latestVisibleSession.value),
+  })
   await restoreLatest()
 
   const paymentResult = await sales.handlePaymentReturn(route.query)
@@ -801,6 +875,11 @@ onMounted(async () => {
         query: route.query.locale ? { locale: firstQueryValue(route.query.locale) } : {},
       })
       await chat.openSession(sessionId)
+      telemetry.trackRestore({
+        domainId: flow.domainId,
+        source: 'payment',
+        restored: chat.activeSession?.id === sessionId,
+      })
     }
   } else if (paymentResult.action === 'show_message') {
     await router.replace({

@@ -40,15 +40,20 @@ Constraints for every follow-up:
 
 Goal: prove that the new default is safe before any cleanup.
 
+The first implementation adds the bounded `/api/analytics/product-event`
+beacon and Consultation entry, domain/person selection, restore, submit,
+bridge, failure, and recovery counters. Remaining work is production review and
+staging validation.
+
 Work:
 
-1. Add production telemetry for consultation entry, domain selection, person
-   restore, seed bridge result, pending-backend `huangli`, failure class, and
-   recovery action.
+1. Extend production telemetry review for consultation entry, domain selection,
+   person restore, seed bridge result, pending-backend `huangli`, failure
+   class, and recovery action.
 2. Track redirect use from `/app/hepan`, `/app/divination`,
    `/app/fengshui`, `/app/liunian`, and `/app/naming`.
-3. Review client errors by feature flag, route class, browser, viewport, and
-   auth state.
+3. Review client errors and funnel counters by feature flag, route class,
+   browser, viewport, and auth state.
 4. Run a staging smoke checklist for marketing handoff, login, payment return,
    restore, four-domain send, history, Me, entitlement lock, and offline state.
 

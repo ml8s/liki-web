@@ -6,6 +6,8 @@
  * code, the current path, locale and technical detail. It never sends birth
  * data, chat content, email addresses or provider payloads.
  */
+import { postTelemetryJSON, telemetryDisabled } from './telemetry'
+
 export interface ClientErrorEvent {
   code: string
   view?: string
@@ -15,10 +17,6 @@ export interface ClientErrorEvent {
 }
 
 const reported = new Set<string>()
-
-function mode(): string | undefined {
-  return (import.meta as unknown as { env?: { MODE?: string } }).env?.MODE
-}
 
 function sanitizeDetail(value: string | undefined): string {
   if (!value) return ''
@@ -30,7 +28,7 @@ function sanitizeDetail(value: string | undefined): string {
 }
 
 export function reportClientError(event: ClientErrorEvent): void {
-  if (typeof window === 'undefined' || mode() === 'test') return
+  if (telemetryDisabled()) return
   const code = event.code || 'unknown'
   if (reported.has(code)) return
   reported.add(code)
@@ -43,22 +41,7 @@ export function reportClientError(event: ClientErrorEvent): void {
     agent: event.agent,
     detail: sanitizeDetail(event.detail),
   }
-  const body = JSON.stringify(payload)
-  try {
-    if (typeof navigator.sendBeacon === 'function') {
-      const blob = new Blob([body], { type: 'application/json' })
-      if (navigator.sendBeacon('/api/client-errors', blob)) return
-    }
-    void fetch('/api/client-errors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      credentials: 'same-origin',
-      keepalive: true,
-    }).catch(() => {})
-  } catch {
-    // Telemetry must never break the product.
-  }
+  postTelemetryJSON('/api/client-errors', payload)
 }
 
 /** Test helper: allow a fresh page-load dedupe state. */

@@ -97,6 +97,10 @@ interface LegacyRedirectTarget {
   hash: string
 }
 
+interface LegacyRedirectResult extends LegacyRedirectTarget {
+  state: { likiAppFlowLegacyRedirect: true }
+}
+
 export function createLegacyAppRedirects(): RouteRecordRaw[] {
   const consultationOwnedLegacyPaths = new Set([
     'hepan',
@@ -119,42 +123,47 @@ export function createLegacyAppRedirects(): RouteRecordRaw[] {
   const consultationRedirects: RouteRecordRaw[] = [
     {
       path: 'hepan',
-      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
         query: { ...to.query, domain: 'natal', seed: 'hepan' },
         hash: to.hash,
+        state: { likiAppFlowLegacyRedirect: true },
       }),
     },
     {
       path: 'divination',
-      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
         query: { ...to.query, domain: 'divination', seed: 'divination' },
         hash: to.hash,
+        state: { likiAppFlowLegacyRedirect: true },
       }),
     },
     {
       path: 'fengshui',
-      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
         query: { ...to.query, domain: 'fengshui', seed: 'fengshui' },
         hash: to.hash,
+        state: { likiAppFlowLegacyRedirect: true },
       }),
     },
     {
       path: 'liunian',
-      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
         query: { ...to.query, domain: 'natal', seed: 'liunian' },
         hash: to.hash,
+        state: { likiAppFlowLegacyRedirect: true },
       }),
     },
     {
       path: 'naming',
-      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
         query: { ...to.query, domain: 'naming', seed: 'naming' },
         hash: to.hash,
+        state: { likiAppFlowLegacyRedirect: true },
       }),
     },
   ]

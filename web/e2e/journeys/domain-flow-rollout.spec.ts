@@ -14,11 +14,22 @@ const redirects = [
 test.describe('phase six rollout redirects', () => {
   for (const [from, marker, query] of redirects) {
     test(`redirects ${from} into Consultation`, async ({ page }) => {
-      await mockFlowWorkspace(page, { profiles: [profile] })
+      const productEvents: Array<Record<string, unknown>> = []
+      await mockFlowWorkspace(page, {
+        profiles: [profile],
+        productEvents,
+      })
       await page.goto(`${from}?locale=zh-Hans`)
 
       await expect(page).toHaveURL(new RegExp(`domain=${query.domain}&seed=${query.seed}`))
       await expect(page.locator(marker)).toBeVisible()
+      await expect.poll(() => productEvents).toContainEqual({
+        event: 'consultation_entry',
+        domain: query.domain,
+        source: 'legacy_redirect',
+        scenario: query.seed,
+        status: 'empty',
+      })
     })
   }
 

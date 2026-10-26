@@ -172,6 +172,7 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		return rl.Wrap(30.0/60, 30, next)
 	}
 	mux.HandleFunc("POST /api/analytics/pageview", analyticsLimit(handlePageView()))
+	mux.HandleFunc("POST /api/analytics/product-event", analyticsLimit(handleAppFlowEvent()))
 	clientErrorLimit := func(next http.HandlerFunc) http.HandlerFunc {
 		return rl.Wrap(12.0/60, 6, next)
 	}

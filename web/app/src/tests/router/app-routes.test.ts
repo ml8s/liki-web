@@ -96,7 +96,16 @@ describe('app experience routes', () => {
     ])
     expect(redirects.every(route => typeof route.redirect === 'function')).toBe(true)
 
-    const redirectResults = redirects.map(route => (route.redirect as unknown as (target: { path: string; query: Record<string, string>; hash: string }) => ({ path: string; query: Record<string, string>; hash: string }))({
+    const redirectResults = redirects.map(route => (route.redirect as unknown as (target: {
+      path: string
+      query: Record<string, string>
+      hash: string
+    }) => ({
+      path: string
+      query: Record<string, string>
+      hash: string
+      state: { likiAppFlowLegacyRedirect: true }
+    }))({
       path: route.path,
       query: { locale: 'zh-Hans' },
       hash: '#save',
@@ -138,6 +147,10 @@ describe('app experience routes', () => {
       { locale: 'zh-Hans' },
     ])
     expect(redirectResults.map(result => result.hash)).toHaveLength(16)
+    expect(redirectResults.slice(0, 5).map(result => result.state)).toEqual(Array.from({ length: 5 }, () => ({
+      likiAppFlowLegacyRedirect: true,
+    })))
+    expect(redirectResults.slice(5).map(result => result.state)).toEqual(Array.from({ length: 11 }, () => undefined))
 
 
 
