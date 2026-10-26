@@ -82,10 +82,11 @@ function divinationSession(): ChatSession {
   })
 }
 
-async function createTestRouter(initialUrl = '/flow') {
+async function createTestRouter(initialUrl = '/consultation') {
   const router = createRouter({
     history: createMemoryHistory('/app/'),
     routes: [
+      { path: '/', name: 'dashboard', component: { template: '<div />' } },
       { path: '/consultation', name: 'app-consultation', component: { template: '<div />' } },
       { path: '/birth-profiles', name: 'birth-profiles', component: { template: '<div />' } },
       { path: '/birth-profiles/new', name: 'birth-profile-new', component: { template: '<div />' } },
@@ -231,7 +232,7 @@ describe('DomainFlowView', () => {
     const createSession = vi.spyOn(chat, 'createSession').mockResolvedValue(chatSession())
     const send = vi.spyOn(chat, 'send').mockResolvedValue(undefined)
 
-    const router = await createTestRouter('/flow')
+    const router = await createTestRouter('/consultation')
     const wrapper = mount(DomainFlowView, {
       global: {
         plugins: [router],
@@ -264,7 +265,7 @@ describe('DomainFlowView', () => {
     vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
     const createSession = vi.spyOn(chat, 'createSession')
 
-    const router = await createTestRouter('/flow?seed=huangli')
+    const router = await createTestRouter('/consultation?seed=huangli')
     const wrapper = mount(DomainFlowView, {
       global: {
         plugins: [router],
@@ -379,7 +380,7 @@ describe('DomainFlowView', () => {
     vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
     vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
 
-    const router = await createTestRouter('/flow?domain=divination')
+    const router = await createTestRouter('/consultation?domain=divination')
     const wrapper = mount(DomainFlowView, {
       global: {
         plugins: [router],
@@ -469,7 +470,7 @@ describe('DomainFlowView', () => {
     vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
 
     flow.setPerson('person-1')
-    const router = await createTestRouter('/flow?domain=divination')
+    const router = await createTestRouter('/consultation?domain=divination')
     const wrapper = mount(DomainFlowView, {
       global: {
         plugins: [router],

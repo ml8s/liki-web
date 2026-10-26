@@ -59,6 +59,13 @@
         >
           {{ $t('nav.account') }}
         </router-link>
+        <AppExperienceSwitcher
+          v-if="appFlowRedesignEnabled"
+          target="consultation"
+          variant="sidebar"
+        >
+          {{ $t('nav.consultation') }}
+        </AppExperienceSwitcher>
       </div>
       <div
         v-if="auth.hasPartnerRole"
@@ -93,6 +100,8 @@
 import { useRoute, useRouter } from 'vue-router'
 import { createIntentPreloader } from '@/utils/routes'
 import { useAuthStore } from '@/stores/auth'
+import AppExperienceSwitcher from '@/components/app/AppExperienceSwitcher.vue'
+import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 
 defineProps<{ email: string }>()
 defineEmits<{ logout: [] }>()

@@ -19,6 +19,13 @@
       </div>
       <div class="topbar-meta">
         <span class="page-title">{{ pageTitle }}</span>
+        <AppExperienceSwitcher
+          v-if="appFlowRedesignEnabled"
+          target="consultation"
+          variant="topbar"
+        >
+          {{ $t('nav.consultation') }}
+        </AppExperienceSwitcher>
         <el-button
           size="small"
           link
@@ -51,6 +58,8 @@ import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import AppSidebar from '@/components/app/AppSidebar.vue'
 import AppTabbar from '@/components/app/AppTabbar.vue'
+import AppExperienceSwitcher from '@/components/app/AppExperienceSwitcher.vue'
+import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 
 const auth = useAuthStore()
 const router = useRouter()

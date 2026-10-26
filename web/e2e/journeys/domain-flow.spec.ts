@@ -53,6 +53,14 @@ test.describe('four-domain consultation flow', () => {
       const options = sheet.locator('.domain-list label span:not(.domain-check)')
       await expect(options).toHaveText(['命理', '问卦', '风水', '起名'])
       await expect(sheet.getByRole('button', { name: '开始新咨询' })).toBeVisible()
+
+      await page.locator('.flow-sheet__close').click()
+      await expect(page.locator('.flow-sheet__body')).toBeHidden()
+
+      const classicSwitcher = page.locator('.experience-switcher--dock')
+      await expect(classicSwitcher).toHaveText('经典版')
+      await classicSwitcher.click()
+      await expect(page).toHaveURL(/\/app\/?$/)
     })
 
     test('isolates question drafts by person and domain', async ({ page }) => {

@@ -34,7 +34,9 @@
     "account": "帳戶設定",
     "mine": "我的",
     "partner": "我的合作",
-    "logout": "登出"
+    "logout": "登出",
+    "consultation": "領域諮詢",
+    "classic": "經典版"
   },
   "a11y": {
     "skipToContent": "跳到主要內容"

@@ -4,11 +4,7 @@
     :person-label="personLabel"
     :domain-label="domainLabel"
     :restore-visible="restoreVisible"
-    :follow-visible="followVisible"
-    :follow-label="$t('flow.newContent')"
     @restore="restoreLatest"
-    @near-bottom-change="nearBottom = $event"
-    @follow-latest="followLatest"
   >
     <div
       ref="documentBoundary"
@@ -112,6 +108,12 @@
         @submit="submitQuestion"
         @stop="chat.stopGeneration()"
       />
+      <AppExperienceSwitcher
+        target="classic"
+        variant="dock"
+      >
+        {{ $t('nav.classic') }}
+      </AppExperienceSwitcher>
     </template>
   </AppFlowShell>
 
@@ -141,6 +143,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AppFlowShell from '@/components/flow/AppFlowShell.vue'
+import AppExperienceSwitcher from '@/components/app/AppExperienceSwitcher.vue'
 import FlowFollowButton from '@/components/flow/FlowFollowButton.vue'
 import ConsultationSpine from '@/components/flow/ConsultationSpine.vue'
 import ParameterComposer from '@/components/flow/ParameterComposer.vue'

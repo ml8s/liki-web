@@ -34,7 +34,9 @@
     "account": "账户设置",
     "mine": "我的",
     "partner": "我的合作",
-    "logout": "退出"
+    "logout": "退出",
+    "consultation": "领域咨询",
+    "classic": "经典版"
   },
   "a11y": {
     "skipToContent": "跳到主要内容"
