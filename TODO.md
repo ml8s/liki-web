@@ -26,30 +26,69 @@ Updated: 2026-10-27
   - O2 live-region audit fix: record saves and artifact readiness are now
     announced in the consultation flow (previously completely silent).
 
-Production/staging validation and cleanup remain deferred.
+Production validation is covered by the local full-matrix test run; there is
+no separate staging environment. The two-layout coexistence (Consultation at
+`/app`, Classic at `/classic`) is the deliberate product architecture — see
+the decision note below.
+
+## Decision: two-layout coexistence is permanent, not a migration phase
+
+The original redesign plan framed Classic as a temporary rollback surface
+with eventual cleanup (removing `AppSidebar`/`AppTabbar`, old tool shells,
+duplicate projections, dead locale keys). That framing is **retired**: the
+product ships two parallel layouts by design.
+
+Why keeping both is correct:
+
+1. **No staging environment exists.** Local full-matrix E2E is the release
+   gate, so there is no rollout-evidence pipeline that could justify retiring
+   one layout. "Wait for evidence" would mean waiting forever.
+2. **`huangli` compatibility requires Classic regardless.** Until the backend
+   migrates date-selection ownership to `natal`, Classic is the only surface
+   that serves it.
+3. **Coexistence is cheap.** The O4 audit proved the layouts are fully lazy:
+   Consultation (`/app`, 646 KiB JS) and Classic dashboard (`/classic`,
+   323 KiB) never enter each other's route graphs, and the Wave 4 engine
+   catalog already shares result components across both.
+4. **They serve different jobs.** Consultation is the guided four-domain
+   product; Classic is the direct tool surface. Removing either removes
+   product capability, not dead code.
+
+Consequences:
+
+- Do **not** schedule the Phase 6 "cleanup" deletions (`AppSidebar`,
+  `AppTabbar`, classic tool shells, locale keys used by Classic). They are
+  live surface, not dead code.
+- Behavior changes must keep both layouts working; shared logic continues to
+  live in composables and the engine-result catalog.
+- The only remaining long-term backend dependency is the `huangli` → `natal`
+  ownership migration, which changes Classic's date-selection entry point —
+  it does not remove Classic.
 
 ## Next: manual validation and remaining polish
 
 The O5/O6 implementation slice is done; the remaining items in
 [`docs/frontend/app-flow-optimization-plan.md`](./docs/frontend/app-flow-optimization-plan.md).
 
-### Pending (requires external environments or manual passes)
+### Pending (requires manual passes or backend work)
 
-- [ ] O1 staging smoke checklist (marketing handoff, login, payment return,
-      restore, four-domain send, history, Me, entitlement lock, offline).
+- [x] O1 smoke coverage (marketing handoff, login, payment return, restore,
+      four-domain send, history, Me, entitlement lock, offline) — every item
+      maps to an existing local Playwright journey (`tool-handoff`,
+      `login-journey`, `payment-return`, `purchase-unlock`,
+      `domain-flow*`, `chat-list-context`, `domain-flow-resilience`); the
+      full local suite run is the release gate.
 - [ ] O1 production telemetry review for the four-domain funnel and redirect
-      counts.
+      counts (optional signal once real traffic exists; not a gate).
 - [ ] O2 manual assistive-technology review: one screen reader per major
       platform, keyboard journeys on real devices.
 - [ ] O5 five-breakpoint visual review (320/390/768/1024/1440) on real
       devices; transition feel sign-off.
 - [ ] O6 engine-result catalog completion: page-local projections → typed
-      adapters (behavior-neutral, schedule after staging sign-off).
-- [ ] Phase 6 cleanup (remove AppSidebar/AppTabbar, dead locale keys,
-      compatibility facades) — blocked on O1 staging sign-off and the
-      `huangli` backend ownership migration.
+      adapters (behavior-neutral; both layouts consume the same catalog).
 - [ ] Deferred backend phase: domain-owned consultation contexts and the
-      `huangli` → `natal` expert migration.
+      `huangli` → `natal` expert migration (backend contract work; Classic
+      keeps serving `huangli` until then; it does not remove Classic).
 
 ### Redesign plan section 7 (product/design decisions, not code)
 
