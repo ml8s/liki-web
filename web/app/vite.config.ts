@@ -75,10 +75,10 @@ export default defineConfig({
         'src/utils/**',
       ],
       thresholds: {
-        statements: 29,
-        branches: 25,
-        functions: 18,
-        lines: 30,
+        statements: 55,
+        branches: 50,
+        functions: 45,
+        lines: 55,
       },
     },
     // element-plus 按需引入后组件带 CSS side-effect import；测试里需内联

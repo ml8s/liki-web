@@ -35,10 +35,12 @@ class FrontendCoverageInfraTest(unittest.TestCase):
         self.assertIn("reportsDirectory", VITE_CONFIG)
         self.assertIn("text-summary", VITE_CONFIG)
         self.assertIn("html", VITE_CONFIG)
-        self.assertIn("statements: 29", VITE_CONFIG)
-        self.assertIn("branches: 25", VITE_CONFIG)
-        self.assertIn("functions: 18", VITE_CONFIG)
-        self.assertIn("lines: 30", VITE_CONFIG)
+        # 2026-10 O4/O6 batch: gates raised to the measured floor with
+        # regression headroom (actual 62.8/59.8/54.9/64.9).
+        self.assertIn("statements: 55", VITE_CONFIG)
+        self.assertIn("branches: 50", VITE_CONFIG)
+        self.assertIn("functions: 45", VITE_CONFIG)
+        self.assertIn("lines: 55", VITE_CONFIG)
 
     def test_frontend_domain_sources_are_included(self) -> None:
         for path in ("src/api/**", "src/stores/**", "src/components/**", "src/utils/**"):

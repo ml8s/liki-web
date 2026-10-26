@@ -4,6 +4,8 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+import contextlib
+import io
 from pathlib import Path
 
 
@@ -93,8 +95,10 @@ def invoke(module, args):
     # Unit tests must not depend on unrelated liki-web processes on the host.
     module.ensure_no_liki_process = lambda: None
     sys.argv = ["migrate-db.py", *map(str, args)]
+    out, err = io.StringIO(), io.StringIO()
     try:
-        return module.main()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            return module.main()
     finally:
         sys.argv = old_argv
         module.ensure_no_liki_process = original_process_check
