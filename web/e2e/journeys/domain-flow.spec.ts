@@ -62,7 +62,7 @@ test.describe('four-domain consultation flow', () => {
       await page.locator('.flow-sheet__close').click()
       await expect(page.locator('.flow-sheet__body')).toBeHidden()
 
-      const classicSwitcher = page.locator('.experience-switcher--dock')
+      const classicSwitcher = page.locator('.experience-switcher--dock', { hasText: '经典版' })
       await expect(classicSwitcher).toHaveText('经典版')
       await classicSwitcher.click()
       await expect(page).toHaveURL(/\/app\/classic\/?$/)

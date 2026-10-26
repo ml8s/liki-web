@@ -240,7 +240,7 @@ import ConsultationDocument from '@/components/flow/ConsultationDocument.vue'
 import FlowHistoryPanel from '@/components/flow/FlowHistoryPanel.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
 import FlowDivinationForm from '@/components/flow/forms/FlowDivinationForm.vue'
-import FlowHepanForm, { type FlowHepanFormValue } from '@/components/flow/forms/FlowHepanForm.vue'
+import FlowHepanForm from '@/components/flow/forms/FlowHepanForm.vue'
 import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
 import FlowNamingForm from '@/components/flow/forms/FlowNamingForm.vue'
 import ArtifactCapsule from '@/components/flow/artifacts/ArtifactCapsule.vue'
@@ -251,31 +251,11 @@ import { useDomainFlowStore } from '@/stores/domain-flow'
 import type { ChatSession } from '@/api/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useDomainArtifacts } from '@/composables/useDomainArtifacts'
-import { useToolRecords } from '@/composables/useToolRecords'
 import { useSalesStore } from '@/stores/sales-store'
 import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
 import { confirmDeleteEntity, promptRenameEntity } from '@/utils/dialogs'
-import {
-  divinationCastingFor,
-  divinationChartFor,
-  type LiuyaoCasting,
-  type LiuyaoChartResult,
-} from '@shared/domain/divination'
-import type { DivinationCastingFormValue } from '@shared/components/divination/types'
 import type { ConsultationContext } from '@shared/domain/consultation'
-import { birthInputFromFields } from '@shared/components/form/birth-fields'
-import { chartInputFromBirth } from '@shared/domain/birth'
-import { hepanForChartInputs } from '@shared/domain/hepan'
-import { baziChartFor } from '@shared/domain/natal'
-import { namingAssessmentFor } from '@shared/domain/naming'
-import {
-  bazhaiChartFor,
-  bazhaiLayoutFor,
-  xuankongChartFor,
-} from '@shared/domain/fengshui'
-import type { FengshuiLayoutValue } from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 import { consultationBirthFromFields } from '@shared/domain/consultation'
-import type { ArtifactPayloadByKind } from '@/components/flow/artifacts/types'
 import {
   normalizeAppDomain,
   appDomains,
@@ -289,6 +269,7 @@ import {
 import { firstQueryValue } from '@/utils/query'
 import { toUserMessage } from '@/utils/errors'
 import { useNearBottom } from '@/composables/useNearBottom'
+import { useConsultationTools } from '@/composables/useConsultationTools'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -311,21 +292,6 @@ const { nearBottom, measure: measureNearBottom } = useNearBottom(
 const followVisible = ref(false)
 const artifactDockRef = ref<HTMLElement | null>(null)
 const castingFormRef = ref<InstanceType<typeof FlowDivinationForm> | null>(null)
-const castingLoading = ref(false)
-const castingError = ref('')
-const castingQuestion = ref('')
-const casting = ref<LiuyaoCasting | null>(null)
-const castingInstant = ref('')
-const castingLocation = ref<DivinationCastingFormValue['location']>(null)
-const castingChart = ref<LiuyaoChartResult | null>(null)
-const hepanLoading = ref(false)
-const hepanInput = ref<FlowHepanFormValue | null>(null)
-const hepanResult = ref<ArtifactPayloadByKind['hepan'] | null>(null)
-const fengshuiLoading = ref(false)
-const fengshuiInput = ref<FengshuiLayoutValue | null>(null)
-const fengshuiResult = ref<ArtifactPayloadByKind['fengshui'] | null>(null)
-const namingLoading = ref(false)
-const namingResult = ref<ArtifactPayloadByKind['naming'] | null>(null)
 let mountToken = 0
 let artifactFocusToken = 0
 
@@ -339,6 +305,39 @@ const selectedProfile = computed(() =>
 )
 
 const personLabel = computed(() => selectedProfile.value?.nickname ?? '')
+const {
+  castingLoading,
+  castingError,
+  casting,
+  castingQuestion,
+  castingInstant,
+  castingLocation,
+  castingChart,
+  castDivination,
+  hepanLoading,
+  hepanInput,
+  hepanResult,
+  computeHepan,
+  saveHepanRecord,
+  fengshuiLoading,
+  fengshuiInput,
+  fengshuiResult,
+  fengshuiBirthYear,
+  fengshuiGender,
+  computeFengshui,
+  saveFengshuiRecord,
+  namingLoading,
+  namingResult,
+  computeNaming,
+  profileConsultationBirth,
+  resetResults,
+} = useConsultationTools({
+  selectedProfile,
+  personLabel,
+  onError: message => {
+    consultationError.value = message
+  },
+})
 const domainLabel = computed(() => t(flow.currentDomain.labelKey))
 const profilePolicy = computed(() => flow.currentDomain.profilePolicy)
 const profileRequired = computed(() => profilePolicy.value !== 'optional')
@@ -376,27 +375,6 @@ const namingBirthReady = computed(() => {
   const birth = selectedProfile.value?.birth
   return Boolean(birth?.gender && birth.date && birth.time && birth.location)
 })
-const fengshuiBirthYear = computed(() => {
-  const date = selectedProfile.value?.birth.date ?? ''
-  const year = Number.parseInt(date.slice(0, 4), 10)
-  return Number.isFinite(year) && year >= 1900 && year <= 2100 ? year : null
-})
-const fengshuiGender = computed(() =>
-  selectedProfile.value?.birth.gender === 'female' || selectedProfile.value?.birth.gender === 'male'
-    ? selectedProfile.value.birth.gender
-    : '',
-)
-
-const {
-  save: saveToolRecord,
-} = useToolRecords('liuyao')
-const {
-  save: saveBondRecord,
-} = useToolRecords('bond')
-const {
-  save: saveBazhaiRecord,
-} = useToolRecords('bazhai')
-
 const artifactContext = computed(() => {
   const session = chat.activeSession
   if (!session?.context) return null
@@ -437,21 +415,13 @@ const fengshuiArtifact = computed(() =>
 )
 
 function selectPerson(personId: string) {
-  hepanInput.value = null
-  hepanResult.value = null
-  fengshuiInput.value = null
-  fengshuiResult.value = null
-  namingResult.value = null
+  resetResults()
   flow.setPerson(personId)
   personSheetOpen.value = false
 }
 
 function selectDomain(domainId: AppDomainId) {
-  hepanInput.value = null
-  hepanResult.value = null
-  fengshuiInput.value = null
-  fengshuiResult.value = null
-  namingResult.value = null
+  resetResults()
   flow.setDomain(domainId)
   domainSheetOpen.value = false
 }
@@ -534,60 +504,9 @@ function projectBridgeFailure(result: Extract<LegacyIntentBridgeResult, { status
   consultationError.value = t('errors.requestFailed')
 }
 
-function profileChartInput() {
-  const profile = selectedProfile.value
-  if (!profile?.birth.instant || !profile.birth.location.timezone || profile.birth.location.longitude == null) {
-    throw new TypeError('A complete primary birth profile is required')
-  }
-  return {
-    instant: profile.birth.instant,
-    timezone: profile.birth.location.timezone,
-    longitude: profile.birth.location.longitude,
-    gender: profile.birth.gender,
-  }
-}
-
-async function computeHepan(value: FlowHepanFormValue) {
-  if (hepanLoading.value) return
-  hepanLoading.value = true
-  consultationError.value = ''
-  hepanResult.value = null
-  try {
-    const otherBirth = birthInputFromFields(value.secondBirth)
-    const otherInput = await chartInputFromBirth(otherBirth)
-    const hepan = await hepanForChartInputs(profileChartInput(), {
-      ...otherInput,
-      gender: otherBirth.gender,
-    })
-    hepanInput.value = value
-    hepanResult.value = {
-      chartA: hepan.chartA,
-      chartB: hepan.chartB,
-      bond: hepan.bond,
-      nameA: personLabel.value,
-    }
-  } catch (error) {
-    consultationError.value = toUserMessage(error, t('services.hepan.failed'))
-  } finally {
-    hepanLoading.value = false
-  }
-}
-
-function saveHepanRecord() {
-  if (!hepanResult.value || !hepanInput.value || !selectedProfile.value) return
-  void saveBondRecord(
-    t('records.titleBond', { a: personLabel.value, b: hepanInput.value.secondBirth.date }),
-    {
-      profile_id: selectedProfile.value.id,
-      b: { ...hepanInput.value.secondBirth },
-      third_party_consent: true,
-    },
-  )
-}
-
 function sameConsultationBirth(
-  left: ConsultationContext['second_birth'],
-  right: ConsultationContext['second_birth'],
+  left: ConsultationContext['second_birth'] | ConsultationContext['birth'],
+  right: ConsultationContext['second_birth'] | ConsultationContext['birth'],
 ) {
   if (!left || !right) return false
   return left.gender === right.gender
@@ -595,75 +514,6 @@ function sameConsultationBirth(
     && left.time === right.time
     && left.location.longitude === right.location.longitude
     && left.location.timezone === right.location.timezone
-}
-
-async function createAndSendWithHepanContext(content: string) {
-  const input = hepanInput.value
-  const profile = selectedProfile.value
-  if (!input || !profile) return
-  const context: ConsultationContext = {
-    version: 1,
-    scenario: 'hepan',
-    second_birth: consultationBirthFromFields(input.secondBirth),
-    third_party_consent: true,
-  }
-
-  try {
-    const session = await chat.createSession(profile.id, 'hepan', context)
-    chat.activeSession = session
-    chat.messages = []
-    chat.messagesCursor = ''
-    await sendUsingActiveSession(content)
-  } catch (error) {
-    consultationError.value = toUserMessage(error, t('chat.createFailed'))
-  }
-}
-
-async function computeFengshui(value: FengshuiLayoutValue) {
-  if (fengshuiLoading.value) return
-  const profile = selectedProfile.value
-  const birthYear = fengshuiBirthYear.value
-  if (!profile || birthYear === null || !profile.birth.date) {
-    consultationError.value = t('services.fengshui.invalidBirthYear')
-    return
-  }
-
-  fengshuiLoading.value = true
-  consultationError.value = ''
-  fengshuiResult.value = null
-  try {
-    const [bazhai, xuankong] = await Promise.all([
-      bazhaiChartFor(birthYear, profile.birth.gender),
-      xuankongChartFor(value.periodDate, value.zuoShan),
-    ])
-    const layout = await bazhaiLayoutFor(
-      bazhai.ming_gua.gua.name,
-      value.doorGua,
-      value.masterGua,
-      value.stoveGua,
-    )
-    fengshuiInput.value = value
-    fengshuiResult.value = {
-      bazhai,
-      layout,
-      xuankong,
-    }
-  } catch (error) {
-    consultationError.value = toUserMessage(error, t('services.fengshui.failed'))
-  } finally {
-    fengshuiLoading.value = false
-  }
-}
-
-function saveFengshuiRecord() {
-  if (!fengshuiResult.value || !fengshuiInput.value || !selectedProfile.value) return
-  void saveBazhaiRecord(
-    t('records.titleBazhai', { nickname: personLabel.value }),
-    {
-      profile_id: selectedProfile.value.id,
-      layout: { ...fengshuiInput.value },
-    },
-  )
 }
 
 function sameFengshuiLayout(
@@ -678,95 +528,29 @@ function sameFengshuiLayout(
     && left.stove_gua === right.stove_gua
 }
 
-async function createAndSendWithFengshuiContext(content: string) {
-  const input = fengshuiInput.value
-  const profile = selectedProfile.value
-  if (!input || !profile) return
-  const context: ConsultationContext = {
-    version: 1,
-    scenario: 'fengshui',
-    layout: {
-      zuo_shan: input.zuoShan,
-      period_date: input.periodDate,
-      door_gua: input.doorGua,
-      master_gua: input.masterGua,
-      stove_gua: input.stoveGua,
-    },
-  }
+async function openMatchingAndSend(
+  matcher: (session: ChatSession) => boolean,
+  content: string,
+) {
+  const matchingSession = chat.sessions
+    .filter(session => (session.profile_id || null) === flow.personId)
+    .find(matcher)
 
+  if (!matchingSession) return false
+  if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
+  await sendUsingActiveSession(content)
+  return true
+}
+
+async function createAndSendWithSession(
+  skill: string,
+  context: ConsultationContext | undefined,
+  content: string,
+) {
   try {
-    const session = await chat.createSession(profile.id, 'fengshui', context)
-    chat.activeSession = session
-    chat.messages = []
-    chat.messagesCursor = ''
-    await sendUsingActiveSession(content)
-  } catch (error) {
-    consultationError.value = toUserMessage(error, t('chat.createFailed'))
-  }
-}
-
-function profileBirthInput() {
-  const profile = selectedProfile.value
-  const birth = profile?.birth
-  const longitude = birth?.location.longitude
-  const timezone = birth?.location.timezone
-  if (!profile || !birth?.gender || !birth.date || !birth.time
-    || typeof longitude !== 'number' || !Number.isFinite(longitude)
-    || !timezone) {
-    throw new TypeError('A complete birth profile is required')
-  }
-  return {
-    gender: birth.gender,
-    date: birth.date,
-    time: birth.time,
-    location: {
-      place: birth.location.place,
-      longitude,
-      timezone,
-      source: 'saved' as const,
-    },
-  }
-}
-
-async function computeNaming() {
-  if (namingLoading.value) return
-  namingLoading.value = true
-  consultationError.value = ''
-  namingResult.value = null
-  try {
-    const chart = await baziChartFor(profileBirthInput())
-    namingResult.value = { assessment: await namingAssessmentFor(chart) }
-  } catch (error) {
-    consultationError.value = toUserMessage(error, t('flow.namingFailed'))
-  } finally {
-    namingLoading.value = false
-  }
-}
-
-function profileConsultationBirth(): ConsultationContext['birth'] {
-  const birth = profileBirthInput()
-  return {
-    gender: birth.gender,
-    date: birth.date,
-    time: birth.time,
-    location: {
-      longitude: birth.location.longitude,
-      timezone: birth.location.timezone,
-    },
-  }
-}
-
-async function createAndSendWithNamingContext(content: string) {
-  const profile = selectedProfile.value
-  if (!profile) return
-  const context: ConsultationContext = {
-    version: 1,
-    scenario: 'naming',
-    birth: profileConsultationBirth(),
-  }
-
-  try {
-    const session = await chat.createSession(profile.id, 'naming', context)
+    const session = context === undefined
+      ? await chat.createSession(flow.personId ?? '', skill)
+      : await chat.createSession(flow.personId ?? '', skill, context)
     chat.activeSession = session
     chat.messages = []
     chat.messagesCursor = ''
@@ -782,22 +566,25 @@ async function submitQuestion() {
 
   consultationError.value = ''
 
-  const useDivinationContext = flow.domainId === 'divination'
-    && Boolean(castingChart.value)
-    && Boolean(casting.value)
-
-  if (useDivinationContext) {
-    const matchingSession = chat.sessions
-      .filter(session => (session.profile_id || null) === flow.personId)
-      .find(session => session.context?.casting?.casting_id === casting.value?.casting_id)
-
-    if (matchingSession) {
-      if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
-      await sendUsingActiveSession(content)
-      return
-    }
-
-    await createAndSendWithDivinationContext(content)
+  if (flow.domainId === 'divination' && casting.value && castingChart.value) {
+    const sent = await openMatchingAndSend(
+      session => session.context?.casting?.casting_id === casting.value?.casting_id,
+      content,
+    )
+    if (sent) return
+    await createAndSendWithSession('divination', {
+      version: 1,
+      scenario: 'divination',
+      question: castingQuestion.value,
+      casting: casting.value,
+      casting_instant: castingInstant.value,
+      location: castingLocation.value
+        ? {
+            longitude: castingLocation.value.longitude,
+            timezone: castingLocation.value.timezone,
+          }
+        : undefined,
+    }, content)
     return
   }
 
@@ -822,59 +609,57 @@ async function submitQuestion() {
   }
 
   if (flow.domainId === 'naming' && namingResult.value) {
-    const expectedBirth = profileConsultationBirth()
-    const matchingSession = chat.sessions
-      .filter(session => (session.profile_id || null) === flow.personId)
-      .find(session => session.context?.scenario === 'naming'
-        && sameConsultationBirth(session.context.birth, expectedBirth))
-
-    if (matchingSession) {
-      if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
-      await sendUsingActiveSession(content)
-      return
+    const context: ConsultationContext = {
+      version: 1,
+      scenario: 'naming',
+      birth: profileConsultationBirth(),
     }
-
-    await createAndSendWithNamingContext(content)
+    const sent = await openMatchingAndSend(
+      session => session.context?.scenario === 'naming'
+        && sameConsultationBirth(session.context.birth, context.birth),
+      content,
+    )
+    if (sent) return
+    await createAndSendWithSession('naming', context, content)
     return
   }
 
   if (flow.domainId === 'fengshui' && fengshuiResult.value && fengshuiInput.value) {
-    const expectedLayout: ConsultationContext['layout'] = {
-      zuo_shan: fengshuiInput.value.zuoShan,
-      period_date: fengshuiInput.value.periodDate,
-      door_gua: fengshuiInput.value.doorGua,
-      master_gua: fengshuiInput.value.masterGua,
-      stove_gua: fengshuiInput.value.stoveGua,
+    const context: ConsultationContext = {
+      version: 1,
+      scenario: 'fengshui',
+      layout: {
+        zuo_shan: fengshuiInput.value.zuoShan,
+        period_date: fengshuiInput.value.periodDate,
+        door_gua: fengshuiInput.value.doorGua,
+        master_gua: fengshuiInput.value.masterGua,
+        stove_gua: fengshuiInput.value.stoveGua,
+      },
     }
-    const matchingSession = chat.sessions
-      .filter(session => (session.profile_id || null) === flow.personId)
-      .find(session => session.context?.scenario === 'fengshui'
-        && sameFengshuiLayout(session.context.layout, expectedLayout))
-
-    if (matchingSession) {
-      if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
-      await sendUsingActiveSession(content)
-      return
-    }
-
-    await createAndSendWithFengshuiContext(content)
+    const sent = await openMatchingAndSend(
+      session => session.context?.scenario === 'fengshui'
+        && sameFengshuiLayout(session.context.layout, context.layout),
+      content,
+    )
+    if (sent) return
+    await createAndSendWithSession('fengshui', context, content)
     return
   }
 
   if (flow.domainId === 'natal' && hepanResult.value && hepanInput.value) {
-    const expectedBirth = consultationBirthFromFields(hepanInput.value.secondBirth)
-    const matchingSession = chat.sessions
-      .filter(session => (session.profile_id || null) === flow.personId)
-      .find(session => session.context?.scenario === 'hepan'
-        && sameConsultationBirth(session.context.second_birth, expectedBirth))
-
-    if (matchingSession) {
-      if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
-      await sendUsingActiveSession(content)
-      return
+    const context: ConsultationContext = {
+      version: 1,
+      scenario: 'hepan',
+      second_birth: consultationBirthFromFields(hepanInput.value.secondBirth),
+      third_party_consent: true,
     }
-
-    await createAndSendWithHepanContext(content)
+    const sent = await openMatchingAndSend(
+      session => session.context?.scenario === 'hepan'
+        && sameConsultationBirth(session.context.second_birth, context.second_birth),
+      content,
+    )
+    if (sent) return
+    await createAndSendWithSession('hepan', context, content)
     return
   }
 
@@ -896,101 +681,7 @@ async function submitQuestion() {
     return
   }
 
-  try {
-    const session = await chat.createSession(
-      flow.personId ?? '',
-      bridgeResult.skill,
-    )
-    chat.activeSession = session
-    chat.messages = []
-    chat.messagesCursor = ''
-    await sendUsingActiveSession(content)
-  } catch (error) {
-    consultationError.value = toUserMessage(error, t('chat.createFailed'))
-  }
-}
-
-async function createAndSendWithDivinationContext(content: string) {
-  if (!casting.value || !castingChart.value) return
-
-  const context: ConsultationContext = {
-    version: 1,
-    scenario: 'divination',
-    question: castingQuestion.value,
-    casting: casting.value,
-    casting_instant: castingInstant.value,
-    location: castingLocation.value
-      ? {
-          longitude: castingLocation.value.longitude,
-          timezone: castingLocation.value.timezone,
-        }
-      : undefined,
-  }
-
-  try {
-    const session = await chat.createSession(
-      flow.personId ?? '',
-      'divination',
-      context,
-    )
-    chat.activeSession = session
-    chat.messages = []
-    chat.messagesCursor = ''
-    await sendUsingActiveSession(content)
-  } catch (error) {
-    consultationError.value = toUserMessage(error, t('chat.createFailed'))
-  }
-}
-
-async function castDivination(value: DivinationCastingFormValue) {
-  if (castingLoading.value) return
-
-  castingLoading.value = true
-  castingError.value = ''
-  castingChart.value = null
-  castingQuestion.value = value.question.trim()
-
-  const location = value.location
-  if (!location) {
-    castingLoading.value = false
-    castingError.value = t('services.divination.placeRequired')
-    return
-  }
-
-  const castingTimestamp = new Date().toISOString()
-
-  try {
-    const { casting: nextCasting } = await divinationCastingFor({
-      mode: value.castingMode,
-    })
-    const nextChart = await divinationChartFor({
-      instant: castingTimestamp,
-      timezone: location.timezone,
-      longitude: location.longitude,
-      casting: nextCasting,
-      yongShen: '世爻',
-    })
-
-    casting.value = nextCasting
-    castingInstant.value = castingTimestamp
-    castingLocation.value = location
-    castingChart.value = nextChart
-
-    void saveToolRecord(
-      t('records.titleLiuyao', { question: castingQuestion.value.slice(0, 30) }),
-      {
-        question: castingQuestion.value,
-        casting_mode: value.castingMode,
-        casting_instant: castingTimestamp,
-        location,
-      },
-      nextChart as unknown as Record<string, unknown>,
-    )
-  } catch (error) {
-    castingError.value = toUserMessage(error, t('services.divination.failed'))
-  } finally {
-    castingLoading.value = false
-  }
+  await createAndSendWithSession(bridgeResult.skill, undefined, content)
 }
 
 async function sendUsingActiveSession(content: string) {
@@ -1040,11 +731,7 @@ async function reloadProfiles() {
 }
 
 watch([() => flow.personId, () => flow.domainId], () => {
-  fengshuiInput.value = null
-  fengshuiResult.value = null
-  namingResult.value = null
-  hepanInput.value = null
-  hepanResult.value = null
+  resetResults()
   consultationError.value = ''
   void restoreLatest()
 })
