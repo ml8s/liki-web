@@ -262,6 +262,7 @@ describe('DomainFlowView', () => {
     setActivePinia(createPinia())
     sessionStorage.clear()
     vi.clearAllMocks()
+    vi.spyOn(useSalesStore(), 'loadProducts').mockResolvedValue(undefined)
     mediaQuery.matches = false
     document.body.innerHTML = ''
   })
@@ -338,6 +339,106 @@ describe('DomainFlowView', () => {
     expect(chat.activeSession?.skill).toBe('liki')
     expect(send).toHaveBeenCalledWith('今年事业怎么样')
     expect(flow.getDraft()).toBe('')
+    wrapper.unmount()
+  })
+
+  it('uses one in-flight consultation submission and protects its draft from unload', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    profiles.list = [birthProfile()]
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(useEntitlementsStore(), 'load').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    const createSession = vi.spyOn(chat, 'createSession').mockImplementation(async () => {
+      await new Promise(resolve => setTimeout(resolve, 20))
+      return chatSession()
+    })
+    vi.spyOn(chat, 'send').mockResolvedValue(undefined)
+
+    const router = await createTestRouter('/')
+    const wrapper = mount(DomainFlowView, {
+      attachTo: document.body,
+      global: { plugins: [router] },
+    })
+    await flushAll()
+
+    const flow = useDomainFlowStore()
+    flow.setDraft('今年事业怎么样')
+    await flushPromises()
+    await wrapper.find('form').trigger('submit')
+    await wrapper.find('form').trigger('submit')
+
+    const unload = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(unload)
+    expect(unload.defaultPrevented).toBe(true)
+
+    await new Promise(resolve => setTimeout(resolve, 30))
+    await flushPromises()
+
+    expect(createSession).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('preserves the draft and moves focus to a creation failure', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    profiles.list = [birthProfile()]
+    entitlements.allowedSkills = ['liki']
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(useEntitlementsStore(), 'load').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'createSession').mockRejectedValue(new TypeError('Failed to fetch'))
+
+    const router = await createTestRouter('/')
+    const wrapper = mount(DomainFlowView, {
+      attachTo: document.body,
+      global: { plugins: [router] },
+    })
+    await flushAll()
+
+    const flow = useDomainFlowStore()
+    flow.setDraft('今年事业怎么样')
+    await flushPromises()
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.get('.flow-error').text()).toContain('网络')
+    expect(flow.getDraft()).toBe('今年事业怎么样')
+    expect(wrapper.get('.flow-error-focus').attributes('tabindex')).toBe('-1')
+    expect(document.activeElement).toBe(wrapper.get('.flow-error-focus').element)
+    wrapper.unmount()
+  })
+
+  it('returns the draft to the composer when streaming fails', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    profiles.list = [birthProfile()]
+    entitlements.allowedSkills = ['liki']
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(useEntitlementsStore(), 'load').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'createSession').mockResolvedValue(chatSession())
+    vi.spyOn(chat, 'send').mockImplementation(async () => {
+      chat.error = '网络连接失败'
+    })
+
+    const router = await createTestRouter('/')
+    const wrapper = mount(DomainFlowView, {
+      attachTo: document.body,
+      global: { plugins: [router] },
+    })
+    await flushAll()
+
+    const flow = useDomainFlowStore()
+    flow.setDraft('今年事业怎么样')
+    await flushPromises()
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(flow.getDraft()).toBe('今年事业怎么样')
+    expect(wrapper.get('.flow-draft-notice').text()).toContain('已放回输入框')
     wrapper.unmount()
   })
 

@@ -32,8 +32,16 @@ describe('AppFlowShell', () => {
     expect(wrapper.get('[data-testid="consultation"]').text()).toContain('consultation')
     expect(wrapper.get('[data-testid="dock-action"]').text()).toBe('send')
     expect(wrapper.findAll('main')).toHaveLength(1)
+    expect(wrapper.get('.flow-status__announcement').text()).toBe('咨询上下文：张三，命理。')
     expect(wrapper.get('.flow-main').attributes('tabindex')).toBe('-1')
     expect(wrapper.find('.flow-restore').exists()).toBe(false)
+  })
+
+  it('announces an empty person without exposing a visible duplicate control', () => {
+    const wrapper = mountShell({ domainLabel: '问卦' })
+
+    expect(wrapper.get('.flow-status__announcement').text()).toBe('咨询上下文：选择档案，问卦。')
+    expect(wrapper.get('.flow-status__announcement').classes()).toContain('app-live-region--screen-only')
   })
 
   it('shows restore only when requested and emits it', async () => {

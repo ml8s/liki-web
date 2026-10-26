@@ -12,18 +12,32 @@
       :class="{ 'artifact-layer--sidecar': selectedArtifact && artifactOpen }"
     >
       <div class="artifact-layer__document">
-        <AppStatusAlert
-          v-if="chat.error"
-          class="flow-error"
-          type="error"
-          :title="chat.error"
-        />
-        <AppStatusAlert
-          v-if="consultationError"
-          class="flow-error"
-          type="error"
-          :title="consultationError"
-        />
+        <div
+          v-if="primaryError"
+          ref="errorFocusRef"
+          class="flow-error-focus"
+          :tabindex="primaryError ? -1 : undefined"
+        >
+          <AppStatusAlert
+            v-if="chat.error"
+            class="flow-error"
+            type="error"
+            :title="chat.error"
+          />
+          <AppStatusAlert
+            v-if="consultationError"
+            class="flow-error"
+            type="error"
+            :title="consultationError"
+          />
+        </div>
+        <AppLiveRegion
+          v-if="draftNotice"
+          class="flow-draft-notice"
+          screen-only
+        >
+          {{ draftNotice }}
+        </AppLiveRegion>
         <AppStatusAlert
           v-if="sales.paymentMessage"
           class="flow-error"
@@ -187,7 +201,7 @@
         :domains="appDomains"
         :person-label="personLabel"
         :domain-label="domainLabel"
-        :sending="chat.sending"
+        :sending="chat.sending || isSubmitting"
         :show-domain-strip="true"
         @select-person="personSheetOpen = true"
         @select-domain="domainSheetOpen = true"
@@ -247,6 +261,7 @@ import DomainChooserSheet from '@/components/flow/DomainChooserSheet.vue'
 import ConsultationDocument from '@/components/flow/ConsultationDocument.vue'
 import FlowHistoryPanel from '@/components/flow/FlowHistoryPanel.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
+import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
 import FlowDivinationForm from '@/components/flow/forms/FlowDivinationForm.vue'
 import FlowHepanForm from '@/components/flow/forms/FlowHepanForm.vue'
 import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
@@ -279,6 +294,7 @@ import { toUserMessage } from '@/utils/errors'
 import { useNearBottom } from '@/composables/useNearBottom'
 import { useConsultationTools } from '@/composables/useConsultationTools'
 import { useConsultationTelemetry } from '@/composables/useConsultationTelemetry'
+import { useUnloadGuard } from '@/composables/useUnloadGuard'
 import { useOnline } from '@vueuse/core'
 import { classifyResourceFailure, type ResourceFailureKind } from '@/utils/resourceStatus'
 
@@ -297,6 +313,9 @@ const telemetry = useConsultationTelemetry()
 const personSheetOpen = ref(false)
 const domainSheetOpen = ref(false)
 const consultationError = ref('')
+const isSubmitting = ref(false)
+const draftNotice = ref('')
+const errorFocusRef = ref<HTMLElement | null>(null)
 const documentBoundary = ref<HTMLElement | null>(null)
 const shellRef = ref<InstanceType<typeof AppFlowShell> | null>(null)
 const { nearBottom, measure: measureNearBottom } = useNearBottom(
@@ -312,6 +331,10 @@ const question = computed({
   get: () => flow.getDraft(),
   set: value => flow.setDraft(value),
 })
+
+useUnloadGuard(computed(() => isSubmitting.value || chat.sending || question.value.trim().length > 0))
+
+const primaryError = computed(() => consultationError.value || chat.error)
 
 const selectedProfile = computed(() =>
   profiles.list.find(profile => profile.id === flow.personId) ?? null,
@@ -625,14 +648,25 @@ async function createAndSendWithSession(
     await sendUsingActiveSession(content)
   } catch (error) {
     consultationError.value = toUserMessage(error, t('chat.createFailed'))
+    draftNotice.value = t('flow.draftPreserved')
     telemetry.trackFailure(flow.domainId, classifyResourceFailure(error))
   }
 }
 
 async function submitQuestion() {
   const content = question.value.trim()
-  if (!content || chat.sending) return
+  if (!content || chat.sending || isSubmitting.value) return
 
+  isSubmitting.value = true
+  draftNotice.value = ''
+  try {
+    await submitConsultation(content)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function submitConsultation(content: string) {
   consultationError.value = ''
 
   if (flow.domainId === 'divination' && casting.value && castingChart.value) {
@@ -772,7 +806,10 @@ async function sendUsingActiveSession(content: string) {
   const question = content
   flow.setDraft('')
   await chat.send(question)
-  if (chat.error) flow.setDraft(question)
+  if (chat.error) {
+    flow.setDraft(question)
+    draftNotice.value = t('flow.draftRestored')
+  }
   await scrollToLatest()
 }
 
@@ -835,6 +872,12 @@ watch(nearBottom, (value) => {
 
 watch(workspaceFailure, (failure) => {
   if (failure) telemetry.trackFailure(flow.domainId, failure)
+})
+
+watch(primaryError, async (value) => {
+  if (!value) return
+  await nextTick()
+  errorFocusRef.value?.focus({ preventScroll: true })
 })
 
 watch(() => `${chat.messages.length}:${chat.messages.at(-1)?.content.length ?? 0}`, () => {
@@ -903,6 +946,12 @@ onMounted(async () => {
   min-width: 0;
   display: grid;
   gap: var(--space-4);
+}
+
+/* Programmatic focus identifies the error group without adding a second
+   visible focus ring around an already visible alert. */
+.flow-error-focus:focus {
+  outline: none;
 }
 
 .artifact-dock {

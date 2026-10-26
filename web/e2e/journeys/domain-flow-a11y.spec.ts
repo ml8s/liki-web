@@ -49,6 +49,7 @@ test.describe('consultation accessibility', () => {
       await expectNoCriticalA11yViolations(page, '/app consultation person sheet')
       await page.keyboard.press('Escape')
       await expect(sheet).toBeHidden()
+      await expect(page.locator('.flow-parameters').getByRole('button', { name: '张三' })).toBeFocused()
 
       await page.goto('/app/me')
       await expect(page.getByRole('heading', { name: '我的' })).toBeVisible()

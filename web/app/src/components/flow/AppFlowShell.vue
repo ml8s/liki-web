@@ -17,6 +17,13 @@
         <span class="flow-status__domain">{{ domainLabel }}</span>
       </div>
 
+      <AppLiveRegion
+        class="flow-status__announcement"
+        screen-only
+      >
+        {{ contextAnnouncement }}
+      </AppLiveRegion>
+
       <button
         v-if="restoreVisible"
         type="button"
@@ -45,10 +52,12 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useId } from 'vue'
+import { useI18n } from 'vue-i18n'
+import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
 
-defineProps<{
+const props = defineProps<{
   personLabel?: string
   domainLabel: string
   restoreVisible?: boolean
@@ -60,6 +69,12 @@ const emit = defineEmits<{
 
 const mainId = useId()
 const mainElement = ref<HTMLElement | null>(null)
+const { t } = useI18n()
+
+const contextAnnouncement = computed(() => t('flow.contextAnnouncement', {
+  person: props.personLabel || t('flow.personEmpty'),
+  domain: props.domainLabel,
+}))
 
 function getMainElement() {
   return mainElement.value

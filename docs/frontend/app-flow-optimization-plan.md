@@ -18,7 +18,7 @@ The current gate baseline is:
 
 | Gate | Result |
 | --- | --- |
-| App unit/component tests | 99 files and 430 tests passed |
+| App unit/component tests | 100 files and 441 tests passed |
 | App accessibility E2E | 38 tests passed, including Consultation, Classic, Admin, and mobile smoke |
 | Static web checks | Route contract, token, i18n, responsive, CSS, performance, and budget checks passed |
 | Rollout route contract | 36 App routes checked |
@@ -70,6 +70,11 @@ Exit criteria:
 Goal: move from automated AA coverage to practical assistive-technology
 quality.
 
+The first hardening slice adds a screen-reader consultation-context
+announcement, programmatic focus for consultation errors, and an E2E assertion
+that closing the person sheet restores focus to its trigger. The remaining
+manual assistive-technology review is still required.
+
 Work:
 
 1. Audit live regions across streaming, artifact computation, restore, save,
@@ -91,6 +96,11 @@ Exit criteria:
 ### O3 — Resilience and draft safety
 
 Goal: make transient network and lifecycle failures harmless.
+
+The first hardening slice adds shared request timeouts, retry only for
+idempotent reads, a single-flight consultation submit guard, an unload guard
+for unsent drafts, accessible draft-preservation announcements, and E2E
+coverage for creation failure and unreachable streaming.
 
 Work:
 
@@ -214,6 +224,7 @@ BASE_URL=http://127.0.0.1:5185 npm run test:e2e --prefix web -- \
   e2e/journeys/domain-flow-naming.spec.ts \
   e2e/journeys/domain-flow-me.spec.ts \
   e2e/journeys/domain-flow-a11y.spec.ts \
+  e2e/journeys/domain-flow-resilience.spec.ts \
   e2e/journeys/domain-flow-reflow.spec.ts \
   e2e/journeys/domain-flow-visual.spec.ts \
   e2e/journeys/domain-flow-rollout.spec.ts
