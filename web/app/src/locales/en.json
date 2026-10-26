@@ -60,7 +60,8 @@
     "documentLabel": "Consultation record",
     "questionLabel": "Question",
     "answerLabel": "Reading",
-    "newContent": "New content"
+    "newContent": "New content",
+    "hepanRequired": "Compatibility requires the other person’s details and third-party consent first."
   },
   "auth": {
     "brandTail": "Metaphysics",

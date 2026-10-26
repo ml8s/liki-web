@@ -60,7 +60,8 @@
     "documentLabel": "諮詢記錄",
     "questionLabel": "問",
     "answerLabel": "解讀",
-    "newContent": "有新內容"
+    "newContent": "有新內容",
+    "hepanRequired": "合盤需要先完成對方資訊和第三方同意。"
   },
   "auth": {
     "brandTail": "命理",

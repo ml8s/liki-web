@@ -5,6 +5,7 @@ import type { ConsultationContext } from '@shared/domain/consultation'
 import type { AppDomainId } from '@shared/domain/flow'
 import type { LiuyaoCasting } from '@shared/api/engine/liuyao'
 import type { LiuyaoChartResult } from '@shared/api/engine/liuyao'
+import type { ArtifactPayloadByKind } from '@/components/flow/artifacts/types'
 import {
   buildArtifactDescriptors,
   findArtifact,
@@ -50,6 +51,7 @@ export function useDomainArtifacts(options: {
   context: MaybeRefOrGetter<ConsultationContext | null | undefined>
   casting?: MaybeRefOrGetter<LiuyaoCasting | null>
   chart?: MaybeRefOrGetter<LiuyaoChartResult | null>
+  hepan?: MaybeRefOrGetter<ArtifactPayloadByKind['hepan'] | null>
 }) {
   const channelStates = reactive<Record<string, ArtifactChannelState>>({})
 
@@ -66,6 +68,11 @@ export function useDomainArtifacts(options: {
     const domainId = toValue(options.domainId)
     const casting = toValue(options.casting)
     const chart = toValue(options.chart)
+    const hepan = toValue(options.hepan)
+
+    if (hepan) {
+      return buildArtifactDescriptors(domainId, { hepan })
+    }
 
     if (casting) {
       return buildArtifactDescriptors(domainId, {

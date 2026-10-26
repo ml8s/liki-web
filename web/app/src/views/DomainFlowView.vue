@@ -39,6 +39,23 @@
           @retry-profiles="reloadProfiles"
         >
           <ChatStreamStatus :phase="chat.phase" />
+          <FlowHepanForm
+            v-if="showHepanForm"
+            :person-label="personLabel"
+            :loading="hepanLoading"
+            @submit="computeHepan"
+          />
+          <div
+            v-if="hepanArtifact"
+            class="flow-inline-actions"
+          >
+            <el-button
+              size="small"
+              @click="saveHepanRecord"
+            >
+              {{ $t('records.save') }}
+            </el-button>
+          </div>
           <template v-if="showDivinationCasting">
             <el-alert
               v-if="castingError"
@@ -152,6 +169,7 @@ import DomainChooserSheet from '@/components/flow/DomainChooserSheet.vue'
 import ConsultationDocument from '@/components/flow/ConsultationDocument.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
 import FlowDivinationForm from '@/components/flow/forms/FlowDivinationForm.vue'
+import FlowHepanForm, { type FlowHepanFormValue } from '@/components/flow/forms/FlowHepanForm.vue'
 import ArtifactCapsule from '@/components/flow/artifacts/ArtifactCapsule.vue'
 import ArtifactSurface from '@/components/flow/artifacts/ArtifactSurface.vue'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
@@ -168,6 +186,11 @@ import {
 } from '@shared/domain/divination'
 import type { DivinationCastingFormValue } from '@shared/components/divination/types'
 import type { ConsultationContext } from '@shared/domain/consultation'
+import { birthInputFromFields } from '@shared/components/form/birth-fields'
+import { chartInputFromBirth } from '@shared/domain/birth'
+import { hepanForChartInputs } from '@shared/domain/hepan'
+import { consultationBirthFromFields } from '@shared/domain/consultation'
+import type { ArtifactPayloadByKind } from '@/components/flow/artifacts/types'
 import {
   normalizeAppDomain,
   appDomains,
@@ -209,6 +232,9 @@ const casting = ref<LiuyaoCasting | null>(null)
 const castingInstant = ref('')
 const castingLocation = ref<DivinationCastingFormValue['location']>(null)
 const castingChart = ref<LiuyaoChartResult | null>(null)
+const hepanLoading = ref(false)
+const hepanInput = ref<FlowHepanFormValue | null>(null)
+const hepanResult = ref<ArtifactPayloadByKind['hepan'] | null>(null)
 let mountToken = 0
 let artifactFocusToken = 0
 
@@ -252,10 +278,14 @@ const initialLoading = computed(() =>
 
 const profileError = computed(() => profiles.error || entitlements.error)
 const showDivinationCasting = computed(() => flow.domainId === 'divination' && !castingChart.value)
+const showHepanForm = computed(() => flow.domainId === 'natal' && routingSeed.value === 'hepan')
 
 const {
   save: saveToolRecord,
 } = useToolRecords('liuyao')
+const {
+  save: saveBondRecord,
+} = useToolRecords('bond')
 
 const artifactContext = computed(() => {
   const session = chat.activeSession
@@ -279,6 +309,7 @@ const {
   context: artifactContext,
   casting,
   chart: castingChart,
+  hepan: hepanResult,
 })
 
 const routingSeed = computed(() => {
@@ -286,12 +317,20 @@ const routingSeed = computed(() => {
   return normalizeLegacyScenario(value)
 })
 
+const hepanArtifact = computed(() =>
+  artifacts.value.find(artifact => artifact.kind === 'hepan' && artifact.state === 'ready') ?? null,
+)
+
 function selectPerson(personId: string) {
+  hepanInput.value = null
+  hepanResult.value = null
   flow.setPerson(personId)
   personSheetOpen.value = false
 }
 
 function selectDomain(domainId: AppDomainId) {
+  hepanInput.value = null
+  hepanResult.value = null
   flow.setDomain(domainId)
   domainSheetOpen.value = false
 }
@@ -336,6 +375,91 @@ function projectBridgeFailure(result: Extract<LegacyIntentBridgeResult, { status
   consultationError.value = t('errors.requestFailed')
 }
 
+function profileChartInput() {
+  const profile = selectedProfile.value
+  if (!profile?.birth.instant || !profile.birth.location.timezone || profile.birth.location.longitude == null) {
+    throw new TypeError('A complete primary birth profile is required')
+  }
+  return {
+    instant: profile.birth.instant,
+    timezone: profile.birth.location.timezone,
+    longitude: profile.birth.location.longitude,
+    gender: profile.birth.gender,
+  }
+}
+
+async function computeHepan(value: FlowHepanFormValue) {
+  if (hepanLoading.value) return
+  hepanLoading.value = true
+  consultationError.value = ''
+  hepanResult.value = null
+  try {
+    const otherBirth = birthInputFromFields(value.secondBirth)
+    const otherInput = await chartInputFromBirth(otherBirth)
+    const hepan = await hepanForChartInputs(profileChartInput(), {
+      ...otherInput,
+      gender: otherBirth.gender,
+    })
+    hepanInput.value = value
+    hepanResult.value = {
+      chartA: hepan.chartA,
+      chartB: hepan.chartB,
+      bond: hepan.bond,
+      nameA: personLabel.value,
+    }
+  } catch (error) {
+    consultationError.value = toUserMessage(error, t('services.hepan.failed'))
+  } finally {
+    hepanLoading.value = false
+  }
+}
+
+function saveHepanRecord() {
+  if (!hepanResult.value || !hepanInput.value || !selectedProfile.value) return
+  void saveBondRecord(
+    t('records.titleBond', { a: personLabel.value, b: hepanInput.value.secondBirth.date }),
+    {
+      profile_id: selectedProfile.value.id,
+      b: { ...hepanInput.value.secondBirth },
+      third_party_consent: true,
+    },
+  )
+}
+
+function sameConsultationBirth(
+  left: ConsultationContext['second_birth'],
+  right: ConsultationContext['second_birth'],
+) {
+  if (!left || !right) return false
+  return left.gender === right.gender
+    && left.date === right.date
+    && left.time === right.time
+    && left.location.longitude === right.location.longitude
+    && left.location.timezone === right.location.timezone
+}
+
+async function createAndSendWithHepanContext(content: string) {
+  const input = hepanInput.value
+  const profile = selectedProfile.value
+  if (!input || !profile) return
+  const context: ConsultationContext = {
+    version: 1,
+    scenario: 'hepan',
+    second_birth: consultationBirthFromFields(input.secondBirth),
+    third_party_consent: true,
+  }
+
+  try {
+    const session = await chat.createSession(profile.id, 'hepan', context)
+    chat.activeSession = session
+    chat.messages = []
+    chat.messagesCursor = ''
+    await sendUsingActiveSession(content)
+  } catch (error) {
+    consultationError.value = toUserMessage(error, t('chat.createFailed'))
+  }
+}
+
 async function submitQuestion() {
   const content = question.value.trim()
   if (!content || chat.sending) return
@@ -363,6 +487,28 @@ async function submitQuestion() {
 
   if (profileRequired.value && !selectedProfile.value) {
     personSheetOpen.value = true
+    return
+  }
+
+  if (flow.domainId === 'natal' && routingSeed.value === 'hepan' && (!hepanResult.value || !hepanInput.value)) {
+    consultationError.value = t('flow.hepanRequired')
+    return
+  }
+
+  if (flow.domainId === 'natal' && hepanResult.value && hepanInput.value) {
+    const expectedBirth = consultationBirthFromFields(hepanInput.value.secondBirth)
+    const matchingSession = chat.sessions
+      .filter(session => (session.profile_id || null) === flow.personId)
+      .find(session => session.context?.scenario === 'hepan'
+        && sameConsultationBirth(session.context.second_birth, expectedBirth))
+
+    if (matchingSession) {
+      if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
+      await sendUsingActiveSession(content)
+      return
+    }
+
+    await createAndSendWithHepanContext(content)
     return
   }
 
@@ -528,6 +674,8 @@ async function reloadProfiles() {
 }
 
 watch([() => flow.personId, () => flow.domainId], () => {
+  hepanInput.value = null
+  hepanResult.value = null
   consultationError.value = ''
   void restoreLatest()
 })

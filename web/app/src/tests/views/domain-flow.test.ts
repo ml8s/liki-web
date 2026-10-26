@@ -12,6 +12,8 @@ import { useDomainFlowStore } from '@/stores/domain-flow'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import type { ChatSession } from '@/api/chat'
 import type { BirthProfile } from '@/api/birth-profiles'
+import FlowHepanForm from '@/components/flow/forms/FlowHepanForm.vue'
+import type { BaziBondResult, BaziChartData } from '@shared/api/engine/bazi'
 
 const mediaQuery = vi.hoisted(() => ({ matches: false }))
 
@@ -166,8 +168,24 @@ vi.mock('@shared/domain/divination', async importOriginal => ({
 }))
 
 const saveToolRecord = vi.fn(async () => undefined)
+const saveBondRecord = vi.fn(async () => undefined)
+const hepanMocks = vi.hoisted(() => {
+  const chart = {} as BaziChartData
+  const bond = {} as BaziBondResult
+  return {
+    chartA: chart,
+    chartB: { ...chart } as BaziChartData,
+    bond,
+  }
+})
+
+vi.mock('@shared/domain/hepan', async importOriginal => ({
+  ...await importOriginal(),
+  hepanForChartInputs: vi.fn(async () => hepanMocks),
+}))
+
 vi.mock('@/composables/useToolRecords', () => ({
-  useToolRecords: () => ({ save: saveToolRecord }),
+  useToolRecords: (kind: string) => ({ save: kind === 'bond' ? saveBondRecord : saveToolRecord }),
 }))
 
 describe('DomainFlowView', () => {
@@ -408,6 +426,86 @@ describe('DomainFlowView', () => {
     expect(saveToolRecord).toHaveBeenCalledTimes(1)
     expect(divinationMocks.casting.casting_id).toBe('casting_test')
     wrapper.unmount()
+  })
+
+  it('computes hepan from a focused natal form and keeps consent in the follow-up context', async () => {
+    const profiles = useBirthProfilesStore()
+    const entitlements = useEntitlementsStore()
+    const chat = useChatStore()
+    const profile = birthProfile()
+    profile.birth.instant = '2000-01-01T04:00:00Z'
+    profiles.list = [profile]
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    const createSession = vi.spyOn(chat, 'createSession').mockResolvedValue(
+      chatSession({
+        id: 'hepan-created',
+        expert: 'natal',
+        context: {
+          version: 1,
+          scenario: 'hepan',
+          second_birth: {
+            gender: 'female',
+            date: '1992-06-18',
+            time: '10:30',
+            location: { longitude: 116.4, timezone: 'Asia/Shanghai' },
+          },
+          third_party_consent: true,
+        },
+      }),
+    )
+    const send = vi.spyOn(chat, 'send').mockResolvedValue(undefined)
+
+    const router = await createTestRouter('/?seed=hepan')
+    const wrapper = mount(DomainFlowView, {
+      attachTo: document.body,
+      global: {
+        plugins: [router],
+        stubs: { ChatThread: true, ChatStreamStatus: true },
+      },
+    })
+    await flushAll()
+
+    const form = wrapper.getComponent(FlowHepanForm)
+    form.vm.$emit('submit', {
+      secondBirth: {
+        gender: 'female',
+        date: '1992-06-18',
+        time: '10:30',
+        location: {
+          place: '',
+          longitude: 116.4,
+          timezone: 'Asia/Shanghai',
+          source: 'saved' as const,
+        },
+      },
+      thirdPartyConsent: true,
+    })
+    await flushAll()
+
+    expect(wrapper.find('.artifact-capsule').exists()).toBe(true)
+    await wrapper.get('.flow-inline-actions button').trigger('click')
+    await flushPromises()
+    expect(saveBondRecord).toHaveBeenCalledTimes(1)
+
+    await wrapper.find('textarea').setValue('帮我们解读关系节奏')
+    await wrapper.find('form.flow-composer').trigger('submit')
+    await flushPromises()
+
+    expect(createSession).toHaveBeenCalledWith(
+      'person-1',
+      'hepan',
+      expect.objectContaining({
+        version: 1,
+        scenario: 'hepan',
+        third_party_consent: true,
+        second_birth: expect.objectContaining({ date: '1992-06-18' }),
+      }),
+    )
+    expect(send).toHaveBeenCalledWith('帮我们解读关系节奏')
+    wrapper.unmount()
+    document.body.innerHTML = ''
   })
 
   it('tracks near-bottom state outside the frozen shell contract', async () => {
