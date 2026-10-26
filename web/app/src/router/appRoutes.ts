@@ -1,4 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
+import AppLayout from '@/views/AppLayout.vue'
 import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 import type { AppExperience } from './experience'
 
@@ -15,10 +16,19 @@ function withExperience(
   }
 }
 
+function appLayoutRoute(path: string, children: RouteRecordRaw[]): RouteRecordRaw {
+  return {
+    path,
+    component: AppLayout,
+    meta: { requiresAuth: true },
+    children,
+  }
+}
+
 /**
- * Classic owns the original logged-in information architecture. It remains a
- * maintenance experience while Consultation reaches parity; no route is removed
- * here until its replacement and redirect contract pass.
+ * Classic owns the original logged-in information architecture. Callers choose
+ * whether it is mounted at the legacy root (rollback mode) or the explicit
+ * `/classic` prefix (Consultation-default mode).
  */
 export function createClassicAppRoutes(): RouteRecordRaw[] {
   return ([
@@ -42,19 +52,24 @@ export function createClassicAppRoutes(): RouteRecordRaw[] {
 
 export interface ConsultationRoutesOptions {
   enabled?: boolean
+  /** Preview mode keeps `/consultation` as an alias of the `/app` root. */
+  includePreviewAlias?: boolean
 }
 
 /**
- * Consultation owns the four-domain experience. Its canonical public path never
- * uses the internal implementation term "flow".
+ * Consultation owns the four-domain experience. Its canonical public path is
+ * `/app`; `/app/consultation` is a transition alias, not the implementation
+ * term "flow".
  */
-export function createConsultationAppRoutes(
-  { enabled = appFlowRedesignEnabled }: ConsultationRoutesOptions = {},
-): RouteRecordRaw[] {
+export function createConsultationAppRoutes({
+  enabled = appFlowRedesignEnabled,
+  includePreviewAlias = true,
+}: ConsultationRoutesOptions = {}): RouteRecordRaw[] {
   if (!enabled) return []
 
   return [{
-    path: 'consultation',
+    path: '',
+    alias: includePreviewAlias ? 'consultation' : undefined,
     name: 'app-consultation',
     component: () => import('@/views/DomainFlowView.vue'),
     meta: {
@@ -62,4 +77,46 @@ export function createConsultationAppRoutes(
       viewportBound: true,
     },
   } satisfies RouteRecordRaw].map(route => withExperience(route, 'consultation'))
+}
+
+/**
+ * Preserve bookmarks and marketing handoffs when Consultation takes over `/app`.
+ * Redirects are explicit at the boundary; Classic internals use named routes.
+ */
+export function createLegacyAppRedirects(): RouteRecordRaw[] {
+  return createClassicAppRoutes()
+    .filter(route => route.path !== '')
+    .map(route => ({
+      path: route.path,
+      redirect: to => ({
+        path: `/classic${to.path}`,
+        query: to.query,
+        hash: to.hash,
+      }),
+    }))
+}
+
+export interface AppExperienceRoutesOptions {
+  consultationEnabled?: boolean
+}
+
+/**
+ * Rollback mode keeps the original App at `/app`. Preview mode makes
+ * Consultation the default, moves Classic to `/classic`, and redirects old
+ * logged-in URLs across the boundary without changing public marketing URLs.
+ */
+export function createAppExperienceRoutes({
+  consultationEnabled = appFlowRedesignEnabled,
+}: AppExperienceRoutesOptions = {}): RouteRecordRaw[] {
+  if (!consultationEnabled) {
+    return [appLayoutRoute('/', createClassicAppRoutes())]
+  }
+
+  return [
+    appLayoutRoute('/', [
+      ...createConsultationAppRoutes({ enabled: true }),
+      ...createLegacyAppRedirects(),
+    ]),
+    appLayoutRoute('/classic', createClassicAppRoutes()),
+  ]
 }

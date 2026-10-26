@@ -125,6 +125,8 @@ for (const scenario of scenarios.scenarios ?? []) {
 }
 
 const consultationRoute = '/app/consultation';
+const consultationDefaultRoute = '/app';
+const classicDefaultRoute = '/app/classic';
 const compatibilityFlowRoute = '/app/flow';
 if (appRouteCounts.get(consultationRoute) !== 1) {
   errors.push(`app contract must contain ${consultationRoute} exactly once`);
@@ -138,24 +140,56 @@ if (app.featureFlags?.appFlowRedesign !== 'VITE_FEATURE_APP_FLOW_REDESIGN') {
 
 const expectedExperiences = {
   classic: {
-    defaultRoute: '/app',
+    defaultRoute: classicDefaultRoute,
+    rollbackRoute: '/app',
     status: 'maintenance',
   },
   consultation: {
-    defaultRoute: consultationRoute,
+    defaultRoute: consultationDefaultRoute,
+    previewAliasRoute: consultationRoute,
     status: 'preview',
     featureFlag: 'VITE_FEATURE_APP_FLOW_REDESIGN',
   },
 };
 if (JSON.stringify(app.experiences ?? {}) !== JSON.stringify(expectedExperiences)) {
-  errors.push('app experiences must declare maintenance classic and preview consultation');
+  errors.push('app experiences must declare the consultation-default and classic rollback routes');
+}
+
+const expectedClassicSuffixes = [
+  '',
+  '/birth-profiles',
+  '/birth-profiles/new',
+  '/birth-profiles/:id',
+  '/hepan',
+  '/divination',
+  '/fengshui',
+  '/huangli',
+  '/chat',
+  '/chat/:sessionId',
+  '/orders',
+  '/partners',
+  '/partners/kol',
+  '/partners/scout',
+  '/account',
+];
+const expectedClassicRoutes = expectedClassicSuffixes.map(suffix => `/app/classic${suffix}`);
+const expectedLegacyRedirects = expectedClassicSuffixes.slice(1).map((suffix) => ({
+  from: `/app${suffix}`,
+  to: `/app/classic${suffix}`,
+  preserve: ['query', 'hash'],
+}));
+for (const route of expectedClassicRoutes) {
+  if (appRouteCounts.get(route) !== 1) errors.push(`classic experience route missing or duplicated: ${route}`);
+}
+if (JSON.stringify(app.experienceRedirects ?? []) !== JSON.stringify(expectedLegacyRedirects)) {
+  errors.push('legacy app redirects must preserve the complete Classic IA, query, and hash');
 }
 
 const queryContracts = app.queryContracts ?? {};
-if (JSON.stringify(Object.keys(queryContracts)) !== JSON.stringify([consultationRoute])) {
-  errors.push(`queryContracts must contain ${consultationRoute} only`);
+if (JSON.stringify(Object.keys(queryContracts)) !== JSON.stringify([consultationDefaultRoute])) {
+  errors.push(`queryContracts must contain ${consultationDefaultRoute} only`);
 }
-const flowQuery = queryContracts[consultationRoute] ?? {};
+const flowQuery = queryContracts[consultationDefaultRoute] ?? {};
 const expectedFlowQueryKeys = ['domain', 'seed', 'service'];
 if (JSON.stringify(Object.keys(flowQuery)) !== JSON.stringify(expectedFlowQueryKeys)) {
   errors.push(`consultation query contract must contain ${expectedFlowQueryKeys.join(', ')}`);

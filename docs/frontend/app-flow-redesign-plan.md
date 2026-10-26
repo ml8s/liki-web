@@ -133,10 +133,11 @@ Canonical naming rule:
 - Type names distinguish the layers (`AppDomainId` vs
   `LegacyScenarioId`); query keys distinguish context (`domain` vs `seed`).
 
-`/app/consultation` is the canonical route introduced by this redesign. The
-runtime router registers it only when `VITE_FEATURE_APP_FLOW_REDESIGN === "true"`.
-The App contract declares two experiences: `classic` remains the maintenance
-experience rooted at `/app`, while `consultation` is the preview experience.
+`/app` is the canonical Consultation route in preview mode; `/app/consultation`
+is a transition alias. The runtime router registers this mode only when
+`VITE_FEATURE_APP_FLOW_REDESIGN === "true"`. The App contract declares two
+experiences: `classic` remains maintenance and moves to `/app/classic`, while
+`consultation` owns `/app`. Legacy logged-in URLs redirect with query and hash.
 The implementation-only `/app/flow` name is not part of the public route
 contract. Its query contract is:
 
@@ -1150,7 +1151,7 @@ Feature rollout:
    flag, restart local development or rebuild/deploy after changing it; do not
    treat a browser-only environment edit as a rollout.
 2. Keep the legacy App as the safe default. An unset, malformed, or
-   `false` value disables `/app/consultation` registration and leaves every existing
+   `false` value keeps Classic at `/app` and disables Consultation registration and leaves every existing
    route unchanged.
 3. Roll back by removing the variable or redeploying with
    `VITE_FEATURE_APP_FLOW_REDESIGN=false`. No database, session, URL, or API
@@ -1402,7 +1403,7 @@ output:
   - pending-backend `huangli`;
   - locale variants and empty input.
 - Add domain-to-legacy-session projection for restoring old sessions.
-- Extend route generation/check scripts for `/app/consultation`, canonical `domain`,
+- Extend route generation/check scripts for `/app`, its `/app/consultation` preview alias, `/app/classic`, canonical `domain`,
   transient `seed` and legacy `service` handoffs, and transient `step` query
   state while preserving public marketing paths.
 - Add locale keys and test fixtures for four domains before introducing UI.
@@ -1536,7 +1537,7 @@ Exit criteria:
 
 The first consultation integration is deliberately limited to one vertical slice:
 
-- Mount a flag-gated `/app/consultation` route.
+- Mount the flag-gated Consultation route at `/app` and move Classic to `/app/classic`.
 - Load profiles, entitlements, and existing sessions.
 - Restore the latest `(person, domain)` session; otherwise show person home.
 - Submit a new free-form question through `LegacyIntentBridge` and the existing
@@ -1957,7 +1958,7 @@ Adoption rules:
 - Existing paths remain redirect-compatible.
 - Old components become thin re-exports only after consumer tests pass.
 - Visual snapshots compare before/after output.
-- E2E covers the legacy URL and, where applicable, the new `/app/consultation`
+- E2E covers the legacy URL and, where applicable, the new `/app` consultation default
   artifact surface.
 - C1–C7 can run concurrently only while their owned paths remain disjoint.
 - C9 can begin with partial consumers and expand the matrix as lanes merge.
@@ -2035,7 +2036,7 @@ make test-js
 make lint-docs
 route-contract checks
 affected tool-page E2E
-/app/consultation artifact E2E
+/app consultation artifact E2E
 a11y E2E
 320 / 390 / 768 / 1024 / 1440 manual or visual checks
 ```

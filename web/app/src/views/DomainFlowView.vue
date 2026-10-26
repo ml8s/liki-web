@@ -298,12 +298,12 @@ function selectDomain(domainId: AppDomainId) {
 
 function openCreateProfile() {
   personSheetOpen.value = false
-  void router.push('/birth-profiles/new')
+  void router.push({ name: 'birth-profile-new' })
 }
 
 function openManageProfiles() {
   personSheetOpen.value = false
-  void router.push('/birth-profiles')
+  void router.push({ name: 'birth-profiles' })
 }
 
 function startNewConsultation() {
