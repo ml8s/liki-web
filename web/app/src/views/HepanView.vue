@@ -278,14 +278,17 @@ function onProfileChange() {
 }
 
 async function compute() {
-  error.value = ''
-  const validA = await formARef.value?.validate().then(() => true).catch(() => false)
-  const validB = await formBRef.value?.validate().then(() => true).catch(() => false)
-  if (!validA || !validB) return
-  result.value = null
-  bChart.value = null
+  // Occupy the submitting state before async validation so native and custom
+  // submit events cannot start two identical hepan requests.
+  if (loading.value) return
   loading.value = true
+  error.value = ''
   try {
+    const validA = await formARef.value?.validate().then(() => true).catch(() => false)
+    const validB = await formBRef.value?.validate().then(() => true).catch(() => false)
+    if (!validA || !validB) return
+    result.value = null
+    bChart.value = null
     const p = profileA.value
     if (!p) return
     if (!p.birth.instant || !p.birth.location.timezone || p.birth.location.longitude == null) {

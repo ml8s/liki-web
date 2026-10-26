@@ -119,8 +119,7 @@ async function mountView(): Promise<VueWrapper> {
         // Keep the adoption boundary deterministic: validation is an app-form
         // concern already covered by form-kit; this test owns result mapping.
         ElForm: {
-          emits: ['submit'],
-          template: '<form @submit.prevent="$emit(\'submit\', $event)"><slot /></form>',
+          template: '<form><slot /></form>',
           setup: (_props, { expose }) => {
             expose({ validate: async () => true })
           },
@@ -142,6 +141,7 @@ async function completeForm(wrapper: VueWrapper) {
   wrapper.findComponent(BirthFields).vm.$emit('update:patch', secondBirth)
   await wrapper.find('input[type="checkbox"]').setValue(true)
   await wrapper.findAll('form')[1]!.trigger('submit')
+  await vi.waitFor(() => expect(hepanDomain.hepanForChartInputs).toHaveBeenCalled())
   await flushPromises()
 }
 
@@ -152,6 +152,7 @@ function button(wrapper: VueWrapper, label: string) {
 }
 
   describe('HepanView BaziBondPanel adoption (HepanPanel.vue + HepanView.vue provenance)', () => {
+    let activeWrapper: VueWrapper | null = null
       beforeEach(() => {
       localStorage.clear()
       sessionStorage.clear()
@@ -161,6 +162,12 @@ function button(wrapper: VueWrapper, label: string) {
       toolRecords.records = []
       natalDomain.baziChartForChartInput.mockResolvedValue(chartA)
       hepanDomain.hepanForChartInputs.mockResolvedValue({ chartA, chartB, bond })
+    })
+
+    afterEach(() => {
+      activeWrapper?.unmount()
+      activeWrapper = null
+      document.body.innerHTML = ''
     })
 
     it('renders the adopted panel and preserves consent, records, and CTA boundaries', async () => {
@@ -174,6 +181,7 @@ function button(wrapper: VueWrapper, label: string) {
       }
       toolRecords.records = [record]
       const wrapper = await mountView()
+      activeWrapper = wrapper
 
       expect(toolRecords.kind).toEqual(['bond'])
       expect(toolRecords.load).toHaveBeenCalledTimes(1)
@@ -226,6 +234,7 @@ function button(wrapper: VueWrapper, label: string) {
         bond,
       })
       const wrapper = await mountView()
+      activeWrapper = wrapper
       await completeForm(wrapper)
 
       expect(hepanDomain.hepanForChartInputs).toHaveBeenCalledTimes(1)
