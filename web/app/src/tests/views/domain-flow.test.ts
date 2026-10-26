@@ -24,8 +24,10 @@ const mediaQuery = vi.hoisted(() => ({ matches: false }))
 
  vi.mock('@vueuse/core', async () => {
    const { ref } = await import('vue')
+   const online = ref(true)
    return {
      useMediaQuery: () => ref(mediaQuery.matches),
+     useOnline: () => online,
    }
  })
 

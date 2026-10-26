@@ -20,7 +20,7 @@
 
     <div
       class="spine-state"
-      :role="error ? 'alert' : 'status'"
+      :role="error || failureKind ? 'alert' : 'status'"
       aria-live="polite"
       :aria-busy="loading"
     >
@@ -36,17 +36,28 @@
       </template>
 
       <div
-        v-else-if="error"
+        v-else-if="error || failureKind"
         class="spine-error"
       >
-        <p>{{ error }}</p>
-        <button
-          type="button"
-          class="spine-action"
-          @click="emit('retry-profiles')"
-        >
-          {{ $t('common.retry') }}
-        </button>
+        <p>{{ failureMessage }}</p>
+        <div class="spine-actions">
+          <button
+            v-if="failureKind !== 'permission'"
+            type="button"
+            class="spine-action"
+            @click="emit('retry-profiles')"
+          >
+            {{ $t('common.retry') }}
+          </button>
+          <button
+            v-if="failureKind === 'permission'"
+            type="button"
+            class="spine-action spine-action--secondary"
+            @click="emit('open-account')"
+          >
+            {{ $t('router.account') }}
+          </button>
+        </div>
       </div>
 
       <AppEmptyState
@@ -75,26 +86,39 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
 import AppEmptyState from '@/components/app/AppEmptyState.vue'
+import { useI18n } from 'vue-i18n'
+
 
 const props = defineProps<{
   personLabel?: string
   domainLabel: string
   loading?: boolean
   error?: string
+  failureKind?: 'offline' | 'unreachable' | 'permission' | 'server' | 'unknown'
   hasProfile?: boolean
 }>()
 
 const emit = defineEmits<{
   'create-profile': []
   'retry-profiles': []
+  'open-account': []
 }>()
 
+const { t } = useI18n()
 const headingId = useId()
 
 const state = computed(() => {
   if (props.loading) return 'loading'
-  if (props.error) return 'error'
+  if (props.error || props.failureKind) return 'error'
   return props.hasProfile ? 'ready' : 'empty'
+})
+
+const failureMessage = computed(() => {
+  if (props.failureKind === 'offline') return t('flow.state.offline')
+  if (props.failureKind === 'unreachable') return t('flow.state.unreachable')
+  if (props.failureKind === 'permission') return t('flow.state.permission')
+  if (props.failureKind === 'server') return t('flow.state.server')
+  return props.error || t('errors.requestFailed')
 })
 </script>
 
@@ -126,6 +150,18 @@ const state = computed(() => {
 .spine-state {
   min-width: 0;
 }
+.spine-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.spine-action--secondary {
+  border: 1px solid var(--liki-line);
+  background: var(--liki-surface);
+  color: var(--liki-text-2);
+  font-weight: 500;
+}
+
 .spine-error p {
   margin: 0 0 var(--space-3);
   overflow-wrap: anywhere;

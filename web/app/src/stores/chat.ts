@@ -59,6 +59,7 @@ interface ChatState {
   sending: boolean
   phase: string
   error: string
+  loadSessionsError: unknown
   /** 待自动发送的首条意图消息（服务入口 → 会话打开后由 ChatSessionView 发送并清空；内存态，刷新即失） */
   pendingIntent: string
 }
@@ -75,6 +76,7 @@ export const useChatStore = defineStore('chat', {
     sending: false,
     phase: '',
     error: '',
+    loadSessionsError: null,
     pendingIntent: '',
   }),
   actions: {
@@ -84,7 +86,9 @@ export const useChatStore = defineStore('chat', {
       this.error = ''
       try {
         this.sessions = await (await chatApiLazy()).fetchChatSessions()
+        this.loadSessionsError = null
       } catch (error) {
+        this.loadSessionsError = error
         this.error = errorMessage(error)
       } finally {
         this.loadingSessions = false
@@ -319,6 +323,7 @@ export const useChatStore = defineStore('chat', {
       this.loadingSessions = false
       this.loadingMessages = false
       this.sending = false
+      this.loadSessionsError = null
       this.pendingIntent = ''
     },
   },

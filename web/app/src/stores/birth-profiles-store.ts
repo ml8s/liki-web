@@ -22,6 +22,7 @@ interface BirthProfilesState {
   loading: boolean
   detailLoading: boolean
   error: string
+  lastError: unknown
   _lastRefresh: number
   next_cursor: string
 }
@@ -33,6 +34,7 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
     loading: false,
     detailLoading: false,
     error: '',
+    lastError: null,
     _lastRefresh: 0,
     next_cursor: '',
   }),
@@ -56,6 +58,7 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
         // 每次以响应为准：空 cursor 表示已到末页，必须重置。
         this.next_cursor = result.next_cursor ?? ''
       } catch (error) {
+        this.lastError = error
         this.error = errorMessage(error)
         // 保留 stale 列表供继续查看，只展示错误与重试入口。
         if (!this.list.length) this.list = []
@@ -74,6 +77,7 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
         this.list = [...this.list, ...result.profiles]
         this.next_cursor = result.next_cursor ?? ''
       } catch (error) {
+        this.lastError = error
         this.error = errorMessage(error)
       } finally {
         this.loading = false
@@ -86,6 +90,7 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
         this.detail = await fetchBirthProfile(id)
         await ensurePlaceIndex([this.detail])
       } catch (error) {
+        this.lastError = error
         this.detail = null
         this.error = errorMessage(error)
       } finally {
@@ -117,6 +122,7 @@ export const useBirthProfilesStore = defineStore('birth-profiles', {
       this.loading = false
       this.detailLoading = false
       this.error = ''
+      this.lastError = null
     },
   },
 })

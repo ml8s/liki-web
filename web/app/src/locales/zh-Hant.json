@@ -71,7 +71,13 @@
     "historyCount": "{count} 條會話",
     "historyEmpty": "當前篩選沒有會話",
     "historyCurrent": "當前",
-    "historyActionFailed": "歷史會話操作失敗"
+    "historyActionFailed": "歷史會話操作失敗",
+    "state": {
+      "offline": "你目前已離線。恢復網路後可以重試。",
+      "unreachable": "暫時無法連線服務。請檢查網路後重試。",
+      "permission": "目前帳號沒有存取該內容的權限。",
+      "server": "服務暫時不可用。請稍後重試。"
+    }
   },
   "auth": {
     "brandTail": "命理",

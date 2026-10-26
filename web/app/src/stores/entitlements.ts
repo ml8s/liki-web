@@ -8,6 +8,7 @@ interface EntitlementState {
   loaded: boolean
   loading: boolean
   error: string
+  lastError: unknown
 }
 
 export const useEntitlementsStore = defineStore('entitlements', {
@@ -17,6 +18,7 @@ export const useEntitlementsStore = defineStore('entitlements', {
     loaded: false,
     loading: false,
     error: '',
+    lastError: null,
   }),
   getters: {
     hasSkill: state => (skill: string) => state.allowedSkills.includes(skill),
@@ -33,6 +35,7 @@ export const useEntitlementsStore = defineStore('entitlements', {
         this.allowedSkills = result.allowed_skills
         this.loaded = true
       } catch (error) {
+        this.lastError = error
         this.error = errorMessage(error)
       } finally {
         this.loading = false
@@ -44,6 +47,7 @@ export const useEntitlementsStore = defineStore('entitlements', {
       this.loaded = false
       this.loading = false
       this.error = ''
+      this.lastError = null
     },
   },
 })

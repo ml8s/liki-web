@@ -57,6 +57,47 @@ describe('ConsultationSpine', () => {
     expect(wrapper.emitted('retry-profiles')).toHaveLength(1)
   })
 
+  it('distinguishes unreachable services and offers retry', async () => {
+    const wrapper = mount(ConsultationSpine, {
+      props: {
+        ...baseProps,
+        failureKind: 'unreachable',
+        hasProfile: true,
+      },
+    })
+
+    expect(wrapper.attributes('data-state')).toBe('error')
+    expect(wrapper.find('.spine-error p').text()).toContain('暂时无法连接服务')
+    await wrapper.find('.spine-action').trigger('click')
+    expect(wrapper.emitted('retry-profiles')).toHaveLength(1)
+    expect(wrapper.emitted('open-account')).toBeUndefined()
+  })
+
+  it('distinguishes permission failures and routes to account recovery', async () => {
+    const wrapper = mount(ConsultationSpine, {
+      props: {
+        ...baseProps,
+        failureKind: 'permission',
+      },
+    })
+
+    expect(wrapper.find('.spine-error p').text()).toContain('当前账号没有访问该内容的权限')
+    expect(wrapper.find('.spine-action').text()).toContain('账户设置')
+
+    await wrapper.find('.spine-action').trigger('click')
+    expect(wrapper.emitted('open-account')).toHaveLength(1)
+    expect(wrapper.emitted('retry-profiles')).toBeUndefined()
+  })
+
+  it('shows offline state without pretending the service returned an error', () => {
+    const wrapper = mount(ConsultationSpine, {
+      props: { ...baseProps, failureKind: 'offline' },
+    })
+
+    expect(wrapper.attributes('data-state')).toBe('error')
+    expect(wrapper.find('.spine-error p').text()).toContain('你当前已离线')
+  })
+
   it('renders the empty state and emits create-profile once', async () => {
     const wrapper = mount(ConsultationSpine, { props: baseProps })
 

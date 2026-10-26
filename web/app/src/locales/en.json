@@ -71,7 +71,13 @@
     "historyCount": "{count} sessions",
     "historyEmpty": "No sessions match this filter",
     "historyCurrent": "Current",
-    "historyActionFailed": "Session history action failed"
+    "historyActionFailed": "Session history action failed",
+    "state": {
+      "offline": "You are offline. Retry after your connection returns.",
+      "unreachable": "The service is unreachable. Check your connection and retry.",
+      "permission": "This account does not have access to this content.",
+      "server": "The service is temporarily unavailable. Try again later."
+    }
   },
   "auth": {
     "brandTail": "Metaphysics",

@@ -64,9 +64,11 @@
           :domain-label="domainLabel"
           :loading="initialLoading"
           :error="profileError"
+          :failure-kind="workspaceFailure ?? undefined"
           :has-profile="hasVisibleProfile"
           @create-profile="openCreateProfile"
           @retry-profiles="retryWorkspace"
+          @open-account="openManageAccount"
         >
           <ChatStreamStatus :phase="chat.phase" />
           <FlowHepanForm
@@ -276,6 +278,8 @@ import { firstQueryValue } from '@/utils/query'
 import { toUserMessage } from '@/utils/errors'
 import { useNearBottom } from '@/composables/useNearBottom'
 import { useConsultationTools } from '@/composables/useConsultationTools'
+import { useOnline } from '@vueuse/core'
+import { classifyResourceFailure, type ResourceFailureKind } from '@/utils/resourceStatus'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -286,6 +290,7 @@ const entitlements = useEntitlementsStore()
 const chat = useChatStore()
 const flow = useDomainFlowStore()
 const sales = useSalesStore()
+const isOnline = useOnline()
 
 const personSheetOpen = ref(false)
 const domainSheetOpen = ref(false)
@@ -373,6 +378,11 @@ const initialLoading = computed(() =>
 )
 
 const profileError = computed(() => profiles.error || entitlements.error)
+const workspaceFailure = computed<ResourceFailureKind | null>(() => {
+  if (!isOnline.value) return 'offline'
+  const error = profiles.lastError ?? entitlements.lastError ?? chat.loadSessionsError
+  return error ? classifyResourceFailure(error) : null
+})
 const showDivinationCasting = computed(() => flow.domainId === 'divination' && !castingChart.value)
 const showHepanForm = computed(() => flow.domainId === 'natal' && routingSeed.value === 'hepan')
 const showFengshuiForm = computed(() => flow.domainId === 'fengshui' && routingSeed.value === 'fengshui')
@@ -440,6 +450,10 @@ function openCreateProfile() {
 function openManageProfiles() {
   personSheetOpen.value = false
   void router.push({ name: 'birth-profiles' })
+}
+
+function openManageAccount() {
+  void router.push({ name: 'account' })
 }
 
 function startNewConsultation() {
