@@ -49,7 +49,7 @@ describe('ConsultationSpine', () => {
     })
 
     expect(wrapper.attributes('data-state')).toBe('error')
-    expect(wrapper.find('.spine-state').attributes('aria-live')).toBe('polite')
+    expect(wrapper.find('.spine-state').attributes('aria-live')).toBe('assertive')
     expect(wrapper.find('.spine-error p').text()).toBe('档案加载失败')
     expect(wrapper.find('.spine-content').exists()).toBe(false)
 

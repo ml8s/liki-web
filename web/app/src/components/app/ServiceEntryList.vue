@@ -1,12 +1,15 @@
 <template>
   <div class="service-entries">
-    <button
+    <component
+      :is="item.to ? RouterLink : 'button'"
       v-for="item in items"
       :key="item.id"
-      type="button"
+      v-bind="item.to
+        ? { to: item.to }
+        : { type: 'button' }"
       class="entry-row"
       :class="{ selected: item.id === selectedId }"
-      @click="$emit('select', item.id)"
+      @click="item.to ? undefined : $emit('select', item.id)"
     >
       <span
         class="entry-glyph font-serif"
@@ -21,13 +24,16 @@
         class="entry-action"
         aria-hidden="true"
       >{{ item.action }}</span>
-    </button>
+    </component>
   </div>
 </template>
 
 <script setup lang="ts">
 // 场景入口行式列表（单一实现）：图标字 + 名称 + 一行说明 + 右侧动作。
-// 三处共用——工作台「更多场景」、档案详情服务入口、Chat 领域选择。
+// 三处共用——工作台「更多场景」、档案详情服务入口、Chat 领域选择、Me hub。
+import { RouterLink } from 'vue-router'
+import type { RouteLocationRaw } from 'vue-router'
+
 export interface ServiceEntry {
   id: string
   glyph: string
@@ -35,6 +41,8 @@ export interface ServiceEntry {
   desc: string
   /** 右侧动作文案（如「去排盤」「開始」）；缺省仅整行可点。 */
   action?: string
+  /** Native route destinations keep Me navigation accessible without JS handlers. */
+  to?: RouteLocationRaw
 }
 
 withDefaults(defineProps<{ items: ServiceEntry[]; selectedId?: string }>(), { selectedId: '' })
@@ -43,18 +51,20 @@ defineEmits<{ select: [id: string] }>()
 
 <style scoped>
 .service-entries {
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: var(--space-2);
 }
 .entry-row {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: var(--space-3);
   width: 100%;
   min-height: 60px;
   padding: 10px 12px;
-  text-align: left;
+  text-align: start;
   font: inherit;
   color: inherit;
   cursor: pointer;

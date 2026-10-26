@@ -18,10 +18,10 @@
       </p>
     </section>
 
-    <div
+    <AppLiveRegion
       class="spine-state"
       :role="error || failureKind ? 'alert' : 'status'"
-      aria-live="polite"
+      :level="error || failureKind ? 'assertive' : 'polite'"
       :aria-busy="loading"
     >
       <template v-if="loading">
@@ -72,7 +72,7 @@
           {{ $t('flow.createProfile') }}
         </button>
       </AppEmptyState>
-    </div>
+    </AppLiveRegion>
 
     <div
       v-if="state === 'ready'"
@@ -86,6 +86,7 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
 import AppEmptyState from '@/components/app/AppEmptyState.vue'
+import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
 import { useI18n } from 'vue-i18n'
 
 

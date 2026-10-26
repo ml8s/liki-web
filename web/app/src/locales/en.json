@@ -1169,7 +1169,7 @@
       "balance": "{currency} settlement balance",
       "dialogTitle": "{role} payout"
     },
-    "mineDescription": "Partner roles and settlements."
+    "meDescription": "Partner roles and settlements."
   },
   "artifact": {
     "documentLabel": "Consultation record",

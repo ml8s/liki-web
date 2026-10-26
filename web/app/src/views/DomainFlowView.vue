@@ -842,5 +842,10 @@ onMounted(async () => {
 .flow-dock-links {
   display: grid;
   gap: var(--space-2);
+  min-width: 0;
+}
+
+.flow-dock-links > * {
+  min-width: 0;
 }
 </style>

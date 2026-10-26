@@ -1169,7 +1169,7 @@
       "balance": "{currency} 可结算余额",
       "dialogTitle": "{role}提现"
     },
-    "mineDescription": "合作角色与结算入口。"
+    "meDescription": "合作角色与结算入口。"
   },
   "artifact": {
     "documentLabel": "咨询记录",

@@ -1,5 +1,13 @@
 @import "../../../css/tokens.css";
 
+/* Border-box is the base layout contract; controls that add padding to a
+   100%-width parent must not create horizontal overflow on small screens. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: var(--liki-font-sans);

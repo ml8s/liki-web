@@ -98,7 +98,7 @@ const stateLabel = computed(() => t(`artifact.state.${props.descriptor.state}`))
   font-weight: 600;
 }
 .artifact-capsule__state {
-  margin-left: auto;
+  margin-inline-start: auto;
   flex: 0 0 auto;
   color: var(--liki-text-2);
   font-size: var(--font-size-caption);

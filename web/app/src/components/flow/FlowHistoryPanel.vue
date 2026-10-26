@@ -7,12 +7,9 @@
       <h2 :id="headingId">
         {{ $t('flow.historyTitle') }}
       </h2>
-      <p
-        class="flow-history__count"
-        role="status"
-      >
+      <AppLiveRegion class="flow-history__count">
         {{ $t('flow.historyCount', { count: filteredSessions.length }) }}
-      </p>
+      </AppLiveRegion>
     </header>
 
     <TextField
@@ -103,6 +100,7 @@
 import { computed, ref, useId } from 'vue'
 import type { ChatSession } from '@/api/chat'
 import TextField from '@shared/components/form/fields/TextField.vue'
+import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
 import { formatDateTime } from '@/utils/format'
 
 const props = defineProps<{

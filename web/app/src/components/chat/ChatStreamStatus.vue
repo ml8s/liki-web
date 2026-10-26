@@ -1,16 +1,19 @@
 <template>
-  <div
+  <AppLiveRegion
     v-if="phase"
     class="phase"
-    role="status"
-    aria-live="polite"
   >
-    <span class="dot" />
+    <span
+      class="dot"
+      aria-hidden="true"
+    />
     {{ phase }}
-  </div>
+  </AppLiveRegion>
 </template>
 
 <script setup lang="ts">
+import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
+
 defineProps<{ phase: string }>()
 </script>
 
@@ -25,7 +28,7 @@ defineProps<{ phase: string }>()
   display: inline-block;
   width: 6px;
   height: 6px;
-  margin-right: 6px;
+  margin-inline-end: 6px;
   border-radius: 50%;
   background: var(--liki-primary);
   animation: pulse 1.2s var(--liki-ease) infinite;
