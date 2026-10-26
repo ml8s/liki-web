@@ -68,3 +68,37 @@ export function consultationBirthFromFields(value: BirthFieldsValue): Consultati
     },
   }
 }
+
+/**
+ * Strict equality for the birth projection carried in a consultation context.
+ * Used by follow-up matching: a session matches a focused form only when the
+ * birth inputs are identical, so a changed profile never silently reuses an
+ * old expert context.
+ */
+export function sameConsultationBirth(
+  left: ConsultationBirth | undefined,
+  right: ConsultationBirth | undefined,
+): boolean {
+  if (!left || !right) return false
+  return left.gender === right.gender
+    && left.date === right.date
+    && left.time === right.time
+    && left.location.longitude === right.location.longitude
+    && left.location.timezone === right.location.timezone
+}
+
+/**
+ * Strict equality for the Fengshui layout projection. Same matching rule as
+ * `sameConsultationBirth`: identical layout inputs only.
+ */
+export function sameConsultationLayout(
+  left: ConsultationLayout | undefined,
+  right: ConsultationLayout | undefined,
+): boolean {
+  if (!left || !right) return false
+  return left.zuo_shan === right.zuo_shan
+    && left.period_date === right.period_date
+    && left.door_gua === right.door_gua
+    && left.master_gua === right.master_gua
+    && left.stove_gua === right.stove_gua
+}

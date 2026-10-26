@@ -18,6 +18,34 @@ function message(overrides: Partial<ChatMessage>): ChatMessage {
 }
 
 describe('ConsultationDocument', () => {
+  it('shows an actionable empty state before the first message', () => {
+    const wrapper = mount(ConsultationDocument, { props: { messages: [] } })
+
+    expect(wrapper.find('.document-empty').exists()).toBe(true)
+    expect(wrapper.text()).toContain('暂无咨询内容')
+    expect(wrapper.text()).toContain('在下方输入你的问题')
+  })
+
+  it('hides the empty state once a message exists', () => {
+    const wrapper = mount(ConsultationDocument, {
+      props: { messages: [message({ content: '结论' })] },
+    })
+
+    expect(wrapper.find('.document-empty').exists()).toBe(false)
+  })
+
+  it('hides the empty state while loading or streaming', () => {
+    const loading = mount(ConsultationDocument, {
+      props: { messages: [], loading: true },
+    })
+    const streaming = mount(ConsultationDocument, {
+      props: { messages: [], streaming: true },
+    })
+
+    expect(loading.find('.document-empty').exists()).toBe(false)
+    expect(streaming.find('.document-empty').exists()).toBe(false)
+  })
+
   it('renders questions and assistant readings as a document', async () => {
     const wrapper = mount(ConsultationDocument, {
       props: {

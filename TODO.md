@@ -6,7 +6,7 @@ Updated: 2026-10-27
 
 - Branch: `feat/app-flow-redesign`
 - PR: [#8](https://github.com/ml8s/liki-web/pull/8)
-- Latest commit: `69b22f3 feat(app): harden consultation accessibility and resilience`
+- Latest commit: `9dd55a8 perf(app): lazy-load artifact panels, markdown, and date picker`
 - State: pushed and clean; CI `check`, `race`, and `test` are green.
 - Backend contract: four experts (`natal`, `divination`, `fengshui`,
   `naming`) plus seven durable consultation context scenarios. The scenario
@@ -19,32 +19,43 @@ Updated: 2026-10-27
   - O3 resilience and draft-safety hardening slice.
   - O4 performance and bundle discipline (see
     [`docs/frontend/o4-performance-audit.md`](./docs/frontend/o4-performance-audit.md)).
+  - O5/O6 consultation batch: consultation-document empty state, context
+    equality helpers moved to `@shared/domain/consultation.ts`, session
+    submit routing extracted to `useConsultationSubmit`, history actions
+    extracted to `useConsultationHistory` (view reduced from 979 lines).
 
 Production/staging validation and cleanup remain deferred.
 
-## Next: O5 — Consultation UX polish
+## Next: manual validation and remaining polish
 
-O5 is the next planned track in
+The O5/O6 implementation slice is done; the remaining items in
 [`docs/frontend/app-flow-optimization-plan.md`](./docs/frontend/app-flow-optimization-plan.md).
 
-### O5 TODO
+### Pending (requires external environments or manual passes)
 
-- [ ] Review person home, active reading, follow-up questions, artifact
-      capsules, and action hierarchy at 320, 390, 768, 1024, and 1440px.
-- [ ] Harmonize empty, loading, locked, error, pending-backend, and recovery
-      visuals through shared state components.
-- [ ] Polish focused-form progression: context, required slots, validation,
-      submission, artifact handoff, and return to consultation.
-- [ ] Reduce sheet and capsule transition cost; respect reduced-motion and
-      avoid animating layout properties.
-- [ ] Validate copy for uncertainty, domain limits, and next actions.
+- [ ] O1 staging smoke checklist (marketing handoff, login, payment return,
+      restore, four-domain send, history, Me, entitlement lock, offline).
+- [ ] O1 production telemetry review for the four-domain funnel and redirect
+      counts.
+- [ ] O2 manual assistive-technology review: one screen reader per major
+      platform, keyboard journeys on real devices.
+- [ ] O5 five-breakpoint visual review (320/390/768/1024/1440) on real
+      devices; transition feel sign-off.
+- [ ] O6 engine-result catalog completion: page-local projections → typed
+      adapters (behavior-neutral, schedule after staging sign-off).
+- [ ] Phase 6 cleanup (remove AppSidebar/AppTabbar, dead locale keys,
+      compatibility facades) — blocked on O1 staging sign-off and the
+      `huangli` backend ownership migration.
+- [ ] Deferred backend phase: domain-owned consultation contexts and the
+      `huangli` → `natal` expert migration.
 
-### O5 acceptance criteria
+### Redesign plan section 7 (product/design decisions, not code)
 
-- The primary consultation document remains the only main scroll owner.
-- Artifacts remain reference layers and never compete with the reading.
-- A first-time user can understand person, domain, question, result, and next
-  step without product training.
+The eleven open items in
+[`app-flow-redesign-plan.md` §7](./app-flow-redesign-plan.md#7-open-items)
+remain product decisions (restore windows, prompt budgets, catalog
+sign-off, `bazi_liuri` contract exposure, etc.). They gate later code work,
+not the current frontend batch.
 
 ## Hard constraints
 

@@ -80,7 +80,9 @@
       "unreachable": "The service is unreachable. Check your connection and retry.",
       "permission": "This account does not have access to this content.",
       "server": "The service is temporarily unavailable. Try again later."
-    }
+    },
+    "documentEmpty": "No reading yet",
+    "documentEmptyHint": "Type your question below to start this consultation."
   },
   "auth": {
     "brandTail": "Metaphysics",

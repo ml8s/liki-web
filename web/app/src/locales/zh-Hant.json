@@ -80,7 +80,9 @@
       "unreachable": "暫時無法連線服務。請檢查網路後重試。",
       "permission": "目前帳號沒有存取該內容的權限。",
       "server": "服務暫時不可用。請稍後重試。"
-    }
+    },
+    "documentEmpty": "尚無諮詢內容",
+    "documentEmptyHint": "在下方輸入你的問題，開始本次解讀。"
   },
   "auth": {
     "brandTail": "命理",

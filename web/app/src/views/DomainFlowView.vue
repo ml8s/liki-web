@@ -174,9 +174,9 @@
           :active-session-id="chat.activeSession?.id"
           :loading="chat.loadingSessions"
           :error="chat.error"
-          @open="openHistorySession"
-          @rename="renameHistorySession"
-          @remove="removeHistorySession"
+          @open="sessionHistory.openSession"
+          @rename="sessionHistory.renameSession"
+          @remove="sessionHistory.removeSession"
         />
       </div>
 
@@ -271,14 +271,16 @@ import ArtifactSurface from '@/components/flow/artifacts/ArtifactSurface.vue'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useChatStore } from '@/stores/chat'
 import { useDomainFlowStore } from '@/stores/domain-flow'
-import type { ChatSession } from '@/api/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useDomainArtifacts } from '@/composables/useDomainArtifacts'
 import { useSalesStore } from '@/stores/sales-store'
 import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
-import { confirmDeleteEntity, promptRenameEntity } from '@/utils/dialogs'
 import type { ConsultationContext } from '@shared/domain/consultation'
-import { consultationBirthFromFields } from '@shared/domain/consultation'
+import {
+  consultationBirthFromFields,
+  sameConsultationBirth,
+  sameConsultationLayout,
+} from '@shared/domain/consultation'
 import {
   normalizeAppDomain,
   appDomains,
@@ -290,10 +292,11 @@ import {
   type LegacyIntentBridgeResult,
 } from '@shared/domain/flow'
 import { firstQueryValue } from '@/utils/query'
-import { toUserMessage } from '@/utils/errors'
 import { useNearBottom } from '@/composables/useNearBottom'
 import { useConsultationTools } from '@/composables/useConsultationTools'
 import { useConsultationTelemetry } from '@/composables/useConsultationTelemetry'
+import { useConsultationHistory } from '@/composables/useConsultationHistory'
+import { useConsultationSubmit } from '@/composables/useConsultationSubmit'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'
 import { useOnline } from '@vueuse/core'
 import { classifyResourceFailure, type ResourceFailureKind } from '@/utils/resourceStatus'
@@ -310,10 +313,31 @@ const sales = useSalesStore()
 const isOnline = useOnline()
 const telemetry = useConsultationTelemetry()
 
+const sessionHistory = useConsultationHistory({
+  personId: computed(() => flow.personId),
+  domainId: computed(() => flow.domainId),
+})
+
+const submit = useConsultationSubmit({
+  personId: computed(() => flow.personId),
+  onError: message => {
+    consultationError.value = message
+  },
+  onDraftPreserved: () => {
+    draftNotice.value = t('flow.draftPreserved')
+  },
+  onDraftRestored: () => {
+    draftNotice.value = t('flow.draftRestored')
+  },
+  onAfterSend: () => {
+    void scrollToLatest()
+  },
+})
+const isSubmitting = submit.isSubmitting
+
 const personSheetOpen = ref(false)
 const domainSheetOpen = ref(false)
 const consultationError = ref('')
-const isSubmitting = ref(false)
 const draftNotice = ref('')
 const errorFocusRef = ref<HTMLElement | null>(null)
 const documentBoundary = ref<HTMLElement | null>(null)
@@ -384,18 +408,13 @@ const hasVisibleProfile = computed(() =>
 )
 
 const visibleSessions = computed(() =>
-  chat.sessions
-    .filter(session => (session.profile_id || null) === flow.personId)
-    .filter(session => domainForSession(session) === flow.domainId)
-    .sort((left, right) => right.updated_at.localeCompare(left.updated_at)),
+  sessionHistory.visibleSessions.value,
 )
 
 const latestVisibleSession = computed(() => visibleSessions.value[0] ?? null)
 
 const restoreVisible = computed(() =>
-  Boolean(latestVisibleSession.value) &&
-  chat.activeSession?.id !== latestVisibleSession.value?.id &&
-  !chat.loadingMessages,
+  sessionHistory.restoreVisible.value,
 )
 
 const initialLoading = computed(() =>
@@ -508,58 +527,7 @@ function startNewConsultation() {
   domainSheetOpen.value = false
 }
 
-async function restoreLatest() {
-  const latest = latestVisibleSession.value
-  if (!latest) {
-    chat.resetActive()
-    return
-  }
-  await chat.openSession(latest.id)
-  telemetry.trackRestore({
-    domainId: flow.domainId,
-    source: 'latest',
-    restored: chat.activeSession?.id === latest.id,
-  })
-}
-
-async function openHistorySession(session: ChatSession) {
-  if (chat.activeSession?.id === session.id) return
-  await chat.openSession(session.id)
-  telemetry.trackRestore({
-    domainId: flow.domainId,
-    source: 'history',
-    restored: chat.activeSession?.id === session.id,
-  })
-}
-
-async function renameHistorySession(session: ChatSession) {
-  let value: string | null
-  try {
-    value = await promptRenameEntity(t('chat.sessions.noun'), session.title)
-  } catch (error) {
-    chat.error = toUserMessage(error, t('flow.historyActionFailed'))
-    return
-  }
-  if (value === null) return
-  try {
-    await chat.renameSession(session.id, value)
-  } catch (error) {
-    chat.error = toUserMessage(error, t('flow.historyActionFailed'))
-  }
-}
-
-async function removeHistorySession(session: ChatSession) {
-  const confirmed = await confirmDeleteEntity(
-    t('chat.sessions.noun'),
-    session.title,
-  )
-  if (!confirmed) return
-  try {
-    await chat.removeSession(session.id)
-  } catch (error) {
-    chat.error = toUserMessage(error, t('flow.historyActionFailed'))
-  }
-}
+const restoreLatest = sessionHistory.restoreLatest
 
 function purchaseConsultation(billingMode: 'one_time' | 'subscription') {
   void sales.buy(billingMode, routingSeed.value ?? flow.currentDomain.baseSkill)
@@ -583,112 +551,39 @@ function projectBridgeFailure(result: Extract<LegacyIntentBridgeResult, { status
   consultationError.value = t('errors.requestFailed')
 }
 
-function sameConsultationBirth(
-  left: ConsultationContext['second_birth'] | ConsultationContext['birth'],
-  right: ConsultationContext['second_birth'] | ConsultationContext['birth'],
-) {
-  if (!left || !right) return false
-  return left.gender === right.gender
-    && left.date === right.date
-    && left.time === right.time
-    && left.location.longitude === right.location.longitude
-    && left.location.timezone === right.location.timezone
-}
-
-function sameFengshuiLayout(
-  left: ConsultationContext['layout'],
-  right: ConsultationContext['layout'],
-) {
-  if (!left || !right) return false
-  return left.zuo_shan === right.zuo_shan
-    && left.period_date === right.period_date
-    && left.door_gua === right.door_gua
-    && left.master_gua === right.master_gua
-    && left.stove_gua === right.stove_gua
-}
-
-async function openMatchingAndSend(
-  matcher: (session: ChatSession) => boolean,
-  content: string,
-  source: 'composer' | 'focused_form' | 'casting',
-) {
-  const matchingSession = chat.sessions
-    .filter(session => (session.profile_id || null) === flow.personId)
-    .find(matcher)
-
-  if (!matchingSession) return false
-  if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
-  telemetry.trackSubmit({
-    domainId: flow.domainId,
-    source,
-    created: false,
-  })
-  await sendUsingActiveSession(content)
-  return true
-}
-
-async function createAndSendWithSession(
-  skill: string,
-  context: ConsultationContext | undefined,
-  content: string,
-  source: 'composer' | 'focused_form' | 'casting',
-) {
-  try {
-    const session = context === undefined
-      ? await chat.createSession(flow.personId ?? '', skill)
-      : await chat.createSession(flow.personId ?? '', skill, context)
-    chat.activeSession = session
-    chat.messages = []
-    chat.messagesCursor = ''
-    telemetry.trackSubmit({
-      domainId: flow.domainId,
-      source,
-      created: true,
-    })
-    await sendUsingActiveSession(content)
-  } catch (error) {
-    consultationError.value = toUserMessage(error, t('chat.createFailed'))
-    draftNotice.value = t('flow.draftPreserved')
-    telemetry.trackFailure(flow.domainId, classifyResourceFailure(error))
-  }
-}
-
 async function submitQuestion() {
   const content = question.value.trim()
   if (!content || chat.sending || isSubmitting.value) return
 
-  isSubmitting.value = true
-  draftNotice.value = ''
-  try {
+  await submit.run(async () => {
+    draftNotice.value = ''
     await submitConsultation(content)
-  } finally {
-    isSubmitting.value = false
-  }
+  })
 }
 
 async function submitConsultation(content: string) {
   consultationError.value = ''
 
   if (flow.domainId === 'divination' && casting.value && castingChart.value) {
-    const sent = await openMatchingAndSend(
-      session => session.context?.casting?.casting_id === casting.value?.casting_id,
+    await submit.submitFocusedForm({
+      skill: 'divination',
+      context: {
+        version: 1,
+        scenario: 'divination',
+        question: castingQuestion.value,
+        casting: casting.value,
+        casting_instant: castingInstant.value,
+        location: castingLocation.value
+          ? {
+              longitude: castingLocation.value.longitude,
+              timezone: castingLocation.value.timezone,
+            }
+          : undefined,
+      },
+      matchesContext: session => session.context?.casting?.casting_id === casting.value?.casting_id,
       content,
-      'casting',
-    )
-    if (sent) return
-    await createAndSendWithSession('divination', {
-      version: 1,
-      scenario: 'divination',
-      question: castingQuestion.value,
-      casting: casting.value,
-      casting_instant: castingInstant.value,
-      location: castingLocation.value
-        ? {
-            longitude: castingLocation.value.longitude,
-            timezone: castingLocation.value.timezone,
-          }
-        : undefined,
-    }, content, 'casting')
+      source: 'casting',
+    })
     return
   }
 
@@ -718,14 +613,13 @@ async function submitConsultation(content: string) {
       scenario: 'naming',
       birth: profileConsultationBirth(),
     }
-    const sent = await openMatchingAndSend(
-      session => session.context?.scenario === 'naming'
+    await submit.submitFocusedForm({
+      skill: 'naming',
+      context,
+      matchesContext: session => session.context?.scenario === 'naming'
         && sameConsultationBirth(session.context.birth, context.birth),
       content,
-      'focused_form',
-    )
-    if (sent) return
-    await createAndSendWithSession('naming', context, content, 'focused_form')
+    })
     return
   }
 
@@ -741,14 +635,13 @@ async function submitConsultation(content: string) {
         stove_gua: fengshuiInput.value.stoveGua,
       },
     }
-    const sent = await openMatchingAndSend(
-      session => session.context?.scenario === 'fengshui'
-        && sameFengshuiLayout(session.context.layout, context.layout),
+    await submit.submitFocusedForm({
+      skill: 'fengshui',
+      context,
+      matchesContext: session => session.context?.scenario === 'fengshui'
+        && sameConsultationLayout(session.context.layout, context.layout),
       content,
-      'focused_form',
-    )
-    if (sent) return
-    await createAndSendWithSession('fengshui', context, content, 'focused_form')
+    })
     return
   }
 
@@ -759,26 +652,19 @@ async function submitConsultation(content: string) {
       second_birth: consultationBirthFromFields(hepanInput.value.secondBirth),
       third_party_consent: true,
     }
-    const sent = await openMatchingAndSend(
-      session => session.context?.scenario === 'hepan'
+    await submit.submitFocusedForm({
+      skill: 'hepan',
+      context,
+      matchesContext: session => session.context?.scenario === 'hepan'
         && sameConsultationBirth(session.context.second_birth, context.second_birth),
       content,
-      'focused_form',
-    )
-    if (sent) return
-    await createAndSendWithSession('hepan', context, content, 'focused_form')
+    })
     return
   }
 
   const existing = latestVisibleSession.value
   if (existing) {
-    if (chat.activeSession?.id !== existing.id) await chat.openSession(existing.id)
-    telemetry.trackSubmit({
-      domainId: flow.domainId,
-      source: 'composer',
-      created: false,
-    })
-    await sendUsingActiveSession(content)
+    await submit.openMatchingAndSend(session => session.id === existing.id, content, 'composer')
     return
   }
 
@@ -798,19 +684,7 @@ async function submitConsultation(content: string) {
     result: bridgeResult,
   })
 
-  await createAndSendWithSession(bridgeResult.skill, undefined, content, 'composer')
-}
-
-async function sendUsingActiveSession(content: string) {
-  if (!chat.activeSession) return
-  const question = content
-  flow.setDraft('')
-  await chat.send(question)
-  if (chat.error) {
-    flow.setDraft(question)
-    draftNotice.value = t('flow.draftRestored')
-  }
-  await scrollToLatest()
+  await submit.createAndSendWithSession(bridgeResult.skill, undefined, content, 'composer')
 }
 
 async function scrollToLatest() {

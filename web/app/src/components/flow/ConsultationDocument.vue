@@ -5,6 +5,17 @@
     :aria-busy="loading || streaming ? 'true' : undefined"
   >
     <li
+      v-if="showEmptyState"
+      class="turn document-empty"
+    >
+      <p class="document-empty__title">
+        {{ $t('flow.documentEmpty') }}
+      </p>
+      <p class="document-empty__hint">
+        {{ $t('flow.documentEmptyHint') }}
+      </p>
+    </li>
+    <li
       v-if="loading"
       class="turn document-loading"
       role="status"
@@ -83,6 +94,10 @@ const props = defineProps<{
 const visibleMessages = computed(() =>
   props.messages.filter(message => message.kind === 'text'),
 )
+
+const showEmptyState = computed(() =>
+  !props.loading && !props.streaming && props.messages.length === 0,
+)
 </script>
 
 <style scoped>
@@ -95,6 +110,18 @@ const visibleMessages = computed(() =>
 }
 .document-loading { list-style: none; }
 .document-loading .reading { min-height: 7rem; }
+.document-empty { list-style: none; }
+.document-empty__title {
+  margin: 0 0 var(--space-2);
+  color: var(--liki-ink);
+  font-size: var(--font-size-body);
+  font-weight: 600;
+}
+.document-empty__hint {
+  margin: 0;
+  color: var(--liki-text-2);
+  font-size: var(--font-size-body);
+}
 .reading :deep(.markdown) {
   overflow-wrap: anywhere;
 }

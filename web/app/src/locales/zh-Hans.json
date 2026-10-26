@@ -80,7 +80,9 @@
       "unreachable": "暂时无法连接服务。请检查网络后重试。",
       "permission": "当前账号没有访问该内容的权限。",
       "server": "服务暂时不可用。请稍后重试。"
-    }
+    },
+    "documentEmpty": "暂无咨询内容",
+    "documentEmptyHint": "在下方输入你的问题，开始本次解读。"
   },
   "auth": {
     "brandTail": "命理",
