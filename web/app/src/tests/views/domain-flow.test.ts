@@ -15,6 +15,9 @@ import type { BirthProfile } from '@/api/birth-profiles'
 import FlowHepanForm from '@/components/flow/forms/FlowHepanForm.vue'
 import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
 import FlowNamingForm from '@/components/flow/forms/FlowNamingForm.vue'
+import FlowHistoryPanel from '@/components/flow/FlowHistoryPanel.vue'
+import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
+import { useSalesStore } from '@/stores/sales-store'
 import type { BaziBondResult, BaziChartData } from '@shared/api/engine/bazi'
 
 const mediaQuery = vi.hoisted(() => ({ matches: false }))
@@ -695,6 +698,62 @@ describe('DomainFlowView', () => {
       }),
     )
     expect(send).toHaveBeenCalledWith('帮助我选字方向')
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('shows person/domain history and restores the selected session', async () => {
+    const openSession = vi.fn(async () => undefined)
+    const wrapper = await mountWithSessions([
+      chatSession({ id: 'same-channel-active', title: '命理当前' }),
+      chatSession({ id: 'same-channel', title: '命理历史' }),
+      chatSession({
+        id: 'other-person',
+        profile_id: 'person-2',
+        title: '其他档案',
+      }),
+      chatSession({
+        id: 'other-domain',
+        expert: 'divination',
+        profile_id: '',
+        title: '问卦历史',
+      }),
+    ])
+    const chat = useChatStore()
+    chat.openSession = openSession
+    await flushPromises()
+
+    const history = wrapper.getComponent(FlowHistoryPanel)
+    expect(history.props('sessions').map(session => session.id)).toEqual(['same-channel-active', 'same-channel'])
+    expect(wrapper.text()).toContain('命理历史')
+
+    history.vm.$emit('open', chat.sessions[1]!)
+    await flushPromises()
+    expect(openSession).toHaveBeenCalledWith('same-channel')
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('offers inline consultation purchase and preserves the routing seed', async () => {
+    const sales = useSalesStore()
+    vi.spyOn(sales, 'loadProducts').mockResolvedValue(undefined)
+    sales.products = [{
+      id: 'liki-chat',
+      name: 'Liki Chat',
+      description: 'Consultation',
+      skills: ['liki'],
+      display_currency: 'USD',
+      display_amount_minor: 900,
+      purchase_options: [],
+      purchased: false,
+    } satisfies import('@/api/sales').Product]
+    const buy = vi.spyOn(sales, 'buy').mockResolvedValue(undefined)
+    const wrapper = await mountWithSessions([])
+
+    expect(wrapper.getComponent(ProductPurchaseCard).props('product')).toMatchObject({ id: 'liki-chat' })
+    wrapper.getComponent(ProductPurchaseCard).vm.$emit('purchase', 'one_time')
+    await flushPromises()
+    expect(buy).toHaveBeenCalledWith('one_time', 'natal')
     wrapper.unmount()
     document.body.innerHTML = ''
   })

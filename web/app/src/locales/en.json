@@ -64,7 +64,14 @@
     "hepanRequired": "Compatibility requires the other person’s details and third-party consent first.",
     "fengshuiRequired": "Feng Shui requires the sitting mountain and door/master/stove layout first.",
     "namingRequired": "Naming requires a complete birth profile first.",
-    "namingFailed": "Naming direction analysis failed."
+    "namingFailed": "Naming direction analysis failed.",
+    "historyTitle": "Domain history",
+    "historySearchLabel": "Filter by title",
+    "historySearchPlaceholder": "Enter a session title",
+    "historyCount": "{count} sessions",
+    "historyEmpty": "No sessions match this filter",
+    "historyCurrent": "Current",
+    "historyActionFailed": "Session history action failed"
   },
   "auth": {
     "brandTail": "Metaphysics",

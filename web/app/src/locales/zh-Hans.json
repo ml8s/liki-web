@@ -64,7 +64,14 @@
     "hepanRequired": "合盘需要先完成对方信息和第三方同意。",
     "fengshuiRequired": "风水需要先完成坐山与门主灶布局。",
     "namingRequired": "起名需要先选择完整出生档案。",
-    "namingFailed": "起名方向分析失败。"
+    "namingFailed": "起名方向分析失败。",
+    "historyTitle": "本领域历史",
+    "historySearchLabel": "按标题筛选",
+    "historySearchPlaceholder": "输入会话标题",
+    "historyCount": "{count} 条会话",
+    "historyEmpty": "当前筛选没有会话",
+    "historyCurrent": "当前",
+    "historyActionFailed": "历史会话操作失败"
   },
   "auth": {
     "brandTail": "命理",

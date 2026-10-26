@@ -28,6 +28,29 @@
           show-icon
           class="flow-error"
         />
+        <el-alert
+          v-if="sales.paymentMessage"
+          :title="sales.paymentMessage"
+          :type="sales.paymentState === 'confirmed' ? 'success' : sales.paymentState === 'unpaid' ? 'warning' : 'info'"
+          :closable="false"
+          show-icon
+          class="flow-error"
+        />
+        <el-alert
+          v-if="sales.actionError"
+          :title="sales.actionError"
+          type="error"
+          :closable="false"
+          show-icon
+          class="flow-error"
+        />
+
+        <ProductPurchaseCard
+          v-if="sales.chatProduct && !sales.chatProduct.purchased"
+          :product="sales.chatProduct"
+          :buying="sales.buying"
+          @purchase="purchaseConsultation"
+        />
 
         <ConsultationSpine
           :person-label="personLabel"
@@ -123,6 +146,17 @@
             @toggle="toggleArtifact(artifact.id)"
           />
         </div>
+
+        <FlowHistoryPanel
+          class="flow-history"
+          :sessions="visibleSessions"
+          :active-session-id="chat.activeSession?.id"
+          :loading="chat.loadingSessions"
+          :error="chat.error"
+          @open="openHistorySession"
+          @rename="renameHistorySession"
+          @remove="removeHistorySession"
+        />
       </div>
 
       <ArtifactSurface
@@ -195,6 +229,7 @@ import ParameterComposer from '@/components/flow/ParameterComposer.vue'
 import PersonSwitchSheet from '@/components/flow/PersonSwitchSheet.vue'
 import DomainChooserSheet from '@/components/flow/DomainChooserSheet.vue'
 import ConsultationDocument from '@/components/flow/ConsultationDocument.vue'
+import FlowHistoryPanel from '@/components/flow/FlowHistoryPanel.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
 import FlowDivinationForm from '@/components/flow/forms/FlowDivinationForm.vue'
 import FlowHepanForm, { type FlowHepanFormValue } from '@/components/flow/forms/FlowHepanForm.vue'
@@ -205,9 +240,13 @@ import ArtifactSurface from '@/components/flow/artifacts/ArtifactSurface.vue'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useChatStore } from '@/stores/chat'
 import { useDomainFlowStore } from '@/stores/domain-flow'
+import type { ChatSession } from '@/api/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useDomainArtifacts } from '@/composables/useDomainArtifacts'
 import { useToolRecords } from '@/composables/useToolRecords'
+import { useSalesStore } from '@/stores/sales-store'
+import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
+import { confirmDeleteEntity, promptRenameEntity } from '@/utils/dialogs'
 import {
   divinationCastingFor,
   divinationChartFor,
@@ -251,6 +290,7 @@ const profiles = useBirthProfilesStore()
 const entitlements = useEntitlementsStore()
 const chat = useChatStore()
 const flow = useDomainFlowStore()
+const sales = useSalesStore()
 
 const personSheetOpen = ref(false)
 const domainSheetOpen = ref(false)
@@ -433,6 +473,44 @@ async function restoreLatest() {
     return
   }
   await chat.openSession(latest.id)
+}
+
+async function openHistorySession(session: ChatSession) {
+  if (chat.activeSession?.id === session.id) return
+  await chat.openSession(session.id)
+}
+
+async function renameHistorySession(session: ChatSession) {
+  let value: string | null
+  try {
+    value = await promptRenameEntity(t('chat.sessions.noun'), session.title)
+  } catch (error) {
+    chat.error = toUserMessage(error, t('flow.historyActionFailed'))
+    return
+  }
+  if (value === null) return
+  try {
+    await chat.renameSession(session.id, value)
+  } catch (error) {
+    chat.error = toUserMessage(error, t('flow.historyActionFailed'))
+  }
+}
+
+async function removeHistorySession(session: ChatSession) {
+  const confirmed = await confirmDeleteEntity(
+    t('chat.sessions.noun'),
+    session.title,
+  )
+  if (!confirmed) return
+  try {
+    await chat.removeSession(session.id)
+  } catch (error) {
+    chat.error = toUserMessage(error, t('flow.historyActionFailed'))
+  }
+}
+
+function purchaseConsultation(billingMode: 'one_time' | 'subscription') {
+  void sales.buy(billingMode, routingSeed.value ?? flow.currentDomain.baseSkill)
 }
 
 function projectBridgeFailure(result: Extract<LegacyIntentBridgeResult, { status: 'cross-domain' | 'pending-backend' | 'invalid' }>) {
@@ -980,11 +1058,32 @@ onMounted(async () => {
     profiles.loadList(),
     entitlements.load(),
     chat.loadSessions(true),
+    sales.loadProducts(),
   ])
   if (token !== mountToken) return
 
   if (!flow.personId) flow.setPerson(profiles.list[0]?.id ?? null)
   await restoreLatest()
+
+  const paymentResult = await sales.handlePaymentReturn(route.query)
+  if (paymentResult.action === 'enter_chat') {
+    const sessionId = await sales.enterInterpretation(
+      flow.personId ?? undefined,
+      paymentResult.scenarioId,
+    )
+    if (sessionId) {
+      await router.replace({
+        path: '/',
+        query: route.query.locale ? { locale: firstQueryValue(route.query.locale) } : {},
+      })
+      await chat.openSession(sessionId)
+    }
+  } else if (paymentResult.action === 'show_message') {
+    await router.replace({
+      path: '/',
+      query: route.query.locale ? { locale: firstQueryValue(route.query.locale) } : {},
+    })
+  }
 })
 </script>
 
@@ -1012,5 +1111,8 @@ onMounted(async () => {
   .artifact-layer--sidecar {
     grid-template-columns: minmax(0, 1fr) 320px;
   }
+}
+.flow-history {
+  margin-top: var(--space-4);
 }
 </style>

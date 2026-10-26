@@ -46,6 +46,11 @@ test.describe('four-domain consultation flow', () => {
       await awaitFlowReady(page)
       await expect(page.getByRole('tab', { name: '命理' })).toBeVisible()
 
+      // Consultation owns the mobile shell; the Classic tabbar must not overlay
+      // its action dock, and the page must expose one primary landmark only.
+      await expect(page.locator('.app-tabbar')).toHaveCount(0)
+      await expect(page.locator('main')).toHaveCount(1)
+
       const tabs = page.locator('.flow-domain-strip [role="tab"]')
       await expect(tabs).toHaveText(['命理', '问卦', '风水', '起名'])
 
@@ -98,6 +103,16 @@ test.describe('four-domain consultation flow', () => {
         session,
       ],
     })
+    await page.route('**/api/chat/sessions/chat_older', route =>
+      route.fulfill({ json: { data: flowSession('chat_older') } }))
+    await page.route('**/api/chat/sessions/chat_older/messages', route =>
+      route.fulfill({ json: { data: {
+        messages: [
+          flowMessage('question-old', 'chat_older', 'user', '去年事业如何？'),
+          flowMessage('answer-old', 'chat_older', 'assistant', '去年官星透出。'),
+        ],
+        next_cursor: '',
+      } } }))
     await page.route('**/api/chat/sessions/chat_latest', route =>
       route.fulfill({ json: { data: session } }))
     await page.route('**/api/chat/sessions/chat_latest/messages', route =>
@@ -119,6 +134,11 @@ test.describe('four-domain consultation flow', () => {
 
     await expect(page.getByRole('list', { name: '咨询记录' })).toContainText('今年事业如何？')
     await expect(page.getByRole('list', { name: '咨询记录' })).toContainText('先看你的八字，日主偏弱。')
+
+    const history = page.locator('.flow-history')
+    await expect(history).toContainText('2 条会话')
+    await history.locator('.flow-history__open').nth(1).click()
+    await expect(page.getByRole('list', { name: '咨询记录' })).toContainText('去年官星透出。')
   })
 
   test('creates a free-form natal question on the natal expert path', async ({ page }) => {
