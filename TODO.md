@@ -6,7 +6,7 @@ Updated: 2026-10-27
 
 - Branch: `feat/app-flow-redesign`
 - PR: [#8](https://github.com/ml8s/liki-web/pull/8)
-- Latest commit: `9dd55a8 perf(app): lazy-load artifact panels, markdown, and date picker`
+- Latest commit: `5f95b35 fix(app): surface record save outcomes and artifact readiness`
 - State: pushed and clean; CI `check`, `race`, and `test` are green.
 - Backend contract: four experts (`natal`, `divination`, `fengshui`,
   `naming`) plus seven durable consultation context scenarios. The scenario
@@ -23,6 +23,8 @@ Updated: 2026-10-27
     equality helpers moved to `@shared/domain/consultation.ts`, session
     submit routing extracted to `useConsultationSubmit`, history actions
     extracted to `useConsultationHistory` (view reduced from 979 lines).
+  - O2 live-region audit fix: record saves and artifact readiness are now
+    announced in the consultation flow (previously completely silent).
 
 Production/staging validation and cleanup remain deferred.
 
