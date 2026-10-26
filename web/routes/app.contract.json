@@ -12,7 +12,7 @@
     "/app/huangli",
     "/app/chat",
     "/app/chat/:sessionId",
-    "/app/flow",
+    "/app/consultation",
     "/app/orders",
     "/app/partners",
     "/app/partners/kol",
@@ -24,10 +24,15 @@
     "appFlowRedesign": "VITE_FEATURE_APP_FLOW_REDESIGN"
   },
   "queryContracts": {
-    "/app/flow": {
+    "/app/consultation": {
       "domain": {
         "type": "enum",
-        "values": ["natal", "divination", "fengshui", "naming"],
+        "values": [
+          "natal",
+          "divination",
+          "fengshui",
+          "naming"
+        ],
         "required": false,
         "default": "natal"
       },
@@ -41,6 +46,17 @@
         "required": false,
         "policy": "legacy marketing alias for seed; public URLs remain unchanged"
       }
+    }
+  },
+  "experiences": {
+    "classic": {
+      "defaultRoute": "/app",
+      "status": "maintenance"
+    },
+    "consultation": {
+      "defaultRoute": "/app/consultation",
+      "status": "preview",
+      "featureFlag": "VITE_FEATURE_APP_FLOW_REDESIGN"
     }
   }
 }

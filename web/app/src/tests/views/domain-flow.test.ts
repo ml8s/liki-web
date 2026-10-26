@@ -86,7 +86,7 @@ async function createTestRouter(initialUrl = '/flow') {
   const router = createRouter({
     history: createMemoryHistory('/app/'),
     routes: [
-      { path: '/flow', name: 'app-flow', component: { template: '<div />' } },
+      { path: '/consultation', name: 'app-consultation', component: { template: '<div />' } },
       { path: '/birth-profiles', name: 'birth-profiles', component: { template: '<div />' } },
       { path: '/birth-profiles/new', name: 'birth-profile-new', component: { template: '<div />' } },
     ],

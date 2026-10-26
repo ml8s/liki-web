@@ -4,7 +4,7 @@ import { useAdminStore } from '@/stores/admin'
 import { normalizeUnknownLocale, setAppLocale } from '@/i18n'
 import { i18n } from '@/i18n'
 import { setDocumentTitle } from '@/utils/documentTitle'
-import { appFlowRedesignEnabled } from '@/utils/featureFlags'
+import { createClassicAppRoutes, createConsultationAppRoutes } from './appRoutes'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,7 +26,7 @@ const router = createRouter({
         { path: '', name: 'admin-overview', component: () => import('@/views/admin/AdminOverviewView.vue'), meta: { title: '管理后台' } },
         { path: 'entitlements', name: 'admin-entitlements', component: () => import('@/views/admin/AdminEntitlementsView.vue'), meta: { adminCapability: 'entitlement.read', title: '权益' } },
         { path: 'partners', name: 'admin-partners', component: () => import('@/views/admin/AdminPartnersView.vue'), meta: { adminCapability: 'partner.read', title: '合作伙伴' } },
-        { path: 'payouts', name: 'admin-payouts', component: () => import('@/views/admin/AdminPayoutsView.vue'), meta: { adminCapability: 'payout.read', title: '提现' } },
+        { path: 'payouts', name: 'admin-payouts', component: () => import('@/views/admin/AdminPayoutsView.vue'), meta: { adminCapability: 'partner.read', title: '提现' } },
         { path: 'finance', name: 'admin-finance', component: () => import('@/views/admin/AdminFinanceView.vue'), meta: { adminCapability: 'commission.read', title: '财务' } },
         { path: 'orders', name: 'admin-orders', component: () => import('@/views/admin/AdminOrdersView.vue'), meta: { adminCapability: 'sales.read', title: '订单' } },
         { path: 'subscriptions', name: 'admin-subscriptions', component: () => import('@/views/admin/AdminSubscriptionsView.vue'), meta: { adminCapability: 'sales.read', title: '订阅' } },
@@ -39,27 +39,8 @@ const router = createRouter({
       component: () => import('@/views/AppLayout.vue'),
       meta: { requiresAuth: true },
       children: [
-        { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { titleKey: 'router.dashboard' } },
-        { path: 'birth-profiles', name: 'birth-profiles', component: () => import('@/views/birth-profiles/BirthProfileListView.vue'), meta: { titleKey: 'router.profiles' } },
-        { path: 'birth-profiles/new', name: 'birth-profile-new', component: () => import('@/views/birth-profiles/BirthProfileNewView.vue'), meta: { titleKey: 'router.profileNew' } },
-        { path: 'birth-profiles/:id', name: 'birth-profile-detail', component: () => import('@/views/birth-profiles/BirthProfileDetailView.vue'), meta: { titleKey: 'router.profileDetail' } },
-        { path: 'hepan', name: 'hepan', component: () => import('@/views/HepanView.vue'), meta: { titleKey: 'router.hepan' } },
-        { path: 'divination', name: 'divination', component: () => import('@/views/DivinationView.vue'), meta: { titleKey: 'router.divination' } },
-        { path: 'fengshui', name: 'fengshui', component: () => import('@/views/FengshuiView.vue'), meta: { titleKey: 'router.fengshui' } },
-        { path: 'huangli', name: 'huangli', component: () => import('@/views/HuangliView.vue'), meta: { titleKey: 'router.huangli' } },
-        { path: 'chat', name: 'chat', component: () => import('@/views/ChatListView.vue'), meta: { titleKey: 'router.chat' } },
-        { path: 'chat/:sessionId', name: 'chat-session', component: () => import('@/views/ChatSessionView.vue'), meta: { titleKey: 'router.chatSession', viewportBound: true } },
-        ...(appFlowRedesignEnabled ? [{
-          path: 'flow',
-          name: 'app-flow',
-          component: () => import('@/views/DomainFlowView.vue'),
-          meta: { titleKey: 'router.flow', viewportBound: true },
-        }] : []),
-        { path: 'orders', name: 'orders', component: () => import('@/views/OrdersView.vue'), meta: { titleKey: 'router.orders' } },
-        { path: 'partners', name: 'partner-center', component: () => import('@/views/PartnerCenterView.vue'), meta: { titleKey: 'router.partnerCenter' } },
-        { path: 'partners/kol', name: 'partner-kol', component: () => import('@/views/PartnerKOLView.vue'), meta: { titleKey: 'router.partnerKol' } },
-        { path: 'partners/scout', name: 'partner-scout', component: () => import('@/views/PartnerScoutView.vue'), meta: { titleKey: 'router.partnerScout' } },
-        { path: 'account', name: 'account', component: () => import('@/views/AccountView.vue'), meta: { titleKey: 'router.account' } },
+        ...createClassicAppRoutes(),
+        ...createConsultationAppRoutes(),
       ],
     },
     {

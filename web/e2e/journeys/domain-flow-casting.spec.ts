@@ -44,7 +44,7 @@ test.describe('divination casting flow', () => {
     await page.setViewportSize({ width: 375, height: 840 })
     await mockCastingWorkspace(page)
 
-    await page.goto('/app/flow?locale=zh-Hans')
+    await page.goto('/app/consultation?locale=zh-Hans')
     await openDivination(page)
 
     const domainOptions = page.locator('.flow-domain-strip [role="tab"]')
@@ -65,7 +65,7 @@ test.describe('divination casting flow', () => {
     await mockCastingWorkspace(page)
     const engineCalls = await mockDivinationEngine(page)
 
-    await page.goto('/app/flow?locale=zh-Hans')
+    await page.goto('/app/consultation?locale=zh-Hans')
     const form = await openDivination(page)
     await form.getByRole('button', { name: '摇卦' }).click()
 
@@ -86,7 +86,7 @@ test.describe('divination casting flow', () => {
       chartError: 'engine_unavailable: deterministic chart failure',
     })
 
-    await page.goto('/app/flow?locale=zh-Hans')
+    await page.goto('/app/consultation?locale=zh-Hans')
     await openDivination(page)
     await fillCastingForm(page)
     await castingForm(page).getByRole('button', { name: '摇卦' }).click()
@@ -118,7 +118,7 @@ test.describe('divination casting flow', () => {
       })
     })
 
-    await page.goto('/app/flow?locale=zh-Hans')
+    await page.goto('/app/consultation?locale=zh-Hans')
     await openDivination(page)
     await fillCastingForm(page)
     await castingForm(page).getByRole('button', { name: '摇卦' }).click()
@@ -195,7 +195,7 @@ test.describe('divination casting flow', () => {
     await page.route('**/api/chat/sessions', route =>
       route.fulfill({ json: { data: [] } }))
 
-    await page.goto('/app/flow?locale=zh-Hans')
+    await page.goto('/app/consultation?locale=zh-Hans')
     await openDivination(page)
     await fillCastingForm(page)
     await castingForm(page).getByRole('button', { name: '摇卦' }).click()

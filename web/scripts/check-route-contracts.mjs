@@ -124,22 +124,41 @@ for (const scenario of scenarios.scenarios ?? []) {
   }
 }
 
-const flowRoute = '/app/flow';
-if (appRouteCounts.get(flowRoute) !== 1) {
-  errors.push(`app contract must contain ${flowRoute} exactly once`);
+const consultationRoute = '/app/consultation';
+const compatibilityFlowRoute = '/app/flow';
+if (appRouteCounts.get(consultationRoute) !== 1) {
+  errors.push(`app contract must contain ${consultationRoute} exactly once`);
+}
+if (appRouteCounts.has(compatibilityFlowRoute)) {
+  errors.push(`implementation route must not be public: ${compatibilityFlowRoute}`);
 }
 if (app.featureFlags?.appFlowRedesign !== 'VITE_FEATURE_APP_FLOW_REDESIGN') {
   errors.push(`app feature flag must be VITE_FEATURE_APP_FLOW_REDESIGN`);
 }
 
-const queryContracts = app.queryContracts ?? {};
-if (JSON.stringify(Object.keys(queryContracts)) !== JSON.stringify([flowRoute])) {
-  errors.push(`queryContracts must contain ${flowRoute} only`);
+const expectedExperiences = {
+  classic: {
+    defaultRoute: '/app',
+    status: 'maintenance',
+  },
+  consultation: {
+    defaultRoute: consultationRoute,
+    status: 'preview',
+    featureFlag: 'VITE_FEATURE_APP_FLOW_REDESIGN',
+  },
+};
+if (JSON.stringify(app.experiences ?? {}) !== JSON.stringify(expectedExperiences)) {
+  errors.push('app experiences must declare maintenance classic and preview consultation');
 }
-const flowQuery = queryContracts[flowRoute] ?? {};
+
+const queryContracts = app.queryContracts ?? {};
+if (JSON.stringify(Object.keys(queryContracts)) !== JSON.stringify([consultationRoute])) {
+  errors.push(`queryContracts must contain ${consultationRoute} only`);
+}
+const flowQuery = queryContracts[consultationRoute] ?? {};
 const expectedFlowQueryKeys = ['domain', 'seed', 'service'];
 if (JSON.stringify(Object.keys(flowQuery)) !== JSON.stringify(expectedFlowQueryKeys)) {
-  errors.push(`flow query contract must contain ${expectedFlowQueryKeys.join(', ')}`);
+  errors.push(`consultation query contract must contain ${expectedFlowQueryKeys.join(', ')}`);
 }
 if (JSON.stringify(flowQuery.domain?.values) !== JSON.stringify(expectedDomains) || flowQuery.domain?.default !== 'natal') {
   errors.push(`flow domain query must equal ${expectedDomains.join(', ')} with the natal default`);
@@ -153,8 +172,8 @@ if (flowQuery.service?.policy !== 'legacy marketing alias for seed; public URLs 
 for (const key of expectedFlowQueryKeys) {
   if (flowQuery[key]?.required !== false) errors.push(`flow ${key} query must be optional`);
 }
-if (typeof localeValue('zh-Hans', 'router.flow') !== 'string' || typeof localeValue('zh-Hant', 'router.flow') !== 'string' || typeof localeValue('en', 'router.flow') !== 'string') {
-  errors.push('router.flow label is missing from a locale catalogue');
+if (typeof localeValue('zh-Hans', 'router.consultation') !== 'string' || typeof localeValue('zh-Hant', 'router.consultation') !== 'string' || typeof localeValue('en', 'router.consultation') !== 'string') {
+  errors.push('router.consultation label is missing from a locale catalogue');
 }
 
 const redirects = marketing.bareRedirects ?? [];

@@ -42,7 +42,7 @@ test.describe('four-domain consultation flow', () => {
 
     test('exposes exactly the four canonical domains and no legacy task level', async ({ page }) => {
       await mockFlowWorkspace(page, { profiles })
-      await page.goto('/app/flow')
+      await page.goto('/app/consultation')
       await awaitFlowReady(page)
       await expect(page.getByRole('tab', { name: '命理' })).toBeVisible()
 
@@ -63,7 +63,7 @@ test.describe('four-domain consultation flow', () => {
       await page.route('**/api/chat/sessions/chat_natal/messages', route =>
         route.fulfill({ json: { data: { messages: [], next_cursor: '' } } }))
 
-      await page.goto('/app/flow')
+      await page.goto('/app/consultation')
       await awaitFlowReady(page)
       const question = page.getByRole('textbox', { name: '直接提出你的问题' })
       await question.fill('张三的命理问题')
@@ -101,7 +101,7 @@ test.describe('four-domain consultation flow', () => {
         next_cursor: '',
       } } }))
 
-    await page.goto('/app/flow')
+    await page.goto('/app/consultation')
     await expect(page.getByRole('list', { name: '咨询记录' })).toContainText('先看你的八字，日主偏弱。')
 
     const sheet = await openFlowDomainSheet(page)
@@ -139,7 +139,7 @@ test.describe('four-domain consultation flow', () => {
       })
     })
 
-    await page.goto('/app/flow')
+    await page.goto('/app/consultation')
     await awaitFlowReady(page)
     await page.getByRole('textbox', { name: '直接提出你的问题' }).fill('今年事业如何？')
     await page.getByRole('button', { name: '发送' }).click()
@@ -172,7 +172,7 @@ test.describe('four-domain consultation flow', () => {
       return route.abort('failed')
     })
 
-    await page.goto('/app/flow?seed=huangli')
+    await page.goto('/app/consultation?seed=huangli')
     await awaitFlowReady(page)
     const question = page.getByRole('textbox', { name: '直接提出你的问题' })
     await question.fill('下个月哪天适合签约？')
