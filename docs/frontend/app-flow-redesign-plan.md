@@ -2251,3 +2251,6 @@ consultation may create another legacy session.
     preserved, split, renamed, or left as a compatibility facade.
 11. Whether `bazi_yongshen` belongs in the engine catalog or a separate counsel
     result catalog, based on its `/counsel/mcp` transport boundary.
+
+Phase 0-6 follow-up work is sequenced in the
+[unified optimization plan](./app-flow-optimization-plan.md).
