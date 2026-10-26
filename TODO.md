@@ -17,60 +17,34 @@ Updated: 2026-10-27
   - O1 bounded rollout telemetry implementation.
   - O2 automated accessibility hardening slice.
   - O3 resilience and draft-safety hardening slice.
+  - O4 performance and bundle discipline (see
+    [`docs/frontend/o4-performance-audit.md`](./docs/frontend/o4-performance-audit.md)).
 
 Production/staging validation and cleanup remain deferred.
 
-## Next: O4 — performance and bundle discipline
+## Next: O5 — Consultation UX polish
 
-O4 is the next planned track in
+O5 is the next planned track in
 [`docs/frontend/app-flow-optimization-plan.md`](./docs/frontend/app-flow-optimization-plan.md).
-Do an audit first; do not start optimizing before the baseline is recorded.
 
-### O4 TODO
+### O5 TODO
 
-- [ ] Confirm PR #8 review/staging status before baselining a new branch.
-- [ ] Build the Consultation preview with
-      `VITE_FEATURE_APP_FLOW_REDESIGN=true`.
-- [ ] Record route-level performance baselines for `/app`, `/app/me`, and a
-      consultation session:
-  - [ ] First load and hydration.
-  - [ ] LCP and INP on a mid-tier mobile profile.
-  - [ ] Consultation send and streaming interaction.
-  - [ ] Initial JS/CSS assets per route.
-- [ ] Audit current bundle composition:
-  - [ ] `chat` chunk.
-  - [ ] `AppMarkdown` and markdown dependencies.
-  - [ ] Element Plus imports.
-  - [ ] Locale chunk loading.
-  - [ ] Artifact/engine modules.
-  - [ ] Duplicate runtime dependencies.
-- [ ] Verify these stay out of the initial route graph:
-  - [ ] Admin views.
-  - [ ] Partner views.
-  - [ ] Chart/engine implementations not required by the visible route.
-  - [ ] Heavy locale/content modules.
-- [ ] Audit lazy boundaries:
-  - [ ] Route-level code splitting.
-  - [ ] Artifact expansion.
-  - [ ] Chat transport.
-  - [ ] Markdown rendering.
-- [ ] Define explicit budgets for:
-  - [ ] Initial JS/CSS.
-  - [ ] Critical Consultation route chunks.
-  - [ ] Chat/Markdown chunks.
-- [ ] Record intentional trade-offs and reject unbounded regressions.
-- [ ] Implement only the highest-impact, low-risk improvements.
-- [ ] Run the full verification matrix after the batch.
+- [ ] Review person home, active reading, follow-up questions, artifact
+      capsules, and action hierarchy at 320, 390, 768, 1024, and 1440px.
+- [ ] Harmonize empty, loading, locked, error, pending-backend, and recovery
+      visuals through shared state components.
+- [ ] Polish focused-form progression: context, required slots, validation,
+      submission, artifact handoff, and return to consultation.
+- [ ] Reduce sheet and capsule transition cost; respect reduced-motion and
+      avoid animating layout properties.
+- [ ] Validate copy for uncertainty, domain limits, and next actions.
 
-### O4 acceptance criteria
+### O5 acceptance criteria
 
-- No duplicated chart, markdown, runtime, or locale dependency enters the
-  initial bundle.
-- Artifact expansion does not regress initial page load.
-- Performance and frontend budget checks remain green.
-- New budgets are explicit and checked in CI.
-- Classic and Consultation both continue to work.
-- No ECharts, generic JSON renderer, or second design system is introduced.
+- The primary consultation document remains the only main scroll owner.
+- Artifacts remain reference layers and never compete with the reading.
+- A first-time user can understand person, domain, question, result, and next
+  step without product training.
 
 ## Hard constraints
 

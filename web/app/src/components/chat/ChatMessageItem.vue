@@ -52,11 +52,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { defineAsyncComponent, ref } from 'vue'
 import type { ChatMessage } from '@/api/chat'
 import { useClipboard } from '@/composables/useClipboard'
 import SystemBirthProfileCard from '@/components/chat/SystemBirthProfileCard.vue'
-import AppMarkdown from '@/components/common/AppMarkdown.vue'
+
+// Markdown rendering (markdown-it + DOMPurify) is only needed once the first
+// assistant message arrives; keep the renderer out of the initial route graph.
+const AppMarkdown = defineAsyncComponent(() => import('@/components/common/AppMarkdown.vue'))
 
 const props = defineProps<{ message: ChatMessage }>()
 const copied = ref(false)

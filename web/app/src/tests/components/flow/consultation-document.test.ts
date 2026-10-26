@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import ConsultationDocument from '@/components/flow/ConsultationDocument.vue'
 import type { ChatMessage } from '@/api/chat'
@@ -17,7 +18,7 @@ function message(overrides: Partial<ChatMessage>): ChatMessage {
 }
 
 describe('ConsultationDocument', () => {
-  it('renders questions and assistant readings as a document', () => {
+  it('renders questions and assistant readings as a document', async () => {
     const wrapper = mount(ConsultationDocument, {
       props: {
         messages: [
@@ -29,6 +30,10 @@ describe('ConsultationDocument', () => {
           message({ id: 'a1', content: '# 结论\n\n事业节奏稳定。' }),
         ],
       },
+    })
+    // AppMarkdown is lazy (O4); flush the async component before asserting.
+    await vi.waitFor(() => {
+      expect(wrapper.find('.app-markdown').exists()).toBe(true)
     })
 
     expect(wrapper.findAll('.turn')).toHaveLength(2)
@@ -60,13 +65,15 @@ describe('ConsultationDocument', () => {
     expect(wrapper.find('.reading__loading [aria-busy="true"]').exists()).toBe(true)
   })
 
-  it('shows an initial loading state without inventing consultation content', () => {
+  it('shows an initial loading state without inventing consultation content', async () => {
     const wrapper = mount(ConsultationDocument, {
       props: {
         messages: [],
         loading: true,
       },
     })
+    // No async markdown to load in the empty/loading state.
+    await nextTick()
 
     expect(wrapper.get('.consultation-document').attributes('aria-busy')).toBe('true')
     expect(wrapper.find('.document-loading [aria-busy="true"]').exists()).toBe(true)

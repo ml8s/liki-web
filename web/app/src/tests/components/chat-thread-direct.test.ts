@@ -36,6 +36,11 @@ describe('ChatThread direct rendering', () => {
     const wrapper = mount(ChatThread, { props: { messages: chat.messages } })
     await chat.send('你好')
     await nextTick()
+    // AppMarkdown is now async (O4: keep markdown-it out of the route graph);
+    // wait for the lazy chunk to resolve before asserting on its content.
+    await vi.waitFor(() => {
+      expect(wrapper.find('.app-markdown').exists()).toBe(true)
+    })
 
     expect(wrapper.text()).toContain('E2E_FULL_CAPABILITY_ANSWER')
   })

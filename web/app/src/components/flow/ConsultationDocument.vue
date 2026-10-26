@@ -67,9 +67,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import AppMarkdown from '@/components/common/AppMarkdown.vue'
+import { computed, defineAsyncComponent } from 'vue'
 import type { ChatMessage } from '@/api/chat'
+
+// Markdown rendering is only needed once the first assistant message arrives;
+// keep markdown-it and its dependencies out of the initial route graph.
+const AppMarkdown = defineAsyncComponent(() => import('@/components/common/AppMarkdown.vue'))
 
 const props = defineProps<{
   messages: readonly ChatMessage[]

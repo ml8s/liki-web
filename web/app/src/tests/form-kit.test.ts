@@ -1,5 +1,5 @@
 import { nextTick } from 'vue'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ChoiceCardGroup from '@shared/components/form/fields/ChoiceCardGroup.vue'
 import DateField from '@shared/components/form/fields/DateField.vue'
@@ -62,7 +62,7 @@ describe('shared form kit', () => {
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([null])
   })
 
-  it('normalizes cleared date values to an empty string', () => {
+  it('normalizes cleared date values to an empty string', async () => {
     const wrapper = mount(DateField, {
       props: {
         modelValue: '1990-05-12',
@@ -71,6 +71,11 @@ describe('shared form kit', () => {
       },
     })
 
+    // ElDatePicker is lazy (O4); wait for the async component before emitting.
+    // ElDatePicker is lazy (O4); wait for the async component to mount.
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: 'ElDatePicker' }).exists()).toBe(true)
+    })
     wrapper.findComponent({ name: 'ElDatePicker' }).vm.$emit('update:modelValue', null)
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([''])
   })

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ChatMessageItem from '@/components/chat/ChatMessageItem.vue'
 import type { ChatMessage } from '@/api/chat'
@@ -15,7 +15,7 @@ describe('ChatMessageItem', () => {
     expect(wrapper.find('[data-role="user"]').exists()).toBe(true)
   })
 
-  it('renders assistant markdown safely', () => {
+  it('renders assistant markdown safely', async () => {
     const message: ChatMessage = {
       id: 'msg_2', session_id: 'session_1', user_id: 'usr_1',
       role: 'assistant', kind: 'text',
@@ -23,6 +23,10 @@ describe('ChatMessageItem', () => {
       created_at: '2026-01-01T00:00:00Z',
     }
     const wrapper = mount(ChatMessageItem, { props: { message } })
+    // AppMarkdown is lazy (O4); flush the async component before asserting.
+    await vi.waitFor(() => {
+      expect(wrapper.find('.app-markdown').exists()).toBe(true)
+    })
     const html = wrapper.html()
     expect(wrapper.text()).toContain('AI 顾问')
     expect(wrapper.text()).toContain('结论')

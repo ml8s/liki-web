@@ -1,9 +1,16 @@
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElDatePicker, ElOption, ElSelect } from 'element-plus'
+import { ElOption, ElSelect } from 'element-plus'
 import { GUA_8, MOUNTAINS_24 } from '@shared/utils/xuankong'
 import ElementPlusProvider from '@shared/components/form/ElementPlusProvider.vue'
 import '@shared/styles/element-plus/index.css'
+
+// Keep the ~100 kB DatePicker chunk out of the initial route graph; it loads
+// only when this Fengshui form actually renders a period-date field.
+const ElDatePickerAsync = defineAsyncComponent(() =>
+  import('element-plus/es/components/date-picker/index.mjs').then(module => module.ElDatePicker),
+)
 
 export interface FengshuiLayoutValue {
   zuoShan: number
@@ -45,7 +52,7 @@ function update<K extends keyof FengshuiLayoutValue>(key: K, value: FengshuiLayo
       />
     </el-select>
 
-    <el-date-picker
+    <ElDatePickerAsync
       :model-value="value.periodDate"
       type="date"
       value-format="YYYY-MM-DD"

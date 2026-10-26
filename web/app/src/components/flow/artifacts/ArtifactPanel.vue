@@ -91,21 +91,26 @@
 </template>
 
 <script setup lang="ts">
-import BazhaiChartPanel from '@shared/components/engine/fengshui/BazhaiChartPanel.vue'
-import BazhaiLayoutPanel from '@shared/components/engine/fengshui/BazhaiLayoutPanel.vue'
-import XuankongChartPanel from '@shared/components/engine/fengshui/XuankongChartPanel.vue'
-import BaziBondPanel from '@shared/components/engine/bazi/BaziBondPanel.vue'
-import BaziChartPanel from '@shared/components/engine/bazi/BaziChartPanel.vue'
-import BaziFullChartPanel from '@shared/components/engine/bazi/BaziFullChartPanel.vue'
-import BaziLiuNianPanel from '@shared/components/engine/bazi/BaziLiuNianPanel.vue'
-import BaziYongShenPanel from '@shared/components/engine/bazi/BaziYongShenPanel.vue'
-import HuangliDaysPanel from '@shared/components/engine/huangli/HuangliDaysPanel.vue'
-import LiuyaoCastingPanel from '@shared/components/engine/liuyao/LiuyaoCastingPanel.vue'
-import LiuyaoChartPanel from '@shared/components/engine/liuyao/LiuyaoChartPanel.vue'
-import ZiweiChartPanel from '@shared/components/engine/ziwei/ZiweiChartPanel.vue'
-import ZiweiDaXianPanel from '@shared/components/engine/ziwei/ZiweiDaXianPanel.vue'
+import { defineAsyncComponent } from 'vue'
 import type { AnyArtifactDescriptor } from './types'
 import { isReadyArtifact } from './types'
+
+// Engine panels are lazy: only one renders at a time and only after the user
+// expands an artifact capsule. Keeping them async keeps ~50 kB of chart
+// implementations out of the initial consultation route graph.
+const BazhaiChartPanel = defineAsyncComponent(() => import('@shared/components/engine/fengshui/BazhaiChartPanel.vue'))
+const BazhaiLayoutPanel = defineAsyncComponent(() => import('@shared/components/engine/fengshui/BazhaiLayoutPanel.vue'))
+const XuankongChartPanel = defineAsyncComponent(() => import('@shared/components/engine/fengshui/XuankongChartPanel.vue'))
+const BaziBondPanel = defineAsyncComponent(() => import('@shared/components/engine/bazi/BaziBondPanel.vue'))
+const BaziChartPanel = defineAsyncComponent(() => import('@shared/components/engine/bazi/BaziChartPanel.vue'))
+const BaziFullChartPanel = defineAsyncComponent(() => import('@shared/components/engine/bazi/BaziFullChartPanel.vue'))
+const BaziLiuNianPanel = defineAsyncComponent(() => import('@shared/components/engine/bazi/BaziLiuNianPanel.vue'))
+const BaziYongShenPanel = defineAsyncComponent(() => import('@shared/components/engine/bazi/BaziYongShenPanel.vue'))
+const HuangliDaysPanel = defineAsyncComponent(() => import('@shared/components/engine/huangli/HuangliDaysPanel.vue'))
+const LiuyaoCastingPanel = defineAsyncComponent(() => import('@shared/components/engine/liuyao/LiuyaoCastingPanel.vue'))
+const LiuyaoChartPanel = defineAsyncComponent(() => import('@shared/components/engine/liuyao/LiuyaoChartPanel.vue'))
+const ZiweiChartPanel = defineAsyncComponent(() => import('@shared/components/engine/ziwei/ZiweiChartPanel.vue'))
+const ZiweiDaXianPanel = defineAsyncComponent(() => import('@shared/components/engine/ziwei/ZiweiDaXianPanel.vue'))
 
 defineProps<{
   descriptor: AnyArtifactDescriptor

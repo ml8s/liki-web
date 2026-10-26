@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import { ElDatePicker } from 'element-plus'
+import { defineAsyncComponent } from 'vue'
 import FieldShell from '../FieldShell.vue'
 import { useFieldA11y } from '../use-field'
 import type { BaseFieldProps } from '../types'
+
+// Element Plus DatePicker (with dayjs) weighs ~100 kB. Lazy-loading it keeps
+// the picker chunk out of the initial route graph; it loads when the field
+// first renders and the user interacts with a birth-date input.
+const ElDatePickerAsync = defineAsyncComponent(() =>
+  import('element-plus/es/components/date-picker/index.mjs').then(module => module.ElDatePicker),
+)
 
 interface DateFieldProps extends BaseFieldProps {
   modelValue: string
@@ -40,7 +47,7 @@ const emit = defineEmits<{
     :readonly="readonly"
     :size="size"
   >
-    <el-date-picker
+    <ElDatePickerAsync
       :id="fieldId"
       :model-value="modelValue || undefined"
         type="date"
