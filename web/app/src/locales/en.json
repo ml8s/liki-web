@@ -116,7 +116,8 @@
     "partnerScout": "Scout partnership",
     "account": "Account",
     "notFound": "Page not found",
-    "consultation": "Consultation"
+    "consultation": "Consultation",
+    "mine": "Mine"
   },
   "services": {
     "natal": {
@@ -1161,7 +1162,8 @@
       "retiredNotice": "This role has left daily partnership. Only historical commission settlement remains; workspace and recruiting data are unavailable.",
       "balance": "{currency} settlement balance",
       "dialogTitle": "{role} payout"
-    }
+    },
+    "mineDescription": "Partner roles and settlements."
   },
   "artifact": {
     "documentLabel": "Consultation record",
@@ -1172,5 +1174,8 @@
       "pending-backend": "Awaiting backend contract",
       "unavailable": "Unavailable"
     }
+  },
+  "mine": {
+    "subtitle": "Profiles, history, orders, account, and partner tools."
   }
 }

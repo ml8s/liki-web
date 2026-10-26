@@ -4,6 +4,7 @@
     "/app",
     "/app/login",
     "/app/consultation",
+    "/app/mine",
     "/app/classic",
     "/app/classic/birth-profiles",
     "/app/classic/birth-profiles/new",

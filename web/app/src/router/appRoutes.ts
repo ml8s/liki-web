@@ -1,5 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router'
 import AppLayout from '@/views/AppLayout.vue'
+import MineView from '@/views/MineView.vue'
 import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 import type { AppExperience } from './experience'
 
@@ -67,7 +68,7 @@ export function createConsultationAppRoutes({
 }: ConsultationRoutesOptions = {}): RouteRecordRaw[] {
   if (!enabled) return []
 
-  return [{
+  return ([{
     path: '',
     alias: includePreviewAlias ? 'consultation' : undefined,
     name: 'app-consultation',
@@ -76,7 +77,14 @@ export function createConsultationAppRoutes({
       titleKey: 'router.consultation',
       viewportBound: true,
     },
-  } satisfies RouteRecordRaw].map(route => withExperience(route, 'consultation'))
+  }, {
+    path: 'mine',
+    name: 'app-mine',
+    component: MineView,
+    meta: {
+      titleKey: 'router.mine',
+    },
+  }] satisfies RouteRecordRaw[]).map(route => withExperience(route, 'consultation'))
 }
 
 /**

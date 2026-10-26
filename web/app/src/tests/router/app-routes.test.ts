@@ -33,12 +33,22 @@ describe('app experience routes', () => {
   it('mounts consultation at the app root with a preview alias', () => {
     const routes = createConsultationAppRoutes({ enabled: true })
 
-    expect(routes).toHaveLength(1)
+    expect(routes).toHaveLength(2)
     expect(routes[0]?.path).toBe('')
     expect(routes[0]?.alias).toBe('consultation')
     expect(routes[0]?.name).toBe('app-consultation')
     expect(routes[0]?.meta?.experience).toBe('consultation')
     expect(routes[0]?.meta?.viewportBound).toBe(true)
+  })
+
+  it('registers the Mine hub only inside the Consultation experience', () => {
+    const routes = createConsultationAppRoutes({ enabled: true })
+    const mine = routes[1]
+
+    expect(mine?.path).toBe('mine')
+    expect(mine?.name).toBe('app-mine')
+    expect(mine?.meta?.experience).toBe('consultation')
+    expect(mine?.meta?.viewportBound).toBeUndefined()
   })
 
   it('omits the consultation experience when disabled', () => {
@@ -62,8 +72,10 @@ describe('app experience routes', () => {
     expect(appRoot?.path).toBe('/')
     expect(appRoot?.children?.[0]?.name).toBe('app-consultation')
     expect(appRoot?.children?.[0]?.path).toBe('')
+    expect(appRoot?.children?.[1]?.name).toBe('app-mine')
+    expect(appRoot?.children?.[1]?.path).toBe('mine')
 
-    const redirects = appRoot?.children?.slice(1) ?? []
+    const redirects = appRoot?.children?.slice(2) ?? []
     expect(redirects.map(route => route.path)).toEqual([
       'birth-profiles',
       'birth-profiles/new',

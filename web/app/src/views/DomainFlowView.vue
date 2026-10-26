@@ -187,12 +187,20 @@
         @submit="submitQuestion"
         @stop="chat.stopGeneration()"
       />
-      <AppExperienceSwitcher
-        target="classic"
-        variant="dock"
-      >
-        {{ $t('nav.classic') }}
-      </AppExperienceSwitcher>
+      <div class="flow-dock-links">
+        <AppExperienceSwitcher
+          target="mine"
+          variant="dock"
+        >
+          {{ $t('nav.mine') }}
+        </AppExperienceSwitcher>
+        <AppExperienceSwitcher
+          target="classic"
+          variant="dock"
+        >
+          {{ $t('nav.classic') }}
+        </AppExperienceSwitcher>
+      </div>
     </template>
   </AppFlowShell>
 
@@ -1114,5 +1122,9 @@ onMounted(async () => {
 }
 .flow-history {
   margin-top: var(--space-4);
+}
+.flow-dock-links {
+  display: grid;
+  gap: var(--space-2);
 }
 </style>

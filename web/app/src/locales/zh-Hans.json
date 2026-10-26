@@ -116,7 +116,8 @@
     "partnerScout": "Scout 合作",
     "account": "账户设置",
     "notFound": "页面不存在",
-    "consultation": "领域咨询"
+    "consultation": "领域咨询",
+    "mine": "我的"
   },
   "services": {
     "natal": {
@@ -1161,7 +1162,8 @@
       "retiredNotice": "该角色已退出日常合作。这里只保留历史佣金结算能力，不提供工作台和招募数据。",
       "balance": "{currency} 可结算余额",
       "dialogTitle": "{role}提现"
-    }
+    },
+    "mineDescription": "合作角色与结算入口。"
   },
   "artifact": {
     "documentLabel": "咨询记录",
@@ -1172,5 +1174,8 @@
       "pending-backend": "等待后端契约",
       "unavailable": "暂不可用"
     }
+  },
+  "mine": {
+    "subtitle": "档案、历史、订单、账号与合作入口。"
   }
 }

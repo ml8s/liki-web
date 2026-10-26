@@ -13,15 +13,18 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { AppExperience } from '@/router/experience'
 
+type AppDestination = AppExperience | 'mine'
+
 const props = defineProps<{
-  target: AppExperience
+  target: AppDestination
   variant?: 'sidebar' | 'topbar' | 'dock'
 }>()
 
 const destinations = {
   classic: { routeName: 'dashboard' },
   consultation: { routeName: 'app-consultation' },
-} satisfies Record<AppExperience, { routeName: string }>
+  mine: { routeName: 'app-mine' },
+} satisfies Record<AppDestination, { routeName: string }>
 
 const destination = computed(() => destinations[props.target])
 </script>

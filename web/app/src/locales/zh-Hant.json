@@ -116,7 +116,8 @@
     "partnerScout": "Scout 合作",
     "account": "帳戶設定",
     "notFound": "頁面不存在",
-    "consultation": "領域諮詢"
+    "consultation": "領域諮詢",
+    "mine": "我的"
   },
   "services": {
     "natal": {
@@ -1161,7 +1162,8 @@
       "retiredNotice": "該角色已退出日常合作。這裡只保留歷史佣金結算能力，不提供工作台和招募數據。",
       "balance": "{currency} 可結算餘額",
       "dialogTitle": "{role}提現"
-    }
+    },
+    "mineDescription": "合作角色與結算入口。"
   },
   "artifact": {
     "documentLabel": "諮詢記錄",
@@ -1172,5 +1174,8 @@
       "pending-backend": "等待後端契約",
       "unavailable": "暫不可用"
     }
+  },
+  "mine": {
+    "subtitle": "檔案、歷史、訂單、帳號與合作入口。"
   }
 }
