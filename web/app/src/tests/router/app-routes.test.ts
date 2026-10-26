@@ -64,7 +64,7 @@ describe('app experience routes', () => {
     expect(routes[0]?.children?.every(route => route.meta?.experience === 'classic')).toBe(true)
   })
 
-  it('makes consultation the default and preserves classic behind a prefixed shell', () => {
+  it('makes consultation the default and preserves classic behind a prefixed shell', async () => {
     const routes = createAppExperienceRoutes({ consultationEnabled: true })
     const appRoot = routes[0]
     const classicRoot = routes[1]
@@ -77,12 +77,14 @@ describe('app experience routes', () => {
 
     const redirects = appRoot?.children?.slice(2) ?? []
     expect(redirects.map(route => route.path)).toEqual([
-      'birth-profiles',
-      'birth-profiles/new',
-      'birth-profiles/:id',
       'hepan',
       'divination',
       'fengshui',
+      'liunian',
+      'naming',
+      'birth-profiles',
+      'birth-profiles/new',
+      'birth-profiles/:id',
       'huangli',
       'chat',
       'chat/:sessionId',
@@ -93,6 +95,51 @@ describe('app experience routes', () => {
       'account',
     ])
     expect(redirects.every(route => typeof route.redirect === 'function')).toBe(true)
+
+    const redirectResults = redirects.map(route => (route.redirect as unknown as (target: { path: string; query: Record<string, string>; hash: string }) => ({ path: string; query: Record<string, string>; hash: string }))({
+      path: route.path,
+      query: { locale: 'zh-Hans' },
+      hash: '#save',
+    }))
+    expect(redirectResults.map(result => result.path)).toEqual([
+      '/',
+      '/',
+      '/',
+      '/',
+      '/',
+      '/classic/birth-profiles',
+      '/classic/birth-profiles/new',
+      '/classic/birth-profiles/:id',
+      '/classic/huangli',
+      '/classic/chat',
+      '/classic/chat/:sessionId',
+      '/classic/orders',
+      '/classic/partners',
+      '/classic/partners/kol',
+      '/classic/partners/scout',
+      '/classic/account',
+    ])
+    expect(redirectResults.map(result => result.query)).toEqual([
+      { locale: 'zh-Hans', domain: 'natal', seed: 'hepan' },
+      { locale: 'zh-Hans', domain: 'divination', seed: 'divination' },
+      { locale: 'zh-Hans', domain: 'fengshui', seed: 'fengshui' },
+      { locale: 'zh-Hans', domain: 'natal', seed: 'liunian' },
+      { locale: 'zh-Hans', domain: 'naming', seed: 'naming' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+      { locale: 'zh-Hans' },
+    ])
+    expect(redirectResults.map(result => result.hash)).toHaveLength(16)
+
+
 
     expect(classicRoot?.path).toBe('/classic')
     expect(classicRoot?.children).toHaveLength(15)

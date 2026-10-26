@@ -177,11 +177,42 @@ const expectedClassicSuffixes = [
   '/account',
 ];
 const expectedClassicRoutes = expectedClassicSuffixes.map(suffix => `/app/classic${suffix}`);
-const expectedLegacyRedirects = expectedClassicSuffixes.slice(1).map((suffix) => ({
-  from: `/app${suffix}`,
-  to: `/app/classic${suffix}`,
-  preserve: ['query', 'hash'],
-}));
+const consultationRedirectTargets = {
+  '/app/hepan': '/app?domain=natal&seed=hepan',
+  '/app/divination': '/app?domain=divination&seed=divination',
+  '/app/fengshui': '/app?domain=fengshui&seed=fengshui',
+};
+const expectedLegacyRedirects = expectedClassicSuffixes.slice(1).map((suffix) => {
+  const from = `/app${suffix}`;
+  const consultationTarget = consultationRedirectTargets[from];
+  return {
+    from,
+    to: consultationTarget ?? `/app/classic${suffix}`,
+    preserve: ['query', 'hash'],
+  };
+});
+expectedLegacyRedirects.push(
+  {
+    from: '/app/liunian',
+    to: '/app?domain=natal&seed=liunian',
+    preserve: ['query', 'hash'],
+  },
+  {
+    from: '/app/naming',
+    to: '/app?domain=naming&seed=naming',
+    preserve: ['query', 'hash'],
+  },
+);
+expectedLegacyRedirects.sort((left, right) => left.from.localeCompare(right.from));
+
+const expectedRollout = {
+  previewDefault: true,
+  rollback: 'Set VITE_FEATURE_APP_FLOW_REDESIGN=false; /app returns to Classic.',
+  cleanupStatus: 'compatibility-owned; Classic components are not deleted until backend domain sessions ship',
+};
+if (JSON.stringify(app.rollout ?? {}) !== JSON.stringify(expectedRollout)) {
+  errors.push('app rollout must keep an explicit rollback contract and compatibility-owned cleanup status');
+}
 for (const route of expectedClassicRoutes) {
   if (appRouteCounts.get(route) !== 1) errors.push(`classic experience route missing or duplicated: ${route}`);
 }

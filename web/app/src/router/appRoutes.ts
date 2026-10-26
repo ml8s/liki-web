@@ -1,4 +1,4 @@
-import type { RouteRecordRaw } from 'vue-router'
+import type { LocationQuery, RouteRecordRaw } from 'vue-router'
 import AppLayout from '@/views/AppLayout.vue'
 import MeView from '@/views/MeView.vue'
 import { appFlowRedesignEnabled } from '@/utils/featureFlags'
@@ -91,17 +91,78 @@ export function createConsultationAppRoutes({
  * Preserve bookmarks and marketing handoffs when Consultation takes over `/app`.
  * Redirects are explicit at the boundary; Classic internals use named routes.
  */
+interface LegacyRedirectTarget {
+  path: string
+  query: LocationQuery
+  hash: string
+}
+
 export function createLegacyAppRedirects(): RouteRecordRaw[] {
-  return createClassicAppRoutes()
-    .filter(route => route.path !== '')
+  const consultationOwnedLegacyPaths = new Set([
+    'hepan',
+    'divination',
+    'fengshui',
+  ])
+  const classicRedirects = createClassicAppRoutes()
+    .filter(route => route.path !== '' && !consultationOwnedLegacyPaths.has(route.path))
     .map(route => ({
       path: route.path,
-      redirect: to => ({
-        path: `/classic${to.path}`,
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+        path: `/classic${to.path.startsWith('/') ? '' : '/'}${to.path}`,
         query: to.query,
         hash: to.hash,
       }),
     }))
+
+  // Bridge-ready legacy tools enter the four-domain flow. Query is preserved so
+  // profile handoffs, locale, and campaign context survive the redirect.
+  const consultationRedirects: RouteRecordRaw[] = [
+    {
+      path: 'hepan',
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+        path: '/',
+        query: { ...to.query, domain: 'natal', seed: 'hepan' },
+        hash: to.hash,
+      }),
+    },
+    {
+      path: 'divination',
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+        path: '/',
+        query: { ...to.query, domain: 'divination', seed: 'divination' },
+        hash: to.hash,
+      }),
+    },
+    {
+      path: 'fengshui',
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+        path: '/',
+        query: { ...to.query, domain: 'fengshui', seed: 'fengshui' },
+        hash: to.hash,
+      }),
+    },
+    {
+      path: 'liunian',
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+        path: '/',
+        query: { ...to.query, domain: 'natal', seed: 'liunian' },
+        hash: to.hash,
+      }),
+    },
+    {
+      path: 'naming',
+      redirect: (to: LegacyRedirectTarget): LegacyRedirectTarget => ({
+        path: '/',
+        query: { ...to.query, domain: 'naming', seed: 'naming' },
+        hash: to.hash,
+      }),
+    },
+  ]
+
+  // huangli/date selection intentionally remains a compatibility-owned Classic
+  // route until the natal expert owns it on the backend.
+
+  return [...consultationRedirects, ...classicRedirects]
 }
 
 export interface AppExperienceRoutesOptions {

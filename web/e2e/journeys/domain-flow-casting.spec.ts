@@ -212,13 +212,22 @@ test.describe('divination casting flow', () => {
     ])
   })
 
-  test('keeps the legacy app divination route reachable', async ({ page }) => {
+  test('redirects the legacy app divination route into Consultation', async ({ page }) => {
+    await mockCastingWorkspace(page)
+
+    await page.goto('/app/divination?locale=zh-Hans')
+    await expect(page).toHaveURL(/domain=divination&seed=divination/)
+    await expect(page.locator('.flow-parameters')).toBeVisible()
+    await expect(page.locator('.flow-domain-strip [role="tab"]', { hasText: '问卦' })).toHaveAttribute('aria-selected', 'true')
+    await openDivination(page)
+  })
+
+  test('keeps the compatibility-owned Classic divination route reachable', async ({ page }) => {
     await mockCastingWorkspace(page)
     await page.route('**/api/records**', route =>
       route.fulfill({ json: { data: { records: [], next_cursor: '' } } }))
 
-    await page.goto('/app/divination?locale=zh-Hans')
-    await expect(page).toHaveURL(/\/app\/classic\/divination(?:\?|$)/)
+    await page.goto('/app/classic/divination?locale=zh-Hans')
     await expect(page.getByRole('heading', { name: '问卦', level: 1 })).toBeVisible()
     await expect(page.locator('textarea[name="divination-question"]')).toBeVisible()
     await expect(page.locator('form')).toContainText('起卦地点')

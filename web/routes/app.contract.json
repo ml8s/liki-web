@@ -23,6 +23,8 @@
     "/app/birth-profiles",
     "/app/birth-profiles/new",
     "/app/birth-profiles/:id",
+    "/app/liunian",
+    "/app/naming",
     "/app/hepan",
     "/app/divination",
     "/app/fengshui",
@@ -79,16 +81,16 @@
   },
   "experienceRedirects": [
     {
-      "from": "/app/birth-profiles",
-      "to": "/app/classic/birth-profiles",
+      "from": "/app/account",
+      "to": "/app/classic/account",
       "preserve": [
         "query",
         "hash"
       ]
     },
     {
-      "from": "/app/birth-profiles/new",
-      "to": "/app/classic/birth-profiles/new",
+      "from": "/app/birth-profiles",
+      "to": "/app/classic/birth-profiles",
       "preserve": [
         "query",
         "hash"
@@ -103,32 +105,8 @@
       ]
     },
     {
-      "from": "/app/hepan",
-      "to": "/app/classic/hepan",
-      "preserve": [
-        "query",
-        "hash"
-      ]
-    },
-    {
-      "from": "/app/divination",
-      "to": "/app/classic/divination",
-      "preserve": [
-        "query",
-        "hash"
-      ]
-    },
-    {
-      "from": "/app/fengshui",
-      "to": "/app/classic/fengshui",
-      "preserve": [
-        "query",
-        "hash"
-      ]
-    },
-    {
-      "from": "/app/huangli",
-      "to": "/app/classic/huangli",
+      "from": "/app/birth-profiles/new",
+      "to": "/app/classic/birth-profiles/new",
       "preserve": [
         "query",
         "hash"
@@ -145,6 +123,54 @@
     {
       "from": "/app/chat/:sessionId",
       "to": "/app/classic/chat/:sessionId",
+      "preserve": [
+        "query",
+        "hash"
+      ]
+    },
+    {
+      "from": "/app/divination",
+      "to": "/app?domain=divination&seed=divination",
+      "preserve": [
+        "query",
+        "hash"
+      ]
+    },
+    {
+      "from": "/app/fengshui",
+      "to": "/app?domain=fengshui&seed=fengshui",
+      "preserve": [
+        "query",
+        "hash"
+      ]
+    },
+    {
+      "from": "/app/hepan",
+      "to": "/app?domain=natal&seed=hepan",
+      "preserve": [
+        "query",
+        "hash"
+      ]
+    },
+    {
+      "from": "/app/huangli",
+      "to": "/app/classic/huangli",
+      "preserve": [
+        "query",
+        "hash"
+      ]
+    },
+    {
+      "from": "/app/liunian",
+      "to": "/app?domain=natal&seed=liunian",
+      "preserve": [
+        "query",
+        "hash"
+      ]
+    },
+    {
+      "from": "/app/naming",
+      "to": "/app?domain=naming&seed=naming",
       "preserve": [
         "query",
         "hash"
@@ -181,14 +207,11 @@
         "query",
         "hash"
       ]
-    },
-    {
-      "from": "/app/account",
-      "to": "/app/classic/account",
-      "preserve": [
-        "query",
-        "hash"
-      ]
     }
-  ]
+  ],
+  "rollout": {
+    "previewDefault": true,
+    "rollback": "Set VITE_FEATURE_APP_FLOW_REDESIGN=false; /app returns to Classic.",
+    "cleanupStatus": "compatibility-owned; Classic components are not deleted until backend domain sessions ship"
+  }
 }
