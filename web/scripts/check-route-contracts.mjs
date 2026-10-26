@@ -128,12 +128,12 @@ const consultationRoute = '/app/consultation';
 const consultationDefaultRoute = '/app';
 const classicDefaultRoute = '/app/classic';
 const compatibilityFlowRoute = '/app/flow';
-const mineRoute = '/app/mine';
+const meRoute = '/app/me';
 if (appRouteCounts.get(consultationRoute) !== 1) {
   errors.push(`app contract must contain ${consultationRoute} exactly once`);
 }
-if (appRouteCounts.get(mineRoute) !== 1) {
-  errors.push(`app contract must contain ${mineRoute} exactly once`);
+if (appRouteCounts.get(meRoute) !== 1) {
+  errors.push(`app contract must contain ${meRoute} exactly once`);
 }
 if (appRouteCounts.has(compatibilityFlowRoute)) {
   errors.push(`implementation route must not be public: ${compatibilityFlowRoute}`);
@@ -213,8 +213,8 @@ for (const key of expectedFlowQueryKeys) {
 if (typeof localeValue('zh-Hans', 'router.consultation') !== 'string' || typeof localeValue('zh-Hant', 'router.consultation') !== 'string' || typeof localeValue('en', 'router.consultation') !== 'string') {
   errors.push('router.consultation label is missing from a locale catalogue');
 }
-if (typeof localeValue('zh-Hans', 'router.mine') !== 'string' || typeof localeValue('zh-Hant', 'router.mine') !== 'string' || typeof localeValue('en', 'router.mine') !== 'string') {
-  errors.push('router.mine label is missing from a locale catalogue');
+if (typeof localeValue('zh-Hans', 'router.me') !== 'string' || typeof localeValue('zh-Hant', 'router.me') !== 'string' || typeof localeValue('en', 'router.me') !== 'string') {
+  errors.push('router.me label is missing from a locale catalogue');
 }
 
 const redirects = marketing.bareRedirects ?? [];

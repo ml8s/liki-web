@@ -50,10 +50,10 @@ test.describe('consultation accessibility', () => {
       await page.keyboard.press('Escape')
       await expect(sheet).toBeHidden()
 
-      await page.goto('/app/mine')
+      await page.goto('/app/me')
       await expect(page.getByRole('heading', { name: '我的' })).toBeVisible()
       await expect(page.locator('.entry-row')).toHaveCount(4)
-      await expectNoCriticalA11yViolations(page, '/app/mine')
+      await expectNoCriticalA11yViolations(page, '/app/me')
     })
   })
 })
@@ -138,10 +138,10 @@ test.describe('consultation keyboard reflow', () => {
       await expect(page.getByRole('list', { name: '咨询记录' })).toContainText('日主偏弱')
       expect(createdSessions).toHaveLength(1)
 
-      const mineLink = page.locator('.experience-switcher--dock', { hasText: '我的' })
-      await mineLink.focus()
+      const meLink = page.locator('.experience-switcher--dock', { hasText: '我的' })
+      await meLink.focus()
       await page.keyboard.press('Enter')
-      await expect(page).toHaveURL(/\/app\/mine$/)
+      await expect(page).toHaveURL(/\/app\/me$/)
       await expect(page.locator('.entry-row')).toHaveCount(4)
 
       await page.locator('.entry-row').first().focus()

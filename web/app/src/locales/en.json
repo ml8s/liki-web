@@ -32,11 +32,11 @@
     "chat": "Liki Chat",
     "orders": "Orders",
     "account": "Account",
-    "mine": "Me",
     "partner": "My partnership",
     "logout": "Sign out",
     "consultation": "Consultation",
-    "classic": "Classic App"
+    "classic": "Classic App",
+    "me": "Me"
   },
   "a11y": {
     "skipToContent": "Skip to main content"
@@ -117,7 +117,7 @@
     "account": "Account",
     "notFound": "Page not found",
     "consultation": "Consultation",
-    "mine": "Mine"
+    "me": "Mine"
   },
   "services": {
     "natal": {
@@ -1175,7 +1175,7 @@
       "unavailable": "Unavailable"
     }
   },
-  "mine": {
+  "me": {
     "subtitle": "Profiles, history, orders, account, and partner tools."
   }
 }

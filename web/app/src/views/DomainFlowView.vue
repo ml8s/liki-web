@@ -194,10 +194,10 @@
       />
       <div class="flow-dock-links">
         <AppExperienceSwitcher
-          target="mine"
+          target="me"
           variant="dock"
         >
-          {{ $t('nav.mine') }}
+          {{ $t('nav.me') }}
         </AppExperienceSwitcher>
         <AppExperienceSwitcher
           target="classic"

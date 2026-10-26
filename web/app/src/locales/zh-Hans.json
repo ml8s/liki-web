@@ -32,11 +32,11 @@
     "chat": "Liki Chat",
     "orders": "订单",
     "account": "账户设置",
-    "mine": "我的",
     "partner": "我的合作",
     "logout": "退出",
     "consultation": "领域咨询",
-    "classic": "经典版"
+    "classic": "经典版",
+    "me": "我的"
   },
   "a11y": {
     "skipToContent": "跳到主要内容"
@@ -117,7 +117,7 @@
     "account": "账户设置",
     "notFound": "页面不存在",
     "consultation": "领域咨询",
-    "mine": "我的"
+    "me": "我的"
   },
   "services": {
     "natal": {
@@ -1175,7 +1175,7 @@
       "unavailable": "暂不可用"
     }
   },
-  "mine": {
+  "me": {
     "subtitle": "档案、历史、订单、账号与合作入口。"
   }
 }

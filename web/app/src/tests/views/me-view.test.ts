@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
-import MineView from '@/views/MineView.vue'
+import MeView from '@/views/MeView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 async function createTestRouter() {
   const router = createRouter({
     history: createMemoryHistory('/app/'),
     routes: [
-      { path: '/mine', name: 'app-mine', component: { template: '<div />' } },
+      { path: '/me', name: 'app-me', component: { template: '<div />' } },
       { path: '/', name: 'app-consultation', component: { template: '<div />' } },
       { path: '/classic/birth-profiles', name: 'birth-profiles', component: { template: '<div />' } },
       { path: '/classic/chat', name: 'chat', component: { template: '<div />' } },
@@ -18,12 +18,12 @@ async function createTestRouter() {
       { path: '/classic/partners', name: 'partner-center', component: { template: '<div />' } },
     ],
   })
-  router.push('/mine')
+  router.push('/me')
   await router.isReady()
   return router
 }
 
-describe('MineView', () => {
+describe('MeView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     sessionStorage.clear()
@@ -33,7 +33,7 @@ describe('MineView', () => {
     const auth = useAuthStore()
     auth.user = { id: 'user', email: 'u@example.com', status: 'active', locale: 'zh-Hans', partner_roles: [] }
     const router = await createTestRouter()
-    const wrapper = mount(MineView, { global: { plugins: [router] } })
+    const wrapper = mount(MeView, { global: { plugins: [router] } })
     await flushPromises()
 
     const labels = wrapper.findAll('.entry-name').map(node => node.text())
@@ -53,7 +53,7 @@ describe('MineView', () => {
     }
     const router = await createTestRouter()
     const push = vi.spyOn(router, 'push').mockResolvedValue(undefined)
-    const wrapper = mount(MineView, { global: { plugins: [router] } })
+    const wrapper = mount(MeView, { global: { plugins: [router] } })
     await flushPromises()
 
     expect(wrapper.text()).toContain('我的合作')

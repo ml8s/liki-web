@@ -253,7 +253,7 @@ const filteredSessions = computed(() => {
   cursor: pointer;
 }
 
-.flow-history__action.is-danger { color: var(--color-error); }
+.flow-history__action.is-danger { color: var(--color-error-text); }
 .flow-history__action:focus-visible {
   outline: 3px solid var(--liki-primary);
   outline-offset: 2px;

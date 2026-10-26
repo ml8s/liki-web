@@ -1,10 +1,10 @@
 import { expect, test } from '../fixtures'
 import { flowProfile, mockFlowWorkspace } from '../helpers/domain-flow'
 
-test('opens the Mine hub and navigates to existing profile management', async ({ page }) => {
+test('opens the Me hub and navigates to existing profile management', async ({ page }) => {
   await mockFlowWorkspace(page, { profiles: [flowProfile('person-1', '张三')] })
 
-  await page.goto('/app/mine')
+  await page.goto('/app/me')
   await expect(page.getByRole('heading', { name: '我的' })).toBeVisible()
 
   const entries = page.locator('.entry-row')

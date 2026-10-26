@@ -1,8 +1,8 @@
 <template>
   <div class="page-stack">
     <AppPageHeader
-      :title="$t('nav.mine')"
-      :subtitle="$t('mine.subtitle')"
+      :title="$t('nav.me')"
+      :subtitle="$t('me.subtitle')"
     >
       <template #actions>
         <AppExperienceSwitcher

@@ -1,6 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router'
 import AppLayout from '@/views/AppLayout.vue'
-import MineView from '@/views/MineView.vue'
+import MeView from '@/views/MeView.vue'
 import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 import type { AppExperience } from './experience'
 
@@ -78,11 +78,11 @@ export function createConsultationAppRoutes({
       viewportBound: true,
     },
   }, {
-    path: 'mine',
-    name: 'app-mine',
-    component: MineView,
+    path: 'me',
+    name: 'app-me',
+    component: MeView,
     meta: {
-      titleKey: 'router.mine',
+      titleKey: 'router.me',
     },
   }] satisfies RouteRecordRaw[]).map(route => withExperience(route, 'consultation'))
 }

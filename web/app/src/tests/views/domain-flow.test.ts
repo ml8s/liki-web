@@ -95,7 +95,7 @@ async function createTestRouter(initialUrl = '/') {
     routes: [
       { path: '/', name: 'dashboard', component: { template: '<div />' } },
       { path: '/consultation', name: 'app-consultation', component: { template: '<div />' } },
-      { path: '/mine', name: 'app-mine', component: { template: '<div />' } },
+      { path: '/me', name: 'app-me', component: { template: '<div />' } },
       { path: '/birth-profiles', name: 'birth-profiles', component: { template: '<div />' } },
       { path: '/birth-profiles/new', name: 'birth-profile-new', component: { template: '<div />' } },
     ],

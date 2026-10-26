@@ -32,11 +32,11 @@
     "chat": "Liki Chat",
     "orders": "訂單",
     "account": "帳戶設定",
-    "mine": "我的",
     "partner": "我的合作",
     "logout": "登出",
     "consultation": "領域諮詢",
-    "classic": "經典版"
+    "classic": "經典版",
+    "me": "我的"
   },
   "a11y": {
     "skipToContent": "跳到主要內容"
@@ -117,7 +117,7 @@
     "account": "帳戶設定",
     "notFound": "頁面不存在",
     "consultation": "領域諮詢",
-    "mine": "我的"
+    "me": "我的"
   },
   "services": {
     "natal": {
@@ -1175,7 +1175,7 @@
       "unavailable": "暫不可用"
     }
   },
-  "mine": {
+  "me": {
     "subtitle": "檔案、歷史、訂單、帳號與合作入口。"
   }
 }

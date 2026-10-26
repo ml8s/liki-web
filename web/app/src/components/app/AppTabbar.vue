@@ -34,7 +34,7 @@ const tabs = computed(() => {
     { to: { name: 'dashboard' }, label: t('nav.workspace'), active: route.name === 'dashboard' },
     { to: { name: 'birth-profiles' }, label: t('nav.profiles'), active: ['birth-profiles', 'birth-profile-new', 'birth-profile-detail'].includes(String(route.name)) },
     { to: { name: 'chat' }, label: t('nav.chat'), active: ['chat', 'chat-session'].includes(String(route.name)) },
-    { to: { name: 'account' }, label: t('nav.mine'), active: ['account', 'orders'].includes(String(route.name)) },
+    { to: { name: 'account' }, label: t('nav.me'), active: ['account', 'orders'].includes(String(route.name)) },
   ]
   if (auth.hasPartnerRole) {
     items.push({ to: { name: 'partner-center' }, label: t('nav.partner'), active: ['partner-center', 'partner-kol', 'partner-scout'].includes(String(route.name)) })
