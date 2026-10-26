@@ -14,6 +14,7 @@ import type { ChatSession } from '@/api/chat'
 import type { BirthProfile } from '@/api/birth-profiles'
 import FlowHepanForm from '@/components/flow/forms/FlowHepanForm.vue'
 import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
+import FlowNamingForm from '@/components/flow/forms/FlowNamingForm.vue'
 import type { BaziBondResult, BaziChartData } from '@shared/api/engine/bazi'
 
 const mediaQuery = vi.hoisted(() => ({ matches: false }))
@@ -171,6 +172,10 @@ vi.mock('@shared/domain/divination', async importOriginal => ({
 const saveToolRecord = vi.fn(async () => undefined)
 const saveBondRecord = vi.fn(async () => undefined)
 const saveBazhaiRecord = vi.fn(async () => undefined)
+const namingMocks = vi.hoisted(() => ({
+  chart: {} as import('@shared/api/engine/bazi').BaziChartData,
+  assessment: {} as import('@shared/api/engine/bazi').BaziYongShenResult,
+}))
 const hepanMocks = vi.hoisted(() => {
   const chart = {} as BaziChartData
   const bond = {} as BaziBondResult
@@ -219,6 +224,16 @@ const fengshuiMocks = vi.hoisted(() => {
   }
   return { bazhai, layout, xuankong }
 })
+
+vi.mock('@shared/domain/natal', async importOriginal => ({
+  ...await importOriginal(),
+  baziChartFor: vi.fn(async () => namingMocks.chart),
+}))
+
+vi.mock('@shared/domain/naming', async importOriginal => ({
+  ...await importOriginal(),
+  namingAssessmentFor: vi.fn(async () => namingMocks.assessment),
+}))
 
 vi.mock('@shared/domain/fengshui', async importOriginal => ({
   ...await importOriginal(),
@@ -622,6 +637,64 @@ describe('DomainFlowView', () => {
       }),
     )
     expect(send).toHaveBeenCalledWith('帮我判断客厅布局')
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('computes a naming assessment and sends naming-scoped birth context', async () => {
+    const profiles = useBirthProfilesStore()
+    const entitlements = useEntitlementsStore()
+    const chat = useChatStore()
+    profiles.list = [birthProfile()]
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    const createSession = vi.spyOn(chat, 'createSession').mockResolvedValue(
+      chatSession({
+        id: 'naming-created',
+        expert: 'naming',
+        context: {
+          version: 1,
+          scenario: 'naming',
+          birth: {
+            gender: 'female',
+            date: '2000-01-01',
+            time: '12:00',
+            location: { longitude: 116.4, timezone: 'Asia/Shanghai' },
+          },
+        },
+      }),
+    )
+    const send = vi.spyOn(chat, 'send').mockResolvedValue(undefined)
+
+    const router = await createTestRouter('/?domain=naming&seed=naming')
+    const wrapper = mount(DomainFlowView, {
+      attachTo: document.body,
+      global: {
+        plugins: [router],
+        stubs: { ChatThread: true, ChatStreamStatus: true },
+      },
+    })
+    await flushAll()
+
+    await wrapper.getComponent(FlowNamingForm).find('button').trigger('click')
+    await flushAll()
+    expect(wrapper.find('.artifact-capsule').exists()).toBe(true)
+
+    await wrapper.find('textarea').setValue('帮助我选字方向')
+    await wrapper.find('form.flow-composer').trigger('submit')
+    await flushPromises()
+
+    expect(createSession).toHaveBeenCalledWith(
+      'person-1',
+      'naming',
+      expect.objectContaining({
+        version: 1,
+        scenario: 'naming',
+        birth: expect.objectContaining({ date: '2000-01-01', time: '12:00' }),
+      }),
+    )
+    expect(send).toHaveBeenCalledWith('帮助我选字方向')
     wrapper.unmount()
     document.body.innerHTML = ''
   })

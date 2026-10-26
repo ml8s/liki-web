@@ -75,6 +75,15 @@
               {{ $t('records.save') }}
             </el-button>
           </div>
+          <FlowNamingForm
+            v-if="showNamingForm"
+            :person-label="personLabel"
+            :birth-date="selectedProfile?.birth.date ?? ''"
+            :birth-time="selectedProfile?.birth.time ?? ''"
+            :loading="namingLoading"
+            :disabled="!namingBirthReady"
+            @submit="computeNaming"
+          />
           <template v-if="showDivinationCasting">
             <el-alert
               v-if="castingError"
@@ -190,6 +199,7 @@ import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
 import FlowDivinationForm from '@/components/flow/forms/FlowDivinationForm.vue'
 import FlowHepanForm, { type FlowHepanFormValue } from '@/components/flow/forms/FlowHepanForm.vue'
 import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
+import FlowNamingForm from '@/components/flow/forms/FlowNamingForm.vue'
 import ArtifactCapsule from '@/components/flow/artifacts/ArtifactCapsule.vue'
 import ArtifactSurface from '@/components/flow/artifacts/ArtifactSurface.vue'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
@@ -209,6 +219,8 @@ import type { ConsultationContext } from '@shared/domain/consultation'
 import { birthInputFromFields } from '@shared/components/form/birth-fields'
 import { chartInputFromBirth } from '@shared/domain/birth'
 import { hepanForChartInputs } from '@shared/domain/hepan'
+import { baziChartFor } from '@shared/domain/natal'
+import { namingAssessmentFor } from '@shared/domain/naming'
 import {
   bazhaiChartFor,
   bazhaiLayoutFor,
@@ -264,6 +276,8 @@ const hepanResult = ref<ArtifactPayloadByKind['hepan'] | null>(null)
 const fengshuiLoading = ref(false)
 const fengshuiInput = ref<FengshuiLayoutValue | null>(null)
 const fengshuiResult = ref<ArtifactPayloadByKind['fengshui'] | null>(null)
+const namingLoading = ref(false)
+const namingResult = ref<ArtifactPayloadByKind['naming'] | null>(null)
 let mountToken = 0
 let artifactFocusToken = 0
 
@@ -309,6 +323,11 @@ const profileError = computed(() => profiles.error || entitlements.error)
 const showDivinationCasting = computed(() => flow.domainId === 'divination' && !castingChart.value)
 const showHepanForm = computed(() => flow.domainId === 'natal' && routingSeed.value === 'hepan')
 const showFengshuiForm = computed(() => flow.domainId === 'fengshui' && routingSeed.value === 'fengshui')
+const showNamingForm = computed(() => flow.domainId === 'naming' && routingSeed.value === 'naming')
+const namingBirthReady = computed(() => {
+  const birth = selectedProfile.value?.birth
+  return Boolean(birth?.gender && birth.date && birth.time && birth.location)
+})
 const fengshuiBirthYear = computed(() => {
   const date = selectedProfile.value?.birth.date ?? ''
   const year = Number.parseInt(date.slice(0, 4), 10)
@@ -354,6 +373,7 @@ const {
   chart: castingChart,
   hepan: hepanResult,
   fengshui: fengshuiResult,
+  naming: namingResult,
 })
 
 const routingSeed = computed(() => {
@@ -373,6 +393,7 @@ function selectPerson(personId: string) {
   hepanResult.value = null
   fengshuiInput.value = null
   fengshuiResult.value = null
+  namingResult.value = null
   flow.setPerson(personId)
   personSheetOpen.value = false
 }
@@ -382,6 +403,7 @@ function selectDomain(domainId: AppDomainId) {
   hepanResult.value = null
   fengshuiInput.value = null
   fengshuiResult.value = null
+  namingResult.value = null
   flow.setDomain(domainId)
   domainSheetOpen.value = false
 }
@@ -597,6 +619,77 @@ async function createAndSendWithFengshuiContext(content: string) {
   }
 }
 
+function profileBirthInput() {
+  const profile = selectedProfile.value
+  const birth = profile?.birth
+  const longitude = birth?.location.longitude
+  const timezone = birth?.location.timezone
+  if (!profile || !birth?.gender || !birth.date || !birth.time
+    || typeof longitude !== 'number' || !Number.isFinite(longitude)
+    || !timezone) {
+    throw new TypeError('A complete birth profile is required')
+  }
+  return {
+    gender: birth.gender,
+    date: birth.date,
+    time: birth.time,
+    location: {
+      place: birth.location.place,
+      longitude,
+      timezone,
+      source: 'saved' as const,
+    },
+  }
+}
+
+async function computeNaming() {
+  if (namingLoading.value) return
+  namingLoading.value = true
+  consultationError.value = ''
+  namingResult.value = null
+  try {
+    const chart = await baziChartFor(profileBirthInput())
+    namingResult.value = { assessment: await namingAssessmentFor(chart) }
+  } catch (error) {
+    consultationError.value = toUserMessage(error, t('flow.namingFailed'))
+  } finally {
+    namingLoading.value = false
+  }
+}
+
+function profileConsultationBirth(): ConsultationContext['birth'] {
+  const birth = profileBirthInput()
+  return {
+    gender: birth.gender,
+    date: birth.date,
+    time: birth.time,
+    location: {
+      longitude: birth.location.longitude,
+      timezone: birth.location.timezone,
+    },
+  }
+}
+
+async function createAndSendWithNamingContext(content: string) {
+  const profile = selectedProfile.value
+  if (!profile) return
+  const context: ConsultationContext = {
+    version: 1,
+    scenario: 'naming',
+    birth: profileConsultationBirth(),
+  }
+
+  try {
+    const session = await chat.createSession(profile.id, 'naming', context)
+    chat.activeSession = session
+    chat.messages = []
+    chat.messagesCursor = ''
+    await sendUsingActiveSession(content)
+  } catch (error) {
+    consultationError.value = toUserMessage(error, t('chat.createFailed'))
+  }
+}
+
 async function submitQuestion() {
   const content = question.value.trim()
   if (!content || chat.sending) return
@@ -634,6 +727,28 @@ async function submitQuestion() {
 
   if (flow.domainId === 'fengshui' && routingSeed.value === 'fengshui' && (!fengshuiResult.value || !fengshuiInput.value)) {
     consultationError.value = t('flow.fengshuiRequired')
+    return
+  }
+
+  if (flow.domainId === 'naming' && routingSeed.value === 'naming' && !namingResult.value) {
+    consultationError.value = t('flow.namingRequired')
+    return
+  }
+
+  if (flow.domainId === 'naming' && namingResult.value) {
+    const expectedBirth = profileConsultationBirth()
+    const matchingSession = chat.sessions
+      .filter(session => (session.profile_id || null) === flow.personId)
+      .find(session => session.context?.scenario === 'naming'
+        && sameConsultationBirth(session.context.birth, expectedBirth))
+
+    if (matchingSession) {
+      if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
+      await sendUsingActiveSession(content)
+      return
+    }
+
+    await createAndSendWithNamingContext(content)
     return
   }
 
@@ -841,6 +956,7 @@ async function reloadProfiles() {
 watch([() => flow.personId, () => flow.domainId], () => {
   fengshuiInput.value = null
   fengshuiResult.value = null
+  namingResult.value = null
   hepanInput.value = null
   hepanResult.value = null
   consultationError.value = ''

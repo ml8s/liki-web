@@ -62,7 +62,9 @@
     "answerLabel": "Reading",
     "newContent": "New content",
     "hepanRequired": "Compatibility requires the other person’s details and third-party consent first.",
-    "fengshuiRequired": "Feng Shui requires the sitting mountain and door/master/stove layout first."
+    "fengshuiRequired": "Feng Shui requires the sitting mountain and door/master/stove layout first.",
+    "namingRequired": "Naming requires a complete birth profile first.",
+    "namingFailed": "Naming direction analysis failed."
   },
   "auth": {
     "brandTail": "Metaphysics",

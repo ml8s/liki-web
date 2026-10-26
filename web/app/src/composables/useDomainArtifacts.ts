@@ -53,6 +53,7 @@ export function useDomainArtifacts(options: {
   chart?: MaybeRefOrGetter<LiuyaoChartResult | null>
   hepan?: MaybeRefOrGetter<ArtifactPayloadByKind['hepan'] | null>
   fengshui?: MaybeRefOrGetter<ArtifactPayloadByKind['fengshui'] | null>
+  naming?: MaybeRefOrGetter<ArtifactPayloadByKind['naming'] | null>
 }) {
   const channelStates = reactive<Record<string, ArtifactChannelState>>({})
 
@@ -71,6 +72,11 @@ export function useDomainArtifacts(options: {
     const chart = toValue(options.chart)
     const hepan = toValue(options.hepan)
     const fengshui = toValue(options.fengshui)
+    const naming = toValue(options.naming)
+
+    if (naming) {
+      return buildArtifactDescriptors(domainId, { naming })
+    }
 
     if (fengshui) {
       return buildArtifactDescriptors(domainId, { fengshui })
