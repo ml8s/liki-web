@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // hepan 页免费合盘岛（营销站）：双方出生信息 → 共享排盘链路 → 合盘盘面。
-// 盘面组件来自共享层（web/shared/components/charts），与 App HepanView 同源；
+// 盘面组件来自 engine catalog，与 App HepanView 同一 deterministic result panel；
 // 表单用共享 tool-form 的纵向变体（.tool-form--stack + fieldset），不自定义字段样式。
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { FormRules } from 'element-plus'
 import { hepanFor, type Hepan } from '@shared/domain/hepan'
 import HepanBirthFields from '@shared/components/hepan/HepanBirthFields.vue'
@@ -15,7 +15,7 @@ import {
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import HepanPanel from '@shared/components/charts/HepanPanel.vue'
+import BaziBondPanel from '@shared/components/engine/bazi/BaziBondPanel.vue'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
 
@@ -60,6 +60,11 @@ function patchPeople(patch: Partial<{ personA: unknown; personB: unknown }>) {
 const failed = ref(false)
 const hepan = ref<Hepan | null>(null)
 const consultationContext = ref<ConsultationContext | null>(null)
+const bondResult = computed<Hepan | null>(() => (
+  hepan.value?.bond && hepan.value.chartA && hepan.value.chartB
+    ? hepan.value
+    : null
+))
 
 // 同意是计算前置事实；撤回后已有结果不能再作为继续咨询的上下文。
 watch(thirdPartyConsent, consent => {
@@ -125,15 +130,15 @@ function continueToApp() {
 
   <p v-if="failed" class="tool-error" role="alert">{{ labels.error }}</p>
 
-  <template v-if="hepan">
+  <template v-if="bondResult">
     <section class="tool-pan">
       <h3 class="tool-pan-title">
         {{ labels.result }}
       </h3>
-      <HepanPanel
-        :chart-a="hepan.chartA"
-        :chart-b="hepan.chartB"
-        :bond="hepan.bond"
+      <BaziBondPanel
+        :result="bondResult.bond"
+        :chart-a="bondResult.chartA"
+        :chart-b="bondResult.chartB"
         :name-a="labels.you"
       />
     </section>

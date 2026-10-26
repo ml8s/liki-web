@@ -12,11 +12,35 @@
     "/app/huangli",
     "/app/chat",
     "/app/chat/:sessionId",
+    "/app/flow",
     "/app/orders",
     "/app/partners",
     "/app/partners/kol",
     "/app/partners/scout",
     "/app/account",
     "/app/admin"
-  ]
+  ],
+  "featureFlags": {
+    "appFlowRedesign": "VITE_FEATURE_APP_FLOW_REDESIGN"
+  },
+  "queryContracts": {
+    "/app/flow": {
+      "domain": {
+        "type": "enum",
+        "values": ["natal", "divination", "fengshui", "naming"],
+        "required": false,
+        "default": "natal"
+      },
+      "seed": {
+        "type": "legacyScenarioId",
+        "required": false,
+        "policy": "ignored-if-unknown; cross-domain or pending-backend results are surfaced as flow errors"
+      },
+      "service": {
+        "type": "legacyScenarioId",
+        "required": false,
+        "policy": "legacy marketing alias for seed; public URLs remain unchanged"
+      }
+    }
+  }
 }

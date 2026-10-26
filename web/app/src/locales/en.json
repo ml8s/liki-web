@@ -39,6 +39,27 @@
   "a11y": {
     "skipToContent": "Skip to main content"
   },
+  "flow": {
+    "domainStrip": "Reading domains",
+    "domainTitle": "Choose a domain",
+    "newConsultation": "Start a new consultation",
+    "personTitle": "Choose a profile",
+    "noProfiles": "No profiles yet",
+    "createProfile": "Create profile",
+    "manageProfiles": "Manage profiles",
+    "personEmpty": "Choose a profile",
+    "askPlaceholder": "Ask your question directly",
+    "send": "Send",
+    "stop": "Stop",
+    "restore": "Return to active reading",
+    "close": "Close",
+    "crossDomain": "This question fits “{domain}” better. Switch domains first.",
+    "huangliPending": "Date selection / almanac readings are migrating to the natal expert. Use the legacy entry for now.",
+    "documentLabel": "Consultation record",
+    "questionLabel": "Question",
+    "answerLabel": "Reading",
+    "newContent": "New content"
+  },
   "auth": {
     "brandTail": "Metaphysics",
     "headline": "From deterministic charts to professional interpretation.",
@@ -81,7 +102,8 @@
     "partnerKol": "KOL partnership",
     "partnerScout": "Scout partnership",
     "account": "Account",
-    "notFound": "Page not found"
+    "notFound": "Page not found",
+    "flow": "Domain consultation"
   },
   "services": {
     "natal": {
@@ -145,6 +167,7 @@
       "dayRelation": "Day relation",
       "lineNumber": "Line {number}",
       "changingLines": "Changing lines",
+      "moving": "Moving line",
       "usefulGod": "Useful god",
       "hexagramText": "Hexagram text",
       "patterns": "Patterns",
@@ -415,12 +438,15 @@
       "nickname": "Nickname",
       "nicknamePlaceholder": "For example: Mom / Myself",
       "gender": "Gender",
+      "genderPlaceholder": "For example: Female",
       "birthDate": "Birth date",
       "selectDate": "Select a date",
       "timePlaceholder": "For example: 06:00",
       "birthPlace": "Birthplace (city for solar-time correction)",
       "birthPlacePlaceholder": "For example: Shanghai",
       "longitude": "Longitude",
+      "longitudeHint": "Used for true solar time correction; manual entry is allowed",
+      "longitudeInvalid": "Longitude must be between -180 and 180",
       "timezone": "IANA timezone",
       "timezonePlaceholder": "For example, Asia/Shanghai",
       "timezoneHint": "The legal timezone paired with the birthplace",
@@ -1122,6 +1148,16 @@
       "retiredNotice": "This role has left daily partnership. Only historical commission settlement remains; workspace and recruiting data are unavailable.",
       "balance": "{currency} settlement balance",
       "dialogTitle": "{role} payout"
+    }
+  },
+  "artifact": {
+    "documentLabel": "Consultation record",
+    "toggleHint": "Expand or collapse the deterministic chart",
+    "unavailable": "This chart is unavailable",
+    "state": {
+      "ready": "Viewable",
+      "pending-backend": "Awaiting backend contract",
+      "unavailable": "Unavailable"
     }
   }
 }

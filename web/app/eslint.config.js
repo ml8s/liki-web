@@ -11,7 +11,7 @@ export default [
   {
     // Standalone .ts files need the TS parser directly; inside .vue files the
     // vue parser delegates via parserOptions.parser below.
-    files: ['src/**/*.ts'],
+    files: ['src/**/*.ts', '../shared/components/engine/**/*.ts'],
     languageOptions: {
       parser: tseslint.parser,
     },
@@ -19,7 +19,7 @@ export default [
   {
     // Element Plus styles enter through app/src/styles/element-plus.css; vendor
     // imports elsewhere bypass the cascade-layer theme boundary.
-    files: ['src/**/*.{ts,vue}'],
+    files: ['src/**/*.{ts,vue}', '../shared/components/engine/**/*.{ts,vue}'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{
@@ -30,7 +30,7 @@ export default [
     },
   },
   {
-    files: ['src/**/*.{vue,ts}'],
+    files: ['src/**/*.{vue,ts}', '../shared/components/engine/**/*.{ts,vue}'],
     plugins: {
       '@typescript-eslint': tseslint.plugin,
     },

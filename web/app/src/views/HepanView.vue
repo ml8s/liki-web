@@ -83,7 +83,7 @@
       </el-form>
     </el-card>
 
-    <template v-if="result">
+    <template v-if="result && chartA && bChart">
       <el-card
         class="app-card app-card--highlight"
         shadow="never"
@@ -102,10 +102,10 @@
           </div>
         </template>
 
-        <HepanPanel
+        <BaziBondPanel
+          :result="result"
           :chart-a="chartA"
           :chart-b="bChart"
-          :bond="result"
           :name-a="aName"
         />
       </el-card>
@@ -157,7 +157,7 @@ import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
-import HepanPanel from '@shared/components/charts/HepanPanel.vue'
+import BaziBondPanel from '@shared/components/engine/bazi/BaziBondPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import {
   birthInputFromFields,
@@ -370,7 +370,3 @@ async function startInterpretation() {
   await openServiceChat(p.id, 'hepan', message => { error.value = message }, context)
 }
 </script>
-
-<style scoped>
-.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
-</style>

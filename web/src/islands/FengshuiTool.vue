@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // fengshui 页免费风水岛：出生年 + 性别 → 命卦/方位/流年飞星；另有玄空飞星盘与八宅布局（门/主/灶）。
-// 盘面组件来自共享层（与 App 的 FengshuiView 同源）。
+// 盘面使用 engine result catalog 的三个标准 result family。
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -11,10 +11,9 @@ import {
   type BazhaiLayout,
   type XuankongChart,
 } from '@shared/domain/fengshui'
-import MingGuaSection from '@shared/components/charts/MingGuaSection.vue'
-import LiuNianFlySection from '@shared/components/charts/LiuNianFlySection.vue'
-import XuankongPanel from '@shared/components/charts/XuankongPanel.vue'
-import BazhaiLayoutPanel from '@shared/components/charts/BazhaiLayoutPanel.vue'
+import BazhaiChartPanel from '@shared/components/engine/fengshui/BazhaiChartPanel.vue'
+import BazhaiLayoutPanel from '@shared/components/engine/fengshui/BazhaiLayoutPanel.vue'
+import XuankongChartPanel from '@shared/components/engine/fengshui/XuankongChartPanel.vue'
 import FengshuiBirthFields from '@shared/components/fengshui/FengshuiBirthFields.vue'
 import FengshuiLayoutFields from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
@@ -52,8 +51,8 @@ async function submit() {
   if (!value || !birth.gender || loading.value) return
   loading.value = true
   failed.value = false
-    chart.value = null
-    layoutResult.value = null
+  chart.value = null
+  layoutResult.value = null
   try {
     chart.value = await bazhaiChartFor(value, birth.gender)
     void runXuankong()
@@ -104,10 +103,9 @@ function patchLayout(patch: Partial<typeof layout>) {
 
   <template v-if="chart">
     <div class="tool-pan">
-      <MingGuaSection :bazhai="chart" />
-      <LiuNianFlySection
-        v-if="chart.liu_nian_xing"
-        :liu-nian="chart.liu_nian_xing"
+      <BazhaiChartPanel
+        :result="chart"
+        :layout="layoutResult"
       />
     </div>
     <div class="tool-pan">
@@ -115,15 +113,18 @@ function patchLayout(patch: Partial<typeof layout>) {
         {{ t('services.fengshui.xuankongTitle') }}
       </h3>
       <FengshuiLayoutFields :value="layout" @update:patch="patchLayout" />
-      <XuankongPanel :chart="xuankong" />
+      <XuankongChartPanel
+        v-if="xuankong"
+        :result="xuankong"
+      />
     </div>
     <div class="tool-pan">
       <h3 class="tool-pan-title">
         {{ t('services.fengshui.layoutTitle') }}
       </h3>
       <BazhaiLayoutPanel
-        :layout="layoutResult"
-        :bazhai="chart"
+        v-if="layoutResult"
+        :result="layoutResult"
       />
     </div>
     <a

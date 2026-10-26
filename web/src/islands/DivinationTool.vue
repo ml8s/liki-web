@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// divination 页免费起卦岛：所问 → 起卦（liuyao_qigua，免登录工具）→ 共享卦象组件。
+// divination 页免费起卦岛：所问 → 起卦（liuyao_qigua，免登录工具）→ casting receipt。
+// 盘面组件来自 engine catalog；公开层只保留 receipt，不补造完整卦盘。
 // 完整解卦（六亲/纳甲/用神）在 App 侧进行——公开工具层只暴露确定性计算。
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { divinationCastingFor, type LiuyaoCasting } from '@shared/domain/divination'
-import DivinationCastPanel from '@shared/components/charts/DivinationCastPanel.vue'
+import LiuyaoCastingPanel from '@shared/components/engine/liuyao/LiuyaoCastingPanel.vue'
 import DivinationCastingForm from '@shared/components/divination/DivinationCastingForm.vue'
 import type { DivinationCastingFormValue } from '@shared/components/divination/types'
 import type { ConsultationContext } from '@shared/domain/consultation'
@@ -62,7 +63,7 @@ async function submit(value: DivinationCastingFormValue) {
       <h3 class="tool-pan-title">
         {{ question ? t('services.divination.questionLabel') + '：' + question : t('services.divination.cast') }}
       </h3>
-      <DivinationCastPanel :casting="casting" />
+      <LiuyaoCastingPanel :result="casting" />
     </div>
     <a
       class="btn-purple tool-cta"
@@ -82,7 +83,3 @@ async function submit(value: DivinationCastingFormValue) {
     <p class="tool-privacy">{{ labels.privacy }}</p>
   </template>
 </template>
-
-<style scoped>
-.tool-form-wide { flex: 1 1 100%; }
-</style>

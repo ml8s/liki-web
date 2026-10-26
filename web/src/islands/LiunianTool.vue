@@ -1,11 +1,12 @@
 <script setup lang="ts">
-// liunian 页免费流年岛（营销站）：出生信息 + 年份 → 流年盘。
-// 盘面组件来自共享层（BaziPanel 的流年列与流年详览），与 App 同源。
+// liunian 页免费流年岛（营销站）：出生信息 + 年份 → 流年目录盘。
+// 盘面组件来自共享结果面板目录，与 App 同源。
 import { reactive, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { baziFullChartFor, type BaziFullChart } from '@shared/domain/natal'
 import { baziLiunianFor, type BaziLiuNianOutput } from '@shared/domain/natal'
-import BaziPanel from '@shared/components/charts/BaziPanel.vue'
+import BaziChartPanel from '@shared/components/engine/bazi/BaziChartPanel.vue'
+import BaziFullChartPanel from '@shared/components/engine/bazi/BaziFullChartPanel.vue'
+import BaziLiuNianPanel from '@shared/components/engine/bazi/BaziLiuNianPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import YearField from '@shared/components/form/YearField.vue'
@@ -33,7 +34,6 @@ const props = defineProps<{
     }
 }>()
 
-const { t } = useI18n()
 const rules = birthFormRules(props.labels)
 
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
@@ -106,11 +106,30 @@ function continueToApp() {
       <h3 class="tool-pan-title">
         {{ labels.result }}
       </h3>
-      <BaziPanel
-        :chart="pan.chart"
-        :full="pan.full"
-        :liunian="liunian"
-      />
+      <BaziFullChartPanel
+        v-if="pan.full"
+        :result="pan.full"
+        class="bazi-panel"
+      >
+        <template #before-yongshen>
+          <BaziLiuNianPanel
+            v-if="liunian"
+            :result="liunian"
+            class="bazi-panel"
+          />
+        </template>
+      </BaziFullChartPanel>
+      <template v-else>
+        <BaziChartPanel
+          :result="pan.chart"
+          class="bazi-panel"
+        />
+        <BaziLiuNianPanel
+          v-if="liunian"
+          :result="liunian"
+          class="bazi-panel"
+        />
+      </template>
     </section>
     <a
       class="btn-purple tool-cta"

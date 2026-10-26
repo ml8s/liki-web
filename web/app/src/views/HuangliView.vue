@@ -50,7 +50,7 @@
             {{ $t('services.huangli.resultTitle', { event: eventLabel(event) }) }}
           </h2>
         </template>
-        <HuangliDaysPanel :days="result" />
+        <HuangliDaysPanel :result="result" />
       </el-card>
 
       <AppConsultationCard
@@ -92,7 +92,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { huangliDaysFor, type HuangliDays } from '@shared/domain/huangli'
-import HuangliDaysPanel from '@shared/components/charts/HuangliDaysPanel.vue'
+import HuangliDaysPanel from '@shared/components/engine/huangli/HuangliDaysPanel.vue'
 import HuangliRangeFields from '@shared/components/huangli/HuangliRangeFields.vue'
 import { useToolRecords } from '@/composables/useToolRecords'
 import RecordList from '@/components/records/RecordList.vue'
@@ -207,7 +207,3 @@ function startChat() {
 }
 
 </script>
-
-<style scoped>
-.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); }
-</style>

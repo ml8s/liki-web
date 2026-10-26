@@ -1,13 +1,14 @@
 <script setup lang="ts">
-// natal 页免费排盘岛（营销站）：出生信息 → 共享排盘链路 → 八字盘 + 紫微盘。
-// 盘面组件来自共享层（web/shared/components/charts），与 App 使用同一实现；
+// natal 页免费排盘岛（营销站）：出生信息 → 共享排盘链路 → 八字目录盘 + 紫微目录盘。
+// 盘面组件来自共享结果面板目录，与 App 使用同一实现；
 // 组件文案（profiles.chart.*）由挂载脚本安装的 vue-i18n 提供。
 import { computed, reactive, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { natalChartFor, type NatalChart } from '@shared/domain/natal'
 import { baziLiunianFor, type BaziLiuNianOutput } from '@shared/domain/natal'
 import { WUXING_LUCKY } from '@shared/utils/wuxing'
-import BaziPanel from '@shared/components/charts/BaziPanel.vue'
+import BaziChartPanel from '@shared/components/engine/bazi/BaziChartPanel.vue'
+import BaziFullChartPanel from '@shared/components/engine/bazi/BaziFullChartPanel.vue'
+import BaziLiuNianPanel from '@shared/components/engine/bazi/BaziLiuNianPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import YearField from '@shared/components/form/YearField.vue'
@@ -18,7 +19,8 @@ import {
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
+import ZiweiChartPanel from '@shared/components/engine/ziwei/ZiweiChartPanel.vue'
+import ZiweiDaXianPanel from '@shared/components/engine/ziwei/ZiweiDaXianPanel.vue'
 import { birthFormRules } from '@shared/components/form/birth-rules'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
@@ -38,7 +40,6 @@ const props = defineProps<{
     }
 }>()
 
-const { t } = useI18n()
 const rules = birthFormRules(props.labels)
 
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
@@ -59,7 +60,7 @@ async function loadLiunian() {
   }
 }
 
-// 幸运元素（五行统计/状态由共享 BaziPanel 用引擎数据展示）。
+// 幸运元素（五行统计/状态由共享 Bazi 目录面板用引擎数据展示）。
 const luckyElements = computed(() => {
   // 幸运元素只消费确定性候选：扶抑 yong/xi，调候 primary/secondary。null 表示无候选。
   const full = natal.value?.baziDetail
@@ -125,11 +126,30 @@ function continueToApp() {
         name="natal-liunian-year"
         @update:model-value="loadLiunian"
       />
-      <BaziPanel
-        :chart="natal.bazi"
-        :full="natal.baziDetail"
-        :liunian="liunian"
-      />
+      <BaziFullChartPanel
+        v-if="natal.baziDetail"
+        :result="natal.baziDetail"
+        class="bazi-panel"
+      >
+        <template #before-yongshen>
+          <BaziLiuNianPanel
+            v-if="liunian"
+            :result="liunian"
+            class="bazi-panel"
+          />
+        </template>
+      </BaziFullChartPanel>
+      <template v-else>
+        <BaziChartPanel
+          :result="natal.bazi"
+          class="bazi-panel"
+        />
+        <BaziLiuNianPanel
+          v-if="liunian"
+          :result="liunian"
+          class="bazi-panel"
+        />
+      </template>
       <div v-if="luckyElements" class="wuxing-row">
         <span class="tool-pan-sub">{{ labels.lucky }}</span>
         <span v-for="l in luckyElements" :key="l.element" class="lucky-chip">
@@ -147,9 +167,14 @@ function continueToApp() {
       <h3 class="tool-pan-title">
         {{ labels.ziwei }}
       </h3>
-      <ZiweiPanel
-        :chart="natal.ziwei"
-        :da-xian="natal.ziweiDaXian"
+      <ZiweiChartPanel
+        :result="natal.ziwei"
+        class="ziwei-panel"
+      />
+      <ZiweiDaXianPanel
+        v-if="natal.ziweiDaXian.length"
+        :result="natal.ziweiDaXian"
+        class="ziwei-panel"
       />
     </section>
     <a

@@ -4,6 +4,7 @@ import { useAdminStore } from '@/stores/admin'
 import { normalizeUnknownLocale, setAppLocale } from '@/i18n'
 import { i18n } from '@/i18n'
 import { setDocumentTitle } from '@/utils/documentTitle'
+import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,6 +49,12 @@ const router = createRouter({
         { path: 'huangli', name: 'huangli', component: () => import('@/views/HuangliView.vue'), meta: { titleKey: 'router.huangli' } },
         { path: 'chat', name: 'chat', component: () => import('@/views/ChatListView.vue'), meta: { titleKey: 'router.chat' } },
         { path: 'chat/:sessionId', name: 'chat-session', component: () => import('@/views/ChatSessionView.vue'), meta: { titleKey: 'router.chatSession', viewportBound: true } },
+        ...(appFlowRedesignEnabled ? [{
+          path: 'flow',
+          name: 'app-flow',
+          component: () => import('@/views/DomainFlowView.vue'),
+          meta: { titleKey: 'router.flow', viewportBound: true },
+        }] : []),
         { path: 'orders', name: 'orders', component: () => import('@/views/OrdersView.vue'), meta: { titleKey: 'router.orders' } },
         { path: 'partners', name: 'partner-center', component: () => import('@/views/PartnerCenterView.vue'), meta: { titleKey: 'router.partnerCenter' } },
         { path: 'partners/kol', name: 'partner-kol', component: () => import('@/views/PartnerKOLView.vue'), meta: { titleKey: 'router.partnerKol' } },

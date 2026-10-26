@@ -13,7 +13,7 @@ import {
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import YongShenPanel from '@shared/components/charts/YongShenPanel.vue'
+import BaziYongShenPanel from '@shared/components/engine/bazi/BaziYongShenPanel.vue'
 import { birthFormRules } from '@shared/components/form/birth-rules'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
@@ -79,7 +79,7 @@ function continueToApp() {
 
   <template v-if="result">
     <div class="tool-pan">
-      <YongShenPanel :result="result" />
+      <BaziYongShenPanel :result="result" />
     </div>
     <p class="tool-privacy">{{ labels.note }}</p>
     <a

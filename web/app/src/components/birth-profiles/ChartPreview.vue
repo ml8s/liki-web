@@ -74,11 +74,26 @@
                 @change="loadBaziLiuNian"
               />
             </div>
-            <BaziPanel
-              :chart="baziChart"
-              :full="baziFull"
-              :liunian="baziLiuNian"
-            />
+            <BaziFullChartPanel
+              v-if="baziFull"
+              :result="baziFull"
+            >
+              <template #before-yongshen>
+                <BaziLiuNianPanel
+                  v-if="baziLiuNian"
+                  :result="baziLiuNian"
+                />
+              </template>
+            </BaziFullChartPanel>
+            <template v-else-if="baziChart">
+              <BaziChartPanel
+                :result="baziChart"
+              />
+              <BaziLiuNianPanel
+                v-if="baziLiuNian"
+                :result="baziLiuNian"
+              />
+            </template>
           </el-tab-pane>
 
           <el-tab-pane
@@ -86,75 +101,32 @@
             name="ziwei"
           >
             <template v-if="ziwei">
-              <ZiweiPanel
-                :chart="ziwei"
-                :da-xian="daXianRaw"
+              <ZiweiChartPanel :result="ziwei" />
+              <ZiweiDaXianPanel
+                v-if="daXianRaw.length"
+                :result="daXianRaw"
               />
-              <div class="zw-section zw-liunian">
-                <div class="sec-title">
-                  {{ $t('profiles.chart.liunian') }}
-                </div>
-                <div class="chart-year-picker">
-                  <el-input-number
-                    v-model="liuNianYear"
-                    :min="1900"
-                    :max="2100"
-                    size="small"
-                    @change="loadLiuNian"
-                  />
-                </div>
-                <template v-if="liuNian">
-                  <div class="zwc-sihua zwc-sihua--start">
-                    <span
-                      v-for="(hua, star) in liuNian.si_hua ?? {}"
-                      :key="star"
-                      class="zw-sihua-chip"
-                    >{{ star }}<i
-                      class="zw-si"
-                      :data-hua="hua"
-                    >{{ hua }}</i>{{ liuNian.si_hua_gong?.[star] ? ` ${liuNian.si_hua_gong[star]}` : '' }}</span>
-                  </div>
-                  <div class="zw-grid zw-grid--liunian">
-                    <div
-                      v-for="g in liuNianPlaced"
-                      :key="`${g.name}-${g.zhi}`"
-                      :style="g.style"
-                      :class="['zw-palace', { ming: g.ming }]"
-                    >
-                      <div class="zw-pname">
-                        {{ g.name }}
-                      </div>
-                      <div
-                        v-if="g.stars.length"
-                        class="zw-main"
-                      >
-                        {{ g.stars.join(' ') }}
-                      </div>
-                    </div>
-                    <div class="zw-center">
-                      <div class="zwc-title">
-                        {{ liuNianYear }}
-                      </div>
-                      <div class="zwc-row">
-                        {{ $t('profiles.chart.liuNianPalace', { name: liuNian.ming_gong_name ?? liuNian.ming_gong }) }}
-                      </div>
-                    </div>
-                  </div>
-                </template>
+              <div class="chart-year-picker">
+                <el-input-number
+                  v-model="liuNianYear"
+                  :min="1900"
+                  :max="2100"
+                  size="small"
+                  @change="loadLiuNian"
+                />
               </div>
+              <ZiweiLiuNianPanel
+                v-if="liuNian"
+                :result="liuNian"
+              />
             </template>
           </el-tab-pane>
-
           <el-tab-pane
             :label="$t('profiles.chart.bazhai')"
             name="bazhai"
           >
             <template v-if="bazhai">
-              <MingGuaSection :bazhai="bazhai" />
-              <LiuNianFlySection
-                v-if="bazhai.liu_nian_xing"
-                :liu-nian="bazhai.liu_nian_xing"
-              />
+              <BazhaiChartPanel :result="bazhai" />
             </template>
           </el-tab-pane>
         </el-tabs>
@@ -164,10 +136,8 @@
 </template>
 
 <script setup lang="ts">
-import '@shared/styles/chart-panel.css'
-import '@shared/components/charts/ziwei-panel.css'
 // 档案详情的一屏三盘编排器（App 专属）：数据链 + tab 外壳；
-// 三块盘面来自共享层（web/shared/components/charts），营销站 island 单独复用。
+// 盘面组合来自标准 engine result catalog，年选交互保留在宿主。
 import { toUserMessage } from '@/utils/errors'
 import {
   baziLiunianFor,
@@ -186,10 +156,13 @@ import { useI18n } from 'vue-i18n'
 import { bazhaiChartFor, type BazhaiChart } from '@shared/domain/fengshui'
 import { NatalStageError } from '@shared/domain/natal'
 import type { BirthProfile } from '@/api/birth-profiles'
-import BaziPanel from '@shared/components/charts/BaziPanel.vue'
-import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
-import MingGuaSection from '@shared/components/charts/MingGuaSection.vue'
-import LiuNianFlySection from '@shared/components/charts/LiuNianFlySection.vue'
+import BaziChartPanel from '@shared/components/engine/bazi/BaziChartPanel.vue'
+import BaziFullChartPanel from '@shared/components/engine/bazi/BaziFullChartPanel.vue'
+import BaziLiuNianPanel from '@shared/components/engine/bazi/BaziLiuNianPanel.vue'
+import ZiweiChartPanel from '@shared/components/engine/ziwei/ZiweiChartPanel.vue'
+import ZiweiDaXianPanel from '@shared/components/engine/ziwei/ZiweiDaXianPanel.vue'
+import ZiweiLiuNianPanel from '@shared/components/engine/ziwei/ZiweiLiuNianPanel.vue'
+import BazhaiChartPanel from '@shared/components/engine/fengshui/BazhaiChartPanel.vue'
 import { formatLongitude, type PlaceLocale } from '@shared/utils/placeDisplay'
 
 const props = defineProps<{ profile: BirthProfile; auto?: boolean }>()
@@ -217,33 +190,6 @@ const liuNianYear = ref(new Date().getFullYear())
 const liuNian = ref<ZiweiLiuNianData | null>(null)
 
 const anyResult = computed(() => !!(baziChart.value || ziwei.value || bazhai.value))
-
-const ZHI_POS: Record<string, string> = {
-  巳: 'grid-row:1;grid-column:1',
-  午: 'grid-row:1;grid-column:2',
-  未: 'grid-row:1;grid-column:3',
-  申: 'grid-row:1;grid-column:4',
-  辰: 'grid-row:2;grid-column:1',
-  酉: 'grid-row:2;grid-column:4',
-  卯: 'grid-row:3;grid-column:1',
-  戌: 'grid-row:3;grid-column:4',
-  寅: 'grid-row:4;grid-column:1',
-  丑: 'grid-row:4;grid-column:2',
-  子: 'grid-row:4;grid-column:3',
-  亥: 'grid-row:4;grid-column:4',
-}
-
-const liuNianPlaced = computed(() => {
-  const data = liuNian.value
-  if (!data?.gong_wei) return []
-  return data.gong_wei.map(g => ({
-    name: g.name,
-    zhi: g.zhi,
-    ming: !!g.is_liu_ming,
-    stars: g.xing_yao ?? [],
-    style: ZHI_POS[g.zhi ?? ''] ?? '',
-  }))
-})
 
 function stageLabel(stage: string): string {
   return t(`profiles.chart.stage.${stage}`)

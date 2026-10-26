@@ -39,6 +39,27 @@
   "a11y": {
     "skipToContent": "跳到主要内容"
   },
+  "flow": {
+    "domainStrip": "解读领域",
+    "domainTitle": "选择领域",
+    "newConsultation": "开始新咨询",
+    "personTitle": "选择档案",
+    "noProfiles": "还没有档案",
+    "createProfile": "新建档案",
+    "manageProfiles": "管理全部档案",
+    "personEmpty": "选择档案",
+    "askPlaceholder": "直接提出你的问题",
+    "send": "发送",
+    "stop": "停止",
+    "restore": "回到进行中",
+    "close": "关闭",
+    "crossDomain": "这个问题更适合「{domain}」，请先切换领域。",
+    "huangliPending": "择日 / 黄历解读正在迁移到命理专家，暂时请继续使用旧入口。",
+    "documentLabel": "咨询记录",
+    "questionLabel": "问",
+    "answerLabel": "解读",
+    "newContent": "有新内容"
+  },
   "auth": {
     "brandTail": "命理",
     "headline": "从确定排盘，到专业解读。",
@@ -81,7 +102,8 @@
     "partnerKol": "KOL 合作",
     "partnerScout": "Scout 合作",
     "account": "账户设置",
-    "notFound": "页面不存在"
+    "notFound": "页面不存在",
+    "flow": "领域咨询"
   },
   "services": {
     "natal": {
@@ -145,6 +167,7 @@
       "dayRelation": "日辰",
       "lineNumber": "{number}爻",
       "changingLines": "变爻",
+      "moving": "动爻",
       "usefulGod": "用神",
       "hexagramText": "卦辞",
       "patterns": "格局",
@@ -415,12 +438,15 @@
       "nickname": "称呼",
       "nicknamePlaceholder": "如：妈妈 / 我本人",
       "gender": "性别",
+      "genderPlaceholder": "如：女",
       "birthDate": "出生日期",
       "selectDate": "选择日期",
       "timePlaceholder": "如 06:00",
       "birthPlace": "出生地（城市，用于真太阳时修正）",
       "birthPlacePlaceholder": "如：上海",
       "longitude": "经度",
+      "longitudeHint": "用于真太阳时校正；可手动填写",
+      "longitudeInvalid": "经度必须在 -180 到 180",
       "timezone": "IANA 时区",
       "timezonePlaceholder": "例如 Asia/Shanghai",
       "timezoneHint": "和出生地配套的法定时区",
@@ -1122,6 +1148,16 @@
       "retiredNotice": "该角色已退出日常合作。这里只保留历史佣金结算能力，不提供工作台和招募数据。",
       "balance": "{currency} 可结算余额",
       "dialogTitle": "{role}提现"
+    }
+  },
+  "artifact": {
+    "documentLabel": "咨询记录",
+    "toggleHint": "展开或收起确定性图表",
+    "unavailable": "该图表暂不可用",
+    "state": {
+      "ready": "可查看",
+      "pending-backend": "等待后端契约",
+      "unavailable": "暂不可用"
     }
   }
 }

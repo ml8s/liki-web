@@ -36,7 +36,7 @@ async function mockNamingEngine(page: Page) {
   return calls
 }
 
-test('工具岛：用神/喜忌按共享组件渲染，低置信度显示复核提示', async ({ page }) => {
+test('工具岛：用神/喜忌按 BaziYongShenPanel 渲染，低置信度显示复核提示', async ({ page }) => {
   await mockPageview(page);
   const engineCalls = await mockNamingEngine(page);
   await mockEngineTool(page, 'bazi_yongshen', yongShenReview);
@@ -50,8 +50,9 @@ test('工具岛：用神/喜忌按共享组件渲染，低置信度显示复核�
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.ys-value')).toHaveText('—');
-  await expect(tool.locator('.ys-review')).toContainText('复核');
+  const yongShenPanel = tool.locator('.engine-yongshen');
+  await expect(yongShenPanel.locator('.ys-value')).toHaveText('—');
+  await expect(yongShenPanel.locator('.ys-review')).toContainText('复核');
   await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=naming/);
   expect(engineCalls.find(call => call.tool === 'bazi_chart')?.arguments).toEqual({
     instant: '1990-05-11T23:30:00Z', timezone: 'Asia/Shanghai',
@@ -60,7 +61,7 @@ test('工具岛：用神/喜忌按共享组件渲染，低置信度显示复核�
   })
 });
 
-test('工具岛：正常盘渲染喜/忌五行', async ({ page }) => {
+test('工具岛：正常盘按 BaziYongShenPanel 渲染喜/忌五行', async ({ page }) => {
   await mockPageview(page);
   const engineCalls = await mockNamingEngine(page);
   await mockEngineTool(page, 'bazi_yongshen', yongShen);
@@ -74,10 +75,11 @@ test('工具岛：正常盘渲染喜/忌五行', async ({ page }) => {
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.ys-value')).toHaveText('木');
-  await expect(tool.locator('.ys-chip.good')).toHaveCount(2);
-  await expect(tool.locator('.ys-chip.bad')).toHaveCount(1);
-  await expect(tool.locator('.ys-review')).toHaveCount(0);
+  const yongShenPanel = tool.locator('.engine-yongshen');
+  await expect(yongShenPanel.locator('.ys-value')).toHaveText('木');
+  await expect(yongShenPanel.locator('.ys-chip.good')).toHaveCount(2);
+  await expect(yongShenPanel.locator('.ys-chip.bad')).toHaveCount(1);
+  await expect(yongShenPanel.locator('.ys-review')).toHaveCount(0);
   expect(engineCalls.find(call => call.tool === 'bazi_chart')?.arguments).toEqual({
     instant: '1990-05-11T23:30:00Z', timezone: 'Asia/Shanghai',
     longitude: 121.4726,

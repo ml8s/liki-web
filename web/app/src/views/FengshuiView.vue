@@ -81,10 +81,9 @@
             </el-button>
           </div>
         </template>
-        <MingGuaSection :bazhai="bazhai" />
-        <LiuNianFlySection
-          v-if="bazhai.liu_nian_xing"
-          :liu-nian="bazhai.liu_nian_xing"
+        <BazhaiChartPanel
+          :result="bazhai"
+          :layout="layoutResult"
         />
       </el-card>
 
@@ -101,10 +100,15 @@
           :value="fengshuiLayout"
           @update:patch="patchFengshuiLayout"
         />
-        <XuankongPanel
+        <div
           v-loading="xuankongLoading"
-          :chart="xuankong"
-        />
+          class="fx-result-slot"
+        >
+          <XuankongChartPanel
+            v-if="xuankong"
+            :result="xuankong"
+          />
+        </div>
       </el-card>
 
       <el-card
@@ -116,11 +120,15 @@
             {{ $t('services.fengshui.layoutTitle') }}
           </h2>
         </template>
-        <BazhaiLayoutPanel
+        <div
           v-loading="layoutLoading"
-          :layout="layoutResult"
-          :bazhai="bazhai"
-        />
+          class="fx-result-slot"
+        >
+          <BazhaiLayoutPanel
+            v-if="layoutResult"
+            :result="layoutResult"
+          />
+        </div>
       </el-card>
 
       <AppConsultationCard
@@ -167,10 +175,9 @@ import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
-import MingGuaSection from '@shared/components/charts/MingGuaSection.vue'
-import LiuNianFlySection from '@shared/components/charts/LiuNianFlySection.vue'
-import XuankongPanel from '@shared/components/charts/XuankongPanel.vue'
-import BazhaiLayoutPanel from '@shared/components/charts/BazhaiLayoutPanel.vue'
+import BazhaiChartPanel from '@shared/components/engine/fengshui/BazhaiChartPanel.vue'
+import BazhaiLayoutPanel from '@shared/components/engine/fengshui/BazhaiLayoutPanel.vue'
+import XuankongChartPanel from '@shared/components/engine/fengshui/XuankongChartPanel.vue'
 import FengshuiLayoutFields from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 import type { ConsultationContext } from '@shared/domain/consultation'
 import { consumeConsultationHandoff } from '@shared/utils/handoff'
@@ -362,4 +369,5 @@ function startChat() {
 <style scoped>
 .fx-controls { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3); }
 .fx-select { width: 9rem; }
+.fx-result-slot { min-height: 1rem; }
 </style>
