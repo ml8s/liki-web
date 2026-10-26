@@ -170,10 +170,20 @@ natal expert.
 
 ### 2.4.1 Frontend-only `LegacyIntentBridge`
 
-The current chat API still requires one of seven immutable `skill` values and
-a matching expert at session creation. P1/P2 therefore include a small,
-temporary, deterministic compatibility adapter. It maps only the four visible
-domains and their clean legacy seeds; it does not classify free-form text.
+Contract correction: the backend now has four experts — `natal`,
+`divination`, `fengshui`, and `naming`. It does **not** have seven product
+skills. Session creation also accepts seven consultation context scenarios;
+they are structured context types for tools such as annual readings,
+compatibility, casting, date selection, layout, and naming. The adapter name
+`LegacyIntentBridge` is therefore historical; a later cleanup should rename it
+to something such as `ConsultationContextResolver`.
+
+At session creation, the chat API accepts an expert or a consultation context
+scenario and derives the matching expert server-side. The frontend keeps a
+small, deterministic compatibility adapter so old marketing seeds and focused
+forms can create the right expert/session/context combination. It maps only
+the four visible domains and their explicit scenario seeds; it does not
+classify free-form text.
 
 | Visible domain | Bridge result | Current expert |
 | --- | --- | --- |
@@ -187,33 +197,36 @@ Bridge rules:
 - An explicit seed or focused-form result is authoritative. If it belongs to
   another domain, the bridge returns `cross-domain`; it never reroutes silently.
 - Without an explicit seed, a new session uses the selected domain's base
-  skill.
+  scenario and matching expert.
 - `huangli` is not a bridge-eligible skill during the frontend-only phase,
   because its current `divination` expert would contradict the visible 命理
   domain. Existing huangli sessions remain viewable/restorable, but new
   personalized date selection waits for the backend migration.
-- The bridge runs only when a new legacy session must be created.
+- The bridge runs only when a new session must be created.
 - Follow-ups continue the visible session; they do not silently rebind or split
   it. This favors conversational continuity during the frontend-only phase and
-  is removed after domain-level sessions exist.
+  is simplified only after the compatibility seed vocabulary and old session
+  restore paths can be retired.
 - The bridge logs resolved seed, domain, and reason for instrumentation, but
   does not expose those values as UI state.
 
 ### 2.4.2 Target backend model, deferred
 
-The later backend phase replaces immutable seven-scenario session skills with
-four domain skills. A session binds to `(person, domain, expert)`. Per-turn
-intent may later select tools/artifacts only after that clean model exists.
-That phase also moves `huangli` from the `divination` expert to `natal`,
-because personalized date selection requires the natal chart, dayun, liunian,
-and liuri artifacts.
+The backend already has four domain experts, but its consultation context
+contract still retains seven scenario types and maps `huangli` to
+`divination`. The later backend phase should preserve the four-domain expert
+model while simplifying scenario ownership and context selection. A session
+already binds to an expert; later model work can make the domain-owned context
+boundary explicit. It must also move `huangli` from the `divination` expert to
+`natal`, because personalized date selection requires the natal chart, dayun,
+liunian, and liuri artifacts.
 
 | Parameter | Frontend-only role | Target role |
 | --- | --- | --- |
 | person | `session.profile_id`, optional | unchanged |
-| domain | visible practice domain and draft key | immutable `session.skill` |
-| intent | explicit marketing seed or focused-form result only | per-turn semantic label; never a navigation level or frontend classifier |
-| expert | derived from legacy skill | domain deployment (`natal`, `divination`, `fengshui`, `naming`) |
+| domain | visible practice domain and draft key | immutable session expert/domain plus domain-owned context ownership |
+| intent | explicit marketing seed or focused-form result only | consultation context scenario; later a per-turn tool/artifact label, never a navigation level or frontend classifier |
+| expert | derived server-side from the consultation context scenario | domain deployment (`natal`, `divination`, `fengshui`, `naming`) |
 
 Visible domain switching starts or restores another domain session. Person
 switching changes the view and never rebinds a session.
@@ -670,7 +683,7 @@ The implementation is component-first and deliberately boring:
 | `PersonSwitchSheet` / `DomainChooserSheet` | reusable bottom-sheet controls; dispatch selection events only |
 | `ArtifactCapsule` / `ArtifactSurface` | progressive disclosure and domain-scoped artifact state; no session mutation |
 | `DomainSlotForm` | orchestrates existing shared form primitives and emits a typed result payload |
-| `LegacyIntentBridge` | isolated adapter from visible person/domain/question to the current seven-skill API; no UI coupling |
+| `LegacyIntentBridge` | isolated adapter from visible person/domain/question to the current four-expert/session-context API; no UI coupling |
 
 Rules:
 
@@ -1547,7 +1560,7 @@ The first consultation integration is deliberately limited to one vertical slice
 
 This slice does not yet absorb tool forms, add composite date artifacts, or
 replace the chat list. It proves the visible domain model and session lifecycle
-with the current seven-skill API.
+with the current four-expert/session-context API.
 
 #### Phase 2 completion slice
 
@@ -2169,7 +2182,8 @@ Cleanup items:
 - Remove duplicated form/chart projections.
 - Remove dead locale keys and CSS.
 - Remove temporary feature branches/flags after stability.
-- Keep `LegacyIntentBridge` until backend domain consolidation completes.
+- Keep the consultation context resolver until `huangli` ownership migrates
+  to `natal` and compatibility seeds are retired.
 
 Final acceptance:
 
@@ -2179,18 +2193,21 @@ Final acceptance:
 - Documentation (`ux-architecture.md`, route docs, component docs) matches the
   implementation.
 
-### 6.8 Deferred backend phase — true domain sessions
+### 6.8 Deferred backend phase — domain-owned consultation contexts
 
-The frontend-only bridge remains temporary. The later backend phase:
+The frontend compatibility resolver remains temporary. The later backend
+phase:
 
-- Replaces seven immutable scenario skills with four domain skills.
-- Binds sessions to `(person, domain, expert)`.
+- Keeps four domain experts and clarifies domain-owned consultation contexts.
+- Keeps sessions bound to `(person, domain/expert)` while simplifying the
+  scenario vocabulary and ownership rules.
 - Infers intent per turn for tool/artifact selection.
 - Moves `huangli` from the `divination` expert to `natal`.
 - Extends natal expert capabilities for 黄历 + Bazi 流日 + Ziwei 流日.
 - Extends durable consultation context for personalized date selection.
 - Migrates legacy sessions by domain.
-- Retires `LegacyIntentBridge`.
+- Retires or renames the compatibility resolver once old seeds and restore
+  paths no longer require it.
 
 Until that phase ships, the frontend must not fake domain-level session
 rebinding. Follow-ups continue the visible session; only an explicit new
@@ -2201,7 +2218,7 @@ consultation may create another legacy session.
 | Risk | Control |
 | --- | --- |
 | Hidden text classifier creates unpredictable expert routing | The frontend has no text classifier; routing is domain base plus explicit seed/form only |
-| Same visible domain needs multiple legacy sessions | Continue the visible session; no silent split; measure and design backend domain sessions |
+| Same visible domain needs multiple legacy sessions | Continue the visible session; no silent split; measure and design domain-owned consultation contexts |
 | Mobile viewport regressions | 320px budget tests, keyboard E2E, one-scroll-owner contract |
 | Route/payment regressions | Generated route contracts and redirect map before removing old paths |
 | Accessibility regressions | APG patterns, focus restore, axe E2E, keyboard-only journeys |

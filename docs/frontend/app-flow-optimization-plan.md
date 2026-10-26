@@ -11,8 +11,12 @@ The current branch keeps two intentional experiences:
 
 - Consultation is the flagged four-domain product surface:
   `natal`, `divination`, `fengshui`, and `naming`.
+- The backend already has four matching experts. It also retains seven
+  consultation context scenarios for structured tool input; these are context
+  types, not seven product skills.
 - Classic is the rollback and compatibility surface. It remains intact until
-  the backend supplies true domain sessions and the rollout is stable.
+  rollout is stable and `huangli` context ownership is migrated from
+  `divination` to `natal`.
 
 The current gate baseline is:
 
@@ -27,7 +31,8 @@ The current gate baseline is:
 Constraints for every follow-up:
 
 1. Do not add a fifth consultation domain.
-2. Do not delete Classic, `LegacyIntentBridge`, or compatibility routes yet.
+2. Do not delete Classic, the consultation context resolver currently named
+   `LegacyIntentBridge`, or compatibility routes yet.
 3. Do not pretend `huangli` / personalized date selection has migrated; its
    natal-expert migration is a backend contract.
 4. Put reusable behavior in shared components, composables, tokens, or
