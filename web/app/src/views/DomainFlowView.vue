@@ -38,6 +38,13 @@
         >
           {{ draftNotice }}
         </AppLiveRegion>
+        <AppLiveRegion
+          v-if="statusNotice"
+          class="flow-status-notice"
+          screen-only
+        >
+          {{ statusNotice }}
+        </AppLiveRegion>
         <AppStatusAlert
           v-if="sales.paymentMessage"
           class="flow-error"
@@ -335,6 +342,16 @@ const submit = useConsultationSubmit({
 })
 const isSubmitting = submit.isSubmitting
 
+const statusNotice = ref('')
+let statusNoticeTimer = 0
+function announceStatus(message: string) {
+  statusNotice.value = message
+  window.clearTimeout(statusNoticeTimer)
+  statusNoticeTimer = window.setTimeout(() => {
+    statusNotice.value = ''
+  }, 4000)
+}
+
 const personSheetOpen = ref(false)
 const domainSheetOpen = ref(false)
 const consultationError = ref('')
@@ -397,6 +414,7 @@ const {
   onError: message => {
     consultationError.value = message
   },
+  onNotice: announceStatus,
 })
 const domainLabel = computed(() => t(flow.currentDomain.labelKey))
 const profilePolicy = computed(() => flow.currentDomain.profilePolicy)
@@ -746,6 +764,13 @@ watch(nearBottom, (value) => {
 
 watch(workspaceFailure, (failure) => {
   if (failure) telemetry.trackFailure(flow.domainId, failure)
+})
+
+// Artifact computation completes in the background (deterministic engines or
+// session context projection); announce readiness so screen-reader users know
+// a reference capsule appeared without scanning the dock.
+watch(() => artifacts.value.filter(artifact => artifact.state === 'ready').length, (count, previous) => {
+  if (count > (previous ?? 0)) announceStatus(t('flow.artifactReady'))
 })
 
 watch(primaryError, async (value) => {

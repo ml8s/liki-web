@@ -30,6 +30,9 @@ export interface ConsultationToolOptions {
   personLabel: MaybeRefOrGetter<string>
   /** Tool adapters own technical messages; the view decides where to show them. */
   onError: (message: string) => void
+  /** Transient positive confirmations (e.g. record saved); the view renders
+   *  them through a polite live region. */
+  onNotice?: (message: string) => void
 }
 
 /**
@@ -159,7 +162,7 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     const input = hepanInput.value
     const profile = selectedProfile.value
     if (!hepanResult.value || !input || !profile) return
-    void saveBondRecord(
+    void saveBondRecordAndAnnounce(
       t('records.titleBond', { a: personLabel.value, b: input.secondBirth.date }),
       {
         profile_id: profile.id,
@@ -208,7 +211,7 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     const input = fengshuiInput.value
     const profile = selectedProfile.value
     if (!fengshuiResult.value || !input || !profile) return
-    void saveBazhaiRecord(
+    void saveBazhaiRecordAndAnnounce(
       t('records.titleBazhai', { nickname: personLabel.value }),
       {
         profile_id: profile.id,
@@ -216,6 +219,23 @@ export function useConsultationTools(options: ConsultationToolOptions) {
       },
     )
   }
+
+  /** Explicit saves report both outcomes; auto-saves report failures only. */
+  async function saveRecordAndAnnounce(
+    save: (title: string, input: unknown, output?: unknown) => Promise<boolean>,
+    title: string,
+    input: unknown,
+    output?: unknown,
+  ) {
+    const saved = await save(title, input, output)
+    if (saved) options.onNotice?.(t('flow.recordSaved'))
+    else options.onError(t('records.saveFailed'))
+  }
+
+  const saveBondRecordAndAnnounce = (title: string, input: unknown) =>
+    saveRecordAndAnnounce(saveBondRecord, title, input)
+  const saveBazhaiRecordAndAnnounce = (title: string, input: unknown) =>
+    saveRecordAndAnnounce(saveBazhaiRecord, title, input)
 
   async function computeNaming() {
     if (namingLoading.value) return
@@ -274,7 +294,9 @@ export function useConsultationTools(options: ConsultationToolOptions) {
           location,
         },
         nextChart as unknown as Record<string, unknown>,
-      )
+      ).then(saved => {
+        if (!saved) options.onError(t('records.saveFailed'))
+      })
     } catch (error) {
       castingError.value = toUserMessage(error, t('services.divination.failed'))
     } finally {

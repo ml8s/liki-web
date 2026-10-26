@@ -26,12 +26,14 @@ export function useToolRecords(kind: RecordKind) {
     }
   }
 
-  async function save(title: string, input: unknown, output?: unknown) {
+  async function save(title: string, input: unknown, output?: unknown): Promise<boolean> {
     try {
       const record = await createRecord(kind, title, input, output)
       records.value = [record, ...records.value]
+      return true
     } catch (err) {
       error.value = toUserMessage(err, t('records.saveFailed'))
+      return false
     }
   }
 

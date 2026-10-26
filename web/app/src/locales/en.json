@@ -82,7 +82,9 @@
       "server": "The service is temporarily unavailable. Try again later."
     },
     "documentEmpty": "No reading yet",
-    "documentEmptyHint": "Type your question below to start this consultation."
+    "documentEmptyHint": "Type your question below to start this consultation.",
+    "recordSaved": "Saved to your records.",
+    "artifactReady": "Your reading is ready — see it below."
   },
   "auth": {
     "brandTail": "Metaphysics",

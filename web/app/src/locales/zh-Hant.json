@@ -82,7 +82,9 @@
       "server": "服務暫時不可用。請稍後重試。"
     },
     "documentEmpty": "尚無諮詢內容",
-    "documentEmptyHint": "在下方輸入你的問題，開始本次解讀。"
+    "documentEmptyHint": "在下方輸入你的問題，開始本次解讀。",
+    "recordSaved": "已保存到紀錄。",
+    "artifactReady": "解讀已生成，可在下方查看。"
   },
   "auth": {
     "brandTail": "命理",
