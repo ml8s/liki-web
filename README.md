@@ -22,15 +22,13 @@ liki engine  /  liki-agent-runtime  /  payment providers
 | --- | --- |
 | `liki-web` | Product BFF, platform identity, profiles, commerce, entitlements, Liki Chat |
 | `liki` | deterministic engine, skills, Engine MCP, Counsel MCP source |
-| `liki-agent-runtime` | generic agent runtime, AG-UI/A2A protocol adapters, execution audit |
+| `agent-runtime` | generic agent runtime, AG-UI/A2A protocol adapters, execution audit |
 | `liki-deploy` | local images, Compose, Caddy, deploy and rollback |
 
-Liki Chat has two transports: the BFF relay (`/api/chat/sessions/<id>/ag-ui`)
-and, behind the build-time `VITE_CHAT_TRANSPORT=direct` flag, a direct route
-(`/rt/<profile>/ag-ui`) where Caddy performs ForwardAuth introspection and the
-runtime connection is mutual TLS. Direct runs persist history through the
-signed run-completed callback. See `liki-deploy`'s
-`docs/DIRECT_CONNECT.md`; the relay remains the rollback lever until P5b.
+Liki Chat uses one production transport: the BFF endpoint
+(`/api/chat/sessions/<id>/ag-ui`). The BFF authenticates and authorizes the
+caller, applies product context and entitlements, invokes the runtime, owns
+product persistence, and consumes the standard AG-UI terminal events.
 
 ## Quick start
 
@@ -93,7 +91,6 @@ automated gate.
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
 | `LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | AG-UI runtime per expert deployment (`LIKI_AGENTS_URL` = dev fallback) |
 | `LIKI_AGENTS_OPS_PORT` | Expert ops surface port (`/readyz` / `/version` / `/metrics`) used by readiness probes |
-| `LIKI_RUN_CALLBACK_SECRET` | Run-completed callback secret (Standard Webhooks); required once the direct transport is deployed — direct history is written by this callback |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
 | `LIKI_BILLING_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
 | `LIKI_METRICS_TOKEN` | Protects the internal metrics endpoint |

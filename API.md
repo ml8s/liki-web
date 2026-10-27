@@ -220,12 +220,12 @@ Paid chat operations recheck entitlement server-side.
 | PATCH | `/api/chat/sessions/{id}` | owner | Rename session (title, 1-60 chars) |
 | DELETE | `/api/chat/sessions/{id}` | owner | Soft-delete session |
 | GET | `/api/chat/sessions/{id}/messages` | owner + entitled | Read messages (cursor paging: `?before=&limit=`; response `{messages, next_cursor}`) |
-| POST | `/api/chat/sessions/{id}/ag-ui` | owner + entitled | AG-UI/SSE generation (relay) |
+| POST | `/api/chat/sessions/{id}/ag-ui` | owner + entitled | AG-UI/SSE generation through the BFF |
 
-The direct transport (`/rt/<profile>/ag-ui`) is not a liki-web route: Caddy
-reaches the runtime directly after calling `/api/internal/introspect`, and the
-runtime posts `/api/internal/runs/completed` back. Both internal endpoints are
-404 on the public path; see liki-deploy's `docs/DIRECT_CONNECT.md`.
+Product chat traffic does not call the runtime directly. The BFF is the sole
+runtime caller for browser sessions: it owns authentication, entitlement,
+session lookup, authoritative history, product persistence, and consumption of
+the standard AG-UI terminal events.
 
 Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
 
@@ -239,7 +239,7 @@ versioned context preserves the exact tool facts required to continue a paid
 consultation. It is persisted as a required JSON object in a session-owned
 consultation-context row, returned only by the session detail endpoint (not the
 list projection), placed under
-`forwardedProps.consultation_context` by both transports, and cleared by
+`forwardedProps.consultation_context` by the BFF runtime call, and cleared by
 account erasure. Invalid or unknown context shapes return HTTP 400 with
 `invalid_consultation_context` or `invalid_request`, respectively.
 
@@ -260,14 +260,14 @@ casting receipt. Feng Shui public-handoff facts use `birth_year` and `gender`
 only as a pair. Beyond unknown members, the object rejects invalid calendar
 dates/times, invalid longitude or IANA timezone, incomplete or internally
 inconsistent casting receipts, unsupported versions, and contexts that do not
-route to the selected expert. A persisted context is revalidated before relay
+route to the selected expert. A persisted context is revalidated before BFF
 generation, so corrupt tool state fails closed instead of becoming generic
 advice. Natural-language intent is never a substitute for these computation
 facts.
 
 ### AG-UI forwardedProps
 
-Both the relay runner and direct browser transport use one profile shape:
+The BFF runtime call uses one profile shape:
 
 ```json
 {
@@ -298,9 +298,8 @@ Both the relay runner and direct browser transport use one profile shape:
 }
 ```
 
-`profile` is present only for profile-bound sessions. The relay transport
-constructs it server-side from the owned profile; direct transport may send the
-same trusted shape after the browser loads it from `/api/birth-profiles/{id}`.
+`profile` is present only for profile-bound sessions. The BFF constructs it
+server-side from the owned profile.
 `location.place`, identity, contact details, notes, and database IDs are
 deliberately excluded. The only consent fact in this object is the required
 affirmative `third_party_consent` for He Pan.

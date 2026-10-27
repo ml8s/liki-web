@@ -19,7 +19,6 @@ import (
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/records"
-	"github.com/ml8s/liki-web/internal/runcontrol"
 	"github.com/ml8s/liki-web/internal/sales"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 
@@ -60,10 +59,6 @@ func TestHandleErasure(t *testing.T) {
 	notificationStore := payment.NewNotificationStore(db)
 	recordStore := records.NewStore(db)
 	if err := recordStore.Migrate(ctx); err != nil {
-		t.Fatal(err)
-	}
-	runRecordStore := runcontrol.NewStore(db)
-	if err := runRecordStore.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
 	referralDBPath := filepath.Join(t.TempDir(), "referral.db")
@@ -154,20 +149,6 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if err != nil {
 		t.Fatal(err)
 	}
-	runInserted, err := runRecordStore.InsertRun(ctx, runcontrol.RunRecord{
-		RunID:      "run_1",
-		UserID:     "user_1",
-		ThreadID:   session.ID,
-		Profile:    chat.ExpertNatal,
-		Status:     "completed",
-		Answer:     "这是需要清除的 AI 回答",
-		StartedAt:  time.Now().UTC().Add(-time.Minute),
-		FinishedAt: time.Now().UTC(),
-	})
-	if err != nil || !runInserted {
-		t.Fatalf("InsertRun() inserted=%v err=%v", runInserted, err)
-	}
-
 	handler := NewHandler(profileStore, chatStore, authStore,
 		orderStore, entitlementStore, paymentStore, notificationStore,
 		referralStore, nil, nil,
@@ -179,7 +160,6 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 			}
 		})
 	handler.SetToolRecordEraser(recordStore)
-	handler.SetRunRecordEraser(runRecordStore)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/account/erasure", nil)
 	w := httptest.NewRecorder()
@@ -207,7 +187,7 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	}
 	if resp.Data.Status != "erased" || resp.Data.ProfilesCleared != 1 || resp.Data.MessagesCleared != 2 ||
 		resp.Data.AuthIdentitiesCleared != 1 || resp.Data.AuthSessionsCleared != 1 || resp.Data.AuthCodesCleared != 1 ||
-		resp.Data.PartnerFinanceTasks != 0 || resp.Data.Domains["tool_records"] != 1 || resp.Data.Domains["run_records"] != 1 {
+		resp.Data.PartnerFinanceTasks != 0 || resp.Data.Domains["tool_records"] != 1 {
 		t.Fatalf("bad erasure result: %+v", resp.Data)
 	}
 
@@ -240,14 +220,6 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 	if erasedInput != "{}" || erasedOutput != nil {
 		t.Fatalf("tool record PII not cleared: input=%q output=%v", erasedInput, erasedOutput)
 	}
-	var runAnswer string
-	if err := db.QueryRowContext(ctx, `SELECT answer FROM run_records WHERE run_id='run_1'`).Scan(&runAnswer); err != nil {
-		t.Fatal(err)
-	}
-	if runAnswer != "" {
-		t.Fatalf("run answer not cleared: %q", runAnswer)
-	}
-
 	var email, status string
 	if err := db.QueryRowContext(ctx, `SELECT email,status FROM users WHERE id='user_1'`).Scan(&email, &status); err != nil {
 		t.Fatal(err)

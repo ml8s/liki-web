@@ -157,5 +157,15 @@ WHERE expert='' AND status='active' AND deleted_at IS NULL
 				return err
 			},
 		},
+		{
+			// Runtime callbacks and the direct browser transport are retired.
+			// Product messages are authoritative, so this legacy callback table
+			// is removed rather than kept as a hidden second source of truth.
+			ID: "chat_010_drop_legacy_run_records",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				_, err := tx.ExecContext(ctx, `DROP TABLE IF EXISTS run_records`)
+				return err
+			},
+		},
 	})
 }

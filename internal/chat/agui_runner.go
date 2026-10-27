@@ -31,6 +31,21 @@ type AgentRunnerConfig struct {
 	Locale  string
 }
 
+// RunUsage is the generic token/call accounting exposed by AG-UI.
+type RunUsage struct {
+	LLMCalls         int `json:"llm_calls"`
+	PromptTokens     int `json:"prompt_tokens"`
+	CompletionTokens int `json:"completion_tokens"`
+	ThoughtTokens    int `json:"thought_tokens"`
+}
+
+// ExecutionResult carries the authoritative answer and protocol accounting.
+type ExecutionResult struct {
+	Messages []llm.Message
+	RunID    string
+	Usage    RunUsage
+}
+
 // AgentRunner adapts liki-web's existing chat Runner interface to liki-agent's
 // official AG-UI SSE protocol. It owns no prompts, tools, product database, or
 // entitlement policy: those remain behind the liki-web BFF boundary.
@@ -76,26 +91,27 @@ func (r *AgentRunner) Execute(
 	ctx context.Context,
 	msgs []llm.Message,
 	onEvent func(agent.ChatEvent),
-) ([]llm.Message, error) {
+) (ExecutionResult, error) {
 	binding, _ := sessionBindingFrom(ctx)
 	locale := chatLocaleFrom(ctx)
 	if locale == "" {
 		locale = r.config.Locale
 	}
-	input, err := r.newRunInput(msgs, binding, locale)
+	runID := uuid.NewString()
+	input, err := r.newRunInput(msgs, binding, locale, runID)
 	if err != nil {
-		return nil, err
+		return ExecutionResult{}, err
 	}
 
 	frames, errorCh, err := r.client.Stream(aguiclient.StreamOptions{
 		Context: ctx,
 		Payload: input,
 		Headers: map[string]string{
-			"X-Liki-User-ID": binding.UserID,
+			"X-Agent-User-ID": binding.UserID,
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("liki: start agent run: %w", err)
+		return ExecutionResult{}, fmt.Errorf("liki: start agent run: %w", err)
 	}
 
 	state := agentRunState{}
@@ -107,14 +123,14 @@ func (r *AgentRunner) Execute(
 			Type aguievents.EventType `json:"type"`
 		}
 		if err := json.Unmarshal(frame.Data, &envelope); err != nil {
-			return nil, fmt.Errorf("liki: identify agent event: %w", err)
+			return ExecutionResult{}, fmt.Errorf("liki: identify agent event: %w", err)
 		}
 		event, decodeErr := r.decoder.DecodeEvent(string(envelope.Type), frame.Data)
 		if decodeErr != nil {
-			return nil, fmt.Errorf("liki: decode agent event: %w", decodeErr)
+			return ExecutionResult{}, fmt.Errorf("liki: decode agent event: %w", decodeErr)
 		}
 		if err := state.observe(event, onEvent); err != nil {
-			return nil, err
+			return ExecutionResult{}, err
 		}
 		if state.done {
 			break
@@ -122,26 +138,31 @@ func (r *AgentRunner) Execute(
 	}
 	// The official stream closes the error channel after the frame channel.
 	if streamErr := <-errorCh; streamErr != nil {
-		return nil, fmt.Errorf("liki: agent stream: %w", streamErr)
+		return ExecutionResult{}, fmt.Errorf("liki: agent stream: %w", streamErr)
 	}
 	if err := state.finalError(); err != nil {
-		return nil, err
+		return ExecutionResult{}, err
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return ExecutionResult{}, err
 	}
 
 	answer := strings.TrimSpace(state.answer)
 	if answer == "" {
-		return nil, fmt.Errorf("liki: agent returned no answer")
+		return ExecutionResult{}, fmt.Errorf("liki: agent returned no answer")
 	}
-	return []llm.Message{{Role: llm.RoleAssistant, Content: answer}}, nil
+	return ExecutionResult{
+		Messages: []llm.Message{{Role: llm.RoleAssistant, Content: answer}},
+		RunID:    input.RunID,
+		Usage:    state.usage,
+	}, nil
 }
 
 func (r *AgentRunner) newRunInput(
 	msgs []llm.Message,
 	binding sessionBinding,
 	locale string,
+	runID string,
 ) (aguitypes.RunAgentInput, error) {
 	threadID := binding.SessionID
 	if threadID == "" {
@@ -163,7 +184,7 @@ func (r *AgentRunner) newRunInput(
 	}
 	input := aguitypes.RunAgentInput{
 		ThreadID:       threadID,
-		RunID:          uuid.NewString(),
+		RunID:          runID,
 		Messages:       make([]aguitypes.Message, 0, len(msgs)),
 		ForwardedProps: forwardedProps,
 	}
@@ -200,6 +221,7 @@ type agentRunState struct {
 	answer   string
 	runError error
 	lastTool string
+	usage    RunUsage
 }
 
 func (s *agentRunState) observe(event aguievents.Event, onEvent func(agent.ChatEvent)) error {
@@ -230,6 +252,17 @@ func (s *agentRunState) observe(event aguievents.Event, onEvent func(agent.ChatE
 				return fmt.Errorf("liki: decode agent result: %w", err)
 			}
 			s.answer = result.Answer
+		}
+		if rawUsageMap, ok := ev.Result.(map[string]any); ok {
+			if rawUsage, ok := rawUsageMap["usage"]; ok {
+				raw, err := json.Marshal(rawUsage)
+				if err != nil {
+					return fmt.Errorf("liki: encode agent usage: %w", err)
+				}
+				if err := json.Unmarshal(raw, &s.usage); err != nil {
+					return fmt.Errorf("liki: decode agent usage: %w", err)
+				}
+			}
 		}
 		s.done = true
 	case *aguievents.RunErrorEvent:

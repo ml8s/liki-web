@@ -12,6 +12,7 @@ import (
 	aguitypes "github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/core/types"
 	aguisse "github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/encoding/sse"
 
+	"github.com/google/uuid"
 	"github.com/ml8s/liki-web/internal/agent"
 	"github.com/ml8s/liki-web/internal/llm"
 )
@@ -37,8 +38,8 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 		if got := r.Header.Get("Authorization"); got != "Bearer internal-secret" {
 			t.Errorf("Authorization = %q", got)
 		}
-		if got := r.Header.Get("X-Liki-User-ID"); got != "user-1" {
-			t.Errorf("X-Liki-User-ID = %q", got)
+		if got := r.Header.Get("X-Agent-User-ID"); got != "user-1" {
+			t.Errorf("X-Agent-User-ID = %q", got)
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Errorf("decode request: %v", err)
@@ -100,8 +101,11 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
-	if len(result) != 1 || result[0].Role != llm.RoleAssistant || result[0].Content != "权威答案" {
+	if len(result.Messages) != 1 || result.Messages[0].Role != llm.RoleAssistant || result.Messages[0].Content != "权威答案" {
 		t.Fatalf("result = %+v", result)
+	}
+	if result.RunID == "" {
+		t.Fatal("result.RunID is empty")
 	}
 
 	if request.ThreadID != "session-1" || request.RunID == "" {
@@ -200,6 +204,7 @@ func TestAgentRunnerUsesRequestLocale(t *testing.T) {
 		[]llm.Message{{Role: llm.RoleUser, Content: "hello"}},
 		sessionBinding{SessionID: "session-1"},
 		"en",
+		uuid.NewString(),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -222,6 +227,7 @@ func TestAgentRunnerDefaultsToProductFallbackLocale(t *testing.T) {
 		[]llm.Message{{Role: llm.RoleUser, Content: "hello"}},
 		sessionBinding{SessionID: "session-1"},
 		runner.config.Locale,
+		uuid.NewString(),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -236,8 +242,8 @@ type selectedRunner struct {
 	name string
 }
 
-func (r selectedRunner) Execute(context.Context, []llm.Message, func(agent.ChatEvent)) ([]llm.Message, error) {
-	return nil, nil
+func (r selectedRunner) Execute(context.Context, []llm.Message, func(agent.ChatEvent)) (ExecutionResult, error) {
+	return ExecutionResult{}, nil
 }
 func (r selectedRunner) Prompt() string { return r.name }
 

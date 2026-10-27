@@ -48,7 +48,7 @@ const chatExecutionTimeout = 600 * time.Second
 
 // Runner abstracts the LLM execution engine for one expert deployment.
 type Runner interface {
-	Execute(ctx context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) ([]llm.Message, error)
+	Execute(ctx context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) (ExecutionResult, error)
 }
 
 // Service orchestrates chat sessions with entitlement checks.
@@ -302,12 +302,12 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 
 	ctx, cancel := context.WithTimeout(ctx, chatExecutionTimeout)
 	defer cancel()
-	result, err := chatRunner.Execute(ctx, msgs, onEvent)
+	execution, err := chatRunner.Execute(ctx, msgs, onEvent)
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
 
-	response := assistantContent(result)
+	response := assistantContent(execution.Messages)
 	if response == "" {
 		return Message{}, Message{}, Session{}, errors.New("liki: agent returned no assistant response")
 	}

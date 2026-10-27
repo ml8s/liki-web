@@ -19,7 +19,6 @@ type Config struct {
 	AdminEmail                       string
 	MetricsToken                     string
 	FeedbackAPIKey                   string
-	RunCallbackSecret                string
 	ResendAPIKey                     string
 	ResendFrom                       string
 	DodoAPIKey                       string
@@ -60,7 +59,6 @@ func LoadConfig() Config {
 		AdminEmail:                       os.Getenv("LIKI_ADMIN_EMAIL"),
 		MetricsToken:                     os.Getenv("LIKI_METRICS_TOKEN"),
 		FeedbackAPIKey:                   os.Getenv("LIKI_FEEDBACK_API_TOKEN"),
-		RunCallbackSecret:                os.Getenv("LIKI_RUN_CALLBACK_SECRET"),
 		ResendAPIKey:                     os.Getenv("RESEND_API_KEY"),
 		ResendFrom:                       envOr("LIKI_EMAIL_FROM_ADDRESS", "Liki <report@liki.email>"),
 		DodoAPIKey:                       envOr("DODO_API_KEY", ""),

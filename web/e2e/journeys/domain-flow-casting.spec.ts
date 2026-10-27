@@ -188,7 +188,7 @@ test.describe('divination casting flow', () => {
 
     const runtimeCalls: string[] = []
     const runtimeBodies: JsonRecord[] = []
-    await page.route(/\/rt\/([^/]+)\/ag-ui$/, async route => {
+    await page.route('**/api/chat/sessions/chat_casting/ag-ui', async route => {
       runtimeCalls.push(route.request().url())
       runtimeBodies.push(route.request().postDataJSON() as JsonRecord)
       await route.fulfill({
@@ -252,21 +252,12 @@ test.describe('divination casting flow', () => {
     expect(creation.context.location).toEqual({ longitude: 121.4726, timezone: 'Asia/Shanghai' })
 
     expect(runtimeCalls).toHaveLength(1)
-    expect(runtimeCalls[0]).toContain('/rt/divination/ag-ui')
-    const forwardedProps = runtimeBodies[0]?.forwardedProps as {
-      consultation_context?: {
-        question?: string
-        casting?: { casting_id?: string }
-        casting_instant?: string
-        location?: { longitude?: number; timezone?: string }
-      }
-    }
-    expect(forwardedProps.consultation_context).toMatchObject({
-      question: castingQuestion,
-      casting: { casting_id: 'cast_flow' },
-      location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
-    })
-    expect(forwardedProps.consultation_context?.casting_instant).toMatch(castingInstantPattern)
+    expect(runtimeCalls[0]).toContain('/api/chat/sessions/chat_casting/ag-ui')
+    // The browser sends only protocol-safe input. The BFF revalidates persisted
+    // consultation context server-side, so raw casting facts must not leak here.
+    const forwardedProps = runtimeBodies[0]?.forwardedProps as { locale?: string }
+    expect(forwardedProps.locale).toBe('zh-Hans')
+    expect(runtimeBodies[0]).not.toHaveProperty('consultation_context')
   })
 
   test('uses a desktop sidecar for the deterministic divination artifact', async ({ page }) => {

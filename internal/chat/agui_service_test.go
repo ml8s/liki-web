@@ -17,7 +17,7 @@ import (
 
 type scriptedChatRunner struct {
 	prompt   string
-	result   []llm.Message
+	result   ExecutionResult
 	err      error
 	calls    int
 	lastMsgs []llm.Message
@@ -25,14 +25,14 @@ type scriptedChatRunner struct {
 
 func (r *scriptedChatRunner) Prompt() string { return r.prompt }
 
-func (r *scriptedChatRunner) Execute(_ context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) ([]llm.Message, error) {
+func (r *scriptedChatRunner) Execute(_ context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) (ExecutionResult, error) {
 	r.calls++
 	r.lastMsgs = msgs
 	if onEvent != nil {
 		onEvent(agent.ChatEvent{Type: agent.EventTextDelta, Content: "stream"})
 	}
 	if r.err != nil {
-		return nil, r.err
+		return ExecutionResult{}, r.err
 	}
 	return r.result, nil
 }
@@ -63,7 +63,7 @@ func newAgentModeTestService(t *testing.T) (*Service, *ChatStore, *scriptedChatR
 	}
 
 	service := NewService(chats, entitlements, profiles)
-	remote := &scriptedChatRunner{result: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}}}
+	remote := &scriptedChatRunner{result: ExecutionResult{Messages: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}}}}
 	service.SetAgentRunners(map[string]Runner{ExpertNatal: remote})
 	return service, chats, remote
 }

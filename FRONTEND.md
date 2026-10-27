@@ -163,8 +163,8 @@ with `consultation_context_v1`. The context is durable server-side state, not
 URL state or prose. It carries the minimum deterministic inputs and, for
 divination, the non-reproducible casting receipt and ritual instant. He Pan
 requires an explicit third-party consent control before computation and sends
-the affirmative domain fact with the second person's atomic birth facts. Both
-relay and direct transports forward the same context.
+the affirmative domain fact with the second person's atomic birth facts. The BFF
+forwards the authorized product context to the runtime.
 
 Public tools use the same-origin session-storage handoff for at most thirty
 minutes and never place personal facts in a URL. All seven scenarios carry the
@@ -193,15 +193,12 @@ Scenario entries remain available below the primary guidance.
 The Vue app uses the official AG-UI client against:
 
 ```text
-/api/chat/sessions/{id}/ag-ui        (relay, default)
-/rt/<profile>/ag-ui                  (direct, VITE_CHAT_TRANSPORT=direct)
+/api/chat/sessions/{id}/ag-ui        (BFF)
 ```
 
-The relay reaches `liki-agent-runtime` through the liki-web BFF. The direct transport
-is a build-time switch: Caddy (same origin) performs ForwardAuth introspection
-and a mutual-TLS upstream, and the client carries the conversation history and
-profile context because the runtime is stateless; history is persisted by the
-run-completed callback. Rollback = deploy the previous (relay) web image.
+The BFF reaches the runtime through the internal network. It owns authentication,
+entitlement, authoritative history, profile context, and product persistence;
+the runtime remains stateless with respect to product chat history.
 
 The app consumes product-safe events. Backend persistence only uses the authoritative terminal result. `RUN_ERROR` is surfaced as a generation error, not stored as a formal assistant message.
 

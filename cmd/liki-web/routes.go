@@ -89,7 +89,6 @@ func newHTTPHandler(wiring httpWiring) (http.Handler, *account.Handler) {
 	)
 	accountHandler.SetSubscriptionEraser(wiring.subscriptions)
 	accountHandler.SetToolRecordEraser(wiring.chats.Records)
-	accountHandler.SetRunRecordEraser(wiring.chats.RunRecords)
 
 	var subscriptionCheckout sales.SubscriptionCheckoutCreator
 	if wiring.config.DodoProductLikiChatSubscription != "" {
@@ -141,8 +140,6 @@ func newHTTPHandler(wiring httpWiring) (http.Handler, *account.Handler) {
 		AdminEmail:           wiring.config.AdminEmail,
 		AdminAuthorizer:      wiring.adminAuthorizer,
 		AuthUsers:            wiring.authStore,
-		SessionCookieName:    wiring.authConfig.CookieName,
-		RunCallbackHandler:   wiring.chats.RunCallbackHandler,
 		SalesStores:          sales.NewSalesStores(wiring.orders, wiring.subscriptions),
 		CompensationNotifier: wiring.payments.CompensationNotifier,
 		PartnerNotifier:      wiring.partnerNotifier,

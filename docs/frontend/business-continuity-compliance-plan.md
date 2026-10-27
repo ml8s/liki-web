@@ -3,6 +3,10 @@
 Status: implemented and verified on 2026-10-24  
 Written against: `677451d`
 
+Architecture update (2026-10-28): production chat is BFF-only. The former
+direct browser transport and runtime callback paths referenced by the original
+plan have been retired.
+
 ## Business invariants
 
 1. **Deterministic before AI.** A paid consultation that starts from a tool
@@ -10,8 +14,8 @@ Written against: `677451d`
    by that tool. Display labels such as `location.place` never replace
    longitude, timezone, and canonical instant.
 2. **One session, one authoritative context.** Context is attached to the
-   durable chat session and consumed by both relay and direct transports. It
-   is not reconstructed from prose, a URL, or browser-only memory.
+   durable chat session and consumed by the BFF. It is not reconstructed from
+   prose, a URL, or browser-only memory.
 3. **Fail closed on required facts.** If a profile-bound or tool-bound run
    cannot load its required context, generation stops with a retryable error.
 4. **Minimum necessary personal data.** Tool context contains only the facts
@@ -44,28 +48,28 @@ Acceptance:
 - resumable erasure records the new checkpoint;
 - a regression test covers He Pan's embedded second-person birth facts.
 
-### 1.2 Erase direct-run answers
+### 1.2 Erase generated answers
 
-Add a `runcontrol` erasure operation that clears `answer` and `error` while
-retaining pseudonymous metrics and run identifiers for operational audit. Add
-it as a durable erasure step named `run_records`.
+Keep the durable chat-message store as the only product answer store, and clear
+user-identifying answer content during account erasure. The later direct-run
+callback table was retired and removed by migration rather than kept as a
+hidden second source of truth.
 
 Acceptance:
 
-- direct-run answers cannot survive account erasure;
+- generated answers cannot survive account erasure;
 - usage counters and timestamps remain available for audit;
 - erasure response/test reports the cleared count.
 
-### 1.3 Make direct profile loading fail closed
+### 1.3 Make profile loading fail closed
 
-If the direct transport cannot load a required birth profile, abort the run and
-show a retryable error. Do not send a profile-less run for a profile-bound
-session.
+If the BFF cannot load a required birth profile, abort the run and show a
+retryable error. Do not send a profile-less run for a profile-bound session.
 
 Acceptance:
 
-- relay and direct both fail when required profile facts are unavailable;
-- no request is sent to `/rt/...` after profile lookup fails;
+- BFF generation fails when required profile facts are unavailable;
+- no runtime request is sent after profile lookup fails;
 - the UI offers retry rather than silently producing generic advice.
 
 ### 1.4 Enforce third-party consent
@@ -142,18 +146,14 @@ discriminated union, reject unknown members, and store it in
 without tool context has no row; the column is never nullable. Session reads
 return context only to the owner while entitled.
 
-Relay generation reads the persisted context and places it under:
+BFF generation reads the persisted context and places it under:
 
 ```json
 forwardedProps.consultation_context
 ```
 
-Direct generation fetches the same context from the session response before it
-calls `/rt/{expert}/ag-ui`.
-
 Acceptance:
 
-- relay and direct forwarded props are equivalent;
 - context survives refresh;
 - context is cleared by account erasure;
 - unknown, irrelevant, scenario-mismatched, incomplete, or

@@ -107,13 +107,10 @@ Vue App sends AG-UI to /api/chat/sessions/{id}/ag-ui
 → liki-web persists the authoritative final answer
 ```
 
-The relay above is the default transport and the rollback lever. A build-time
-`VITE_CHAT_TRANSPORT=direct` web image instead posts to `/rt/<profile>/ag-ui`:
-Caddy performs ForwardAuth introspection against liki-web
-(`/api/internal/introspect`) and opens a mutual-TLS connection to the runtime;
-the client carries the conversation history and profile context, and history is
-persisted by the signed run-completed callback
-(`/api/internal/runs/completed`). See liki-deploy's `docs/DIRECT_CONNECT.md`.
+The BFF above is the only production transport. It invokes the runtime over the
+internal network, forwards standard AG-UI events to the browser, and persists
+the authoritative terminal result. The runtime remains stateless with respect to
+product chat history.
 
 Product browser traffic talks either to `liki-web` (identity, entitlement,
 payment, profiles, chat) or directly to the MCP services over the same-origin
