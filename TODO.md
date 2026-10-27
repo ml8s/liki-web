@@ -88,9 +88,12 @@ The O5/O6 implementation slice is done; the remaining items in
       consume the same canonical panels and typed domain functions; the
       remaining per-view orchestration differs by design (see the O6
       appendix in `docs/frontend/o4-performance-audit.md`). Closed.
-- [ ] Deferred backend phase: domain-owned consultation contexts and the
-      `huangli` → `natal` expert migration (backend contract work; Classic
-      keeps serving `huangli` until then; it does not remove Classic).
+- [ ] Deferred backend phase: domain-owned consultation contexts and
+      date-selection ownership (backend contract work; see the 2026-10-27
+      update in `docs/frontend/section7-decisions.md` §8 — an expert proposal
+      argues for an independent 择日 agent instead of the original
+      `huangli` → `natal` migration; decision pending, status quo is safe and
+      nothing is blocked by waiting).
 
 ### Redesign plan section 7 (product/design decisions, not code)
 
@@ -107,8 +110,9 @@ not the current frontend batch.
 2. Keep Classic and the consultation context resolver until rollout evidence
    and the `huangli` ownership migration support cleanup.
 3. Keep `huangli` / personalized date selection explicitly pending backend;
-   do not map it to `natal` until the backend moves its scenario/expert
-   ownership.
+   do not map it to `natal` — and do not start a fifth-agent change — until
+   the date-selection product decision settles (see
+   `docs/frontend/section7-decisions.md` §8).
 4. Reuse existing components, tokens, composables, and libraries.
 5. Implement a whole batch first, run unified tests, then make one commit.
 6. Do not delete compatibility surfaces during O4.

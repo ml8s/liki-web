@@ -58,6 +58,22 @@ Reality: blocked by the backend — date selection and Bazi/Ziwei flow-day
 ownership have not migrated to `natal`. Recommendation: **keep pending**;
 resolved inside the deferred backend phase.
 
+**Update 2026-10-27 (supersedes the natal migration assumption):** an expert
+review proposes date selection as an **independent application agent** —
+like naming, a job-shaped expert — rather than a natal capability. The three
+options now on the table:
+
+| Option | Shape | Cost |
+| --- | --- | --- |
+| A — migrate to `natal` (original §6.8) | Natal expert absorbs 黄历 + 流日; 4-domain IA unchanged | Small frontend change; but natal becomes a catch-all and date selection's event/range input model fits its birth-chart-centric contract poorly |
+| B — independent 择日 agent (expert proposal) | Fifth expert with its own scenario, input slots (event, date range), and consultation contexts | Real contract change: backend expert registration + frontend domain registry/redirects/E2E "exactly four" assertions + locale + marketing handoff; generic 黄历 could be person-free while personalized 择日 binds `(person, domain)` like today |
+| C — status quo (pending-backend) | Explicit pending behavior already shipped and tested | Zero |
+
+Recommendation: **stay on C until the product decision settles**. Option B is
+architecturally credible (job-shaped experts, distinct input model) but is a
+cross-stack contract change that deserves its own design pass; Option A would
+bake in a structure that may be torn out. Nothing else is blocked by waiting.
+
 ## 9. Web contract exposure for `bazi_liuri` / `ziwei_liuri`
 
 Reality: not exposed in `web/shared/api/engine` (no liuri tools); depends on
