@@ -107,6 +107,18 @@ test('工具岛：命卦、飞星与布局按 engine catalog 渲染', async ({ p
 test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await mockPageview(page);
   await mockMcpToolError(page, '**/engine/mcp', 'bazhai_chart', 'engine_unavailable: boom');
+  // Xuankong is an independent resource in the island, so it must be declared
+  // even when the assertion is about the Bazhai failure.
+  await mockEngineTool(page, 'xuankong_chart', {
+    yun: { year: 2026, yuan: '下元', yun_number: 9, yun_name: '九运', start_year: 2024, end_year: 2043 },
+    gong_wei: [],
+    four_situation: {},
+    zuo_shan: 0,
+    zuo_shan_name: '子',
+    xiang_shan: 12,
+    xiang_shan_name: '午',
+    shou_shan_chu_sha: {},
+  });
   await page.goto('/en/fengshui/');
 
   const tool = page.locator('#fengshui-tool');
@@ -114,5 +126,5 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await tool.locator('.choice-card .el-radio-button').nth(1).click();
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

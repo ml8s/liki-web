@@ -5,8 +5,9 @@
 
 import { test, expect } from '../fixtures';
 import { I18N_KEY_RE } from '../helpers';
-import { mockCityCoords, mockPageview } from '../mocks';
+import { mockCityCoords, mockEngineTool, mockPageview } from '../mocks';
 import { fillBirthFields } from '../helpers';
+import { baziChart, baziFull, baziLiunian } from '../engine-fixtures';
 
 // 每个静态页首屏都会打一次 pageview 信标；声明成 204 空响应。
 // （信标本就是非必需的；CI 共享 localhost 客户端还可能撞上它的限流。）
@@ -142,13 +143,51 @@ test.describe('Static page interactions', () => {
     expect(cookies.find(({ name }) => name === 'liki_locale')).toMatchObject({ value: 'en' });
   });
 
-  test('free chart form stores an onboarding draft', async ({ page }) => {
+  test('homepage free-chart CTAs stay on the marketing site', async ({ page }) => {
+    await page.goto('/zh-Hans/')
+
+    await expect(page.locator('.landing-hero .landing-actions a').first())
+      .toHaveAttribute('href', '#chart-tool')
+    await expect(page.locator('.landing-cta a'))
+      .toHaveAttribute('href', '#chart-tool')
+
+    // 七个服务卡的“去体验”必须进入营销站免费工具，不得直接进 App。
+    const cardLinks = page.locator('#services .card > a')
+    await expect(cardLinks.first()).toHaveAttribute('href', '/zh-Hans/natal/#chart-tool')
+    const hrefs = await cardLinks.evaluateAll(nodes => nodes.map(node => node.getAttribute('href') ?? ''))
+    expect(hrefs.some(href => href.startsWith('/app'))).toBe(false)
+  })
+
+  test('free chart form renders charts and hands off only on the interpretation CTA', async ({ page }) => {
+    const palaces = ['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄', '迁移', '仆役', '官禄', '田宅', '福德', '父母']
+      .map((name, index) => ({
+        name,
+        index,
+        gan: '甲',
+        zhi: ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'][index],
+        xing_yao: [],
+      }));
+    const ziwei = {
+      gong_wei: palaces,
+      ju_shu: '火六局',
+      ming_gong: '命宫',
+      ming_zhu: '巨门',
+      shen_zhu: '文昌',
+      ziwei_pos: '命宫',
+      shen_gong: '命宫',
+      nian_gan: '庚',
+      nian_zhi: '午',
+      shi_zhi: '卯',
+      si_hua: {},
+    };
+
     await mockCityCoords(page, { name: '上海市', region: '上海市', longitude: 121.4726, latitude: 31.2304 });
-    await page.route('**/app/birth-profiles/new*', route => route.fulfill({
-      status: 200,
-      contentType: 'text/html',
-      body: '<!doctype html><html><title>New profile</title></html>',
-    }));
+    await mockEngineTool(page, 'bazi_chart', baziChart);
+    await mockEngineTool(page, 'bazi_fullchart', baziFull);
+    await mockEngineTool(page, 'bazi_liunian', baziLiunian);
+    await mockEngineTool(page, 'ziwei_chart', ziwei);
+    await mockEngineTool(page, 'ziwei_fullchart', ziwei);
+    await mockEngineTool(page, 'ziwei_daxian', []);
 
     await page.goto('/zh-Hans/');
     const tool = page.locator('#quick-birth-tool');
@@ -156,11 +195,20 @@ test.describe('Static page interactions', () => {
     await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
     await tool.locator('button[type=submit]').click();
 
-    await page.waitForURL('**/app/birth-profiles/new*');
+    // 免费排盘留在营销站完成；不跳 App。
+    await expect(tool.locator('.bazi-panel').first()).toBeVisible();
+    await expect(tool.locator('.ziwei-panel').first()).toBeVisible();
+    await expect(tool.locator('.tool-cta')).toBeVisible();
+    expect(page.url()).toContain('/zh-Hans/');
+
+    // 只有“解读”CTA 才交接给 App。
+    await tool.locator('.tool-cta').evaluate(element => element.removeAttribute('href'));
+    await tool.locator('.tool-cta').click();
+
     const raw = await page.evaluate(() => sessionStorage.getItem('liki:form-drafts') ?? '{}');
     const drafts = JSON.parse(raw) as Record<string, { data: Record<string, unknown>; createdAt: number }>;
-    const envelope = drafts['handoff:birth'];
-    expect(envelope?.data).toMatchObject({
+    const birth = drafts['handoff:birth'];
+    expect(birth?.data).toMatchObject({
       date: '2000-01-01',
       time: '12:00',
       gender: 'female',
@@ -171,7 +219,11 @@ test.describe('Static page interactions', () => {
         source: 'city',
       },
     });
-    expect(typeof envelope?.createdAt).toBe('number');
+    expect(typeof birth?.createdAt).toBe('number');
+    expect(drafts['handoff:consultation']?.data).toMatchObject({
+      version: 1,
+      scenario: 'natal',
+    });
   });
 });
 

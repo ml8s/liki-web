@@ -29,7 +29,7 @@ const topics = ['a', 'b', 'c'].map(k => ({
 const birthLabels = birthFieldLabels(locale);
 const toolProps = {
   locale,
-  appUrl: `/app?service=hepan&locale=${locale}`,
+  appUrl: `/app/birth-profiles/new?locale=${locale}`,
   labels: {
     ...birthLabels,
     personA: t(locale, 'hepan.tool.personA'),

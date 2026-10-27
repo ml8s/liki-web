@@ -46,24 +46,7 @@
       </p>
     </el-card>
 
-    <el-card
-      v-if="loading"
-      class="app-card app-card--highlight"
-      shadow="never"
-      aria-busy="true"
-    >
-      <template #header>
-        <h2 class="app-card__title">
-          {{ $t('services.fengshui.lifeGuaDirections') }}
-        </h2>
-      </template>
-      <el-skeleton
-        :rows="4"
-        animated
-      />
-    </el-card>
-
-    <template v-if="bazhai">
+    <template v-if="active">
       <el-card
         class="app-card app-card--highlight"
         shadow="never"
@@ -75,16 +58,28 @@
             </h2>
             <el-button
               size="small"
+              :disabled="!bazhai"
               @click="saveRecord"
             >
               {{ $t('records.save') }}
             </el-button>
           </div>
         </template>
-        <BazhaiChartPanel
-          :result="bazhai"
-          :layout="layoutResult"
-        />
+        <EngineQueryPanel
+          resource="fengshui.bazhai"
+          :input="bazhaiInput"
+          :load="loadBazhai"
+          :enabled="active"
+          :fallback="$t('services.fengshui.failed')"
+          @update:data="onBazhaiData"
+        >
+          <template #default="{ result }">
+            <BazhaiChartPanel
+              :result="result"
+              :layout="layoutResult"
+            />
+          </template>
+        </EngineQueryPanel>
       </el-card>
 
       <el-card
@@ -100,15 +95,17 @@
           :value="fengshuiLayout"
           @update:patch="patchFengshuiLayout"
         />
-        <div
-          v-loading="xuankongLoading"
-          class="fx-result-slot"
+        <EngineQueryPanel
+          resource="fengshui.xuankong"
+          :input="xuankongInput"
+          :load="loadXuankong"
+          :enabled="active"
+          :fallback="$t('services.fengshui.failed')"
         >
-          <XuankongChartPanel
-            v-if="xuankong"
-            :result="xuankong"
-          />
-        </div>
+          <template #default="{ result }">
+            <XuankongChartPanel :result="result" />
+          </template>
+        </EngineQueryPanel>
       </el-card>
 
       <el-card
@@ -120,15 +117,18 @@
             {{ $t('services.fengshui.layoutTitle') }}
           </h2>
         </template>
-        <div
-          v-loading="layoutLoading"
-          class="fx-result-slot"
+        <EngineQueryPanel
+          resource="fengshui.layout"
+          :input="layoutInput"
+          :load="loadLayout"
+          :enabled="!!layoutInput"
+          :fallback="$t('services.fengshui.failed')"
+          @update:data="onLayoutData"
         >
-          <BazhaiLayoutPanel
-            v-if="layoutResult"
-            :result="layoutResult"
-          />
-        </div>
+          <template #default="{ result }">
+            <BazhaiLayoutPanel :result="result" />
+          </template>
+        </EngineQueryPanel>
       </el-card>
 
       <AppConsultationCard
@@ -168,10 +168,10 @@ import { useRoute, useRouter } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
-import { bazhaiChartFor, bazhaiLayoutFor, xuankongChartFor, type BazhaiChart, type BazhaiLayout, type XuankongChart } from '@shared/domain/fengshui'
+import { bazhaiChartFor, bazhaiLayoutFor, xuankongChartFor, type BazhaiChart, type BazhaiLayout } from '@shared/domain/fengshui'
 import { useToolRecords } from '@/composables/useToolRecords'
-import { useGuardedTask } from '@/composables/useGuardedTask'
 import { birthYearFromDate } from '@shared/domain/birth'
+import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
@@ -211,13 +211,10 @@ watch(profileId, value => {
   void router.replace({ query })
 })
 const bazhai = ref<BazhaiChart | null>(null)
+const layoutResult = ref<BazhaiLayout | null>(null)
 const error = ref('')
-const previewTask = useGuardedTask({ report: message => { error.value = message } })
-const loading = previewTask.loading
 
 // 玄空飞星（坐山默认子山午向，立极日期默认今天）与八宅布局（门/主/灶三卦）。
-const xuankong = ref<XuankongChart | null>(null)
-const xuankongLoading = ref(false)
 const fengshuiLayout = reactive({
   zuoShan: 0,
   periodDate: new Date().toISOString().slice(0, 10),
@@ -233,42 +230,56 @@ if (publicConsultation?.scenario === 'fengshui' && publicConsultation.layout) {
   fengshuiLayout.masterGua = publicConsultation.layout.master_gua ?? ''
   fengshuiLayout.stoveGua = publicConsultation.layout.stove_gua ?? ''
 }
-const layoutResult = ref<BazhaiLayout | null>(null)
-const layoutLoading = ref(false)
-const layoutReady = computed(() => !!(bazhai.value && fengshuiLayout.doorGua && fengshuiLayout.masterGua && fengshuiLayout.stoveGua))
-
 type FengshuiLayoutPatch = Partial<typeof fengshuiLayout>
 function patchFengshuiLayout(patch: FengshuiLayoutPatch) {
   Object.assign(fengshuiLayout, patch)
-  if (patch.zuoShan !== undefined || patch.periodDate !== undefined) void loadXuankong()
-  if (patch.doorGua !== undefined || patch.masterGua !== undefined || patch.stoveGua !== undefined) void loadLayout()
-}
-
-async function loadXuankong() {
-  xuankongLoading.value = true
-  try {
-    xuankong.value = await xuankongChartFor(fengshuiLayout.periodDate, fengshuiLayout.zuoShan)
-  } catch {
-    xuankong.value = null
-  } finally {
-    xuankongLoading.value = false
-  }
-}
-
-async function loadLayout() {
-  const chart = bazhai.value
-  if (!layoutReady.value || !chart) return
-  layoutLoading.value = true
-  try {
-    layoutResult.value = await bazhaiLayoutFor(chart.ming_gua.gua.name, fengshuiLayout.doorGua, fengshuiLayout.masterGua, fengshuiLayout.stoveGua)
-  } catch {
-    layoutResult.value = null
-  } finally {
-    layoutLoading.value = false
-  }
 }
 
 const profile = computed(() => profiles.list.find(p => p.id === profileId.value) ?? null)
+const birthYear = computed(() => {
+  const date = profile.value?.birth.date
+  return date ? birthYearFromDate(date) : null
+})
+const active = computed(() => !!profile.value && birthYear.value !== null)
+const bazhaiInput = computed(() => active.value && profile.value && birthYear.value !== null
+  ? { birthYear: birthYear.value, gender: profile.value.birth.gender }
+  : null)
+const xuankongInput = computed(() => active.value
+  ? { periodDate: fengshuiLayout.periodDate, zuoShan: fengshuiLayout.zuoShan }
+  : null)
+const layoutInput = computed(() => {
+  const chart = bazhai.value
+  if (!chart || !fengshuiLayout.doorGua || !fengshuiLayout.masterGua || !fengshuiLayout.stoveGua) {
+    return null
+  }
+  return {
+    mingGua: chart.ming_gua.gua.name,
+    doorGua: fengshuiLayout.doorGua,
+    masterGua: fengshuiLayout.masterGua,
+    stoveGua: fengshuiLayout.stoveGua,
+  }
+})
+
+function loadBazhai(input: { birthYear: number; gender: string }) {
+  return bazhaiChartFor(input.birthYear, input.gender)
+}
+
+function loadXuankong(input: { periodDate: string; zuoShan: number }) {
+  return xuankongChartFor(input.periodDate, input.zuoShan)
+}
+
+function loadLayout(input: { mingGua: string; doorGua: string; masterGua: string; stoveGua: string }) {
+  return bazhaiLayoutFor(input.mingGua, input.doorGua, input.masterGua, input.stoveGua)
+}
+
+function onBazhaiData(value: unknown) {
+  bazhai.value = (value as BazhaiChart | null) ?? null
+  if (!value) layoutResult.value = null
+}
+
+function onLayoutData(value: unknown) {
+  layoutResult.value = (value as BazhaiLayout | null) ?? null
+}
 
 const formRef = ref<FormInstance>()
 // 档案数据问题（canonical 信息缺失/出生年份越界）属字段级错误，显示在档案选择旁。
@@ -288,41 +299,19 @@ const rules = computed<FormRules>(() => ({
 }))
 
 async function onProfileChange() {
+  // Never keep the previous profile's chart while the new resource loads.
+  bazhai.value = null
+  layoutResult.value = null
+  error.value = ''
   const valid = await formRef.value?.validate().then(() => true).catch(() => false)
-  if (!valid) {
-    bazhai.value = null
-    error.value = ''
-    return
-  }
-  void loadPreview()
+  if (!valid) return
+  // 有效档案：资源容器监听档案与表单输入，自动取数。
 }
 
 // URL 带回档案时（分享/刷新）自动出盘。
 onMounted(() => {
   if (profileId.value) void onProfileChange()
 })
-
-function loadPreview() {
-  const p = profile.value
-  if (!p) return
-  return previewTask.run(async () => {
-    error.value = ''
-    bazhai.value = null
-    layoutResult.value = null
-    if (!p.birth.date) {
-      error.value = t('profiles.chart.errors.missingTime')
-      return
-    }
-    const birthYear = birthYearFromDate(p.birth.date)
-    if (birthYear === null) {
-      error.value = t('profiles.chart.errors.missingTime')
-      return
-    }
-    bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
-    void loadXuankong()
-    if (layoutReady.value) void loadLayout()
-  }, t('services.fengshui.failed'))
-}
 
 function saveRecord() {
   const p = profile.value
@@ -365,9 +354,3 @@ function startChat() {
   void openServiceChat(p.id, 'fengshui', message => { error.value = message }, context)
 }
 </script>
-
-<style scoped>
-.fx-controls { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3); }
-.fx-select { width: 9rem; }
-.fx-result-slot { min-height: 1rem; }
-</style>

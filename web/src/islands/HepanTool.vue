@@ -1,10 +1,13 @@
 <script setup lang="ts">
-// hepan 页免费合盘岛（营销站）：双方出生信息 → 共享排盘链路 → 合盘盘面。
-// 盘面组件来自 engine catalog，与 App HepanView 同一 deterministic result panel；
-// 表单用共享 tool-form 的纵向变体（.tool-form--stack + fieldset），不自定义字段样式。
+// hepan 页免费合盘岛（营销站）：双方出生信息 → 共享资源包装 → 合盘盘面。
+// 盘面组件与查询生命周期均来自共享层，与 App 同源。
 import { computed, reactive, ref, watch } from 'vue'
 import type { FormRules } from 'element-plus'
 import { hepanFor, type Hepan } from '@shared/domain/hepan'
+import type { BirthInput } from '@shared/domain/birth'
+import type { EngineResultStatus } from '@shared/composables/useEngineResult'
+import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
+import ToolCta from '@shared/components/tools/ToolCta.vue'
 import HepanBirthFields from '@shared/components/hepan/HepanBirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import CheckboxField from '@shared/components/form/fields/CheckboxField.vue'
@@ -41,7 +44,6 @@ type PersonForm = BirthFieldsValue
 
 const a = reactive<PersonForm>(createBirthFieldsValue())
 const b = reactive<PersonForm>({ ...createBirthFieldsValue(), gender: 'female' })
-const loading = ref(false)
 const thirdPartyConsent = ref(false)
 const rules: FormRules = {
   thirdPartyConsent: [{
@@ -57,42 +59,53 @@ function patchPeople(patch: Partial<{ personA: unknown; personB: unknown }>) {
   if (patch.personB) Object.assign(b, patch.personB)
 }
 
-const failed = ref(false)
+const hepanInput = ref<{ a: BirthInput; b: BirthInput } | null>(null)
+const status = ref<EngineResultStatus>('idle')
 const hepan = ref<Hepan | null>(null)
 const consultationContext = ref<ConsultationContext | null>(null)
-const bondResult = computed<Hepan | null>(() => (
-  hepan.value?.bond && hepan.value.chartA && hepan.value.chartB
-    ? hepan.value
-    : null
-))
+
+const loading = computed(() =>
+  !!hepanInput.value && (status.value === 'idle' || status.value === 'loading'),
+)
 
 // 同意是计算前置事实；撤回后已有结果不能再作为继续咨询的上下文。
 watch(thirdPartyConsent, consent => {
   if (!consent) {
+    hepanInput.value = null
     hepan.value = null
     consultationContext.value = null
   }
 })
 
-async function submit() {
-  if (!thirdPartyConsent.value || !isBirthInputReady(a) || !isBirthInputReady(b) || loading.value) return
-  loading.value = true
-  failed.value = false
-  hepan.value = null
-  try {
-    const result = await hepanFor(birthInputFromFields(a), birthInputFromFields(b))
-    if (!thirdPartyConsent.value) return
-    hepan.value = result
+function onHepanData(value: unknown) {
+  hepan.value = (value as Hepan | null) ?? null
+  if (hepan.value?.bond && hepan.value.chartA && hepan.value.chartB && thirdPartyConsent.value) {
     consultationContext.value = {
       version: 1,
       scenario: 'hepan',
       second_birth: consultationBirthFromFields(b),
       third_party_consent: true,
     }
-  } catch {
-    failed.value = true
-  } finally {
-    loading.value = false
+  } else {
+    consultationContext.value = null
+  }
+}
+
+function onStatus(value: EngineResultStatus) {
+  status.value = value
+}
+
+function loadHepan(input: { a: BirthInput; b: BirthInput }) {
+  return hepanFor(input.a, input.b)
+}
+
+function submit() {
+  if (!thirdPartyConsent.value || !isBirthInputReady(a) || !isBirthInputReady(b) || loading.value) return
+  hepan.value = null
+  consultationContext.value = null
+  hepanInput.value = {
+    a: birthInputFromFields(a),
+    b: birthInputFromFields(b),
   }
 }
 
@@ -128,25 +141,37 @@ function continueToApp() {
     </CheckboxField>
   </FormShell>
 
-  <p v-if="failed" class="tool-error" role="alert">{{ labels.error }}</p>
-
-  <template v-if="bondResult">
-    <section class="tool-pan">
-      <h3 class="tool-pan-title">
-        {{ labels.result }}
-      </h3>
-      <BaziBondPanel
-        :result="bondResult.bond"
-        :chart-a="bondResult.chartA"
-        :chart-b="bondResult.chartB"
-        :name-a="labels.you"
-      />
-    </section>
-    <a
-      class="btn-purple tool-cta"
-      :href="appUrl"
-      @click="continueToApp"
-    >{{ labels.cta }}</a>
-    <p class="tool-privacy">{{ labels.privacy }}</p>
-  </template>
+  <EngineQueryPanel
+    v-if="hepanInput"
+    resource="hepan.bond"
+    :input="hepanInput"
+    :load="loadHepan"
+    :enabled="!!hepanInput"
+    :fallback="labels.error"
+    @update:data="onHepanData"
+    @update:status="onStatus"
+  >
+    <template #default="{ result }">
+      <template v-if="result.bond && result.chartA && result.chartB">
+        <section class="tool-pan">
+          <h3 class="tool-pan-title">
+            {{ labels.result }}
+          </h3>
+          <BaziBondPanel
+            :result="result.bond"
+            :chart-a="result.chartA"
+            :chart-b="result.chartB"
+            :name-a="labels.you"
+          />
+        </section>
+        <ToolCta
+          :href="appUrl"
+          :privacy="labels.privacy"
+          @click="continueToApp"
+        >
+          {{ labels.cta }}
+        </ToolCta>
+      </template>
+    </template>
+  </EngineQueryPanel>
 </template>

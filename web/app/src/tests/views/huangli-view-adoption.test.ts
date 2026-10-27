@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
@@ -7,6 +7,7 @@ import HuangliRangeFields from '@shared/components/huangli/HuangliRangeFields.vu
 import HuangliView from '@/views/HuangliView.vue'
 import type { ToolRecord } from '@/api/records'
 import type { HuangliDay } from '@shared/api/engine/huangli'
+import { clearEngineResultCache } from '@shared/composables/useEngineResult'
 
 // Provenance: web/shared/components/charts/HuangliDaysPanel.vue was extracted
 // into the huangli_days engine family; this test adopts it in the legacy
@@ -104,6 +105,11 @@ async function submitRange(wrapper: Awaited<ReturnType<typeof mountView>>) {
 }
 
 describe('HuangliView adoption — source: web/shared/components/charts/HuangliDaysPanel.vue + web/app/src/views/HuangliView.vue', () => {
+  beforeEach(() => {
+    clearEngineResultCache()
+    vi.clearAllMocks()
+  })
+
   it('calls the huangli domain API and passes its typed result to the engine days panel', async () => {
     mocks.huangliDaysFor.mockResolvedValueOnce(huangliViewDays)
     const wrapper = await mountView()

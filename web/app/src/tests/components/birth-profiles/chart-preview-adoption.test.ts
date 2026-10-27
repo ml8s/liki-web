@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ChartPreview from '@/components/birth-profiles/ChartPreview.vue'
-import type { NatalChart } from '@shared/domain/natal'
+import type { BaziNatal } from '@shared/domain/natal'
 import type {
   BaziChartData,
   BaziFullChartData,
@@ -11,6 +11,7 @@ import type {
 import type { ZiweiChart, ZiweiDaXianItem, ZiweiLiuNianData } from '@shared/api/engine/ziwei'
 import type { BazhaiChart } from '@shared/api/engine/fengshui'
 import type { BirthProfile } from '@/api/birth-profiles'
+import { clearEngineResultCache } from '@shared/composables/useEngineResult'
 
 // Fixture provenance — legacy compositions adopted by this test:
 // web/shared/components/charts/BaziPanel.vue (basic/full Bazi),
@@ -19,7 +20,8 @@ import type { BirthProfile } from '@/api/birth-profiles'
 // web/shared/components/charts/MingGuaSection.vue, and
 // web/shared/components/charts/LiuNianFlySection.vue.
 const domainMocks = vi.hoisted(() => ({
-  natalChartForChartInput: vi.fn(),
+  baziNatalForChartInput: vi.fn(),
+  ziweiNatalForChartInput: vi.fn(),
   baziLiunianFor: vi.fn(),
   ziweiLiunianFor: vi.fn(),
   bazhaiChartFor: vi.fn(),
@@ -27,7 +29,8 @@ const domainMocks = vi.hoisted(() => ({
 
 vi.mock('@shared/domain/natal', async importOriginal => ({
   ...await importOriginal(),
-  natalChartForChartInput: domainMocks.natalChartForChartInput,
+  baziNatalForChartInput: domainMocks.baziNatalForChartInput,
+  ziweiNatalForChartInput: domainMocks.ziweiNatalForChartInput,
   baziLiunianFor: domainMocks.baziLiunianFor,
   ziweiLiunianFor: domainMocks.ziweiLiunianFor,
 }))
@@ -169,24 +172,17 @@ const profile: BirthProfile = {
   updated_at: '2026-01-01T00:00:00Z',
 }
 
-const natalResult: NatalChart = {
-  input: {
-    instant: profile.birth.instant!,
-    timezone: profile.birth.location.timezone!,
-    longitude: profile.birth.location.longitude!,
-  },
-  bazi: baziChart,
-  baziDetail: baziFull,
-  ziwei,
-  ziweiBase,
-  ziweiDaXian,
-}
+const baziNatal = { bazi: baziChart, baziDetail: baziFull }
+const ziweiNatal = { ziweiBase, ziwei, ziweiDaXian }
 
 function panel(wrapper: Awaited<ReturnType<typeof mountChartPreview>>, testId: string) {
   return wrapper.find(`[data-testid="${testId}"]`)
 }
 
-async function mountChartPreview(query: Record<string, string> = {}) {
+async function mountChartPreview(
+  query: Record<string, string> = {},
+  activeProfile: BirthProfile = profile,
+) {
   const router: Router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }],
@@ -195,7 +191,7 @@ async function mountChartPreview(query: Record<string, string> = {}) {
   await router.isReady()
 
   const wrapper = mount(ChartPreview, {
-    props: { profile, auto: true },
+    props: { profile: activeProfile, auto: true },
     global: { plugins: [router] },
   })
   await flushPromises()
@@ -214,8 +210,10 @@ async function changeYear(wrapper: Awaited<ReturnType<typeof mountChartPreview>>
 }
 
 beforeEach(() => {
+  clearEngineResultCache()
   vi.clearAllMocks()
-  domainMocks.natalChartForChartInput.mockResolvedValue(natalResult)
+  domainMocks.baziNatalForChartInput.mockResolvedValue(baziNatal)
+  domainMocks.ziweiNatalForChartInput.mockResolvedValue(ziweiNatal)
   domainMocks.baziLiunianFor.mockResolvedValue(baziLiuNian)
   domainMocks.ziweiLiunianFor.mockResolvedValue(ziweiLiuNian)
   domainMocks.bazhaiChartFor.mockResolvedValue(bazhai)
@@ -228,7 +226,7 @@ describe('ChartPreview engine adoption', () => {
     expect(panel(wrapper, 'bazi-full-chart').exists()).toBe(true)
     expect(wrapper.findComponent({ name: 'AdoptedBaziFullChart' }).props('result')).toEqual(baziFull)
     expect(panel(wrapper, 'bazi-chart').exists()).toBe(false)
-    expect(domainMocks.natalChartForChartInput).toHaveBeenCalledWith({
+    expect(domainMocks.baziNatalForChartInput).toHaveBeenCalledWith({
       instant: '1990-06-15T02:30:00Z',
       timezone: 'Asia/Shanghai',
       longitude: 121.47,
@@ -237,10 +235,10 @@ describe('ChartPreview engine adoption', () => {
   })
 
   it('falls back to BaziChartPanel when only bazi_chart exists', async () => {
-    domainMocks.natalChartForChartInput.mockResolvedValueOnce({
-      ...natalResult,
+    domainMocks.baziNatalForChartInput.mockResolvedValueOnce({
+      bazi: baziChart,
       baziDetail: null,
-    } as unknown as NatalChart)
+    } as unknown as BaziNatal)
     const wrapper = await mountChartPreview()
 
     expect(panel(wrapper, 'bazi-chart').exists()).toBe(true)
@@ -278,14 +276,38 @@ describe('ChartPreview engine adoption', () => {
   })
 
   it('omits ZiweiDaXianPanel for an empty result without removing the natal chart', async () => {
-    domainMocks.natalChartForChartInput.mockResolvedValueOnce({
-      ...natalResult,
+    domainMocks.ziweiNatalForChartInput.mockResolvedValueOnce({
+      ...ziweiNatal,
       ziweiDaXian: [],
     })
     const wrapper = await mountChartPreview({ tab: 'ziwei' })
 
     expect(panel(wrapper, 'ziwei-chart').exists()).toBe(true)
     expect(panel(wrapper, 'ziwei-daxian').exists()).toBe(false)
+  })
+
+  it('keeps Ziwei and Bazhai when the Bazi chain fails', async () => {
+    domainMocks.baziNatalForChartInput.mockRejectedValueOnce(
+      Object.assign(new Error('engine unavailable'), { code: 'engine_unavailable' }),
+    )
+    const wrapper = await mountChartPreview()
+
+    expect(panel(wrapper, 'ziwei-chart').exists()).toBe(true)
+    expect(panel(wrapper, 'bazhai-chart').exists()).toBe(true)
+    expect(wrapper.text()).toContain('排盘服务暂时不可用')
+  })
+
+  it('does not let an out-of-range Bazhai year block the Ziwei tab', async () => {
+    const outOfRange: BirthProfile = {
+      ...profile,
+      birth: { ...profile.birth, date: '1899-12-31' },
+    }
+    const wrapper = await mountChartPreview({ tab: 'ziwei' }, outOfRange)
+
+    expect(panel(wrapper, 'ziwei-chart').exists()).toBe(true)
+    expect(panel(wrapper, 'ziwei-daxian').exists()).toBe(true)
+    expect(domainMocks.bazhaiChartFor).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('出生日期无效')
   })
 
   it('passes the complete Bazhai result family to BazhaiChartPanel', async () => {

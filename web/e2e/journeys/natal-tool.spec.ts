@@ -93,7 +93,7 @@ test('工具岛：八字盘 + 紫微盘按共享组件渲染', async ({ page }) 
   await expect(tool.locator('.ziwei-panel .zw-center')).toContainText('火六局');
 
   // CTA 与隐私
-  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=natal/);
+  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
 });
 
 test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
@@ -112,5 +112,5 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]').first()).toContainText('Chart processing failed. Check the input and try again.');
 });

@@ -68,5 +68,5 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await endField.blur();
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

@@ -31,7 +31,7 @@ test('工具岛：流年盘按八字目录面板渲染（四柱 + 流年详览�
   await expect(tool.locator('.engine-bazi-liunian-panel .pillar.liunian')).toContainText('生数 0 · 克数 1');
   await expect(tool.locator('.engine-bazi-liunian-panel .liunian-detail')).toContainText('天乙贵人');
 
-  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /scenario=liunian/);
+  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
 });
 
 test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
@@ -48,5 +48,5 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

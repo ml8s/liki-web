@@ -21,6 +21,15 @@
       />
     </el-card>
 
+    <EngineQueryPanel
+      v-if="divinationInput && !recordSnapshot"
+      resource="divination.chart"
+      :input="divinationInput"
+      :load="loadDivinationChart"
+      :enabled="!!divinationInput"
+      :fallback="$t('services.divination.failed')"
+    />
+
     <template v-if="snapshot">
       <el-card
         class="app-card app-card--highlight"
@@ -62,14 +71,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import {
   divinationCastingFor,
   divinationChartFor,
+  type DivinationChartInput,
   type LiuyaoChartResult,
 } from '@shared/domain/divination'
+import { useEngineResult } from '@shared/composables/useEngineResult'
+import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
 import { useToolRecords } from '@/composables/useToolRecords'
 import { useGuardedTask } from '@/composables/useGuardedTask'
 import RecordList from '@/components/records/RecordList.vue'
@@ -96,8 +108,18 @@ void loadRecords()
 const publicConsultation = consumeConsultationHandoff<ConsultationContext>('divination')
 
 const castingFormRef = ref<InstanceType<typeof DivinationCastingForm>>()
-const snapshot = ref<LiuyaoChartResult | null>(null)
+const recordSnapshot = ref<LiuyaoChartResult | null>(null)
+const divinationInput = ref<DivinationChartInput | null>(null)
+const chartResource = useEngineResult<DivinationChartInput, LiuyaoChartResult>({
+  namespace: 'divination.chart',
+  input: divinationInput,
+  load: input => divinationChartFor(input),
+})
+const snapshot = computed(() => recordSnapshot.value ?? chartResource.data.value)
 const lastCasting = ref<LiuyaoChartResult['casting'] | null>(null)
+const lastQuestion = ref('')
+const lastCastingMode = ref<DivinationCastingFormValue['castingMode']>('auto')
+let pendingRecordSave = false
 const lastCastingInstant = ref('')
 const lastCastingLocation = ref<DivinationCastingFormValue['location']>(null)
 if (publicConsultation?.scenario === 'divination') {
@@ -114,7 +136,13 @@ if (publicConsultation?.scenario === 'divination') {
 }
 const error = ref('')
 const castTask = useGuardedTask({ report: message => { error.value = message } })
-const loading = castTask.loading
+const loading = computed(() =>
+  castTask.loading.value || chartResource.status.value === 'loading',
+)
+
+function loadDivinationChart(input: DivinationChartInput) {
+  return divinationChartFor(input)
+}
 
 function cast(context: DivinationCastingFormValue) {
   return castTask.run(async () => {
@@ -122,31 +150,39 @@ function cast(context: DivinationCastingFormValue) {
     const location = context.location
     if (!location) return
     const castingInstant = new Date().toISOString()
-    snapshot.value = null
+    recordSnapshot.value = null
     const { casting } = await divinationCastingFor({ mode: context.castingMode })
     lastCasting.value = casting
     lastCastingInstant.value = castingInstant
     lastCastingLocation.value = location
-    snapshot.value = await divinationChartFor({
+    lastQuestion.value = context.question.trim()
+    lastCastingMode.value = context.castingMode
+    pendingRecordSave = true
+    divinationInput.value = {
       instant: castingInstant,
       timezone: location.timezone,
       longitude: location.longitude,
       casting,
       yongShen: '世爻',
-    })
-    // 卦不可复现：每次摇卦自动落一条历史记录。
-    void saveToolRecord(
-      recordTitle(context.question.trim()),
-      {
-        question: context.question.trim(),
-        casting_mode: context.castingMode,
-        casting_instant: castingInstant,
-        location,
-      },
-      snapshot.value as unknown as Record<string, unknown>,
-    )
+    }
   }, t('services.divination.failed'))
 }
+
+// 卦不可复现：每次摇卦在图表查询成功后自动落一条历史记录。
+watch(() => chartResource.data.value, chart => {
+  if (!chart || !pendingRecordSave) return
+  pendingRecordSave = false
+  void saveToolRecord(
+    recordTitle(lastQuestion.value),
+    {
+      question: lastQuestion.value,
+      casting_mode: lastCastingMode.value,
+      casting_instant: lastCastingInstant.value,
+      location: lastCastingLocation.value,
+    },
+    chart as unknown as Record<string, unknown>,
+  )
+})
 
 function recordTitle(question: string): string {
   return t('records.titleLiuyao', { question: question.slice(0, 30) })
@@ -154,12 +190,14 @@ function recordTitle(question: string): string {
 
 function openRecord(record: ToolRecord) {
   castingFormRef.value?.restore(record.input)
-  snapshot.value = (record.output as unknown as LiuyaoChartResult | undefined) ?? null
+  chartResource.reset()
+  divinationInput.value = null
+  recordSnapshot.value = (record.output as unknown as LiuyaoChartResult | undefined) ?? null
   const input = record.input as {
     casting_instant?: string
     location?: DivinationCastingFormValue['location']
   }
-  lastCasting.value = snapshot.value?.casting ?? null
+  lastCasting.value = recordSnapshot.value?.casting ?? null
   lastCastingInstant.value = input.casting_instant ?? ''
   lastCastingLocation.value = input.location ?? null
 }

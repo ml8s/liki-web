@@ -1,4 +1,4 @@
-import { computed, ref, type MaybeRefOrGetter } from 'vue'
+import { computed, ref, watch, type MaybeRefOrGetter } from 'vue'
 import { toValue } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BirthProfile } from '@/api/birth-profiles'
@@ -23,8 +23,13 @@ import {
   bazhaiLayoutFor,
   xuankongChartFor,
 } from '@shared/domain/fengshui'
+import type { BirthInput } from '@shared/domain/birth'
+import type { ChartInput } from '@shared/domain/time'
+import type { ConsultationContext } from '@shared/domain/consultation'
 import { toUserMessage } from '@/utils/errors'
+import type { EngineResultFailure } from '@shared/composables/useEngineResult'
 import { useGuardedTask } from '@/composables/useGuardedTask'
+import { useEngineResult } from '@shared/composables/useEngineResult'
 
 export interface ConsultationToolOptions {
   selectedProfile: MaybeRefOrGetter<BirthProfile | null>
@@ -36,6 +41,21 @@ export interface ConsultationToolOptions {
   onNotice?: (message: string) => void
 }
 
+interface HepanEngineInput {
+  a: ChartInput & { gender: string }
+  b: ChartInput & { gender: string }
+}
+
+interface FengshuiEngineInput {
+  birthYear: number
+  gender: string
+  periodDate: string
+  zuoShan: number
+  doorGua: string
+  masterGua: string
+  stoveGua: string
+}
+
 /**
  * Owns focused-tool state and deterministic artifact computation. It never
  * creates chat sessions: follow-up routing stays with the consultation view.
@@ -43,11 +63,15 @@ export interface ConsultationToolOptions {
 export function useConsultationTools(options: ConsultationToolOptions) {
   const { t } = useI18n()
   const reportError = (message: string) => options.onError(message)
-  // Shared lifecycle for the four deterministic computations; input
-  // gathering and result refs stay path-specific.
+  const resourceError = (failure: EngineResultFailure | null, fallback: string) => {
+    if (!failure) return ''
+    const error = Object.assign(new Error(failure.message), { code: failure.code })
+    return toUserMessage(error, fallback)
+  }
+  // Shared lifecycle for mutation-like actions and input preparation. Queries
+  // themselves run through useEngineResult so their errors stay local.
   const castingTask = useGuardedTask({ report: reportError })
   const hepanTask = useGuardedTask({ report: reportError })
-  const fengshuiTask = useGuardedTask({ report: reportError })
   const namingTask = useGuardedTask({ report: reportError })
   const selectedProfile = computed(() => toValue(options.selectedProfile))
   const personLabel = computed(() => toValue(options.personLabel))
@@ -60,12 +84,79 @@ export function useConsultationTools(options: ConsultationToolOptions) {
   const castingChart = ref<LiuyaoChartResult | null>(null)
 
   const hepanInput = ref<FlowHepanFormValue | null>(null)
+  const hepanEngineInput = ref<HepanEngineInput | null>(null)
+  const hepanResource = useEngineResult<HepanEngineInput, Awaited<ReturnType<typeof hepanForChartInputs>>>({
+    namespace: 'tool.hepan',
+    input: hepanEngineInput,
+    load: input => hepanForChartInputs(input.a, input.b),
+  })
   const hepanResult = ref<ArtifactPayloadByKind['hepan'] | null>(null)
+  watch(() => hepanResource.data.value, hepan => {
+    hepanResult.value = hepan
+      ? {
+          chartA: hepan.chartA,
+          chartB: hepan.chartB,
+          bond: hepan.bond,
+          nameA: personLabel.value,
+        }
+      : null
+  }, { immediate: true })
+  const hepanLoading = computed(() =>
+    hepanTask.loading.value || hepanResource.status.value === 'loading',
+  )
+  const hepanError = computed(() =>
+    resourceError(hepanResource.error.value, t('services.hepan.failed')),
+  )
 
   const fengshuiInput = ref<FengshuiLayoutValue | null>(null)
+  const fengshuiEngineInput = ref<FengshuiEngineInput | null>(null)
+  const fengshuiResource = useEngineResult<FengshuiEngineInput, ArtifactPayloadByKind['fengshui']>({
+    namespace: 'tool.fengshui',
+    input: fengshuiEngineInput,
+    load: async input => {
+      const [bazhai, xuankong] = await Promise.all([
+        bazhaiChartFor(input.birthYear, input.gender),
+        xuankongChartFor(input.periodDate, input.zuoShan),
+      ])
+      const layout = await bazhaiLayoutFor(
+        bazhai.ming_gua.gua.name,
+        input.doorGua,
+        input.masterGua,
+        input.stoveGua,
+      )
+      return { bazhai, layout, xuankong }
+    },
+  })
   const fengshuiResult = ref<ArtifactPayloadByKind['fengshui'] | null>(null)
+  watch(() => fengshuiResource.data.value, data => {
+    fengshuiResult.value = data
+  }, { immediate: true })
+  const fengshuiLoading = computed(() =>
+    fengshuiResource.status.value === 'loading',
+  )
+  const fengshuiError = computed(() =>
+    resourceError(fengshuiResource.error.value, t('services.fengshui.failed')),
+  )
 
+  const namingEngineInput = ref<BirthInput | null>(null)
+  const namingResource = useEngineResult<BirthInput, ArtifactPayloadByKind['naming']>({
+    namespace: 'tool.naming',
+    input: namingEngineInput,
+    load: async input => {
+      const chart = await baziChartFor(input)
+      return { assessment: await namingAssessmentFor(chart) }
+    },
+  })
   const namingResult = ref<ArtifactPayloadByKind['naming'] | null>(null)
+  watch(() => namingResource.data.value, data => {
+    namingResult.value = data
+  }, { immediate: true })
+  const namingLoading = computed(() =>
+    namingTask.loading.value || namingResource.status.value === 'loading',
+  )
+  const namingError = computed(() =>
+    resourceError(namingResource.error.value, t('flow.namingFailed')),
+  )
 
   const {
     save: saveLiuyaoRecord,
@@ -130,23 +221,15 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     }
   }
 
-  const hepanLoading = hepanTask.loading
-
   function computeHepan(value: FlowHepanFormValue) {
     return hepanTask.run(async () => {
-      hepanResult.value = null
+      hepanResource.reset()
       const otherBirth = birthInputFromFields(value.secondBirth)
       const otherInput = await chartInputFromBirth(otherBirth)
-      const hepan = await hepanForChartInputs(profileChartInput(), {
-        ...otherInput,
-        gender: otherBirth.gender,
-      })
       hepanInput.value = value
-      hepanResult.value = {
-        chartA: hepan.chartA,
-        chartB: hepan.chartB,
-        bond: hepan.bond,
-        nameA: personLabel.value,
+      hepanEngineInput.value = {
+        a: profileChartInput(),
+        b: { ...otherInput, gender: otherBirth.gender },
       }
     }, t('services.hepan.failed'))
   }
@@ -165,35 +248,25 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     )
   }
 
-  const fengshuiLoading = fengshuiTask.loading
-
   function computeFengshui(value: FengshuiLayoutValue) {
-    return fengshuiTask.run(async () => {
-      const profile = selectedProfile.value
-      const birthYear = fengshuiBirthYear.value
-      if (!profile || birthYear === null || !profile.birth.date) {
-        options.onError(t('services.fengshui.invalidBirthYear'))
-        return
-      }
+    const profile = selectedProfile.value
+    const birthYear = fengshuiBirthYear.value
+    if (!profile || birthYear === null || !profile.birth.date) {
+      options.onError(t('services.fengshui.invalidBirthYear'))
+      return
+    }
 
-      fengshuiResult.value = null
-      const [bazhai, xuankong] = await Promise.all([
-        bazhaiChartFor(birthYear, profile.birth.gender),
-        xuankongChartFor(value.periodDate, value.zuoShan),
-      ])
-      const layout = await bazhaiLayoutFor(
-        bazhai.ming_gua.gua.name,
-        value.doorGua,
-        value.masterGua,
-        value.stoveGua,
-      )
-      fengshuiInput.value = value
-      fengshuiResult.value = {
-        bazhai,
-        layout,
-        xuankong,
-      }
-    }, t('services.fengshui.failed'))
+    fengshuiResource.reset()
+    fengshuiInput.value = value
+    fengshuiEngineInput.value = {
+      birthYear,
+      gender: profile.birth.gender,
+      periodDate: value.periodDate,
+      zuoShan: value.zuoShan,
+      doorGua: value.doorGua,
+      masterGua: value.masterGua,
+      stoveGua: value.stoveGua,
+    }
   }
 
   function saveFengshuiRecord() {
@@ -226,21 +299,44 @@ export function useConsultationTools(options: ConsultationToolOptions) {
   const saveBazhaiRecordAndAnnounce = (title: string, input: unknown) =>
     saveRecordAndAnnounce(saveBazhaiRecord, title, input)
 
-  const namingLoading = namingTask.loading
-
   function computeNaming() {
     return namingTask.run(async () => {
-      namingResult.value = null
-      const chart = await baziChartFor(profileBirthInput())
-      namingResult.value = { assessment: await namingAssessmentFor(chart) }
+      namingResource.reset()
+      namingEngineInput.value = profileBirthInput()
     }, t('flow.namingFailed'))
   }
 
   const castingLoading = castingTask.loading
 
+  function fetchCastingChart(): Promise<LiuyaoChartResult> {
+    const receipt = casting.value
+    const location = castingLocation.value
+    if (!receipt || !location) {
+      return Promise.reject(new Error('Casting receipt and location are required'))
+    }
+    return divinationChartFor({
+      instant: castingInstant.value,
+      timezone: location.timezone,
+      longitude: location.longitude,
+      casting: receipt,
+      yongShen: '世爻',
+    })
+  }
+
+  /** Retry the chart for the current receipt; never draws a new hexagram. */
+  async function retryDivinationChart() {
+    castingError.value = ''
+    try {
+      castingChart.value = await fetchCastingChart()
+    } catch (error) {
+      castingChart.value = null
+      castingError.value = toUserMessage(error, t('services.divination.failed'))
+    }
+  }
+
   function castDivination(value: DivinationCastingFormValue) {
-    // Casting failures render inside the focused form (castingError), so the
-    // task handles its errors directly; the guarded fallback stays as a net.
+    // Casting is a mutation (each call draws a new receipt); its failures render
+    // inside the focused form. Only the chart query is a resource lifecycle.
     return castingTask.run(async () => {
       castingError.value = ''
       castingChart.value = null
@@ -255,38 +351,52 @@ export function useConsultationTools(options: ConsultationToolOptions) {
       const castingTimestamp = new Date().toISOString()
 
       try {
-      const { casting: nextCasting } = await divinationCastingFor({
-        mode: value.castingMode,
-      })
-      const nextChart = await divinationChartFor({
-        instant: castingTimestamp,
-        timezone: location.timezone,
-        longitude: location.longitude,
-        casting: nextCasting,
-        yongShen: '世爻',
-      })
+        const { casting: nextCasting } = await divinationCastingFor({
+          mode: value.castingMode,
+        })
 
-      casting.value = nextCasting
-      castingInstant.value = castingTimestamp
-      castingLocation.value = location
-      castingChart.value = nextChart
+        casting.value = nextCasting
+        castingInstant.value = castingTimestamp
+        castingLocation.value = location
+        const nextChart = await fetchCastingChart()
+        castingChart.value = nextChart
 
-      void saveLiuyaoRecord(
-        t('records.titleLiuyao', { question: castingQuestion.value.slice(0, 30) }),
-        {
-          question: castingQuestion.value,
-          casting_mode: value.castingMode,
-          casting_instant: castingTimestamp,
-          location,
-        },
-        nextChart as unknown as Record<string, unknown>,
-      ).then(saved => {
-        if (!saved) options.onError(t('records.saveFailed'))
-      })
+        void saveLiuyaoRecord(
+          t('records.titleLiuyao', { question: castingQuestion.value.slice(0, 30) }),
+          {
+            question: castingQuestion.value,
+            casting_mode: value.castingMode,
+            casting_instant: castingTimestamp,
+            location,
+          },
+          nextChart as unknown as Record<string, unknown>,
+        ).then(saved => {
+          if (!saved) options.onError(t('records.saveFailed'))
+        })
       } catch (error) {
         castingError.value = toUserMessage(error, t('services.divination.failed'))
       }
     }, t('services.divination.failed'))
+  }
+
+  /** Restore a marketing casting receipt without drawing a new hexagram. */
+  async function hydrateDivination(context: ConsultationContext) {
+    const receipt = context.casting
+    const location = context.location
+    if (!receipt || !location) return
+
+    castingError.value = ''
+    castingQuestion.value = context.question ?? ''
+    castingInstant.value = context.casting_instant ?? new Date().toISOString()
+    castingLocation.value = {
+      place: '',
+      longitude: location.longitude,
+      timezone: location.timezone,
+      source: 'saved',
+    }
+    casting.value = receipt
+    castingChart.value = null
+    await retryDivinationChart()
   }
 
   /** Channel changes must not leak deterministic artifacts between people or domains. */
@@ -297,10 +407,13 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     castingChart.value = null
     castingError.value = ''
     hepanInput.value = null
-    hepanResult.value = null
+    hepanEngineInput.value = null
+    hepanResource.reset()
     fengshuiInput.value = null
-    fengshuiResult.value = null
-    namingResult.value = null
+    fengshuiEngineInput.value = null
+    fengshuiResource.reset()
+    namingEngineInput.value = null
+    namingResource.reset()
   }
 
   return {
@@ -313,27 +426,35 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     castingLocation,
     castingChart,
     castDivination,
+    hydrateDivination,
+    retryDivinationChart,
 
     // Hepan
     hepanLoading,
+    hepanError,
     hepanInput,
     hepanResult,
     computeHepan,
+    reloadHepan: hepanResource.reload,
     saveHepanRecord,
 
     // Fengshui
     fengshuiLoading,
+    fengshuiError,
     fengshuiInput,
     fengshuiResult,
     fengshuiBirthYear,
     fengshuiGender,
     computeFengshui,
+    reloadFengshui: fengshuiResource.reload,
     saveFengshuiRecord,
 
     // Naming
     namingLoading,
+    namingError,
     namingResult,
     computeNaming,
+    reloadNaming: namingResource.reload,
     profileConsultationBirth,
 
     resetResults,

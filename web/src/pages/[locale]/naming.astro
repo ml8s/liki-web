@@ -25,12 +25,16 @@ const cardIndexes = (from: number, to: number) => Array.from({ length: to - from
 const topics = ['newborn', 'bazi', 'free', 'generator'].map(k => ({
   titleKey: `naming.scenes.${k}.title`,
   bodyKey: `naming.scenes.${k}.body`,
-  ...(k === 'generator' ? { ctaService: 'naming', ctaKey: 'naming.generator.cta' } : {}),
+  ...(k === 'generator' ? {
+    ctaService: 'naming',
+    ctaKey: 'naming.generator.cta',
+    ctaHref: `/app/birth-profiles/new?locale=${locale}`,
+  } : {}),
 }));
 const birthLabels = birthFieldLabels(locale);
 const toolProps = {
   locale,
-  appUrl: `/app?service=naming&locale=${locale}`,
+  appUrl: `/app/birth-profiles/new?locale=${locale}`,
   labels: {
     ...birthLabels,
     submit: t(locale, 'tool.submit'),

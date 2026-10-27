@@ -98,6 +98,19 @@
             :loading="hepanLoading"
             @submit="computeHepan"
           />
+          <AppStatusAlert
+            v-if="hepanError"
+            class="flow-error"
+            type="error"
+            :title="hepanError"
+          >
+            <el-button
+              size="small"
+              @click="reloadHepan"
+            >
+              {{ $t('common.retry') }}
+            </el-button>
+          </AppStatusAlert>
           <div
             v-if="hepanArtifact"
             class="flow-inline-actions"
@@ -115,8 +128,22 @@
             :birth-year="fengshuiBirthYear"
             :gender="fengshuiGender"
             :loading="fengshuiLoading"
+            :initial-layout="fengshuiHandoffLayout"
             @submit="computeFengshui"
           />
+          <AppStatusAlert
+            v-if="fengshuiError"
+            class="flow-error"
+            type="error"
+            :title="fengshuiError"
+          >
+            <el-button
+              size="small"
+              @click="reloadFengshui"
+            >
+              {{ $t('common.retry') }}
+            </el-button>
+          </AppStatusAlert>
           <div
             v-if="fengshuiArtifact"
             class="flow-inline-actions"
@@ -137,13 +164,34 @@
             :disabled="!namingBirthReady"
             @submit="computeNaming"
           />
+          <AppStatusAlert
+            v-if="namingError"
+            class="flow-error"
+            type="error"
+            :title="namingError"
+          >
+            <el-button
+              size="small"
+              @click="reloadNaming"
+            >
+              {{ $t('common.retry') }}
+            </el-button>
+          </AppStatusAlert>
           <template v-if="showDivinationCasting">
             <AppStatusAlert
               v-if="castingError"
               class="flow-error"
               type="error"
               :title="castingError"
-            />
+            >
+              <el-button
+                v-if="casting"
+                size="small"
+                @click="retryDivinationChart"
+              >
+                {{ $t('common.retry') }}
+              </el-button>
+            </AppStatusAlert>
             <FlowDivinationForm
               ref="castingFormRef"
               :loading="castingLoading"
@@ -272,6 +320,7 @@ import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
 import FlowDivinationForm from '@/components/flow/forms/FlowDivinationForm.vue'
 import FlowHepanForm from '@/components/flow/forms/FlowHepanForm.vue'
 import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
+import type { FengshuiLayoutValue } from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 import FlowNamingForm from '@/components/flow/forms/FlowNamingForm.vue'
 import ArtifactCapsule from '@/components/flow/artifacts/ArtifactCapsule.vue'
 import ArtifactSurface from '@/components/flow/artifacts/ArtifactSurface.vue'
@@ -294,6 +343,7 @@ import {
   appDomainById,
   bridgeLegacyIntent,
   domainForSession,
+  marketingScenarioToDomain,
   normalizeLegacyScenario,
   type AppDomainId,
   type LegacyIntentBridgeResult,
@@ -305,6 +355,7 @@ import { useConsultationTelemetry } from '@/composables/useConsultationTelemetry
 import { useConsultationHistory } from '@/composables/useConsultationHistory'
 import { useConsultationSubmit } from '@/composables/useConsultationSubmit'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'
+import { consumeConsultationHandoff } from '@shared/utils/handoff'
 import { useOnline } from '@vueuse/core'
 import { classifyResourceFailure, type ResourceFailureKind } from '@/utils/resourceStatus'
 
@@ -355,6 +406,7 @@ function announceStatus(message: string) {
 const personSheetOpen = ref(false)
 const domainSheetOpen = ref(false)
 const consultationError = ref('')
+const fengshuiHandoffLayout = ref<FengshuiLayoutValue | null>(null)
 const draftNotice = ref('')
 const errorFocusRef = ref<HTMLElement | null>(null)
 const documentBoundary = ref<HTMLElement | null>(null)
@@ -391,21 +443,29 @@ const {
   castingLocation,
   castingChart,
   castDivination,
+  hydrateDivination,
+  retryDivinationChart,
   hepanLoading,
+  hepanError,
   hepanInput,
   hepanResult,
   computeHepan,
+  reloadHepan,
   saveHepanRecord,
   fengshuiLoading,
+  fengshuiError,
   fengshuiInput,
   fengshuiResult,
   fengshuiBirthYear,
   fengshuiGender,
   computeFengshui,
+  reloadFengshui,
   saveFengshuiRecord,
   namingLoading,
+  namingError,
   namingResult,
   computeNaming,
+  reloadNaming,
   profileConsultationBirth,
   resetResults,
 } = useConsultationTools({
@@ -481,7 +541,9 @@ const {
 })
 
 const routingSeed = computed(() => {
-  const value = firstQueryValue(route.query.seed) || firstQueryValue(route.query.service)
+  const value = firstQueryValue(route.query.seed)
+    || firstQueryValue(route.query.service)
+    || firstQueryValue(route.query.scenario)
   return normalizeLegacyScenario(value)
 })
 
@@ -493,7 +555,7 @@ const entrySource = computed<'direct' | 'legacy_redirect' | 'marketing' | 'payme
     'subscription_id',
     'subscription_state',
   ].some(key => firstQueryValue(route.query[key]))) return 'payment'
-  if (firstQueryValue(route.query.service) || firstQueryValue(route.query.utm_source)) return 'marketing'
+  if (firstQueryValue(route.query.service) || firstQueryValue(route.query.scenario) || firstQueryValue(route.query.utm_source)) return 'marketing'
   return 'direct'
 })
 
@@ -787,7 +849,35 @@ watch(() => `${chat.messages.length}:${chat.messages.at(-1)?.content.length ?? 0
 onMounted(async () => {
   const token = ++mountToken
   const requestedDomain = normalizeAppDomain(firstQueryValue(route.query.domain))
+    ?? marketingScenarioToDomain(
+      firstQueryValue(route.query.service)
+      || firstQueryValue(route.query.scenario)
+      || firstQueryValue(route.query.seed),
+    )
   if (requestedDomain) flow.setDomain(requestedDomain)
+  // Marketing divination handoff: keep the original casting receipt, then load
+  // its chart in the App instead of drawing a new hexagram. Wait one tick so the
+  // domain-change watcher's reset does not wipe the hydrated receipt.
+  if (flow.domainId === 'divination') {
+    await nextTick()
+    const handoff = consumeConsultationHandoff<ConsultationContext>('divination')
+    if (handoff) void hydrateDivination(handoff)
+  }
+  // Marketing fengshui handoff: prefill the layout form, then let the user
+  // select a profile and compute as usual.
+  if (flow.domainId === 'fengshui') {
+    await nextTick()
+    const handoff = consumeConsultationHandoff<ConsultationContext>('fengshui')
+    if (handoff?.layout) {
+      fengshuiHandoffLayout.value = {
+        zuoShan: handoff.layout.zuo_shan,
+        periodDate: handoff.layout.period_date,
+        doorGua: handoff.layout.door_gua ?? '',
+        masterGua: handoff.layout.master_gua ?? '',
+        stoveGua: handoff.layout.stove_gua ?? '',
+      }
+    }
+  }
   await Promise.allSettled([
     profiles.loadList(),
     entitlements.load(),

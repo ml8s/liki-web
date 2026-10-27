@@ -5,6 +5,8 @@ export type EngineResultStatus = 'idle' | 'loading' | 'success' | 'error'
 export interface EngineResultFailure {
   name: 'EngineResultError'
   message: string
+  /** Normalized API error code, so the UI layer can translate it. */
+  code?: string
   cause?: unknown
 }
 
@@ -18,6 +20,11 @@ export type EngineResultSource<T> = T | { readonly value: T } | (() => T)
 interface UseEngineResultOptions<TInput, TResult> {
   input: EngineResultSource<TInput | null | undefined>
   load: (input: TInput) => Promise<TResult>
+  /**
+   * Query namespace, normally the resource id. Prefixed to the canonical input
+   * hash so two methods that accept the same DTO cannot share a cache entry.
+   */
+  namespace?: EngineResultSource<string | null | undefined>
   cacheKey?: EngineResultSource<string | null | undefined>
   enabled?: EngineResultSource<boolean>
   staleTime?: number
@@ -35,6 +42,8 @@ export interface UseEngineResultResource<TResult> {
   reload: () => Promise<TResult | null>
   refresh: () => Promise<TResult | null>
   invalidate: () => void
+  /** Drops the active result and returns to idle without touching the cache. */
+  reset: () => void
 }
 
 interface EngineCacheRecord {
@@ -96,17 +105,32 @@ export function clearEngineResultCache(): void {
   cachePromises.clear()
 }
 
+function failureCode(error: unknown): string | undefined {
+  if (error === null || typeof error !== 'object') return undefined
+  if ('code' in error) {
+    const code = (error as { code?: unknown }).code
+    if (typeof code === 'string' && code) return code
+  }
+  // Domain stage wrappers (for example NatalStageError) keep the transport
+  // error in `cause`; surface its normalized code for UI translation.
+  if ('cause' in error) return failureCode((error as { cause?: unknown }).cause)
+  return undefined
+}
+
 function toFailure(error: unknown): EngineResultFailure {
+  const code = failureCode(error)
   if (error instanceof Error) {
     return {
       name: 'EngineResultError',
       message: error.message,
+      code,
       cause: error.cause,
     }
   }
   return {
     name: 'EngineResultError',
     message: String(error),
+    code,
     cause: error,
   }
 }
@@ -147,8 +171,10 @@ export function useEngineResult<TInput, TResult>(
 
   function currentCacheKey(): string | null {
     const explicitKey = readSource(options.cacheKey)
-    if (typeof explicitKey === 'string') return explicitKey
-    return currentInputHash()
+    const baseKey = typeof explicitKey === 'string' ? explicitKey : currentInputHash()
+    if (!baseKey) return null
+    const namespace = readSource(options.namespace)
+    return typeof namespace === 'string' && namespace ? `${namespace}:${baseKey}` : baseKey
   }
 
   const cacheKey = computed(currentCacheKey)
@@ -248,6 +274,16 @@ export function useEngineResult<TInput, TResult>(
     void execute('reload')
   }
 
+  function reset(): void {
+    requestToken += 1
+    data.value = null
+    error.value = null
+    refreshing.value = false
+    status.value = 'idle'
+    activeKey.value = null
+    activeInputHash.value = null
+  }
+
   watch(
     () => readSource(options.input),
     () => {
@@ -282,5 +318,6 @@ export function useEngineResult<TInput, TResult>(
     reload,
     refresh,
     invalidate,
+    reset,
   }
 }

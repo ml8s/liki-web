@@ -83,44 +83,57 @@
       </el-form>
     </el-card>
 
-    <template v-if="result && chartA && bChart">
-      <el-card
-        class="app-card app-card--highlight"
-        shadow="never"
-      >
-        <template #header>
-          <div class="app-card__header">
-            <h2 class="app-card__title">
-              {{ $t('services.hepan.result') }}
-            </h2>
-            <el-button
-              size="small"
-              @click="saveRecord"
-            >
-              {{ $t('records.save') }}
-            </el-button>
-          </div>
+    <EngineQueryPanel
+      v-if="hepanInput"
+      resource="hepan.bond"
+      :input="hepanInput"
+      :load="loadHepan"
+      :enabled="!!hepanInput"
+      :fallback="$t('services.hepan.failed')"
+      @update:data="onHepanData"
+      @update:status="hepanStatus = $event"
+    >
+      <template #default>
+        <template v-if="result && chartA && bChart">
+          <el-card
+            class="app-card app-card--highlight"
+            shadow="never"
+          >
+            <template #header>
+              <div class="app-card__header">
+                <h2 class="app-card__title">
+                  {{ $t('services.hepan.result') }}
+                </h2>
+                <el-button
+                  size="small"
+                  @click="saveRecord"
+                >
+                  {{ $t('records.save') }}
+                </el-button>
+              </div>
+            </template>
+
+            <BaziBondPanel
+              :result="result"
+              :chart-a="chartA"
+              :chart-b="bChart"
+              :name-a="aName"
+            />
+          </el-card>
+
+          <AppConsultationCard
+            :title="$t('services.hepan.consultationTitle')"
+            :description="$t('services.hepan.consultationBody')"
+            :locked-description="$t('services.hepan.lockedBody')"
+            :purchased="purchased"
+            :action-label="$t('services.hepan.cta')"
+            :locked-action-label="$t('commerce.activateNow')"
+            to="/chat"
+            @action="startInterpretation"
+          />
         </template>
-
-        <BaziBondPanel
-          :result="result"
-          :chart-a="chartA"
-          :chart-b="bChart"
-          :name-a="aName"
-        />
-      </el-card>
-
-      <AppConsultationCard
-        :title="$t('services.hepan.consultationTitle')"
-        :description="$t('services.hepan.consultationBody')"
-        :locked-description="$t('services.hepan.lockedBody')"
-        :purchased="purchased"
-        :action-label="$t('services.hepan.cta')"
-        :locked-action-label="$t('commerce.activateNow')"
-        to="/chat"
-        @action="startInterpretation"
-      />
-    </template>
+      </template>
+    </EngineQueryPanel>
 
     <el-card
       v-if="toolRecords.length || recordsError"
@@ -149,7 +162,8 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { formatSavedPlace, type PlaceLocale } from '@shared/utils/placeDisplay'
 import { useServiceView } from '@/composables/useServiceView'
-import { baziChartForChartInput, type BaziChartData } from '@shared/domain/natal'
+import type { BaziChartData } from '@shared/domain/natal'
+import type { ChartInput } from '@shared/domain/time'
 import { hepanForChartInputs, type Hepan } from '@shared/domain/hepan'
 import { useToolRecords } from '@/composables/useToolRecords'
 import { useGuardedTask } from '@/composables/useGuardedTask'
@@ -157,7 +171,9 @@ import { chartInputFromProfileBirth } from '@shared/domain/birth'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
+import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
+import type { EngineResultStatus } from '@shared/composables/useEngineResult'
 import BaziBondPanel from '@shared/components/engine/bazi/BaziBondPanel.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import {
@@ -210,13 +226,36 @@ if (publicConsultation?.scenario === 'hepan' && publicConsultation.second_birth)
   }
 }
 const result = ref<Hepan['bond'] | null>(null)
+const hepanInput = ref<{
+  a: ChartInput & { gender: string }
+  b: ChartInput & { gender: string }
+} | null>(null)
+const hepanStatus = ref<EngineResultStatus>('idle')
 const error = ref('')
 const computeTask = useGuardedTask({ report: message => { error.value = message } })
-const loading = computeTask.loading
+const loading = computed(() =>
+  computeTask.loading.value || hepanStatus.value === 'loading',
+)
+
+function loadHepan(input: { a: ChartInput & { gender: string }; b: ChartInput & { gender: string } }) {
+  return hepanForChartInputs(input.a, input.b)
+}
+
+function onHepanData(value: unknown) {
+  const hepan = (value as Hepan | null) ?? null
+  chartA.value = hepan?.chartA ?? null
+  bChart.value = hepan?.chartB ?? null
+  result.value = hepan?.bond ?? null
+}
 
 // 撤回第三方同意后，已有合盘结果不得再进入付费咨询上下文。
 watch(() => b.value.third_party_consent, consent => {
-  if (!consent) result.value = null
+  if (!consent) {
+    hepanInput.value = null
+    result.value = null
+    chartA.value = null
+    bChart.value = null
+  }
 })
 
 const formARef = ref<FormInstance>()
@@ -254,22 +293,12 @@ const purchased = computed(() => entitlements.allowedSkills.length > 0)
 const profileA = computed(() => profiles.list.find(p => p.id === profileAId.value) ?? null)
 const aName = computed(() => profileA.value?.nickname ?? t('services.hepan.profileA'))
 
-function loadA() {
-  return computeTask.run(async () => {
-    error.value = ''
-    result.value = null
-    const p = profileA.value
-    if (!p) return
-    if (!p.birth.instant || !p.birth.location.timezone || p.birth.location.longitude == null) {
-      error.value = t('profiles.chart.errors.missingTime')
-      return
-    }
-    chartA.value = await baziChartForChartInput(chartInputFromProfileBirth(p))
-  }, t('profiles.detail.loadFailed'))
-}
-
 function onProfileChange() {
-  if (profileAId.value) void loadA()
+  hepanInput.value = null
+  result.value = null
+  chartA.value = null
+  bChart.value = null
+  error.value = ''
 }
 
 function compute() {
@@ -288,16 +317,13 @@ function compute() {
       error.value = t('profiles.chart.errors.missingTime')
       return
     }
+    if (!b.value.third_party_consent) return
     const birthB = birthInputFromFields(b.value)
     const inputB = await chartInputFromBirth(birthB)
-    const hepan = await hepanForChartInputs(
-      chartInputFromProfileBirth(p),
-      { ...inputB, gender: birthB.gender },
-    )
-    if (!b.value.third_party_consent) return
-    chartA.value = hepan.chartA
-    bChart.value = hepan.chartB
-    result.value = hepan.bond
+    hepanInput.value = {
+      a: chartInputFromProfileBirth(p),
+      b: { ...inputB, gender: birthB.gender },
+    }
   }, t('services.hepan.failed'))
 }
 

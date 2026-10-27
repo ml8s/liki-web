@@ -528,7 +528,6 @@
     "chart": {
       "title": "Free charts",
       "compute": "Generate",
-      "empty": "Enter a solar birth time and select “Generate” to preview BaZi, ZiWei, and Eight Mansions charts (temporary and not saved).",
       "bazi": "BaZi",
       "ziwei": "ZiWei",
       "bazhai": "Eight Mansions",
@@ -635,18 +634,12 @@
       "geJu": "Pattern",
       "favorAvoid": "{value} · favorable {favorable} · unfavorable {unfavorable}",
       "correctedLongitude": "True solar time corrected · {longitude}",
-      "failed": "Chart generation failed",
       "stageFailed": "{stage} failed",
-      "partialFailed": "Some optional charts could not be calculated",
       "stage": {
         "bazi_chart": "Bazi chart",
         "ziwei_chart": "Ziwei chart",
-        "bazi_fullchart": "Bazi full chart",
-        "ziwei_fullchart": "Ziwei full chart",
-        "ziwei_daxian": "Ziwei major periods",
         "bazi_liunian": "Bazi annual chart",
-        "ziwei_liunian": "Ziwei annual chart",
-        "bazhai_chart": "Bazhai chart"
+        "ziwei_liunian": "Ziwei annual chart"
       },
       "pillar": {
         "year": "Year",

@@ -37,6 +37,45 @@ const layout = {
   stove: { direction: '西北', gua_name: '乾', wuxing: '金', youxing: '天医', rating: '吉', group: '西四卦', match: '吉' },
 }
 
+test('prefills the fengshui layout from a marketing handoff', async ({ page }) => {
+  await mockFlowWorkspace(page, { profiles: [flowProfile('person-1', '张三')] })
+  // The prefilled layout is reactive: once the profile is selected it computes.
+  await mockEngineTool(page, 'bazhai_chart', bazhai)
+  await mockEngineTool(page, 'xuankong_chart', xuankong)
+  await mockEngineTool(page, 'bazhai_layout', layout)
+
+  await page.addInitScript(context => {
+    try {
+      const key = 'liki:form-drafts'
+      const raw = sessionStorage.getItem(key)
+      const drafts = raw ? JSON.parse(raw) as Record<string, unknown> : {}
+      drafts['handoff:consultation'] = { data: context, createdAt: Date.now() }
+      sessionStorage.setItem(key, JSON.stringify(drafts))
+    } catch {
+      // sessionStorage unavailable: the test's navigation below will fail visibly.
+    }
+  }, {
+    version: 1,
+    scenario: 'fengshui',
+    birth_year: 1990,
+    gender: 'female',
+    layout: {
+      zuo_shan: 0,
+      period_date: '2026-01-01',
+      door_gua: '坤',
+      master_gua: '兑',
+      stove_gua: '乾',
+    },
+  })
+
+  await page.goto('/app/?service=fengshui&locale=zh-Hans')
+  const form = page.locator('.flow-fengshui-form')
+  await expect(form).toBeVisible()
+  await expect(form.getByText('门 · 坤')).toBeVisible()
+  await expect(form.getByText('主卧 · 兑')).toBeVisible()
+  await expect(form.getByText('灶 · 乾')).toBeVisible()
+})
+
 test('computes the fengshui focused form and renders all deterministic artifacts', async ({ page }) => {
   await mockFlowWorkspace(page, { profiles: [flowProfile('person-1', '张三')] })
   await mockEngineTool(page, 'bazhai_chart', bazhai)

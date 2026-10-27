@@ -66,6 +66,27 @@ describe('EngineResultBoundary', () => {
     expect(wrapper.get('[data-testid="stale-error"]').text()).toBe('refresh failed')
   })
 
+  it('surfaces a stale error with retry by default', async () => {
+    const wrapper = mount(EngineResultBoundary, {
+      props: {
+        status: 'success',
+        data: { chart: 'stale' },
+        error: { name: 'EngineResultError', message: 'refresh failed' },
+      },
+      slots: {
+        default: `<template #default="{ result }">
+          <div data-testid="stale-result">{{ result.chart }}</div>
+        </template>`,
+      },
+    })
+
+    expect(wrapper.get('[data-testid="stale-result"]').text()).toBe('stale')
+    expect(wrapper.get('[role="alert"]').text()).toContain('refresh failed')
+
+    await wrapper.get('button').trigger('click')
+    expect(wrapper.emitted('retry')).toHaveLength(1)
+  })
+
   it('renders an explicit empty state', () => {
     const wrapper = mount(EngineResultBoundary, {
       props: { status: 'idle' },

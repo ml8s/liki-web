@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FormShell from '@shared/components/form/FormShell.vue'
 import FengshuiLayoutFields, {
@@ -52,8 +52,11 @@ const props = withDefaults(defineProps<{
   birthYear: number | null
   gender: '' | 'female' | 'male'
   loading?: boolean
+  /** Marketing handoff: prefill the layout without recomputing it. */
+  initialLayout?: FengshuiLayoutValue | null
 }>(), {
   loading: false,
+  initialLayout: null,
 })
 
 const emit = defineEmits<{
@@ -79,6 +82,18 @@ const canSubmit = computed(() =>
       && formValue.stoveGua,
     ))
 
+function maybeAutoSubmit() {
+  if (!canSubmit.value) return
+  emit('submit', { ...formValue })
+}
+
+watch(() => props.initialLayout, value => {
+  if (value) Object.assign(formValue, value)
+  maybeAutoSubmit()
+}, { immediate: true })
+
+watch([() => props.birthYear, () => props.gender], maybeAutoSubmit)
+
 const genderLabel = computed(() => {
   if (props.gender === 'female') return t('profiles.female')
   if (props.gender === 'male') return t('profiles.male')
@@ -87,6 +102,7 @@ const genderLabel = computed(() => {
 
 function patchLayout(patch: Partial<FengshuiLayoutValue>) {
   Object.assign(formValue, patch)
+  maybeAutoSubmit()
 }
 
 function submit() {

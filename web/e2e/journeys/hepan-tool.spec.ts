@@ -48,7 +48,7 @@ test('工具岛：合盘盘面按共享 BaziBondPanel 渲染', async ({ page }) 
   const shiShen = bondPanel.locator('.rel-sec', { hasText: '十神互看' });
   await expect(shiShen.locator('.rel-chip')).toContainText(['你年柱看对方：七杀', '对方年柱看你：偏印']);
 
-  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=hepan/);
+  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
 });
 
 test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
@@ -71,5 +71,5 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await tool.locator('.el-checkbox').click();
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

@@ -1,11 +1,20 @@
 <script setup lang="ts">
-// natal 页免费排盘岛（营销站）：出生信息 → 共享排盘链路 → 八字目录盘 + 紫微目录盘。
-// 盘面组件来自共享结果面板目录，与 App 使用同一实现；
-// 组件文案（profiles.chart.*）由挂载脚本安装的 vue-i18n 提供。
+// natal 页免费排盘岛（营销站）：出生信息 → 共享资源包装 → 八字目录盘 + 紫微目录盘。
+// 盘面组件与查询生命周期（loading/error/retry）均来自共享层，与 App 使用同一实现。
 import { computed, reactive, ref } from 'vue'
-import { natalChartFor, type NatalChart } from '@shared/domain/natal'
-import { baziLiunianFor, type BaziLiuNianOutput } from '@shared/domain/natal'
+import {
+  baziLiunianFor,
+  baziNatalFor,
+  ziweiNatalFor,
+  type BaziLiuNianOutput,
+  type BaziNatal,
+  type ZiweiNatal,
+} from '@shared/domain/natal'
+import type { BirthInput } from '@shared/domain/birth'
+import type { EngineResultStatus } from '@shared/composables/useEngineResult'
 import { WUXING_LUCKY } from '@shared/utils/wuxing'
+import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
+import ToolCta from '@shared/components/tools/ToolCta.vue'
 import BaziChartPanel from '@shared/components/engine/bazi/BaziChartPanel.vue'
 import BaziFullChartPanel from '@shared/components/engine/bazi/BaziFullChartPanel.vue'
 import BaziLiuNianPanel from '@shared/components/engine/bazi/BaziLiuNianPanel.vue'
@@ -43,27 +52,23 @@ const props = defineProps<{
 const rules = birthFormRules(props.labels)
 
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
-const loading = ref(false)
-const failed = ref(false)
-const natal = ref<NatalChart | null>(null)
-const liunian = ref<BaziLiuNianOutput | null>(null)
+const birthInput = ref<BirthInput | null>(null)
+const baziStatus = ref<EngineResultStatus>('idle')
+const ziweiStatus = ref<EngineResultStatus>('idle')
+const bazi = ref<BaziNatal | null>(null)
+const ziwei = ref<ZiweiNatal | null>(null)
 const liunianYear = ref(new Date().getFullYear())
 
-// 流年盘（bazi.liunian）：随八字盘加载；失败不阻塞主盘。
-async function loadLiunian() {
-  const chart = natal.value?.bazi
-  if (!chart) return
-  try {
-    liunian.value = await baziLiunianFor(chart, Number(liunianYear.value))
-  } catch {
-    liunian.value = null
-  }
-}
+const loading = computed(() =>
+  !!birthInput.value
+  && (
+    baziStatus.value === 'idle' || baziStatus.value === 'loading'
+    || ziweiStatus.value === 'idle' || ziweiStatus.value === 'loading'
+  ),
+)
 
-// 幸运元素（五行统计/状态由共享 Bazi 目录面板用引擎数据展示）。
 const luckyElements = computed(() => {
-  // 幸运元素只消费确定性候选：扶抑 yong/xi，调候 primary/secondary。null 表示无候选。
-  const full = natal.value?.baziDetail
+  const full = bazi.value?.baziDetail
   if (!full) return null
   const raw = [
     full.fu_yi?.xi,
@@ -76,23 +81,43 @@ const luckyElements = computed(() => {
   return elements.map(w => ({ element: w, ...WUXING_LUCKY[w] }))
 })
 
-async function submit() {
+function onBaziData(value: unknown) {
+  bazi.value = (value as BaziNatal | null) ?? null
+}
+
+function onZiweiData(value: unknown) {
+  ziwei.value = (value as ZiweiNatal | null) ?? null
+}
+
+function onBaziStatus(status: EngineResultStatus) {
+  baziStatus.value = status
+}
+
+function onZiweiStatus(status: EngineResultStatus) {
+  ziweiStatus.value = status
+}
+
+function submit() {
   if (!isBirthInputReady(birth) || loading.value) return
-  loading.value = true
-  failed.value = false
-  liunian.value = null
-  try {
-    natal.value = await natalChartFor(birthInputFromFields(birth))
-    await loadLiunian()
-  } catch {
-    failed.value = true
-  } finally {
-    loading.value = false
-  }
+  bazi.value = null
+  ziwei.value = null
+  birthInput.value = birthInputFromFields(birth)
+}
+
+function loadBazi(input: BirthInput) {
+  return baziNatalFor(input)
+}
+
+function loadZiwei(input: BirthInput) {
+  return ziweiNatalFor(input)
+}
+
+function loadLiunian(input: { chart: BaziNatal['bazi']; year: number }): Promise<BaziLiuNianOutput> {
+  return baziLiunianFor(input.chart, input.year)
 }
 
 function continueToApp() {
-  if (!natal.value) return
+  if (!birthInput.value) return
   saveConsultationHandoff({
     version: 1,
     scenario: 'natal',
@@ -114,76 +139,131 @@ function continueToApp() {
     <BirthFields :value="birth" :labels="labels" @update:patch="Object.assign(birth, $event)" />
   </FormShell>
 
-  <p v-if="failed" class="tool-error" role="alert">{{ labels.error }}</p>
-
-  <template v-if="natal">
-    <section class="tool-pan">
-      <h3 class="tool-pan-title">
-        {{ labels.bazi }}
-      </h3>
-      <YearField
-        v-model="liunianYear"
-        name="natal-liunian-year"
-        @update:model-value="loadLiunian"
-      />
-      <BaziFullChartPanel
-        v-if="natal.baziDetail"
-        :result="natal.baziDetail"
-        class="bazi-panel"
-      >
-        <template #before-yongshen>
-          <BaziLiuNianPanel
-            v-if="liunian"
-            :result="liunian"
+  <EngineQueryPanel
+    v-if="birthInput"
+    resource="natal.bazi"
+    :input="birthInput"
+    :load="loadBazi"
+    :enabled="!!birthInput"
+    :fallback="labels.error"
+    @update:data="onBaziData"
+    @update:status="onBaziStatus"
+  >
+    <template #default="{ result }">
+      <section class="tool-pan">
+        <h3 class="tool-pan-title">
+          {{ labels.bazi }}
+        </h3>
+        <YearField
+          v-model="liunianYear"
+          name="natal-liunian-year"
+        />
+        <BaziFullChartPanel
+          v-if="result.baziDetail"
+          :result="result.baziDetail"
+          class="bazi-panel"
+        >
+          <template #before-yongshen>
+            <EngineQueryPanel
+              resource="natal.bazi.liunian"
+              :input="{ chart: result.bazi, year: liunianYear }"
+              :load="loadLiunian"
+              :enabled="!!result.bazi"
+              :fallback="labels.error"
+            >
+              <template #default="{ result: annual }">
+                <BaziLiuNianPanel
+                  :result="annual"
+                  class="bazi-panel"
+                />
+              </template>
+            </EngineQueryPanel>
+          </template>
+        </BaziFullChartPanel>
+        <template v-else>
+          <BaziChartPanel
+            :result="result.bazi"
             class="bazi-panel"
           />
+          <EngineQueryPanel
+            resource="natal.bazi.liunian"
+            :input="{ chart: result.bazi, year: liunianYear }"
+            :load="loadLiunian"
+            :enabled="!!result.bazi"
+            :fallback="labels.error"
+          >
+            <template #default="{ result: annual }">
+              <BaziLiuNianPanel
+                :result="annual"
+                class="bazi-panel"
+              />
+            </template>
+          </EngineQueryPanel>
         </template>
-      </BaziFullChartPanel>
-      <template v-else>
-        <BaziChartPanel
-          :result="natal.bazi"
-          class="bazi-panel"
-        />
-        <BaziLiuNianPanel
-          v-if="liunian"
-          :result="liunian"
-          class="bazi-panel"
-        />
-      </template>
-      <div v-if="luckyElements" class="wuxing-row">
-        <span class="tool-pan-sub">{{ labels.lucky }}</span>
-        <span v-for="l in luckyElements" :key="l.element" class="lucky-chip">
-          <span class="lucky-dots">
-            <i v-for="c in l.colors" :key="c" class="lucky-dot" :style="{ background: c }" />
+        <div
+          v-if="luckyElements"
+          class="wuxing-row"
+        >
+          <span class="tool-pan-sub">{{ labels.lucky }}</span>
+          <span
+            v-for="l in luckyElements"
+            :key="l.element"
+            class="lucky-chip"
+          >
+            <span class="lucky-dots">
+              <i
+                v-for="c in l.colors"
+                :key="c"
+                class="lucky-dot"
+                :style="{ background: c }"
+              />
+            </span>
+            {{ l.element }} · {{ l.numbers }}
           </span>
-          {{ l.element }} · {{ l.numbers }}
-        </span>
-      </div>
-    </section>
-    <section
-      v-if="natal.ziwei"
-      class="tool-pan"
-    >
-      <h3 class="tool-pan-title">
-        {{ labels.ziwei }}
-      </h3>
-      <ZiweiChartPanel
-        :result="natal.ziwei"
-        class="ziwei-panel"
-      />
-      <ZiweiDaXianPanel
-        v-if="natal.ziweiDaXian.length"
-        :result="natal.ziweiDaXian"
-        class="ziwei-panel"
-      />
-    </section>
-    <a
-      class="btn-purple tool-cta"
-      :href="appUrl"
-      @click="continueToApp"
-    >{{ labels.cta }}</a>
-    <p class="tool-privacy">{{ labels.privacy }}</p>
-  </template>
+        </div>
+      </section>
+    </template>
+  </EngineQueryPanel>
+
+  <EngineQueryPanel
+    v-if="birthInput"
+    resource="natal.ziwei"
+    :input="birthInput"
+    :load="loadZiwei"
+    :enabled="!!birthInput"
+    :fallback="labels.error"
+    @update:data="onZiweiData"
+    @update:status="onZiweiStatus"
+  >
+    <template #default="{ result }">
+      <section
+        v-if="result.ziwei"
+        class="tool-pan"
+      >
+        <h3 class="tool-pan-title">
+          {{ labels.ziwei }}
+        </h3>
+        <ZiweiChartPanel
+          :result="result.ziwei"
+          class="ziwei-panel"
+        />
+        <ZiweiDaXianPanel
+          v-if="result.ziweiDaXian.length"
+          :result="result.ziweiDaXian"
+          class="ziwei-panel"
+        />
+      </section>
+    </template>
+  </EngineQueryPanel>
+
+  <ToolCta
+    v-if="birthInput"
+    :href="appUrl"
+    :privacy="labels.privacy"
+    @click="continueToApp"
+  >
+    {{ labels.cta }}
+  </ToolCta>
 </template>
 
 

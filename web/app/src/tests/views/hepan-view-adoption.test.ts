@@ -7,6 +7,7 @@ import BirthFields from '@shared/components/form/BirthFields.vue'
 import RecordList from '@/components/records/RecordList.vue'
 import type { BaziBondResult, BaziChartData } from '@shared/api/engine/bazi'
 import type { ToolRecord } from '@/api/records'
+import { clearEngineResultCache } from '@shared/composables/useEngineResult'
 
 /**
  * Provenance: web/shared/components/charts/HepanPanel.vue and
@@ -157,6 +158,7 @@ function button(wrapper: VueWrapper, label: string) {
       localStorage.clear()
       sessionStorage.clear()
       document.body.innerHTML = ''
+      clearEngineResultCache()
       vi.clearAllMocks()
       toolRecords.kind = []
       toolRecords.records = []

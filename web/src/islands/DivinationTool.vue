@@ -6,6 +6,8 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { divinationCastingFor, type LiuyaoCasting } from '@shared/domain/divination'
 import LiuyaoCastingPanel from '@shared/components/engine/liuyao/LiuyaoCastingPanel.vue'
+import ToolCta from '@shared/components/tools/ToolCta.vue'
+import ToolError from '@shared/components/tools/ToolError.vue'
 import DivinationCastingForm from '@shared/components/divination/DivinationCastingForm.vue'
 import type { DivinationCastingFormValue } from '@shared/components/divination/types'
 import type { ConsultationContext } from '@shared/domain/consultation'
@@ -56,7 +58,7 @@ async function submit(value: DivinationCastingFormValue) {
     @submit="submit"
   />
 
-  <p v-if="failed" class="tool-error" role="alert">{{ labels.error }}</p>
+  <ToolError :message="failed ? labels.error : ''" />
 
   <template v-if="casting">
     <div class="tool-pan">
@@ -65,9 +67,9 @@ async function submit(value: DivinationCastingFormValue) {
       </h3>
       <LiuyaoCastingPanel :result="casting" />
     </div>
-    <a
-      class="btn-purple tool-cta"
+    <ToolCta
       :href="appUrl"
+      :privacy="labels.privacy"
       @click="saveConsultationHandoff({
         version: 1,
         scenario: 'divination',
@@ -79,7 +81,8 @@ async function submit(value: DivinationCastingFormValue) {
           timezone: castingLocation.timezone,
         },
       } as ConsultationContext)"
-    >{{ labels.cta }}</a>
-    <p class="tool-privacy">{{ labels.privacy }}</p>
+    >
+      {{ labels.cta }}
+    </ToolCta>
   </template>
 </template>

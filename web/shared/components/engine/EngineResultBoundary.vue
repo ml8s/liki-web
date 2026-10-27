@@ -18,14 +18,25 @@
 
     <template v-else-if="hasData">
       <div
-        v-if="errorMessage && $slots.error"
+        v-if="errorMessage"
         role="alert"
         class="engine-result-boundary__error"
       >
         <slot
           name="error"
           :error="normalizedError"
-        />
+        >
+          <p class="engine-result-boundary__text">
+            {{ errorMessage }}
+          </p>
+          <button
+            type="button"
+            class="engine-result-boundary__retry"
+            @click="$emit('retry')"
+          >
+            {{ $t('common.retry') }}
+          </button>
+        </slot>
       </div>
       <slot :result="data" />
     </template>

@@ -22,7 +22,7 @@ const questions = [
 const birthLabels = birthFieldLabels(locale);
 const toolProps = {
   locale,
-  appUrl: `/app?service=natal&locale=${locale}`,
+  appUrl: `/app/birth-profiles/new?locale=${locale}`,
   labels: {
     ...birthLabels,
     submit: t(locale, 'tool.submit'),
@@ -154,7 +154,7 @@ const breadcrumbSchema = {
   >
     <h2>{t(locale, `${ns}.zodiac.title`)}</h2>
     <p>{t(locale, `${ns}.zodiac.body`)}</p>
-    <p><a class="card-link" href={`/app?locale=${locale}`}>{t(locale, 'natal.zodiac.link')}</a></p>
+    <p><a class="card-link" href="#chart-tool">{t(locale, 'natal.zodiac.link')}</a></p>
   </section>
 
   <section
@@ -163,7 +163,7 @@ const breadcrumbSchema = {
   >
     <h2>{t(locale, `${ns}.rectification.title`)}</h2>
     <p>{t(locale, `${ns}.rectification.body`)}</p>
-    <p><a class="card-link" href={`/app?locale=${locale}`}>{t(locale, 'natal.rectification.link')}</a></p>
+    <p><a class="card-link" href="#chart-tool">{t(locale, 'natal.rectification.link')}</a></p>
   </section>
 
   <section class="landing-services scenario-section">

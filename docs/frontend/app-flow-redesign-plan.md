@@ -978,6 +978,47 @@ not fetch data, access stores, or know whether the result came from cache.
 4. Existing panels and themes may adopt the boundary incrementally; this slice
    does not migrate all engine methods at once.
 
+##### Phase 3 adoption status
+
+Reuse boundary:
+
+- Result panels (`BaziChartPanel`, `ZiweiChartPanel`, `HuangliDaysPanel`, and the
+  rest of `web/shared/components/engine/**`) stay presentational and
+  self-contained: props in, markup out, no fetch, no cache, no MCP import.
+- The DTO contract stays in the shared type layer (`api/engine/*`,
+  `EngineResultDtoMap`, `contract.ts`, `catalog.ts`). Panels import it with
+  `import type` only.
+- `EngineQueryPanel` (`web/shared/components/engine/EngineQueryPanel.vue`) is the
+  single query wrapper: it owns the resource lifecycle, code-to-locale error
+  text, retry, and the boundary. It is composed at the page/island shell, never
+  inside a result panel.
+- No per-product result-wrapper components. App views and marketing islands
+  compose the same `EngineQueryPanel` + shared forms + shared panels, keeping
+  only their own input state, loaders, and CTA.
+- `useEngineResult` takes a required resource `namespace`; the cache key is
+  `<namespace>:<canonical input>`.
+- Adopted resources: `natal.bazi`, `natal.ziwei`, `natal.bazhai`,
+  `natal.bazi.liunian`, `natal.ziwei.liunian`, `liunian.bazi`,
+  `liunian.bazi.liunian`, `fengshui.bazhai`, `fengshui.xuankong`,
+  `fengshui.layout`, `hepan.bond`, `huangli.days`, `naming.assessment`,
+  `divination.chart`, `tool.hepan`, `tool.fengshui`, `tool.naming`.
+- Marketing islands are thin shells over the same components: `NatalTool`,
+  `LiunianTool`, `HepanTool`, `FengshuiTool`, `HuangliTool`, `NamingTool`.
+  The homepage quick-chart reuses `NatalTool` instead of redirecting to the App.
+- A free-tool submit never navigates. Only the interpretation CTA (LikiChatCta
+  or the tool's in-result CTA) enters the App. The homepage hero and service
+  card "try it" links stay on the marketing site and target the on-page free
+  tool (`#chart-tool` / `#free-tool`); natal's zodiac and birth-time links do
+  the same. Scenario landing hero/bottom CTAs remain Liki Chat handoffs.
+- Shared tool surfaces are fixed: `ToolCta` for interpretation handoffs,
+  `EngineQueryPanel`/`EngineResultBoundary` for query loading/error/retry, and
+  `ToolError` for mutation or validation failures that are not queries. Islands
+  do not hand-roll these three states.
+- `liuyao_qigua` remains an explicit mutation with `ToolError` handling; the
+  derived chart query owns the resource boundary and supports retrying the same
+  casting receipt. `city_coords` remains input-support and is not a result
+  resource.
+
 #### 5.2.7 Extraction provenance policy
 
 Wave 4 is an **extraction refactor**, not a redesign. The current production

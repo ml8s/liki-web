@@ -5,7 +5,7 @@ import LikiChatCta from './LikiChatCta.astro';
 export interface Props {
   locale: string;
   titleKey: string;
-  items: Array<{ titleKey: string; bodyKey: string; ctaService?: string; ctaKey?: string }>;
+  items: Array<{ titleKey: string; bodyKey: string; ctaService?: string; ctaKey?: string; ctaHref?: string }>;
   linkHref: string;
   linkKey: string;
 }
@@ -21,7 +21,7 @@ const { locale, titleKey, items, linkHref, linkKey } = Astro.props;
         <h3>{t(locale, item.titleKey)}</h3>
         <p>{t(locale, item.bodyKey)}</p>
         {item.ctaService && item.ctaKey && (
-          <LikiChatCta locale={locale} service={item.ctaService} labelKey={item.ctaKey} class="card-link" />
+          <LikiChatCta locale={locale} service={item.ctaService} href={item.ctaHref} labelKey={item.ctaKey} class="card-link" />
         )}
       </article>
     ))}

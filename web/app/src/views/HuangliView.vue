@@ -40,29 +40,38 @@
       </el-form>
     </el-card>
 
-    <template v-if="result">
-      <el-card
-        class="app-card app-card--highlight"
-        shadow="never"
-      >
-        <template #header>
-          <h2 class="app-card__title">
-            {{ $t('services.huangli.resultTitle', { event: eventLabel(event) }) }}
-          </h2>
-        </template>
-        <HuangliDaysPanel :result="result" />
-      </el-card>
+    <EngineQueryPanel
+      v-if="huangliInput"
+      resource="huangli.days"
+      :input="huangliInput"
+      :load="loadHuangli"
+      :enabled="!!huangliInput"
+      :fallback="$t('services.huangli.failed')"
+    >
+      <template #default="{ result: days }">
+        <el-card
+          class="app-card app-card--highlight"
+          shadow="never"
+        >
+          <template #header>
+            <h2 class="app-card__title">
+              {{ $t('services.huangli.resultTitle', { event: eventLabel(event) }) }}
+            </h2>
+          </template>
+          <HuangliDaysPanel :result="days" />
+        </el-card>
 
-      <AppConsultationCard
-        :title="$t('services.huangli.consultationTitle')"
-        :description="$t('services.huangli.consultationBody')"
-        :locked-description="$t('services.huangli.lockedBody')"
-        :purchased="entitlements.purchased && profiles.list.length > 0"
-        :locked-action-label="profiles.list.length ? $t('commerce.activateNow') : $t('profiles.create')"
-        :to="profiles.list.length ? '/chat' : '/birth-profiles/new'"
-        @action="startChat"
-      />
-    </template>
+        <AppConsultationCard
+          :title="$t('services.huangli.consultationTitle')"
+          :description="$t('services.huangli.consultationBody')"
+          :locked-description="$t('services.huangli.lockedBody')"
+          :purchased="entitlements.purchased && profiles.list.length > 0"
+          :locked-action-label="profiles.list.length ? $t('commerce.activateNow') : $t('profiles.create')"
+          :to="profiles.list.length ? '/chat' : '/birth-profiles/new'"
+          @action="startChat"
+        />
+      </template>
+    </EngineQueryPanel>
 
     <el-card
       v-if="toolRecords.length || recordsError"
@@ -86,7 +95,6 @@
 </template>
 
 <script setup lang="ts">
-import { toUserMessage } from '@/utils/errors'
 import { computed, reactive, ref, toRef, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -98,7 +106,9 @@ import { useToolRecords } from '@/composables/useToolRecords'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
+import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
 import ServicePageShell from '@/components/app/ServicePageShell.vue'
+import { useEngineResult } from '@shared/composables/useEngineResult'
 import type { ConsultationContext } from '@shared/domain/consultation'
 import { consumeConsultationHandoff } from '@shared/utils/handoff'
 
@@ -125,9 +135,15 @@ if (publicConsultation?.scenario === 'huangli') {
 const event = toRef(form, 'event')
 const startDate = toRef(form, 'startDate')
 const endDate = toRef(form, 'endDate')
-const result = ref<HuangliDays | null>(null)
-const loading = ref(false)
 const error = ref('')
+const huangliInput = ref<{ event: string; startDate: string; count: number } | null>(null)
+const huangliResource = useEngineResult({
+  namespace: 'huangli.days',
+  input: huangliInput,
+  load: input => huangliDaysFor(input.event, input.startDate, input.count),
+})
+const result = computed(() => huangliResource.data.value as HuangliDays | null)
+const loading = computed(() => huangliResource.status.value === 'loading')
 
 const formRef = ref<FormInstance>()
 
@@ -161,18 +177,18 @@ function eventLabel(key: string): string {
 }
 
 // 引擎按 start_date + count 连续取数（count ≤ 30），结束日期只用于算跨度。
+function loadHuangli(input: { event: string; startDate: string; count: number }) {
+  return huangliDaysFor(input.event, input.startDate, input.count)
+}
+
 async function calc() {
   const valid = await formRef.value?.validate().then(() => true).catch(() => false)
   if (!valid) return
-  loading.value = true
   error.value = ''
-  result.value = null
-  try {
-    result.value = await huangliDaysFor(event.value, startDate.value, spanDays.value)
-  } catch (err) {
-    error.value = toUserMessage(err, t('services.huangli.failed'))
-  } finally {
-    loading.value = false
+  huangliInput.value = {
+    event: event.value,
+    startDate: startDate.value,
+    count: spanDays.value,
   }
 }
 

@@ -10,6 +10,7 @@ import type { BazhaiChart, BazhaiLayout, XuankongChart } from '@shared/api/engin
 import type { ConsultationContext } from '@shared/domain/consultation'
 import { saveConsultationHandoff } from '@shared/utils/handoff'
 import { LUOSHU_ORDER } from '@shared/utils/bazhai'
+import { clearEngineResultCache } from '@shared/composables/useEngineResult'
 
 const domainMocks = vi.hoisted(() => ({
   bazhaiChartFor: vi.fn(),
@@ -187,11 +188,14 @@ async function mountView() {
   await flushPromises()
   await nextTick()
   await flushPromises()
+  await nextTick()
+  await flushPromises()
   return wrapper
 }
 
 describe('FengshuiView engine adoption', () => {
   beforeEach(() => {
+    clearEngineResultCache()
     vi.clearAllMocks()
     document.body.innerHTML = ''
     const pinia = createPinia()
@@ -226,6 +230,20 @@ describe('FengshuiView engine adoption', () => {
     expect(wrapper.findAll('.bazhai-chart-panel .bz-grid .bz-cell')).toHaveLength(9)
     expect(wrapper.findAll('.bazhai-layout-panel tbody tr')).toHaveLength(3)
 
+    wrapper.unmount()
+  })
+
+  it('keeps Xuankong when the Bazhai chart fails', async () => {
+    domainMocks.bazhaiChartFor.mockRejectedValueOnce(
+      Object.assign(new Error('boom'), { code: 'engine_unavailable' }),
+    )
+    domainMocks.xuankongChartFor.mockResolvedValue(xuankongResult)
+
+    const wrapper = await mountView()
+
+    expect(wrapper.findComponent(BazhaiChartPanel).exists()).toBe(false)
+    expect(wrapper.findComponent(XuankongChartPanel).props('result')).toStrictEqual(xuankongResult)
+    expect(wrapper.text()).toContain('排盘服务暂时不可用')
     wrapper.unmount()
   })
 

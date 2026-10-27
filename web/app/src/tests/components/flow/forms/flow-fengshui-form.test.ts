@@ -27,10 +27,13 @@ describe('FlowFengshuiForm', () => {
     await wrapper.vm.$nextTick()
 
     expect(submit.attributes('disabled')).toBeUndefined()
+    // Completing the third Gua auto-computes so edits reflect immediately.
+    expect(wrapper.emitted('submit')).toHaveLength(1)
+
     wrapper.getComponent(FormShell).vm.$emit('submit')
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.emitted('submit')).toHaveLength(1)
+    expect(wrapper.emitted('submit')).toHaveLength(2)
     expect(wrapper.emitted('submit')?.[0]?.[0]).toMatchObject({
       zuoShan: 0,
       doorGua: '乾',

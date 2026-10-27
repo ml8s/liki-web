@@ -153,6 +153,48 @@ describe('useEngineResult', () => {
     wrapper.unmount()
   })
 
+  it('isolates identical inputs by namespace', async () => {
+    const load = vi.fn(async (input: { chart: string }) => `result:${input.chart}`)
+    const input = ref({ chart: 'same' })
+
+    const chart = useEngineResult({ input, load, namespace: 'bazi_chart', staleTime: 60_000 })
+    const full = useEngineResult({ input, load, namespace: 'bazi_fullchart', staleTime: 60_000 })
+    const chartWrapper = mountResource(chart)
+    const fullWrapper = mountResource(full)
+    await flushPromises()
+
+    expect(load).toHaveBeenCalledTimes(2)
+    expect(chartWrapper.vm.data).toBe('result:same')
+    expect(fullWrapper.vm.data).toBe('result:same')
+    chartWrapper.unmount()
+    fullWrapper.unmount()
+  })
+
+  it('keeps the normalized error code for the UI layer', async () => {
+    const load = vi.fn().mockRejectedValue(
+      Object.assign(new Error('engine unavailable'), { code: 'engine_unavailable' }),
+    )
+    const resource = useEngineResult({ input: ref({ chart: 'x' }), load })
+    const wrapper = mountResource(resource)
+    await flushPromises()
+
+    expect(resource.status.value).toBe('error')
+    expect(resource.error.value?.code).toBe('engine_unavailable')
+    wrapper.unmount()
+  })
+
+  it('reads the normalized code from a stage wrapper cause', async () => {
+    const cause = Object.assign(new Error('engine unavailable'), { code: 'engine_tool_failed' })
+    const wrapper = new Error('bazi_chart: engine unavailable', { cause })
+    const load = vi.fn().mockRejectedValue(wrapper)
+    const resource = useEngineResult({ input: ref({ chart: 'x' }), load })
+    const mounted = mountResource(resource)
+    await flushPromises()
+
+    expect(resource.error.value?.code).toBe('engine_tool_failed')
+    mounted.unmount()
+  })
+
   it('stays idle for invalid or disabled input', async () => {
     const load = vi.fn(async () => 'should-not-load')
     const enabled = ref(false)

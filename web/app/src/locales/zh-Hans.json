@@ -528,7 +528,6 @@
     "chart": {
       "title": "免费排盘",
       "compute": "排盘",
-      "empty": "输入公历出生时间后点“排盘”，免费查看八字、紫微、八宅三盘（临时展示，不保存）。",
       "bazi": "八字",
       "ziwei": "紫微",
       "bazhai": "八宅",
@@ -635,18 +634,12 @@
       "geJu": "格局",
       "favorAvoid": "{value} · 喜 {favorable} 忌 {unfavorable}",
       "correctedLongitude": "已做真太阳时修正（{longitude}）",
-      "failed": "排盘失败",
       "stageFailed": "{stage}计算失败",
-      "partialFailed": "部分附加信息计算失败",
       "stage": {
         "bazi_chart": "八字命盘",
         "ziwei_chart": "紫微命盘",
-        "bazi_fullchart": "八字详盘",
-        "ziwei_fullchart": "紫微详盘",
-        "ziwei_daxian": "紫微大限",
         "bazi_liunian": "八字流年",
-        "ziwei_liunian": "紫微流年",
-        "bazhai_chart": "八宅盘"
+        "ziwei_liunian": "紫微流年"
       },
       "pillar": {
         "year": "年柱",

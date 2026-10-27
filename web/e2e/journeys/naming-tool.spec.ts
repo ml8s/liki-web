@@ -53,7 +53,7 @@ test('工具岛：用神/喜忌按 BaziYongShenPanel 渲染，低置信度显示
   const yongShenPanel = tool.locator('.engine-yongshen');
   await expect(yongShenPanel.locator('.ys-value')).toHaveText('—');
   await expect(yongShenPanel.locator('.ys-review')).toContainText('复核');
-  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=naming/);
+  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
   expect(engineCalls.find(call => call.tool === 'bazi_chart')?.arguments).toEqual({
     instant: '1990-05-11T23:30:00Z', timezone: 'Asia/Shanghai',
     longitude: 121.4726,
@@ -101,5 +101,5 @@ test('工具岛：counsel 失败时展示错误文案', async ({ page }) => {
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

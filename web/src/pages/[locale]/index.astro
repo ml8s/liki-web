@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import LikiChatCta from '../../components/LikiChatCta.astro';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 import keywords from '../../keywords.json' with { type: 'json' };
 
@@ -10,12 +9,23 @@ export function getStaticPaths() {
 
 const { locale } = Astro.params;
 const pageKeywords = [...new Set(['liki.hk', ...(keywords as Record<string, string[]>)[locale]])].join(', ');
+// 免费工具都在营销站内；只有“深入解读”才通过 LikiChatCta 进入 App。
+const toolHref = (service: string) => service === 'natal'
+  ? `/${locale}/natal/#chart-tool`
+  : `/${locale}/${service}/#free-tool`;
 const quickBirthProps = {
   locale,
   appUrl: `/app/birth-profiles/new?locale=${locale}`,
   labels: {
     ...birthFieldLabels(locale),
     submit: t(locale, 'tool.submit'),
+    computing: t(locale, 'tool.computing'),
+    error: t(locale, 'tool.error'),
+    bazi: t(locale, 'natal.tool.bazi'),
+    ziwei: t(locale, 'natal.tool.ziwei'),
+    lucky: t(locale, 'natal.tool.lucky'),
+    cta: t(locale, 'tool.cta'),
+    privacy: t(locale, 'tool.privacy'),
   },
 };
 const siteUrl = 'https://liki.hk';
@@ -77,17 +87,19 @@ const homeSchema = {
     <h1 class="landing-h1">{t(locale, 'index.hero.title')}</h1>
     <p class="landing-sub">{t(locale, 'index.hero.subtitle')}</p>
     <div class="landing-actions">
-      <LikiChatCta locale={locale} labelKey="index.cta.chart" />
+      <a href="#chart-tool" class="btn-purple">{t(locale, 'index.cta.chart')}</a>
       <a href="#services" class="btn-ghost">{t(locale, 'index.cta.learn')}</a>
     </div>
   </section>
 
-  <section class="landing-chart">
+  <section
+    id="chart-tool"
+    class="landing-chart"
+  >
     <h2>{t(locale, 'index.chart.title')}</h2>
-    <p>{t(locale, 'index.chart.desc')}</p>
+    <p>{t(locale, 'natal.tool.intro')}</p>
     <div id="quick-birth-tool" data-props={JSON.stringify(quickBirthProps)}>
     </div>
-    <p class="chart-hint">{t(locale, 'index.chart.hint')}</p>
     <script>
       import '../../scripts/quick-birth-tool';
     </script>
@@ -99,43 +111,43 @@ const homeSchema = {
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.natal.title')}</h3>
         <p>{t(locale, 'index.services.natal.desc')}</p>
-        <LikiChatCta locale={locale} service="natal" labelKey="index.services.cta" class="card-link" />
+        <a href={toolHref('natal')} class="card-link">{t(locale, 'index.services.cta')}</a>
         <a href={`/${locale}/natal/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.natal.title') })}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.liunian.title')}</h3>
         <p>{t(locale, 'index.services.liunian.desc')}</p>
-        <LikiChatCta locale={locale} scenario="liunian" labelKey="index.services.cta" class="card-link" />
+        <a href={toolHref('liunian')} class="card-link">{t(locale, 'index.services.cta')}</a>
         <a href={`/${locale}/liunian/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.liunian.title') })}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.hepan.title')}</h3>
         <p>{t(locale, 'index.services.hepan.desc')}</p>
-        <LikiChatCta locale={locale} scenario="hepan" labelKey="index.services.cta" class="card-link" />
+        <a href={toolHref('hepan')} class="card-link">{t(locale, 'index.services.cta')}</a>
         <a href={`/${locale}/hepan/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.hepan.title') })}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.divination.title')}</h3>
         <p>{t(locale, 'index.services.divination.desc')}</p>
-        <LikiChatCta locale={locale} service="divination" labelKey="index.services.cta" class="card-link" />
+        <a href={toolHref('divination')} class="card-link">{t(locale, 'index.services.cta')}</a>
         <a href={`/${locale}/divination/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.divination.title') })}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.huangli.title')}</h3>
         <p>{t(locale, 'index.services.huangli.desc')}</p>
-        <LikiChatCta locale={locale} service="huangli" labelKey="index.services.cta" class="card-link" />
+        <a href={toolHref('huangli')} class="card-link">{t(locale, 'index.services.cta')}</a>
         <a href={`/${locale}/huangli/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.huangli.title') })}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.fengshui.title')}</h3>
         <p>{t(locale, 'index.services.fengshui.desc')}</p>
-        <LikiChatCta locale={locale} service="fengshui" labelKey="index.services.cta" class="card-link" />
+        <a href={toolHref('fengshui')} class="card-link">{t(locale, 'index.services.cta')}</a>
         <a href={`/${locale}/fengshui/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.fengshui.title') })}</a>
       </div>
       <div class="card">
         <h3 class="font-serif">{t(locale, 'index.services.naming.title')}</h3>
         <p>{t(locale, 'index.services.naming.desc')}</p>
-        <LikiChatCta locale={locale} scenario="naming" labelKey="index.services.cta" class="card-link" />
+        <a href={toolHref('naming')} class="card-link">{t(locale, 'index.services.cta')}</a>
         <a href={`/${locale}/naming/`} class="card-link card-link-secondary">{t(locale, 'index.services.learnMoreWith', { service: t(locale, 'index.services.naming.title') })}</a>
       </div>
     </div>
@@ -168,6 +180,6 @@ const homeSchema = {
 
   <section class="landing-cta">
     <p class="font-serif">{t(locale, 'index.cta.bottom')}</p>
-    <LikiChatCta locale={locale} labelKey="index.cta.chart" />
+    <a href="#chart-tool" class="btn-purple">{t(locale, 'index.cta.chart')}</a>
   </section>
 </BaseLayout>

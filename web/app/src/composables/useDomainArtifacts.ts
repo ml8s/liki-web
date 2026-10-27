@@ -86,7 +86,9 @@ export function useDomainArtifacts(options: {
       return buildArtifactDescriptors(domainId, { hepan })
     }
 
-    if (casting) {
+    // A casting receipt alone is not a chart artifact; wait for the chart so a
+    // failed assembly never fabricates a ready artifact.
+    if (casting && chart) {
       return buildArtifactDescriptors(domainId, {
         liuyao: {
           casting,

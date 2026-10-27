@@ -5,6 +5,7 @@ import {
   castingInstantPattern,
   castingQuestion,
   deterministicCasting,
+  deterministicChart,
   fillCastingForm,
   mockCastingWorkspace,
   mockDivinationEngine,
@@ -14,6 +15,28 @@ import {
   type JsonRecord,
 } from '../helpers/domain-flow-casting'
 import { flowSession } from '../helpers/domain-flow'
+import { mcpOk, mcpToolError } from '../mocks'
+
+async function seedDivinationHandoff(page: Page) {
+  await page.addInitScript(context => {
+    try {
+      const key = 'liki:form-drafts'
+      const raw = sessionStorage.getItem(key)
+      const drafts = raw ? JSON.parse(raw) as Record<string, unknown> : {}
+      drafts['handoff:consultation'] = { data: context, createdAt: Date.now() }
+      sessionStorage.setItem(key, JSON.stringify(drafts))
+    } catch {
+      // sessionStorage unavailable: the test's navigation below will fail visibly.
+    }
+  }, {
+    version: 1,
+    scenario: 'divination',
+    question: castingQuestion,
+    casting: deterministicCasting,
+    casting_instant: '2026-01-01T00:00:00Z',
+    location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
+  })
+}
 
 function mockSessionCreation(page: Page, sessions: JsonRecord[]) {
   return page.route('**/api/chat/sessions', async (route: Route) => {
@@ -58,6 +81,63 @@ test.describe('divination casting flow', () => {
 
     const legacyTaskLinks = page.locator('a[href="/app/divination"], a[href="/app/hepan"], a[href="/app/fengshui"], a[href="/app/huangli"], a[href="/app/natal"], a[href="/app/liunian"], a[href="/app/naming"]')
     await expect(legacyTaskLinks).toHaveCount(0)
+  })
+
+  test('restores a marketing casting receipt without drawing a new hexagram', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await mockCastingWorkspace(page)
+    const calls = await mockDivinationEngine(page)
+    await seedDivinationHandoff(page)
+
+    await page.goto('/app/?service=divination&locale=zh-Hans')
+    await expect(page.locator('.flow-domain-strip [role="tab"]', { hasText: '问卦' }))
+      .toHaveAttribute('aria-selected', 'true')
+    await expect(page.locator('.artifact-capsule')).toBeVisible()
+
+    const tools = calls.map(call => call.tool)
+    expect(tools).toContain('liuyao_chart')
+    expect(tools).not.toContain('liuyao_qigua')
+    expect(calls.find(call => call.tool === 'liuyao_chart')?.args.casting).toMatchObject({
+      casting_id: deterministicCasting.casting_id,
+    })
+  })
+
+  test('retries the folded casting chart without drawing a new hexagram', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await mockCastingWorkspace(page)
+    await seedDivinationHandoff(page)
+
+    let chartAttempts = 0
+    const tools: string[] = []
+    await page.route('**/engine/mcp', async route => {
+      const body = route.request().postDataJSON() as { params?: { name?: string } }
+      const tool = body.params?.name ?? ''
+      tools.push(tool)
+
+      if (tool === 'liuyao_qigua') {
+        await route.fulfill({ json: mcpOk({ casting: deterministicCasting }) })
+        return
+      }
+      if (tool === 'liuyao_chart') {
+        chartAttempts += 1
+        if (chartAttempts === 1) {
+          await route.fulfill({ json: mcpToolError('engine_unavailable: boom') })
+        } else {
+          await route.fulfill({ json: mcpOk(deterministicChart) })
+        }
+        return
+      }
+      await route.fulfill({ status: 500, json: { error: { code: -32000, message: 'unexpected engine tool' } } })
+    })
+
+    await page.goto('/app/?service=divination&locale=zh-Hans')
+    await expect(page.locator('.flow-error')).toBeVisible()
+    await page.getByRole('button', { name: '重试' }).click()
+
+    await expect(page.locator('.artifact-capsule')).toBeVisible()
+    expect(chartAttempts).toBe(2)
+    expect(tools).toContain('liuyao_chart')
+    expect(tools).not.toContain('liuyao_qigua')
   })
 
   test('requires question and location before calling a casting engine', async ({ page }) => {
