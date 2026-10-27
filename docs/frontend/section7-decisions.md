@@ -69,10 +69,12 @@ options now on the table:
 | B — independent 择日 agent (expert proposal) | Fifth expert with its own scenario, input slots (event, date range), and consultation contexts | Real contract change: backend expert registration + frontend domain registry/redirects/E2E "exactly four" assertions + locale + marketing handoff; generic 黄历 could be person-free while personalized 择日 binds `(person, domain)` like today |
 | C — status quo (pending-backend) | Explicit pending behavior already shipped and tested | Zero |
 
-Recommendation: **stay on C until the product decision settles**. Option B is
-architecturally credible (job-shaped experts, distinct input model) but is a
-cross-stack contract change that deserves its own design pass; Option A would
-bake in a structure that may be torn out. Nothing else is blocked by waiting.
+**Decision 2026-10-27: Option C adopted.** Date selection stays explicitly
+pending-backend (no natal mapping, no fifth agent). Option B (independent
+job-shaped agent) is recorded here as the leading candidate for the eventual
+backend phase — if and when that phase is designed, B should be the default
+assumption — but no frontend or contract work starts until that phase is
+actually resourced.
 
 ## 9. Web contract exposure for `bazi_liuri` / `ziwei_liuri`
 
