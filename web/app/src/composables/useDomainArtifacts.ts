@@ -35,7 +35,7 @@ function isLiuyaoCasting(value: unknown): value is LiuyaoCasting {
  * A consultation context stores deterministic receipts, not chat prose.
  * Only such receipts may become artifacts; the model answer is never parsed.
  */
-export function artifactsFromConsultation(
+function artifactsFromConsultation(
   domainId: AppDomainId,
   context: ConsultationContext | null | undefined,
 ): AnyArtifactDescriptor[] {

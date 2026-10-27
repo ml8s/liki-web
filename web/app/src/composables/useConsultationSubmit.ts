@@ -134,6 +134,5 @@ export function useConsultationSubmit(options: ConsultationSubmitOptions) {
     submitFocusedForm,
     openMatchingAndSend,
     createAndSendWithSession,
-    sendUsingActiveSession,
   }
 }

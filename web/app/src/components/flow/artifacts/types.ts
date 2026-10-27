@@ -86,15 +86,3 @@ export function createReadyArtifact<Kind extends ArtifactKind>(
 ): ArtifactDescriptor<Kind> {
   return { ...descriptor, state: 'ready' }
 }
-
-export function createUnavailableArtifact(
-  input: Omit<AnyArtifactDescriptor, 'state' | 'payload'>,
-): AnyArtifactDescriptor {
-  return { ...input, state: 'unavailable' }
-}
-
-export function createPendingBackendArtifact(
-  input: Omit<AnyArtifactDescriptor, 'state' | 'payload'>,
-): AnyArtifactDescriptor {
-  return { ...input, state: 'pending-backend' }
-}

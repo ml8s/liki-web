@@ -101,7 +101,7 @@ interface LegacyRedirectResult extends LegacyRedirectTarget {
   state: { likiAppFlowLegacyRedirect: true }
 }
 
-export function createLegacyAppRedirects(): RouteRecordRaw[] {
+function createLegacyAppRedirects(): RouteRecordRaw[] {
   const consultationOwnedLegacyPaths = new Set([
     'hepan',
     'divination',
