@@ -84,8 +84,10 @@ The O5/O6 implementation slice is done; the remaining items in
       platform, keyboard journeys on real devices.
 - [ ] O5 five-breakpoint visual review (320/390/768/1024/1440) on real
       devices; transition feel sign-off.
-- [ ] O6 engine-result catalog completion: page-local projections → typed
-      adapters (behavior-neutral; both layouts consume the same catalog).
+- [x] O6 engine-result catalog: audited 2026-10-27 — both layouts already
+      consume the same canonical panels and typed domain functions; the
+      remaining per-view orchestration differs by design (see the O6
+      appendix in `docs/frontend/o4-performance-audit.md`). Closed.
 - [ ] Deferred backend phase: domain-owned consultation contexts and the
       `huangli` → `natal` expert migration (backend contract work; Classic
       keeps serving `huangli` until then; it does not remove Classic).

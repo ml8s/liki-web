@@ -1,5 +1,19 @@
 # O4 Performance and Bundle Audit
 
+## Appendix: O6 engine-result catalog audit (2026-10-27)
+
+Finding: the Wave 4 catalog goal is already satisfied. Both layouts consume
+the same canonical panels (`@shared/components/engine/*`) and the same typed
+domain functions (`@shared/domain/*`); `ArtifactPanel` lazy-loads the same
+13 panels that Classic views render directly. The only remaining per-view
+code is ~30 lines of compute/loading/error orchestration whose inputs differ
+by design (Classic uses full dual birth forms; Consultation uses the profile
+plus focused-form). Forcing these into a shared adapter would be speculative
+abstraction. O6 "page-local projections → typed adapters" is therefore
+**closed as already satisfied**; new result families must extend
+`catalog.ts`, `engine-contract.spec.ts`, and the lazy `ArtifactPanel`
+branches in the same change.
+
 Status: baseline recorded 2026-10-27 on branch `feat/app-flow-redesign`
 at commit `c8c191a`, build flag `VITE_FEATURE_APP_FLOW_REDESIGN=true`,
 Vite 6 production build (`vue-tsc --noEmit && vite build`).
