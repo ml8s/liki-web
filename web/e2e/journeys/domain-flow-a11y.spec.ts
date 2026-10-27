@@ -129,6 +129,35 @@ test.describe('consultation keyboard reflow', () => {
       await expect(sheet).toBeVisible()
       await page.keyboard.press('Escape')
       await expect(sheet).toBeHidden()
+      await expect(personTrigger).toBeFocused()
+
+      // Domain chooser: native radio group keyboard contract — arrows commit the
+      // selection (the sheet closes on change) and the composer trigger both
+      // regains focus and reflects the newly selected domain.
+      const domainTrigger = page.locator('.flow-parameters').getByRole('button', { name: '命理' })
+      await domainTrigger.focus()
+      await page.keyboard.press('Enter')
+      const domainSheet = page.getByRole('region', { name: '选择领域' })
+      await expect(domainSheet).toBeVisible()
+      const domainRadios = domainSheet.getByRole('radio', { name: /命理|问卦|风水|起名/ })
+      await expect(domainRadios).toHaveCount(4)
+      await expect(domainRadios.first()).toBeChecked()
+      await domainRadios.first().focus()
+      await page.keyboard.press('ArrowDown')
+      await expect(domainRadios.nth(1)).toBeChecked()
+      await expect(domainSheet).toBeHidden()
+      await expect(page.locator('.flow-parameters').getByRole('button', { name: '问卦' })).toBeFocused()
+
+      // Reopening shows the committed selection; ArrowUp commits back to natal.
+      await page.locator('.flow-parameters').getByRole('button', { name: '问卦' }).focus()
+      await page.keyboard.press('Enter')
+      await expect(domainSheet).toBeVisible()
+      await expect(domainSheet.getByRole('radio', { name: '问卦' })).toBeChecked()
+      await domainSheet.getByRole('radio', { name: '问卦' }).focus()
+      await page.keyboard.press('ArrowUp')
+      await expect(domainSheet).toBeHidden()
+      await expect(page.locator('.flow-parameters').getByRole('button', { name: '命理' })).toBeFocused()
+
 
       const question = page.getByRole('textbox', { name: '直接提出你的问题' })
       await question.focus()
@@ -137,6 +166,15 @@ test.describe('consultation keyboard reflow', () => {
       await expect.poll(() => createdSessions.length).toBe(1)
 
       await expect(page.getByRole('list', { name: '咨询记录' })).toContainText('日主偏弱')
+
+      // History (after a real session exists): the title filter is reachable by
+      // keyboard and filters without a pointer.
+      const historyFilter = page.getByRole('searchbox', { name: '按标题筛选' })
+      await historyFilter.focus()
+      await historyFilter.fill('不存在的会话')
+      await expect(page.locator('.flow-history__empty')).toBeVisible()
+      await historyFilter.fill('')
+      await expect(page.locator('.flow-history__list')).toBeVisible()
       expect(createdSessions).toHaveLength(1)
 
       const meLink = page.locator('.experience-switcher--dock', { hasText: '我的' })

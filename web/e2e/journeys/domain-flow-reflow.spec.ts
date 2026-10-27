@@ -5,7 +5,7 @@ import { expectReflowContract } from '../helpers/reflow'
 const profile = flowProfile('person-1', '张三')
 
 test.describe('consultation reflow', () => {
-  for (const width of [320, 640]) {
+  for (const width of [320, 640, 768, 1024, 1440]) {
     test(`keeps primary controls usable at ${width}px (200% reference)`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       await mockFlowWorkspace(page, { profiles: [profile] })
