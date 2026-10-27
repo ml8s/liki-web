@@ -41,3 +41,43 @@ export async function chartInputFromBirth(birth: BirthInput): Promise<ChartInput
     throw invalid('birth_date_invalid', 'Birth date or time is invalid in this timezone')
   }
 }
+
+/** Birth year parsed from a YYYY-MM-DD date, bounded to engine-supported years. */
+export function birthYearFromDate(date: string, min = 1900, max = 2100): number | null {
+  const year = Number.parseInt(date.slice(0, 4), 10)
+  return Number.isFinite(year) && year >= min && year <= max ? year : null
+}
+
+/** Structural source: the saved birth facts a profile contributes to a chart. */
+export interface ProfileBirthSource {
+  birth: {
+    gender: BirthGender
+    /** Nullable mirrors of the saved-profile wire shape; guarded below. */
+    instant: string | null
+    date: string | null
+    time: string | null
+    location: { longitude: number | null; timezone: string | null }
+  }
+}
+
+/**
+ * Saved profile birth facts -> engine chart input. Throws when the facts are
+ * incomplete; callers that prefer soft failures should guard before calling.
+ */
+export function chartInputFromProfileBirth(
+  profile: ProfileBirthSource,
+): ChartInput & { gender: BirthGender } {
+  const birth = profile.birth
+  const longitude = birth.location?.longitude
+  const timezone = birth.location?.timezone
+  if (!birth.instant || !timezone
+    || typeof longitude !== 'number' || !Number.isFinite(longitude)) {
+    throw invalid('birth_time_required', 'A complete birth profile is required')
+  }
+  return {
+    instant: birth.instant,
+    timezone,
+    longitude,
+    gender: birth.gender,
+  }
+}

@@ -8,7 +8,7 @@ import { birthInputFromFields } from '@shared/components/form/birth-fields'
 import type { FengshuiLayoutValue } from '@shared/components/fengshui/FengshuiLayoutFields.vue'
 import type { ArtifactPayloadByKind } from '@/components/flow/artifacts/types'
 import { useToolRecords } from '@/composables/useToolRecords'
-import { chartInputFromBirth } from '@shared/domain/birth'
+import { birthYearFromDate, chartInputFromBirth, chartInputFromProfileBirth } from '@shared/domain/birth'
 import {
   divinationCastingFor,
   divinationChartFor,
@@ -77,11 +77,9 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     save: saveBazhaiRecord,
   } = useToolRecords('bazhai')
 
-  const fengshuiBirthYear = computed(() => {
-    const date = selectedProfile.value?.birth.date ?? ''
-    const year = Number.parseInt(date.slice(0, 4), 10)
-    return Number.isFinite(year) && year >= 1900 && year <= 2100 ? year : null
-  })
+  const fengshuiBirthYear = computed(() =>
+    birthYearFromDate(selectedProfile.value?.birth.date ?? ''),
+  )
 
   const fengshuiGender = computed(() => {
     const gender = selectedProfile.value?.birth.gender
@@ -90,15 +88,10 @@ export function useConsultationTools(options: ConsultationToolOptions) {
 
   function profileChartInput() {
     const profile = selectedProfile.value
-    if (!profile?.birth.instant || !profile.birth.location.timezone || profile.birth.location.longitude == null) {
+    if (!profile) {
       throw new TypeError('A complete primary birth profile is required')
     }
-    return {
-      instant: profile.birth.instant,
-      timezone: profile.birth.location.timezone,
-      longitude: profile.birth.location.longitude,
-      gender: profile.birth.gender,
-    }
+    return chartInputFromProfileBirth(profile)
   }
 
   function profileBirthInput() {

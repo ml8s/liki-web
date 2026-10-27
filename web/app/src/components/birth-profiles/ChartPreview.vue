@@ -163,6 +163,7 @@ import ZiweiChartPanel from '@shared/components/engine/ziwei/ZiweiChartPanel.vue
 import ZiweiDaXianPanel from '@shared/components/engine/ziwei/ZiweiDaXianPanel.vue'
 import ZiweiLiuNianPanel from '@shared/components/engine/ziwei/ZiweiLiuNianPanel.vue'
 import BazhaiChartPanel from '@shared/components/engine/fengshui/BazhaiChartPanel.vue'
+import { birthYearFromDate, chartInputFromProfileBirth } from '@shared/domain/birth'
 import { formatLongitude, type PlaceLocale } from '@shared/utils/placeDisplay'
 
 const props = defineProps<{ profile: BirthProfile; auto?: boolean }>()
@@ -275,23 +276,23 @@ async function compute() {
   }
   loading.value = true
   try {
-    const ctx = {
-      instant: p.birth.instant,
-      timezone: p.birth.location.timezone,
-      longitude: p.birth.location.longitude,
-    }
+    const ctx = chartInputFromProfileBirth(p)
     correction.value = t('profiles.chart.correctedLongitude', {
-      longitude: formatLongitude(Number(ctx.longitude), locale.value as PlaceLocale),
+      longitude: formatLongitude(ctx.longitude, locale.value as PlaceLocale),
     })
 
-    const chart = await natalChartForChartInput({ ...ctx, gender: p.birth.gender })
+    const chart = await natalChartForChartInput(ctx)
     baziChart.value = chart.bazi
     baziFull.value = chart.baziDetail
     ziwei.value = chart.ziwei
     ziweiBase.value = chart.ziweiBase
     daXianRaw.value = chart.ziweiDaXian
     await loadBaziLiuNian()
-    const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
+    const birthYear = birthYearFromDate(p.birth.date)
+    if (birthYear === null) {
+      bazhai.value = null
+      return
+    }
     try {
       bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
       clearStageError('bazhai_chart')

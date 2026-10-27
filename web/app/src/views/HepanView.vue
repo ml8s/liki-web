@@ -153,6 +153,7 @@ import { baziChartForChartInput, type BaziChartData } from '@shared/domain/natal
 import { hepanForChartInputs, type Hepan } from '@shared/domain/hepan'
 import { useToolRecords } from '@/composables/useToolRecords'
 import { useGuardedTask } from '@/composables/useGuardedTask'
+import { chartInputFromProfileBirth } from '@shared/domain/birth'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
@@ -263,12 +264,7 @@ function loadA() {
       error.value = t('profiles.chart.errors.missingTime')
       return
     }
-    chartA.value = await baziChartForChartInput({
-      instant: p.birth.instant,
-      timezone: p.birth.location.timezone,
-      longitude: p.birth.location.longitude,
-      gender: p.birth.gender,
-    })
+    chartA.value = await baziChartForChartInput(chartInputFromProfileBirth(p))
   }, t('profiles.detail.loadFailed'))
 }
 
@@ -295,12 +291,7 @@ function compute() {
     const birthB = birthInputFromFields(b.value)
     const inputB = await chartInputFromBirth(birthB)
     const hepan = await hepanForChartInputs(
-      {
-        instant: p.birth.instant,
-        timezone: p.birth.location.timezone,
-        longitude: p.birth.location.longitude,
-        gender: p.birth.gender,
-      },
+      chartInputFromProfileBirth(p),
       { ...inputB, gender: birthB.gender },
     )
     if (!b.value.third_party_consent) return

@@ -171,6 +171,7 @@ import { useServiceView } from '@/composables/useServiceView'
 import { bazhaiChartFor, bazhaiLayoutFor, xuankongChartFor, type BazhaiChart, type BazhaiLayout, type XuankongChart } from '@shared/domain/fengshui'
 import { useToolRecords } from '@/composables/useToolRecords'
 import { useGuardedTask } from '@/composables/useGuardedTask'
+import { birthYearFromDate } from '@shared/domain/birth'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
@@ -277,8 +278,7 @@ const rules = computed<FormRules>(() => ({
       const p = profiles.list.find(item => item.id === value)
       if (!value || !p) return callback(new Error(t('chat.selectBirthProfileFirst')))
       if (!p.birth.date) return callback(new Error(t('profiles.chart.errors.missingTime')))
-      const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
-      if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2100) {
+      if (birthYearFromDate(p.birth.date) === null) {
         return callback(new Error(t('services.fengshui.invalidBirthYear')))
       }
       callback()
@@ -313,7 +313,11 @@ function loadPreview() {
       error.value = t('profiles.chart.errors.missingTime')
       return
     }
-    const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
+    const birthYear = birthYearFromDate(p.birth.date)
+    if (birthYear === null) {
+      error.value = t('profiles.chart.errors.missingTime')
+      return
+    }
     bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
     void loadXuankong()
     if (layoutReady.value) void loadLayout()
