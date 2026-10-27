@@ -24,6 +24,7 @@ import {
   xuankongChartFor,
 } from '@shared/domain/fengshui'
 import { toUserMessage } from '@/utils/errors'
+import { useGuardedTask } from '@/composables/useGuardedTask'
 
 export interface ConsultationToolOptions {
   selectedProfile: MaybeRefOrGetter<BirthProfile | null>
@@ -41,10 +42,16 @@ export interface ConsultationToolOptions {
  */
 export function useConsultationTools(options: ConsultationToolOptions) {
   const { t } = useI18n()
+  const reportError = (message: string) => options.onError(message)
+  // Shared lifecycle for the four deterministic computations; input
+  // gathering and result refs stay path-specific.
+  const castingTask = useGuardedTask({ report: reportError })
+  const hepanTask = useGuardedTask({ report: reportError })
+  const fengshuiTask = useGuardedTask({ report: reportError })
+  const namingTask = useGuardedTask({ report: reportError })
   const selectedProfile = computed(() => toValue(options.selectedProfile))
   const personLabel = computed(() => toValue(options.personLabel))
 
-  const castingLoading = ref(false)
   const castingError = ref('')
   const castingQuestion = ref('')
   const casting = ref<LiuyaoCasting | null>(null)
@@ -52,15 +59,12 @@ export function useConsultationTools(options: ConsultationToolOptions) {
   const castingLocation = ref<import('@shared/components/divination/types').DivinationCastingFormValue['location']>(null)
   const castingChart = ref<LiuyaoChartResult | null>(null)
 
-  const hepanLoading = ref(false)
   const hepanInput = ref<FlowHepanFormValue | null>(null)
   const hepanResult = ref<ArtifactPayloadByKind['hepan'] | null>(null)
 
-  const fengshuiLoading = ref(false)
   const fengshuiInput = ref<FengshuiLayoutValue | null>(null)
   const fengshuiResult = ref<ArtifactPayloadByKind['fengshui'] | null>(null)
 
-  const namingLoading = ref(false)
   const namingResult = ref<ArtifactPayloadByKind['naming'] | null>(null)
 
   const {
@@ -133,11 +137,11 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     }
   }
 
-  async function computeHepan(value: FlowHepanFormValue) {
-    if (hepanLoading.value) return
-    hepanLoading.value = true
-    hepanResult.value = null
-    try {
+  const hepanLoading = hepanTask.loading
+
+  function computeHepan(value: FlowHepanFormValue) {
+    return hepanTask.run(async () => {
+      hepanResult.value = null
       const otherBirth = birthInputFromFields(value.secondBirth)
       const otherInput = await chartInputFromBirth(otherBirth)
       const hepan = await hepanForChartInputs(profileChartInput(), {
@@ -151,11 +155,7 @@ export function useConsultationTools(options: ConsultationToolOptions) {
         bond: hepan.bond,
         nameA: personLabel.value,
       }
-    } catch (error) {
-      options.onError(toUserMessage(error, t('services.hepan.failed')))
-    } finally {
-      hepanLoading.value = false
-    }
+    }, t('services.hepan.failed'))
   }
 
   function saveHepanRecord() {
@@ -172,18 +172,18 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     )
   }
 
-  async function computeFengshui(value: FengshuiLayoutValue) {
-    if (fengshuiLoading.value) return
-    const profile = selectedProfile.value
-    const birthYear = fengshuiBirthYear.value
-    if (!profile || birthYear === null || !profile.birth.date) {
-      options.onError(t('services.fengshui.invalidBirthYear'))
-      return
-    }
+  const fengshuiLoading = fengshuiTask.loading
 
-    fengshuiLoading.value = true
-    fengshuiResult.value = null
-    try {
+  function computeFengshui(value: FengshuiLayoutValue) {
+    return fengshuiTask.run(async () => {
+      const profile = selectedProfile.value
+      const birthYear = fengshuiBirthYear.value
+      if (!profile || birthYear === null || !profile.birth.date) {
+        options.onError(t('services.fengshui.invalidBirthYear'))
+        return
+      }
+
+      fengshuiResult.value = null
       const [bazhai, xuankong] = await Promise.all([
         bazhaiChartFor(birthYear, profile.birth.gender),
         xuankongChartFor(value.periodDate, value.zuoShan),
@@ -200,11 +200,7 @@ export function useConsultationTools(options: ConsultationToolOptions) {
         layout,
         xuankong,
       }
-    } catch (error) {
-      options.onError(toUserMessage(error, t('services.fengshui.failed')))
-    } finally {
-      fengshuiLoading.value = false
-    }
+    }, t('services.fengshui.failed'))
   }
 
   function saveFengshuiRecord() {
@@ -237,38 +233,35 @@ export function useConsultationTools(options: ConsultationToolOptions) {
   const saveBazhaiRecordAndAnnounce = (title: string, input: unknown) =>
     saveRecordAndAnnounce(saveBazhaiRecord, title, input)
 
-  async function computeNaming() {
-    if (namingLoading.value) return
-    namingLoading.value = true
-    namingResult.value = null
-    try {
+  const namingLoading = namingTask.loading
+
+  function computeNaming() {
+    return namingTask.run(async () => {
+      namingResult.value = null
       const chart = await baziChartFor(profileBirthInput())
       namingResult.value = { assessment: await namingAssessmentFor(chart) }
-    } catch (error) {
-      options.onError(toUserMessage(error, t('flow.namingFailed')))
-    } finally {
-      namingLoading.value = false
-    }
+    }, t('flow.namingFailed'))
   }
 
-  async function castDivination(value: DivinationCastingFormValue) {
-    if (castingLoading.value) return
+  const castingLoading = castingTask.loading
 
-    castingLoading.value = true
-    castingError.value = ''
-    castingChart.value = null
-    castingQuestion.value = value.question.trim()
+  function castDivination(value: DivinationCastingFormValue) {
+    // Casting failures render inside the focused form (castingError), so the
+    // task handles its errors directly; the guarded fallback stays as a net.
+    return castingTask.run(async () => {
+      castingError.value = ''
+      castingChart.value = null
+      castingQuestion.value = value.question.trim()
 
-    const location = value.location
-    if (!location) {
-      castingLoading.value = false
-      castingError.value = t('services.divination.placeRequired')
-      return
-    }
+      const location = value.location
+      if (!location) {
+        castingError.value = t('services.divination.placeRequired')
+        return
+      }
 
-    const castingTimestamp = new Date().toISOString()
+      const castingTimestamp = new Date().toISOString()
 
-    try {
+      try {
       const { casting: nextCasting } = await divinationCastingFor({
         mode: value.castingMode,
       })
@@ -297,11 +290,10 @@ export function useConsultationTools(options: ConsultationToolOptions) {
       ).then(saved => {
         if (!saved) options.onError(t('records.saveFailed'))
       })
-    } catch (error) {
-      castingError.value = toUserMessage(error, t('services.divination.failed'))
-    } finally {
-      castingLoading.value = false
-    }
+      } catch (error) {
+        castingError.value = toUserMessage(error, t('services.divination.failed'))
+      }
+    }, t('services.divination.failed'))
   }
 
   /** Channel changes must not leak deterministic artifacts between people or domains. */

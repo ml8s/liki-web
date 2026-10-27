@@ -144,7 +144,6 @@
 </template>
 
 <script setup lang="ts">
-import { toUserMessage } from '@/utils/errors'
 import { computed, reactive, ref, toRef, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -153,6 +152,7 @@ import { useServiceView } from '@/composables/useServiceView'
 import { baziChartForChartInput, type BaziChartData } from '@shared/domain/natal'
 import { hepanForChartInputs, type Hepan } from '@shared/domain/hepan'
 import { useToolRecords } from '@/composables/useToolRecords'
+import { useGuardedTask } from '@/composables/useGuardedTask'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
@@ -209,8 +209,9 @@ if (publicConsultation?.scenario === 'hepan' && publicConsultation.second_birth)
   }
 }
 const result = ref<Hepan['bond'] | null>(null)
-const loading = ref(false)
 const error = ref('')
+const computeTask = useGuardedTask({ report: message => { error.value = message } })
+const loading = computeTask.loading
 
 // 撤回第三方同意后，已有合盘结果不得再进入付费咨询上下文。
 watch(() => b.value.third_party_consent, consent => {
@@ -252,10 +253,10 @@ const purchased = computed(() => entitlements.allowedSkills.length > 0)
 const profileA = computed(() => profiles.list.find(p => p.id === profileAId.value) ?? null)
 const aName = computed(() => profileA.value?.nickname ?? t('services.hepan.profileA'))
 
-async function loadA() {
-  error.value = ''
-  result.value = null
-  try {
+function loadA() {
+  return computeTask.run(async () => {
+    error.value = ''
+    result.value = null
     const p = profileA.value
     if (!p) return
     if (!p.birth.instant || !p.birth.location.timezone || p.birth.location.longitude == null) {
@@ -268,22 +269,18 @@ async function loadA() {
       longitude: p.birth.location.longitude,
       gender: p.birth.gender,
     })
-  } catch (err) {
-    error.value = toUserMessage(err, t('profiles.detail.loadFailed'))
-  }
+  }, t('profiles.detail.loadFailed'))
 }
 
 function onProfileChange() {
   if (profileAId.value) void loadA()
 }
 
-async function compute() {
-  // Occupy the submitting state before async validation so native and custom
-  // submit events cannot start two identical hepan requests.
-  if (loading.value) return
-  loading.value = true
-  error.value = ''
-  try {
+function compute() {
+  // The guarded task occupies the submitting state before async validation so
+  // native and custom submit events cannot start two identical hepan requests.
+  return computeTask.run(async () => {
+    error.value = ''
     const validA = await formARef.value?.validate().then(() => true).catch(() => false)
     const validB = await formBRef.value?.validate().then(() => true).catch(() => false)
     if (!validA || !validB) return
@@ -310,11 +307,7 @@ async function compute() {
     chartA.value = hepan.chartA
     bChart.value = hepan.chartB
     result.value = hepan.bond
-  } catch (err) {
-    error.value = toUserMessage(err, t('services.hepan.failed'))
-  } finally {
-    loading.value = false
-  }
+  }, t('services.hepan.failed'))
 }
 
 function saveRecord() {

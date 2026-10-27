@@ -162,7 +162,6 @@
 </template>
 
 <script setup lang="ts">
-import { toUserMessage } from '@/utils/errors'
 import { firstQueryValue } from '@/utils/query'
 import { computed, onMounted, reactive, ref, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -171,6 +170,7 @@ import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
 import { bazhaiChartFor, bazhaiLayoutFor, xuankongChartFor, type BazhaiChart, type BazhaiLayout, type XuankongChart } from '@shared/domain/fengshui'
 import { useToolRecords } from '@/composables/useToolRecords'
+import { useGuardedTask } from '@/composables/useGuardedTask'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
@@ -210,8 +210,9 @@ watch(profileId, value => {
   void router.replace({ query })
 })
 const bazhai = ref<BazhaiChart | null>(null)
-const loading = ref(false)
 const error = ref('')
+const previewTask = useGuardedTask({ report: message => { error.value = message } })
+const loading = previewTask.loading
 
 // 玄空飞星（坐山默认子山午向，立极日期默认今天）与八宅布局（门/主/灶三卦）。
 const xuankong = ref<XuankongChart | null>(null)
@@ -301,14 +302,13 @@ onMounted(() => {
   if (profileId.value) void onProfileChange()
 })
 
-async function loadPreview() {
+function loadPreview() {
   const p = profile.value
   if (!p) return
-  loading.value = true
-  error.value = ''
-  bazhai.value = null
-  layoutResult.value = null
-  try {
+  return previewTask.run(async () => {
+    error.value = ''
+    bazhai.value = null
+    layoutResult.value = null
     if (!p.birth.date) {
       error.value = t('profiles.chart.errors.missingTime')
       return
@@ -317,11 +317,7 @@ async function loadPreview() {
     bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
     void loadXuankong()
     if (layoutReady.value) void loadLayout()
-  } catch (err) {
-    error.value = toUserMessage(err, t('services.fengshui.failed'))
-  } finally {
-    loading.value = false
-  }
+  }, t('services.fengshui.failed'))
 }
 
 function saveRecord() {

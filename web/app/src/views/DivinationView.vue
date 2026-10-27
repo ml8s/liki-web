@@ -62,7 +62,6 @@
 </template>
 
 <script setup lang="ts">
-import { toUserMessage } from '@/utils/errors'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useServiceView } from '@/composables/useServiceView'
@@ -72,6 +71,7 @@ import {
   type LiuyaoChartResult,
 } from '@shared/domain/divination'
 import { useToolRecords } from '@/composables/useToolRecords'
+import { useGuardedTask } from '@/composables/useGuardedTask'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
 import AppConsultationCard from '@/components/app/AppConsultationCard.vue'
@@ -112,21 +112,17 @@ if (publicConsultation?.scenario === 'divination') {
       }
     : null
 }
-const loading = ref(false)
 const error = ref('')
+const castTask = useGuardedTask({ report: message => { error.value = message } })
+const loading = castTask.loading
 
-async function cast(context: DivinationCastingFormValue) {
-  if (loading.value) return
-  loading.value = true
-  error.value = ''
-  const location = context.location
-  if (!location) {
-    loading.value = false
-    return
-  }
-  const castingInstant = new Date().toISOString()
-  snapshot.value = null
-  try {
+function cast(context: DivinationCastingFormValue) {
+  return castTask.run(async () => {
+    error.value = ''
+    const location = context.location
+    if (!location) return
+    const castingInstant = new Date().toISOString()
+    snapshot.value = null
     const { casting } = await divinationCastingFor({ mode: context.castingMode })
     lastCasting.value = casting
     lastCastingInstant.value = castingInstant
@@ -149,11 +145,7 @@ async function cast(context: DivinationCastingFormValue) {
       },
       snapshot.value as unknown as Record<string, unknown>,
     )
-  } catch (err) {
-    error.value = toUserMessage(err, t('services.divination.failed'))
-  } finally {
-    loading.value = false
-  }
+  }, t('services.divination.failed'))
 }
 
 function recordTitle(question: string): string {
