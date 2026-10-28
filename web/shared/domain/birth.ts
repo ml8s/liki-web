@@ -1,6 +1,11 @@
 import { ApiError } from '../api/http'
 import type { BirthLocation } from './location'
-import { wallTimeToInstant, type ChartInput } from './time'
+import {
+  standardTimeFromInstant,
+  wallTimeToStandardTime,
+  wallTimeToInstantCandidates,
+  type ChartInput,
+} from './time'
 
 export type BirthGender = 'female' | 'male'
 
@@ -29,9 +34,14 @@ export async function chartInputFromBirth(birth: BirthInput): Promise<ChartInput
   }
 
   try {
+    // Existence/ambiguity are validated against the real IANA rules before
+    // projecting the saved civil time into the Engine's no-DST standard time.
+    const candidates = await wallTimeToInstantCandidates(birth.date, birth.time, timezone)
+    if (candidates.length === 0 || candidates.length > 1) {
+      throw new RangeError(candidates.length > 1 ? 'ambiguous' : 'does not exist')
+    }
     return {
-      instant: await wallTimeToInstant(birth.date, birth.time, timezone),
-      timezone,
+      standard_time: wallTimeToStandardTime(birth.date, birth.time, timezone),
       longitude,
     }
   } catch (error) {
@@ -70,13 +80,17 @@ export function chartInputFromProfileBirth(
   const birth = profile.birth
   const longitude = birth.location?.longitude
   const timezone = birth.location?.timezone
-  if (!birth.instant || !timezone
-    || typeof longitude !== 'number' || !Number.isFinite(longitude)) {
+  if (!timezone || typeof longitude !== 'number' || !Number.isFinite(longitude)) {
     throw invalid('birth_time_required', 'A complete birth profile is required')
   }
+  if ((!birth.date || !birth.time) && !birth.instant) {
+    throw invalid('birth_time_required', 'A complete birth profile is required')
+  }
+  const standard_time = birth.date && birth.time
+    ? wallTimeToStandardTime(birth.date, birth.time, timezone)
+    : standardTimeFromInstant(birth.instant ?? '', timezone)
   return {
-    instant: birth.instant,
-    timezone,
+    standard_time,
     longitude,
     gender: birth.gender,
   }

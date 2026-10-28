@@ -214,9 +214,11 @@ test.describe('divination casting flow', () => {
     expect(engineCalls[0]?.args).toEqual({ mode: 'auto' })
     expect(engineCalls[1]?.args).toMatchObject({
       longitude: 121.4726,
-      timezone: 'Asia/Shanghai',
+      standard_time: expect.any(String),
       casting: { casting_id: 'cast_flow' },
     })
+    expect(String(engineCalls[1]?.args.standard_time)).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+08:00$/)
+    expect(engineCalls[1]?.args).not.toHaveProperty('timezone')
 
     await page.locator('.artifact-capsule').click()
     const sheet = page.locator('.flow-sheet__body')

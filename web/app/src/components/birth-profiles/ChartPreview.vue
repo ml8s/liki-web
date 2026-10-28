@@ -235,9 +235,20 @@ const correction = computed(() => chartInput.value
     })
   : '')
 const birthYear = computed(() => birthYearFromDate(props.profile.birth.date ?? ''))
-const bazhaiInput = computed(() => birthYear.value === null
-  ? null
-  : { birthYear: birthYear.value, gender: props.profile.birth.gender })
+const profileChartInput = computed(() => {
+  if (birthYear.value === null) return null
+  try {
+    return chartInputFromProfileBirth(props.profile)
+  } catch {
+    return null
+  }
+})
+const bazhaiInput = computed(() => profileChartInput.value
+  ? {
+      standard_time: profileChartInput.value.standard_time,
+      gender: props.profile.birth.gender,
+    }
+  : null)
 const bazhaiEmptyMessage = computed(() =>
   birthYear.value === null && props.profile.birth.date
     ? t('services.fengshui.invalidBirthYear')
@@ -251,8 +262,8 @@ function loadZiweiNatal(input: ChartInput & { gender: string }): Promise<ZiweiNa
   return ziweiNatalForChartInput(input)
 }
 
-function loadBazhai(input: { birthYear: number; gender: string }): Promise<BazhaiChart> {
-  return bazhaiChartFor(input.birthYear, input.gender)
+function loadBazhai(input: ChartInput): Promise<BazhaiChart> {
+  return bazhaiChartFor(input.standard_time, props.profile.birth.gender)
 }
 
 function loadBaziLiunian(input: { chart: BaziNatal['bazi']; year: number }): Promise<BaziLiuNianOutput> {

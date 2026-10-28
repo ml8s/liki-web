@@ -116,8 +116,7 @@ export function engineLiuyaoChart(
   input: ChartInput & { casting: LiuyaoCasting; yongShen?: string },
 ): Promise<LiuyaoChartResult> {
   const params: Record<string, unknown> = {
-    instant: input.instant,
-    timezone: input.timezone,
+    standard_time: input.standard_time,
     longitude: input.longitude,
     casting: input.casting,
   }

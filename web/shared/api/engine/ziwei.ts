@@ -87,8 +87,7 @@ export interface ZiweiChart {
 
 export function engineZiweiChart(input: ChartInput & { gender: string }): Promise<ZiweiChart> {
   return mcpTool<ZiweiChart>(ENGINE_TOOLS.ZiweiChart, {
-    instant: input.instant,
-    timezone: input.timezone,
+    standard_time: input.standard_time,
     longitude: input.longitude,
     gender: input.gender,
   })
@@ -130,6 +129,14 @@ export interface ZiweiLiuNianData {
   gong_wei?: ZiweiLiuNianGong[]
 }
 
-export function engineZiweiLiuNian(chart: unknown, lunarYear: number): Promise<ZiweiLiuNianData> {
-  return mcpTool<ZiweiLiuNianData>(ENGINE_TOOLS.ZiweiLiuNian, { chart, lunar_year: lunarYear })
+export function engineZiweiLiuNian(
+  chart: unknown,
+  standardTime: string,
+  count = 1,
+): Promise<ZiweiLiuNianData> {
+  return mcpTool<ZiweiLiuNianData>(ENGINE_TOOLS.ZiweiLiuNian, {
+    standard_time: standardTime,
+    count,
+    chart,
+  })
 }

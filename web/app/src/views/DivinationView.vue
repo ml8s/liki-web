@@ -91,6 +91,7 @@ import ServicePageShell from '@/components/app/ServicePageShell.vue'
 import DivinationCastingForm from '@shared/components/divination/DivinationCastingForm.vue'
 import type { DivinationCastingFormValue } from '@shared/components/divination/types'
 import type { ConsultationContext } from '@shared/domain/consultation'
+import { standardTimeFromInstant } from '@shared/domain/time'
 import { consumeConsultationHandoff } from '@shared/utils/handoff'
 import LiuyaoChartPanel from '@shared/components/engine/liuyao/LiuyaoChartPanel.vue'
 
@@ -159,8 +160,7 @@ function cast(context: DivinationCastingFormValue) {
     lastCastingMode.value = context.castingMode
     pendingRecordSave = true
     divinationInput.value = {
-      instant: castingInstant,
-      timezone: location.timezone,
+      standard_time: standardTimeFromInstant(castingInstant, location.timezone),
       longitude: location.longitude,
       casting,
       yongShen: '世爻',

@@ -34,8 +34,7 @@ describe('chartInputFromProfileBirth', () => {
   it('projects complete profile facts onto the engine chart input', () => {
     const input = chartInputFromProfileBirth(profile)
     expect(input).toEqual({
-      instant: '1990-06-14T23:30:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1990-06-15T08:30:00+08:00',
       longitude: 121.4726,
       gender: 'female',
     })
@@ -43,7 +42,7 @@ describe('chartInputFromProfileBirth', () => {
 
   it('throws on any incomplete fact', () => {
     for (const broken of [
-      { ...profile, birth: { ...profile.birth, instant: null } },
+      { ...profile, birth: { ...profile.birth, date: null, time: null, instant: null } },
       { ...profile, birth: { ...profile.birth, location: { longitude: null, timezone: null } } },
       { ...profile, birth: { ...profile.birth, location: { longitude: Number.NaN, timezone: 'UTC' } } },
     ] satisfies ProfileBirthSource[]) {

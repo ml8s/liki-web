@@ -1,14 +1,16 @@
 # TODO
 
-Updated: 2026-10-28
+Updated: 2026-10-29
 
 ## Current checkpoint
 
 - Branch: `feat/app-flow-redesign`
 - PR: [#8](https://github.com/ml8s/liki-web/pull/8)
-- State: BFF-only transport hardening is implemented and pushed. `make check`,
-  `make test`, `make e2e-a11y`, and Docker full-stack `make e2e` are green
-  (2026-10-28); the Docker matrix covers 282 Playwright cases.
+- State: BFF-only transport hardening and Engine MCP chart-time
+  standardization are implemented. All chart tools now send `standard_time`
+  instead of legacy date/time inputs; `period_query` remains scoped on
+  `time_scope + timezone` by design. `make gate` and Docker full-stack
+  `make e2e` are green (2026-10-29): 280 passed, 1 skipped.
 - Backend contract: four experts (`natal`, `divination`, `fengshui`,
   `naming`) plus seven durable consultation context scenarios. The scenario
   list is not a seven-product API. `huangli` is still mapped to
@@ -26,6 +28,8 @@ Updated: 2026-10-28
     extracted to `useConsultationHistory` (view reduced from 979 lines).
   - O2 live-region audit fix: record saves and artifact readiness are now
     announced in the consultation flow (previously completely silent).
+  - `standard_time` migration for Engine MCP chart inputs, including
+    birth profiles, huangli, fengshui, liuyao, and annual charts.
 
 Production validation is covered by the local full-matrix test run; there is
 no separate staging environment. The two-layout coexistence (Consultation at

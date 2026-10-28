@@ -18,6 +18,7 @@ import {
 import type { BirthInput } from './birth'
 import { chartInputFromBirth } from './birth'
 import type { ChartInput } from './time'
+import { yearToStandardTime } from './time'
 
 export type NatalStage =
   | 'bazi_chart'
@@ -159,7 +160,7 @@ export function baziLiunianFor(
   chart: BaziChartData,
   year: number,
 ): Promise<BaziLiuNianOutput> {
-  return engineBaziLiunian(chart, year)
+  return engineBaziLiunian(chart, yearToStandardTime(year))
 }
 
 /** Full Ziwei chart + lunar year -> annual palace chart. */
@@ -167,5 +168,5 @@ export function ziweiLiunianFor(
   chart: ZiweiChart,
   lunarYear: number,
 ): Promise<ZiweiLiuNianData> {
-  return engineZiweiLiuNian(chart, lunarYear)
+  return engineZiweiLiuNian(chart, yearToStandardTime(lunarYear))
 }

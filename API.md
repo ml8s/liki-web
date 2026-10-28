@@ -27,8 +27,7 @@ Request:
 ```json
 {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
  "params": {"name": "bazi_chart", "arguments": {
-   "instant": "1958-05-11T22:00:00Z",
-   "timezone": "Asia/Shanghai",
+   "standard_time": "1958-05-12T06:00:00+08:00",
    "longitude": 121.47,
    "gender": "female"
  }}}
@@ -40,18 +39,19 @@ in the same field. Engine tools (charting/calendar) live under `/engine/mcp`;
 counsel tools (`bazi_yongshen`, `naming_*`, `liuyao_query`, …) under
 `/counsel/mcp`.
 
-Chart tools accept the canonical `{instant, timezone, longitude}` context. `instant` is
-an RFC 3339 UTC instant, `timezone` is an IANA zone, and `longitude` is WGS-84.
-The browser converts exact Gregorian wall-clock input locally with Temporal and
-never sends raw calendar or profile wall-time fields to chart tools.
+Chart tools accept the canonical `{standard_time, longitude}` context. `standard_time`
+is RFC 3339 with a known offset and represents local standard time without DST;
+`longitude` is WGS-84. The browser converts exact Gregorian wall-clock input and
+IANA timezone locally, and never sends raw calendar or profile wall-time fields
+to chart tools.
 Lunar calendar arithmetic remains engine-internal output, not browser input.
 
 Browser callers must materialize Engine MCP arguments rather than relying on
 server defaults. In particular, LiuYao sends an explicit `liuyao_qigua` mode,
-captures its ritual UTC instant once at submit, and passes that instant plus the
-visible casting timezone and numeric longitude to `liuyao_chart`. It also
-materializes `yong_shen` explicitly. The display place string is never
-substituted for longitude or timezone.
+captures its ritual UTC instant once at submit, projects that instant into the
+casting timezone's standard_time, and passes the numeric longitude to
+`liuyao_chart`. It also materializes `yong_shen` explicitly. The display place
+string is never substituted for longitude or timezone.
 
 Error responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)
 (`application/problem+json`):

@@ -38,9 +38,13 @@ export interface HuangliDay {
   reason?: string
 }
 
-/** 黄历择日：start_date + count + 事项英文键，返回逐日事实数组。 */
-export function engineHuangliDays(event: string, startDate: string, count: HuangliCount): Promise<HuangliDay[]> {
-  return mcpTool<HuangliDay[]>(ENGINE_TOOLS.HuangliDays, { event, start_date: startDate, count })
+/** 黄历择日：standard_time + count + 事项英文键，返回逐日事实数组。 */
+export function engineHuangliDays(event: string, standardTime: string, count: HuangliCount): Promise<HuangliDay[]> {
+  return mcpTool<HuangliDay[]>(ENGINE_TOOLS.HuangliDays, {
+    event,
+    standard_time: standardTime,
+    count,
+  })
 }
 
 // ── bazi.liunian（流年盘）──

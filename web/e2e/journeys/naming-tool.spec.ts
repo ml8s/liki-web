@@ -55,7 +55,7 @@ test('工具岛：用神/喜忌按 BaziYongShenPanel 渲染，低置信度显示
   await expect(yongShenPanel.locator('.ys-review')).toContainText('复核');
   await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
   expect(engineCalls.find(call => call.tool === 'bazi_chart')?.arguments).toEqual({
-    instant: '1990-05-11T23:30:00Z', timezone: 'Asia/Shanghai',
+    standard_time: '1990-05-12T08:30:00+08:00',
     longitude: 121.4726,
     gender: 'female',
   })
@@ -81,7 +81,7 @@ test('工具岛：正常盘按 BaziYongShenPanel 渲染喜/忌五行', async ({ 
   await expect(yongShenPanel.locator('.ys-chip.bad')).toHaveCount(1);
   await expect(yongShenPanel.locator('.ys-review')).toHaveCount(0);
   expect(engineCalls.find(call => call.tool === 'bazi_chart')?.arguments).toEqual({
-    instant: '1990-05-11T23:30:00Z', timezone: 'Asia/Shanghai',
+    standard_time: '1990-05-12T08:30:00+08:00',
     longitude: 121.4726,
     gender: 'female',
   })

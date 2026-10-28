@@ -7,6 +7,7 @@ import { engineBaziBond, engineBaziChart } from '@shared/api/engine/bazi'
 import { engineHuangliDays } from '@shared/api/engine/huangli'
 import { engineLiuyaoChart, engineLiuyaoQigua } from '@shared/api/engine/liuyao'
 import { engineZiweiChart, engineZiweiDaXian, engineZiweiLiuNian } from '@shared/api/engine/ziwei'
+import { engineBazhaiChart, engineXuankongChart } from '@shared/api/engine/fengshui'
 import { NatalStageError, natalChartForChartInput } from '@shared/domain/natal'
 
 const mcpOk = (data: unknown, status = 200): Response =>
@@ -65,49 +66,52 @@ describe('engine request contract', () => {
     expect(lastCall().url).toBe('/counsel/mcp')
   })
 
-  it('huangli sends {event, start_date, count} exactly (engine.huangli.HuangliDaysInput)', async () => {
+  it('huangli sends {event, standard_time, count} exactly', async () => {
     stubFetch(mcpOk([]))
-    await engineHuangliDays('wedding', '2026-10-01', 30)
-    expect(lastCall().body.params?.arguments).toEqual({ event: 'wedding', start_date: '2026-10-01', count: 30 })
+    await engineHuangliDays('wedding', '2026-10-01T12:00:00+08:00', 30)
+    expect(lastCall().body.params?.arguments).toEqual({
+      event: 'wedding',
+      standard_time: '2026-10-01T12:00:00+08:00',
+      count: 30,
+    })
   })
 
-  it('bazi chart sends the unified Gregorian time contract exactly', async () => {
+  it('bazi chart sends the unified standard_time contract exactly', async () => {
     stubFetch(mcpOk({}))
     await engineBaziChart({
-      instant: '1958-05-11T22:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1958-05-12T06:00:00+08:00',
       longitude: 121.47,
       gender: 'female',
     })
     expect(lastCall().body.params?.arguments).toEqual({
-      instant: '1958-05-11T22:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1958-05-12T06:00:00+08:00',
       longitude: 121.47,
       gender: 'female',
     })
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('instant')
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('timezone')
   })
 
-  it('ziwei chart sends the unified Gregorian time contract exactly', async () => {
+  it('ziwei chart sends the unified standard_time contract exactly', async () => {
     stubFetch(mcpOk({ gong_wei: [] }))
     await engineZiweiChart({
-      instant: '1958-05-11T22:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1958-05-12T06:00:00+08:00',
       longitude: 121.47,
       gender: 'female',
     })
     expect(lastCall().body.params?.arguments).toEqual({
-      instant: '1958-05-11T22:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1958-05-12T06:00:00+08:00',
       longitude: 121.47,
       gender: 'female',
     })
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('instant')
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('timezone')
   })
 
-  it('liuyao chart sends the unified Gregorian time contract exactly', async () => {
+  it('liuyao chart sends the unified standard_time contract exactly', async () => {
     stubFetch(mcpOk({}))
     await engineLiuyaoChart({
-      instant: '2026-10-20T12:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '2026-10-20T20:00:00+08:00',
       longitude: 116.4,
       casting: {
         mode: 'auto',
@@ -119,8 +123,7 @@ describe('engine request contract', () => {
       yongShen: '世爻',
     })
     expect(lastCall().body.params?.arguments).toEqual({
-      instant: '2026-10-20T12:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '2026-10-20T20:00:00+08:00',
       longitude: 116.4,
       casting: {
         mode: 'auto',
@@ -131,6 +134,8 @@ describe('engine request contract', () => {
       },
       yong_shen: '世爻',
     })
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('instant')
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('timezone')
   })
 
   it('liuyao qigua requires the frontend to materialize its mode', async () => {
@@ -154,10 +159,36 @@ describe('engine request contract', () => {
     expect(lastCall().body.params?.arguments).toEqual({ chart: { gong_wei: [] } })
   })
 
-  it('ziwei liunian sends {chart, lunar_year} exactly (engine.ziwei.ZiweiLiuNianInput)', async () => {
+  it('ziwei liunian sends {chart, standard_time, count} exactly', async () => {
     stubFetch(mcpOk({}))
-    await engineZiweiLiuNian({ gong_wei: [] }, 2026)
-    expect(lastCall().body.params?.arguments).toEqual({ chart: { gong_wei: [] }, lunar_year: 2026 })
+    await engineZiweiLiuNian({ gong_wei: [] }, '2026-06-15T12:00:00+08:00', 1)
+    expect(lastCall().body.params?.arguments).toEqual({
+      chart: { gong_wei: [] },
+      standard_time: '2026-06-15T12:00:00+08:00',
+      count: 1,
+    })
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('lunar_year')
+  })
+
+  it('date-derived tools send standard_time and omit obsolete date selectors', async () => {
+    stubFetch(mcpOk({}))
+    await engineBazhaiChart('2000-01-01T12:00:00+08:00', 'female')
+    expect(lastCall().body.params?.name).toBe('bazhai_chart')
+    expect(lastCall().body.params?.arguments).toEqual({
+      standard_time: '2000-01-01T12:00:00+08:00',
+      gender: 'female',
+    })
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('birth_year')
+
+    stubFetch(mcpOk({}))
+    await engineXuankongChart('2026-01-01T12:00:00+08:00', 0, 12)
+    expect(lastCall().body.params?.name).toBe('xuankong_chart')
+    expect(lastCall().body.params?.arguments).toEqual({
+      standard_time: '2026-01-01T12:00:00+08:00',
+      zuo_shan: 0,
+      xiang_shan: 12,
+    })
+    expect(lastCall().body.params?.arguments).not.toHaveProperty('period_date')
   })
 
   it('maps MCP tool errors (isError) to engine_tool_failed with the tool message', async () => {
@@ -202,8 +233,7 @@ describe('natal chart fan-out', () => {
     }))
 
     const natal = await natalChartForChartInput({
-      instant: '1958-05-11T22:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1958-05-12T06:00:00+08:00',
       longitude: 121.47,
       gender: 'female',
     })
@@ -238,8 +268,7 @@ describe('natal chart fan-out', () => {
         return Promise.resolve(name === stage ? mcpIsError(`failed ${stage}`) : mcpOk(byTool[name]))
       }))
       const error = await natalChartForChartInput({
-        instant: '1958-05-11T22:00:00Z',
-        timezone: 'Asia/Shanghai',
+        standard_time: '1958-05-12T06:00:00+08:00',
         longitude: 121.47,
         gender: 'female',
       }).catch(cause => cause)

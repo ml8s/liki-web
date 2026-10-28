@@ -171,6 +171,8 @@ import { useServiceView } from '@/composables/useServiceView'
 import { bazhaiChartFor, bazhaiLayoutFor, xuankongChartFor, type BazhaiChart, type BazhaiLayout } from '@shared/domain/fengshui'
 import { useToolRecords } from '@/composables/useToolRecords'
 import { birthYearFromDate } from '@shared/domain/birth'
+import { chartInputFromProfileBirth } from '@shared/domain/birth'
+import { standardTimeForDate } from '@shared/domain/time'
 import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
 import RecordList from '@/components/records/RecordList.vue'
 import type { ToolRecord } from '@/api/records'
@@ -241,11 +243,25 @@ const birthYear = computed(() => {
   return date ? birthYearFromDate(date) : null
 })
 const active = computed(() => !!profile.value && birthYear.value !== null)
-const bazhaiInput = computed(() => active.value && profile.value && birthYear.value !== null
-  ? { birthYear: birthYear.value, gender: profile.value.birth.gender }
+const profileChartInput = computed(() => {
+  if (!active.value || !profile.value) return null
+  try {
+    return chartInputFromProfileBirth(profile.value)
+  } catch {
+    return null
+  }
+})
+const bazhaiInput = computed(() => active.value && profile.value && profileChartInput.value
+  ? {
+      standard_time: profileChartInput.value.standard_time,
+      gender: profile.value.birth.gender,
+    }
   : null)
 const xuankongInput = computed(() => active.value
-  ? { periodDate: fengshuiLayout.periodDate, zuoShan: fengshuiLayout.zuoShan }
+  ? {
+      standardTime: standardTimeForDate(fengshuiLayout.periodDate),
+      zuoShan: fengshuiLayout.zuoShan,
+    }
   : null)
 const layoutInput = computed(() => {
   const chart = bazhai.value
@@ -260,12 +276,12 @@ const layoutInput = computed(() => {
   }
 })
 
-function loadBazhai(input: { birthYear: number; gender: string }) {
-  return bazhaiChartFor(input.birthYear, input.gender)
+function loadBazhai(input: { standard_time: string; gender: string }) {
+  return bazhaiChartFor(input.standard_time, input.gender)
 }
 
-function loadXuankong(input: { periodDate: string; zuoShan: number }) {
-  return xuankongChartFor(input.periodDate, input.zuoShan)
+function loadXuankong(input: { standardTime: string; zuoShan: number }) {
+  return xuankongChartFor(input.standardTime, input.zuoShan)
 }
 
 function loadLayout(input: { mingGua: string; doorGua: string; masterGua: string; stoveGua: string }) {

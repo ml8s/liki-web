@@ -185,8 +185,7 @@ describe('DivinationView legacy chart adoption', () => {
 
     const { divinationChartFor } = await import('@shared/domain/divination')
     expect(divinationChartFor).toHaveBeenCalledWith({
-      instant: expect.any(String),
-      timezone: castingContext.location?.timezone,
+      standard_time: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+08:00$/),
       longitude: castingContext.location?.longitude,
       casting: divinationMocks.casting,
       yongShen: '世爻',

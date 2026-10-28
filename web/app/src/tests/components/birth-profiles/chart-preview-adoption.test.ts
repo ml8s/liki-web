@@ -227,8 +227,7 @@ describe('ChartPreview engine adoption', () => {
     expect(wrapper.findComponent({ name: 'AdoptedBaziFullChart' }).props('result')).toEqual(baziFull)
     expect(panel(wrapper, 'bazi-chart').exists()).toBe(false)
     expect(domainMocks.baziNatalForChartInput).toHaveBeenCalledWith({
-      instant: '1990-06-15T02:30:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1990-06-15T10:30:00+08:00',
       longitude: 121.47,
       gender: 'female',
     })
@@ -314,7 +313,7 @@ describe('ChartPreview engine adoption', () => {
     const wrapper = await mountChartPreview({ tab: 'bazhai' })
 
     expect(wrapper.findComponent({ name: 'AdoptedBazhaiChart' }).props('result')).toEqual(bazhai)
-    expect(domainMocks.bazhaiChartFor).toHaveBeenCalledWith(1990, 'female')
+    expect(domainMocks.bazhaiChartFor).toHaveBeenCalledWith('1990-06-15T10:30:00+08:00', 'female')
     expect(panel(wrapper, 'bazhai-chart').exists()).toBe(true)
   })
 })

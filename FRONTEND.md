@@ -102,7 +102,7 @@ island/view/component -> domain function -> engine adapter -> MCP client
 
 Views do not construct engine wire arguments. They create a complete domain
 input (for example `BirthInput`), which is converted once to the canonical
-`ChartInput` of `{instant, timezone, longitude}`.
+`ChartInput` of `{standard_time, longitude}`.
 
 ## State
 
@@ -137,18 +137,20 @@ the engine `city_coords` fallback. It emits one atomic location value:
 ### Chart time normalization
 
 Birth input is complete Gregorian wall time (`YYYY-MM-DD` + `HH:mm`). The
-shared Temporal adapter rejects DST gaps/folds and passes only
-`{instant, timezone, longitude}` to chart tools. There is no approximate/unknown
-time state: incomplete information cannot be charted. Lunar dates are not
-accepted as browser input; lunar fields in panels are engine projections.
+shared time adapter rejects DST gaps/folds and projects the civil time into the
+zone's standard-time offset; chart tools receive only
+`{standard_time, longitude}`. Date-only tools use a stable midday projection in
+the product calendar timezone. There is no approximate/unknown time state:
+incomplete information cannot be charted. Lunar dates are not accepted as
+browser input; lunar fields in panels are engine projections.
 
 ### LiuYao casting context
 
 The divination form owns an explicit context: question, casting mode, and an
 atomic casting location. The submit handler captures the ritual instant
-before the first Engine MCP request and reuses exactly that instant for
-`liuyao_chart`; network completion time never becomes the casting time. It also
-passes `yong_shen` explicitly.
+before the first Engine MCP request and projects exactly that instant into the
+casting timezone's standard_time for `liuyao_chart`; network completion time
+never becomes the casting time. It also passes `yong_shen` explicitly.
 
 Browser Geolocation may be requested only from the visible “use current
 location” action. Success prefills place, longitude, and the device IANA

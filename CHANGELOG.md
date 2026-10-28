@@ -16,6 +16,7 @@
 ### Changed
 
 - 测试门禁优化：e2e 与 test 并行、race 拆独立 job、覆盖率地板 65→40（防凑零）、依赖/文件系统漏洞扫描迁至 nightly `security.yml`。
+- 前端 Engine MCP 时间契约对齐 `standard_time`：排盘、六爻装卦、黄历、八宅与玄空不再发送 `instant/timezone`、`start_date`、`birth_year` 或 `period_date` 等旧字段。
 
 ## [2026.10.18.0] — 2026-10-18
 

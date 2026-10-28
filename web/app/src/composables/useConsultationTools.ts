@@ -25,6 +25,7 @@ import {
 } from '@shared/domain/fengshui'
 import type { BirthInput } from '@shared/domain/birth'
 import type { ChartInput } from '@shared/domain/time'
+import { standardTimeFromInstant, standardTimeForDate } from '@shared/domain/time'
 import type { ConsultationContext } from '@shared/domain/consultation'
 import { toUserMessage } from '@/utils/errors'
 import type { EngineResultFailure } from '@shared/composables/useEngineResult'
@@ -47,9 +48,9 @@ interface HepanEngineInput {
 }
 
 interface FengshuiEngineInput {
-  birthYear: number
+  birthStandardTime: string
   gender: string
-  periodDate: string
+  periodStandardTime: string
   zuoShan: number
   doorGua: string
   masterGua: string
@@ -115,8 +116,8 @@ export function useConsultationTools(options: ConsultationToolOptions) {
     input: fengshuiEngineInput,
     load: async input => {
       const [bazhai, xuankong] = await Promise.all([
-        bazhaiChartFor(input.birthYear, input.gender),
-        xuankongChartFor(input.periodDate, input.zuoShan),
+        bazhaiChartFor(input.birthStandardTime, input.gender),
+        xuankongChartFor(input.periodStandardTime, input.zuoShan),
       ])
       const layout = await bazhaiLayoutFor(
         bazhai.ming_gua.gua.name,
@@ -255,13 +256,20 @@ export function useConsultationTools(options: ConsultationToolOptions) {
       options.onError(t('services.fengshui.invalidBirthYear'))
       return
     }
+    let birthStandardTime: string
+    try {
+      birthStandardTime = chartInputFromProfileBirth(profile).standard_time
+    } catch {
+      options.onError(t('services.fengshui.invalidBirthYear'))
+      return
+    }
 
     fengshuiResource.reset()
     fengshuiInput.value = value
     fengshuiEngineInput.value = {
-      birthYear,
+      birthStandardTime,
       gender: profile.birth.gender,
-      periodDate: value.periodDate,
+      periodStandardTime: standardTimeForDate(value.periodDate),
       zuoShan: value.zuoShan,
       doorGua: value.doorGua,
       masterGua: value.masterGua,
@@ -315,8 +323,7 @@ export function useConsultationTools(options: ConsultationToolOptions) {
       return Promise.reject(new Error('Casting receipt and location are required'))
     }
     return divinationChartFor({
-      instant: castingInstant.value,
-      timezone: location.timezone,
+      standard_time: standardTimeFromInstant(castingInstant.value, location.timezone),
       longitude: location.longitude,
       casting: receipt,
       yongShen: '世爻',

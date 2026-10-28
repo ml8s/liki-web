@@ -2,7 +2,7 @@
 // 择日等手动保存的记录走标准行操作（打开/重命名/删除，RecordActions）。
 import { test, expect } from '../fixtures'
 import type { Page } from '@playwright/test'
-import { json, mockCityCoords, mockEngineTool, mockWorkspace, testUser } from '../mocks'
+import { json, mcpOk, mockEngineTool, mockWorkspace, testUser } from '../mocks'
 
 test.use({ locale: 'zh-Hant' })
 
@@ -43,7 +43,6 @@ function countEngineCalls(page: Page): { qigua: number; huangli: number } {
 async function mockEngines(page: Page) {
   await mockEngineTool(page, 'liuyao_qigua', { casting: liuyaoSnapshot.casting })
   await mockEngineTool(page, 'liuyao_chart', liuyaoSnapshot)
-  await mockCityCoords(page, { name: '上海市', region: '中國', longitude: 121.4726, latitude: 31.2304 })
   await mockEngineTool(page, 'huangli_days', [
     { date: '2026-10-01', suitability: 'recommended', jian_chu: '建', reason: '宜嫁娶' },
   ])
@@ -56,8 +55,19 @@ test('问卦自动保存记录，打开历史回放快照不再重摇', async ({
   const engineArguments: { tool: string; arguments: Record<string, unknown> }[] = []
   await page.route('**/engine/mcp', async route => {
     const body = JSON.parse(route.request().postData() ?? '{}') as { params?: { name?: string; arguments?: Record<string, unknown> } }
-    if (body.params?.name) engineArguments.push({ tool: body.params.name, arguments: body.params.arguments ?? {} })
-    await route.fallback()
+    const params = body.params
+    const tool = params?.name
+    if (!tool) return route.fallback()
+    engineArguments.push({ tool, arguments: params.arguments ?? {} })
+    const data = {
+      liuyao_qigua: { casting: liuyaoSnapshot.casting },
+      liuyao_chart: liuyaoSnapshot,
+      huangli_days: [
+        { date: '2026-10-01', suitability: 'recommended', jian_chu: '建', reason: '宜嫁娶' },
+      ],
+    }[tool]
+    if (data === undefined) return route.fallback()
+    await route.fulfill({ json: mcpOk(data) })
   })
 
   const created: Record<string, unknown>[] = []
@@ -76,8 +86,10 @@ test('问卦自动保存记录，打开历史回放快照不再重摇', async ({
 
   await page.goto('/app/classic/divination')
   await page.locator('textarea[placeholder*="項目"]').fill('這個項目能成嗎')
-  await page.locator('input[name="casting-place"]').fill('上海')
-  await page.locator('input[name="casting-place"]').blur()
+  const placeInput = page.locator('input[name="casting-place"]')
+  await placeInput.fill('上海')
+  await placeInput.blur()
+  await expect(placeInput).toHaveValue('上海市')
   await expect(page.locator('.region-status')).toContainText('已匹配')
   await page.getByRole('button', { name: '手動填寫經度' }).click()
   await expect(page.locator('input[name="casting-longitude"]')).toHaveValue('121.4726')
@@ -102,10 +114,12 @@ test('问卦自动保存记录，打开历史回放快照不再重摇', async ({
   expect(engineArguments.find(call => call.tool === 'tianwen_resolve')).toBeUndefined()
   const chartArguments = engineArguments.find(call => call.tool === 'liuyao_chart')?.arguments
   expect(chartArguments).toMatchObject({
-    instant: input.casting_instant,
-    timezone: 'Asia/Shanghai',
+    standard_time: expect.any(String),
     longitude: 121.4726,
   })
+  expect(String(chartArguments?.standard_time)).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+08:00$/)
+  expect(chartArguments).not.toHaveProperty('instant')
+  expect(chartArguments).not.toHaveProperty('timezone')
   expect(chartArguments).toHaveProperty('yong_shen', '世爻')
   expect(chartArguments).not.toHaveProperty('casting_place')
 

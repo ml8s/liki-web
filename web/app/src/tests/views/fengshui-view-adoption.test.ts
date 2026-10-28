@@ -42,7 +42,13 @@ vi.mock('@/composables/useServiceView', () => ({
       list: [{
         id: 'profile-1',
         nickname: '张三',
-        birth: { date: '2000-01-01', gender: 'female' },
+        birth: {
+          date: '2000-01-01',
+          time: '12:00',
+          instant: '2000-01-01T04:00:00Z',
+          location: { longitude: 121.47, timezone: 'Asia/Shanghai' },
+          gender: 'female',
+        },
       }],
     },
     entitlements: { purchased: true },
@@ -219,8 +225,8 @@ describe('FengshuiView engine adoption', () => {
     expect(layoutPanel.props('result')).toStrictEqual(layoutResult)
     expect(chartPanel.props('layout')).toStrictEqual(layoutResult)
 
-    expect(domainMocks.bazhaiChartFor).toHaveBeenCalledWith(2000, 'female')
-    expect(domainMocks.xuankongChartFor).toHaveBeenCalledWith('2026-01-01', 0)
+    expect(domainMocks.bazhaiChartFor).toHaveBeenCalledWith('2000-01-01T12:00:00+08:00', 'female')
+    expect(domainMocks.xuankongChartFor).toHaveBeenCalledWith('2026-01-01T12:00:00+08:00', 0)
     expect(domainMocks.bazhaiLayoutFor).toHaveBeenCalledWith('艮', '坤', '兑', '乾')
 
     expect(wrapper.find('.bazhai-chart-panel .mingua').text()).toBe('艮')

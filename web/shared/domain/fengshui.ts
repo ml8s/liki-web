@@ -9,17 +9,17 @@ import {
 
 export type { BazhaiChart, BazhaiLayout, XuankongChart }
 
-/** Birth year + gender -> Bazhai chart. */
-export function bazhaiChartFor(birthYear: number, gender: string): Promise<BazhaiChart> {
-  return engineBazhaiChart(birthYear, gender)
+/** Birth standard time + gender -> Bazhai chart. */
+export function bazhaiChartFor(standardTime: string, gender: string): Promise<BazhaiChart> {
+  return engineBazhaiChart(standardTime, gender)
 }
 
-/** Period date + sitting mountain -> Xuankong flying-star chart. */
+/** Already-normalized period standard time + sitting mountain -> Xuankong chart. */
 export function xuankongChartFor(
-  periodDate: string,
+  standardTime: string,
   zuoShan: number,
 ): Promise<XuankongChart> {
-  return engineXuankongChart(periodDate, zuoShan, (zuoShan + 12) % 24)
+  return engineXuankongChart(standardTime, zuoShan, (zuoShan + 12) % 24)
 }
 
 /** Ming Gua + door/master/stove Gua -> Bazhai layout assessment. */

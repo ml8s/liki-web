@@ -1820,10 +1820,25 @@ const bazhaiLayout = {
 }
 
 function routeEngine(page: Page) {
+  const timeCanonicalTools = new Set<string>([
+    ENGINE_TOOLS.BaziChart,
+    ENGINE_TOOLS.ZiweiChart,
+    ENGINE_TOOLS.LiuyaoChart,
+    ENGINE_TOOLS.BaziLiuNian,
+    ENGINE_TOOLS.ZiweiLiuNian,
+    ENGINE_TOOLS.HuangliDays,
+    ENGINE_TOOLS.BazhaiChart,
+    ENGINE_TOOLS.XuankongChart,
+  ])
+  const obsoleteTimeInputs = [
+    'instant', 'civil_time', 'timezone', 'fold', 'date', 'start_date',
+    'period_date', 'birth_year', 'birth_date', 'lunar_year', 'target_lunar',
+    'shi_zhi', 'year',
+  ]
   return page.route(/\/(engine|counsel)\/mcp$/, async route => {
     const headers = route.request().headers()
     const body = JSON.parse(route.request().postData() ?? '{}') as {
-      params?: { name?: string; _meta?: Record<string, unknown> }
+      params?: { name?: string; arguments?: Record<string, unknown>; _meta?: Record<string, unknown> }
     }
     const tool = body.params?.name ?? ''
     // Browser-to-MCP contract: the edge requires the method/name headers before
@@ -1834,6 +1849,13 @@ function routeEngine(page: Page) {
     expect(headers['mcp-protocol-version']).toBe('2026-07-28')
     expect(headers['accept']).toContain('text/event-stream')
     expect(body.params?._meta?.['io.modelcontextprotocol/protocolVersion']).toBe('2026-07-28')
+    const args = body.params?.arguments ?? {}
+    if (timeCanonicalTools.has(tool)) {
+      expect(args).toHaveProperty('standard_time', expect.any(String))
+      for (const forbidden of obsoleteTimeInputs) {
+        expect(args).not.toHaveProperty(forbidden)
+      }
+    }
     let data: unknown
     switch (tool) {
       case ENGINE_TOOLS.CityCoords: data = { candidates: [{ name: '上海', region: '上海市', country: '中国', level: 'city', longitude: 121.47, latitude: 31.23, timezone: 'Asia/Shanghai' }] }; break
