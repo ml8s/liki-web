@@ -21,21 +21,21 @@ var ErrWebhookVerification = errors.New("payment: webhook verification failed")
 func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, header http.Header) ([]byte, error) {
 	event, err := r.verifyWebhook(raw, header)
 	if err != nil {
-		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "verify_failed"})
+		metrics.Default.Inc("liki_web_payment_webhook_total", map[string]string{"result": "verify_failed"})
 		return nil, fmt.Errorf("%w: %v", ErrWebhookVerification, err)
 	}
 	if r.subscriptionProcessor != nil && (IsSubscriptionLifecycle(event.Type) ||
 		(event.Type == EventPaymentSucceeded && event.Data.SubscriptionID != "") ||
 		(event.Type == EventPaymentRefunded && isSubscriptionRefund(event.Data))) {
 		if err := r.subscriptionProcessor.HandleSubscriptionEvent(ctx, *event); err != nil {
-			metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "subscription_failed"})
+			metrics.Default.Inc("liki_web_payment_webhook_total", map[string]string{"result": "subscription_failed"})
 			return nil, err
 		}
-		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "subscription_handled"})
+		metrics.Default.Inc("liki_web_payment_webhook_total", map[string]string{"result": "subscription_handled"})
 		return r.webhookAck(event.Provider)
 	}
 	if event.Type != EventPaymentSucceeded && event.Type != EventPaymentRefunded {
-		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "ignored"})
+		metrics.Default.Inc("liki_web_payment_webhook_total", map[string]string{"result": "ignored"})
 		slog.InfoContext(ctx, "payment: ignored webhook", "provider", event.Provider, "type", event.Type)
 		return r.webhookAck(event.Provider)
 	}
@@ -48,18 +48,18 @@ func (r *Runtime) HandleWebhookEventWithAck(ctx context.Context, raw []byte, hea
 	}
 	if event.Type == EventPaymentRefunded {
 		if err := r.captureRefund(ctx, event, intent); err != nil {
-			metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "refund_failed"})
+			metrics.Default.Inc("liki_web_payment_webhook_total", map[string]string{"result": "refund_failed"})
 			return nil, err
 		}
-		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "refunded"})
-		metrics.Default.Inc("payment_refunded_total", map[string]string{"provider": string(intent.Provider)})
+		metrics.Default.Inc("liki_web_payment_webhook_total", map[string]string{"result": "refunded"})
+		metrics.Default.Inc("liki_web_payment_refunded_total", map[string]string{"provider": string(intent.Provider)})
 		return r.webhookAck(event.Provider)
 	}
 	if err := r.capture(ctx, event, intent); err != nil {
-		metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "capture_failed"})
+		metrics.Default.Inc("liki_web_payment_webhook_total", map[string]string{"result": "capture_failed"})
 		return nil, err
 	}
-	metrics.Default.Inc("payment_webhook_total", map[string]string{"result": "captured"})
+	metrics.Default.Inc("liki_web_payment_webhook_total", map[string]string{"result": "captured"})
 	return r.webhookAck(event.Provider)
 }
 

@@ -1,7 +1,6 @@
 package metrics_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,27 +19,6 @@ func TestHandlerRequiresToken(t *testing.T) {
 	}
 }
 
-func TestHandlerReturnsCounters(t *testing.T) {
-	metrics.Default.Inc("test_total", map[string]string{"result": "ok"})
-	handler := metrics.Handler("secret")
-	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
-	req.Header.Set("Authorization", "Bearer secret")
-	rec := httptest.NewRecorder()
-	handler(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
-	}
-	var body struct {
-		Counters map[string]uint64 `json:"counters"`
-	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatal(err)
-	}
-	if body.Counters["test_total|result=ok"] != 1 {
-		t.Fatalf("counters = %#v", body.Counters)
-	}
-}
-
 func TestHandlerRejectsIncorrectBearerToken(t *testing.T) {
 	handler := metrics.Handler("secret")
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
@@ -50,17 +28,48 @@ func TestHandlerRejectsIncorrectBearerToken(t *testing.T) {
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want 403", rec.Code)
 	}
+	if got := rec.Header().Get("WWW-Authenticate"); got != "Bearer" {
+		t.Fatalf("www-authenticate = %q, want Bearer", got)
+	}
 }
 
-func TestRenderPrometheus(t *testing.T) {
+func TestHandlerReturnsPrometheusExposition(t *testing.T) {
+	metrics.Default.Inc("test_total", map[string]string{"result": "ok"})
+	metrics.Default.ObserveDurationSeconds(
+		"test_duration_seconds_total", map[string]string{"result": "ok"}, 0.125,
+	)
+	handler := metrics.Handler("secret")
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req.Header.Set("Authorization", "Bearer secret")
+	rec := httptest.NewRecorder()
+	handler(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Content-Type"); got != "text/plain; version=0.0.4; charset=utf-8" {
+		t.Fatalf("content type = %q", got)
+	}
+	for _, want := range []string{
+		"# TYPE test_total counter\ntest_total{result=\"ok\"} 1\n",
+		"# TYPE test_duration_seconds_total counter\ntest_duration_seconds_total{result=\"ok\"} 0.125000\n",
+	} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Fatalf("body missing %q:\n%s", want, rec.Body.String())
+		}
+	}
+}
+
+func TestRenderPrometheusUsesContractNamesAndSeconds(t *testing.T) {
 	rendered := metrics.RenderPrometheus(map[string]uint64{
-		"payment_refunded_total|provider=dodo":      2,
-		"http_requests_total|path=/api/|status=200": 3,
+		"liki_web_payment_refunded_total|provider=dodo": 2,
+	}, map[string]float64{
+		"liki_web_http_request_duration_seconds_total|method=GET|route=/metrics|status_class=2xx": 1.25,
 	})
 	for _, want := range []string{
-		"# TYPE payment_refunded_total counter",
-		`payment_refunded_total{provider="dodo"} 2`,
-		`http_requests_total{path="/api/",status="200"} 3`,
+		"# TYPE liki_web_payment_refunded_total counter",
+		`liki_web_payment_refunded_total{provider="dodo"} 2`,
+		"# TYPE liki_web_http_request_duration_seconds_total counter",
+		`liki_web_http_request_duration_seconds_total{method="GET",route="/metrics",status_class="2xx"} 1.250000`,
 	} {
 		if !strings.Contains(rendered, want) {
 			t.Fatalf("rendered=%q want=%q", rendered, want)
@@ -68,14 +77,14 @@ func TestRenderPrometheus(t *testing.T) {
 	}
 }
 
-func TestHandlerPrometheusFormat(t *testing.T) {
+func TestHandlerPrometheusIgnoresFormatParameter(t *testing.T) {
 	metrics.Default.Inc("test_prom_total", map[string]string{"result": "ok"})
 	handler := metrics.Handler("secret")
-	req := httptest.NewRequest(http.MethodGet, "/metrics?format=prometheus", nil)
+	req := httptest.NewRequest(http.MethodGet, "/metrics?format=json", nil)
 	req.Header.Set("Authorization", "Bearer secret")
 	rec := httptest.NewRecorder()
 	handler(rec, req)
-	if got := rec.Header().Get("Content-Type"); !strings.Contains(got, "text/plain") {
+	if got := rec.Header().Get("Content-Type"); got != "text/plain; version=0.0.4; charset=utf-8" {
 		t.Fatalf("content type = %q", got)
 	}
 	if !strings.Contains(rec.Body.String(), `test_prom_total{result="ok"} 1`) {

@@ -175,12 +175,10 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 	}
 	mux.HandleFunc("POST /api/client-errors", clientErrorLimit(handleClientError()))
 	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
-	// Internal read-only operations share a small low-burst limit.
-	rlInternal := func(next http.HandlerFunc) http.HandlerFunc {
-		return rl.Wrap(0.5, 10, next)
-	}
 	if deps.MetricsHandler != nil {
-		mux.HandleFunc("GET /api/internal/metrics", rlInternal(deps.MetricsHandler))
+		// Metrics are process-private; the edge deliberately returns 404 for this
+		// route and only operators reach the container network.
+		mux.HandleFunc("GET /metrics", deps.MetricsHandler)
 	}
 	// ── admin routes (registered here to avoid import cycle) ──
 	if deps.PartnerStore != nil {

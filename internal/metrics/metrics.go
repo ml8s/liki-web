@@ -4,25 +4,39 @@ package metrics
 
 import (
 	"crypto/subtle"
-	"encoding/json"
 	"fmt"
 	"maps"
 	"net/http"
 	"sort"
 	"strings"
 	"sync"
-
-	"github.com/ml8s/liki-web/internal/httputil"
 )
 
-type Registry struct {
-	mu       sync.RWMutex
-	counters map[string]uint64
-}
+// Metric names are owned by the cross-service Liki observability contract.
+const (
+	MetricHTTPRequests              = "liki_web_http_requests_total"
+	MetricHTTPRequestDuration       = "liki_web_http_request_duration_seconds_total"
+	MetricChatAgentRuns             = "liki_web_chat_agent_runs_total"
+	MetricChatAgentLLMCalls         = "liki_web_chat_agent_llm_calls_total"
+	MetricChatAgentPromptTokens     = "liki_web_chat_agent_prompt_tokens_total"
+	MetricChatAgentCompletionTokens = "liki_web_chat_agent_completion_tokens_total"
+	MetricChatAgentThoughtTokens    = "liki_web_chat_agent_thought_tokens_total"
+	MetricAnalyticsPageview         = "liki_web_analytics_pageview_total"
+	MetricAppFlowEvent              = "liki_web_app_flow_event_total"
+	MetricClientError               = "liki_web_client_error_total"
+)
 
 var Default = New()
 
-func New() *Registry { return &Registry{counters: map[string]uint64{}} }
+type Registry struct {
+	mu        sync.RWMutex
+	counters  map[string]uint64
+	durations map[string]float64
+}
+
+func New() *Registry {
+	return &Registry{counters: map[string]uint64{}, durations: map[string]float64{}}
+}
 
 func (r *Registry) Inc(name string, labels map[string]string) {
 	r.Add(name, labels, 1)
@@ -41,6 +55,23 @@ func (r *Registry) Snapshot() map[string]uint64 {
 	defer r.mu.RUnlock()
 	out := make(map[string]uint64, len(r.counters))
 	maps.Copy(out, r.counters)
+	return out
+}
+
+// ObserveDurationSeconds accumulates a duration counter in seconds, as required
+// by the Prometheus-compatible Liki metric contract.
+func (r *Registry) ObserveDurationSeconds(name string, labels map[string]string, seconds float64) {
+	key := name + labelsKey(labels)
+	r.mu.Lock()
+	r.durations[key] += seconds
+	r.mu.Unlock()
+}
+
+func (r *Registry) DurationSnapshot() map[string]float64 {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make(map[string]float64, len(r.durations))
+	maps.Copy(out, r.durations)
 	return out
 }
 
@@ -63,13 +94,14 @@ func labelsKey(labels map[string]string) string {
 // RenderPrometheus converts the internal snapshot into the standard text
 // exposition format. Keeping this dependency-free avoids pulling a registry
 // abstraction through every domain package.
-func RenderPrometheus(counters map[string]uint64) string {
+func RenderPrometheus(counters map[string]uint64, durations map[string]float64) string {
 	type family struct {
 		samples []string
 	}
 	families := make(map[string]*family)
 	names := make([]string, 0)
-	for key, value := range counters {
+
+	add := func(key, value string) {
 		metric, rawLabels, _ := strings.Cut(key, "|")
 		labels := make([]string, 0)
 		if rawLabels != "" {
@@ -87,7 +119,7 @@ func RenderPrometheus(counters map[string]uint64) string {
 		if len(labels) > 0 {
 			sample += "{" + strings.Join(labels, ",") + "}"
 		}
-		sample += fmt.Sprintf(" %d\n", value)
+		sample += " " + value + "\n"
 		item, ok := families[metric]
 		if !ok {
 			item = &family{}
@@ -95,6 +127,18 @@ func RenderPrometheus(counters map[string]uint64) string {
 			names = append(names, metric)
 		}
 		item.samples = append(item.samples, sample)
+	}
+
+	for key, value := range counters {
+		add(key, fmt.Sprintf("%d", value))
+	}
+	durationKeys := make([]string, 0, len(durations))
+	for key := range durations {
+		durationKeys = append(durationKeys, key)
+	}
+	sort.Strings(durationKeys)
+	for _, key := range durationKeys {
+		add(key, fmt.Sprintf("%f", durations[key]))
 	}
 	sort.Strings(names)
 	out := strings.Builder{}
@@ -130,7 +174,8 @@ func escapePrometheusLabelValue(value string) string {
 }
 
 // Handler rejects all requests when no token is configured. Authentication uses
-// a bearer token only, keeping the secret out of URLs and access logs.
+// a bearer token only, keeping the secret out of URLs and access logs. Successful
+// output is always Prometheus text exposition version 0.0.4.
 func Handler(token string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if token == "" {
@@ -139,15 +184,11 @@ func Handler(token string) http.HandlerFunc {
 		}
 		expected := "Bearer " + token
 		if subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte(expected)) != 1 {
-			httputil.RespondError(w, http.StatusForbidden, "forbidden", "forbidden")
+			w.Header().Set("WWW-Authenticate", "Bearer")
+			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		if r.URL.Query().Get("format") == "prometheus" || strings.Contains(r.Header.Get("Accept"), "text/plain") {
-			w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-			_, _ = w.Write([]byte(RenderPrometheus(Default.Snapshot())))
-			return
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"counters": Default.Snapshot()})
+		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+		_, _ = w.Write([]byte(RenderPrometheus(Default.Snapshot(), Default.DurationSnapshot())))
 	}
 }

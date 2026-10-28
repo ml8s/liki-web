@@ -93,7 +93,7 @@ automated gate.
 | `LIKI_AGENTS_OPS_PORT` | Expert ops surface port (`/readyz` / `/version` / `/metrics`) used by readiness probes |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
 | `LIKI_BILLING_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
-| `LIKI_METRICS_TOKEN` | Protects the internal metrics endpoint |
+| `LIKI_METRICS_TOKEN` | Protects the internal `/metrics` Prometheus endpoint |
 | `LIKI_FEEDBACK_API_TOKEN` | Reads and updates feedback records |
 
 Never commit real environment files or secrets.

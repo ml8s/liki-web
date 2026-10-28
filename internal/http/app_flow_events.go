@@ -160,7 +160,7 @@ func handleAppFlowEvent() http.HandlerFunc {
 		if !ok {
 			return
 		}
-		metrics.Default.Inc("app_flow_event_total", map[string]string{
+		metrics.Default.Inc(metrics.MetricAppFlowEvent, map[string]string{
 			"event":    req.Event,
 			"domain":   req.Domain,
 			"source":   req.Source,

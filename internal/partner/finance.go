@@ -81,7 +81,7 @@ WHERE id=? AND status=?`,
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	metrics.Default.Inc("referral_finance_task_resolved_total", map[string]string{"result": string(normalized)})
+	metrics.Default.Inc("liki_web_referral_finance_task_resolved_total", map[string]string{"result": string(normalized)})
 	return nil
 }
 

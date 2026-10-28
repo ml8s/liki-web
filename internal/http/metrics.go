@@ -28,7 +28,7 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 	return r.ResponseWriter.Write(b)
 }
 
-// Metrics 记录按「路由模板 × 方法 × 状态类」的请求数与累计耗时（微秒）。
+// Metrics 记录按「路由模板 × 方法 × 状态类」的请求数与累计耗时（秒）。
 // 路由模板取自 ServeMux 的 r.Pattern（低基数，绝不使用原始 path）；
 // 未匹配到路由的请求归入 "unmatched"。
 func Metrics(next http.Handler) http.Handler {
@@ -45,14 +45,15 @@ func Metrics(next http.Handler) http.Handler {
 		if status == 0 {
 			status = http.StatusOK
 		}
-		metrics.Default.Inc("http_requests_total", map[string]string{
-			"route":  route,
-			"method": r.Method,
-			"status": fmt.Sprintf("%dxx", status/100),
+		metrics.Default.Inc(metrics.MetricHTTPRequests, map[string]string{
+			"route":        route,
+			"method":       r.Method,
+			"status_class": fmt.Sprintf("%dxx", status/100),
 		})
-		metrics.Default.Add("http_request_duration_micros_total",
-			map[string]string{"route": route},
-			uint64(time.Since(start).Microseconds()),
+		metrics.Default.ObserveDurationSeconds(
+			metrics.MetricHTTPRequestDuration,
+			map[string]string{"route": route, "method": r.Method, "status_class": fmt.Sprintf("%dxx", status/100)},
+			time.Since(start).Seconds(),
 		)
 	})
 }

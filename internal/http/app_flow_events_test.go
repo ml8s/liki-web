@@ -10,7 +10,7 @@ import (
 )
 
 func TestHandleAppFlowEventRecordsBoundedSignal(t *testing.T) {
-	key := "app_flow_event_total|domain=natal|event=consultation_entry|failure=|scenario=liunian|source=legacy_redirect|status=restorable"
+	key := "liki_web_app_flow_event_total|domain=natal|event=consultation_entry|failure=|scenario=liunian|source=legacy_redirect|status=restorable"
 	before := metrics.Default.Snapshot()[key]
 	request := httptest.NewRequest(http.MethodPost, "/api/analytics/product-event", strings.NewReader(
 		`{"event":"consultation_entry","domain":"natal","source":"legacy_redirect","scenario":"liunian","status":"restorable"}`,

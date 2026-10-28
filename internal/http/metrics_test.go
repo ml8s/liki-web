@@ -28,12 +28,12 @@ func TestMetricsRecordsRoutePatternLowCardinality(t *testing.T) {
 	snapshot := registry.Snapshot()
 	found := false
 	for key, value := range snapshot {
-		if strings.Contains(key, "http_requests_total") {
+		if strings.Contains(key, metrics.MetricHTTPRequests) {
 			found = true
 			if !strings.Contains(key, "route=GET /api/things/{id}") {
 				t.Fatalf("route label must be the pattern, got %q", key)
 			}
-			if !strings.Contains(key, "status=4xx") || value != 3 {
+			if !strings.Contains(key, "status_class=4xx") || value != 3 {
 				t.Fatalf("unexpected counter %q=%d", key, value)
 			}
 		}
@@ -44,4 +44,54 @@ func TestMetricsRecordsRoutePatternLowCardinality(t *testing.T) {
 	if !found {
 		t.Fatalf("no http_requests_total recorded: %v", snapshot)
 	}
+}
+
+func TestMetricsRouteContract(t *testing.T) {
+	oldRegistry := metrics.Default
+	metrics.Default = metrics.New()
+	t.Cleanup(func() { metrics.Default = oldRegistry })
+
+	mux := http.NewServeMux()
+	limiter := NewRateLimiter()
+	t.Cleanup(limiter.Stop)
+	RegisterRoutes(mux, ServerDeps{MetricsHandler: metrics.Handler("secret")}, "test", "dev", limiter, limiter)
+	handler := Metrics(mux)
+
+	assertStatus := func(authorization string, want int) {
+		t.Helper()
+		request := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+		if authorization != "" {
+			request.Header.Set("Authorization", authorization)
+		}
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+		if recorder.Code != want {
+			t.Fatalf("authorization %q: status = %d, want %d", authorization, recorder.Code, want)
+		}
+	}
+	assertStatus("", http.StatusForbidden)
+	assertStatus("Bearer wrong", http.StatusForbidden)
+	assertStatus("Bearer secret", http.StatusOK)
+
+	request := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	request.Header.Set("Authorization", "Bearer secret")
+	handler.ServeHTTP(httptest.NewRecorder(), request)
+	for key := range metrics.Default.Snapshot() {
+		if strings.Contains(key, metrics.MetricHTTPRequests) &&
+			strings.Contains(key, `route=GET /metrics`) &&
+			strings.Contains(key, `method=GET`) &&
+			strings.Contains(key, `status_class=2xx`) {
+			return
+		}
+	}
+	for key := range metrics.Default.DurationSnapshot() {
+		if strings.Contains(key, metrics.MetricHTTPRequestDuration) &&
+			strings.Contains(key, `route=GET /metrics`) &&
+			strings.Contains(key, `method=GET`) &&
+			strings.Contains(key, `status_class=2xx`) {
+			return
+		}
+	}
+	t.Fatalf("metrics missing route contract counters:\ncounters=%v\ndurations=%v",
+		metrics.Default.Snapshot(), metrics.Default.DurationSnapshot())
 }

@@ -465,9 +465,11 @@ they never establish a session or grant an entitlement.
 | POST | `/api/analytics/product-event` | public, rate limited | Increment a bounded product funnel counter |
 | POST | `/api/client-errors` | public, rate limited | Record a PII-free client failure (`code`, `view`, `locale`, optional technical `detail`) |
 | GET | `/api/version` | public | Build time and version |
-| GET | `/api/internal/metrics` | token | JSON or Prometheus counters |
+| GET | `/metrics` | token | Prometheus text exposition version 0.0.4 |
 
-Metrics are disabled when `LIKI_METRICS_TOKEN` is empty.
+Metrics are disabled when `LIKI_METRICS_TOKEN` is empty; the endpoint returns
+404. Wrong bearer credentials return 403. Public gateways must not expose
+`/metrics`; operators access it through the internal service network.
 
 `POST /api/client-errors` is a bounded, PII-free telemetry surface. Payloads
 must never contain birth data, chat content, email addresses, or raw provider

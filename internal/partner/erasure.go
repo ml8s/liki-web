@@ -132,7 +132,7 @@ ON CONFLICT(type,provider_refund_id,entry_id) DO NOTHING`,
 		return ErasureResult{}, err
 	}
 	if createdTasks > 0 {
-		metrics.Default.Inc("referral_finance_task_created_total", map[string]string{"type": string(FinanceTaskUserErasure)})
+		metrics.Default.Inc("liki_web_referral_finance_task_created_total", map[string]string{"type": string(FinanceTaskUserErasure)})
 	}
 	return ErasureResult{PayoutsErased: erasedPayouts, FinanceTasks: createdTasks}, nil
 }

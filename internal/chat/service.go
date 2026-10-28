@@ -335,18 +335,18 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 
 func recordAgentUsage(expert string, usage RunUsage) {
 	labels := map[string]string{"expert": expert}
-	metrics.Default.Inc("chat_agent_runs_total", labels)
+	metrics.Default.Inc(metrics.MetricChatAgentRuns, labels)
 	if usage.LLMCalls > 0 {
-		metrics.Default.Add("chat_agent_llm_calls_total", labels, uint64(usage.LLMCalls))
+		metrics.Default.Add(metrics.MetricChatAgentLLMCalls, labels, uint64(usage.LLMCalls))
 	}
 	if usage.PromptTokens > 0 {
-		metrics.Default.Add("chat_agent_prompt_tokens_total", labels, uint64(usage.PromptTokens))
+		metrics.Default.Add(metrics.MetricChatAgentPromptTokens, labels, uint64(usage.PromptTokens))
 	}
 	if usage.CompletionTokens > 0 {
-		metrics.Default.Add("chat_agent_completion_tokens_total", labels, uint64(usage.CompletionTokens))
+		metrics.Default.Add(metrics.MetricChatAgentCompletionTokens, labels, uint64(usage.CompletionTokens))
 	}
 	if usage.ThoughtTokens > 0 {
-		metrics.Default.Add("chat_agent_thought_tokens_total", labels, uint64(usage.ThoughtTokens))
+		metrics.Default.Add(metrics.MetricChatAgentThoughtTokens, labels, uint64(usage.ThoughtTokens))
 	}
 }
 

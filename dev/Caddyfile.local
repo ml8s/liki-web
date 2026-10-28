@@ -32,6 +32,11 @@ http://{$CADDY_LISTEN_ADDR:localhost:8080} {
 		format json
 	}
 
+	# Process metrics are private. The app serves /metrics only on its internal
+	# network; the edge must never proxy it.
+	@processMetrics path /metrics
+	respond @processMetrics 404
+
 	redir /admin.html /app/admin permanent
 
 	# Protected routes — require same-origin

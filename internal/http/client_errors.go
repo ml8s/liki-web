@@ -92,7 +92,7 @@ func handleClientError() http.HandlerFunc {
 		if !knownClientErrorCodes[metricCode] {
 			metricCode = "other"
 		}
-		metrics.Default.Inc("client_error_total", map[string]string{"code": metricCode})
+		metrics.Default.Inc(metrics.MetricClientError, map[string]string{"code": metricCode})
 		slog.WarnContext(r.Context(), "client_error",
 			"code", req.Code,
 			"view", normalizeClientErrorView(req.View),

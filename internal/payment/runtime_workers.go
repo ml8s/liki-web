@@ -41,7 +41,7 @@ func (r *Runtime) ProcessPaymentCompletionTasks(ctx context.Context, limit int) 
 			if markErr := r.fulfillments.MarkFailed(ctx, task.ID, err); markErr != nil {
 				return processed, markErr
 			}
-			metrics.Default.Inc("payment_fulfillment_total", map[string]string{"status": "retry_or_failed"})
+			metrics.Default.Inc("liki_web_payment_fulfillment_total", map[string]string{"status": "retry_or_failed"})
 			continue
 		}
 
@@ -60,7 +60,7 @@ func (r *Runtime) ProcessPaymentCompletionTasks(ctx context.Context, limit int) 
 		if r.fulfillmentObserver != nil {
 			r.fulfillmentObserver(context.WithoutCancel(ctx), intent)
 		}
-		metrics.Default.Inc("payment_fulfillment_total", map[string]string{"status": "succeeded"})
+		metrics.Default.Inc("liki_web_payment_fulfillment_total", map[string]string{"status": "succeeded"})
 		processed++
 	}
 	return processed, nil
@@ -200,13 +200,13 @@ func (r *Runtime) ProcessPendingNotifications(ctx context.Context, limit int) er
 	}
 	for _, message := range messages {
 		if err := r.sender.Send(ctx, EmailMessage{To: message.To, Subject: message.Subject, Body: message.Body}); err != nil {
-			metrics.Default.Inc("payment_notification_total", map[string]string{"result": "failed"})
+			metrics.Default.Inc("liki_web_payment_notification_total", map[string]string{"result": "failed"})
 			if markErr := r.notifications.MarkFailed(ctx, message.ID, err.Error()); markErr != nil {
 				slog.ErrorContext(ctx, "payment: mark notification failed", "notification_id", message.ID, "err", markErr)
 			}
 			continue
 		}
-		metrics.Default.Inc("payment_notification_total", map[string]string{"result": "sent"})
+		metrics.Default.Inc("liki_web_payment_notification_total", map[string]string{"result": "sent"})
 		if err := r.notifications.MarkSent(ctx, message.ID); err != nil {
 			slog.ErrorContext(ctx, "payment: mark notification sent", "notification_id", message.ID, "err", err)
 		}

@@ -132,7 +132,7 @@ WHERE beneficiary_id=? AND beneficiary_role=? AND status=? AND payout_id IS NULL
 	if n, _ := res.RowsAffected(); n == 0 {
 		return Payout{}, ErrNoWithdrawableCommission
 	}
-	metrics.Default.Inc("referral_payout_created_total", map[string]string{"method": string(payout.Method)})
+	metrics.Default.Inc("liki_web_referral_payout_created_total", map[string]string{"method": string(payout.Method)})
 	if err := recordReferralActionTx(ctx, tx, s.idFunc(), userID, "payout.requested", "payout", payout.ID,
 		"", fmt.Sprintf("amount_minor=%d;role=%s", amount, role), "partner requested payout"); err != nil {
 		return Payout{}, err
@@ -260,7 +260,7 @@ UPDATE partner_commission_entries SET payout_id=NULL,updated_at=?
 WHERE payout_id=? AND status=?`, now, decision.PayoutID, string(CommissionPending)); err != nil {
 		return err
 	}
-	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(newStatus)})
+	metrics.Default.Inc("liki_web_referral_payout_state_total", map[string]string{"result": string(newStatus)})
 	if _, err := tx.ExecContext(ctx, `
 UPDATE partner_payouts SET status=?,rejection_reason=?,updated_at=? WHERE id=?`,
 		string(newStatus), decision.Reason, now, decision.PayoutID); err != nil {
@@ -297,7 +297,7 @@ func (s *Store) ApprovePayout(ctx context.Context, approval PayoutApproval) erro
 		return err
 	}
 	now := formatTime(s.nowFunc())
-	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(newStatus)})
+	metrics.Default.Inc("liki_web_referral_payout_state_total", map[string]string{"result": string(newStatus)})
 	if _, err := tx.ExecContext(ctx, `
 UPDATE partner_payouts SET status=?,rejection_reason='',updated_at=? WHERE id=?`,
 		string(newStatus), now, approval.PayoutID); err != nil {
@@ -334,7 +334,7 @@ func (s *Store) MarkPayoutPaid(ctx context.Context, payment PayoutPayment) error
 		return err
 	}
 	now := formatTime(s.nowFunc())
-	metrics.Default.Inc("referral_payout_state_total", map[string]string{"result": string(nextStatus)})
+	metrics.Default.Inc("liki_web_referral_payout_state_total", map[string]string{"result": string(nextStatus)})
 	if _, err := tx.ExecContext(ctx, `
 UPDATE partner_payouts
 SET status=?,payment_reference=?,paid_at=?,updated_at=? WHERE id=?`,

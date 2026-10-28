@@ -97,7 +97,7 @@ ON CONFLICT(payment_provider,payment_intent_id) DO NOTHING`,
 	if err != nil {
 		return status, reason, fmt.Errorf("partner: enqueue commission intent: %w", err)
 	}
-	metrics.Default.Inc("referral_commission_intake_total", map[string]string{"status": string(status)})
+	metrics.Default.Inc("liki_web_referral_commission_intake_total", map[string]string{"status": string(status)})
 	return status, reason, nil
 }
 
@@ -391,12 +391,12 @@ func (s *Store) ProcessCommissionPayments(ctx context.Context, limit int) (int, 
 			}
 			slog.WarnContext(ctx, "partner: commission intake retry", "id", item.ID,
 				"buyer", item.BuyerUserID, "attempt", item.Attempts, "err", err)
-			metrics.Default.Inc("referral_commission_worker_total", map[string]string{"result": "retry_or_failed"})
+			metrics.Default.Inc("liki_web_referral_commission_worker_total", map[string]string{"result": "retry_or_failed"})
 			continue
 		}
 		cancel()
-		metrics.Default.Inc("referral_commission_settled_total", nil)
-		metrics.Default.Inc("referral_commission_worker_total", map[string]string{"result": "succeeded"})
+		metrics.Default.Inc("liki_web_referral_commission_settled_total", nil)
+		metrics.Default.Inc("liki_web_referral_commission_worker_total", map[string]string{"result": "succeeded"})
 		processed++
 	}
 	return processed, nil
@@ -503,6 +503,6 @@ WHERE payment_provider=? AND payment_intent_id=? AND status=?`,
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	metrics.Default.Inc("referral_commission_void_total", map[string]string{"provider": providerName})
+	metrics.Default.Inc("liki_web_referral_commission_void_total", map[string]string{"provider": providerName})
 	return nil
 }

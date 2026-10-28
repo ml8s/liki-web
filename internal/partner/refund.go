@@ -63,7 +63,7 @@ ON CONFLICT(payment_provider,provider_refund_id) DO NOTHING`,
 		return fmt.Errorf("partner: enqueue refund intent: %w", err)
 	}
 	if n, _ := res.RowsAffected(); n > 0 {
-		metrics.Default.Inc("referral_commission_refund_intake_total", map[string]string{"status": string(IntakeQueued)})
+		metrics.Default.Inc("liki_web_referral_commission_refund_intake_total", map[string]string{"status": string(IntakeQueued)})
 	}
 	return nil
 }
@@ -135,7 +135,7 @@ func (s *Store) ProcessCommissionRefunds(ctx context.Context, limit int) (int, e
 			if markErr := s.markCommissionRefundSucceeded(ctx, item.ID); markErr != nil {
 				return processed, markErr
 			}
-			metrics.Default.Inc("referral_commission_refund_applied_total", nil)
+			metrics.Default.Inc("liki_web_referral_commission_refund_applied_total", nil)
 			processed++
 			continue
 		}
@@ -155,7 +155,7 @@ func (s *Store) ProcessCommissionRefunds(ctx context.Context, limit int) (int, e
 			return processed, markErr
 		}
 		slog.WarnContext(ctx, "partner: commission refund retry", "id", item.ID, "intent", item.PaymentID, "err", err)
-		metrics.Default.Inc("referral_commission_refund_worker_total", map[string]string{"result": "retry_or_failed"})
+		metrics.Default.Inc("liki_web_referral_commission_refund_worker_total", map[string]string{"result": "retry_or_failed"})
 	}
 	return processed, nil
 }
@@ -426,6 +426,6 @@ ON CONFLICT(type,provider_refund_id,entry_id) DO NOTHING`,
 	if err != nil {
 		return fmt.Errorf("partner: ensure finance task: %w", err)
 	}
-	metrics.Default.Inc("referral_finance_task_created_total", map[string]string{"type": string(FinanceTaskCommissionClawback)})
+	metrics.Default.Inc("liki_web_referral_finance_task_created_total", map[string]string{"type": string(FinanceTaskCommissionClawback)})
 	return nil
 }

@@ -201,7 +201,7 @@ func (r *Runtime) ReconcilePendingIntents(ctx context.Context, limit int) error 
 		if _, changed, err := r.reconcileIntent(ctx, intent); err != nil {
 			slog.ErrorContext(ctx, "payment: reconcile intent", "intent_id", intent.ID, "err", err)
 		} else if changed {
-			metrics.Default.Inc("payment_reconcile_total", map[string]string{"result": "captured"})
+			metrics.Default.Inc("liki_web_payment_reconcile_total", map[string]string{"result": "captured"})
 		}
 	}
 	return nil
@@ -263,7 +263,7 @@ func (r *Runtime) captureRefund(ctx context.Context, event *WebhookEvent, intent
 			return err
 		}
 	}
-	metrics.Default.Inc("payment_refund_total", map[string]string{"provider": string(updated.Provider)})
+	metrics.Default.Inc("liki_web_payment_refund_total", map[string]string{"provider": string(updated.Provider)})
 	return nil
 }
 

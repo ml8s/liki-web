@@ -68,7 +68,7 @@ func (r *Runtime) CreateIntent(ctx context.Context, input CreateIntentInput) (Pa
 	if err := r.intents.CreateIntent(ctx, intent); err != nil {
 		return PaymentIntent{}, err
 	}
-	metrics.Default.Inc("payment_intent_created_total", map[string]string{"provider": string(intent.Provider)})
+	metrics.Default.Inc("liki_web_payment_intent_created_total", map[string]string{"provider": string(intent.Provider)})
 	return intent, nil
 }
 

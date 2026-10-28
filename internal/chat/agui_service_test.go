@@ -132,11 +132,11 @@ func TestServiceAgentModeRecordsUsageMetrics(t *testing.T) {
 
 	snapshot := metrics.Default.Snapshot()
 	for key, want := range map[string]uint64{
-		"chat_agent_runs_total|expert=natal":              1,
-		"chat_agent_llm_calls_total|expert=natal":         2,
-		"chat_agent_prompt_tokens_total|expert=natal":     100,
-		"chat_agent_completion_tokens_total|expert=natal": 40,
-		"chat_agent_thought_tokens_total|expert=natal":    8,
+		"liki_web_chat_agent_runs_total|expert=natal":              1,
+		"liki_web_chat_agent_llm_calls_total|expert=natal":         2,
+		"liki_web_chat_agent_prompt_tokens_total|expert=natal":     100,
+		"liki_web_chat_agent_completion_tokens_total|expert=natal": 40,
+		"liki_web_chat_agent_thought_tokens_total|expert=natal":    8,
 	} {
 		if snapshot[key] != want {
 			t.Fatalf("metric %s = %d, want %d (snapshot=%v)", key, snapshot[key], want, snapshot)

@@ -28,7 +28,7 @@
 | `internal/httputil` | shared HTTP primitives: client IP, forwarded headers, JWT validation, request-id context and slog handler, response envelope, decode, SSE |
 | `internal/i18n` | supported language tag constants |
 | `internal/llm` | chat message model shared by protocol surfaces |
-| `internal/metrics` | in-memory lifecycle counters, HTTP RED metrics, and the internal metrics endpoint |
+| `internal/metrics` | dependency-free lifecycle counters, HTTP RED metrics, and the internal `/metrics` Prometheus endpoint |
 | `internal/migrate` | forward-only SQL migration runner for embedded SQLite |
 | `internal/sqliteutil` | standard SQLite connection policy for every database file |
 

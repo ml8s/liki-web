@@ -28,7 +28,7 @@ func handlePageView() http.HandlerFunc {
 		if _, ok := httputil.DecodeStrict[pageViewRequest](w, r); !ok {
 			return
 		}
-		metrics.Default.Inc("analytics_pageview_total", nil)
+		metrics.Default.Inc(metrics.MetricAnalyticsPageview, nil)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
