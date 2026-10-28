@@ -1,4 +1,6 @@
 // fengshui 页工具岛：出生年 + 性别 → 命卦/方位/流年飞星 + 玄空飞星盘 + 八宅布局（门/主/灶）。
+// Provenance: BazhaiChartPanel.vue, XuankongChartPanel.vue, and BazhaiLayoutPanel.vue
+// in web/shared/components/engine/fengshui/.
 import { test, expect } from '../fixtures';
 import { mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 
@@ -7,6 +9,14 @@ const bazhai = {
   ba_zhai_dirs: {
     sheng_qi: '西南', tian_yi: '西北', yan_nian: '西', fu_wei: '东北',
     huo_hai: '南', wu_gui: '北', liu_sha: '东', jue_ming: '东南',
+  },
+  liu_nian_xing: {
+    year: 2026,
+    ru_zhong: '七',
+    gong_wei: Array.from({ length: 9 }, (_, index) => ({
+      gong_num: index + 1,
+      xing_name: `星${index + 1}`,
+    })),
   },
 };
 
@@ -45,7 +55,7 @@ const bazhaiLayout = {
   stove: { direction: '西北', gua_name: '乾', wuxing: '金', youxing: '天医', rating: '吉', group: '西四卦', match: '吉' },
 };
 
-test('工具岛：命卦与八宅方位按共享组件渲染', async ({ page }) => {
+test('工具岛：命卦、飞星与布局按 engine catalog 渲染', async ({ page }) => {
   await mockPageview(page);
   await mockEngineTool(page, 'bazhai_chart', bazhai);
   await mockEngineTool(page, 'xuankong_chart', xuankongChart);
@@ -61,6 +71,8 @@ test('工具岛：命卦与八宅方位按共享组件渲染', async ({ page }) 
   await expect(tool.locator('.mingua')).toHaveText('艮');
   await expect(tool.locator('.dirs .dir')).toHaveCount(8);
   await expect(tool.locator('.dirs .dir.good')).toHaveCount(4);
+  await expect(tool.locator('.bazhai-chart-panel .sec-title')).toContainText('2026');
+  await expect(tool.locator('.bazhai-chart-panel .chart-grid .fly-cell')).toHaveCount(9);
   await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=fengshui/);
 
   // 玄空飞星盘（xuankong_chart）：标准九宫 + 坐/向角标 + 补充判断
@@ -95,6 +107,18 @@ test('工具岛：命卦与八宅方位按共享组件渲染', async ({ page }) 
 test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await mockPageview(page);
   await mockMcpToolError(page, '**/engine/mcp', 'bazhai_chart', 'engine_unavailable: boom');
+  // Xuankong is an independent resource in the island, so it must be declared
+  // even when the assertion is about the Bazhai failure.
+  await mockEngineTool(page, 'xuankong_chart', {
+    yun: { year: 2026, yuan: '下元', yun_number: 9, yun_name: '九运', start_year: 2024, end_year: 2043 },
+    gong_wei: [],
+    four_situation: {},
+    zuo_shan: 0,
+    zuo_shan_name: '子',
+    xiang_shan: 12,
+    xiang_shan_name: '午',
+    shou_shan_chu_sha: {},
+  });
   await page.goto('/en/fengshui/');
 
   const tool = page.locator('#fengshui-tool');
@@ -102,5 +126,5 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await tool.locator('.choice-card .el-radio-button').nth(1).click();
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

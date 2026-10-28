@@ -102,7 +102,7 @@ island/view/component -> domain function -> engine adapter -> MCP client
 
 Views do not construct engine wire arguments. They create a complete domain
 input (for example `BirthInput`), which is converted once to the canonical
-`ChartInput` of `{instant, timezone, longitude}`.
+`ChartInput` of `{standard_time, longitude}`.
 
 ## State
 
@@ -137,18 +137,20 @@ the engine `city_coords` fallback. It emits one atomic location value:
 ### Chart time normalization
 
 Birth input is complete Gregorian wall time (`YYYY-MM-DD` + `HH:mm`). The
-shared Temporal adapter rejects DST gaps/folds and passes only
-`{instant, timezone, longitude}` to chart tools. There is no approximate/unknown
-time state: incomplete information cannot be charted. Lunar dates are not
-accepted as browser input; lunar fields in panels are engine projections.
+shared time adapter rejects DST gaps/folds and projects the civil time into the
+zone's standard-time offset; chart tools receive only
+`{standard_time, longitude}`. Date-only tools use a stable midday projection in
+the product calendar timezone. There is no approximate/unknown time state:
+incomplete information cannot be charted. Lunar dates are not accepted as
+browser input; lunar fields in panels are engine projections.
 
 ### LiuYao casting context
 
 The divination form owns an explicit context: question, casting mode, and an
 atomic casting location. The submit handler captures the ritual instant
-before the first Engine MCP request and reuses exactly that instant for
-`liuyao_chart`; network completion time never becomes the casting time. It also
-passes `yong_shen` explicitly.
+before the first Engine MCP request and projects exactly that instant into the
+casting timezone's standard_time for `liuyao_chart`; network completion time
+never becomes the casting time. It also passes `yong_shen` explicitly.
 
 Browser Geolocation may be requested only from the visible “use current
 location” action. Success prefills place, longitude, and the device IANA
@@ -163,8 +165,8 @@ with `consultation_context_v1`. The context is durable server-side state, not
 URL state or prose. It carries the minimum deterministic inputs and, for
 divination, the non-reproducible casting receipt and ritual instant. He Pan
 requires an explicit third-party consent control before computation and sends
-the affirmative domain fact with the second person's atomic birth facts. Both
-relay and direct transports forward the same context.
+the affirmative domain fact with the second person's atomic birth facts. The BFF
+forwards the authorized product context to the runtime.
 
 Public tools use the same-origin session-storage handoff for at most thirty
 minutes and never place personal facts in a URL. All seven scenarios carry the
@@ -193,17 +195,19 @@ Scenario entries remain available below the primary guidance.
 The Vue app uses the official AG-UI client against:
 
 ```text
-/api/chat/sessions/{id}/ag-ui        (relay, default)
-/rt/<profile>/ag-ui                  (direct, VITE_CHAT_TRANSPORT=direct)
+/api/chat/sessions/{id}/ag-ui        (BFF)
 ```
 
-The relay reaches `liki-agent-runtime` through the liki-web BFF. The direct transport
-is a build-time switch: Caddy (same origin) performs ForwardAuth introspection
-and a mutual-TLS upstream, and the client carries the conversation history and
-profile context because the runtime is stateless; history is persisted by the
-run-completed callback. Rollback = deploy the previous (relay) web image.
+The BFF reaches the runtime through the internal network. It owns authentication,
+entitlement, authoritative history, profile context, and product persistence;
+the runtime remains stateless with respect to product chat history.
 
-The app consumes product-safe events. Backend persistence only uses the authoritative terminal result. `RUN_ERROR` is surfaced as a generation error, not stored as a formal assistant message.
+The app consumes product-safe events. Progress uses the namespaced custom event
+`hk.liki.phase`; its value is the raw tool-name fact and the App renders the
+localized label. Unknown custom events are ignored. Backend persistence uses
+only the authoritative BFF `RUN_FINISHED` result (`session`, `active_skill`,
+`user_message`, and `assistant_message`). `RUN_ERROR` is surfaced as a
+generation error, not stored as a formal assistant message.
 
 Message history is cursor-paginated: `GET /api/chat/sessions/{id}/messages?before=&limit=`
 returns `{messages, next_cursor}` (default page 200, cap 500; cursors are
@@ -275,9 +279,12 @@ line requires a newer Node than the pinned `.nvmrc`, and 1.x carries an
 unfixable high advisory that would fail the CI dependency audit.
 
 `make check` also enforces cross-layer contracts: marketing↔App i18n key usage,
-service-CTA parity, chart-message sync, and error-code copy coverage — every Go
-error code must carry App copy in all three locales (`check-error-codes.js`;
-inventory in the generated `docs/error-codes.md`).
+service-CTA parity, chart-message sync, BFF-only chat transport, and error-code
+copy coverage — every Go code must carry App copy in all three locales, while
+client/runtime-only codes live in the explicit frontend inventory
+(`error-codes-frontend.json`). Go's generated inventory remains
+`docs/error-codes.md`; retired paths cannot return
+(`check-retired-chat-transports.mjs`).
 
 ## Payments
 

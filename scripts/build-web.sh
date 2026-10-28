@@ -23,6 +23,8 @@ if [ ! -d node_modules ]; then
   npm ci --ignore-scripts
 fi
 npm run build
+cd "$PROJECT_DIR"
+node web/scripts/check-frontend-budget.js
 cd "$PROJECT_DIR/web"
 node scripts/check-inline-scripts.js --dist dist
 cd "$PROJECT_DIR"

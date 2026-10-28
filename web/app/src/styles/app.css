@@ -1,5 +1,13 @@
 @import "../../../css/tokens.css";
 
+/* Border-box is the base layout contract; controls that add padding to a
+   100%-width parent must not create horizontal overflow on small screens. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: var(--liki-font-sans);
@@ -19,7 +27,9 @@ body {
 /* 键盘用户的焦点必须始终可见；鼠标点击不触发 focus-visible。
  * 原生表单控件除外：EP 会给 .el-input__inner 加 tabindex="0"，命中 [tabindex] 后会在
  * 组件自己的 ring 里再画一圈 outline，叠成两个框（重影）；输入控件的焦点态由组件负责。 */
-.app-shell :is(a, button, [tabindex]:not([tabindex="-1"]):not(input, textarea, select)):focus-visible {
+/* Sink the keyboard focus contract to the app layer: Classic, Consultation,
+   Mine, admin, and Element Plus teleports all inherit one visible ring. */
+:is(a, button, [tabindex]:not([tabindex="-1"]):not(input, textarea, select)):focus-visible {
   outline: 3px solid var(--liki-primary);
   outline-offset: 2px;
   border-radius: var(--radius-control);

@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import { chatTransport } from '@/api/transport'
-import type { AgentProfile, ChatMessage, ChatSession, ChatTurn } from '@/api/chat'
+import type { ChatMessage, ChatSession } from '@/api/chat'
 import type { ConsultationContext } from '@shared/domain/consultation'
 
 // @ag-ui/client 较重（~292KB raw）：仅在真正发送消息时动态加载，
@@ -14,7 +13,6 @@ async function chatApiLazy(): Promise<ChatApi> {
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { errorMessage } from '@/utils/errors'
-import { fetchBirthProfile } from '@/api/birth-profiles'
 import { toolPhaseKey } from '@/utils/toolPhase'
 import { scenarioById } from '@/config/chat'
 import { i18n } from '@/i18n'
@@ -30,22 +28,6 @@ function localId(): string {
   return `local-${crypto.randomUUID()}-${Date.now()}`
 }
 
-// 直连时 runtime 无状态：中继时代由 BFF 从数据库补上的既有对话与出生档案
-// 上下文，必须由客户端携带（契约 C3）。档案与中继一致做实时查询（会话创建
-// 后档案可能被编辑）；查询失败必须终止本轮，不能让 profile-bound 会话退化成
-// 无档案的泛化建议。
-async function loadProfileContext(profileId: string): Promise<AgentProfile | null> {
-  if (!profileId) return null
-  const profile = await fetchBirthProfile(profileId)
-  return {
-    gender: profile.birth.gender,
-    instant: profile.birth.instant,
-    location: {
-      longitude: profile.birth.location.longitude,
-      timezone: profile.birth.location.timezone,
-    },
-  }
-}
 
 interface ChatState {
   sessions: ChatSession[]
@@ -59,6 +41,7 @@ interface ChatState {
   sending: boolean
   phase: string
   error: string
+  loadSessionsError: unknown
   /** 待自动发送的首条意图消息（服务入口 → 会话打开后由 ChatSessionView 发送并清空；内存态，刷新即失） */
   pendingIntent: string
 }
@@ -75,6 +58,7 @@ export const useChatStore = defineStore('chat', {
     sending: false,
     phase: '',
     error: '',
+    loadSessionsError: null,
     pendingIntent: '',
   }),
   actions: {
@@ -84,7 +68,9 @@ export const useChatStore = defineStore('chat', {
       this.error = ''
       try {
         this.sessions = await (await chatApiLazy()).fetchChatSessions()
+        this.loadSessionsError = null
       } catch (error) {
+        this.loadSessionsError = error
         this.error = errorMessage(error)
       } finally {
         this.loadingSessions = false
@@ -171,11 +157,6 @@ export const useChatStore = defineStore('chat', {
 
       const userId = localId()
       const assistantId = localId()
-      // 在推入本轮占位消息之前快照既有对话：直连请求必须携带历史，占位消息
-      // 本身不得进入（空内容会被 runtime 跳过，但语义上它们不是历史）。
-      const history: ChatTurn[] = this.messages
-        .filter(item => item.kind === 'text' && item.content.trim() !== '')
-        .map(item => ({ id: item.id, role: item.role, content: item.content }))
       this.messages.push({
         id: userId,
         session_id: session.id,
@@ -208,15 +189,6 @@ export const useChatStore = defineStore('chat', {
       }
 
       try {
-        // 只有直连需要客户端携带上下文（中继由 BFF 自行组装，且 locale 走
-        // forwardedProps）；避免中继模式多一次档案查询。
-        const context = chatTransport() !== 'relay'
-          ? {
-              history,
-              profile: await loadProfileContext(session.profile_id),
-              consultationContext: session.context,
-            }
-          : undefined
         const result = await (await chatApiLazy()).streamChatMessage(session, message, event => {
           if (event.type === 'phase') {
             // phase 只带原始工具名（事实），标签由前端 i18n 渲染。
@@ -228,29 +200,24 @@ export const useChatStore = defineStore('chat', {
             pendingText += event.content ?? ''
             if (!textTimer) textTimer = setTimeout(flushText, 120)
           }
-        }, signal, context)
+        }, signal)
 
         if (this.activeSession?.id !== session.id) {
           // 用户已切换会话：结果属旧会话，权威消息由服务端持久化，前端不写入。
           return
         }
         if (textTimer) { clearTimeout(textTimer); textTimer = null }
-        if (result.transport === 'relay') {
-          assistant.content = pendingText
-          this.messages = this.messages.filter(item => item.id !== userId && item.id !== assistantId)
-          const finalAssistant = result.result.assistant_message
-          this.messages.push(result.result.user_message, finalAssistant)
-          const index = this.sessions.findIndex(item => item.id === session.id)
-          if (index >= 0) {
-            this.sessions[index] = result.result.session
-          } else {
-            this.sessions.unshift(result.result.session)
-          }
-          this.activeSession = result.result.session
+        assistant.content = pendingText
+        this.messages = this.messages.filter(item => item.id !== userId && item.id !== assistantId)
+        const finalAssistant = result.assistant_message
+        this.messages.push(result.user_message, finalAssistant)
+        const index = this.sessions.findIndex(item => item.id === session.id)
+        if (index >= 0) {
+          this.sessions[index] = result.session
         } else {
-          // 直连：历史由运行完成回调落库；本地保留流式结果与权威回答。
-          assistant.content = result.answer || pendingText
+          this.sessions.unshift(result.session)
         }
+        this.activeSession = result.session
         this.phase = ''
       } catch (error) {
         const aborted = (error as { name?: string } | null)?.name === 'AbortError'
@@ -266,7 +233,7 @@ export const useChatStore = defineStore('chat', {
         reportClientError({
           code: (error as { code?: string } | null)?.code ?? 'chat_send_failed',
           detail: error instanceof Error ? error.message : String(error),
-          transport: chatTransport(),
+          transport: 'bff',
           agent: session.expert,
           view: 'chat-session',
         })
@@ -319,6 +286,7 @@ export const useChatStore = defineStore('chat', {
       this.loadingSessions = false
       this.loadingMessages = false
       this.sending = false
+      this.loadSessionsError = null
       this.pendingIntent = ''
     },
   },

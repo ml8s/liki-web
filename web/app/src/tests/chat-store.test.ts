@@ -45,7 +45,7 @@ describe('chat store', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 
-  it('restores a direct session link when the list cache is empty', async () => {
+  it('restores an active session when the list cache is empty', async () => {
     const chat = useChatStore()
     const chatApi = await import('@/api/chat')
     const durableContext = {
@@ -73,7 +73,6 @@ describe('chat store', () => {
   })
 
   it('persists both returned messages and activates the session', async () => {
-    vi.stubEnv('VITE_CHAT_TRANSPORT', 'relay')
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
     entitlements.allowedSkills = ['liki']
@@ -89,7 +88,7 @@ describe('chat store', () => {
     }
     const sendSpy = vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_sessionId, _content, onEvent) => {
       onEvent({ type: 'text-delta', content: assistantMessage.content })
-      return { transport: 'relay', result: sendResult } as const
+      return sendResult
     })
 
     await chat.createSession('', 'natal')
@@ -97,8 +96,8 @@ describe('chat store', () => {
     await chat.send(' 你好 ')
 
     expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '命理解读', undefined, 'natal')
-    // 中继模式不携带直连上下文（第 5 参为 undefined）。
-    expect(sendSpy).toHaveBeenCalledWith(session, '你好', expect.any(Function), expect.any(AbortSignal), undefined)
+    // BFF 负责权威上下文；前端只传当前会话与消息。
+    expect(sendSpy).toHaveBeenCalledWith(session, '你好', expect.any(Function), expect.any(AbortSignal))
     expect(chat.messages).toEqual([userMessage, assistantMessage])
     expect(chat.activeSession?.id).toBe(session.id)
   })
@@ -180,7 +179,7 @@ describe('chat store', () => {
       onEvent({ type: 'phase', content: 'bazi_chart' })
       phaseAfterTool.push(chat.phase)
       onEvent({ type: 'text-delta', content: assistantMessage.content })
-      return { transport: 'relay', result: sendResult } as const
+      return sendResult
     })
 
     await chat.createSession('', 'natal')
@@ -189,115 +188,6 @@ describe('chat store', () => {
 
     // phase 事件只带原始工具名，标签由前端 i18n 渲染。
     expect(phaseAfterTool).toEqual([i18n.global.t('chat.tool.chart')])
-  })
-})
-
-  it('keeps the local exchange on the direct transport (history comes from the callback)', async () => {
-    const chat = useChatStore()
-    const entitlements = useEntitlementsStore()
-    entitlements.allowedSkills = ['liki']
-    entitlements.loaded = true
-
-    const chatApi = await import('@/api/chat')
-    vi.spyOn(chatApi, 'createChatSession').mockResolvedValue(session)
-    vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_session, _content, onEvent) => {
-      onEvent({ type: 'text-delta', content: '直连答案' })
-      return { transport: 'direct', answer: '直连答案' } as const
-    })
-
-    await chat.createSession('', 'natal')
-    chat.activeSession = session
-    await chat.send('你好')
-
-    expect(chat.messages).toHaveLength(2)
-    expect(chat.messages[1].content).toBe('直连答案')
-    expect(chat.error).toBe('')
-  })
-
-describe('direct transport context', () => {
-  it('carries conversation history and the profile context on the direct transport', async () => {
-    vi.stubEnv('VITE_CHAT_TRANSPORT', 'direct')
-    const chat = useChatStore()
-    const entitlements = useEntitlementsStore()
-    entitlements.allowedSkills = ['liki']
-    entitlements.loaded = true
-
-    const consultationContext = {
-      version: 1,
-      scenario: 'divination',
-      question: '項目能否成交',
-      casting_instant: '2026-10-23T04:00:00Z',
-    } as const
-    const profileSession = { ...session, profile_id: 'prof_1', context: consultationContext }
-    const chatApi = await import('@/api/chat')
-    const birthApi = await import('@/api/birth-profiles')
-    const profileSpy = vi.spyOn(birthApi, 'fetchBirthProfile').mockResolvedValue({
-      id: 'prof_1',
-      user_id: 'usr_1',
-      version: 1,
-      nickname: '测试',
-      name: '',
-      birth: {
-        gender: 'male',
-        date: '1990-05-20',
-        time: '11:00',
-        instant: '1990-05-20T03:00:00Z',
-        location: { place: 'Beijing', longitude: 116.4074, timezone: 'Asia/Shanghai' },
-      },
-      note: '',
-      third_party_consent: false,
-      last_used_at: null,
-      created_at: '2026-01-01T00:00:00Z',
-      updated_at: '2026-01-01T00:00:00Z',
-    })
-    const sendSpy = vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_session, _content, onEvent) => {
-      onEvent({ type: 'text-delta', content: '答案' })
-      return { transport: 'direct', answer: '答案' } as const
-    })
-
-    chat.activeSession = profileSession
-    chat.messages = [userMessage, assistantMessage]
-    await chat.send('继续')
-
-    expect(profileSpy).toHaveBeenCalledWith('prof_1')
-    expect(sendSpy).toHaveBeenCalledWith(profileSession, '继续', expect.any(Function), expect.any(AbortSignal), {
-      history: [
-        { id: userMessage.id, role: 'user', content: userMessage.content },
-        { id: assistantMessage.id, role: 'assistant', content: assistantMessage.content },
-      ],
-      profile: {
-        gender: 'male',
-        instant: '1990-05-20T03:00:00Z',
-        location: { longitude: 116.4074, timezone: 'Asia/Shanghai' },
-      },
-      consultationContext,
-    })
-    vi.unstubAllEnvs()
-  })
-
-  it('fails closed when a profile-bound direct run cannot load context', async () => {
-    vi.stubEnv('VITE_CHAT_TRANSPORT', 'direct')
-    const chat = useChatStore()
-    const entitlements = useEntitlementsStore()
-    entitlements.allowedSkills = ['liki']
-    entitlements.loaded = true
-
-    const profileSession = { ...session, profile_id: 'prof_1' }
-    const chatApi = await import('@/api/chat')
-    const birthApi = await import('@/api/birth-profiles')
-    vi.spyOn(birthApi, 'fetchBirthProfile').mockRejectedValue(new Error('boom'))
-    const sendSpy = vi.spyOn(chatApi, 'streamChatMessage').mockImplementation(async (_session, _content, onEvent) => {
-      onEvent({ type: 'text-delta', content: '答案' })
-      return { transport: 'direct', answer: '答案' } as const
-    })
-
-    chat.activeSession = profileSession
-    await chat.send('你好')
-
-    expect(sendSpy).not.toHaveBeenCalled()
-    expect(chat.error).toBeTruthy()
-    expect(chat.sending).toBe(false)
-    vi.unstubAllEnvs()
   })
 })
 
@@ -337,13 +227,10 @@ describe('chat streaming failure states', () => {
       await Promise.resolve()
       signal?.throwIfAborted()
       return {
-        transport: 'relay',
-        result: {
-          session,
-          active_skill: session.skill,
-          user_message: userMessage,
-          assistant_message: assistantMessage,
-        },
+        session,
+        active_skill: session.skill,
+        user_message: userMessage,
+        assistant_message: assistantMessage,
       } as const
     })
     vi.spyOn(chatApi, 'fetchChatMessages').mockResolvedValue({ messages: [userMessage], next_cursor: '' })

@@ -56,8 +56,7 @@ export interface BaziChartData {
 
 export function engineBaziChart(input: ChartInput & { gender: string }): Promise<BaziChartData> {
   return mcpTool<BaziChartData>(ENGINE_TOOLS.BaziChart, {
-    instant: input.instant,
-    timezone: input.timezone,
+    standard_time: input.standard_time,
     longitude: input.longitude,
     gender: input.gender,
   })
@@ -473,9 +472,17 @@ export interface BaziLiuNianOutput {
   natal_interactions?: BaziLiuNianInteraction[]
 }
 
-/** 流年盘（bazi.liunian）：最小命盘 + 目标年份。 */
-export function engineBaziLiunian(chart: unknown, year: number): Promise<BaziLiuNianOutput> {
-  return mcpTool<BaziLiuNianOutput>(ENGINE_TOOLS.BaziLiuNian, { chart, year })
+/** 流年盘（bazi.liunian）：最小命盘 + 目标年标准时间。 */
+export function engineBaziLiunian(
+  chart: unknown,
+  standardTime: string,
+  count = 1,
+): Promise<BaziLiuNianOutput> {
+  return mcpTool<BaziLiuNianOutput>(ENGINE_TOOLS.BaziLiuNian, {
+    standard_time: standardTime,
+    count,
+    chart,
+  })
 }
 
 // ── xuankong.chart（玄空飞星宅盘）──

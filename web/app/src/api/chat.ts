@@ -1,7 +1,5 @@
 import { HttpAgent, type AgentSubscriber } from '@ag-ui/client'
 import { del, get, patch, post, redirectToLogin } from './http'
-import { chatTransport } from './transport'
-import { toWire } from './wire'
 import { i18n } from '../i18n'
 import type { ConsultationContext } from '@shared/domain/consultation'
 
@@ -99,44 +97,7 @@ export interface SendMessageResult {
   assistant_message: ChatMessage
 }
 
-/**
- * 完成态归一化：中继返回 liki-web 的权威消息对象；直连只返回 runtime 的
- * 权威回答文本（历史由运行完成回调落库）。
- */
-export type ChatCompletion =
-  | { transport: 'relay'; result: SendMessageResult }
-  | { transport: 'direct'; answer: string }
-
-export interface ChatSessionRef {
-  id: string
-  expert: string
-}
-
-/** 一轮既有对话（直连时必须由客户端携带：runtime 无状态）。 */
-export interface ChatTurn {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-}
-
-/**
- * 出生档案上下文（契约 C3 forwardedProps.profile；字段与 liki-web 的
- * AgentProfile 一一对应，刻意不含身份/联系方式/备注/数据库 id）。
- */
-export interface AgentProfile {
-  gender: string
-  instant?: string | null
-  location?: {
-    longitude?: number | null
-    timezone?: string | null
-  } | null
-}
-
-export interface DirectChatContext {
-  history?: ChatTurn[]
-  profile?: AgentProfile | null
-  consultationContext?: ConsultationContext
-}
+export type ChatSessionRef = Pick<ChatSession, 'id' | 'expert'>
 
 
 export async function streamChatMessage(
@@ -144,50 +105,16 @@ export async function streamChatMessage(
   content: string,
   onEvent: (event: ChatStreamEvent) => void,
   signal?: AbortSignal,
-  context?: DirectChatContext,
-): Promise<ChatCompletion> {
+): Promise<SendMessageResult> {
   const messageId = `web-${crypto.randomUUID()}`
-  // 传输面：direct（Caddy mTLS 直连）为默认且唯一战略方向；构建期注入
-  // VITE_CHAT_TRANSPORT=relay 显式回退到已弃用的中继（回滚杆：部署上一版
-  // 镜像即回到中继，中继退役计划见 deploy docs）。
-  // DEPRECATED: relay 传输面已弃用，仅作回滚杆保留。
-  const directTransport = chatTransport() === 'direct'
-  const url = directTransport
-    ? `/rt/${session.expert}/ag-ui`
-    : `/api/chat/sessions/${session.id}/ag-ui`
-  // 直连的 runtime 是无状态的：中继时代由 BFF 从数据库补上的对话历史与出生
-  // 档案上下文，必须由客户端随请求携带（契约 C3）。中继分支忽略 context。
-  // Wire boundary: session/profile/context come from reactive stores, but the
-  // AG-UI client structured-clones forwardedProps. Convert once here so the
-  // SDK never receives a Proxy.
-  const wireContext = context
-    ? {
-        history: toWire(context.history ?? []),
-        profile: toWire(context.profile),
-        consultationContext: toWire(context.consultationContext),
-      }
-    : undefined
-  // 按角色窄化：AG-UI 的 Message 是可辨识联合，role 为宽联合的对象字面量
-  // 无法直接分配到联合成员上。
-  const historyMessages = (wireContext?.history ?? []).map(turn => (
-    turn.role === 'user'
-      ? { id: turn.id, role: 'user' as const, content: turn.content }
-      : { id: turn.id, role: 'assistant' as const, content: turn.content }
-  ))
-  const initialMessages = [...historyMessages, { id: messageId, role: 'user' as const, content }]
-  // SDK 只在 runAgent 参数读取 forwardedProps（构造器配置被忽略）。中继的
-  // gateway 从 locale 取界面语言，直连额外携带 product/profile（契约 C3）。
-  const forwardedProps: Record<string, unknown> = { product: 'liki', locale: i18n.global.locale.value }
-  if (wireContext?.profile) {
-    forwardedProps.profile = wireContext.profile
-  }
-  if (wireContext?.consultationContext) {
-    forwardedProps.consultation_context = wireContext.consultationContext
-  }
+  // Product traffic always traverses the BFF: it owns auth, entitlement,
+  // session lookup, authoritative history, profile context, and persistence.
+  const url = `/api/chat/sessions/${session.id}/ag-ui`
+  const forwardedProps = { locale: i18n.global.locale.value }
   const agent = new HttpAgent({
     url,
     threadId: session.id,
-    initialMessages,
+    initialMessages: [{ id: messageId, role: 'user' as const, content }],
     fetch: agentFetch,
   })
   const abort = () => agent.abortRun()
@@ -197,8 +124,8 @@ export async function streamChatMessage(
   let completed: unknown = null
   const subscriber: AgentSubscriber = {
     onCustomEvent({ event }) {
-      // 反域名自定义事件只承载事实：phase 带原始工具名。
-      // 未知自定义事件一律忽略（向前兼容）。
+      // The BFF emits a non-domain phase fact with the raw tool name. Unknown
+      // custom events are ignored for forward compatibility.
       if (event.name === 'hk.liki.phase') {
         if (typeof event.value === 'string' && event.value) {
           onEvent({ type: 'phase', content: event.value })
@@ -206,8 +133,6 @@ export async function streamChatMessage(
       }
     },
     onToolCallStartEvent({ event }) {
-      // 直连模式：runtime 直接发标准 AG-UI 工具事件（没有 hk.liki.phase），
-      // 工具名同样交给前端 i18n 渲染阶段标签。
       if (typeof event.toolCallName === 'string' && event.toolCallName) {
         onEvent({ type: 'phase', content: event.toolCallName })
       }
@@ -216,7 +141,6 @@ export async function streamChatMessage(
       onEvent({ type: 'text-delta', content: event.delta })
     },
     onRunErrorEvent({ event }) {
-      // 协议错误码优先（前端按 errors.code.* 本地化渲染）；中继路径无码时回落。
       failure = makeStreamError(event.message || 'Generation failed', event.code || 'generation_failed')
     },
     onRunFinishedEvent(params) {
@@ -234,20 +158,11 @@ export async function streamChatMessage(
       forwardedProps,
     }, subscriber)
     if (failure) throw failure
-    if (directTransport) {
-      const answer = typeof (completed as { answer?: unknown } | null)?.answer === 'string'
-        ? String((completed as { answer: unknown }).answer)
-        : ''
-      if (!answer) {
-        throw makeStreamError('Generation stream ended without a final result', 'missing_result')
-      }
-      return { transport: 'direct', answer }
-    }
     const payload = (completed ?? run.result) as SendMessageResult | undefined
     if (!payload?.session || !payload.user_message || !payload.assistant_message) {
       throw makeStreamError('Generation stream ended without a final result', 'missing_result')
     }
-    return { transport: 'relay', result: payload }
+    return payload
   } catch (cause) {
     if (cause instanceof Error && cause.name === 'AbortError') throw cause
     if (failure) throw failure
@@ -269,9 +184,6 @@ async function agentFetch(url: string, init: RequestInit): Promise<Response> {
   }
   if (response.ok) return response
   if (response.status === 401) redirectToLogin()
-  // 错误体统一按 RFC 9457 problem+json 解析：detail 是消息，code 是扩展成员
-  // （runtime）；liki-web 的 type 也承载 code（兼容保留）。legacy 的
-  // { error: { message, code } } 仅作兜底。
   const envelope = await response.json().catch(() => null) as {
     detail?: string
     title?: string

@@ -1,11 +1,11 @@
-// hepan 页工具岛：双方出生信息 → 共享 HepanPanel 合盘盘面渲染。
+// hepan 页工具岛：双方出生信息 → 共享 BaziBondPanel 合盘盘面渲染。
 // mock 形状对齐引擎契约（完整样本见 engine-contract.spec 的 bazi_bond 用例）。
 import { test, expect } from '../fixtures';
 import { mockCityCoords, mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 import { baziChart, bond } from '../engine-fixtures';
 import { fillBirthFields } from '../helpers';
 
-test('工具岛：合盘盘面按共享 HepanPanel 渲染', async ({ page }) => {
+test('工具岛：合盘盘面按共享 BaziBondPanel 渲染', async ({ page }) => {
   await mockPageview(page);
   await mockEngineTool(page, 'bazi_chart', baziChart);
   await mockEngineTool(page, 'bazi_bond', bond);
@@ -31,23 +31,24 @@ test('工具岛：合盘盘面按共享 HepanPanel 渲染', async ({ page }) => 
   await tool.locator('button[type=submit]').click();
 
   // 两盘四柱对照（A/B 各一行，mock 两侧同盘）
-  await expect(tool.locator('.pillars')).toHaveCount(2);
-  await expect(tool.locator('.pillars').first().locator('.pillar .gl').first()).toContainText('庚午');
-  await expect(tool.locator('.chart-row .person').first()).toHaveText('你');
+  const bondPanel = tool.locator('.engine-bond');
+  await expect(bondPanel.locator('.pillars')).toHaveCount(2);
+  await expect(bondPanel.locator('.pillars').first().locator('.pillar .gl').first()).toContainText('庚午');
+  await expect(bondPanel.locator('.chart-row .person').first()).toHaveText('你');
 
   // 日主关系（a_zhu=b_zhu=ri 的 pair → dayMasterValue 模板）
-  const dayMaster = tool.locator('.rel-sec', { hasText: '日主关系' });
+  const dayMaster = bondPanel.locator('.rel-sec', { hasText: '日主关系' });
   await expect(dayMaster.locator('.rel-text')).toContainText('庚生壬');
   await expect(dayMaster.locator('.rel-text')).toContainText('申申相冲');
 
   // 关键地支 / 纳音 / 神煞 / 十神互看
-  await expect(tool.locator('.rel-chip').first()).toContainText('申申相冲');
-  await expect(tool.locator('.rel-chip.nayin')).toContainText('剑锋金');
-  await expect(tool.locator('.rel-chip.shensha')).toContainText('天乙贵人');
-  const shiShen = tool.locator('.rel-sec', { hasText: '十神互看' });
+  await expect(bondPanel.locator('.rel-chip').first()).toContainText('申申相冲');
+  await expect(bondPanel.locator('.rel-chip.nayin')).toContainText('剑锋金');
+  await expect(bondPanel.locator('.rel-chip.shensha')).toContainText('天乙贵人');
+  const shiShen = bondPanel.locator('.rel-sec', { hasText: '十神互看' });
   await expect(shiShen.locator('.rel-chip')).toContainText(['你年柱看对方：七杀', '对方年柱看你：偏印']);
 
-  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=hepan/);
+  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
 });
 
 test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
@@ -70,5 +71,5 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await tool.locator('.el-checkbox').click();
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

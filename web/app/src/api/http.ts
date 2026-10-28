@@ -23,17 +23,64 @@ export function redirectToLogin() {
   window.location.assign(`${base}login?redirect=${encodeURIComponent(path)}`)
 }
 
-export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export type HttpRequestInit = RequestInit & {
+  timeoutMs?: number
+  retries?: number
+}
+
+export async function request<T>(path: string, init: HttpRequestInit = {}): Promise<T> {
+  const { timeoutMs = 12_000, retries, ...fetchInit } = init
+  const retryLimit = retries ?? ((fetchInit.method ?? 'GET') === 'GET' ? 2 : 0)
+  let lastError: unknown
+
+  for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
+    try {
+      return await requestOnce<T>(path, fetchInit, timeoutMs)
+    } catch (error) {
+      lastError = error
+      const retryable = error instanceof ApiError
+        && [0, 502, 503, 504].includes(error.status)
+      if (!retryable || attempt === retryLimit) break
+      await new Promise(resolve => setTimeout(resolve, 150 * 2 ** attempt))
+    }
+  }
+
+  throw lastError
+}
+
+async function requestOnce<T>(
+  path: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<T> {
+  const timeoutController = new AbortController()
+  const timeoutId = setTimeout(() => {
+    timeoutController.abort(new DOMException('Request timed out', 'TimeoutError'))
+  }, timeoutMs)
+  const abortExternal = () => timeoutController.abort(init.signal?.reason)
+  init.signal?.addEventListener('abort', abortExternal, { once: true })
+
   let response: Response
   try {
     response = await fetch(path, {
       credentials: 'same-origin',
       headers: init.body ? { 'Content-Type': 'application/json' } : undefined,
       ...init,
+      signal: timeoutController.signal,
     })
   } catch {
+    if (init.signal?.aborted) {
+      throw init.signal.reason ?? new DOMException('Request aborted', 'AbortError')
+    }
+    const timedOut = timeoutController.signal.reason instanceof DOMException
+      && timeoutController.signal.reason.name === 'TimeoutError'
     // 网络异常只保留稳定 code；用户提示由 errors.code.network_error 本地化。
-    throw new ApiError(0, 'network_error', 'Network request failed')
+    throw new ApiError(0, 'network_error', timedOut
+      ? 'Request timed out'
+      : 'Network request failed')
+  } finally {
+    clearTimeout(timeoutId)
+    init.signal?.removeEventListener('abort', abortExternal)
   }
 
   let envelope: Envelope<T> | null

@@ -32,12 +32,59 @@
     "chat": "Liki Chat",
     "orders": "Orders",
     "account": "Account",
-    "mine": "Me",
     "partner": "My partnership",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "consultation": "Consultation",
+    "classic": "Classic App",
+    "me": "Me"
   },
   "a11y": {
     "skipToContent": "Skip to main content"
+  },
+  "flow": {
+    "domainStrip": "Reading domains",
+    "domainTitle": "Choose a domain",
+    "newConsultation": "Start a new consultation",
+    "personTitle": "Choose a profile",
+    "noProfiles": "No profiles yet",
+    "createProfile": "Create profile",
+    "manageProfiles": "Manage profiles",
+    "personEmpty": "Choose a profile",
+    "askPlaceholder": "Ask your question directly",
+    "contextAnnouncement": "Consultation context: {person}, {domain}.",
+    "draftPreserved": "Your question remains in the composer so you can retry.",
+    "draftRestored": "Your question was returned to the composer after the connection failed.",
+    "send": "Send",
+    "stop": "Stop",
+    "restore": "Return to active reading",
+    "close": "Close",
+    "crossDomain": "This question fits “{domain}” better. Switch domains first.",
+    "huangliPending": "Date selection / almanac readings are migrating to the natal expert. Use the legacy entry for now.",
+    "documentLabel": "Consultation record",
+    "questionLabel": "Question",
+    "answerLabel": "Reading",
+    "newContent": "New content",
+    "hepanRequired": "Compatibility requires the other person’s details and third-party consent first.",
+    "fengshuiRequired": "Feng Shui requires the sitting mountain and door/master/stove layout first.",
+    "namingRequired": "Naming requires a complete birth profile first.",
+    "namingFailed": "Naming direction analysis failed.",
+    "historyTitle": "Domain history",
+    "historySearchLabel": "Filter by title",
+    "historySearchPlaceholder": "Enter a session title",
+    "historyCount": "{count} sessions",
+    "historyEmpty": "No sessions match this filter",
+    "historyCurrent": "Current",
+    "historyActionFailed": "Session history action failed",
+    "state": {
+      "offline": "You are offline. Retry after your connection returns.",
+      "unreachable": "The service is unreachable. Check your connection and retry.",
+      "permission": "This account does not have access to this content.",
+      "server": "The service is temporarily unavailable. Try again later."
+    },
+    "documentEmpty": "No reading yet",
+    "documentEmptyHint": "Type your question below to start this consultation.",
+    "recordSaved": "Saved to your records.",
+    "artifactReady": "Your reading is ready — see it below."
   },
   "auth": {
     "brandTail": "Metaphysics",
@@ -81,7 +128,9 @@
     "partnerKol": "KOL partnership",
     "partnerScout": "Scout partnership",
     "account": "Account",
-    "notFound": "Page not found"
+    "notFound": "Page not found",
+    "consultation": "Consultation",
+    "me": "Mine"
   },
   "services": {
     "natal": {
@@ -145,6 +194,7 @@
       "dayRelation": "Day relation",
       "lineNumber": "Line {number}",
       "changingLines": "Changing lines",
+      "moving": "Moving line",
       "usefulGod": "Useful god",
       "hexagramText": "Hexagram text",
       "patterns": "Patterns",
@@ -415,12 +465,15 @@
       "nickname": "Nickname",
       "nicknamePlaceholder": "For example: Mom / Myself",
       "gender": "Gender",
+      "genderPlaceholder": "For example: Female",
       "birthDate": "Birth date",
       "selectDate": "Select a date",
       "timePlaceholder": "For example: 06:00",
       "birthPlace": "Birthplace (city for solar-time correction)",
       "birthPlacePlaceholder": "For example: Shanghai",
       "longitude": "Longitude",
+      "longitudeHint": "Used for true solar time correction; manual entry is allowed",
+      "longitudeInvalid": "Longitude must be between -180 and 180",
       "timezone": "IANA timezone",
       "timezonePlaceholder": "For example, Asia/Shanghai",
       "timezoneHint": "The legal timezone paired with the birthplace",
@@ -475,7 +528,6 @@
     "chart": {
       "title": "Free charts",
       "compute": "Generate",
-      "empty": "Enter a solar birth time and select “Generate” to preview BaZi, ZiWei, and Eight Mansions charts (temporary and not saved).",
       "bazi": "BaZi",
       "ziwei": "ZiWei",
       "bazhai": "Eight Mansions",
@@ -582,18 +634,12 @@
       "geJu": "Pattern",
       "favorAvoid": "{value} · favorable {favorable} · unfavorable {unfavorable}",
       "correctedLongitude": "True solar time corrected · {longitude}",
-      "failed": "Chart generation failed",
       "stageFailed": "{stage} failed",
-      "partialFailed": "Some optional charts could not be calculated",
       "stage": {
         "bazi_chart": "Bazi chart",
         "ziwei_chart": "Ziwei chart",
-        "bazi_fullchart": "Bazi full chart",
-        "ziwei_fullchart": "Ziwei full chart",
-        "ziwei_daxian": "Ziwei major periods",
         "bazi_liunian": "Bazi annual chart",
-        "ziwei_liunian": "Ziwei annual chart",
-        "bazhai_chart": "Bazhai chart"
+        "ziwei_liunian": "Ziwei annual chart"
       },
       "pillar": {
         "year": "Year",
@@ -971,7 +1017,6 @@
       "user_message_required": "The message must not be empty.",
       "history_invalid": "The conversation history was invalid. Please try again.",
       "run_id_conflict": "The request conflicted with an existing run. Please try again.",
-      "profile_not_allowed": "This reading profile is not available. Please go back and try again.",
       "run_id_required": "The request is missing a run id.",
       "run_id_invalid": "The run id is invalid.",
       "thread_id_required": "The request is missing a session id.",
@@ -992,10 +1037,6 @@
       "super_requires_super": "Changing super admin capabilities requires a super admin.",
       "too_large": "Request payload is too large.",
       "webhook_failed": "Payment webhook processing failed.",
-      "invalid_body": "Invalid request body.",
-      "invalid_signature": "Signature verification failed.",
-      "invalid_callback": "Invalid callback parameters.",
-      "idempotency_mismatch": "This retry does not match the original request.",
       "invalid_billing_mode": "Invalid billing mode.",
       "subscription_unavailable": "Subscriptions are unavailable in your region.",
       "subscription_conflict": "An active subscription already exists.",
@@ -1089,14 +1130,9 @@
     "roleConflictDescription": "Partnership roles are independent and cannot be held simultaneously or converted into each other.",
     "inviteOnly": "The partnership program is invitation-only. Use the invitation link you received to open the matching application.",
     "roleConflictTitle": "This account already participates in another partnership role",
-    "ruleKol1": "Share your referral link; commission comes only from real purchases.",
-    "ruleKol2": "Partnership is reviewed independently; no upgrades or downgrades.",
-    "ruleScout1": "Scouts discover and support KOLs, earning channel commission on their real purchases.",
-    "ruleScout2": "Partnership is reviewed independently; no upgrades or downgrades.",
     "pendingTitle": "{role} application under review",
     "rejectedTitle": "Last application was not approved: {reason}",
     "rejectedTitleNoReason": "Last application was not approved",
-    "defaultRejectionReason": "not approved",
     "submitApplication": "Submit application",
     "payoutTitle": "{role} payout",
     "alipay": "Alipay",
@@ -1122,6 +1158,20 @@
       "retiredNotice": "This role has left daily partnership. Only historical commission settlement remains; workspace and recruiting data are unavailable.",
       "balance": "{currency} settlement balance",
       "dialogTitle": "{role} payout"
+    },
+    "meDescription": "Partner roles and settlements."
+  },
+  "artifact": {
+    "documentLabel": "Consultation record",
+    "toggleHint": "Expand or collapse the deterministic chart",
+    "unavailable": "This chart is unavailable",
+    "state": {
+      "ready": "Viewable",
+      "pending-backend": "Awaiting backend contract",
+      "unavailable": "Unavailable"
     }
+  },
+  "me": {
+    "subtitle": "Profiles, history, orders, account, and partner tools."
   }
 }

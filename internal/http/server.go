@@ -23,7 +23,6 @@ import (
 	"github.com/ml8s/liki-web/internal/partner"
 	"github.com/ml8s/liki-web/internal/payment"
 	"github.com/ml8s/liki-web/internal/records"
-	"github.com/ml8s/liki-web/internal/runcontrol"
 	"github.com/ml8s/liki-web/internal/sales"
 )
 
@@ -71,8 +70,6 @@ type ServerDeps struct {
 	AdminEmail           string
 	AdminAuthorizer      *adminauth.Store
 	AuthUsers            *auth.Store
-	SessionCookieName    string
-	RunCallbackHandler   http.HandlerFunc
 	SalesStores          *sales.SalesStores
 	CompensationNotifier admin.CompensationNotifier
 	PartnerNotifier      partner.DecisionNotifier
@@ -172,32 +169,19 @@ func RegisterRoutes(mux *http.ServeMux, deps ServerDeps, buildTime, version stri
 		return rl.Wrap(30.0/60, 30, next)
 	}
 	mux.HandleFunc("POST /api/analytics/pageview", analyticsLimit(handlePageView()))
+	mux.HandleFunc("POST /api/analytics/product-event", analyticsLimit(handleAppFlowEvent()))
 	clientErrorLimit := func(next http.HandlerFunc) http.HandlerFunc {
 		return rl.Wrap(12.0/60, 6, next)
 	}
 	mux.HandleFunc("POST /api/client-errors", clientErrorLimit(handleClientError()))
 	mux.HandleFunc("GET /api/version", handleVersion(buildTime, version))
-	// 内部面共用限流档：边缘 forward_auth 与抓取都属低频小突发调用。
+	// Internal read-only operations share a small low-burst limit.
 	rlInternal := func(next http.HandlerFunc) http.HandlerFunc {
 		return rl.Wrap(0.5, 10, next)
 	}
 	if deps.MetricsHandler != nil {
 		mux.HandleFunc("GET /api/internal/metrics", rlInternal(deps.MetricsHandler))
 	}
-	if deps.AuthUsers != nil && deps.Entitlements != nil && deps.SessionCookieName != "" {
-		introspect := runcontrol.NewIntrospectHandler(runcontrol.IntrospectConfig{
-			CookieName:   deps.SessionCookieName,
-			Sessions:     deps.AuthUsers,
-			Entitlements: deps.Entitlements,
-		})
-		// forward_auth 转发原始方法（浏览器对 /rt/<profile>/ag-ui 发 POST），
-		// 因此这里按任意方法注册。
-		mux.HandleFunc("/api/internal/introspect", rlInternal(introspect))
-	}
-	if deps.RunCallbackHandler != nil {
-		mux.HandleFunc("POST /api/internal/runs/completed", rlInternal(deps.RunCallbackHandler))
-	}
-
 	// ── admin routes (registered here to avoid import cycle) ──
 	if deps.PartnerStore != nil {
 		if deps.AuthHandler != nil || deps.AdminEmail != "" {

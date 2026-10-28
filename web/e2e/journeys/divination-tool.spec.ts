@@ -1,4 +1,4 @@
-// divination 页工具岛：免费起卦 → 本卦/变卦推演与六爻爻线渲染。
+// divination 页工具岛：免费起卦 → casting receipt 渲染本卦/变卦与六爻爻线。
 import { test, expect } from '../fixtures';
 import { mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 
@@ -12,7 +12,7 @@ const casting = {
   casting_id: 'cast_test_1',
 };
 
-test('工具岛：起卦渲染本卦/变卦与六爻', async ({ page }) => {
+test('工具岛：起卦 receipt 渲染本卦/变卦与六爻', async ({ page }) => {
   await mockPageview(page);
   await mockEngineTool(page, 'liuyao_qigua', { casting });
   const qiguaArguments: Record<string, unknown>[] = [];
@@ -27,10 +27,11 @@ test('工具岛：起卦渲染本卦/变卦与六爻', async ({ page }) => {
   await tool.locator('textarea').fill('这次换工作是否顺利？');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.gua-name')).toHaveText('火泽睽');
-  await expect(tool.locator('.gua-sub')).toContainText('火水未济');
-  await expect(tool.locator('.yao')).toHaveCount(6);
-  await expect(tool.locator('.yao-dong')).toHaveCount(1);
+  const castingPanel = tool.locator('.liuyao-panel');
+  await expect(castingPanel.locator('.gua-name')).toHaveText('火泽睽');
+  await expect(castingPanel.locator('.gua-sub')).toContainText('火水未济');
+  await expect(castingPanel.locator('.yao')).toHaveCount(6);
+  await expect(castingPanel.locator('.yao-dong')).toHaveCount(1);
   await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=divination/);
   expect(qiguaArguments).toEqual([{ mode: 'auto' }]);
 });

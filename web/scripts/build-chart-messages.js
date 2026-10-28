@@ -13,6 +13,13 @@ export const LOCALES = ['zh-Hans', 'zh-Hant', 'en']
 // 共享组件用到的键：profiles.chart 整棵子树 + 风水（八宅/玄空）整棵子树 + 黄历择日整棵子树。
 export function pickChartTree(source) {
   const tree = {
+    common: {
+      loading: source?.common?.loading ?? '',
+      retry: source?.common?.retry ?? '',
+    },
+    errors: {
+      code: source?.errors?.code ?? {},
+    },
     profiles: {
       chart: source?.profiles?.chart ?? {},
       form: source?.profiles?.form ?? {},

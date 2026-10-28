@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/ml8s/liki-web/internal/chat"
 	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/records"
-	"github.com/ml8s/liki-web/internal/runcontrol"
 )
 
 // maxAgentRunTimeout matches the bounded AG-UI product run deadline. The HTTP
@@ -21,11 +19,9 @@ import (
 const maxAgentRunTimeout = 600 * time.Second
 
 type chatWiring struct {
-	Store              *chat.ChatStore
-	Service            *chat.Service
-	Records            *records.Store
-	RunRecords         *runcontrol.Store
-	RunCallbackHandler http.HandlerFunc
+	Store   *chat.ChatStore
+	Service *chat.Service
+	Records *records.Store
 }
 
 func newChatWiring(
@@ -38,22 +34,6 @@ func newChatWiring(
 	system := &chatWiring{Store: chat.NewChatStore(db)}
 	if err := system.Store.Migrate(ctx); err != nil {
 		return nil, fmt.Errorf("init chat schema: %w", err)
-	}
-	runControl := runcontrol.NewStore(db)
-	system.RunRecords = runControl
-	if err := runControl.Migrate(ctx); err != nil {
-		return nil, fmt.Errorf("init run registry schema: %w", err)
-	}
-	if config.RunCallbackSecret != "" {
-		handler, err := runcontrol.NewCallbackHandler(runcontrol.CallbackConfig{
-			Secret:  config.RunCallbackSecret,
-			Store:   runControl,
-			History: system.Store,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("init run callback receiver: %w", err)
-		}
-		system.RunCallbackHandler = handler
 	}
 	system.Records = records.NewStore(db)
 	if err := system.Records.Migrate(ctx); err != nil {

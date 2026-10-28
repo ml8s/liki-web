@@ -29,8 +29,11 @@ export interface BazhaiChart {
   liu_nian_xing?: BazhaiLiuNianXing
 }
 
-export function engineBazhaiChart(birthYear: number, gender: string): Promise<BazhaiChart> {
-  return mcpTool<BazhaiChart>(ENGINE_TOOLS.BazhaiChart, { birth_year: birthYear, gender })
+export function engineBazhaiChart(standardTime: string, gender: string): Promise<BazhaiChart> {
+  return mcpTool<BazhaiChart>(ENGINE_TOOLS.BazhaiChart, {
+    standard_time: standardTime,
+    gender,
+  })
 }
 
 export interface XuankongStar {
@@ -95,10 +98,10 @@ export interface XuankongChart {
   shou_shan_chu_sha: XuankongShouShanChuSha
 }
 
-/** 玄空宅盘：period_date=立极日期（YYYY-MM-DD），坐山/向山为二十四山 index（0=子…23=壬，向=坐+12）。 */
-export function engineXuankongChart(periodDate: string, zuoShan: number, xiangShan: number): Promise<XuankongChart> {
+/** 玄空宅盘：standard_time=立极标准时间，坐山/向山为二十四山 index（0=子…23=壬，向=坐+12）。 */
+export function engineXuankongChart(standardTime: string, zuoShan: number, xiangShan: number): Promise<XuankongChart> {
   return mcpTool<XuankongChart>(ENGINE_TOOLS.XuankongChart, {
-    period_date: periodDate,
+    standard_time: standardTime,
     zuo_shan: zuoShan,
     xiang_shan: xiangShan,
   })

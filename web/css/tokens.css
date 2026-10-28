@@ -71,6 +71,8 @@
   --color-input-ink: #232733;
   --color-error: var(--color-fire);
   --color-error-border: rgba(217, 45, 32, 0.35);
+  /* AA text variant for small danger actions on tinted surfaces. */
+  --color-error-text: #b42318;
   --color-danger-surface: #fff8f7;
   --color-success: #067647;
   --color-success-border: var(--brand-success-border);

@@ -3,9 +3,7 @@
 import { test, expect } from '../fixtures'
 import type {Page} from '@playwright/test'
 import { json, mockWorkspace, testUser } from '../mocks'
-
-const sse = (events: unknown[]) => events.map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
-const stream = (body: string) => ({ status: 200, contentType: 'text/event-stream', body })
+import { mockBFFChatMessage } from '../helpers/chat'
 
 const user = testUser({ id: 'usr_chat', email: 'chat@example.com' })
 const session = {
@@ -27,21 +25,7 @@ const profile = {
   note: '', third_party_consent: true,
   last_used_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
 }
-const RUN_ID = 'run_1'
 const answer = '先看你的八字，日主偏弱。'
-const successStream = sse([
-  { type: 'RUN_STARTED', threadId: session.id, runId: RUN_ID },
-  { type: 'TEXT_MESSAGE_START', messageId: `${RUN_ID}:assistant`, role: 'assistant' },
-  { type: 'TEXT_MESSAGE_CONTENT', messageId: `${RUN_ID}:assistant`, delta: answer },
-  { type: 'TEXT_MESSAGE_END', messageId: `${RUN_ID}:assistant` },
-  {
-    type: 'RUN_FINISHED',
-    threadId: session.id,
-    runId: RUN_ID,
-    outcome: { type: 'success' },
-    result: { answer },
-  },
-])
 
 async function mockSession(page: Page, messages: unknown[]) {
   await mockWorkspace(page, { user, allowedSkills: ['liki'] })
@@ -79,14 +63,11 @@ test('更早的消息按游标分页加载', async ({ page }) => {
 })
 
 test('a failed stream offers retry and resending succeeds', async ({ page }) => {
-  const sends: unknown[] = []
   await mockSession(page, [])
-  await page.route(/\/rt\/natal\/ag-ui$/, route => {
-    sends.push(route.request().postDataJSON())
-    if (sends.length === 1) {
-      return route.fulfill(stream(sse([{ type: 'RUN_ERROR', message: 'engine unavailable', runId: RUN_ID }])))
-    }
-    return route.fulfill(stream(successStream))
+  const sends = await mockBFFChatMessage(page, {
+    session,
+    answer,
+    failuresBeforeSuccess: 1,
   })
 
   await page.goto('/app/chat/chat_1')
@@ -107,6 +88,8 @@ test('a failed stream offers retry and resending succeeds', async ({ page }) => 
   await expect(thread).toContainText(answer)
   await expect(errorRow).toBeHidden()
   expect(sends).toHaveLength(2)
+  expect(sends[0]?.body).toMatchObject({ threadId: session.id })
+  expect(sends[1]?.body).toMatchObject({ threadId: session.id })
 })
 
 test('the conversation owns the viewport and follows the keyboard', async ({ page }) => {
@@ -114,7 +97,7 @@ test('the conversation owns the viewport and follows the keyboard', async ({ pag
   // 输入框常驻可见；键盘弹起时（visualViewport 变矮）消息区跟到最新一条。
   const history = Array.from({ length: 40 }, (_, index) => message(`msg_${index}`, 'user', `第 ${index + 1} 則訊息`))
   await mockSession(page, history)
-  await page.route(/\/rt\/natal\/ag-ui$/, route => route.fulfill(stream(successStream)))
+  await mockBFFChatMessage(page, { session, answer })
 
   await page.goto('/app/chat/chat_1')
 
@@ -147,7 +130,7 @@ test('mobile: a message can be sent in a narrow viewport', async ({ page }) => {
     message(`msg_${index + 1}`, index % 2 ? 'assistant' : 'user', `第 ${index + 1} 條訊息`)
   ))
   await mockSession(page, history)
-  await page.route(/\/rt\/natal\/ag-ui$/, route => route.fulfill(stream(successStream)))
+  await mockBFFChatMessage(page, { session, answer })
 
   await page.goto('/app/chat/chat_1')
   const thread = page.getByRole('log', { name: '訊息列表' })

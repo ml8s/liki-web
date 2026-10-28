@@ -12,8 +12,7 @@
           <el-button
             size="small"
             type="primary"
-            :loading="loading"
-            @click="compute"
+            @click="refresh"
           >
             {{ $t('profiles.chart.compute') }}
           </el-button>
@@ -28,42 +27,31 @@
       {{ correction }}
     </p>
 
-    <div>
-      <el-alert
-        v-if="error"
-        :title="error"
-        type="error"
-        :closable="false"
-        show-icon
-      />
-      <el-alert
-        v-if="stageErrors.length"
-        :title="$t('profiles.chart.partialFailed')"
-        :description="stageErrorsText"
-        type="warning"
-        :closable="false"
-        show-icon
-      />
-      <p
-        v-if="!anyResult && !loading"
-        class="hint"
+    <p
+      v-if="inputError"
+      class="hint"
+    >
+      {{ inputError }}
+    </p>
+
+    <el-tabs
+      v-if="!inputError"
+      v-model="tab"
+    >
+      <el-tab-pane
+        :label="$t('profiles.chart.bazi')"
+        name="bazi"
       >
-        {{ $t('profiles.chart.empty') }}
-      </p>
-
-      <el-skeleton
-        v-if="loading"
-        :rows="6"
-        animated
-        aria-busy="true"
-      />
-
-      <template v-if="anyResult">
-        <el-tabs v-model="tab">
-          <el-tab-pane
-            :label="$t('profiles.chart.bazi')"
-            name="bazi"
-          >
+        <EngineQueryPanel
+          :key="`${profile.id}:bazi`"
+          resource="natal.bazi"
+          :input="chartInput"
+          :load="loadBaziNatal"
+          :enabled="active"
+          :fallback="$t('profiles.chart.stageFailed', { stage: $t('profiles.chart.stage.bazi_chart') })"
+          :refresh-token="refreshToken"
+        >
+          <template #default="{ result }">
             <div class="chart-year-picker chart-year-picker--inline">
               <span class="chart-year-label">{{ $t('profiles.chart.liunianYear') }}</span>
               <el-input-number
@@ -71,310 +59,232 @@
                 :min="1900"
                 :max="2100"
                 size="small"
-                @change="loadBaziLiuNian"
               />
             </div>
-            <BaziPanel
-              :chart="baziChart"
-              :full="baziFull"
-              :liunian="baziLiuNian"
-            />
-          </el-tab-pane>
-
-          <el-tab-pane
-            :label="$t('profiles.chart.ziwei')"
-            name="ziwei"
-          >
-            <template v-if="ziwei">
-              <ZiweiPanel
-                :chart="ziwei"
-                :da-xian="daXianRaw"
-              />
-              <div class="zw-section zw-liunian">
-                <div class="sec-title">
-                  {{ $t('profiles.chart.liunian') }}
-                </div>
-                <div class="chart-year-picker">
-                  <el-input-number
-                    v-model="liuNianYear"
-                    :min="1900"
-                    :max="2100"
-                    size="small"
-                    @change="loadLiuNian"
-                  />
-                </div>
-                <template v-if="liuNian">
-                  <div class="zwc-sihua zwc-sihua--start">
-                    <span
-                      v-for="(hua, star) in liuNian.si_hua ?? {}"
-                      :key="star"
-                      class="zw-sihua-chip"
-                    >{{ star }}<i
-                      class="zw-si"
-                      :data-hua="hua"
-                    >{{ hua }}</i>{{ liuNian.si_hua_gong?.[star] ? ` ${liuNian.si_hua_gong[star]}` : '' }}</span>
-                  </div>
-                  <div class="zw-grid zw-grid--liunian">
-                    <div
-                      v-for="g in liuNianPlaced"
-                      :key="`${g.name}-${g.zhi}`"
-                      :style="g.style"
-                      :class="['zw-palace', { ming: g.ming }]"
-                    >
-                      <div class="zw-pname">
-                        {{ g.name }}
-                      </div>
-                      <div
-                        v-if="g.stars.length"
-                        class="zw-main"
-                      >
-                        {{ g.stars.join(' ') }}
-                      </div>
-                    </div>
-                    <div class="zw-center">
-                      <div class="zwc-title">
-                        {{ liuNianYear }}
-                      </div>
-                      <div class="zwc-row">
-                        {{ $t('profiles.chart.liuNianPalace', { name: liuNian.ming_gong_name ?? liuNian.ming_gong }) }}
-                      </div>
-                    </div>
-                  </div>
+            <template v-if="result.baziDetail">
+              <BaziFullChartPanel :result="result.baziDetail">
+                <template #before-yongshen>
+                  <EngineQueryPanel
+                    resource="natal.bazi.liunian"
+                    :input="{ chart: result.bazi, year: baziLiuNianYear }"
+                    :load="loadBaziLiunian"
+                    :enabled="!!result.bazi"
+                    :fallback="$t('profiles.chart.stageFailed', { stage: $t('profiles.chart.stage.bazi_liunian') })"
+                    :refresh-token="refreshToken"
+                  >
+                    <template #default="{ result: annual }">
+                      <BaziLiuNianPanel :result="annual" />
+                    </template>
+                  </EngineQueryPanel>
                 </template>
-              </div>
+              </BaziFullChartPanel>
             </template>
-          </el-tab-pane>
+            <template v-else>
+              <BaziChartPanel :result="result.bazi" />
+              <EngineQueryPanel
+                resource="natal.bazi.liunian"
+                :input="{ chart: result.bazi, year: baziLiuNianYear }"
+                :load="loadBaziLiunian"
+                :enabled="!!result.bazi"
+                :fallback="$t('profiles.chart.stageFailed', { stage: $t('profiles.chart.stage.bazi_liunian') })"
+                :refresh-token="refreshToken"
+              >
+                <template #default="{ result: annual }">
+                  <BaziLiuNianPanel :result="annual" />
+                </template>
+              </EngineQueryPanel>
+            </template>
+          </template>
+        </EngineQueryPanel>
+      </el-tab-pane>
 
-          <el-tab-pane
-            :label="$t('profiles.chart.bazhai')"
-            name="bazhai"
-          >
-            <template v-if="bazhai">
-              <MingGuaSection :bazhai="bazhai" />
-              <LiuNianFlySection
-                v-if="bazhai.liu_nian_xing"
-                :liu-nian="bazhai.liu_nian_xing"
+      <el-tab-pane
+        :label="$t('profiles.chart.ziwei')"
+        name="ziwei"
+      >
+        <EngineQueryPanel
+          :key="`${profile.id}:ziwei`"
+          resource="natal.ziwei"
+          :input="chartInput"
+          :load="loadZiweiNatal"
+          :enabled="active"
+          :fallback="$t('profiles.chart.stageFailed', { stage: $t('profiles.chart.stage.ziwei_chart') })"
+          :refresh-token="refreshToken"
+        >
+          <template #default="{ result }">
+            <ZiweiChartPanel :result="result.ziwei" />
+            <ZiweiDaXianPanel
+              v-if="result.ziweiDaXian.length"
+              :result="result.ziweiDaXian"
+            />
+            <div class="chart-year-picker">
+              <el-input-number
+                v-model="liuNianYear"
+                :min="1900"
+                :max="2100"
+                size="small"
               />
-            </template>
-          </el-tab-pane>
-        </el-tabs>
-      </template>
-    </div>
+            </div>
+            <EngineQueryPanel
+              resource="natal.ziwei.liunian"
+              :input="{ base: result.ziweiBase, year: liuNianYear }"
+              :load="loadZiweiLiunian"
+              :enabled="tab === 'ziwei' && !!result.ziweiBase"
+              :fallback="$t('profiles.chart.stageFailed', { stage: $t('profiles.chart.stage.ziwei_liunian') })"
+              :refresh-token="refreshToken"
+            >
+              <template #default="{ result: annual }">
+                <ZiweiLiuNianPanel :result="annual" />
+              </template>
+            </EngineQueryPanel>
+          </template>
+        </EngineQueryPanel>
+      </el-tab-pane>
+
+      <el-tab-pane
+        :label="$t('profiles.chart.bazhai')"
+        name="bazhai"
+      >
+        <EngineQueryPanel
+          :key="`${profile.id}:bazhai`"
+          resource="natal.bazhai"
+          :input="bazhaiInput"
+          :load="loadBazhai"
+          :enabled="active"
+          :fallback="$t('services.fengshui.failed')"
+          :refresh-token="refreshToken"
+        >
+          <template #empty>
+            <p
+              v-if="bazhaiEmptyMessage"
+              class="hint"
+            >
+              {{ bazhaiEmptyMessage }}
+            </p>
+          </template>
+          <template #default="{ result }">
+            <BazhaiChartPanel :result="result" />
+          </template>
+        </EngineQueryPanel>
+      </el-tab-pane>
+    </el-tabs>
   </el-card>
 </template>
 
 <script setup lang="ts">
-import '@shared/styles/chart-panel.css'
-import '@shared/components/charts/ziwei-panel.css'
-// 档案详情的一屏三盘编排器（App 专属）：数据链 + tab 外壳；
-// 三块盘面来自共享层（web/shared/components/charts），营销站 island 单独复用。
-import { toUserMessage } from '@/utils/errors'
-import {
-  baziLiunianFor,
-  natalChartForChartInput,
-  ziweiLiunianFor,
-  type BaziChartData,
-  type BaziFullChartData,
-  type BaziLiuNianOutput,
-  type ZiweiChart,
-  type ZiweiDaXianItem,
-  type ZiweiLiuNianData,
-} from '@shared/domain/natal'
+// 档案详情的一屏三盘编排器（App 专属）：只负责资源划分、依赖与布局；
+// 每个资源的取数、错误与重试由 EngineQueryPanel 统一承担。
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { bazhaiChartFor, type BazhaiChart } from '@shared/domain/fengshui'
-import { NatalStageError } from '@shared/domain/natal'
 import type { BirthProfile } from '@/api/birth-profiles'
-import BaziPanel from '@shared/components/charts/BaziPanel.vue'
-import ZiweiPanel from '@shared/components/charts/ZiweiPanel.vue'
-import MingGuaSection from '@shared/components/charts/MingGuaSection.vue'
-import LiuNianFlySection from '@shared/components/charts/LiuNianFlySection.vue'
+import type { ChartInput } from '@shared/domain/time'
+import {
+  baziLiunianFor,
+  baziNatalForChartInput,
+  ziweiLiunianFor,
+  ziweiNatalForChartInput,
+  type BaziLiuNianOutput,
+  type BaziNatal,
+  type ZiweiChart,
+  type ZiweiLiuNianData,
+  type ZiweiNatal,
+} from '@shared/domain/natal'
+import { bazhaiChartFor, type BazhaiChart } from '@shared/domain/fengshui'
+import { birthYearFromDate, chartInputFromProfileBirth } from '@shared/domain/birth'
 import { formatLongitude, type PlaceLocale } from '@shared/utils/placeDisplay'
+import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
+import BaziChartPanel from '@shared/components/engine/bazi/BaziChartPanel.vue'
+import BaziFullChartPanel from '@shared/components/engine/bazi/BaziFullChartPanel.vue'
+import BaziLiuNianPanel from '@shared/components/engine/bazi/BaziLiuNianPanel.vue'
+import ZiweiChartPanel from '@shared/components/engine/ziwei/ZiweiChartPanel.vue'
+import ZiweiDaXianPanel from '@shared/components/engine/ziwei/ZiweiDaXianPanel.vue'
+import ZiweiLiuNianPanel from '@shared/components/engine/ziwei/ZiweiLiuNianPanel.vue'
+import BazhaiChartPanel from '@shared/components/engine/fengshui/BazhaiChartPanel.vue'
 
 const props = defineProps<{ profile: BirthProfile; auto?: boolean }>()
 const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
-const loading = ref(false)
-const error = ref('')
-const stageErrors = ref<Array<{ stage: string; detail: string }>>([])
-const correction = ref('')
 // tab 状态同步到 URL（?tab=ziwei 可分享/刷新保留）；非法值回落八字。
 const TAB_NAMES = ['bazi', 'ziwei', 'bazhai']
 const initialTab = String(route.query.tab ?? '')
 const tab = ref(TAB_NAMES.includes(initialTab) ? initialTab : 'bazi')
-const baziChart = ref<BaziChartData | null>(null)
-const baziFull = ref<BaziFullChartData | null>(null)
-const baziLiuNian = ref<BaziLiuNianOutput | null>(null)
 const baziLiuNianYear = ref(new Date().getFullYear())
-const ziwei = ref<ZiweiChart | null>(null)
-const ziweiBase = ref<ZiweiChart | null>(null)
-const bazhai = ref<BazhaiChart | null>(null)
-const daXianRaw = ref<ZiweiDaXianItem[]>([])
 const liuNianYear = ref(new Date().getFullYear())
-const liuNian = ref<ZiweiLiuNianData | null>(null)
+const refreshToken = ref(0)
+const started = ref(props.auto === true)
 
-const anyResult = computed(() => !!(baziChart.value || ziwei.value || bazhai.value))
-
-const ZHI_POS: Record<string, string> = {
-  巳: 'grid-row:1;grid-column:1',
-  午: 'grid-row:1;grid-column:2',
-  未: 'grid-row:1;grid-column:3',
-  申: 'grid-row:1;grid-column:4',
-  辰: 'grid-row:2;grid-column:1',
-  酉: 'grid-row:2;grid-column:4',
-  卯: 'grid-row:3;grid-column:1',
-  戌: 'grid-row:3;grid-column:4',
-  寅: 'grid-row:4;grid-column:1',
-  丑: 'grid-row:4;grid-column:2',
-  子: 'grid-row:4;grid-column:3',
-  亥: 'grid-row:4;grid-column:4',
-}
-
-const liuNianPlaced = computed(() => {
-  const data = liuNian.value
-  if (!data?.gong_wei) return []
-  return data.gong_wei.map(g => ({
-    name: g.name,
-    zhi: g.zhi,
-    ming: !!g.is_liu_ming,
-    stars: g.xing_yao ?? [],
-    style: ZHI_POS[g.zhi ?? ''] ?? '',
-  }))
+const inputError = computed(() => {
+  const birth = props.profile.birth
+  if (!birth?.instant || !birth?.location?.timezone
+    || birth?.location?.longitude == null || !birth.date) {
+    return t('profiles.chart.errors.missingTime')
+  }
+  return ''
 })
 
-function stageLabel(stage: string): string {
-  return t(`profiles.chart.stage.${stage}`)
-}
-
-function errorDetail(error: unknown): string {
-  if (error instanceof NatalStageError) {
-    return error.cause instanceof Error ? error.cause.message : String(error.cause)
-  }
-  return error instanceof Error ? error.message : ''
-}
-
-function setStageError(stage: string, error: unknown) {
-  const detail = errorDetail(error)
-  const index = stageErrors.value.findIndex(item => item.stage === stage)
-  const item = { stage, detail }
-  if (index >= 0) stageErrors.value[index] = item
-  else stageErrors.value.push(item)
-}
-
-function clearStageError(stage: string) {
-  stageErrors.value = stageErrors.value.filter(item => item.stage !== stage)
-}
-
-const stageErrorsText = computed(() =>
-  stageErrors.value
-    .map(item => `${stageLabel(item.stage)}（${item.stage}）${item.detail ? `：${item.detail}` : ''}`)
-    .join('；'),
+const active = computed(() => started.value && !inputError.value)
+const chartInput = computed(() =>
+  inputError.value ? null : chartInputFromProfileBirth(props.profile),
 )
-
-function fatalStageMessage(error: unknown): string {
-  if (!(error instanceof NatalStageError)) {
-    return toUserMessage(error, t('profiles.chart.failed'))
-  }
-  const detail = errorDetail(error)
-  return `${t('profiles.chart.stageFailed', { stage: stageLabel(error.stage) })}（${error.stage}）${detail ? `：${detail}` : ''}`
-}
-
-async function loadLiuNian() {
-  if (!ziweiBase.value) return
-  try {
-    liuNian.value = await ziweiLiunianFor(ziweiBase.value, liuNianYear.value)
-    clearStageError('ziwei_liunian')
-  } catch (err) {
-    // Optional annual view must not replace a successfully rendered natal chart.
-    liuNian.value = null
-    setStageError('ziwei_liunian', err)
-  }
-}
-
-// 八字流年盘（bazi.liunian）：失败降级为不显示流年列，不阻塞主盘。
-async function loadBaziLiuNian() {
-  if (!baziChart.value) return
-  try {
-    baziLiuNian.value = await baziLiunianFor(baziChart.value, baziLiuNianYear.value)
-    clearStageError('bazi_liunian')
-  } catch (err) {
-    baziLiuNian.value = null
-    setStageError('bazi_liunian', err)
-  }
-}
-
-async function compute() {
-  const p = props.profile
-  error.value = ''
-  stageErrors.value = []
-  correction.value = ''
-  baziChart.value = null
-  baziFull.value = null
-  baziLiuNian.value = null
-  ziwei.value = null
-  ziweiBase.value = null
-  bazhai.value = null
-  daXianRaw.value = []
-  liuNian.value = null
-  if (!p.birth?.instant || !p.birth?.location?.timezone || p.birth?.location?.longitude == null) {
-    error.value = t('profiles.chart.errors.missingTime')
-    return
-  }
-  if (!p.birth.date) {
-    error.value = t('profiles.chart.errors.missingTime')
-    return
-  }
-  loading.value = true
-  try {
-    const ctx = {
-      instant: p.birth.instant,
-      timezone: p.birth.location.timezone,
-      longitude: p.birth.location.longitude,
-    }
-    correction.value = t('profiles.chart.correctedLongitude', {
-      longitude: formatLongitude(Number(ctx.longitude), locale.value as PlaceLocale),
+const correction = computed(() => chartInput.value
+  ? t('profiles.chart.correctedLongitude', {
+      longitude: formatLongitude(chartInput.value.longitude, locale.value as PlaceLocale),
     })
-
-    const chart = await natalChartForChartInput({ ...ctx, gender: p.birth.gender })
-    baziChart.value = chart.bazi
-    baziFull.value = chart.baziDetail
-    ziwei.value = chart.ziwei
-    ziweiBase.value = chart.ziweiBase
-    daXianRaw.value = chart.ziweiDaXian
-    await loadBaziLiuNian()
-    const birthYear = parseInt(p.birth.date.slice(0, 4), 10)
-    try {
-      bazhai.value = await bazhaiChartFor(birthYear, p.birth.gender)
-      clearStageError('bazhai_chart')
-    } catch (err) {
-      // Bazhai is an optional extra panel; keep the main chart usable.
-      bazhai.value = null
-      setStageError('bazhai_chart', err)
-    }
-    if (tab.value === 'ziwei') void loadLiuNian()
-  } catch (err) {
-    error.value = fatalStageMessage(err)
-  } finally {
-    loading.value = false
+  : '')
+const birthYear = computed(() => birthYearFromDate(props.profile.birth.date ?? ''))
+const profileChartInput = computed(() => {
+  if (birthYear.value === null) return null
+  try {
+    return chartInputFromProfileBirth(props.profile)
+  } catch {
+    return null
   }
+})
+const bazhaiInput = computed(() => profileChartInput.value
+  ? {
+      standard_time: profileChartInput.value.standard_time,
+      gender: props.profile.birth.gender,
+    }
+  : null)
+const bazhaiEmptyMessage = computed(() =>
+  birthYear.value === null && props.profile.birth.date
+    ? t('services.fengshui.invalidBirthYear')
+    : '')
+
+function loadBaziNatal(input: ChartInput & { gender: string }): Promise<BaziNatal> {
+  return baziNatalForChartInput(input)
 }
 
-// 流年懒加载（切到紫微 tab 时按当前年份查询）+ tab 状态写入 URL。
+function loadZiweiNatal(input: ChartInput & { gender: string }): Promise<ZiweiNatal> {
+  return ziweiNatalForChartInput(input)
+}
+
+function loadBazhai(input: ChartInput): Promise<BazhaiChart> {
+  return bazhaiChartFor(input.standard_time, props.profile.birth.gender)
+}
+
+function loadBaziLiunian(input: { chart: BaziNatal['bazi']; year: number }): Promise<BaziLiuNianOutput> {
+  return baziLiunianFor(input.chart, input.year)
+}
+
+function loadZiweiLiunian(input: { base: ZiweiChart; year: number }): Promise<ZiweiLiuNianData> {
+  return ziweiLiunianFor(input.base, input.year)
+}
+
+function refresh() {
+  started.value = true
+  refreshToken.value += 1
+}
+
 watch(tab, value => {
-  if (value === 'ziwei') void loadLiuNian()
   const query = { ...route.query }
   if (value === 'bazi') delete query.tab
   else query.tab = value
   void router.replace({ query })
 })
-
-// 自动排盘：进入档案详情（或切换档案）即出盘，免手动点「排盘」。
-watch(() => props.profile?.id, () => {
-  if (props.auto && props.profile) void compute()
-}, { immediate: true })
 </script>
 
 

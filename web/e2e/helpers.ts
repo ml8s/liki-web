@@ -54,7 +54,11 @@ export async function fillBirthFields(
   await timeField.press('Enter')
   await timeField.blur()
   await expect(timeField).toHaveValue(options.time)
-  await scope.locator('.el-radio-button').nth(options.gender === 'female' ? 0 : 1).click()
+  const genderLabel = options.gender === 'female' ? /女|Female/ : /男|Male/
+  await scope.locator('.choice-card .el-radio-button__inner', { hasText: genderLabel }).click()
+  await expect(
+    scope.locator('.choice-card .el-radio-button.is-active'),
+  ).toContainText(genderLabel)
   if (options.place) {
     await scope.getByRole('textbox', { name: /出生地|Birth place/ }).fill(options.place)
     await scope.getByRole('textbox', { name: /出生地|Birth place/ }).blur()

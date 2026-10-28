@@ -1,8 +1,9 @@
 import { engineHuangliDays, type HuangliCount, type HuangliDay } from '../api/engine/huangli'
+import { standardTimeForDate } from './time'
 
 export type HuangliDays = HuangliDay[]
 
-/** Explicit event + Gregorian range -> daily almanac facts. */
+/** Explicit event + Gregorian date range -> daily almanac facts. */
 export function huangliDaysFor(
   event: string,
   startDate: string,
@@ -11,5 +12,5 @@ export function huangliDaysFor(
   if (!Number.isInteger(count) || count < 1 || count > 30) {
     throw new RangeError(`Huangli count ${count} is outside 1..30`)
   }
-  return engineHuangliDays(event, startDate, count as HuangliCount)
+  return engineHuangliDays(event, standardTimeForDate(startDate), count as HuangliCount)
 }

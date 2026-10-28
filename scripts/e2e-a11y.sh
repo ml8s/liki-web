@@ -65,12 +65,21 @@ curl -sf http://localhost:8080/api/health | grep -q '"ok"' || {
   exit 1
 }
 
+# The Consultation/Mine contract is flag-gated at build time. Build the SPA
+# once with the preview experience enabled so the accessibility gate covers the
+# surface that will ship, while production builds remain flag-off by default.
+echo "[e2e-a11y] Liki App (Consultation preview)..."
+(
+  cd web/app
+  VITE_FEATURE_APP_FLOW_REDESIGN=true npm run build
+)
+
 cd web
 set +e
+E2E_SPECS="${E2E_A11Y_SPECS:-e2e/journeys/app-a11y.spec.ts e2e/journeys/admin-a11y.spec.ts e2e/journeys/domain-flow-a11y.spec.ts}"
 BASE_URL="http://localhost:8080" npx playwright test \
   --config e2e/playwright.config.ts \
-  e2e/journeys/app-a11y.spec.ts \
-  e2e/journeys/admin-a11y.spec.ts
+  $E2E_SPECS
 test_rc=$?
 set -e
 if [ "$test_rc" -ne 0 ]; then

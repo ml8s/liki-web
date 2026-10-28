@@ -43,10 +43,6 @@ type ToolRecordEraser interface {
 	AnonymizeUser(ctx context.Context, userID string) (int64, error)
 }
 
-type RunRecordEraser interface {
-	AnonymizeUser(ctx context.Context, userID string) (int64, error)
-}
-
 type RequireUserFunc func(http.HandlerFunc) http.HandlerFunc
 
 type Handler struct {
@@ -59,7 +55,6 @@ type Handler struct {
 	notifications *payment.NotificationStore
 	subscriptions SubscriptionEraser
 	toolRecords   ToolRecordEraser
-	runRecords    RunRecordEraser
 	partner       PartnerEraser
 	adminAudit    AdminAuditEraser
 	erasureQueue  *ErasureStore
@@ -102,10 +97,6 @@ func (h *Handler) SetSubscriptionEraser(subscriptions SubscriptionEraser) {
 
 func (h *Handler) SetToolRecordEraser(toolRecords ToolRecordEraser) {
 	h.toolRecords = toolRecords
-}
-
-func (h *Handler) SetRunRecordEraser(runRecords RunRecordEraser) {
-	h.runRecords = runRecords
 }
 
 // HandleErasure 合规强删（个保法删除权）：匿名化该用户全部档案（清除出生信息等
@@ -210,7 +201,6 @@ func (h *Handler) runErasureSteps(ctx context.Context, user auth.User, tombstone
 		erase ToolRecordEraser
 	}{
 		{name: "tool_records", erase: h.toolRecords},
-		{name: "run_records", erase: h.runRecords},
 	} {
 		if domain.erase == nil {
 			continue

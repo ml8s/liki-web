@@ -2,7 +2,7 @@
   <nav class="app-tabbar">
     <router-link
       v-for="tab in tabs"
-      :key="tab.to"
+      :key="tab.label"
       :to="tab.to"
       :class="{ on: tab.active }"
       :aria-current="tab.active ? 'page' : undefined"
@@ -30,15 +30,14 @@ const preloadNavigation = createIntentPreloader(router, record => !String(record
 // 合作入口为定向邀请制：仅对已有合作角色的账号显示（数据来自 /api/me）。
 const auth = useAuthStore()
 const tabs = computed(() => {
-  const path = route.path
   const items = [
-    { to: '/', label: t('nav.workspace'), active: path === '/' },
-    { to: '/birth-profiles', label: t('nav.profiles'), active: path.startsWith('/birth-profiles') },
-    { to: '/chat', label: t('nav.chat'), active: path.startsWith('/chat') },
-    { to: '/account', label: t('nav.mine'), active: path.startsWith('/account') || path.startsWith('/orders') },
+    { to: { name: 'dashboard' }, label: t('nav.workspace'), active: route.name === 'dashboard' },
+    { to: { name: 'birth-profiles' }, label: t('nav.profiles'), active: ['birth-profiles', 'birth-profile-new', 'birth-profile-detail'].includes(String(route.name)) },
+    { to: { name: 'chat' }, label: t('nav.chat'), active: ['chat', 'chat-session'].includes(String(route.name)) },
+    { to: { name: 'account' }, label: t('nav.me'), active: ['account', 'orders'].includes(String(route.name)) },
   ]
   if (auth.hasPartnerRole) {
-    items.push({ to: '/partners', label: t('nav.partner'), active: path.startsWith('/partners') })
+    items.push({ to: { name: 'partner-center' }, label: t('nav.partner'), active: ['partner-center', 'partner-kol', 'partner-scout'].includes(String(route.name)) })
   }
   return items
 })

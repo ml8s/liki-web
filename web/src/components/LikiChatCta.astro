@@ -6,6 +6,8 @@ export interface Props {
   scenario?: string;
   service?: string;
   labelKey?: string;
+  /** Explicit destination, for CTAs that must start at profile creation. */
+  href?: string;
   class?: string;
 }
 
@@ -14,6 +16,7 @@ const {
   scenario = '',
   service = '',
   labelKey = 'scenario.cta.primary',
+  href = '',
   class: className = 'btn-purple',
 } = Astro.props;
 
@@ -21,7 +24,7 @@ const query = new URLSearchParams();
 if (scenario) query.set('scenario', scenario);
 if (service) query.set('service', service);
 query.set('locale', locale);
-const target = `/app?${query.toString()}`;
+const target = href || `/app?${query.toString()}`;
 ---
 
 <a href={target} class={className} data-cta={scenario || service}>

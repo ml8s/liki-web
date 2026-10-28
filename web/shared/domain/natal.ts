@@ -18,6 +18,7 @@ import {
 import type { BirthInput } from './birth'
 import { chartInputFromBirth } from './birth'
 import type { ChartInput } from './time'
+import { yearToStandardTime } from './time'
 
 export type NatalStage =
   | 'bazi_chart'
@@ -78,19 +79,65 @@ export interface NatalChart {
   ziweiDaXian: ZiweiDaXianItem[]
 }
 
+export interface BaziNatal {
+  bazi: BaziChartData
+  baziDetail: BaziFullChartData
+}
+
+/** Bazi resource chain: bazi_chart -> bazi_fullchart. */
+export async function baziNatalForChartInput(
+  input: ChartInput & { gender: string },
+): Promise<BaziNatal> {
+  const bazi = await atStage('bazi_chart', engineBaziChart(input))
+  const baziDetail = await atStage('bazi_fullchart', engineBaziFullChart(bazi))
+  return { bazi, baziDetail }
+}
+
+export interface ZiweiNatal {
+  ziweiBase: ZiweiChart
+  ziwei: ZiweiChart
+  ziweiDaXian: ZiweiDaXianItem[]
+}
+
+/** Ziwei resource chain: ziwei_chart -> ziwei_fullchart + ziwei_daxian. */
+export async function ziweiNatalForChartInput(
+  input: ChartInput & { gender: string },
+): Promise<ZiweiNatal> {
+  const ziweiBase = await atStage('ziwei_chart', engineZiweiChart(input))
+  const [ziwei, ziweiDaXian] = await Promise.all([
+    atStage('ziwei_fullchart', engineZiweiFullChart(ziweiBase)),
+    atStage('ziwei_daxian', engineZiweiDaXian(ziweiBase)),
+  ])
+  return { ziweiBase, ziwei, ziweiDaXian }
+}
+
 export async function natalChartForChartInput(
   input: ChartInput & { gender: string },
 ): Promise<NatalChart> {
-  const [bazi, ziweiBase] = await Promise.all([
-    atStage('bazi_chart', engineBaziChart(input)),
-    atStage('ziwei_chart', engineZiweiChart(input)),
+  const [bazi, ziwei] = await Promise.all([
+    baziNatalForChartInput(input),
+    ziweiNatalForChartInput(input),
   ])
-  const [baziDetail, ziwei] = await Promise.all([
-    atStage('bazi_fullchart', engineBaziFullChart(bazi)),
-    atStage('ziwei_fullchart', engineZiweiFullChart(ziweiBase)),
-  ])
-  const ziweiDaXian = await atStage('ziwei_daxian', engineZiweiDaXian(ziweiBase))
-  return { input, bazi, baziDetail, ziwei, ziweiBase, ziweiDaXian }
+  return {
+    input,
+    bazi: bazi.bazi,
+    baziDetail: bazi.baziDetail,
+    ziwei: ziwei.ziwei,
+    ziweiBase: ziwei.ziweiBase,
+    ziweiDaXian: ziwei.ziweiDaXian,
+  }
+}
+
+/** Birth facts -> Bazi resource chain (shared by both themes). */
+export async function baziNatalFor(birth: BirthInput): Promise<BaziNatal> {
+  const input = await chartInputFromBirth(birth)
+  return baziNatalForChartInput({ ...input, gender: birth.gender })
+}
+
+/** Birth facts -> Ziwei resource chain (shared by both themes). */
+export async function ziweiNatalFor(birth: BirthInput): Promise<ZiweiNatal> {
+  const input = await chartInputFromBirth(birth)
+  return ziweiNatalForChartInput({ ...input, gender: birth.gender })
 }
 
 /** Birth facts -> complete natal chart (Bazi + Ziwei). */
@@ -113,7 +160,7 @@ export function baziLiunianFor(
   chart: BaziChartData,
   year: number,
 ): Promise<BaziLiuNianOutput> {
-  return engineBaziLiunian(chart, year)
+  return engineBaziLiunian(chart, yearToStandardTime(year))
 }
 
 /** Full Ziwei chart + lunar year -> annual palace chart. */
@@ -121,5 +168,5 @@ export function ziweiLiunianFor(
   chart: ZiweiChart,
   lunarYear: number,
 ): Promise<ZiweiLiuNianData> {
-  return engineZiweiLiuNian(chart, lunarYear)
+  return engineZiweiLiuNian(chart, yearToStandardTime(lunarYear))
 }

@@ -29,7 +29,7 @@ const staticSections = ['taisui', 'relations', 'howto'].map(key => ({
 const birthLabels = birthFieldLabels(locale);
 const toolProps = {
   locale,
-  appUrl: `/app?scenario=liunian&locale=${locale}`,
+  appUrl: `/app/birth-profiles/new?locale=${locale}`,
   labels: {
     ...birthLabels,
     submit: t(locale, 'tool.submit'),

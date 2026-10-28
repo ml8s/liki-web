@@ -1,9 +1,13 @@
 <script setup lang="ts">
 // naming 页免费用神查询岛：出生信息 → bazi_chart（engine）→ bazi_yongshen（counsel）。
 // 只展示用神方向（指导起名）；名字生成在 App 侧进行——公开工具层只暴露确定性裁决。
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { namingAssessmentFor, type NamingAssessment } from '@shared/domain/naming'
 import { baziChartFor } from '@shared/domain/natal'
+import type { BirthInput } from '@shared/domain/birth'
+import type { EngineResultStatus } from '@shared/composables/useEngineResult'
+import EngineQueryPanel from '@shared/components/engine/EngineQueryPanel.vue'
+import ToolCta from '@shared/components/tools/ToolCta.vue'
 import BirthFields from '@shared/components/form/BirthFields.vue'
 import FormShell from '@shared/components/form/FormShell.vue'
 import {
@@ -13,7 +17,7 @@ import {
   type BirthFieldLabels,
   type BirthFieldsValue,
 } from '@shared/components/form/birth-fields'
-import YongShenPanel from '@shared/components/charts/YongShenPanel.vue'
+import BaziYongShenPanel from '@shared/components/engine/bazi/BaziYongShenPanel.vue'
 import { birthFormRules } from '@shared/components/form/birth-rules'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
@@ -33,27 +37,34 @@ const props = defineProps<{
 
 const rules = birthFormRules(props.labels)
 const birth = reactive<BirthFieldsValue>(createBirthFieldsValue())
-const loading = ref(false)
-const failed = ref(false)
+const birthInput = ref<BirthInput | null>(null)
+const status = ref<EngineResultStatus>('idle')
 const result = ref<NamingAssessment | null>(null)
 
-async function submit() {
+const loading = computed(() =>
+  !!birthInput.value && (status.value === 'idle' || status.value === 'loading'),
+)
+
+function onData(value: unknown) {
+  result.value = (value as NamingAssessment | null) ?? null
+}
+
+function onStatus(value: EngineResultStatus) {
+  status.value = value
+}
+
+function loadNaming(input: BirthInput) {
+  return baziChartFor(input).then(chart => namingAssessmentFor(chart))
+}
+
+function submit() {
   if (!isBirthInputReady(birth) || loading.value) return
-  loading.value = true
-  failed.value = false
   result.value = null
-  try {
-    const chart = await baziChartFor(birthInputFromFields(birth))
-    result.value = await namingAssessmentFor(chart)
-  } catch {
-    failed.value = true
-  } finally {
-    loading.value = false
-  }
+  birthInput.value = birthInputFromFields(birth)
 }
 
 function continueToApp() {
-  if (!result.value) return
+  if (!birthInput.value) return
   saveConsultationHandoff({
     version: 1,
     scenario: 'naming',
@@ -75,18 +86,28 @@ function continueToApp() {
     <BirthFields :value="birth" name-prefix="naming-birth" :labels="labels" @update:patch="Object.assign(birth, $event)" />
   </FormShell>
 
-  <p v-if="failed" class="tool-error" role="alert">{{ labels.error }}</p>
-
-  <template v-if="result">
-    <div class="tool-pan">
-      <YongShenPanel :result="result" />
-    </div>
-    <p class="tool-privacy">{{ labels.note }}</p>
-    <a
-      class="btn-purple tool-cta"
-      :href="appUrl"
-      @click="continueToApp"
-    >{{ labels.cta }}</a>
-    <p class="tool-privacy">{{ labels.privacy }}</p>
-  </template>
+  <EngineQueryPanel
+    v-if="birthInput"
+    resource="naming.assessment"
+    :input="birthInput"
+    :load="loadNaming"
+    :enabled="!!birthInput"
+    :fallback="labels.error"
+    @update:data="onData"
+    @update:status="onStatus"
+  >
+    <template #default="{ result: assessment }">
+      <div class="tool-pan">
+        <BaziYongShenPanel :result="assessment" />
+      </div>
+      <p class="tool-privacy">{{ labels.note }}</p>
+      <ToolCta
+        :href="appUrl"
+        :privacy="labels.privacy"
+        @click="continueToApp"
+      >
+        {{ labels.cta }}
+      </ToolCta>
+    </template>
+  </EngineQueryPanel>
 </template>

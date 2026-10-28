@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "domains": [
+    {
+      "id": "natal",
+      "labelKey": "services.natal.label",
+      "baseSkill": "natal",
+      "acceptedSeeds": ["natal", "liunian", "hepan", "huangli"],
+      "bridgeSkills": ["natal", "liunian", "hepan"],
+      "hybridDefaultPath": "/app/birth-profiles",
+      "profilePolicy": "partial"
+    },
+    {
+      "id": "divination",
+      "labelKey": "services.divination.label",
+      "baseSkill": "divination",
+      "acceptedSeeds": ["divination"],
+      "bridgeSkills": ["divination"],
+      "hybridDefaultPath": "/app/divination",
+      "profilePolicy": "optional"
+    },
+    {
+      "id": "fengshui",
+      "labelKey": "services.fengshui.label",
+      "baseSkill": "fengshui",
+      "acceptedSeeds": ["fengshui"],
+      "bridgeSkills": ["fengshui"],
+      "hybridDefaultPath": "/app/fengshui",
+      "profilePolicy": "required"
+    },
+    {
+      "id": "naming",
+      "labelKey": "services.naming.label",
+      "baseSkill": "naming",
+      "acceptedSeeds": ["naming"],
+      "bridgeSkills": ["naming"],
+      "hybridDefaultPath": "/app/chat",
+      "profilePolicy": "required"
+    }
+  ]
+}

@@ -36,7 +36,7 @@ async function mockNamingEngine(page: Page) {
   return calls
 }
 
-test('工具岛：用神/喜忌按共享组件渲染，低置信度显示复核提示', async ({ page }) => {
+test('工具岛：用神/喜忌按 BaziYongShenPanel 渲染，低置信度显示复核提示', async ({ page }) => {
   await mockPageview(page);
   const engineCalls = await mockNamingEngine(page);
   await mockEngineTool(page, 'bazi_yongshen', yongShenReview);
@@ -50,17 +50,18 @@ test('工具岛：用神/喜忌按共享组件渲染，低置信度显示复核�
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.ys-value')).toHaveText('—');
-  await expect(tool.locator('.ys-review')).toContainText('复核');
-  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=naming/);
+  const yongShenPanel = tool.locator('.engine-yongshen');
+  await expect(yongShenPanel.locator('.ys-value')).toHaveText('—');
+  await expect(yongShenPanel.locator('.ys-review')).toContainText('复核');
+  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
   expect(engineCalls.find(call => call.tool === 'bazi_chart')?.arguments).toEqual({
-    instant: '1990-05-11T23:30:00Z', timezone: 'Asia/Shanghai',
+    standard_time: '1990-05-12T08:30:00+08:00',
     longitude: 121.4726,
     gender: 'female',
   })
 });
 
-test('工具岛：正常盘渲染喜/忌五行', async ({ page }) => {
+test('工具岛：正常盘按 BaziYongShenPanel 渲染喜/忌五行', async ({ page }) => {
   await mockPageview(page);
   const engineCalls = await mockNamingEngine(page);
   await mockEngineTool(page, 'bazi_yongshen', yongShen);
@@ -74,12 +75,13 @@ test('工具岛：正常盘渲染喜/忌五行', async ({ page }) => {
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.ys-value')).toHaveText('木');
-  await expect(tool.locator('.ys-chip.good')).toHaveCount(2);
-  await expect(tool.locator('.ys-chip.bad')).toHaveCount(1);
-  await expect(tool.locator('.ys-review')).toHaveCount(0);
+  const yongShenPanel = tool.locator('.engine-yongshen');
+  await expect(yongShenPanel.locator('.ys-value')).toHaveText('木');
+  await expect(yongShenPanel.locator('.ys-chip.good')).toHaveCount(2);
+  await expect(yongShenPanel.locator('.ys-chip.bad')).toHaveCount(1);
+  await expect(yongShenPanel.locator('.ys-review')).toHaveCount(0);
   expect(engineCalls.find(call => call.tool === 'bazi_chart')?.arguments).toEqual({
-    instant: '1990-05-11T23:30:00Z', timezone: 'Asia/Shanghai',
+    standard_time: '1990-05-12T08:30:00+08:00',
     longitude: 121.4726,
     gender: 'female',
   })
@@ -99,5 +101,5 @@ test('工具岛：counsel 失败时展示错误文案', async ({ page }) => {
   await expect(tool.locator('input[name=naming-birth-longitude]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

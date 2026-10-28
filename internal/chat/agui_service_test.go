@@ -11,13 +11,14 @@ import (
 	"github.com/ml8s/liki-web/internal/birthprofile"
 	"github.com/ml8s/liki-web/internal/entitlement"
 	"github.com/ml8s/liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/metrics"
 	"github.com/ml8s/liki-web/internal/product"
 	"github.com/ml8s/liki-web/internal/sqliteutil"
 )
 
 type scriptedChatRunner struct {
 	prompt   string
-	result   []llm.Message
+	result   ExecutionResult
 	err      error
 	calls    int
 	lastMsgs []llm.Message
@@ -25,14 +26,14 @@ type scriptedChatRunner struct {
 
 func (r *scriptedChatRunner) Prompt() string { return r.prompt }
 
-func (r *scriptedChatRunner) Execute(_ context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) ([]llm.Message, error) {
+func (r *scriptedChatRunner) Execute(_ context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) (ExecutionResult, error) {
 	r.calls++
 	r.lastMsgs = msgs
 	if onEvent != nil {
 		onEvent(agent.ChatEvent{Type: agent.EventTextDelta, Content: "stream"})
 	}
 	if r.err != nil {
-		return nil, r.err
+		return ExecutionResult{}, r.err
 	}
 	return r.result, nil
 }
@@ -63,7 +64,7 @@ func newAgentModeTestService(t *testing.T) (*Service, *ChatStore, *scriptedChatR
 	}
 
 	service := NewService(chats, entitlements, profiles)
-	remote := &scriptedChatRunner{result: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}}}
+	remote := &scriptedChatRunner{result: ExecutionResult{Messages: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}}}}
 	service.SetAgentRunners(map[string]Runner{ExpertNatal: remote})
 	return service, chats, remote
 }
@@ -101,6 +102,45 @@ func TestServiceAgentModePersistsAuthoritativeAgentResult(t *testing.T) {
 	}
 	if len(events) != 2 || events[0].Type != agent.EventThinking || events[1].Type != agent.EventTextDelta {
 		t.Fatalf("events = %+v", events)
+	}
+}
+
+func TestServiceAgentModeRecordsUsageMetrics(t *testing.T) {
+	oldRegistry := metrics.Default
+	metrics.Default = metrics.New()
+	t.Cleanup(func() { metrics.Default = oldRegistry })
+
+	service, _, remote := newAgentModeTestService(t)
+	remote.result = ExecutionResult{
+		Messages: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}},
+		RunID:    "run-usage-1",
+		Usage: RunUsage{
+			LLMCalls:         2,
+			PromptTokens:     100,
+			CompletionTokens: 40,
+			ThoughtTokens:    8,
+		},
+	}
+	ctx := context.Background()
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "test", "")
+	if err != nil {
+		t.Fatalf("create session: %v", err)
+	}
+	if _, _, _, err := service.SendMessage(ctx, "user-1", session.ID, "hello", nil); err != nil {
+		t.Fatalf("SendMessage: %v", err)
+	}
+
+	snapshot := metrics.Default.Snapshot()
+	for key, want := range map[string]uint64{
+		"chat_agent_runs_total|expert=natal":              1,
+		"chat_agent_llm_calls_total|expert=natal":         2,
+		"chat_agent_prompt_tokens_total|expert=natal":     100,
+		"chat_agent_completion_tokens_total|expert=natal": 40,
+		"chat_agent_thought_tokens_total|expert=natal":    8,
+	} {
+		if snapshot[key] != want {
+			t.Fatalf("metric %s = %d, want %d (snapshot=%v)", key, snapshot[key], want, snapshot)
+		}
 	}
 }
 

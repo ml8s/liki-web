@@ -1,18 +1,22 @@
 # Changelog
 
-## Unreleased —— 直连传输与测试门禁优化
+## Unreleased —— BFF-only 传输与测试门禁优化
 
 ### Added
 
 - **出生地经度闭环**：引擎 `city_coords` 新增 `candidates` 模式（返回同名/区县候选，默认行为不变）；档案、App 合盘页与营销岛表单按候选选择自动填充 `birth_longitude` 并落库，精确时间必须填写经度；排盘优先使用已存经度，旧档案按城市名兜底解析。
 
-- **Direct connect（构建开关 `VITE_CHAT_TRANSPORT=direct`）**：浏览器经 `/rt/<profile>/ag-ui` 直达运行时；Caddy ForwardAuth 调 `/api/internal/introspect` 后以 mTLS 建连，会话历史由签名完成回调 `/api/internal/runs/completed` 持久化；relay 仍为默认传输与回滚杠杆。
 - **同源 MCP 网关**：排盘改经 `/engine/*` 与 `/counsel/*`（与外部 skill 同路径协议）；身份/权益/支付/档案写与 AI 生成仍在 liki-web。
 - requestid、内部 metrics；BRAND/SEO 文档与营销页同步。
+
+### Removed
+
+- **Direct-connect AG-UI 传输**：浏览器不再经 `/rt/<profile>/ag-ui` 直达运行时，也不再依赖 ForwardAuth introspection、mTLS 或 run-completed callback。产品聊天唯一入口是 `/api/chat/sessions/{id}/ag-ui`；档案、上下文、历史与持久化全部由 BFF 拥有。静态检查禁止退役路径回流。
 
 ### Changed
 
 - 测试门禁优化：e2e 与 test 并行、race 拆独立 job、覆盖率地板 65→40（防凑零）、依赖/文件系统漏洞扫描迁至 nightly `security.yml`。
+- 前端 Engine MCP 时间契约对齐 `standard_time`：排盘、六爻装卦、黄历、八宅与玄空不再发送 `instant/timezone`、`start_date`、`birth_year` 或 `period_date` 等旧字段。
 
 ## [2026.10.18.0] — 2026-10-18
 

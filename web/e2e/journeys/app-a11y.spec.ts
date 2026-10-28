@@ -41,21 +41,23 @@ const order = {
 
 const pages = [
   { path: '/app/login', name: 'login', marker: 'input[type="email"]' },
-  { path: '/app/', name: 'dashboard', marker: '.service-entries' },
-  { path: '/app/birth-profiles', name: 'profiles', marker: '.profile-card' },
-  { path: '/app/birth-profiles/new', name: 'profile-new', marker: '.birth-form' },
-  { path: '/app/birth-profiles/p_1', name: 'profile-detail', marker: '.chart-preview' },
-  { path: '/app/hepan', name: 'hepan', marker: '.b-form' },
-  { path: '/app/divination', name: 'divination', marker: '.el-input' },
-  { path: '/app/fengshui', name: 'fengshui', marker: '.el-select' },
-  { path: '/app/huangli', name: 'huangli', marker: '.el-select' },
-  { path: '/app/chat', name: 'chat-list', marker: '.service-entries' },
-  { path: '/app/chat/chat_1', name: 'chat-session', marker: '.thread' },
-  { path: '/app/orders', name: 'orders', marker: '.orders-table, .order-cards' },
-  { path: '/app/account', name: 'account', marker: '.app-card--danger' },
-  { path: '/app/partners', name: 'partner-center', marker: 'main' },
-  { path: '/app/partners/kol', name: 'partner-kol', marker: 'main' },
-  { path: '/app/partners/scout', name: 'partner-scout', marker: 'main' },
+  { path: '/app/', name: 'consultation', marker: '.flow-parameters' },
+  { path: '/app/me', name: 'me', marker: '.entry-row' },
+  { path: '/app/classic/', name: 'dashboard', marker: '.service-entries' },
+  { path: '/app/classic/birth-profiles', name: 'profiles', marker: '.profile-card' },
+  { path: '/app/classic/birth-profiles/new', name: 'profile-new', marker: '.birth-form' },
+  { path: '/app/classic/birth-profiles/p_1', name: 'profile-detail', marker: '.chart-preview' },
+  { path: '/app/classic/hepan', name: 'hepan', marker: '.b-form' },
+  { path: '/app/classic/divination', name: 'divination', marker: '.el-input' },
+  { path: '/app/classic/fengshui', name: 'fengshui', marker: '.el-select' },
+  { path: '/app/classic/huangli', name: 'huangli', marker: '.el-select' },
+  { path: '/app/classic/chat', name: 'chat-list', marker: '.service-entries' },
+  { path: '/app/classic/chat/chat_1', name: 'chat-session', marker: '.thread' },
+  { path: '/app/classic/orders', name: 'orders', marker: '.orders-table, .order-cards' },
+  { path: '/app/classic/account', name: 'account', marker: '.app-card--danger' },
+  { path: '/app/classic/partners', name: 'partner-center', marker: 'main' },
+  { path: '/app/classic/partners/kol', name: 'partner-kol', marker: 'main' },
+  { path: '/app/classic/partners/scout', name: 'partner-scout', marker: 'main' },
   { path: '/app/this-route-does-not-exist', name: 'not-found', marker: '.not-found' },
 ]
 
@@ -118,7 +120,7 @@ test.describe('App mobile accessibility smoke', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
   for (const { path, name, marker } of pages.filter(page => [
-    'dashboard', 'profiles', 'chat-list', 'chat-session', 'orders', 'account', 'partner-center',
+    'consultation', 'me', 'dashboard', 'profiles', 'chat-list', 'chat-session', 'orders', 'account', 'partner-center',
   ].includes(page.name))) {
     test(`mobile ${name}: ${path}`, async ({ page }) => {
       await mockProductWorkspace(page)

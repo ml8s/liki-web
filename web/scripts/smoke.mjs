@@ -157,33 +157,81 @@ async function mcpCall(endpoint, tool, toolArgs) {
 }
 
 async function expertIdentity(expert) {
-  const response = await request(`/rt/${expert}/ag-ui`, {
+  const session = await json('/api/chat/sessions', {
     method: 'POST',
-    headers: {
-      ...authHeaders(),
-      Origin: baseOrigin,
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-    },
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      threadId: `smoke-${randomUUID()}`,
-      runId: `smoke-${randomUUID()}`,
-      messages: [{ id: `smoke-${randomUUID()}`, role: 'user', content: '请只回答一句：你负责哪个领域？' }],
-      tools: [],
-      context: [],
-      state: {},
-      forwardedProps: { product: 'liki', locale: 'zh-Hant' },
+      skill: 'liki',
+      scenario: expert,
+      title: `smoke-${expert}`,
+      context: smokeContext(expert),
     }),
   })
-  assert(response.ok, `${expert} route HTTP ${response.status}`)
-  const text = await response.text()
-  const finished = text.split('\n')
-    .filter(line => line.startsWith('data: '))
-    .map(line => { try { return JSON.parse(line.slice(6)) } catch { return null } })
-    .find(event => event?.type === 'RUN_FINISHED')
-  assert(finished, `${expert} route ended without RUN_FINISHED`)
-  assert(finished.result?.definition?.name === expert, `${expert} route served ${finished.result?.definition?.name || 'unknown'}`)
-  return finished.result?.definition?.name
+  assert(session?.id, `${expert} smoke session was not created`)
+
+  try {
+    const response = await request(`/api/chat/sessions/${session.id}/ag-ui`, {
+      method: 'POST',
+      headers: {
+        ...authHeaders(),
+        Origin: baseOrigin,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify({
+        threadId: session.id,
+        runId: `smoke-${randomUUID()}`,
+        messages: [{ id: `smoke-${randomUUID()}`, role: 'user', content: '请只回答一句：你负责哪个领域？' }],
+        tools: [],
+        context: [],
+        state: {},
+        forwardedProps: { locale: 'zh-Hant' },
+      }),
+    })
+    assert(response.ok, `${expert} route HTTP ${response.status}`)
+    const text = await response.text()
+    const finished = text.split('\n')
+      .filter(line => line.startsWith('data: '))
+      .map(line => { try { return JSON.parse(line.slice(6)) } catch { return null } })
+      .find(event => event?.type === 'RUN_FINISHED')
+    assert(finished, `${expert} route ended without RUN_FINISHED`)
+    assert(finished.result?.session?.expert === expert, `${expert} route served ${finished.result?.session?.expert || 'unknown'}`)
+    return finished.result?.session?.expert
+  } finally {
+    await request(`/api/chat/sessions/${session.id}`, { method: 'DELETE', headers: authHeaders() })
+  }
+}
+
+function smokeContext(expert) {
+  if (expert === 'divination') {
+    return {
+      version: 1,
+      scenario: expert,
+      question: 'smoke',
+      casting: { mode: 'yaos', order: 'bottom_up', casting_id: `smoke-${randomUUID()}`, yaos: [7, 8, 8, 7, 8, 9], dong_yao: [6] },
+      casting_instant: new Date().toISOString(),
+      location: { longitude: 114.169, timezone: 'Asia/Hong_Kong' },
+    }
+  }
+  if (expert === 'fengshui') {
+    return {
+      version: 1,
+      scenario: expert,
+      birth_year: 1990,
+      gender: 'female',
+      layout: { zuo_shan: 0, period_date: '2026-01-01' },
+    }
+  }
+  return {
+    version: 1,
+    scenario: expert,
+    birth: {
+      gender: 'female',
+      date: '1990-01-01',
+      time: '12:00',
+      location: { longitude: 114.169, timezone: 'Asia/Hong_Kong' },
+    },
+  }
 }
 
 function expectedExperts() {

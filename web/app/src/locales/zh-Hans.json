@@ -32,12 +32,59 @@
     "chat": "Liki Chat",
     "orders": "订单",
     "account": "账户设置",
-    "mine": "我的",
     "partner": "我的合作",
-    "logout": "退出"
+    "logout": "退出",
+    "consultation": "领域咨询",
+    "classic": "经典版",
+    "me": "我的"
   },
   "a11y": {
     "skipToContent": "跳到主要内容"
+  },
+  "flow": {
+    "domainStrip": "解读领域",
+    "domainTitle": "选择领域",
+    "newConsultation": "开始新咨询",
+    "personTitle": "选择档案",
+    "noProfiles": "还没有档案",
+    "createProfile": "新建档案",
+    "manageProfiles": "管理全部档案",
+    "personEmpty": "选择档案",
+    "askPlaceholder": "直接提出你的问题",
+    "contextAnnouncement": "咨询上下文：{person}，{domain}。",
+    "draftPreserved": "问题仍保留在输入框中，可以重试。",
+    "draftRestored": "连接失败后，问题已放回输入框。",
+    "send": "发送",
+    "stop": "停止",
+    "restore": "回到进行中",
+    "close": "关闭",
+    "crossDomain": "这个问题更适合「{domain}」，请先切换领域。",
+    "huangliPending": "择日 / 黄历解读正在迁移到命理专家，暂时请继续使用旧入口。",
+    "documentLabel": "咨询记录",
+    "questionLabel": "问",
+    "answerLabel": "解读",
+    "newContent": "有新内容",
+    "hepanRequired": "合盘需要先完成对方信息和第三方同意。",
+    "fengshuiRequired": "风水需要先完成坐山与门主灶布局。",
+    "namingRequired": "起名需要先选择完整出生档案。",
+    "namingFailed": "起名方向分析失败。",
+    "historyTitle": "本领域历史",
+    "historySearchLabel": "按标题筛选",
+    "historySearchPlaceholder": "输入会话标题",
+    "historyCount": "{count} 条会话",
+    "historyEmpty": "当前筛选没有会话",
+    "historyCurrent": "当前",
+    "historyActionFailed": "历史会话操作失败",
+    "state": {
+      "offline": "你当前已离线。恢复网络后可以重试。",
+      "unreachable": "暂时无法连接服务。请检查网络后重试。",
+      "permission": "当前账号没有访问该内容的权限。",
+      "server": "服务暂时不可用。请稍后重试。"
+    },
+    "documentEmpty": "暂无咨询内容",
+    "documentEmptyHint": "在下方输入你的问题，开始本次解读。",
+    "recordSaved": "已保存到记录。",
+    "artifactReady": "解读已生成，可在下方查看。"
   },
   "auth": {
     "brandTail": "命理",
@@ -81,7 +128,9 @@
     "partnerKol": "KOL 合作",
     "partnerScout": "Scout 合作",
     "account": "账户设置",
-    "notFound": "页面不存在"
+    "notFound": "页面不存在",
+    "consultation": "领域咨询",
+    "me": "我的"
   },
   "services": {
     "natal": {
@@ -145,6 +194,7 @@
       "dayRelation": "日辰",
       "lineNumber": "{number}爻",
       "changingLines": "变爻",
+      "moving": "动爻",
       "usefulGod": "用神",
       "hexagramText": "卦辞",
       "patterns": "格局",
@@ -415,12 +465,15 @@
       "nickname": "称呼",
       "nicknamePlaceholder": "如：妈妈 / 我本人",
       "gender": "性别",
+      "genderPlaceholder": "如：女",
       "birthDate": "出生日期",
       "selectDate": "选择日期",
       "timePlaceholder": "如 06:00",
       "birthPlace": "出生地（城市，用于真太阳时修正）",
       "birthPlacePlaceholder": "如：上海",
       "longitude": "经度",
+      "longitudeHint": "用于真太阳时校正；可手动填写",
+      "longitudeInvalid": "经度必须在 -180 到 180",
       "timezone": "IANA 时区",
       "timezonePlaceholder": "例如 Asia/Shanghai",
       "timezoneHint": "和出生地配套的法定时区",
@@ -475,7 +528,6 @@
     "chart": {
       "title": "免费排盘",
       "compute": "排盘",
-      "empty": "输入公历出生时间后点“排盘”，免费查看八字、紫微、八宅三盘（临时展示，不保存）。",
       "bazi": "八字",
       "ziwei": "紫微",
       "bazhai": "八宅",
@@ -582,18 +634,12 @@
       "geJu": "格局",
       "favorAvoid": "{value} · 喜 {favorable} 忌 {unfavorable}",
       "correctedLongitude": "已做真太阳时修正（{longitude}）",
-      "failed": "排盘失败",
       "stageFailed": "{stage}计算失败",
-      "partialFailed": "部分附加信息计算失败",
       "stage": {
         "bazi_chart": "八字命盘",
         "ziwei_chart": "紫微命盘",
-        "bazi_fullchart": "八字详盘",
-        "ziwei_fullchart": "紫微详盘",
-        "ziwei_daxian": "紫微大限",
         "bazi_liunian": "八字流年",
-        "ziwei_liunian": "紫微流年",
-        "bazhai_chart": "八宅盘"
+        "ziwei_liunian": "紫微流年"
       },
       "pillar": {
         "year": "年柱",
@@ -971,7 +1017,6 @@
       "user_message_required": "消息内容不能为空",
       "history_invalid": "历史消息异常，请重试",
       "run_id_conflict": "请求冲突，请重试",
-      "profile_not_allowed": "该解读服务不可用，请返回重试",
       "run_id_required": "请求缺少运行标识",
       "run_id_invalid": "运行标识无效",
       "thread_id_required": "请求缺少会话标识",
@@ -992,10 +1037,6 @@
       "super_requires_super": "变更超级管理员权限需要超级管理员身份",
       "too_large": "请求内容过大",
       "webhook_failed": "支付回调处理失败",
-      "invalid_body": "请求内容无效",
-      "invalid_signature": "签名校验失败",
-      "invalid_callback": "回调参数无效",
-      "idempotency_mismatch": "重复请求与原请求不一致",
       "invalid_billing_mode": "计费方式无效",
       "subscription_unavailable": "订阅在当前区域不可用",
       "subscription_conflict": "已有有效订阅，无法重复创建",
@@ -1089,14 +1130,9 @@
     "roleConflictDescription": "合作角色相互独立，不能同时担任或互相转换。",
     "inviteOnly": "合作计划为邀请制。请使用你收到的邀请链接进入对应申请。",
     "roleConflictTitle": "当前账号已参与其他合作角色",
-    "ruleKol1": "分享专属推广链接，佣金只来自真实成交。",
-    "ruleKol2": "合作身份独立审核，不可升级或降级。",
-    "ruleScout1": "Scout 发现并支持 KOL 成长，从其渠道的真实成交中获得佣金。",
-    "ruleScout2": "合作身份独立审核，不可升级或降级。",
     "pendingTitle": "{role} 申请审核中",
     "rejectedTitle": "上次申请未通过：{reason}",
     "rejectedTitleNoReason": "上次申请未通过",
-    "defaultRejectionReason": "未通过审核",
     "submitApplication": "提交申请",
     "payoutTitle": "{role} 提现",
     "alipay": "支付宝",
@@ -1122,6 +1158,20 @@
       "retiredNotice": "该角色已退出日常合作。这里只保留历史佣金结算能力，不提供工作台和招募数据。",
       "balance": "{currency} 可结算余额",
       "dialogTitle": "{role}提现"
+    },
+    "meDescription": "合作角色与结算入口。"
+  },
+  "artifact": {
+    "documentLabel": "咨询记录",
+    "toggleHint": "展开或收起确定性图表",
+    "unavailable": "该图表暂不可用",
+    "state": {
+      "ready": "可查看",
+      "pending-backend": "等待后端契约",
+      "unavailable": "暂不可用"
     }
+  },
+  "me": {
+    "subtitle": "档案、历史、订单、账号与合作入口。"
   }
 }

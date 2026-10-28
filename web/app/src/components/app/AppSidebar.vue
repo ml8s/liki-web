@@ -1,7 +1,7 @@
 <template>
   <aside class="app-sidebar">
     <router-link
-      to="/"
+      :to="{ name: 'dashboard' }"
       class="side-brand font-serif"
     >
       Liki<em>·</em>{{ $t('auth.brandTail') }}
@@ -13,16 +13,16 @@
     <nav class="side-nav">
       <div class="nav-group">
         <router-link
-          to="/"
+          :to="{ name: 'dashboard' }"
           exact-active-class="on"
-          :aria-current="isCurrent('/') ? 'page' : undefined"
+          :aria-current="isCurrent('dashboard') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
           @focusin="preloadNavigation"
         >
           {{ $t('nav.workspace') }}
         </router-link>
         <router-link
-          to="/birth-profiles"
+          :to="{ name: 'birth-profiles' }"
           active-class="on"
           :aria-current="isCurrent('/birth-profiles') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
@@ -31,7 +31,7 @@
           {{ $t('nav.profiles') }}
         </router-link>
         <router-link
-          to="/chat"
+          :to="{ name: 'chat' }"
           active-class="on"
           :aria-current="isCurrent('/chat') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
@@ -42,7 +42,7 @@
       </div>
       <div class="nav-group nav-group-secondary">
         <router-link
-          to="/orders"
+          :to="{ name: 'orders' }"
           active-class="on"
           :aria-current="isCurrent('/orders') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
@@ -51,7 +51,7 @@
           {{ $t('nav.orders') }}
         </router-link>
         <router-link
-          to="/account"
+          :to="{ name: 'account' }"
           active-class="on"
           :aria-current="isCurrent('/account') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
@@ -59,15 +59,22 @@
         >
           {{ $t('nav.account') }}
         </router-link>
+        <AppExperienceSwitcher
+          v-if="appFlowRedesignEnabled"
+          target="consultation"
+          variant="sidebar"
+        >
+          {{ $t('nav.consultation') }}
+        </AppExperienceSwitcher>
       </div>
       <div
         v-if="auth.hasPartnerRole"
         class="nav-group nav-group-secondary"
       >
         <router-link
-          to="/partners"
+          :to="{ name: 'partner-center' }"
           exact-active-class="on"
-          :aria-current="isCurrent('/partners') ? 'page' : undefined"
+          :aria-current="isCurrent('partner-center') ? 'page' : undefined"
           @pointerenter="preloadNavigation"
           @focusin="preloadNavigation"
         >
@@ -93,6 +100,8 @@
 import { useRoute, useRouter } from 'vue-router'
 import { createIntentPreloader } from '@/utils/routes'
 import { useAuthStore } from '@/stores/auth'
+import AppExperienceSwitcher from '@/components/app/AppExperienceSwitcher.vue'
+import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 
 defineProps<{ email: string }>()
 defineEmits<{ logout: [] }>()
@@ -104,8 +113,8 @@ const preloadNavigation = createIntentPreloader(router, record => !String(record
 
 // 侧栏链接都是扁平路由，active 即 exact-active（/partners 显式用 exact-active-class）；
 // 显式输出与 .on 同源的 aria-current="page"，不依赖 RouterLink 的内部判断。
-function isCurrent(target: string) {
-  return route.path === target
+function isCurrent(name: string) {
+  return route.name === name
 }
 </script>
 

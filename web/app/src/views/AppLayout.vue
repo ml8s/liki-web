@@ -1,24 +1,39 @@
 <template>
   <div
     class="app-shell"
-    :class="{ 'app-shell-bounded': viewportBound }"
+    :class="{
+      'app-shell-bounded': viewportBound,
+      'app-shell-consultation': consultationExperience,
+    }"
     :style="shellHeightStyle"
   >
     <a
+      v-if="!consultationExperience"
       href="#app-main"
       class="skip-link"
     >{{ $t('a11y.skipToContent') }}</a>
     <AppSidebar
+      v-if="!consultationExperience"
       :email="auth.user?.email ?? ''"
       @logout="logout"
     />
 
-    <header class="app-topbar">
+    <header
+      v-if="!consultationExperience"
+      class="app-topbar"
+    >
       <div class="brand font-serif">
         Liki<em>·</em>{{ $t('auth.brandTail') }}
       </div>
       <div class="topbar-meta">
         <span class="page-title">{{ pageTitle }}</span>
+        <AppExperienceSwitcher
+          v-if="appFlowRedesignEnabled"
+          target="consultation"
+          variant="topbar"
+        >
+          {{ $t('nav.consultation') }}
+        </AppExperienceSwitcher>
         <el-button
           size="small"
           link
@@ -29,16 +44,19 @@
       </div>
     </header>
 
-    <main
-      id="app-main"
+    <component
+      :is="consultationExperience ? 'div' : 'main'"
+      :id="consultationExperience ? undefined : 'app-main'"
       ref="mainEl"
       class="app-main"
-      tabindex="-1"
+      :tabindex="consultationExperience ? undefined : -1"
     >
       <router-view />
-    </main>
+    </component>
 
-    <AppTabbar />
+    <AppTabbar
+      v-if="!consultationExperience"
+    />
   </div>
 </template>
 
@@ -51,6 +69,8 @@ import { useChatStore } from '@/stores/chat'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import AppSidebar from '@/components/app/AppSidebar.vue'
 import AppTabbar from '@/components/app/AppTabbar.vue'
+import AppExperienceSwitcher from '@/components/app/AppExperienceSwitcher.vue'
+import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -61,6 +81,9 @@ const pageTitle = computed(() => route.meta.titleKey ? t(String(route.meta.title
 // 内容页保持文档滚动（URL 栏收起、页内查找、下拉刷新都是平台行为）；
 // 只有自称独占视口的视图才把滚动收进页面内部（如会话页的消息区）。
 const viewportBound = computed(() => route.meta.viewportBound === true)
+// Consultation owns its own full-height shell and dock; the Classic tabbar must
+// never overlay it on mobile.
+const consultationExperience = computed(() => route.meta.experience === 'consultation')
 
 // 移动端键盘开合时 visualViewport 缩小而 dvh 不变：独占视口的页面跟随可视高度，
 // 保证 composer 不被键盘遮挡（内容页依赖平台自身行为，不介入）。
@@ -116,6 +139,20 @@ async function logout() {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+}
+
+.app-shell-consultation {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.app-shell-consultation .app-main {
+  flex: none;
+  margin: 0;
+  max-width: none;
+  padding: 0;
 }
 
 .skip-link {

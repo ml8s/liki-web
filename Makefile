@@ -183,6 +183,7 @@ check-web-static:
 	node web/scripts/check-i18n.js
 	node web/scripts/check-chart-messages.js
 	node web/scripts/check-error-codes.js
+	node web/scripts/check-retired-chat-transports.mjs
 	node web/scripts/check-service-parity.js
 	node web/scripts/check-classes.js
 	node web/scripts/check-css-utility-freeze.js

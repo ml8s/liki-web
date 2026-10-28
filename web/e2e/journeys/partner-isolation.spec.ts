@@ -41,7 +41,7 @@ test('Scout invite page exists and routes to the scout role page', async ({ page
 test('regular user sees no partnership entry anywhere', async ({ page }) => {
   await mockPartnerWorkspace(page, [])
 
-  await page.goto('/app/')
+  await page.goto('/app/classic/')
   await expect(page.getByRole('link', { name: '我的合作' })).toHaveCount(0)
 
   await page.goto('/app/account')
@@ -53,10 +53,10 @@ test('partner user sees the entry; the center shows only their own role', async 
   await mockPartnerWorkspace(page, ['kol'])
   await page.route('**/api/partner-portal', r => r.fulfill(json(statesFor('kol', 'active'))))
 
-  await page.goto('/app/')
+  await page.goto('/app/me')
   await expect(page.getByRole('link', { name: '我的合作' }).first()).toBeVisible()
 
-  await page.goto('/app/partners')
+  await page.goto('/app/classic/partners')
   await expect(page.locator('.role-card')).toHaveCount(1)
   await expect(page.locator('.role-card')).toContainText('KOL')
   const text = await page.locator('main').innerText()

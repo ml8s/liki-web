@@ -152,7 +152,7 @@ func TestSameOriginAllowsInternalServerToServerWithoutOrigin(t *testing.T) {
 	handler := SameOrigin(false, stdhttp.HandlerFunc(func(w stdhttp.ResponseWriter, _ *stdhttp.Request) {
 		w.WriteHeader(stdhttp.StatusNoContent)
 	}))
-	request := httptest.NewRequest(stdhttp.MethodPost, "/api/internal/runs/completed", nil)
+	request := httptest.NewRequest(stdhttp.MethodPost, "/api/internal/server-to-server", nil)
 	recorder := httptest.NewRecorder()
 
 	handler.ServeHTTP(recorder, request)

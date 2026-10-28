@@ -27,8 +27,7 @@ Request:
 ```json
 {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
  "params": {"name": "bazi_chart", "arguments": {
-   "instant": "1958-05-11T22:00:00Z",
-   "timezone": "Asia/Shanghai",
+   "standard_time": "1958-05-12T06:00:00+08:00",
    "longitude": 121.47,
    "gender": "female"
  }}}
@@ -40,18 +39,19 @@ in the same field. Engine tools (charting/calendar) live under `/engine/mcp`;
 counsel tools (`bazi_yongshen`, `naming_*`, `liuyao_query`, …) under
 `/counsel/mcp`.
 
-Chart tools accept the canonical `{instant, timezone, longitude}` context. `instant` is
-an RFC 3339 UTC instant, `timezone` is an IANA zone, and `longitude` is WGS-84.
-The browser converts exact Gregorian wall-clock input locally with Temporal and
-never sends raw calendar or profile wall-time fields to chart tools.
+Chart tools accept the canonical `{standard_time, longitude}` context. `standard_time`
+is RFC 3339 with a known offset and represents local standard time without DST;
+`longitude` is WGS-84. The browser converts exact Gregorian wall-clock input and
+IANA timezone locally, and never sends raw calendar or profile wall-time fields
+to chart tools.
 Lunar calendar arithmetic remains engine-internal output, not browser input.
 
 Browser callers must materialize Engine MCP arguments rather than relying on
 server defaults. In particular, LiuYao sends an explicit `liuyao_qigua` mode,
-captures its ritual UTC instant once at submit, and passes that instant plus the
-visible casting timezone and numeric longitude to `liuyao_chart`. It also
-materializes `yong_shen` explicitly. The display place string is never
-substituted for longitude or timezone.
+captures its ritual UTC instant once at submit, projects that instant into the
+casting timezone's standard_time, and passes the numeric longitude to
+`liuyao_chart`. It also materializes `yong_shen` explicitly. The display place
+string is never substituted for longitude or timezone.
 
 Error responses follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)
 (`application/problem+json`):
@@ -220,12 +220,32 @@ Paid chat operations recheck entitlement server-side.
 | PATCH | `/api/chat/sessions/{id}` | owner | Rename session (title, 1-60 chars) |
 | DELETE | `/api/chat/sessions/{id}` | owner | Soft-delete session |
 | GET | `/api/chat/sessions/{id}/messages` | owner + entitled | Read messages (cursor paging: `?before=&limit=`; response `{messages, next_cursor}`) |
-| POST | `/api/chat/sessions/{id}/ag-ui` | owner + entitled | AG-UI/SSE generation (relay) |
+| POST | `/api/chat/sessions/{id}/ag-ui` | owner + entitled | AG-UI/SSE generation through the BFF |
 
-The direct transport (`/rt/<profile>/ag-ui`) is not a liki-web route: Caddy
-reaches the runtime directly after calling `/api/internal/introspect`, and the
-runtime posts `/api/internal/runs/completed` back. Both internal endpoints are
-404 on the public path; see liki-deploy's `docs/DIRECT_CONNECT.md`.
+Product chat traffic does not call the runtime directly. The BFF is the sole
+runtime caller for browser sessions: it owns authentication, entitlement,
+session lookup, authoritative history, product persistence, and consumption of
+the standard AG-UI terminal events.
+
+### Browser AG-UI contract
+
+The browser request carries protocol-safe input only: `threadId` (the session
+id), `runId`, the latest user message, and `forwardedProps.locale`. History,
+profile facts, consultation context, product identity, and entitlement state are
+never authoritative browser input.
+
+The BFF emits standard AG-UI lifecycle/text events. Progress is conveyed by one
+namespaced custom event:
+
+```json
+{ "type": "CUSTOM", "name": "hk.liki.phase", "value": "bazi_chart" }
+```
+
+`value` is the raw tool-name fact; localized display copy belongs to the App.
+Clients must ignore unknown custom-event names for forward compatibility.
+`RUN_FINISHED.result` is the BFF product result containing `session`,
+`active_skill`, `user_message`, and `assistant_message`; it is not the runtime's
+internal result shape.
 
 Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
 
@@ -239,7 +259,7 @@ versioned context preserves the exact tool facts required to continue a paid
 consultation. It is persisted as a required JSON object in a session-owned
 consultation-context row, returned only by the session detail endpoint (not the
 list projection), placed under
-`forwardedProps.consultation_context` by both transports, and cleared by
+`forwardedProps.consultation_context` by the BFF runtime call, and cleared by
 account erasure. Invalid or unknown context shapes return HTTP 400 with
 `invalid_consultation_context` or `invalid_request`, respectively.
 
@@ -260,14 +280,14 @@ casting receipt. Feng Shui public-handoff facts use `birth_year` and `gender`
 only as a pair. Beyond unknown members, the object rejects invalid calendar
 dates/times, invalid longitude or IANA timezone, incomplete or internally
 inconsistent casting receipts, unsupported versions, and contexts that do not
-route to the selected expert. A persisted context is revalidated before relay
+route to the selected expert. A persisted context is revalidated before BFF
 generation, so corrupt tool state fails closed instead of becoming generic
 advice. Natural-language intent is never a substitute for these computation
 facts.
 
 ### AG-UI forwardedProps
 
-Both the relay runner and direct browser transport use one profile shape:
+The BFF runtime call uses one profile shape:
 
 ```json
 {
@@ -298,9 +318,8 @@ Both the relay runner and direct browser transport use one profile shape:
 }
 ```
 
-`profile` is present only for profile-bound sessions. The relay transport
-constructs it server-side from the owned profile; direct transport may send the
-same trusted shape after the browser loads it from `/api/birth-profiles/{id}`.
+`profile` is present only for profile-bound sessions. The BFF constructs it
+server-side from the owned profile.
 `location.place`, identity, contact details, notes, and database IDs are
 deliberately excluded. The only consent fact in this object is the required
 affirmative `third_party_consent` for He Pan.
@@ -443,6 +462,7 @@ they never establish a session or grant an entitlement.
 | GET | `/api/health` | public | Liveness: dependency-free process check, `Cache-Control: no-store` |
 | GET | `/api/ready` | public, rate limited | Readiness: DB and expert dependencies, 503 when not ready, `Cache-Control: no-store` |
 | POST | `/api/analytics/pageview` | public, rate limited | Increment aggregate page-view counter |
+| POST | `/api/analytics/product-event` | public, rate limited | Increment a bounded product funnel counter |
 | POST | `/api/client-errors` | public, rate limited | Record a PII-free client failure (`code`, `view`, `locale`, optional technical `detail`) |
 | GET | `/api/version` | public | Build time and version |
 | GET | `/api/internal/metrics` | token | JSON or Prometheus counters |
@@ -453,6 +473,12 @@ Metrics are disabled when `LIKI_METRICS_TOKEN` is empty.
 must never contain birth data, chat content, email addresses, or raw provider
 payloads. Metric labels use a code allowlist; unknown codes are logged and
 folded into `other` to keep cardinality bounded.
+
+`POST /api/analytics/product-event` is the Consultation funnel counterpart.
+It accepts only event/domain/source/scenario/status/failure values from closed
+vocabularies and rejects person IDs, session IDs, questions, birth data, and
+any free-form dimension. The payload is reduced to bounded metric labels and a
+structured log line.
 
 ## Admin
 

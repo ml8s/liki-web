@@ -26,17 +26,13 @@
 | `finance_task_not_found` | `internal/partner/admin_handler.go` |
 | `forbidden` | `internal/admin/route.go` |
 | `fulfillment_confirm_failed` | `internal/aipay/handler.go` |
-| `idempotency_mismatch` | `internal/runcontrol/callback.go` |
 | `internal_error` | `internal/admin/handler.go` |
 | `invalid_billing_mode` | `internal/sales/checkout_http.go` |
-| `invalid_body` | `internal/runcontrol/callback.go` |
-| `invalid_callback` | `internal/runcontrol/callback.go` |
 | `invalid_capability` | `internal/adminauth/http.go` |
 | `invalid_code` | `internal/auth/http.go` |
 | `invalid_consultation_context` | `internal/chat/http.go` |
 | `invalid_email` | `internal/auth/http.go` |
 | `invalid_request` | `internal/admin/handler.go` |
-| `invalid_signature` | `internal/runcontrol/callback.go` |
 | `last_super_admin` | `internal/adminauth/http.go` |
 | `mailer_unavailable` | `internal/auth/http.go` |
 | `mixed_currency` | `internal/partner/role_handlers.go` |
@@ -54,7 +50,6 @@
 | `payout_not_found` | `internal/partner/admin_handler.go` |
 | `product_not_found` | `internal/sales/checkout_http.go` |
 | `profile_conflict` | `internal/birthprofile/http.go` |
-| `profile_not_allowed` | `internal/runcontrol/introspect.go` |
 | `quota_exceeded` | `internal/birthprofile/http.go` |
 | `rate_limited` | `internal/http/middleware.go` |
 | `role_conflict` | `internal/partner/admin_handler.go` |

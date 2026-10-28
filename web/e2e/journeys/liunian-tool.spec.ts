@@ -1,11 +1,11 @@
-// liunian 页工具岛：出生信息 + 年份 → 共享 BaziPanel 流年盘（流年列 + 流年详览）。
+// liunian 页工具岛：出生信息 + 年份 → 共享八字目录流年盘（四柱 + 流年详览）。
 // mock 形状对齐引擎契约（完整样本见 engine-contract.spec）。
 import { test, expect } from '../fixtures';
 import { fillBirthFields } from '../helpers';
 import { mockCityCoords, mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 import { baziChart, baziFull, baziLiunian } from '../engine-fixtures';
 
-test('工具岛：流年盘按共享 BaziPanel 渲染（流年列 + 流年详览）', async ({ page }) => {
+test('工具岛：流年盘按八字目录面板渲染（四柱 + 流年详览）', async ({ page }) => {
   await mockPageview(page);
   await mockEngineTool(page, 'bazi_chart', baziChart);
   await mockEngineTool(page, 'bazi_fullchart', baziFull);
@@ -22,13 +22,16 @@ test('工具岛：流年盘按共享 BaziPanel 渲染（流年列 + 流年详览
   await tool.locator('input[name="liunian-year"]').fill('2026');
   await tool.locator('button[type=submit]').click();
 
-  // 流年列（五柱：四柱 + 流年）与流年详览
+  // 完整八字目录盘四柱，流年目录盘承接 bazi_liunian 详览。
   await expect(tool.locator('.bazi-panel .pillar:not(.liunian)')).toHaveCount(4);
-  await expect(tool.locator('.bazi-panel .pillar.liunian')).toContainText('丙午');
-  await expect(tool.locator('.bazi-panel .pillar.liunian')).toContainText('正官');
-  await expect(tool.locator('.bazi-panel .liunian-detail')).toContainText('天乙贵人');
+  await expect(tool.locator('.engine-bazi-liunian-panel')).toBeVisible();
+  await expect(tool.locator('.engine-bazi-liunian-panel .pillar.liunian')).toContainText('丙午');
+  await expect(tool.locator('.engine-bazi-liunian-panel .pillar.liunian')).toContainText('正官');
+  await expect(tool.locator('.engine-bazi-liunian-panel .pillar.liunian')).toContainText('天河水');
+  await expect(tool.locator('.engine-bazi-liunian-panel .pillar.liunian')).toContainText('生数 0 · 克数 1');
+  await expect(tool.locator('.engine-bazi-liunian-panel .liunian-detail')).toContainText('天乙贵人');
 
-  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /scenario=liunian/);
+  await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
 });
 
 test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
@@ -45,5 +48,5 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
   await tool.locator('button[type=submit]').click();
 
-  await expect(tool.locator('.tool-error')).toHaveText('Unable to calculate right now. Please try again.');
+  await expect(tool.locator('.engine-result-boundary__state[role="alert"]')).toContainText('Chart processing failed. Check the input and try again.');
 });

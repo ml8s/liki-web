@@ -125,6 +125,12 @@ export interface WorkspaceOptions {
 // 已登录工作台壳：登录态、能力、以及工作台首屏会拉取的列表（默认空集合）。
 export async function mockWorkspace(page: Page, options: WorkspaceOptions = {}) {
   const user = options.user ?? testUser()
+  // Consultation emits a bounded funnel beacon on entry; tests only override
+  // this route when they explicitly assert telemetry payloads.
+  await page.route('**/api/analytics/product-event', route => route.fulfill(noContent))
+  // Client error reporting is fire-and-forget; specs that assert payloads
+  // override this route after mockWorkspace.
+  await page.route('**/api/client-errors', route => route.fulfill(noContent))
   await page.route('**/api/me', route => route.fulfill(json(user)))
   await page.route('**/api/me/entitlements', route => route.fulfill(json({
     entitlements: options.entitlements ?? [],

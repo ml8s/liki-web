@@ -50,8 +50,7 @@ describe('chartInputFromBirth', () => {
     const fetchMock = mockEngineTools({})
     vi.stubGlobal('fetch', fetchMock)
     await expect(chartInputFromBirth(birth())).resolves.toEqual({
-      instant: '1958-05-11T22:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1958-05-12T06:00:00+08:00',
       longitude: 121.4737,
     })
     expect(fetchMock).not.toHaveBeenCalled()
@@ -84,8 +83,7 @@ describe('baziChartFor', () => {
     expect(chart.birth_year).toBe(1958)
     const chartCall = mcpCalls(fetchMock).find(call => call.params?.name === 'bazi_chart')
     expect(chartCall?.params?.arguments).toEqual({
-      instant: '1958-05-11T22:00:00Z',
-      timezone: 'Asia/Shanghai',
+      standard_time: '1958-05-12T06:00:00+08:00',
       longitude: 121.4737,
       gender: 'female',
     })
