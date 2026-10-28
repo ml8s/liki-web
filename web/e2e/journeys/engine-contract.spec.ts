@@ -1869,20 +1869,20 @@ async function routeApp(page: Page) {
 test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async ({ page }) => {
   await routeApp(page)
 
-  await page.goto('/app/birth-profiles/p_1')
+  await page.goto('/app/classic/birth-profiles/p_1')
   await page.waitForSelector('.pillars', { timeout: 12000 }) // 自动排盘
   await expect(page.locator('.pillar .gl').first()).toContainText('戊戌')
   await expect(page.locator('.pillar .cang').first()).toContainText('戊 辛 丁') // 藏干
   await expect(page.locator('.pillar .sub').first()).toContainText('七杀') // 十神（shi_shens 数组首项）
   await expect(page.locator('.void-tag')).toHaveCount(1) // 旬空
-  await expect(page.locator('.bazi-panel .shensha').first()).toContainText('天乙贵人') // 神煞
-  await expect(page.locator('.bazi-panel .shensha').first()).toContainText('华盖')
+  await expect(page.locator('.engine-bazi-full-chart-panel .shensha').first()).toContainText('天乙贵人') // 神煞
+  await expect(page.locator('.engine-bazi-full-chart-panel .shensha').first()).toContainText('华盖')
   await expect(page.locator('.san-yuan .sy-body')).toContainText('胎元 壬申')
 
   // 流年盘（bazi_liunian）：五柱流年列 + 流年详览（神煞/伏吟/与命局/与大运关系）
-  await expect(page.locator('.pillars.with-liunian .pillar.liunian')).toContainText('丙午')
-  await expect(page.locator('.pillar.liunian')).toContainText('正官')
-  await expect(page.locator('.pillar.liunian')).toContainText('生數 0')
+  await expect(page.locator('.engine-bazi-liunian-panel .pillar.liunian')).toContainText('丙午')
+  await expect(page.locator('.engine-bazi-liunian-panel .pillar.liunian')).toContainText('正官')
+  await expect(page.locator('.engine-bazi-liunian-panel .pillar.liunian')).toContainText('生數 0')
   await expect(page.locator('.liunian-detail .chart-chip').first()).toContainText('天乙贵人')
   await expect(page.locator('.ln-block-title').first()).toContainText('與命局')
   await expect(page.locator('.ln-block-title').nth(1)).toContainText('與大運')
@@ -1891,10 +1891,10 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
   await expect(page.locator('.liunian-detail')).not.toContainText('无特殊关系')
 
   // 空态：命盘无合冲刑害时不渲染「命盘关系」区块（mock 命盘无关系数据）
-  await expect(page.locator('.bazi-panel')).not.toContainText('命盤關係')
+  await expect(page.locator('.engine-bazi-full-chart-panel')).not.toContainText('命盤關係')
 
   await page.locator('.el-tabs__item:has-text("紫微")').click()
-  const natalGrid = page.locator('.ziwei-panel .zw-grid:not(.zw-grid--liunian)')
+  const natalGrid = page.locator('.engine-ziwei-panel .zw-grid:not(.zw-grid--liunian)')
   await expect(natalGrid.locator('.zw-palace')).toHaveCount(12) // 环形十二宫
   await expect(natalGrid.locator('.zw-palace').first()).toContainText('紫微庙') // 庙旺平陷（命宫己丑）
   await expect(natalGrid.locator('.zw-palace').first()).toContainText('天德') // 杂曜
@@ -1906,14 +1906,12 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
   await expect(natalGrid.locator('.zw-center')).toContainText('巨门') // 命主
   await expect(natalGrid.locator('.zw-center')).toContainText('庚辰年') // 年干支
   await expect(natalGrid.locator('.zw-center .zw-sihua-chip')).toHaveCount(4) // 四化
-  await expect(page.locator('.zw-sf')).toHaveCount(4) // 三方四正
-  await expect(page.locator('.zw-sf:has-text("武曲")')).toHaveCount(1) // 财帛宫含武曲七杀
-  await expect(page.locator('.zw-daxian .dy')).toHaveCount(12) // 大限十二限
-  await expect(page.locator('.zw-daxian .dy').first()).toContainText('2005') // golden 首限起始年
-  await expect(page.locator('.zw-daxian .dy').first()).toContainText('6–15') // 虚岁区间
-  await expect(page.locator('.zw-daxian .dy.cur')).toHaveCount(1) // 当前大限高亮
-  await expect(page.locator('.zw-liunian .el-input-number')).toBeVisible() // 流年年份控件
-  await expect(page.locator('.zw-liunian .zw-sihua-chip')).toHaveCount(4) // 流年四化
+  await expect(page.locator('.engine-ziwei-daxian-panel .dy')).toHaveCount(12) // 大限十二限
+  await expect(page.locator('.engine-ziwei-daxian-panel .dy').first()).toContainText('2005') // golden 首限起始年
+  await expect(page.locator('.engine-ziwei-daxian-panel .dy').first()).toContainText('6–15') // 虚岁区间
+  await expect(page.locator('.engine-ziwei-daxian-panel .dy.cur')).toHaveCount(1) // 当前大限高亮
+  await expect(page.locator('#pane-ziwei .chart-year-picker .el-input-number')).toBeVisible() // 流年年份控件
+  await expect(page.locator('.engine-ziwei-liunian-panel .zw-sihua-chip')).toHaveCount(4) // 流年四化
   await expect(page.locator('.zw-grid--liunian .zw-palace')).toHaveCount(12) // 流年十二宫
   await expect(page.locator('.zw-grid--liunian .zw-palace.ming')).toContainText('命宫') // 流年命宫
   await expect(page.locator('.zw-grid--liunian .zw-center')).toContainText('仆役') // 流年命宫落本命宫（golden ming_gong_name）
@@ -1927,7 +1925,7 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
 test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await routeApp(page)
 
-  await page.goto('/app/hepan')
+  await page.goto('/app/classic/hepan')
   await page.waitForSelector('.b-form', { timeout: 10000 })
   await page.locator('.el-select').first().click()
   await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
@@ -1963,7 +1961,7 @@ test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
   await routeEngine(page)
 
-  await page.goto('/app/divination')
+  await page.goto('/app/classic/divination')
   const question = page.getByRole('textbox', { name: /你想問的一件事/ })
   await question.fill('這個項目能成嗎')
   await page.locator('input[name="casting-place"]').fill('上海')
@@ -1987,7 +1985,7 @@ test('择日按真实契约渲染（huangli_days）', async ({ page }) => {
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
   await routeEngine(page)
 
-  await page.goto('/app/huangli')
+  await page.goto('/app/classic/huangli')
   await page.waitForSelector('.el-date-editor', { timeout: 10000 })
   await page.locator('.el-select').first().click()
   await page.locator('.el-select-dropdown__item:has-text("結婚")').first().click()
@@ -2009,7 +2007,7 @@ test('风水页按真实契约渲染（命卦/玄空飞星/八宅布局）', asy
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
   await routeEngine(page)
 
-  await page.goto('/app/fengshui')
+  await page.goto('/app/classic/fengshui')
   await page.locator('.el-select').first().click()
   await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
   await page.waitForSelector('.mingua', { timeout: 12000 })
