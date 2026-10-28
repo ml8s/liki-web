@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures'
 import { flowProfile, mockFlowWorkspace } from '../helpers/domain-flow'
+import { mockBFFChatMessage } from '../helpers/chat'
 
 const profile = flowProfile('person-1', '张三')
 
@@ -63,7 +64,11 @@ test.describe('consultation resilience', () => {
       await page.route('**/api/birth-profiles/person-1', route => {
         return route.fulfill({ json: { data: profile } })
       })
-      await page.route(/\/rt\/natal\/ag-ui$/, route => route.abort('failed'))
+      await mockBFFChatMessage(page, {
+        session: createdSession(),
+        answer: '不应到达的答案',
+        permanentFailure: true,
+      })
 
       await page.goto('/app/?locale=zh-Hans')
       await expect(page.locator('.flow-parameters').getByRole('button', { name: '张三' })).toBeVisible()

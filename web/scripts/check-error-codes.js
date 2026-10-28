@@ -1,18 +1,14 @@
 #!/usr/bin/env node
-// check-error-codes.js — 错误码契约检查器（单源强制）：
+// check-error-codes.js — 错误码契约检查器（双向单源强制）：
 //   1) 从 Go 源码抽取全部错误码（RespondError 字面量 / AppError{Code:} / ErrCode 常量）；
-//   2) 校验 App 三语 locale 的 errors.code.* 全部有文案（规则：每个码都要文案，无豁免——
-//      内部码也给中性文案，若将来泄漏到用户路径仍是本地化文案）；
+//   2) App 三语 locale 与 Go 错误码必须双向一致：不能缺文案，也不能保留孤儿文案；
 //   3) 校验生成物 docs/error-codes.md 与抽取结果一致（新鲜度）。
-// 与 chart-messages 同模式：约定 → 检查器 → 生成物三件套。
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const WEB = path.resolve(import.meta.dirname, '..');
-const ROOT = path.resolve(WEB, '..');
-const DOC = path.join(ROOT, 'docs', 'error-codes.md');
+const DEFAULT_ROOT = path.resolve(import.meta.dirname, '..', '..');
 const LOCALES = ['zh-Hans', 'zh-Hant', 'en'];
-const errors = [];
 
 function walk(dir, files = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -25,11 +21,11 @@ function walk(dir, files = []) {
 
 // 与运行时契约一致：RespondError(w, status, "code", ...) / AppError{Code: "code"} /
 // httputil 的 ErrCode 常量定义。
-export function collectGoCodes() {
+export function collectGoCodes(root = DEFAULT_ROOT) {
   const codes = new Map();
-  for (const file of walk(path.join(ROOT, 'internal'))) {
+  for (const file of walk(path.join(root, 'internal'))) {
     const src = fs.readFileSync(file, 'utf-8');
-    const rel = path.relative(ROOT, file);
+    const rel = path.relative(root, file);
     for (const m of src.matchAll(/RespondError\([^,]+,\s*[^,]+,\s*"([a-z_]+)"/g)) {
       if (!codes.has(m[1])) codes.set(m[1], rel);
     }
@@ -43,12 +39,42 @@ export function collectGoCodes() {
   return codes;
 }
 
-function appCodes(locale) {
-  const data = JSON.parse(fs.readFileSync(path.join(WEB, 'app/src/locales', `${locale}.json`), 'utf-8'));
-  return new Set(Object.keys(data.errors?.code ?? {}));
+function localePath(root, locale) {
+  return path.join(root, 'web/app/src/locales', `${locale}.json`);
 }
 
-function renderDoc(codes) {
+function appCodes(root, locale) {
+  const source = fs.readFileSync(localePath(root, locale), 'utf-8');
+  if (!source.trim()) return new Set();
+  return new Set(Object.keys(JSON.parse(source).errors?.code ?? {}));
+}
+
+function frontendOnlyCodes(root) {
+  const inventory = path.join(root, 'web/scripts/error-codes-frontend.json');
+  if (!fs.existsSync(inventory)) return new Set();
+  return new Set(JSON.parse(fs.readFileSync(inventory, 'utf-8')).codes ?? []);
+}
+
+export function contractErrors(root = DEFAULT_ROOT) {
+  const codes = collectGoCodes(root);
+  const knownCodes = new Set([...codes.keys(), ...frontendOnlyCodes(root)]);
+  const errors = [];
+  for (const locale of LOCALES) {
+    const known = appCodes(root, locale);
+    for (const code of knownCodes) {
+      if (!known.has(code)) {
+        const source = codes.has(code) ? `defined at ${codes.get(code)}` : 'frontend-only definition';
+        errors.push(`${locale}.json: missing errors.code.${code} (${source})`);
+      }
+    }
+    for (const code of known) {
+      if (!knownCodes.has(code)) errors.push(`${locale}.json: orphan errors.code.${code} (no Go or frontend definition)`);
+    }
+  }
+  return errors;
+}
+
+export function renderDoc(codes) {
   const lines = [
     '# Error Codes',
     '',
@@ -67,30 +93,39 @@ function renderDoc(codes) {
   return lines.join('\n');
 }
 
-const codes = collectGoCodes();
-for (const locale of LOCALES) {
-  const known = appCodes(locale);
-  for (const code of codes.keys()) {
-    if (!known.has(code)) errors.push(`${locale}.json: missing errors.code.${code} (defined at ${codes.get(code)})`);
+function docPath(root) {
+  return path.join(root, 'docs', 'error-codes.md');
+}
+
+function main() {
+  const positional = process.argv.filter((arg, index) => index >= 2 && !arg.startsWith('--'));
+  const root = path.resolve(positional[0] ?? DEFAULT_ROOT);
+  const doc = docPath(root);
+  const codes = collectGoCodes(root);
+  const errors = contractErrors(root);
+  if (errors.length) {
+    console.error(`\n${errors.length} error-code contract violation(s):\n`);
+    for (const error of errors) console.error(`  ✗ ${error}`);
+    console.error('\n规则：Go 与 App 三语错误码必须双向一致；补/删文案后重跑 --update 刷新 docs/error-codes.md。\n');
+    process.exit(1);
   }
+
+  if (process.argv.includes('--update')) {
+    fs.mkdirSync(path.dirname(doc), { recursive: true });
+    fs.writeFileSync(doc, renderDoc(codes));
+    console.log(`✓ docs/error-codes.md written (${codes.size} codes)`);
+    return;
+  }
+
+  if (!fs.existsSync(doc) || fs.readFileSync(doc, 'utf-8') !== renderDoc(codes)) {
+    console.error('❌ docs/error-codes.md 过期：运行 node web/scripts/check-error-codes.js --update 刷新。');
+    process.exit(1);
+  }
+  console.log(`✓ error codes in sync (${codes.size} codes × ${LOCALES.length} locales + docs freshness)`);
 }
 
-if (process.argv.includes('--update')) {
-  fs.mkdirSync(path.dirname(DOC), { recursive: true });
-  fs.writeFileSync(DOC, renderDoc(codes));
-  console.log(`✓ docs/error-codes.md written (${codes.size} codes)`);
-  process.exit(0);
+function isMainModule() {
+  return process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 }
 
-if (errors.length) {
-  console.error(`\n${errors.length} error-code contract violation(s):\n`);
-  for (const e of errors) console.error(`  ✗ ${e}`);
-  console.error('\n规则：每个 Go 错误码都要有 App 三语文案；补文案后重跑 --update 刷新 docs/error-codes.md。\n');
-  process.exit(1);
-}
-
-if (!fs.existsSync(DOC) || fs.readFileSync(DOC, 'utf-8') !== renderDoc(codes)) {
-  console.error('❌ docs/error-codes.md 过期：运行 node web/scripts/check-error-codes.js --update 刷新。');
-  process.exit(1);
-}
-console.log(`✓ error codes in sync (${codes.size} codes × ${LOCALES.length} locales + docs freshness)`);
+if (isMainModule()) main();

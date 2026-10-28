@@ -8,7 +8,7 @@ describe('streamChatMessage against the official HttpAgent parser', () => {
     // BFF terminal result owns the authoritative product messages.
     const body = [
       sseEvent({ type: 'RUN_STARTED', threadId: 'session_1', runId: 'run_1' }),
-      sseEvent({ type: 'CUSTOM', name: 'agent.runtime.phase', value: 'bazi_chart' }),
+      sseEvent({ type: 'CUSTOM', name: 'hk.liki.phase', value: 'bazi_chart' }),
       sseEvent({ type: 'TEXT_MESSAGE_START', messageId: 'assistant', role: 'assistant' }),
       sseEvent({ type: 'TEXT_MESSAGE_CONTENT', messageId: 'assistant', delta: '答案' }),
       sseEvent({ type: 'TEXT_MESSAGE_END', messageId: 'assistant' }),

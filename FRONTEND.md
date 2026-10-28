@@ -200,7 +200,12 @@ The BFF reaches the runtime through the internal network. It owns authentication
 entitlement, authoritative history, profile context, and product persistence;
 the runtime remains stateless with respect to product chat history.
 
-The app consumes product-safe events. Backend persistence only uses the authoritative terminal result. `RUN_ERROR` is surfaced as a generation error, not stored as a formal assistant message.
+The app consumes product-safe events. Progress uses the namespaced custom event
+`hk.liki.phase`; its value is the raw tool-name fact and the App renders the
+localized label. Unknown custom events are ignored. Backend persistence uses
+only the authoritative BFF `RUN_FINISHED` result (`session`, `active_skill`,
+`user_message`, and `assistant_message`). `RUN_ERROR` is surfaced as a
+generation error, not stored as a formal assistant message.
 
 Message history is cursor-paginated: `GET /api/chat/sessions/{id}/messages?before=&limit=`
 returns `{messages, next_cursor}` (default page 200, cap 500; cursors are
@@ -272,9 +277,12 @@ line requires a newer Node than the pinned `.nvmrc`, and 1.x carries an
 unfixable high advisory that would fail the CI dependency audit.
 
 `make check` also enforces cross-layer contracts: marketing↔App i18n key usage,
-service-CTA parity, chart-message sync, and error-code copy coverage — every Go
-error code must carry App copy in all three locales (`check-error-codes.js`;
-inventory in the generated `docs/error-codes.md`).
+service-CTA parity, chart-message sync, BFF-only chat transport, and error-code
+copy coverage — every Go code must carry App copy in all three locales, while
+client/runtime-only codes live in the explicit frontend inventory
+(`error-codes-frontend.json`). Go's generated inventory remains
+`docs/error-codes.md`; retired paths cannot return
+(`check-retired-chat-transports.mjs`).
 
 ## Payments
 

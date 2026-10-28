@@ -88,9 +88,8 @@ describe('app i18n', () => {
       'generation_cancelled',
       'engine_unavailable',
       'engine_tool_failed',
-      // 直连聊天路径可达的 runtime/协议错误码（RUN_ERROR 与 HTTP 校验共用
-      // errors.code.* 渲染）：与 runtime internal/domain/error_codes.go 的
-      // 可达集合保持同步。
+      // BFF AG-UI 路径可达的 client/runtime/协议错误码。前端本地生成或
+      // 经 RUN_ERROR.code 透传；完整清单见 error-codes-frontend.json。
       'runtime_init_failed',
       'runtime_session_unavailable',
       'runtime_busy',
@@ -126,7 +125,6 @@ describe('app i18n', () => {
       'invalid_agui_request',
       'unsupported_agui_feature',
       'invalid_agui_message',
-      'profile_not_allowed',
     ]
 
     const localizedErrors: Record<string, Record<string, string>> = {

@@ -76,11 +76,10 @@ echo "[e2e-a11y] Liki App (Consultation preview)..."
 
 cd web
 set +e
+E2E_SPECS="${E2E_A11Y_SPECS:-e2e/journeys/app-a11y.spec.ts e2e/journeys/admin-a11y.spec.ts e2e/journeys/domain-flow-a11y.spec.ts}"
 BASE_URL="http://localhost:8080" npx playwright test \
   --config e2e/playwright.config.ts \
-  e2e/journeys/app-a11y.spec.ts \
-  e2e/journeys/admin-a11y.spec.ts \
-  e2e/journeys/domain-flow-a11y.spec.ts
+  $E2E_SPECS
 test_rc=$?
 set -e
 if [ "$test_rc" -ne 0 ]; then

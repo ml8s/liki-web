@@ -227,6 +227,26 @@ runtime caller for browser sessions: it owns authentication, entitlement,
 session lookup, authoritative history, product persistence, and consumption of
 the standard AG-UI terminal events.
 
+### Browser AG-UI contract
+
+The browser request carries protocol-safe input only: `threadId` (the session
+id), `runId`, the latest user message, and `forwardedProps.locale`. History,
+profile facts, consultation context, product identity, and entitlement state are
+never authoritative browser input.
+
+The BFF emits standard AG-UI lifecycle/text events. Progress is conveyed by one
+namespaced custom event:
+
+```json
+{ "type": "CUSTOM", "name": "hk.liki.phase", "value": "bazi_chart" }
+```
+
+`value` is the raw tool-name fact; localized display copy belongs to the App.
+Clients must ignore unknown custom-event names for forward compatibility.
+`RUN_FINISHED.result` is the BFF product result containing `session`,
+`active_skill`, `user_message`, and `assistant_message`; it is not the runtime's
+internal result shape.
+
 Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
 
 `scenario` is the authoritative routing input. The server derives `expert` from

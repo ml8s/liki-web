@@ -78,24 +78,6 @@ export async function mockDivinationEngine(
   return calls
 }
 
-export function sseAnswer(answer: string) {
-  const runId = 'run_casting'
-  const messageId = `${runId}:assistant`
-  return [
-    { type: 'RUN_STARTED', threadId: 'chat_casting', runId },
-    { type: 'TEXT_MESSAGE_START', messageId, role: 'assistant' },
-    { type: 'TEXT_MESSAGE_CONTENT', messageId, delta: answer },
-    { type: 'TEXT_MESSAGE_END', messageId },
-    {
-      type: 'RUN_FINISHED',
-      threadId: 'chat_casting',
-      runId,
-      outcome: { type: 'success' },
-      result: { answer },
-    },
-  ].map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
-}
-
 export function castingForm(page: Page) {
   return page.locator('.flow-main form').filter({
     has: page.locator('textarea[name="divination-question"]'),

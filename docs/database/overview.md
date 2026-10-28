@@ -52,6 +52,10 @@ Naming and legacy notes:
 
 - `unified_chat_*` keeps its prefix from the session-merge migration; it is
   historical, not a second chat model. Renamed to canonical chat storage.
+- `run_records` may remain in older `liki.db` files as a legacy audit-only
+  table. The BFF-only migration clears its answer/error columns and never
+  writes new rows; usage counters and timestamps are retained for operational
+  audit. Fresh databases do not create it.
 - The legacy `products` table in old liki.db files is no longer created,
   seeded, or read; product truth is the in-code catalog. Existing copies are
   inert like the retired product databases.

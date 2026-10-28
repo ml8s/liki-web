@@ -262,6 +262,10 @@ func (s *agentRunState) observe(event aguievents.Event, onEvent func(agent.ChatE
 				if err := json.Unmarshal(raw, &s.usage); err != nil {
 					return fmt.Errorf("liki: decode agent usage: %w", err)
 				}
+				if s.usage.LLMCalls < 0 || s.usage.PromptTokens < 0 ||
+					s.usage.CompletionTokens < 0 || s.usage.ThoughtTokens < 0 {
+					return fmt.Errorf("liki: agent usage counters must not be negative")
+				}
 			}
 		}
 		s.done = true

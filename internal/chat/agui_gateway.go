@@ -134,7 +134,7 @@ func (g *aguiGateway) start() {
 // 浏览器自定义事件采用反域名命名；载荷只承载事实（工具名/信号），
 // 用户可见文案一律由前端 i18n 渲染。
 const (
-	browserPhaseEvent = "agent.runtime.phase"
+	browserPhaseEvent = "hk.liki.phase"
 )
 
 // translate 把内部 ChatEvent 映射为浏览器 AG-UI 事件：

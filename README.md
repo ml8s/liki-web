@@ -22,7 +22,7 @@ liki engine  /  liki-agent-runtime  /  payment providers
 | --- | --- |
 | `liki-web` | Product BFF, platform identity, profiles, commerce, entitlements, Liki Chat |
 | `liki` | deterministic engine, skills, Engine MCP, Counsel MCP source |
-| `agent-runtime` | generic agent runtime, AG-UI/A2A protocol adapters, execution audit |
+| `liki-agent-runtime` | generic agent runtime, AG-UI/A2A protocol adapters, execution audit |
 | `liki-deploy` | local images, Compose, Caddy, deploy and rollback |
 
 Liki Chat uses one production transport: the BFF endpoint

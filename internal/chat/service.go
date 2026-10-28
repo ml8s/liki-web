@@ -14,6 +14,7 @@ import (
 	"github.com/ml8s/liki-web/internal/agent"
 	"github.com/ml8s/liki-web/internal/birthprofile"
 	"github.com/ml8s/liki-web/internal/llm"
+	"github.com/ml8s/liki-web/internal/metrics"
 	"github.com/ml8s/liki-web/internal/product"
 )
 
@@ -306,6 +307,15 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
+	recordAgentUsage(session.Expert, execution.Usage)
+	slog.InfoContext(ctx, "chat agent run completed",
+		"run_id", execution.RunID,
+		"expert", session.Expert,
+		"llm_calls", execution.Usage.LLMCalls,
+		"prompt_tokens", execution.Usage.PromptTokens,
+		"completion_tokens", execution.Usage.CompletionTokens,
+		"thought_tokens", execution.Usage.ThoughtTokens,
+	)
 
 	response := assistantContent(execution.Messages)
 	if response == "" {
@@ -321,6 +331,23 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 		return Message{}, Message{}, Session{}, err
 	}
 	return userMessage, responseMsg, session, nil
+}
+
+func recordAgentUsage(expert string, usage RunUsage) {
+	labels := map[string]string{"expert": expert}
+	metrics.Default.Inc("chat_agent_runs_total", labels)
+	if usage.LLMCalls > 0 {
+		metrics.Default.Add("chat_agent_llm_calls_total", labels, uint64(usage.LLMCalls))
+	}
+	if usage.PromptTokens > 0 {
+		metrics.Default.Add("chat_agent_prompt_tokens_total", labels, uint64(usage.PromptTokens))
+	}
+	if usage.CompletionTokens > 0 {
+		metrics.Default.Add("chat_agent_completion_tokens_total", labels, uint64(usage.CompletionTokens))
+	}
+	if usage.ThoughtTokens > 0 {
+		metrics.Default.Add("chat_agent_thought_tokens_total", labels, uint64(usage.ThoughtTokens))
+	}
 }
 
 func assistantContent(messages []llm.Message) string {

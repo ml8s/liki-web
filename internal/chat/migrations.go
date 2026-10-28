@@ -159,11 +159,22 @@ WHERE expert='' AND status='active' AND deleted_at IS NULL
 		},
 		{
 			// Runtime callbacks and the direct browser transport are retired.
-			// Product messages are authoritative, so this legacy callback table
-			// is removed rather than kept as a hidden second source of truth.
-			ID: "chat_010_drop_legacy_run_records",
+			// Product messages remain authoritative. If the former callback table
+			// exists, clear its PII-bearing answers/errors while retaining the
+			// pseudonymous usage and timing audit; do not recreate it on fresh
+			// databases.
+			ID: "chat_010_sanitize_legacy_run_records",
 			Up: func(ctx context.Context, tx *sql.Tx) error {
-				_, err := tx.ExecContext(ctx, `DROP TABLE IF EXISTS run_records`)
+				var exists bool
+				if err := tx.QueryRowContext(ctx, `
+SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='run_records')
+`).Scan(&exists); err != nil {
+					return err
+				}
+				if !exists {
+					return nil
+				}
+				_, err := tx.ExecContext(ctx, `UPDATE run_records SET answer='', error=''`)
 				return err
 			},
 		},

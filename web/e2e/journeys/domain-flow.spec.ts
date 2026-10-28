@@ -8,6 +8,7 @@ import {
   openFlowPersonSheet,
   type JsonRecord,
 } from '../helpers/domain-flow'
+import { mockBFFChatMessage } from '../helpers/chat'
 
 const profiles = [
   flowProfile('person-1', '张三'),
@@ -16,24 +17,6 @@ const profiles = [
 
 async function awaitFlowReady(page: Parameters<typeof mockFlowWorkspace>[0]) {
   await expect(page.locator('.flow-parameters').getByRole('button', { name: '张三' })).toBeVisible()
-}
-
-function sseAnswer(answer: string) {
-  const runId = 'run_flow'
-  const messageId = `${runId}:assistant`
-  return [
-    { type: 'RUN_STARTED', threadId: 'chat_new', runId },
-    { type: 'TEXT_MESSAGE_START', messageId, role: 'assistant' },
-    { type: 'TEXT_MESSAGE_CONTENT', messageId, delta: answer },
-    { type: 'TEXT_MESSAGE_END', messageId },
-    {
-      type: 'RUN_FINISHED',
-      threadId: 'chat_new',
-      runId,
-      outcome: { type: 'success' },
-      result: { answer },
-    },
-  ].map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
 }
 
 test.describe('four-domain consultation flow', () => {
@@ -145,26 +128,20 @@ test.describe('four-domain consultation flow', () => {
     await mockFlowWorkspace(page, { profiles: [profiles[0]!] })
 
     const sessionCreations: JsonRecord[] = []
+    const session = flowSession('chat_new', { updated_at: '2026-01-04T00:00:00Z' })
     await page.route('**/api/chat/sessions', async route => {
       if (route.request().method() !== 'POST') {
         return route.fulfill({ json: { data: [] } })
       }
       sessionCreations.push(route.request().postDataJSON() as JsonRecord)
-      return route.fulfill({ json: { data: flowSession('chat_new', {
-        updated_at: '2026-01-04T00:00:00Z',
-      }) } })
+      return route.fulfill({ json: { data: session } })
     })
     await page.route('**/api/birth-profiles/person-1', route =>
       route.fulfill({ json: { data: profiles[0] } }))
 
-    const runtimeRequests: string[] = []
-    await page.route(/\/rt\/natal\/ag-ui$/, async route => {
-      runtimeRequests.push(route.request().url())
-      return route.fulfill({
-        status: 200,
-        contentType: 'text/event-stream',
-        body: sseAnswer('先看你的八字，日主偏弱。'),
-      })
+    const runtimeRequests = await mockBFFChatMessage(page, {
+      session,
+      answer: '先看你的八字，日主偏弱。',
     })
 
     await page.goto('/app/')
@@ -181,6 +158,7 @@ test.describe('four-domain consultation flow', () => {
       scenario: 'natal',
     })
     expect(runtimeRequests).toHaveLength(1)
+    expect(runtimeRequests[0]?.url).toContain('/api/chat/sessions/chat_new/ag-ui')
   })
 
   test('keeps an explicit huangli seed pending instead of routing to divination', async ({ page }) => {
@@ -195,7 +173,7 @@ test.describe('four-domain consultation flow', () => {
       sessionCreationCount += 1
       return route.fulfill({ status: 500, json: { data: null } })
     })
-    await page.route(/\/rt\/(natal|divination)\/ag-ui$/, async route => {
+    await page.route('**/api/chat/sessions/*/ag-ui', async route => {
       runtimeRequestCount += 1
       return route.abort('failed')
     })

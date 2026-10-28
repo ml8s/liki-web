@@ -93,7 +93,7 @@ func TestAGUIGatewayEmitsStandardBrowserProtocol(t *testing.T) {
 	}
 	// 自定义事件使用反域名命名；phase 载荷是原始工具名（事实）。
 	if len(customs) != 1 ||
-		customs[0].name != "agent.runtime.phase" || customs[0].value != "bazi_chart" {
+		customs[0].name != "hk.liki.phase" || customs[0].value != "bazi_chart" {
 		t.Fatalf("phase custom event = %#v", customs)
 	}
 	if strings.Contains(recorder.Body.String(), "hidden reasoning") {

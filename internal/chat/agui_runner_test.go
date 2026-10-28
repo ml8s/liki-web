@@ -178,6 +178,32 @@ func TestAgentRunnerExecuteReturnsProtocolErrorWithoutSyntheticAnswer(t *testing
 	}
 }
 
+func TestAgentRunnerRejectsNegativeUsage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		writer := aguisse.NewSSEWriter()
+		_ = writer.WriteEvent(r.Context(), w, aguievents.NewRunStartedEvent("thread-1", "run-1"))
+		finished := aguievents.NewRunFinishedEvent("thread-1", "run-1")
+		finished.Result = map[string]any{
+			"answer": "answer",
+			"usage": map[string]any{
+				"llm_calls":     -1,
+				"prompt_tokens": 10,
+			},
+		}
+		_ = writer.WriteEvent(r.Context(), w, finished)
+	}))
+	defer server.Close()
+
+	runner := newTestAgentRunner(t, server)
+	ctx := withSessionBinding(context.Background(), sessionBinding{UserID: "user-1", SessionID: "session-1"})
+	_, err := runner.Execute(ctx, []llm.Message{{Role: llm.RoleUser, Content: "hello"}}, nil)
+	if err == nil || !strings.Contains(err.Error(), "usage counters must not be negative") {
+		t.Fatalf("Execute() error = %v, want negative usage rejection", err)
+	}
+}
+
 func TestAgentRunnerEndpointNormalizesBaseURL(t *testing.T) {
 	tests := map[string]string{
 		"http://agent:8083":          "http://agent:8083/ag-ui",

@@ -51,15 +51,17 @@ Acceptance:
 ### 1.2 Erase generated answers
 
 Keep the durable chat-message store as the only product answer store, and clear
-user-identifying answer content during account erasure. The later direct-run
-callback table was retired and removed by migration rather than kept as a
-hidden second source of truth.
+user-identifying answer content during account erasure. The retired direct-run
+callback table is sanitized once by migration: answers and provider errors are
+cleared, while pseudonymous counters and timestamps remain in an audit-only
+table. No new rows are written.
 
 Acceptance:
 
 - generated answers cannot survive account erasure;
-- usage counters and timestamps remain available for audit;
-- erasure response/test reports the cleared count.
+- legacy callback answers/errors are cleared without dropping usage timestamps;
+- new runs publish aggregate `chat_agent_*_total` counters to the internal
+  metrics registry.
 
 ### 1.3 Make profile loading fail closed
 
@@ -230,7 +232,7 @@ acceptance:
 
 | Concern | Tests |
 | --- | --- |
-| Context parity | relay/direct unit tests + AG-UI contract test |
+| Context parity | BFF runtime unit tests + browser AG-UI contract test |
 | Public handoff | Playwright marketing → login → service → chat journey |
 | Erasure | Go integration test over every PII store |
 | Consent | component + HTTP validation tests |

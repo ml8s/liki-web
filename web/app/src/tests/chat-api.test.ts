@@ -50,7 +50,7 @@ describe('streamChatMessage with AG-UI HttpAgent', () => {
     expect(HttpAgent.lastConfig.initialMessages).toHaveLength(1)
     expect(HttpAgent.lastConfig.initialMessages[0]).toMatchObject({ role: 'user', content: '你好' })
 
-    await mocks.subscriber.onCustomEvent?.({ event: { name: 'agent.runtime.phase', value: 'bazi_chart' } })
+    await mocks.subscriber.onCustomEvent?.({ event: { name: 'hk.liki.phase', value: 'bazi_chart' } })
     await mocks.subscriber.onTextMessageContentEvent?.({ event: { delta: '答案' } })
     const returned = await pending
     await mocks.subscriber.onRunFinishedEvent?.({
@@ -73,7 +73,7 @@ describe('streamChatMessage with AG-UI HttpAgent', () => {
 
     await Promise.resolve()
     await mocks.subscriber.onCustomEvent?.({ event: { name: 'hk.liki.unknown', value: 'ignored' } })
-    await mocks.subscriber.onCustomEvent?.({ event: { name: 'agent.runtime.phase', value: '' } })
+    await mocks.subscriber.onCustomEvent?.({ event: { name: 'hk.liki.phase', value: '' } })
     const returned = await pending
     await mocks.subscriber.onRunFinishedEvent?.({
       outcome: 'success',

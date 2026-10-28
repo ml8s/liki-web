@@ -206,14 +206,15 @@ Invariants:
 - Chat session and message reads require ownership and active entitlement.
 - Generation requires an active entitlement.
 - User messages persist before generation.
-- `RUN_FINISHED.result.answer` is the authoritative assistant answer.
+- The runtime's terminal `answer`, consumed server-side by the BFF, is the
+  authoritative assistant answer; browser AG-UI events are not persisted state.
 - `RUN_ERROR` does not persist a formal assistant message.
-- Browser AG-UI events are transport, not a substitute for persisted state.
 - A tool-originated session may carry one versioned consultation context. The
   context stores deterministic inputs and non-reproducible receipts (especially
   LiuYao casting), is attached when the session is created, and is the same for
-  relay and direct transports. Prose intent never replaces longitude, timezone,
-  canonical instants, dates, or a casting receipt.
+  every BFF runtime call. Prose intent never replaces longitude, timezone,
+  canonical instants, dates, or a casting receipt. The BFF constructs it from
+  owned session/profile state; the browser never supplies it as authority.
 
 ### Scenario
 

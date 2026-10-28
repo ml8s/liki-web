@@ -1,13 +1,14 @@
 # TODO
 
-Updated: 2026-10-27
+Updated: 2026-10-28
 
 ## Current checkpoint
 
 - Branch: `feat/app-flow-redesign`
 - PR: [#8](https://github.com/ml8s/liki-web/pull/8)
-- Latest commit: `5f95b35 fix(app): surface record save outcomes and artifact readiness`
-- State: pushed and clean; CI `check`, `race`, and `test` are green.
+- State: BFF-only transport hardening implemented locally. `make check`,
+  `make test`, `make e2e-a11y`, and the 22 targeted chat/domain-flow E2E
+  journeys are green (2026-10-28).
 - Backend contract: four experts (`natal`, `divination`, `fengshui`,
   `naming`) plus seven durable consultation context scenarios. The scenario
   list is not a seven-product API. `huangli` is still mapped to

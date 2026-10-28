@@ -10,11 +10,11 @@ import {
   mockCastingWorkspace,
   mockDivinationEngine,
   openDivination,
-  sseAnswer,
   type EngineToolCall,
   type JsonRecord,
 } from '../helpers/domain-flow-casting'
 import { flowSession } from '../helpers/domain-flow'
+import { mockBFFChatMessage } from '../helpers/chat'
 import { mcpOk, mcpToolError } from '../mocks'
 
 async function seedDivinationHandoff(page: Page) {
@@ -186,16 +186,22 @@ test.describe('divination casting flow', () => {
     await page.route('**/api/birth-profiles/**', route =>
       route.fulfill({ json: { data: { profiles: [], next_cursor: '' } } }))
 
-    const runtimeCalls: string[] = []
-    const runtimeBodies: JsonRecord[] = []
-    await page.route('**/api/chat/sessions/chat_casting/ag-ui', async route => {
-      runtimeCalls.push(route.request().url())
-      runtimeBodies.push(route.request().postDataJSON() as JsonRecord)
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/event-stream',
-        body: sseAnswer('动爻在初爻，事宜缓办。'),
-      })
+    const session = flowSession('chat_casting', {
+      profile_id: '',
+      expert: 'divination',
+      title: '问卦',
+      context: {
+        version: 1,
+        scenario: 'divination',
+        question: castingQuestion,
+        casting: deterministicCasting,
+        casting_instant: '2026-01-01T00:00:00Z',
+        location: { longitude: 121.4726, timezone: 'Asia/Shanghai' },
+      },
+    })
+    const runtimeRequests = await mockBFFChatMessage(page, {
+      session,
+      answer: '动爻在初爻，事宜缓办。',
     })
 
     await page.goto('/app/?locale=zh-Hans')
@@ -251,10 +257,11 @@ test.describe('divination casting flow', () => {
     expect(creation.context.casting_instant).toMatch(castingInstantPattern)
     expect(creation.context.location).toEqual({ longitude: 121.4726, timezone: 'Asia/Shanghai' })
 
-    expect(runtimeCalls).toHaveLength(1)
-    expect(runtimeCalls[0]).toContain('/api/chat/sessions/chat_casting/ag-ui')
+    expect(runtimeRequests).toHaveLength(1)
+    expect(runtimeRequests[0]?.url).toContain('/api/chat/sessions/chat_casting/ag-ui')
     // The browser sends only protocol-safe input. The BFF revalidates persisted
     // consultation context server-side, so raw casting facts must not leak here.
+    const runtimeBodies = runtimeRequests.map(request => request.body)
     const forwardedProps = runtimeBodies[0]?.forwardedProps as { locale?: string }
     expect(forwardedProps.locale).toBe('zh-Hans')
     expect(runtimeBodies[0]).not.toHaveProperty('consultation_context')

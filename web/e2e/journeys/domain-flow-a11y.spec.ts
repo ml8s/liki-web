@@ -1,24 +1,7 @@
 import { expect, test } from '../fixtures'
 import { expectNoCriticalA11yViolations } from '../helpers/a11y'
 import { flowProfile, mockFlowWorkspace } from '../helpers/domain-flow'
-
-function sseAnswer(answer: string) {
-  const runId = 'run_a11y'
-  const messageId = `${runId}:assistant`
-  return [
-    { type: 'RUN_STARTED', threadId: 'chat_new', runId },
-    { type: 'TEXT_MESSAGE_START', messageId, role: 'assistant' },
-    { type: 'TEXT_MESSAGE_CONTENT', messageId, delta: answer },
-    { type: 'TEXT_MESSAGE_END', messageId },
-    {
-      type: 'RUN_FINISHED',
-      threadId: 'chat_new',
-      runId,
-      outcome: { type: 'success' },
-      result: { answer },
-    },
-  ].map(event => `data: ${JSON.stringify(event)}\n\n`).join('')
-}
+import { mockBFFChatMessage } from '../helpers/chat'
 
 test.describe('consultation accessibility', () => {
   test.describe(() => {
@@ -69,27 +52,27 @@ test.describe('consultation keyboard reflow', () => {
       })
 
       const createdSessions: unknown[] = []
+      const session = {
+        id: 'chat_new',
+        user_id: 'usr_flow',
+        profile_id: 'person-1',
+        skill: 'liki',
+        expert: 'natal',
+        title: '张三 · 命理',
+        status: 'active',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-02T00:00:00Z',
+        last_message_at: null,
+      }
       await page.route('**/api/chat/sessions', async route => {
         if (route.request().method() !== 'POST') return route.fallback()
         createdSessions.push(route.request().postDataJSON())
-        return route.fulfill({ json: { data: {
-          id: 'chat_new',
-          user_id: 'usr_flow',
-          profile_id: 'person-1',
-          skill: 'liki',
-          expert: 'natal',
-          title: '张三 · 命理',
-          status: 'active',
-          created_at: '2026-01-01T00:00:00Z',
-          updated_at: '2026-01-02T00:00:00Z',
-          last_message_at: null,
-        } } })
+        return route.fulfill({ json: { data: session } })
       })
-      await page.route(/\/rt\/natal\/ag-ui$/, route => route.fulfill({
-        status: 200,
-        contentType: 'text/event-stream',
-        body: sseAnswer('先看你的八字，日主偏弱。'),
-      }))
+      await mockBFFChatMessage(page, {
+        session,
+        answer: '先看你的八字，日主偏弱。',
+      })
       await page.route('**/api/chat/sessions/chat_new/messages', route => route.fulfill({
         json: { data: { messages: [], next_cursor: '' } },
       }))

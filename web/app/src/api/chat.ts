@@ -126,7 +126,7 @@ export async function streamChatMessage(
     onCustomEvent({ event }) {
       // The BFF emits a non-domain phase fact with the raw tool name. Unknown
       // custom events are ignored for forward compatibility.
-      if (event.name === 'agent.runtime.phase') {
+      if (event.name === 'hk.liki.phase') {
         if (typeof event.value === 'string' && event.value) {
           onEvent({ type: 'phase', content: event.value })
         }
