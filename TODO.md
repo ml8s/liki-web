@@ -6,9 +6,9 @@ Updated: 2026-10-28
 
 - Branch: `feat/app-flow-redesign`
 - PR: [#8](https://github.com/ml8s/liki-web/pull/8)
-- State: BFF-only transport hardening implemented locally. `make check`,
-  `make test`, `make e2e-a11y`, and the 22 targeted chat/domain-flow E2E
-  journeys are green (2026-10-28).
+- State: BFF-only transport hardening is implemented and pushed. `make check`,
+  `make test`, `make e2e-a11y`, and Docker full-stack `make e2e` are green
+  (2026-10-28); the Docker matrix covers 282 Playwright cases.
 - Backend contract: four experts (`natal`, `divination`, `fengshui`,
   `naming`) plus seven durable consultation context scenarios. The scenario
   list is not a seven-product API. `huangli` is still mapped to
