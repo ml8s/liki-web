@@ -23,7 +23,7 @@ test.describe('marketing route contract', () => {
   for (const route of marketingContract.retired) {
     test(`${route.path} remains retired`, async ({ request }) => {
       const response = await request.get(route.path, { maxRedirects: 0 })
-      expect(response.status()).toBe(route.status)
+      expect(response.status(), `${route.path} location=${response.headers().location ?? ''}`).toBe(route.status)
     })
   }
 })

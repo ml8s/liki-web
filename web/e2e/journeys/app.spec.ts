@@ -3,16 +3,23 @@ import { json, mockWorkspace } from '../mocks'
 
 test.use({ locale: 'zh-Hant' });
 
+// Unauthenticated checks exercise the public App paths, including redirects.
 const protectedPages = [
-  { path: '/app/', heading: '工作台' },
-  { path: '/app/birth-profiles', heading: '檔案' },
-  { path: '/app/hepan', heading: '合盤' },
-  { path: '/app/divination', heading: '問卦' },
-  { path: '/app/fengshui', heading: '風水' },
-  { path: '/app/huangli', heading: '擇日' },
-  { path: '/app/chat', heading: 'Liki Chat' },
-  { path: '/app/orders', heading: '訂單' },
-  { path: '/app/account', heading: '帳戶設定' },
+  '/app/', '/app/birth-profiles', '/app/hepan', '/app/divination', '/app/fengshui',
+  '/app/huangli', '/app/chat', '/app/orders', '/app/account',
+];
+
+// Headings use the canonical routes that remain after rollout redirects.
+const canonicalPages = [
+  { path: '/app/', title: '領域諮詢', heading: '妈妈' },
+  { path: '/app/classic/birth-profiles', title: '檔案', heading: '檔案' },
+  { path: '/app/classic/hepan', title: '合盤', heading: '合盤' },
+  { path: '/app/classic/divination', title: '問卦', heading: '問卦' },
+  { path: '/app/classic/fengshui', title: '風水', heading: '風水' },
+  { path: '/app/classic/huangli', title: '擇日', heading: '擇日' },
+  { path: '/app/classic/chat', title: 'Liki Chat', heading: 'Liki Chat' },
+  { path: '/app/classic/orders', title: '訂單', heading: '訂單' },
+  { path: '/app/classic/account', title: '帳戶設定', heading: '帳戶設定' },
 ];
 
 
@@ -36,7 +43,7 @@ test.describe('Authenticated app shell', () => {
       body: JSON.stringify({ type: 'about:blank', title: 'unauthenticated', status: 401 }),
     }));
 
-    for (const { path } of protectedPages) {
+    for (const path of protectedPages) {
       await page.goto(path);
       await expect(page).toHaveURL(/\/app\/login/);
     }
@@ -62,10 +69,10 @@ test.describe('Authenticated app shell', () => {
     await page.route('**/api/me/sessions', async route => route.fulfill(json([])));
     await page.route('**/api/me/auth/identities', async route => route.fulfill(json([])));
 
-    for (const { path, heading } of protectedPages) {
+    for (const { path, title, heading } of canonicalPages) {
       await page.goto(path);
       // 标签标题＝页面名（页名里已含站点名的不再重复追加）＋ 站点名。
-      await expect(page).toHaveTitle(heading.includes('Liki') ? heading : `${heading} · Liki`);
+      await expect(page).toHaveTitle(title.includes('Liki') ? title : `${title} · Liki`);
       await expect(page.getByRole('heading', { name: heading, exact: true, level: 1 })).toBeVisible();
     }
   });
@@ -141,7 +148,7 @@ test('paid return confirms entitlement and jumps straight into a session', async
 
   await page.goto('/app/chat?order_id=order_1&status=paid&payment_intent_id=pi_1&status_token=token');
   // 权益确认后自动用默认 skill 建会话并直达。
-  await expect(page).toHaveURL(/\/app\/chat\/chat_new$/);
+  await expect(page).toHaveURL(/\/app\/classic\/chat\/chat_new$/);
   await expect(page.getByRole('heading', { name: '八字紫微咨询' })).toBeVisible();
 });
 

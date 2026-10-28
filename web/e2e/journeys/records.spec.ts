@@ -74,7 +74,7 @@ test('问卦自动保存记录，打开历史回放快照不再重摇', async ({
     return route.fulfill(json({ records: [] }))
   })
 
-  await page.goto('/app/divination')
+  await page.goto('/app/classic/divination')
   await page.locator('textarea[placeholder*="項目"]').fill('這個項目能成嗎')
   await page.locator('input[name="casting-place"]').fill('上海')
   await page.locator('input[name="casting-place"]').blur()
@@ -124,7 +124,7 @@ test('问卦缺少完整地点时不调用排盘引擎', async ({ page }) => {
   await mockEngines(page)
   const counts = countEngineCalls(page)
 
-  await page.goto('/app/divination')
+  await page.goto('/app/classic/divination')
   await page.locator('textarea[placeholder*="項目"]').fill('這個項目能成嗎')
   await page.getByRole('button', { name: '搖卦', exact: true }).click()
 
@@ -137,7 +137,7 @@ test('浏览器定位只预填可见表单，仍可手动修改', async ({ page 
   await page.context().grantPermissions(['geolocation'])
   await page.context().setGeolocation({ latitude: 31.2304, longitude: 121.4726 })
 
-  await page.goto('/app/divination')
+  await page.goto('/app/classic/divination')
   await page.getByRole('button', { name: '使用當前定位' }).click()
   await expect(page.locator('input[name="casting-place"]')).toHaveValue('當前設備位置')
   await page.getByRole('button', { name: '手動填寫經度' }).click()
@@ -174,7 +174,7 @@ test('择日记录行操作：打开重算、重命名、删除', async ({ page 
     return route.fulfill(json({ records: list }))
   })
 
-  await page.goto('/app/huangli')
+  await page.goto('/app/classic/huangli')
   const historyCard = page.locator('.app-card', { hasText: '歷史記錄' })
   await expect(historyCard).toContainText('擇日 · 婚禮 · 2026-10-01')
 

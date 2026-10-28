@@ -52,13 +52,15 @@ test.describe('Authenticated scenario handoff', () => {
   test('naming and hepan reach their App workspaces in English', async ({ page }) => {
     await mockAuthenticated(page)
     await page.goto('/app?scenario=naming&locale=en')
-    await expect(page).toHaveURL(/\/app\/chat/)
-    await expect(page.getByRole('heading', { level: 1, name: 'Liki Chat' })).toBeVisible()
+    await expect(page).toHaveURL('/app/?scenario=naming&locale=en')
+    await expect(page.getByRole('heading', { level: 1, name: 'Mom' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Naming' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 
     await page.goto('/app?scenario=hepan&locale=en')
-    await expect(page).toHaveURL(/\/app\/hepan/)
-    await expect(page.getByRole('heading', { level: 1, name: 'Compatibility' })).toBeVisible()
+    await expect(page).toHaveURL('/app/?scenario=hepan&locale=en')
+    await expect(page.getByRole('heading', { level: 2, name: 'Compatibility' })).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   })
 
 })

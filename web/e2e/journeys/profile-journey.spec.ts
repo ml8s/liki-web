@@ -68,9 +68,10 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
   await page.getByRole('button', { name: /儲存檔案/ }).click()
   const saveResponse = await saveResponsePromise
   if (!saveResponse.ok()) {
-    throw new Error(`profile create failed: ${saveResponse.status()} ${await saveResponse.text()}`)
+    const requestBody = await saveResponse.request().postDataJSON()
+    throw new Error(`profile create failed: ${saveResponse.status()} ${await saveResponse.text()} body=${JSON.stringify(requestBody)}`)
   }
-  await page.waitForURL(/\/app\/birth-profiles\/[a-f0-9-]+/, { timeout: 15000 })
+  await page.waitForURL(/\/app\/classic\/birth-profiles\/[a-f0-9-]+/, { timeout: 15000 })
 
   // 详情页：档案信息已持久化。排盘渲染依赖 engine 集成，由
   // engine-contract.spec（mock 形状）与 deploy assembly E2E（真实引擎）覆盖，
