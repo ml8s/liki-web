@@ -2,7 +2,7 @@ import type { LocationQuery, RouteRecordRaw } from 'vue-router'
 import AppLayout from '@/views/AppLayout.vue'
 import MeView from '@/views/MeView.vue'
 import { appFlowRedesignEnabled } from '@/utils/featureFlags'
-import type { AppExperience } from './experience'
+import { readPreferredAppExperience, type AppExperience } from '@/router/experience'
 
 function withExperience(
   route: RouteRecordRaw,
@@ -53,24 +53,20 @@ export function createClassicAppRoutes(): RouteRecordRaw[] {
 
 export interface ConsultationRoutesOptions {
   enabled?: boolean
-  /** Preview mode keeps `/consultation` as an alias of the `/app` root. */
-  includePreviewAlias?: boolean
 }
 
 /**
  * Consultation owns the four-domain experience. Its canonical public path is
- * `/app`; `/app/consultation` is a transition alias, not the implementation
- * term "flow".
+ * `/app/consultation`; the bare `/app` root redirects to the user's preferred
+ * template (see createAppExperienceRoutes).
  */
 export function createConsultationAppRoutes({
   enabled = appFlowRedesignEnabled,
-  includePreviewAlias = true,
 }: ConsultationRoutesOptions = {}): RouteRecordRaw[] {
   if (!enabled) return []
 
   return ([{
-    path: '',
-    alias: includePreviewAlias ? 'consultation' : undefined,
+    path: 'consultation',
     name: 'app-consultation',
     component: () => import('@/views/DomainFlowView.vue'),
     meta: {
@@ -179,9 +175,12 @@ export interface AppExperienceRoutesOptions {
 }
 
 /**
- * Rollback mode keeps the original App at `/app`. Preview mode makes
- * Consultation the default, moves Classic to `/classic`, and redirects old
- * logged-in URLs across the boundary without changing public marketing URLs.
+ * Standard dual-template routing: both templates ship together, each owns a
+ * stable canonical subtree (consultation at `/app/consultation`, Classic at
+ * `/classic`), and the bare `/app` root redirects to the user's preferred
+ * template. Preference changes the redirect target only — URLs stay stable
+ * and switching is a plain navigation. Rollback mode (build flag off) keeps
+ * only the original Classic App.
  */
 export function createAppExperienceRoutes({
   consultationEnabled = appFlowRedesignEnabled,
@@ -192,9 +191,24 @@ export function createAppExperienceRoutes({
 
   return [
     appLayoutRoute('/', [
+      createAppRootRedirectRoute(),
       ...createConsultationAppRoutes({ enabled: true }),
       ...createLegacyAppRedirects(),
     ]),
     appLayoutRoute('/classic', createClassicAppRoutes()),
   ]
+}
+
+function createAppRootRedirectRoute(): RouteRecordRaw {
+  return {
+    path: '',
+    name: 'app-root',
+    redirect: () => ({
+      name: resolvePreferredAppExperience() === 'classic' ? 'dashboard' : 'app-consultation',
+    }),
+  }
+}
+
+function resolvePreferredAppExperience(): AppExperience {
+  return readPreferredAppExperience() ?? (appFlowRedesignEnabled ? 'consultation' : 'classic')
 }

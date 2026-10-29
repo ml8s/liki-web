@@ -788,7 +788,11 @@
       "title": "Account information",
       "status": "Status",
       "lastLogin": "Last sign-in",
-      "language": "Interface language"
+      "language": "Interface language",
+      "experience": "Default layout",
+      "experienceConsultation": "Consultation (new)",
+      "experienceClassic": "Classic",
+      "experienceHint": "Switch layouts anytime; the app reopens in the one you pick."
     },
     "status": {
       "active": "Active",

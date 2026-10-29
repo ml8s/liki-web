@@ -788,7 +788,11 @@
       "title": "账号信息",
       "status": "状态",
       "lastLogin": "最近登录",
-      "language": "界面语言"
+      "language": "界面语言",
+      "experience": "默认界面",
+      "experienceConsultation": "咨询（新版）",
+      "experienceClassic": "经典",
+      "experienceHint": "两种界面随时可切换；选择后立即以所选界面打开。"
     },
     "status": {
       "active": "正常",

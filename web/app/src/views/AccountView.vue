@@ -82,6 +82,27 @@
           />
         </el-select>
       </div>
+      <div class="language-row">
+        <span>{{ $t('account.info.experience') }}</span>
+        <el-select
+          :model-value="preferredExperience"
+          class="language-select"
+          :aria-label="$t('account.info.experience')"
+          @change="changeExperience"
+        >
+          <el-option
+            value="consultation"
+            :label="$t('account.info.experienceConsultation')"
+          />
+          <el-option
+            value="classic"
+            :label="$t('account.info.experienceClassic')"
+          />
+        </el-select>
+      </div>
+      <p class="experience-hint">
+        {{ $t('account.info.experienceHint') }}
+      </p>
     </el-card>
 
     <el-card
@@ -254,6 +275,12 @@ import { fetchSessions, revokeSession, revokeAllSessions, type SessionInfo } fro
 import { erasureAccount } from '@/api/account'
 import { formatDateTime } from '@/utils/format'
 import { setAppLocale, type AppLocale } from '@/i18n'
+import {
+  readPreferredAppExperience,
+  writePreferredAppExperience,
+  type AppExperience,
+} from '@/router/experience'
+import { appFlowRedesignEnabled } from '@/utils/featureFlags'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import AppEmptyState from '@/components/app/AppEmptyState.vue'
 
@@ -262,6 +289,9 @@ const router = useRouter()
 const { locale, t } = useI18n()
 
 const sessions = ref<SessionInfo[]>([])
+const preferredExperience = ref<AppExperience>(
+  appFlowRedesignEnabled ? 'consultation' : 'classic',
+)
 const loading = ref(false)
 const error = ref('')
 const revoking = ref(false)
@@ -290,6 +320,15 @@ function deviceLabel(userAgent: string) {
 
 async function changeLocale(value: AppLocale) {
   await setAppLocale(value)
+}
+
+onMounted(() => {
+  preferredExperience.value = readPreferredAppExperience() ?? preferredExperience.value
+})
+
+function changeExperience(value: AppExperience) {
+  writePreferredAppExperience(value)
+  void router.push({ name: value === 'classic' ? 'dashboard' : 'app-consultation' })
 }
 
 async function load() {
@@ -409,6 +448,12 @@ onMounted(load)
   font-size: var(--font-size-body);
 }
 .language-select { width: 180px; }
+
+.experience-hint {
+  margin: 12px 0 0;
+  color: var(--el-text-color-secondary);
+  font-size: var(--font-size-body, 14px);
+}
 .session-list { list-style: none; margin: 0; padding: 0; }
 .session-item {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;

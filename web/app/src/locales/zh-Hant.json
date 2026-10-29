@@ -788,7 +788,11 @@
       "title": "帳號資訊",
       "status": "狀態",
       "lastLogin": "最近登入",
-      "language": "介面語言"
+      "language": "介面語言",
+      "experience": "預設介面",
+      "experienceConsultation": "諮詢（新版）",
+      "experienceClassic": "經典",
+      "experienceHint": "兩種介面隨時可切換；選擇後立即以所選介面開啟。"
     },
     "status": {
       "active": "正常",

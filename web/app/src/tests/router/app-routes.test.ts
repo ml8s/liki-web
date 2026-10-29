@@ -4,6 +4,7 @@ import {
   createClassicAppRoutes,
   createConsultationAppRoutes,
 } from '@/router/appRoutes'
+import { readPreferredAppExperience, writePreferredAppExperience } from '@/router/experience'
 
 describe('app experience routes', () => {
   it('keeps the original logged-in routes as the maintenance Classic experience', () => {
@@ -30,12 +31,11 @@ describe('app experience routes', () => {
     expect(routes.every(route => route.meta?.experience === 'classic')).toBe(true)
   })
 
-  it('mounts consultation at the app root with a preview alias', () => {
+  it('mounts consultation at its stable canonical path', () => {
     const routes = createConsultationAppRoutes({ enabled: true })
 
     expect(routes).toHaveLength(2)
-    expect(routes[0]?.path).toBe('')
-    expect(routes[0]?.alias).toBe('consultation')
+    expect(routes[0]?.path).toBe('consultation')
     expect(routes[0]?.name).toBe('app-consultation')
     expect(routes[0]?.meta?.experience).toBe('consultation')
     expect(routes[0]?.meta?.viewportBound).toBe(true)
@@ -64,18 +64,20 @@ describe('app experience routes', () => {
     expect(routes[0]?.children?.every(route => route.meta?.experience === 'classic')).toBe(true)
   })
 
-  it('makes consultation the default and preserves classic behind a prefixed shell', async () => {
+  it('keeps stable template paths and redirects the bare root by preference', async () => {
     const routes = createAppExperienceRoutes({ consultationEnabled: true })
     const appRoot = routes[0]
     const classicRoot = routes[1]
 
     expect(appRoot?.path).toBe('/')
-    expect(appRoot?.children?.[0]?.name).toBe('app-consultation')
+    expect(appRoot?.children?.[0]?.name).toBe('app-root')
     expect(appRoot?.children?.[0]?.path).toBe('')
-    expect(appRoot?.children?.[1]?.name).toBe('app-me')
-    expect(appRoot?.children?.[1]?.path).toBe('me')
+    expect(appRoot?.children?.[1]?.name).toBe('app-consultation')
+    expect(appRoot?.children?.[1]?.path).toBe('consultation')
+    expect(appRoot?.children?.[2]?.name).toBe('app-me')
+    expect(appRoot?.children?.[2]?.path).toBe('me')
 
-    const redirects = appRoot?.children?.slice(2) ?? []
+    const redirects = appRoot?.children?.slice(3) ?? []
     expect(redirects.map(route => route.path)).toEqual([
       'hepan',
       'divination',
@@ -158,5 +160,36 @@ describe('app experience routes', () => {
     expect(classicRoot?.children).toHaveLength(15)
     expect(classicRoot?.children?.[0]?.name).toBe('dashboard')
     expect(classicRoot?.children?.every(route => route.meta?.experience === 'classic')).toBe(true)
+  })
+
+  it('redirects the bare root to the saved template preference', () => {
+    const routes = createAppExperienceRoutes({ consultationEnabled: true })
+    const rootRedirect = routes[0]?.children?.find(route => route.name === 'app-root')
+    const resolve = rootRedirect?.redirect as () => { name: string }
+
+    // The unset preference must fall back to the build default — whatever the
+    // current build flags say — and saved preferences override both ways.
+    localStorage.removeItem('liki.preferred-app-experience')
+    const buildDefault = import.meta.env.VITE_FEATURE_APP_FLOW_REDESIGN === 'true'
+      ? 'app-consultation'
+      : 'dashboard'
+    expect(resolve().name).toBe(buildDefault)
+
+    writePreferredAppExperience('consultation')
+    expect(resolve().name).toBe('app-consultation')
+
+    writePreferredAppExperience('classic')
+    expect(resolve().name).toBe('dashboard')
+  })
+
+  it('persists and restores the template preference, ignoring malformed values', () => {
+    localStorage.removeItem('liki.preferred-app-experience')
+    expect(readPreferredAppExperience()).toBeNull()
+
+    writePreferredAppExperience('classic')
+    expect(readPreferredAppExperience()).toBe('classic')
+
+    localStorage.setItem('liki.preferred-app-experience', 'bogus')
+    expect(readPreferredAppExperience()).toBeNull()
   })
 })
