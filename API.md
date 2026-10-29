@@ -467,9 +467,8 @@ they never establish a session or grant an entitlement.
 | GET | `/api/version` | public | Build time and version |
 | GET | `/metrics` | token | Prometheus text exposition version 0.0.4 |
 
-Metrics are disabled when `LIKI_METRICS_TOKEN` is empty; the endpoint returns
-404. Wrong bearer credentials return 403. Public gateways must not expose
-`/metrics`; operators access it through the internal service network.
+The service always renders Prometheus text exposition. Public gateways must not
+expose `/metrics`; operators access it through the internal service network.
 
 `POST /api/client-errors` is a bounded, PII-free telemetry surface. Payloads
 must never contain birth data, chat content, email addresses, or raw provider

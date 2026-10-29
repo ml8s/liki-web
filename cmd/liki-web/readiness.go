@@ -12,10 +12,10 @@ import (
 
 var readinessClient = &http.Client{Timeout: 2 * time.Second}
 
-// agentOpsURL derives the runtime ops surface URL (readiness/metrics) from the
+// expertOpsURL derives the runtime ops surface URL (readiness/metrics) from the
 // expert API URL: /readyz lives on the runtime's dedicated ops listener, not on
 // the protocol port.
-func agentOpsURL(agentURL, opsPort string) string {
+func expertOpsURL(agentURL, opsPort string) string {
 	parsed, err := url.Parse(agentURL)
 	if err != nil || parsed.Host == "" || opsPort == "" {
 		return agentURL

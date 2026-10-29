@@ -30,16 +30,16 @@ func TestAgentOpsURLPointsAtTheOpsListener(t *testing.T) {
 		"https://experts-natal:8083": "https://experts-natal:8085",
 	}
 	for input, want := range cases {
-		if got := agentOpsURL(input, "8085"); got != want {
-			t.Fatalf("agentOpsURL(%q) = %q, want %q", input, got, want)
+		if got := expertOpsURL(input, "8085"); got != want {
+			t.Fatalf("expertOpsURL(%q) = %q, want %q", input, got, want)
 		}
 	}
 	// 无法解析或缺少端口配置时原样返回（由就绪检查显式报错）。
-	if got := agentOpsURL("::bad::", "8085"); got != "::bad::" {
-		t.Fatalf("agentOpsURL(invalid) = %q", got)
+	if got := expertOpsURL("::bad::", "8085"); got != "::bad::" {
+		t.Fatalf("expertOpsURL(invalid) = %q", got)
 	}
-	if got := agentOpsURL("http://experts-natal:8083", ""); got != "http://experts-natal:8083" {
-		t.Fatalf("agentOpsURL(no ops port) = %q", got)
+	if got := expertOpsURL("http://experts-natal:8083", ""); got != "http://experts-natal:8083" {
+		t.Fatalf("expertOpsURL(no ops port) = %q", got)
 	}
 }
 

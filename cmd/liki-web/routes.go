@@ -67,7 +67,7 @@ func newHTTPHandler(wiring httpWiring) (http.Handler, *account.Handler) {
 			}
 		}
 		for _, expert := range chat.ExpertOrder {
-			if err := checkAgentReadiness(ctx, agentOpsURL(wiring.config.AgentURLs[expert], wiring.config.AgentsOpsPort)); err != nil {
+			if err := checkAgentReadiness(ctx, expertOpsURL(wiring.config.ExpertURLs[expert], wiring.config.ExpertsOpsPort)); err != nil {
 				return fmt.Errorf("expert %s: %w", expert, err)
 			}
 		}
@@ -143,7 +143,7 @@ func newHTTPHandler(wiring httpWiring) (http.Handler, *account.Handler) {
 		SalesStores:          sales.NewSalesStores(wiring.orders, wiring.subscriptions),
 		CompensationNotifier: wiring.payments.CompensationNotifier,
 		PartnerNotifier:      wiring.partnerNotifier,
-		MetricsHandler:       metrics.Handler(wiring.config.MetricsToken),
+		MetricsHandler:       metrics.Handler(),
 		Readiness:            readiness,
 		DevMode:              wiring.config.DevelopmentMode,
 	}, BuildTime, Version, wiring.rateLimiter, wiring.verifyLimiter)

@@ -9,27 +9,14 @@ import (
 	"github.com/ml8s/liki-web/internal/metrics"
 )
 
-func TestHandlerRequiresToken(t *testing.T) {
-	handler := metrics.Handler("")
+func TestHandlerIgnoresAuthorization(t *testing.T) {
+	handler := metrics.Handler()
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req.Header.Set("Authorization", "Bearer stale-secret")
 	rec := httptest.NewRecorder()
 	handler(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("empty token = %d, want 404", rec.Code)
-	}
-}
-
-func TestHandlerRejectsIncorrectBearerToken(t *testing.T) {
-	handler := metrics.Handler("secret")
-	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
-	req.Header.Set("Authorization", "Bearer not-secret")
-	rec := httptest.NewRecorder()
-	handler(rec, req)
-	if rec.Code != http.StatusForbidden {
-		t.Fatalf("status = %d, want 403", rec.Code)
-	}
-	if got := rec.Header().Get("WWW-Authenticate"); got != "Bearer" {
-		t.Fatalf("www-authenticate = %q, want Bearer", got)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
 	}
 }
 
@@ -38,7 +25,7 @@ func TestHandlerReturnsPrometheusExposition(t *testing.T) {
 	metrics.Default.ObserveDurationSeconds(
 		"test_duration_seconds_total", map[string]string{"result": "ok"}, 0.125,
 	)
-	handler := metrics.Handler("secret")
+	handler := metrics.Handler()
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	req.Header.Set("Authorization", "Bearer secret")
 	rec := httptest.NewRecorder()
@@ -79,7 +66,7 @@ func TestRenderPrometheusUsesContractNamesAndSeconds(t *testing.T) {
 
 func TestHandlerPrometheusIgnoresFormatParameter(t *testing.T) {
 	metrics.Default.Inc("test_prom_total", map[string]string{"result": "ok"})
-	handler := metrics.Handler("secret")
+	handler := metrics.Handler()
 	req := httptest.NewRequest(http.MethodGet, "/metrics?format=json", nil)
 	req.Header.Set("Authorization", "Bearer secret")
 	rec := httptest.NewRecorder()

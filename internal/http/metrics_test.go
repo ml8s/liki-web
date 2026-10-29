@@ -54,7 +54,7 @@ func TestMetricsRouteContract(t *testing.T) {
 	mux := http.NewServeMux()
 	limiter := NewRateLimiter()
 	t.Cleanup(limiter.Stop)
-	RegisterRoutes(mux, ServerDeps{MetricsHandler: metrics.Handler("secret")}, "test", "dev", limiter, limiter)
+	RegisterRoutes(mux, ServerDeps{MetricsHandler: metrics.Handler()}, "test", "dev", limiter, limiter)
 	handler := Metrics(mux)
 
 	assertStatus := func(authorization string, want int) {
@@ -69,9 +69,8 @@ func TestMetricsRouteContract(t *testing.T) {
 			t.Fatalf("authorization %q: status = %d, want %d", authorization, recorder.Code, want)
 		}
 	}
-	assertStatus("", http.StatusForbidden)
-	assertStatus("Bearer wrong", http.StatusForbidden)
-	assertStatus("Bearer secret", http.StatusOK)
+	assertStatus("", http.StatusOK)
+	assertStatus("Bearer wrong", http.StatusOK)
 
 	request := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	request.Header.Set("Authorization", "Bearer secret")

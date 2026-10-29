@@ -3,7 +3,6 @@
 package metrics
 
 import (
-	"crypto/subtle"
 	"fmt"
 	"maps"
 	"net/http"
@@ -173,21 +172,10 @@ func escapePrometheusLabelValue(value string) string {
 	return strings.ReplaceAll(value, `"`, `\"`)
 }
 
-// Handler rejects all requests when no token is configured. Authentication uses
-// a bearer token only, keeping the secret out of URLs and access logs. Successful
-// output is always Prometheus text exposition version 0.0.4.
-func Handler(token string) http.HandlerFunc {
+// Handler always serves Prometheus text exposition version 0.0.4. Exposure is
+// owned by deployment topology: the public edge never proxies this endpoint.
+func Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if token == "" {
-			http.NotFound(w, r)
-			return
-		}
-		expected := "Bearer " + token
-		if subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte(expected)) != 1 {
-			w.Header().Set("WWW-Authenticate", "Bearer")
-			http.Error(w, "forbidden", http.StatusForbidden)
-			return
-		}
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 		_, _ = w.Write([]byte(RenderPrometheus(Default.Snapshot(), Default.DurationSnapshot())))
 	}

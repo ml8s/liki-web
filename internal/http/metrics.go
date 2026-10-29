@@ -28,6 +28,13 @@ func (r *statusRecorder) Write(b []byte) (int, error) {
 	return r.ResponseWriter.Write(b)
 }
 
+// Flush is required by SSE routes such as the AG-UI BFF.
+func (r *statusRecorder) Flush() {
+	if flusher, ok := r.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 // Metrics 记录按「路由模板 × 方法 × 状态类」的请求数与累计耗时（秒）。
 // 路由模板取自 ServeMux 的 r.Pattern（低基数，绝不使用原始 path）；
 // 未匹配到路由的请求归入 "unmatched"。

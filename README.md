@@ -89,11 +89,10 @@ automated gate.
 | `LIKI_PAYMENT_WEBHOOK_URL` | Provider webhook URL |
 | `DODO_API_KEY`, `DODO_WEBHOOK_KEY`, `DODO_PRODUCT_LIKI_CHAT_ONE_TIME`, `DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION` | Dodo configuration |
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
-| `LIKI_AGENTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`, `LIKI_AGENTS_INTERNAL_TOKEN` | AG-UI runtime per expert deployment (`LIKI_AGENTS_URL` = dev fallback) |
-| `LIKI_AGENTS_OPS_PORT` | Expert ops surface port (`/readyz` / `/version` / `/metrics`) used by readiness probes |
+| `LIKI_EXPERTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`, `LIKI_EXPERTS_TOKEN` | AG-UI runtime per expert deployment (`LIKI_EXPERTS_URL` = dev fallback) |
+| `LIKI_EXPERTS_OPS_PORT` | Expert ops surface port (`/readyz` / `/version` / `/metrics`) used by readiness probes |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
 | `LIKI_BILLING_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
-| `LIKI_METRICS_TOKEN` | Protects the internal `/metrics` Prometheus endpoint |
 | `LIKI_FEEDBACK_API_TOKEN` | Reads and updates feedback records |
 
 Never commit real environment files or secrets.

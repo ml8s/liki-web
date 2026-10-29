@@ -17,7 +17,6 @@ import (
 type Config struct {
 	DataDir                          string
 	AdminEmail                       string
-	MetricsToken                     string
 	FeedbackAPIKey                   string
 	ResendAPIKey                     string
 	ResendFrom                       string
@@ -30,10 +29,10 @@ type Config struct {
 	XunhuAppSecret                   string
 	PaymentWebhookURL                string
 	AlipayConfig                     aipay.Config
-	AgentURLs                        map[string]string
-	AgentInternalToken               string
-	AgentsOpsPort                    string
-	AgentTimeoutSeconds              int
+	ExpertURLs                       map[string]string
+	ExpertsToken                     string
+	ExpertsOpsPort                   string
+	ExpertsTimeoutSeconds            int
 	PublicBaseURL                    string
 	JWTSecret                        string
 	HTTPListenAddress                string
@@ -57,7 +56,6 @@ func LoadConfig() Config {
 	return Config{
 		DataDir:                          envOr("LIKI_DATA_DIR", "/var/lib/liki"),
 		AdminEmail:                       os.Getenv("LIKI_ADMIN_EMAIL"),
-		MetricsToken:                     os.Getenv("LIKI_METRICS_TOKEN"),
 		FeedbackAPIKey:                   os.Getenv("LIKI_FEEDBACK_API_TOKEN"),
 		ResendAPIKey:                     os.Getenv("RESEND_API_KEY"),
 		ResendFrom:                       envOr("LIKI_EMAIL_FROM_ADDRESS", "Liki <report@liki.email>"),
@@ -70,10 +68,10 @@ func LoadConfig() Config {
 		XunhuAppSecret:                   envOr("XUNHU_APPSECRET", ""),
 		PaymentWebhookURL:                envOr("LIKI_PAYMENT_WEBHOOK_URL", strings.TrimSuffix(envOr("LIKI_PUBLIC_BASE_URL", ""), "/")+"/api/payments/webhook"),
 		AlipayConfig:                     loadAlipayConfig(),
-		AgentURLs:                        loadAgentURLs(),
-		AgentsOpsPort:                    envOr("LIKI_AGENTS_OPS_PORT", "8085"),
-		AgentInternalToken:               os.Getenv("LIKI_AGENTS_INTERNAL_TOKEN"),
-		AgentTimeoutSeconds:              envOrInt("LIKI_AGENTS_TIMEOUT_SECONDS", 600),
+		ExpertURLs:                       loadExpertURLs(),
+		ExpertsOpsPort:                   envOr("LIKI_EXPERTS_OPS_PORT", "8085"),
+		ExpertsToken:                     os.Getenv("LIKI_EXPERTS_TOKEN"),
+		ExpertsTimeoutSeconds:            envOrInt("LIKI_EXPERTS_TIMEOUT_SECONDS", 600),
 		PublicBaseURL:                    envOr("LIKI_PUBLIC_BASE_URL", ""),
 		JWTSecret:                        os.Getenv("JWT_SECRET"),
 		HTTPListenAddress:                envOr("LIKI_HTTP_LISTEN_ADDRESS", ":8081"),
@@ -193,24 +191,24 @@ func validateRuntimeURLs(cfg Config) error {
 		errs = append(errs, err)
 	}
 	for _, expert := range chat.ExpertOrder {
-		name := "LIKI_AGENTS_" + strings.ToUpper(expert) + "_URL"
-		if err := validateHTTPURL(name, cfg.AgentURLs[expert]); err != nil {
+		name := "LIKI_EXPERTS_" + strings.ToUpper(expert) + "_URL"
+		if err := validateHTTPURL(name, cfg.ExpertURLs[expert]); err != nil {
 			errs = append(errs, err)
 		}
 	}
 	return errors.Join(errs...)
 }
 
-// loadAgentURLs resolves the per-expert runtime endpoints. LIKI_AGENTS_URL is
+// loadExpertURLs resolves the per-expert runtime endpoints. LIKI_EXPERTS_URL is
 // a fallback for single-deployment development only; production sets one URL
 // per expert service.
-func loadAgentURLs() map[string]string {
-	fallback := strings.TrimRight(envOr("LIKI_AGENTS_URL", ""), "/")
+func loadExpertURLs() map[string]string {
+	fallback := strings.TrimRight(envOr("LIKI_EXPERTS_URL", ""), "/")
 	return map[string]string{
-		chat.ExpertNatal:      strings.TrimRight(envOr("LIKI_AGENTS_NATAL_URL", fallback), "/"),
-		chat.ExpertDivination: strings.TrimRight(envOr("LIKI_AGENTS_DIVINATION_URL", fallback), "/"),
-		chat.ExpertFengshui:   strings.TrimRight(envOr("LIKI_AGENTS_FENGSHUI_URL", fallback), "/"),
-		chat.ExpertNaming:     strings.TrimRight(envOr("LIKI_AGENTS_NAMING_URL", fallback), "/"),
+		chat.ExpertNatal:      strings.TrimRight(envOr("LIKI_EXPERTS_NATAL_URL", fallback), "/"),
+		chat.ExpertDivination: strings.TrimRight(envOr("LIKI_EXPERTS_DIVINATION_URL", fallback), "/"),
+		chat.ExpertFengshui:   strings.TrimRight(envOr("LIKI_EXPERTS_FENGSHUI_URL", fallback), "/"),
+		chat.ExpertNaming:     strings.TrimRight(envOr("LIKI_EXPERTS_NAMING_URL", fallback), "/"),
 	}
 }
 

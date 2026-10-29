@@ -49,22 +49,22 @@ func newChatWiring(
 }
 
 func newAgentRunners(config Config) (map[string]chat.Runner, error) {
-	if config.AgentInternalToken == "" {
-		return nil, errors.New("LIKI_AGENTS_INTERNAL_TOKEN is required")
+	if config.ExpertsToken == "" {
+		return nil, errors.New("LIKI_EXPERTS_TOKEN is required")
 	}
-	timeout := time.Duration(config.AgentTimeoutSeconds) * time.Second
+	timeout := time.Duration(config.ExpertsTimeoutSeconds) * time.Second
 	if timeout <= 0 || timeout > maxAgentRunTimeout {
 		timeout = maxAgentRunTimeout
 	}
 	runners := make(map[string]chat.Runner, len(chat.ExpertOrder))
 	for _, expert := range chat.ExpertOrder {
-		baseURL := config.AgentURLs[expert]
+		baseURL := config.ExpertURLs[expert]
 		if baseURL == "" {
-			return nil, fmt.Errorf("missing agent endpoint: expert=%s env=LIKI_AGENTS_%s_URL", expert, strings.ToUpper(expert))
+			return nil, fmt.Errorf("missing expert endpoint: expert=%s env=LIKI_EXPERTS_%s_URL", expert, strings.ToUpper(expert))
 		}
 		runner, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
 			BaseURL: baseURL,
-			Token:   config.AgentInternalToken,
+			Token:   config.ExpertsToken,
 			Timeout: timeout,
 			Product: "liki",
 		})
