@@ -1861,18 +1861,18 @@ function routeEngine(page: Page) {
       case ENGINE_TOOLS.CityCoords: data = { candidates: [{ name: '上海', region: '上海市', country: '中国', level: 'city', longitude: 121.47, latitude: 31.23, timezone: 'Asia/Shanghai' }] }; break
       case ENGINE_TOOLS.BaziChart: data = baziChart; break
       case ENGINE_TOOLS.BaziFullChart: data = baziFull; break
-      case ENGINE_TOOLS.BaziLiuNian: data = baziLiunian; break
+      case ENGINE_TOOLS.BaziLiuNian: data = { items: [baziLiunian] }; break
       case ENGINE_TOOLS.ZiweiChart: data = ziweiChart; break
       case ENGINE_TOOLS.ZiweiFullChart: data = ziweiFull; break
-      case ENGINE_TOOLS.ZiweiDaXian: data = ziweiDaXian; break
-      case ENGINE_TOOLS.ZiweiLiuNian: data = ziweiLiuNian; break
+      case ENGINE_TOOLS.ZiweiDaXian: data = { items: ziweiDaXian }; break
+      case ENGINE_TOOLS.ZiweiLiuNian: data = { items: [ziweiLiuNian] }; break
       case ENGINE_TOOLS.BazhaiChart: data = bazhai; break
       case ENGINE_TOOLS.BazhaiLayout: data = bazhaiLayout; break
       case ENGINE_TOOLS.XuankongChart: data = xuankongChart; break
       case ENGINE_TOOLS.BaziBond: data = bond; break
       case ENGINE_TOOLS.LiuyaoQigua: data = { casting: liuyaoCasting }; break
       case ENGINE_TOOLS.LiuyaoChart: data = liuyaoSnapshot; break
-      case ENGINE_TOOLS.HuangliDays: data = huangliDays; break
+      case ENGINE_TOOLS.HuangliDays: data = { items: huangliDays }; break
       default: data = {}
     }
     return route.fulfill({ json: { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: JSON.stringify(data) }] } } })

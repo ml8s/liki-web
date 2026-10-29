@@ -477,12 +477,12 @@ export function engineBaziLiunian(
   chart: unknown,
   standardTime: string,
   count = 1,
-): Promise<BaziLiuNianOutput> {
-  return mcpTool<BaziLiuNianOutput>(ENGINE_TOOLS.BaziLiuNian, {
+): Promise<BaziLiuNianOutput[]> {
+  return mcpTool<{ items: BaziLiuNianOutput[] }>(ENGINE_TOOLS.BaziLiuNian, {
     standard_time: standardTime,
     count,
     chart,
-  })
+  }).then(result => result.items)
 }
 
 // ── xuankong.chart（玄空飞星宅盘）──

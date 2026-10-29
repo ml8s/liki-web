@@ -160,7 +160,7 @@ export function baziLiunianFor(
   chart: BaziChartData,
   year: number,
 ): Promise<BaziLiuNianOutput> {
-  return engineBaziLiunian(chart, yearToStandardTime(year))
+  return engineBaziLiunian(chart, yearToStandardTime(year)).then(([item]) => item)
 }
 
 /** Full Ziwei chart + lunar year -> annual palace chart. */
@@ -168,5 +168,5 @@ export function ziweiLiunianFor(
   chart: ZiweiChart,
   lunarYear: number,
 ): Promise<ZiweiLiuNianData> {
-  return engineZiweiLiuNian(chart, yearToStandardTime(lunarYear))
+  return engineZiweiLiuNian(chart, yearToStandardTime(lunarYear)).then(([item]) => item)
 }

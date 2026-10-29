@@ -107,8 +107,9 @@ export interface ZiweiDaXianItem {
   end_year?: number
 }
 
-export function engineZiweiDaXian(chart: unknown): Promise<ZiweiDaXianItem[]> {
-  return mcpTool<ZiweiDaXianItem[]>(ENGINE_TOOLS.ZiweiDaXian, { chart })
+export async function engineZiweiDaXian(chart: unknown): Promise<ZiweiDaXianItem[]> {
+  const result = await mcpTool<{ items: ZiweiDaXianItem[] }>(ENGINE_TOOLS.ZiweiDaXian, { chart })
+  return result.items
 }
 
 /** 流年十二宫（ziwei.liunian；gong_wei 为流年盘宫名，ming_gong_name 为流年命宫落本命宫）。 */
@@ -133,10 +134,10 @@ export function engineZiweiLiuNian(
   chart: unknown,
   standardTime: string,
   count = 1,
-): Promise<ZiweiLiuNianData> {
-  return mcpTool<ZiweiLiuNianData>(ENGINE_TOOLS.ZiweiLiuNian, {
+): Promise<ZiweiLiuNianData[]> {
+  return mcpTool<{ items: ZiweiLiuNianData[] }>(ENGINE_TOOLS.ZiweiLiuNian, {
     standard_time: standardTime,
     count,
     chart,
-  })
+  }).then(result => result.items)
 }

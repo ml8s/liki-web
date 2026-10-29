@@ -208,7 +208,7 @@ describe('engine request contract', () => {
   })
 
   it('returns the parsed payload from the MCP content envelope', async () => {
-    stubFetch(mcpOk([{ date: '2026-10-11', suitability: 'recommended' }]))
+    stubFetch(mcpOk({ items: [{ date: '2026-10-11', suitability: 'recommended' }] }))
     await expect(engineHuangliDays('wedding', '2026-10-01', 1)).resolves.toEqual([
       { date: '2026-10-11', suitability: 'recommended' },
     ])
