@@ -15,7 +15,7 @@ const mcpOk = (data: unknown, status = 200): Response =>
     JSON.stringify({
       jsonrpc: '2.0',
       id: 1,
-      result: { content: [{ type: 'text', text: JSON.stringify(data) }] },
+      result: { content: [], structuredContent: data },
     }),
     { status },
   )

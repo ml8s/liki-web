@@ -17,7 +17,7 @@ describe('mcpTool', () => {
     const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => jsonResponse({
       jsonrpc: '2.0',
       id: 1,
-      result: { content: [{ type: 'text', text: '"ok"' }] },
+      result: { content: [], structuredContent: 'ok' },
     }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -41,7 +41,7 @@ describe('mcpTool', () => {
     const fetchMock = vi.fn(async () => jsonResponse({
       jsonrpc: '2.0',
       id: 1,
-      result: { content: [{ type: 'text', text: '{"answer":true}' }] },
+      result: { content: [], structuredContent: { answer: true } },
     }))
     vi.stubGlobal('fetch', fetchMock)
 

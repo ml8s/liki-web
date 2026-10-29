@@ -1875,7 +1875,7 @@ function routeEngine(page: Page) {
       case ENGINE_TOOLS.HuangliDays: data = { items: huangliDays }; break
       default: data = {}
     }
-    return route.fulfill({ json: { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: JSON.stringify(data) }] } } })
+    return route.fulfill({ json: { jsonrpc: '2.0', id: 1, result: { content: [], structuredContent: data } } })
   })
 }
 

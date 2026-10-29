@@ -10,7 +10,7 @@ const toolOk = (data: unknown) =>
     JSON.stringify({
       jsonrpc: '2.0',
       id: 1,
-      result: { content: [{ type: 'text', text: JSON.stringify(data) }] },
+      result: { content: [], structuredContent: data },
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } },
   )

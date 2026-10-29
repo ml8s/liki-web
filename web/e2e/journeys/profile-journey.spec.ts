@@ -35,16 +35,14 @@ test('create profile, see chart, see it listed', async ({ page, browser }) => {
           jsonrpc: '2.0',
           id: 1,
           result: {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                name: '杭州市', longitude: 120.1551, latitude: 30.2741, country: '浙江省',
-                candidates: [{
-                  name: '杭州市', region: '浙江省', country: '浙江省', level: 'city',
-                  longitude: 120.1551, latitude: 30.2741, timezone: 'Asia/Shanghai',
-                }],
-              }),
-            }],
+            content: [],
+            structuredContent: {
+              name: '杭州市', longitude: 120.1551, latitude: 30.2741, country: '浙江省',
+              candidates: [{
+                name: '杭州市', region: '浙江省', country: '浙江省', level: 'city',
+                longitude: 120.1551, latitude: 30.2741, timezone: 'Asia/Shanghai',
+              }],
+            },
           },
         }),
       })

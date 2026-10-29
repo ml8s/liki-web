@@ -9,7 +9,7 @@ export const COUNSEL_TOOLS = new Set<string>([
 ])
 
 interface EngineToolEnvelope {
-  result?: { content?: Array<{ type?: string; text?: string }>; isError?: boolean }
+  result?: { content?: Array<{ type?: string; text?: string }>; structuredContent?: unknown; isError?: boolean }
   error?: { code?: number; message?: string }
 }
 
@@ -83,14 +83,16 @@ export async function mcpTool<T = unknown>(tool: string, params: unknown): Promi
     reportClientError({ code, detail: envelope.error.message })
     throw new ApiError(response.status, code, envelope.error.message || 'Engine tool failed')
   }
-  const content = envelope.result?.content?.[0]
-  const text = content?.type === 'text' ? content.text : undefined
-  if (envelope.result?.isError || text === undefined) {
-    throw new ApiError(response.status, 'engine_tool_failed', text || 'Engine tool failed')
+  if (envelope.result?.isError) {
+    const detail = envelope.result.content?.find(c => c.type === 'text')?.text
+    throw new ApiError(response.status, 'engine_tool_failed', detail || 'Engine tool failed')
   }
-  try {
-    return JSON.parse(text) as T
-  } catch {
-    throw new ApiError(response.status, 'invalid_engine_response', 'Invalid engine response')
+  // Structured-only wire: every tool publishes a typed outputSchema and the
+  // duplicated text payload was removed; a missing structuredContent is a
+  // contract violation, not something to paper over with a text fallback.
+  const structured = envelope.result?.structuredContent
+  if (structured === undefined) {
+    throw new ApiError(response.status, 'invalid_engine_response', 'Engine tool result missing structuredContent')
   }
+  return structured as T
 }

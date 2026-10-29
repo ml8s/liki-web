@@ -58,7 +58,7 @@ export async function mockAdmin(page: Page, capabilities: string[]) {
 export const mcpOk = (data: unknown) => ({
   jsonrpc: '2.0',
   id: 1,
-  result: { content: [{ type: 'text', text: JSON.stringify(data) }] },
+  result: { content: [], structuredContent: data },
 })
 
 /** MCP 工具业务错误：HTTP 200 + isError（引擎/counsel 通用形态）。 */

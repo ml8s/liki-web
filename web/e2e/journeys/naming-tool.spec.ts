@@ -31,7 +31,7 @@ async function mockNamingEngine(page: Page) {
         : tool === 'bazi_chart'
           ? baziChart
           : {}
-    await route.fulfill({ json: { jsonrpc: '2.0', id: 1, result: { content: [{ type: 'text', text: JSON.stringify(data) }] } } })
+    await route.fulfill({ json: { jsonrpc: '2.0', id: 1, result: { content: [], structuredContent: data } } })
   })
   return calls
 }
