@@ -127,9 +127,13 @@ typecheck: ## astro check + e2e tsc + vue-tsc
 test-go: ## Go 测试
 	go test -race -count=1 ./...
 
-test-js: ## vitest（静态站点 + Vue SPA）
+test-js-static: ## vitest（静态站点 web/）
 	cd web && PATH="$(NODE_BIN):$$PATH" npm run test
+
+test-js-app: ## vitest（Vue SPA web/app）
 	cd web/app && PATH="$(NODE_BIN):$$PATH" npm run test
+
+test-js: test-js-static test-js-app ## vitest（静态站点 + Vue SPA）
 
 test-python: python-env ## Python helper tests
 	"$(PYTHON_BIN)" -m unittest discover -s scripts/tests -p 'test_*.py' -q

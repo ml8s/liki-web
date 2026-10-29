@@ -48,16 +48,16 @@ jobs:
           version: "2.10.2"
           sha512: "747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546"
 
-      - name: Lint Go (golangci-lint-action)
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
-        with:
-          version: v2.13.2
-          args: --timeout=3m
-
-      - name: make check (lint-go skipped, done by action above)
+      - name: Install pinned golangci-lint
+        # 单一版本源：deps/golangci-lint.version，与本地 make lint-go 共用。
         run: |
-          go vet ./...
-          make fmt-check lint-js lint-docs typecheck check-web-static check-security check-caddy check-actions
+          version="$(sed -n 's/^version:[[:space:]]*//p' deps/golangci-lint.version)"
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh \
+            | sh -s -- -b "$(go env GOPATH)/bin" "$version"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Run the local static gate
+        run: make check
 
   # ── race：Go 竞态检测（并行，从覆盖率闸门拆出：语义保留、墙钟不增）──
   race:
@@ -120,11 +120,40 @@ jobs:
           path: web/app/coverage
           if-no-files-found: error
 
-      - name: Install static site dependencies
-        run: cd web && npm ci
-
       - name: Static site tests
-        run: cd web && npm run test
+        run: make test-js-static
 
       - name: Python helper tests
         run: make test-python
+
+  # ── e2e-a11y：本地 make gate 的第三段（check + test + e2e-a11y），与 test 并行 ──
+  e2e-a11y:
+    runs-on: ubuntu-latest
+    needs: [check]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+          cache-dependency-path: |
+            web/package-lock.json
+            web/app/package-lock.json
+      - name: Install dependencies
+        run: |
+          cd web && npm ci
+          cd app && npm ci
+      - name: Install Playwright browsers
+        run: cd web && npx playwright install chromium
+      - name: Install caddy
+        uses: ./.github/actions/install-caddy
+        with:
+          version: "2.10.2"
+          sha512: "747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546"
+      - name: Accessibility E2E contract
+        run: make e2e-a11y
