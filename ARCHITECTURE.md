@@ -102,7 +102,7 @@ endpoints carry a rate-limit tier.
 Vue App sends AG-UI to /api/chat/sessions/{id}/ag-ui
 → liki-web checks identity, entitlement, session ownership, and rate limits
 → liki-web loads trusted persisted history
-→ liki-web routes the session to its profile's experts runtime
+→ liki-web routes the session to the single aggregate expert runtime
 → profile birth facts travel in trusted AG-UI forwardedProps, not system prompts
 → liki-web persists the authoritative final answer
 ```

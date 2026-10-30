@@ -31,8 +31,8 @@ docker run -d --name "$NAME" \
   -e LIKI_CHAT_SCOUT_REVENUE_SHARE_BASIS_POINTS=1000 \
   -e XUNHU_APPID=web-image-smoke \
   -e XUNHU_APPSECRET=web-image-smoke-secret \
-  -e LIKI_EXPERTS_URL=http://127.0.0.1:9 \
-  -e LIKI_EXPERTS_TOKEN=web-image-smoke-agent-token \
+  -e LIKI_EXPERT_URL=http://127.0.0.1:9 \
+  -e LIKI_EXPERT_TOKEN=web-image-smoke-agent-token \
   -e LIKI_DATA_DIR=/var/lib/liki \
   "$IMAGE" >/dev/null
 

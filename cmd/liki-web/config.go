@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/ml8s/liki-web/internal/aipay"
-	"github.com/ml8s/liki-web/internal/chat"
 	"github.com/ml8s/liki-web/internal/sales"
 )
 
@@ -29,10 +28,10 @@ type Config struct {
 	XunhuAppSecret                   string
 	PaymentWebhookURL                string
 	AlipayConfig                     aipay.Config
-	ExpertURLs                       map[string]string
-	ExpertsToken                     string
-	ExpertsOpsPort                   string
-	ExpertsTimeoutSeconds            int
+	ExpertURL                        string
+	ExpertToken                      string
+	ExpertOpsPort                    string
+	ExpertTimeoutSeconds             int
 	PublicBaseURL                    string
 	JWTSecret                        string
 	HTTPListenAddress                string
@@ -68,10 +67,10 @@ func LoadConfig() Config {
 		XunhuAppSecret:                   envOr("XUNHU_APPSECRET", ""),
 		PaymentWebhookURL:                envOr("LIKI_PAYMENT_WEBHOOK_URL", strings.TrimSuffix(envOr("LIKI_PUBLIC_BASE_URL", ""), "/")+"/api/payments/webhook"),
 		AlipayConfig:                     loadAlipayConfig(),
-		ExpertURLs:                       loadExpertURLs(),
-		ExpertsOpsPort:                   envOr("LIKI_EXPERTS_OPS_PORT", "8085"),
-		ExpertsToken:                     os.Getenv("LIKI_EXPERTS_TOKEN"),
-		ExpertsTimeoutSeconds:            envOrInt("LIKI_EXPERTS_TIMEOUT_SECONDS", 600),
+		ExpertURL:                        strings.TrimRight(os.Getenv("LIKI_EXPERT_URL"), "/"),
+		ExpertOpsPort:                    envOr("LIKI_EXPERT_OPS_PORT", "8085"),
+		ExpertToken:                      os.Getenv("LIKI_EXPERT_TOKEN"),
+		ExpertTimeoutSeconds:             envOrInt("LIKI_EXPERT_TIMEOUT_SECONDS", 600),
 		PublicBaseURL:                    envOr("LIKI_PUBLIC_BASE_URL", ""),
 		JWTSecret:                        os.Getenv("JWT_SECRET"),
 		HTTPListenAddress:                envOr("LIKI_HTTP_LISTEN_ADDRESS", ":8081"),
@@ -190,26 +189,10 @@ func validateRuntimeURLs(cfg Config) error {
 	if err := validateHTTPURL("LIKI_PAYMENT_WEBHOOK_URL", cfg.PaymentWebhookURL); err != nil {
 		errs = append(errs, err)
 	}
-	for _, expert := range chat.ExpertOrder {
-		name := "LIKI_EXPERTS_" + strings.ToUpper(expert) + "_URL"
-		if err := validateHTTPURL(name, cfg.ExpertURLs[expert]); err != nil {
-			errs = append(errs, err)
-		}
+	if err := validateHTTPURL("LIKI_EXPERT_URL", cfg.ExpertURL); err != nil {
+		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
-}
-
-// loadExpertURLs resolves the per-expert runtime endpoints. LIKI_EXPERTS_URL is
-// a fallback for single-deployment development only; production sets one URL
-// per expert service.
-func loadExpertURLs() map[string]string {
-	fallback := strings.TrimRight(envOr("LIKI_EXPERTS_URL", ""), "/")
-	return map[string]string{
-		chat.ExpertNatal:      strings.TrimRight(envOr("LIKI_EXPERTS_NATAL_URL", fallback), "/"),
-		chat.ExpertDivination: strings.TrimRight(envOr("LIKI_EXPERTS_DIVINATION_URL", fallback), "/"),
-		chat.ExpertFengshui:   strings.TrimRight(envOr("LIKI_EXPERTS_FENGSHUI_URL", fallback), "/"),
-		chat.ExpertNaming:     strings.TrimRight(envOr("LIKI_EXPERTS_NAMING_URL", fallback), "/"),
-	}
 }
 
 func envOr(key, def string) string {

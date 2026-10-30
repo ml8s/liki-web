@@ -3,8 +3,6 @@ package main
 import (
 	"strings"
 	"testing"
-
-	"github.com/ml8s/liki-web/internal/chat"
 )
 
 func TestBuildTime(t *testing.T) {
@@ -87,12 +85,7 @@ func TestLoadConfigUsesRuntimeEnvironment(t *testing.T) {
 func TestValidateRuntimeURLs(t *testing.T) {
 	valid := Config{
 		PublicBaseURL: "https://liki.hk",
-		ExpertURLs: map[string]string{
-			chat.ExpertNatal:      "http://experts-natal:8083",
-			chat.ExpertDivination: "http://experts-divination:8083",
-			chat.ExpertFengshui:   "http://experts-fengshui:8083",
-			chat.ExpertNaming:     "http://experts-naming:8083",
-		},
+		ExpertURL:     "http://expert:8083",
 	}
 	if err := validateRuntimeURLs(valid); err != nil {
 		t.Fatalf("validateRuntimeURLs(valid) = %v", err)
@@ -101,16 +94,14 @@ func TestValidateRuntimeURLs(t *testing.T) {
 	invalid := Config{
 		PublicBaseURL:     "/liki.hk",
 		PaymentWebhookURL: "liki.hk/api/payments/webhook",
-		ExpertURLs: map[string]string{
-			chat.ExpertNatal: "experts-natal:8083",
-		},
+		ExpertURL:         "expert:8083",
 	}
 	err := validateRuntimeURLs(invalid)
 	if err == nil {
 		t.Fatal("validateRuntimeURLs(invalid) error = nil, want URL errors")
 	}
 	for _, name := range []string{
-		"LIKI_PUBLIC_BASE_URL", "LIKI_PAYMENT_WEBHOOK_URL", "LIKI_EXPERTS_NATAL_URL",
+		"LIKI_PUBLIC_BASE_URL", "LIKI_PAYMENT_WEBHOOK_URL", "LIKI_EXPERT_URL",
 	} {
 		if !strings.Contains(err.Error(), name) {
 			t.Errorf("error %v does not mention %s", err, name)

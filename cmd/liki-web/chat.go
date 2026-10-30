@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/ml8s/liki-web/internal/birthprofile"
@@ -49,28 +48,29 @@ func newChatWiring(
 }
 
 func newAgentRunners(config Config) (map[string]chat.Runner, error) {
-	if config.ExpertsToken == "" {
-		return nil, errors.New("LIKI_EXPERTS_TOKEN is required")
+	if config.ExpertToken == "" {
+		return nil, errors.New("LIKI_EXPERT_TOKEN is required")
 	}
-	timeout := time.Duration(config.ExpertsTimeoutSeconds) * time.Second
+	if config.ExpertURL == "" {
+		return nil, errors.New("LIKI_EXPERT_URL is required")
+	}
+	timeout := time.Duration(config.ExpertTimeoutSeconds) * time.Second
 	if timeout <= 0 || timeout > maxAgentRunTimeout {
 		timeout = maxAgentRunTimeout
 	}
 	runners := make(map[string]chat.Runner, len(chat.ExpertOrder))
+	runner, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
+		BaseURL: config.ExpertURL,
+		Token:   config.ExpertToken,
+		Timeout: timeout,
+		Product: "liki",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init liki aggregate agent runner: %w", err)
+	}
+	// Legacy session rows retain the former product-facing expert label; all
+	// labels now execute on the single aggregate expert.
 	for _, expert := range chat.ExpertOrder {
-		baseURL := config.ExpertURLs[expert]
-		if baseURL == "" {
-			return nil, fmt.Errorf("missing expert endpoint: expert=%s env=LIKI_EXPERTS_%s_URL", expert, strings.ToUpper(expert))
-		}
-		runner, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
-			BaseURL: baseURL,
-			Token:   config.ExpertsToken,
-			Timeout: timeout,
-			Product: "liki",
-		})
-		if err != nil {
-			return nil, fmt.Errorf("init liki agent runner %s: %w", expert, err)
-		}
 		runners[expert] = runner
 	}
 	return runners, nil

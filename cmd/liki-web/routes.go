@@ -66,10 +66,8 @@ func newHTTPHandler(wiring httpWiring) (http.Handler, *account.Handler) {
 				return fmt.Errorf("database %s: %w", name, err)
 			}
 		}
-		for _, expert := range chat.ExpertOrder {
-			if err := checkAgentReadiness(ctx, expertOpsURL(wiring.config.ExpertURLs[expert], wiring.config.ExpertsOpsPort)); err != nil {
-				return fmt.Errorf("expert %s: %w", expert, err)
-			}
+		if err := checkAgentReadiness(ctx, expertOpsURL(wiring.config.ExpertURL, wiring.config.ExpertOpsPort)); err != nil {
+			return fmt.Errorf("expert: %w", err)
 		}
 		return nil
 	}

@@ -247,10 +247,12 @@ Clients must ignore unknown custom-event names for forward compatibility.
 `active_skill`, `user_message`, and `assistant_message`; it is not the runtime's
 internal result shape.
 
-Current canonical skill is `liki` (four experts: `natal`, `divination`, `fengshui`, `naming`).
+Current canonical skill is `liki` (one aggregate expert; legacy session labels are
+`natal`, `divination`, `fengshui`, and `naming`).
 
-`scenario` is the authoritative routing input. The server derives `expert` from
-it; a client-supplied `expert` is only an assertion and a mismatch is rejected.
+`scenario` is the authoritative routing input. The server derives the legacy
+`expert` label from it; a client-supplied `expert` is only an assertion and a
+mismatch is rejected.
 When a `context` is present, `context.scenario` takes precedence. Sessions
 without a context can still omit `expert` and send `scenario` alone.
 

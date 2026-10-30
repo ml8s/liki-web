@@ -11,7 +11,7 @@ COMPOSE_FILE="$DEV_DIR/docker-compose.yml"
 TEST_ENV_FILE="${LIKI_TEST_ENV_FILE:-/tmp/liki-web-e2e.env}"
 export LIKI_TEST_ENV_FILE="$TEST_ENV_FILE"
 # Compose interpolation must also succeed for `down` when the env file is gone.
-export LIKI_EXPERTS_TOKEN="${LIKI_EXPERTS_TOKEN:-e2e-agent-secret}"
+export LIKI_EXPERT_TOKEN="${LIKI_EXPERT_TOKEN:-e2e-agent-secret}"
 
 CMD="${1:-up}"
 
@@ -57,7 +57,7 @@ DODO_PRODUCT_LIKI_CHAT_ONE_TIME=e2e-one-time-product
 DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION=e2e-subscription-product
 LIKI_PUBLIC_BASE_URL=http://localhost:8080
 LIKI_PAYMENT_WEBHOOK_URL=http://localhost:8080/api/payments/webhook
-LIKI_EXPERTS_TOKEN=e2e-agent-secret
+LIKI_EXPERT_TOKEN=e2e-agent-secret
 LIKI_DEVELOPMENT_MODE=true
 LIKI_CHAT_ONE_TIME_PRICE_CNY_MINOR_UNITS=7900
 LIKI_CHAT_ONE_TIME_PRICE_USD_MINOR_UNITS=2990

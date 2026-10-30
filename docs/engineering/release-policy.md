@@ -14,7 +14,7 @@ A release candidate may be deployed only after all of the following pass:
 3. route and generated-artifact checks pass;
 4. liki-deploy runs `make gate`;
 5. liki-deploy runs `make test-local`;
-6. liki-deploy assembly `@system` journeys cover Caddy, BFF AG-UI, experts,
+6. liki-deploy assembly `@system` journeys cover Caddy, BFF AG-UI, expert,
    engine MCP, and persistence;
 7. the release manifest records the exact image SHAs.
 

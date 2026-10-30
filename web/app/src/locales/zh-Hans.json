@@ -735,7 +735,7 @@
     "emptyAction": "选择领域开始咨询",
     "createFailed": "创建会话失败",
     "sessionUnavailable": "此会话已无法打开，可能已过期或由旧版本创建。",
-    "productDescription": "八字、紫微、问卦、风水与起名——四位专家，一个对话。",
+    "productDescription": "八字、紫微、问卦、风水与起名——一位专家，一个对话。",
     "backToSessions": "返回会话列表",
     "action": {
       "activate": "去开通",

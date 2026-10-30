@@ -25,9 +25,9 @@ func TestCheckAgentReadinessUsesReadyZ(t *testing.T) {
 
 func TestAgentOpsURLPointsAtTheOpsListener(t *testing.T) {
 	cases := map[string]string{
-		"http://experts-natal:8083":  "http://experts-natal:8085",
-		"http://experts-natal":       "http://experts-natal:8085",
-		"https://experts-natal:8083": "https://experts-natal:8085",
+		"http://expert:8083":  "http://expert:8085",
+		"http://expert":       "http://expert:8085",
+		"https://expert:8083": "https://expert:8085",
 	}
 	for input, want := range cases {
 		if got := expertOpsURL(input, "8085"); got != want {
@@ -38,7 +38,7 @@ func TestAgentOpsURLPointsAtTheOpsListener(t *testing.T) {
 	if got := expertOpsURL("::bad::", "8085"); got != "::bad::" {
 		t.Fatalf("expertOpsURL(invalid) = %q", got)
 	}
-	if got := expertOpsURL("http://experts-natal:8083", ""); got != "http://experts-natal:8083" {
+	if got := expertOpsURL("http://expert:8083", ""); got != "http://expert:8083" {
 		t.Fatalf("expertOpsURL(no ops port) = %q", got)
 	}
 }

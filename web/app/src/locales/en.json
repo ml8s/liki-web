@@ -735,7 +735,7 @@
     "emptyAction": "Choose a service to start",
     "createFailed": "Could not create the session",
     "sessionUnavailable": "This session cannot be opened. It may have expired or been created by an older version.",
-    "productDescription": "BaZi, ZiWei, divination, Feng Shui, and naming — four experts in one Chat.",
+    "productDescription": "BaZi, ZiWei, divination, Feng Shui, and naming — one expert in one Chat.",
     "backToSessions": "Back to sessions",
     "action": {
       "activate": "Activate",

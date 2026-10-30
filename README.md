@@ -89,8 +89,8 @@ automated gate.
 | `LIKI_PAYMENT_WEBHOOK_URL` | Provider webhook URL |
 | `DODO_API_KEY`, `DODO_WEBHOOK_KEY`, `DODO_PRODUCT_LIKI_CHAT_ONE_TIME`, `DODO_PRODUCT_LIKI_CHAT_SUBSCRIPTION` | Dodo configuration |
 | `XUNHU_APPID`, `XUNHU_APPSECRET` | XunHuPay configuration |
-| `LIKI_EXPERTS_{NATAL,DIVINATION,FENGSHUI,NAMING}_URL`, `LIKI_EXPERTS_TOKEN` | AG-UI runtime per expert deployment (`LIKI_EXPERTS_URL` = dev fallback) |
-| `LIKI_EXPERTS_OPS_PORT` | Expert ops surface port (`/readyz` / `/version` / `/metrics`) used by readiness probes |
+| `LIKI_EXPERT_URL`, `LIKI_EXPERT_TOKEN` | Single aggregate AG-UI runtime endpoint and internal bearer token |
+| `LIKI_EXPERT_OPS_PORT` | Expert ops surface port (`/readyz` / `/version` / `/metrics`) used by readiness probes |
 | `TRUSTED_PROXY_HOPS` | Number of trusted reverse-proxy hops before the public client |
 | `LIKI_BILLING_CURRENCY_SOURCE`, `LIKI_BILLING_REGION` | Server-owned billing policy; explicit mode ignores spoofable geo headers |
 | `LIKI_FEEDBACK_API_TOKEN` | Reads and updates feedback records |

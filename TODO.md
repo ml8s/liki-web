@@ -11,10 +11,10 @@ Updated: 2026-10-29
   instead of legacy date/time inputs; `period_query` remains scoped on
   `time_scope + timezone` by design. `make gate` and Docker full-stack
   `make e2e` are green (2026-10-29): 280 passed, 1 skipped.
-- Backend contract: four experts (`natal`, `divination`, `fengshui`,
-  `naming`) plus seven durable consultation context scenarios. The scenario
-  list is not a seven-product API. `huangli` is still mapped to
-  `divination` and remains explicitly pending backend ownership migration.
+- Backend contract: one aggregate expert plus seven durable consultation
+  context scenarios. The scenario list is not a seven-product API.
+  `huangli` is still mapped to the `divination` label and remains explicitly
+  pending backend ownership migration.
 - Completed tracks:
   - Phase 0-6 consultation rollout.
   - O1 bounded rollout telemetry implementation.
@@ -152,14 +152,15 @@ BASE_URL=http://127.0.0.1:5185 npm run test:e2e --prefix web -- \
 Continue Liki Web frontend optimization.
 
 Read TODO.md and docs/frontend/app-flow-optimization-plan.md first.
-The completed checkpoint is PR #8 at commit 69b22f3; CI is green.
+The completed checkpoint is PR #8 at commit 69b22f3; CI was green then.
 Start O4 performance and bundle discipline.
 
 First produce an audit and implementation plan. Do not optimize before
 recording the baseline. Reuse existing assets. No ECharts, no generic JSON
 renderer, no second design system. Keep Classic and the compatibility
 resolver. Remember: the backend already has four experts; seven scenario IDs
-are consultation context types, not seven skills.
+are consultation context types, not seven skills. Deployment is now one
+aggregate expert.
 Implement the approved batch, run the full verification matrix, then make one
 commit.
 ```
