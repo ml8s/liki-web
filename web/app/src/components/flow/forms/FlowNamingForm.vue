@@ -3,11 +3,6 @@
     class="flow-naming-form"
     :aria-busy="loading"
   >
-    <header class="flow-naming-form__header">
-      <h2>{{ $t('services.naming.label') }}</h2>
-      <p>{{ $t('services.naming.description') }}</p>
-    </header>
-
     <dl class="flow-naming-form__person">
       <div>
         <dt>{{ $t('chat.selectBirthProfile') }}</dt>

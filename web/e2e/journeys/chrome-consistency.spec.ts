@@ -1,5 +1,5 @@
 // 骨架一致性：全站每个静态页共享同一 header（brand link + slogan，无返回链）
-// 与同一 footer（两道链接行：站点 / 法律，无分组标题）。差异化只允许发生在正文区。
+// 与同一 footer（单行合规链接，无分组标题）。差异化只允许发生在正文区。
 // 合作计划为定向邀请制：footer 不得出现其入口。
 import { test, expect } from '../fixtures'
 import { mockPageview } from '../mocks'
@@ -22,8 +22,8 @@ for (const locale of LOCALES) {
       await expect(page.locator('header .brand-link')).toHaveText('Liki')
       await expect(page.locator('.brand-slogan')).toBeVisible()
       await expect(page.locator('.back-link')).toHaveCount(0)
-      // footer：两列链接（无分组标题），5 个链接齐备。
-      await expect(page.locator('footer .footer-group')).toHaveCount(2)
+      // footer：单行合规链接（无分组标题），5 个链接齐备。
+      await expect(page.locator('footer .footer-group')).toHaveCount(1)
       await expect(page.locator('footer .footer-group a')).toHaveCount(5)
       await expect(page.locator('footer a[href$="/partners/"], footer a[href$="/partners"]')).toHaveCount(0)
       await expect(page.locator('footer a[href$="/privacy/"], footer a[href$="/privacy"]')).toHaveCount(1)

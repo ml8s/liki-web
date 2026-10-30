@@ -1,6 +1,8 @@
 // huangli 页工具岛：事项 + 日期范围 → 共享择日组件（宜/平/忌分组）渲染。
 import { test, expect } from '../fixtures';
-import { mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
+import { fillBirthFields } from '../helpers';
+import { baziChart } from '../engine-fixtures';
+import { mockCityCoords, mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 
 const huangliDays = [
   {
@@ -31,10 +33,55 @@ const huangliDays = [
     event: 'wedding', event_label: '嫁娶', suitability: 'unsuitable', reason: '冲煞',
   },
 ];
+const ziweiChart = {
+  gong_wei: [
+    { name: '命宫', zhi: '午', xing_yao: ['紫微'], is_liu_ming: false },
+    { name: '财帛', zhi: '寅', xing_yao: [], is_liu_ming: false },
+  ],
+  ju_shu: '火六局',
+  ming_gong: '命宫',
+};
 
 test('工具岛：择日结果按共享组件分组渲染', async ({ page }) => {
   await mockPageview(page);
-  await mockEngineTool(page, 'huangli_days', huangliDays);
+  await mockEngineTool(page, 'huangli_days', { items: huangliDays });
+  await mockEngineTool(page, 'bazi_chart', baziChart);
+  await mockEngineTool(page, 'ziwei_chart', ziweiChart);
+  await mockEngineTool(page, 'bazi_liuri', {
+    items: [{
+      date: '2026-06-06',
+      day_name: '辛亥',
+      shi_shen: '食神',
+      ri_gan: '辛',
+      ri_zhi: '亥',
+      day_nayin: '钗钏金',
+      resolved: {
+        standard_time: '2026-06-06T12:00:00+08:00',
+        local_date: '2026-06-06',
+        last_date: '2026-06-06',
+        beijing_date: '2026-06-06',
+      },
+    }],
+  });
+  await mockEngineTool(page, 'ziwei_liuri', {
+    items: [{
+      ming_gong: '午',
+      ming_gong_name: '命宫',
+      zhi: '午',
+      si_hua: { 太阳: '禄' },
+      gong_wei: [
+        { name: '命宫', zhi: '午', xing_yao: ['紫微'], is_liu_ming: true },
+        { name: '财帛', zhi: '寅', xing_yao: [], is_liu_ming: false },
+      ],
+      resolved: {
+        standard_time: '2026-06-06T12:00:00+08:00',
+        local_date: '2026-06-06',
+        beijing_date: '2026-06-06',
+        lunar: { year: 2026, month: 4, leap: false },
+      },
+    }],
+  });
+  await mockCityCoords(page, { name: '上海市', region: '上海市', longitude: 121.4726, latitude: 31.2304 });
   await page.goto('/zh-Hans/huangli/');
 
   const tool = page.locator('#huangli-tool');
@@ -51,6 +98,14 @@ test('工具岛：择日结果按共享组件分组渲染', async ({ page }) => 
   await expect(tool.locator('.day.possible')).toHaveCount(1);
   await expect(tool.locator('.day.bad')).toHaveCount(1);
   await expect(tool.locator('.range-info')).toContainText('2026-06-06');
+  await tool.locator('.day.good .d-summary').click();
+
+  await expect(tool.locator('.tool-pan-title', { hasText: '选中日流日证据' })).toBeVisible();
+  await fillBirthFields(page, tool, { date: '1990-05-12', time: '08:30', gender: 'female', place: '上海' });
+  await tool.locator('form.tool-form').nth(1).locator('button[type=submit]').click();
+
+  await expect(tool.locator('.engine-bazi-liuri-panel')).toContainText('辛亥');
+  await expect(tool.locator('.engine-ziwei-liuri-panel .zw-center')).toContainText('流日命宫：命宫');
   await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /service=huangli/);
 });
 

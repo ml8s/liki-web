@@ -5,7 +5,7 @@ const profile = flowProfile('person-1', '张三')
 
 const redirects = [
   ['/app/hepan', '.flow-hepan-form', { domain: 'natal', seed: 'hepan' }],
-  ['/app/divination', '.flow-domain-strip', { domain: 'divination', seed: 'divination' }],
+  ['/app/divination', '.flow-divination-form', { domain: 'divination', seed: 'divination' }],
   ['/app/fengshui', '.flow-fengshui-form', { domain: 'fengshui', seed: 'fengshui' }],
   ['/app/liunian', '.flow-domain-strip', { domain: 'natal', seed: 'liunian' }],
   ['/app/naming', '.flow-naming-form', { domain: 'naming', seed: 'naming' }],

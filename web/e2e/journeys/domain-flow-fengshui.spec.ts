@@ -69,11 +69,14 @@ test('prefills the fengshui layout from a marketing handoff', async ({ page }) =
   })
 
   await page.goto('/app/?service=fengshui&locale=zh-Hans')
-  const form = page.locator('.flow-fengshui-form')
-  await expect(form).toBeVisible()
-  await expect(form.getByText('门 · 坤')).toBeVisible()
-  await expect(form.getByText('主卧 · 兑')).toBeVisible()
-  await expect(form.getByText('灶 · 乾')).toBeVisible()
+  const capsule = page.locator('.artifact-capsule')
+  await expect(capsule).toBeVisible()
+  await capsule.click()
+  const panel = page.locator('.bazhai-chart-panel')
+  await expect(panel).toBeVisible()
+  await expect(panel.getByText('门', { exact: true })).toBeVisible()
+  await expect(panel.getByText('主卧', { exact: true })).toBeVisible()
+  await expect(panel.getByText('灶', { exact: true })).toBeVisible()
 })
 
 test('computes the fengshui focused form and renders all deterministic artifacts', async ({ page }) => {

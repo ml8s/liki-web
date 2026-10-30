@@ -45,7 +45,10 @@ test.describe('four-domain consultation flow', () => {
       await page.locator('.flow-sheet__close').click()
       await expect(page.locator('.flow-sheet__body')).toBeHidden()
 
-      const classicSwitcher = page.locator('.experience-switcher--dock', { hasText: '经典版' })
+      await page.locator('.flow-overflow-trigger').click()
+      const contextSheet = page.getByRole('dialog', { name: '更多入口' }).locator('.flow-sheet__body')
+      await expect(contextSheet).toBeVisible()
+      const classicSwitcher = contextSheet.getByRole('button', { name: '经典版' })
       await expect(classicSwitcher).toHaveText('经典版')
       await classicSwitcher.click()
       await expect(page).toHaveURL(/\/app\/classic\/?$/)
@@ -73,7 +76,26 @@ test.describe('four-domain consultation flow', () => {
       await page.locator('.flow-sheet__body').locator('label', { hasText: '张三' }).click()
 
       await expect(question).toHaveValue('张三的命理问题')
-      await expect(page.locator('.flow-domain-strip [role="tab"]', { hasText: '命理' })).toHaveAttribute('aria-selected', 'true')
+      await expect(page.locator('.flow-parameters').getByRole('button', { name: '命理' })).toBeVisible()
+    })
+
+    test('starts a new user on the profile-free divination path', async ({ page }) => {
+      await mockFlowWorkspace(page)
+      await page.goto('/app/')
+
+      await expect(page.locator('.flow-parameters').getByRole('button', { name: '选择档案' })).toBeVisible()
+      await expect(page.locator('.flow-domain-strip [role="tab"]', { hasText: '问卦' }))
+        .toHaveAttribute('aria-selected', 'true')
+      await expect(page.locator('textarea[name="divination-question"]')).toBeVisible()
+      await expect(page.locator('.no-profile')).toHaveCount(0)
+
+      await page.goto('/app/?locale=zh-Hans&domain=natal')
+      await expect(page.locator('.no-profile')).toBeVisible()
+      await expect(page.getByRole('button', { name: '问一卦' })).toBeVisible()
+      await expect(page.getByRole('button', { name: '查黄历择日' })).toBeVisible()
+
+      await page.goto('/app/?locale=zh-Hans')
+      await expect(page.locator('textarea[name="divination-question"]')).toBeVisible()
     })
   })
 
@@ -109,6 +131,7 @@ test.describe('four-domain consultation flow', () => {
 
     await page.goto('/app/')
     await expect(page.getByRole('list', { name: '咨询记录' })).toContainText('先看你的八字，日主偏弱。')
+    await expect(page.locator('.flow-domain-strip')).toHaveCount(0)
 
     const sheet = await openFlowDomainSheet(page)
     await sheet.getByRole('button', { name: '开始新咨询' }).click()

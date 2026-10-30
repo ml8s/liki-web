@@ -3,13 +3,19 @@ import type {
   BaziChartData,
   BaziFullChartData,
   BaziLiuNianOutput,
+  BaziLiuRiOutput,
   BaziYongShenResult,
 } from '../../api/engine/bazi'
 import type { CityCandidate } from '../../api/engine/city'
 import type { BazhaiChart, BazhaiLayout, XuankongChart } from '../../api/engine/fengshui'
 import type { HuangliDay } from '../../api/engine/huangli'
 import type { LiuyaoCasting, LiuyaoChartResult } from '../../api/engine/liuyao'
-import type { ZiweiChart, ZiweiDaXianItem, ZiweiLiuNianData } from '../../api/engine/ziwei'
+import type {
+  ZiweiChart,
+  ZiweiDaXianItem,
+  ZiweiLiuNianData,
+  ZiweiLiuRiData,
+} from '../../api/engine/ziwei'
 
 export type EngineResultDensity = 'compact' | 'full'
 
@@ -31,12 +37,14 @@ export interface EngineResultDtoMap {
   bazi_chart: BaziChartData
   bazi_fullchart: BaziFullChartData
   bazi_liunian: BaziLiuNianOutput
+  bazi_liuri: BaziLiuRiOutput
   bazi_yongshen: BaziYongShenResult
   bazi_bond: BaziBondResult
   ziwei_chart: ZiweiChart
   ziwei_fullchart: ZiweiChart
   ziwei_daxian: ZiweiDaXianItem[]
   ziwei_liunian: ZiweiLiuNianData
+  ziwei_liuri: ZiweiLiuRiData
   liuyao_qigua: LiuyaoCasting
   liuyao_chart: LiuyaoChartResult
   huangli_days: HuangliDay[]
@@ -56,11 +64,7 @@ export type EngineResultPanelMethod = Exclude<
  * Methods behind engine/counsel boundaries that have no exposed web DTO yet.
  * They are catalog gaps and must not be implemented by inference.
  */
-export type PendingEngineMethod = 'bazi_liuri' | 'ziwei_liuri'
-
-export type EngineResultMethod =
-  | SourceBackedEngineResultMethod
-  | PendingEngineMethod
+export type EngineResultMethod = SourceBackedEngineResultMethod
 
 /** Bond projection needs the two source charts to render both pillars. */
 export interface BaziBondPanelContextProps {
@@ -85,6 +89,7 @@ export type EngineResultPanelPropsFor<Method extends EngineResultPanelMethod> =
 export type BaziChartPanelProps = EngineResultPanelProps<BaziChartData>
 export type BaziFullChartPanelProps = EngineResultPanelProps<BaziFullChartData>
 export type BaziLiuNianPanelProps = EngineResultPanelProps<BaziLiuNianOutput>
+export type BaziLiuRiPanelProps = EngineResultPanelProps<BaziLiuRiOutput>
 export type BaziYongShenPanelProps = EngineResultPanelProps<BaziYongShenResult>
 export type BaziBondPanelProps =
   EngineResultPanelProps<BaziBondResult> & BaziBondPanelContextProps
@@ -92,6 +97,7 @@ export type ZiweiChartPanelProps = EngineResultPanelProps<ZiweiChart>
 export type ZiweiFullChartPanelProps = EngineResultPanelProps<ZiweiChart>
 export type ZiweiDaXianPanelProps = EngineResultPanelProps<ZiweiDaXianItem[]>
 export type ZiweiLiuNianPanelProps = EngineResultPanelProps<ZiweiLiuNianData>
+export type ZiweiLiuRiPanelProps = EngineResultPanelProps<ZiweiLiuRiData>
 export type LiuyaoCastingPanelProps = EngineResultPanelProps<LiuyaoCasting>
 export type LiuyaoChartPanelProps = EngineResultPanelProps<LiuyaoChartResult>
 export type HuangliDaysPanelProps = EngineResultPanelProps<HuangliDay[]>

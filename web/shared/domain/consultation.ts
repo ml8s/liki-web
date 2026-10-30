@@ -46,6 +46,7 @@ export interface ConsultationContext {
   event?: string
   start_date?: string
   end_date?: string
+  selected_date?: string
   layout?: ConsultationLayout
   /** He Pan must affirmatively carry this server-enforced domain fact. */
   third_party_consent?: true

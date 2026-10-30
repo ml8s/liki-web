@@ -1,0 +1,27 @@
+---
+import MarketingSection from './MarketingSection.astro'
+
+interface RelatedPage {
+  href: string
+  title: string
+}
+
+interface Props {
+  title: string
+  pages: RelatedPage[]
+}
+
+const { title, pages } = Astro.props
+---
+
+<MarketingSection title={title}>
+  <div class="segments-grid">
+    {pages.map(page => (
+      <article>
+        <h3 class="font-serif">
+          <a class="card-link" href={page.href}>{page.title}</a>
+        </h3>
+      </article>
+    ))}
+  </div>
+</MarketingSection>

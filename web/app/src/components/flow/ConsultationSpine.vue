@@ -62,15 +62,34 @@
 
       <AppEmptyState
         v-else-if="!hasProfile"
-        :description="$t('flow.noProfiles')"
+        :description="noProfileDescription"
       >
-        <button
-          type="button"
-          class="spine-action"
-          @click="emit('create-profile')"
-        >
-          {{ $t('flow.createProfile') }}
-        </button>
+        <div class="no-profile">
+          <button
+            type="button"
+            class="spine-action"
+            @click="emit('ask-divination')"
+          >
+            {{ $t('flow.noProfile.askCta') }}
+          </button>
+          <button
+            type="button"
+            class="spine-action spine-action--secondary"
+            @click="emit('open-huangli')"
+          >
+            {{ $t('flow.noProfile.huangliCta') }}
+          </button>
+          <p class="no-profile__hint">
+            {{ $t('flow.noProfile.unlockHint') }}
+          </p>
+          <button
+            type="button"
+            class="spine-action spine-action--tertiary"
+            @click="emit('create-profile')"
+          >
+            {{ $t('flow.createProfile') }}
+          </button>
+        </div>
       </AppEmptyState>
     </AppLiveRegion>
 
@@ -93,6 +112,7 @@ import { useI18n } from 'vue-i18n'
 const props = defineProps<{
   personLabel?: string
   domainLabel: string
+  profilePolicy?: 'required' | 'optional' | 'partial'
   loading?: boolean
   error?: string
   failureKind?: 'offline' | 'unreachable' | 'permission' | 'server' | 'unknown'
@@ -100,6 +120,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  'ask-divination': []
+  'open-huangli': []
   'create-profile': []
   'retry-profiles': []
   'open-account': []
@@ -120,6 +142,12 @@ const failureMessage = computed(() => {
   if (props.failureKind === 'permission') return t('flow.state.permission')
   if (props.failureKind === 'server') return t('flow.state.server')
   return props.error || t('errors.requestFailed')
+})
+
+const noProfileDescription = computed(() => {
+  if (props.profilePolicy === 'partial') return t('flow.noProfile.partialHint')
+  if (props.profilePolicy === 'required') return t('flow.noProfile.requiredHint')
+  return t('flow.noProfile.title')
 })
 </script>
 
@@ -161,6 +189,31 @@ const failureMessage = computed(() => {
   background: var(--liki-surface);
   color: var(--liki-text-2);
   font-weight: 500;
+}
+.spine-action--tertiary {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--liki-text-2);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.spine-action--tertiary:hover {
+  background: var(--liki-surface);
+  color: var(--liki-ink);
+}
+.no-profile {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 36rem;
+  margin-inline: auto;
+  text-align: start;
+}
+.no-profile__hint {
+  margin: 0;
+  color: var(--liki-text-2);
+  font-size: var(--font-size-label);
+  line-height: 1.6;
 }
 
 .spine-error p {

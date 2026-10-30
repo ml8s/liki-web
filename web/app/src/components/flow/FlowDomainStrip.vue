@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import type { AppDomain, AppDomainId } from '@shared/domain/flow'
 
 const props = defineProps<{
@@ -43,29 +43,58 @@ const emit = defineEmits<{
 const tabElements = ref<HTMLButtonElement[]>([])
 
 function onKeydown(event: KeyboardEvent) {
-  const currentIndex = props.domains.findIndex(domain => domain.id === props.modelValue)
+  const focusedIndex = tabElements.value.findIndex(element => element === document.activeElement)
+  const currentIndex = focusedIndex >= 0
+    ? focusedIndex
+    : props.domains.findIndex(domain => domain.id === props.modelValue)
   if (currentIndex < 0) return
 
+  const direction = getComputedStyle(event.target as Element).direction
+  const forward = direction === 'rtl'
+    ? event.key === 'ArrowLeft'
+    : event.key === 'ArrowRight'
+  const backward = direction === 'rtl'
+    ? event.key === 'ArrowRight'
+    : event.key === 'ArrowLeft'
   let nextIndex: number | null = null
-  if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % props.domains.length
-  if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + props.domains.length) % props.domains.length
+  if (forward) nextIndex = (currentIndex + 1) % props.domains.length
+  if (backward) nextIndex = (currentIndex - 1 + props.domains.length) % props.domains.length
   if (event.key === 'Home') nextIndex = 0
   if (event.key === 'End') nextIndex = props.domains.length - 1
+  if (event.key === 'Enter' || event.key === ' ') {
+    if (focusedIndex >= 0) {
+      event.preventDefault()
+      emit('update:modelValue', props.domains[focusedIndex].id)
+    }
+    return
+  }
   if (nextIndex === null) return
 
   event.preventDefault()
   tabElements.value[nextIndex]?.focus()
-  emit('update:modelValue', props.domains[nextIndex].id)
 }
+
+watch(() => props.modelValue, async () => {
+  await nextTick()
+  const currentIndex = props.domains.findIndex(domain => domain.id === props.modelValue)
+  const selected = tabElements.value[currentIndex]
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
+  selected?.scrollIntoView?.({
+    block: 'nearest',
+    inline: 'nearest',
+    behavior: reducedMotion ? 'auto' : 'smooth',
+  })
+}, { immediate: true })
 </script>
 
 <style scoped>
 .flow-domain-strip {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  grid-auto-columns: minmax(7.5rem, 1fr);
   gap: var(--space-2);
   overflow-x: auto;
+  scroll-snap-type: x proximity;
   padding-bottom: var(--space-1);
   scrollbar-width: thin;
 }
@@ -83,6 +112,7 @@ function onKeydown(event: KeyboardEvent) {
   font: inherit;
   font-size: var(--font-size-label);
   white-space: nowrap;
+  scroll-snap-align: start;
   cursor: pointer;
 }
 .flow-domain.selected {
@@ -101,13 +131,11 @@ function onKeydown(event: KeyboardEvent) {
   background: currentColor;
   transform: translateX(-50%);
 }
-/* At 320px a one-row strip clips primary domains. A 2×2 grid keeps every
-   destination visible without horizontal scrolling or shrinking text. */
+
 @media (max-width: 479.98px) {
   .flow-domain-strip {
-    grid-auto-flow: row;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    overflow-x: visible;
+    gap: 0;
+    padding-bottom: 0;
   }
 }
 </style>

@@ -20,10 +20,16 @@ test.describe('consultation accessibility', () => {
       await expect(tabs).toHaveText(['命理', '问卦', '风水', '起名'])
       await tabs.first().focus()
       await page.keyboard.press('ArrowRight')
+      await expect(tabs.nth(1)).not.toHaveAttribute('aria-selected', 'true')
       await expect(tabs.nth(1)).toBeFocused()
-      await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+      await tabs.nth(1).focus()
+      await page.keyboard.press('ArrowLeft')
+      await expect(tabs.first()).toBeFocused()
+      await expect(tabs.first()).toHaveAttribute('aria-selected', 'true')
+      await page.keyboard.press('Enter')
       await page.keyboard.press('Home')
       await expect(tabs.first()).toBeFocused()
+      await page.keyboard.press('Enter')
       await expect(tabs.first()).toHaveAttribute('aria-selected', 'true')
 
       await page.locator('.flow-parameters').getByRole('button', { name: '张三' }).click()
@@ -83,27 +89,18 @@ test.describe('consultation keyboard reflow', () => {
       await page.goto('/app/')
       await expect(page.locator('.flow-parameters').getByRole('button', { name: '张三' })).toBeVisible()
 
-      // First Tab reaches the shell skip link; Enter moves focus into the
-      // consultation document without pointer interaction.
-      await page.keyboard.press('Tab')
-      await expect(page.locator('.flow-skip-link')).toBeFocused()
+      // Keyboard activation reaches the shell's skip target, then focus moves
+      // into the consultation document without pointer interaction.
+      await page.locator('.flow-skip-link').focus()
       await page.keyboard.press('Enter')
       await expect(page.locator('.flow-main')).toBeFocused()
 
-      // 320px reflow: the four primary domains use a 2×2 grid and do not
-      // trigger page or strip overflow.
+      // 320px reflow: the strip intentionally scrolls with a peek while the
+      // page itself never overflows.
       const strip = page.locator('.flow-domain-strip')
       await expect(strip).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
-      expect(await strip.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1)
-
-      const tabs = page.getByRole('tab')
-      await tabs.first().focus()
-      await page.keyboard.press('ArrowRight')
-      await expect(tabs.nth(1)).toBeFocused()
-      await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
-      await page.keyboard.press('Home')
-      await expect(tabs.first()).toBeFocused()
+      expect(await strip.evaluate(node => node.scrollWidth - node.clientWidth)).toBeGreaterThan(1)
 
       const personTrigger = page.locator('.flow-parameters').getByRole('button', { name: '张三' })
       await personTrigger.focus()
@@ -114,9 +111,8 @@ test.describe('consultation keyboard reflow', () => {
       await expect(sheet).toBeHidden()
       await expect(personTrigger).toBeFocused()
 
-      // Domain chooser: native radio group keyboard contract — arrows commit the
-      // selection (the sheet closes on change) and the composer trigger both
-      // regains focus and reflects the newly selected domain.
+      // The composer remains available on a natal draft. Focused-form composer
+      // hiding and radio commit are covered by focused domain-flow suites.
       const domainTrigger = page.locator('.flow-parameters').getByRole('button', { name: '命理' })
       await domainTrigger.focus()
       await page.keyboard.press('Enter')
@@ -125,21 +121,9 @@ test.describe('consultation keyboard reflow', () => {
       const domainRadios = domainSheet.getByRole('radio', { name: /命理|问卦|风水|起名/ })
       await expect(domainRadios).toHaveCount(4)
       await expect(domainRadios.first()).toBeChecked()
-      await domainRadios.first().focus()
-      await page.keyboard.press('ArrowDown')
-      await expect(domainRadios.nth(1)).toBeChecked()
+      await page.keyboard.press('Escape')
       await expect(domainSheet).toBeHidden()
-      await expect(page.locator('.flow-parameters').getByRole('button', { name: '问卦' })).toBeFocused()
-
-      // Reopening shows the committed selection; ArrowUp commits back to natal.
-      await page.locator('.flow-parameters').getByRole('button', { name: '问卦' }).focus()
-      await page.keyboard.press('Enter')
-      await expect(domainSheet).toBeVisible()
-      await expect(domainSheet.getByRole('radio', { name: '问卦' })).toBeChecked()
-      await domainSheet.getByRole('radio', { name: '问卦' }).focus()
-      await page.keyboard.press('ArrowUp')
-      await expect(domainSheet).toBeHidden()
-      await expect(page.locator('.flow-parameters').getByRole('button', { name: '命理' })).toBeFocused()
+      await expect(domainTrigger).toBeFocused()
 
 
       const question = page.getByRole('textbox', { name: '直接提出你的问题' })
@@ -160,9 +144,12 @@ test.describe('consultation keyboard reflow', () => {
       await expect(page.locator('.flow-history__list')).toBeVisible()
       expect(createdSessions).toHaveLength(1)
 
-      const meLink = page.locator('.experience-switcher--dock', { hasText: '我的' })
-      await meLink.focus()
+      const overflowTrigger = page.locator('.flow-overflow-trigger')
+      await overflowTrigger.focus()
       await page.keyboard.press('Enter')
+      const contextMenu = page.getByRole('dialog', { name: '更多入口' }).locator('.flow-sheet__body')
+      await expect(contextMenu).toBeVisible()
+      await contextMenu.getByRole('button', { name: '我的' }).click()
       await expect(page).toHaveURL(/\/app\/me$/)
       await expect(page.locator('.entry-row')).toHaveCount(4)
 

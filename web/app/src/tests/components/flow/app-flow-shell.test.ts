@@ -15,6 +15,7 @@ function mountShell(props: ShellProps = { domainLabel: '命理' }) {
       default: '<p data-testid="consultation">consultation document</p>',
       actions: '<button type="button" data-testid="dock-action">send</button>',
     },
+    global: { stubs: { FlowContextMenu: true } },
   })
 }
 
@@ -69,8 +70,17 @@ describe('AppFlowShell', () => {
     const options = wrapper.getComponent(AppFlowShell).vm.$options
 
     expect(wrapper.find('.flow-follow').exists()).toBe(false)
-    expect(Object.keys(options.props ?? {})).toEqual(['personLabel', 'domainLabel', 'restoreVisible'])
-    expect(options.emits).toEqual(['restore'])
+    expect(Object.keys(options.props ?? {})).toEqual([
+      'personLabel',
+      'domainLabel',
+      'domains',
+      'selectedDomainId',
+      'partnerVisible',
+      'restoreVisible',
+      'sidecarOpen',
+      'sidecarMode',
+    ])
+    expect(options.emits).toEqual(['restore', 'domain-select', 'context-select'])
     expect(Object.keys(wrapper.emitted())).toEqual([])
   })
 

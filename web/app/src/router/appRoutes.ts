@@ -56,9 +56,9 @@ export interface ConsultationRoutesOptions {
 }
 
 /**
- * Consultation owns the four-domain experience. Its canonical public path is
- * `/app/consultation`; the bare `/app` root redirects to the user's preferred
- * template (see createAppExperienceRoutes).
+ * Consultation owns the four-domain experience at `/app`. `/app/consultation`
+ * remains a preserving compatibility alias for earlier preview bookmarks. The
+ * guard honors an explicit Classic preference before mounting Consultation.
  */
 export function createConsultationAppRoutes({
   enabled = appFlowRedesignEnabled,
@@ -66,13 +66,26 @@ export function createConsultationAppRoutes({
   if (!enabled) return []
 
   return ([{
-    path: 'consultation',
+    path: '',
     name: 'app-consultation',
     component: () => import('@/views/DomainFlowView.vue'),
+    beforeEnter: () => (
+      readPreferredAppExperience() === 'classic'
+        ? { name: 'dashboard' }
+        : true
+    ),
     meta: {
       titleKey: 'router.consultation',
       viewportBound: true,
     },
+  }, {
+    path: 'consultation',
+    name: 'app-consultation-alias',
+    redirect: (to: LegacyRedirectTarget) => ({
+      path: '/',
+      query: to.query,
+      hash: to.hash,
+    }),
   }, {
     path: 'me',
     name: 'app-me',
@@ -176,11 +189,10 @@ export interface AppExperienceRoutesOptions {
 
 /**
  * Standard dual-template routing: both templates ship together, each owns a
- * stable canonical subtree (consultation at `/app/consultation`, Classic at
- * `/classic`), and the bare `/app` root redirects to the user's preferred
- * template. Preference changes the redirect target only — URLs stay stable
- * and switching is a plain navigation. Rollback mode (build flag off) keeps
- * only the original Classic App.
+ * stable canonical subtree (Consultation at `/app`, Classic at `/classic`).
+ * The saved preference guards the bare root; switching remains a plain
+ * navigation. Rollback mode (build flag off) keeps only the original Classic
+ * App.
  */
 export function createAppExperienceRoutes({
   consultationEnabled = appFlowRedesignEnabled,
@@ -191,24 +203,9 @@ export function createAppExperienceRoutes({
 
   return [
     appLayoutRoute('/', [
-      createAppRootRedirectRoute(),
       ...createConsultationAppRoutes({ enabled: true }),
       ...createLegacyAppRedirects(),
     ]),
     appLayoutRoute('/classic', createClassicAppRoutes()),
   ]
-}
-
-function createAppRootRedirectRoute(): RouteRecordRaw {
-  return {
-    path: '',
-    name: 'app-root',
-    redirect: () => ({
-      name: resolvePreferredAppExperience() === 'classic' ? 'dashboard' : 'app-consultation',
-    }),
-  }
-}
-
-function resolvePreferredAppExperience(): AppExperience {
-  return readPreferredAppExperience() ?? (appFlowRedesignEnabled ? 'consultation' : 'classic')
 }

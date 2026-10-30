@@ -74,7 +74,7 @@
     },
     "consultation": {
       "defaultRoute": "/app",
-      "previewAliasRoute": "/app/consultation",
+      "compatibilityAliasRoute": "/app/consultation",
       "status": "preview",
       "featureFlag": "VITE_FEATURE_APP_FLOW_REDESIGN"
     }
@@ -123,6 +123,14 @@
     {
       "from": "/app/chat/:sessionId",
       "to": "/app/classic/chat/:sessionId",
+      "preserve": [
+        "query",
+        "hash"
+      ]
+    },
+    {
+      "from": "/app/consultation",
+      "to": "/app",
       "preserve": [
         "query",
         "hash"

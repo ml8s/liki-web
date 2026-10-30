@@ -1,6 +1,6 @@
 import { expect, test } from '../fixtures'
 import type { Locator, Page } from '@playwright/test'
-import { mockEngineTool, mockPageview } from '../mocks'
+import { mockCityCoords, mockEngineTool, mockPageview } from '../mocks'
 import { baziChart, baziFull, baziLiunian, bond } from '../engine-fixtures'
 import { fillBirthFields } from '../helpers'
 
@@ -69,11 +69,25 @@ test.describe('public tool consultation handoff', () => {
       casting_id: 'cast_handoff_1',
     }
     await mockEngineTool(page, 'liuyao_qigua', { casting })
+    await mockEngineTool(page, 'liuyao_chart', {
+      name: '火泽睽',
+      ben_gua: '火泽睽',
+      bian_gua: '火水未济',
+      lines: [],
+      bian_yao: [],
+      casting,
+    })
+    await mockCityCoords(page, { name: '上海市', region: '上海市', longitude: 121.4726, latitude: 31.2304 })
     await page.goto('/zh-Hant/divination/')
 
     await page.locator('#divination-tool textarea').fill('這個項目能成嗎')
+    await page.locator('#divination-tool input[name="casting-place"]').fill('上海')
+    await page.locator('#divination-tool input[name="casting-place"]').blur()
+    await page.locator('#divination-tool .region-manual-toggle').click()
+    await page.locator('#divination-tool input[name="casting-timezone"]').fill('Asia/Shanghai')
+    await page.locator('#divination-tool input[name="casting-longitude"]').fill('121.4726')
     await page.locator('#divination-tool button[type="submit"]').click()
-    await expect(page.locator('#divination-tool .gua-name')).toBeVisible()
+    await expect(page.locator('#divination-tool .gua-name').first()).toBeVisible()
     await clickWithoutNavigation(page.locator('#divination-tool .tool-cta'))
 
     await expect.poll(() => consultationHandoff(page)).toMatchObject({
@@ -85,7 +99,7 @@ test.describe('public tool consultation handoff', () => {
   })
 
   test('Huangli preserves the selected event and date range', async ({ page }) => {
-    await mockEngineTool(page, 'huangli_days', [])
+    await mockEngineTool(page, 'huangli_days', { items: [] })
     await page.goto('/zh-Hant/huangli/')
     await page.locator('#huangli-tool input[name="huangli-start-date"]').fill('2026-10-01')
     await page.locator('#huangli-tool input[name="huangli-end-date"]').fill('2026-10-03')
@@ -136,10 +150,24 @@ test.describe('public tool consultation handoff', () => {
   test('Natal preserves atomic birth facts', async ({ page }) => {
     await mockEngineTool(page, 'bazi_chart', baziChart)
     await mockEngineTool(page, 'bazi_fullchart', baziFull)
-    await mockEngineTool(page, 'bazi_liunian', baziLiunian)
+    const decadeYears = Array.from({ length: 10 }, (_, index) => 2027 + index)
+    await mockEngineTool(page, 'bazi_liunian', {
+      items: decadeYears.map(year => ({ ...baziLiunian, year })),
+    })
     await mockEngineTool(page, 'ziwei_chart', {})
     await mockEngineTool(page, 'ziwei_fullchart', {})
-    await mockEngineTool(page, 'ziwei_daxian', [])
+    await mockEngineTool(page, 'ziwei_liunian', {
+      items: decadeYears.map(_year => ({
+        ming_gong: '命宮',
+        ming_gong_name: '命宮',
+        zhi: '子',
+        si_hua: {},
+        gong_wei: [],
+      })),
+    })
+    await mockEngineTool(page, 'ziwei_daxian', { items: [] })
+    await mockEngineTool(page, 'ziwei_daxian', { items: [] })
+    await mockEngineTool(page, 'ziwei_daxian', { items: [] })
     await page.goto('/zh-Hant/natal/')
 
     const tool = page.locator('#natal-tool')
@@ -169,7 +197,22 @@ test.describe('public tool consultation handoff', () => {
   test('Liu Nian preserves birth facts and the selected year', async ({ page }) => {
     await mockEngineTool(page, 'bazi_chart', baziChart)
     await mockEngineTool(page, 'bazi_fullchart', baziFull)
-    await mockEngineTool(page, 'bazi_liunian', baziLiunian)
+    const decadeYears = Array.from({ length: 10 }, (_, index) => 2027 + index)
+    await mockEngineTool(page, 'bazi_liunian', {
+      items: decadeYears.map(year => ({ ...baziLiunian, year })),
+    })
+    await mockEngineTool(page, 'ziwei_chart', {})
+    await mockEngineTool(page, 'ziwei_fullchart', {})
+    await mockEngineTool(page, 'ziwei_liunian', {
+      items: decadeYears.map(() => ({
+        ming_gong: '命宮',
+        ming_gong_name: '命宮',
+        zhi: '子',
+        si_hua: {},
+        gong_wei: [],
+      })),
+    })
+    await mockEngineTool(page, 'ziwei_daxian', { items: [] })
     await page.goto('/zh-Hant/liunian/')
 
     const tool = page.locator('#liunian-tool')
@@ -181,7 +224,7 @@ test.describe('public tool consultation handoff', () => {
     })
     await tool.locator('input[name="birth-timezone"]').fill('Asia/Shanghai')
     await tool.locator('input[name="birth-longitude"]').fill('121.4726')
-    await tool.locator('input[name="liunian-year"]').fill('2027')
+    await tool.locator('input[name="liunian-start-year"]').fill('2027')
     await tool.locator('button[type="submit"]').click()
     await expect(tool.locator('.tool-cta')).toBeVisible()
     await clickWithoutNavigation(tool.locator('.tool-cta'))

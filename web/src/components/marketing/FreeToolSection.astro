@@ -1,0 +1,15 @@
+---
+import MarketingSection from './MarketingSection.astro'
+
+interface Props {
+  id?: string
+  title: string
+  intro?: string
+}
+
+const { id = 'free-tool', title, intro } = Astro.props
+---
+
+<MarketingSection id={id} title={title} intro={intro}>
+  <slot />
+</MarketingSection>

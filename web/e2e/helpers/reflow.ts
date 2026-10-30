@@ -4,6 +4,8 @@ export interface ReflowContractOptions {
   viewportWidth: number
   scopeSelector: string
   controlSelectors: string[]
+  /** Scopes such as the domain strip may intentionally scroll within themselves. */
+  scrollableScope?: boolean
 }
 
 /**
@@ -13,7 +15,7 @@ export interface ReflowContractOptions {
  */
 export async function expectReflowContract(
   page: Page,
-  { viewportWidth, scopeSelector, controlSelectors }: ReflowContractOptions,
+  { viewportWidth, scopeSelector, controlSelectors, scrollableScope = false }: ReflowContractOptions,
 ) {
   const scope = page.locator(scopeSelector)
   await expect(scope).toBeVisible()
@@ -22,7 +24,9 @@ export async function expectReflowContract(
     .poll(async () => {
       violations.length = 0
       const scopeOverflow = await scope.evaluate(node => node.scrollWidth - node.clientWidth)
-      if (scopeOverflow > 1) violations.push(`${scopeSelector} overflows by ${scopeOverflow}px`)
+      if (!scrollableScope && scopeOverflow > 1) {
+        violations.push(`${scopeSelector} overflows by ${scopeOverflow}px`)
+      }
       const documentOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
       if (documentOverflow > 1) violations.push(`document overflows by ${documentOverflow}px`)
 

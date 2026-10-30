@@ -6,11 +6,15 @@ locale-key usage incl. dynamic prefixes and shared/Astro corpora) plus manual
 verdicts. Guiding rule: Classic and compatibility surfaces are live product
 (two-layout decision), not subtraction targets.
 
-## Removed in this pass (verified zero references)
+## Removed in this pass
 
 1. Locale keys `partner.ruleKol1/ruleKol2/ruleScout1/ruleScout2/defaultRejectionReason`
-   — no static or dynamic lookup anywhere (app, shared, Astro). Removed from
-   all three locales symmetrically; `check-i18n` green.
+   — originally recorded as having no lookup. **Correction 2026-10-29:** the
+   first four keys are used by `PartnerCenterView.vue` through the dynamic
+   expression `partner.rule${cap}${number}`. The static scan missed that lookup,
+   so the keys were removed incorrectly and later rendered as raw field names.
+   They have been restored in all three locales and are now covered by the
+   dynamic i18n contract test. `defaultRejectionReason` remains removed.
 2. `createUnavailableArtifact` / `createPendingBackendArtifact`
    (artifacts/types.ts) — dead factories, zero references incl. tests.
 3. `useConsultationSubmit` returned `sendUsingActiveSession` but the view only
@@ -24,7 +28,7 @@ verdicts. Guiding rule: Classic and compatibility surfaces are live product
 
 | Suspect | Verdict |
 | --- | --- |
-| 225 "dead" locale keys from the naive scan | False positives: `errors.code.*` is dynamic (`errors.code.${code}`), `services.*.shensha.*` is dynamic in `HepanPanel`, and shared engine panels consume the host app i18n instance (e.g. `common.listSeparator`). True dead set was only the five partner keys above. |
+| 225 "dead" locale keys from the naive scan | False positives: `errors.code.*` is dynamic (`errors.code.${code}`), `services.*.shensha.*` is dynamic in `HepanPanel`, partner rules are dynamic (`partner.rule${cap}${number}`), and shared engine panels consume the host app i18n instance (e.g. `common.listSeparator`). Only `partner.defaultRejectionReason` remains verified dead from that set. |
 | Legacy-mode E2E specs (`app.spec`, `chat-session.spec`, `profile-journey.spec`, … asserting `/app/birth-profiles` etc.) | Not expired: `make e2e` (Docker) builds with the redesign flag OFF, so these are the rollback-mode contract. The a11y gate builds flag ON and runs preview-aware specs. Deleting them would remove rollback assurance. |
 | `check-rtl-readiness.js` | Not wired into any gate. Expired wiring — flagged for a follow-up decision: wire it into `make check` or delete the script. Not removed in this pass. |
 | `scripts/smoke.mjs` (`system:check`) | Documented manual ops tool (`SMOKE.md`); not CI-wired. Kept. |

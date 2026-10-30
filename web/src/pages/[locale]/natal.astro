@@ -1,7 +1,16 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import LikiChatCta from '../../components/LikiChatCta.astro';
+import MarketingHero from '../../components/marketing/MarketingHero.astro';
+import FreeToolSection from '../../components/marketing/FreeToolSection.astro';
+import MarketingCards from '../../components/marketing/MarketingCards.astro';
+import MarketingSection from '../../components/marketing/MarketingSection.astro';
 import SeoTopics from '../../components/SeoTopics.astro';
+import MarketingSteps from '../../components/marketing/MarketingSteps.astro';
+import MarketingQuestions from '../../components/marketing/MarketingQuestions.astro';
+import MarketingFaq from '../../components/marketing/MarketingFaq.astro';
+import RelatedPageCards from '../../components/marketing/RelatedPageCards.astro';
+import MarketingFinalCta from '../../components/marketing/MarketingFinalCta.astro';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
 export function getStaticPaths() {
@@ -30,6 +39,9 @@ const toolProps = {
     error: t(locale, 'tool.error'),
     bazi: t(locale, 'natal.tool.bazi'),
     ziwei: t(locale, 'natal.tool.ziwei'),
+    baziIntro: t(locale, 'natal.tool.baziIntro'),
+    ziweiIntro: t(locale, 'natal.tool.ziweiIntro'),
+    ziweiAnnualIntro: t(locale, 'natal.tool.ziweiAnnualIntro'),
     lucky: t(locale, 'natal.tool.lucky'),
     cta: t(locale, 'tool.cta'),
     privacy: t(locale, 'tool.privacy'),
@@ -86,67 +98,47 @@ const breadcrumbSchema = {
     })} />
   </Fragment>
 
-  <section class="landing-hero scenario-hero">
-    <p class="landing-kicker">{t(locale, 'scenario.brand')}</p>
-    <h1 class="landing-h1">{t(locale, `${ns}.heading`)}</h1>
-    <p class="landing-sub">{t(locale, `${ns}.subtitle`)}</p>
-    <div class="landing-actions">
-      <LikiChatCta locale={locale} service="natal" />
-      <a href="#how-it-works" class="btn-ghost">{t(locale, 'scenario.cta.secondary')}</a>
-    </div>
-  </section>
+  <MarketingHero locale={locale} titleKey={`${ns}.heading`} subtitleKey={`${ns}.subtitle`}>
+    <a href="#chart-tool" class="btn-purple">{t(locale, 'scenario.cta.freeTool')}</a>
+    <LikiChatCta locale={locale} service="natal" class="btn-ghost" />
+    <a href="#how-it-works" class="btn-ghost">{t(locale, 'scenario.cta.secondary')}</a>
+  </MarketingHero>
 
-  <section
-    id="bazi"
-    class="landing-services scenario-section"
+  <FreeToolSection
+    id="chart-tool"
+    title={t(locale, 'natal.tool.title')}
+    intro={t(locale, 'natal.tool.intro')}
   >
-    <h2>{t(locale, 'scenario.bazi.benefitsTitle')}</h2>
-    <div class="service-grid">
-      {baziCards.map(key => (
-        <div class="card">
-          <h3 class="font-serif">{t(locale, `${key}.title`)}</h3>
-          <p>{t(locale, `${key}.body`)}</p>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <section id="chart-tool" class="landing-services scenario-section">
-    <h2>{t(locale, 'natal.tool.title')}</h2>
-    <p>{t(locale, 'natal.tool.intro')}</p>
     <div id="natal-tool" data-props={JSON.stringify(toolProps)}>
     </div>
-  </section>
+  </FreeToolSection>
 
-  <section
+  <MarketingCards
+    id="bazi"
+    title={t(locale, 'scenario.bazi.benefitsTitle')}
+    cards={baziCards.map(key => ({
+      title: t(locale, `${key}.title`),
+      body: t(locale, `${key}.body`),
+    }))}
+  />
+
+  <MarketingCards
     id="ziwei"
-    class="landing-services scenario-section"
-  >
-    <h2>{t(locale, `${ns}.ziwei.title`)}</h2>
-    <div class="service-grid">
-      {ziweiCards.map(key => (
-        <div class="card">
-          <h3 class="font-serif">{t(locale, `${key}.title`)}</h3>
-          <p>{t(locale, `${key}.body`)}</p>
-        </div>
-      ))}
-    </div>
-  </section>
+    title={t(locale, `${ns}.ziwei.title`)}
+    cards={ziweiCards.map(key => ({
+      title: t(locale, `${key}.title`),
+      body: t(locale, `${key}.body`),
+    }))}
+  />
 
-  <section
+  <MarketingCards
     id="reading"
-    class="landing-services scenario-section"
-  >
-    <h2>{t(locale, 'scenario.natalReading.benefitsTitle')}</h2>
-    <div class="service-grid">
-      {readingCards.map(key => (
-        <div class="card">
-          <h3 class="font-serif">{t(locale, `${key}.title`)}</h3>
-          <p>{t(locale, `${key}.body`)}</p>
-        </div>
-      ))}
-    </div>
-  </section>
+    title={t(locale, 'scenario.natalReading.benefitsTitle')}
+    cards={readingCards.map(key => ({
+      title: t(locale, `${key}.title`),
+      body: t(locale, `${key}.body`),
+    }))}
+  />
 
   <section
     id="zodiac"
@@ -166,7 +158,7 @@ const breadcrumbSchema = {
     <p><a class="card-link" href="#chart-tool">{t(locale, 'natal.rectification.link')}</a></p>
   </section>
 
-  <section class="landing-services scenario-section">
+  <MarketingSection>
     <SeoTopics
       locale={locale}
       titleKey="natal.topics.title"
@@ -174,52 +166,34 @@ const breadcrumbSchema = {
       linkHref={`/${locale}/naming/`}
       linkKey="natal.topics.link"
     />
-  </section>
+  </MarketingSection>
 
-  <section
-    id="how-it-works"
-    class="landing-steps"
-  >
-    <h2 class="font-serif">{t(locale, 'scenario.stepsTitle')}</h2>
-    <div class="steps-grid">
-      {steps.map((key, index) => (
-        <div class="card step"><span class="step-n">{index + 1}</span><p>{t(locale, key)}</p></div>
-      ))}
-    </div>
-  </section>
+  <MarketingSteps title={t(locale, 'scenario.stepsTitle')} steps={steps.map(key => t(locale, key))} />
 
-  <section class="landing-services scenario-section">
-    <h2>{t(locale, 'scenario.bazi.questionsTitle')}</h2>
-    <div class="scenario-questions">
-      {questions.map(key => <blockquote>{t(locale, key)}</blockquote>)}
-    </div>
-  </section>
+  <MarketingQuestions
+    title={t(locale, 'scenario.bazi.questionsTitle')}
+    questions={questions.map(key => t(locale, key))}
+  />
 
-  <section class="scenario-faq">
-    <h2 class="font-serif">{t(locale, 'scenario.faqTitle')}</h2>
-    {faqs.map(item => (
-      <details>
-        <summary>{t(locale, item.questionKey)}</summary>
-        <p>{t(locale, item.answerKey)}</p>
-      </details>
-    ))}
-  </section>
+  <MarketingFaq
+    title={t(locale, 'scenario.faqTitle')}
+    faqs={faqs.map(item => ({
+      question: t(locale, item.questionKey),
+      answer: t(locale, item.answerKey),
+    }))}
+  />
 
-  <section class="landing-services scenario-section">
-    <h2>{t(locale, 'natal.related.title')}</h2>
-    <div class="segments-grid">
-      {related.map(([slug, key]) => (
-        <article>
-          <h3 class="font-serif"><a class="card-link" href={`/${locale}/${slug}/`}>{t(locale, key)}</a></h3>
-        </article>
-      ))}
-    </div>
-  </section>
+  <RelatedPageCards
+    title={t(locale, 'natal.related.title')}
+    pages={related.map(([slug, key]) => ({
+      href: `/${locale}/${slug}/`,
+      title: t(locale, key),
+    }))}
+  />
 
-  <section class="landing-cta">
-    <p class="font-serif">{t(locale, 'scenario.cta.bottom')}</p>
+  <MarketingFinalCta label={t(locale, 'scenario.cta.bottom')}>
     <LikiChatCta locale={locale} service="natal" />
-  </section>
+  </MarketingFinalCta>
 </BaseLayout>
 
 <script>

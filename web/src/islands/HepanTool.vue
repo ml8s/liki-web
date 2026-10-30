@@ -33,6 +33,7 @@ const props = defineProps<{
     computing: string
     error: string
     result: string
+    resultIntro: string
     cta: string
     privacy: string
     consent: string
@@ -157,6 +158,9 @@ function continueToApp() {
           <h3 class="tool-pan-title">
             {{ labels.result }}
           </h3>
+          <p class="tool-pan-intro">
+            {{ labels.resultIntro }}
+          </p>
           <BaziBondPanel
             :result="result.bond"
             :chart-a="result.chartA"

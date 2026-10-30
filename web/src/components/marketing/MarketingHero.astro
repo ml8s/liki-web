@@ -1,0 +1,21 @@
+---
+import { t } from '../../i18n.ts';
+
+interface Props {
+  locale: string
+  titleKey: string
+  subtitleKey: string
+  kickerKey?: string
+}
+
+const { locale, titleKey, subtitleKey, kickerKey = 'scenario.brand' } = Astro.props
+---
+
+<section class="landing-hero scenario-hero">
+  <p class="landing-kicker">{t(locale, kickerKey)}</p>
+  <h1 class="landing-h1">{t(locale, titleKey)}</h1>
+  <p class="landing-sub">{t(locale, subtitleKey)}</p>
+  <div class="landing-actions">
+    <slot />
+  </div>
+</section>

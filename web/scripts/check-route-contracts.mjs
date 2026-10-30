@@ -150,7 +150,7 @@ const expectedExperiences = {
   },
   consultation: {
     defaultRoute: consultationDefaultRoute,
-    previewAliasRoute: consultationRoute,
+    compatibilityAliasRoute: consultationRoute,
     status: 'preview',
     featureFlag: 'VITE_FEATURE_APP_FLOW_REDESIGN',
   },
@@ -177,20 +177,28 @@ const expectedClassicSuffixes = [
   '/account',
 ];
 const expectedClassicRoutes = expectedClassicSuffixes.map(suffix => `/app/classic${suffix}`);
+const consultationAliasRedirect = {
+  from: consultationRoute,
+  to: consultationDefaultRoute,
+  preserve: ['query', 'hash'],
+};
 const consultationRedirectTargets = {
   '/app/hepan': '/app?domain=natal&seed=hepan',
   '/app/divination': '/app?domain=divination&seed=divination',
   '/app/fengshui': '/app?domain=fengshui&seed=fengshui',
 };
-const expectedLegacyRedirects = expectedClassicSuffixes.slice(1).map((suffix) => {
-  const from = `/app${suffix}`;
-  const consultationTarget = consultationRedirectTargets[from];
-  return {
-    from,
-    to: consultationTarget ?? `/app/classic${suffix}`,
-    preserve: ['query', 'hash'],
-  };
-});
+const expectedLegacyRedirects = [
+  consultationAliasRedirect,
+  ...expectedClassicSuffixes.slice(1).map((suffix) => {
+    const from = `/app${suffix}`;
+    const consultationTarget = consultationRedirectTargets[from];
+    return {
+      from,
+      to: consultationTarget ?? `/app/classic${suffix}`,
+      preserve: ['query', 'hash'],
+    };
+  }),
+]
 expectedLegacyRedirects.push(
   {
     from: '/app/liunian',

@@ -3,13 +3,19 @@
     ref="shellRef"
     :person-label="personLabel"
     :domain-label="domainLabel"
+    :domains="appDomains"
+    :selected-domain-id="flow.domainId"
+    :partner-visible="auth.hasPartnerRole"
     :restore-visible="restoreVisible"
+    :sidecar-open="Boolean(selectedArtifact && artifactOpen && !showFocusedForm)"
+    :sidecar-mode="desktopMode"
+    @domain-select="selectDomain"
+    @context-select="handleContextAction"
     @restore="restoreLatest"
   >
     <div
       ref="documentBoundary"
       class="artifact-layer"
-      :class="{ 'artifact-layer--sidecar': selectedArtifact && artifactOpen }"
     >
       <div class="artifact-layer__document">
         <div
@@ -87,17 +93,28 @@
           :error="profileError"
           :failure-kind="workspaceFailure ?? undefined"
           :has-profile="hasVisibleProfile"
+          :profile-policy="profilePolicy"
+          @ask-divination="askDivinationWithoutProfile"
+          @open-huangli="openHuangliCompatibility"
           @create-profile="openCreateProfile"
           @retry-profiles="retryWorkspace"
           @open-account="openManageAccount"
         >
           <ChatStreamStatus :phase="chat.phase" />
-          <FlowHepanForm
+          <DomainSlotForm
             v-if="showHepanForm"
-            :person-label="personLabel"
-            :loading="hepanLoading"
-            @submit="computeHepan"
-          />
+            ref="hepanSlotRef"
+            :domain-label="domainLabel"
+            :title="$t('services.hepan.title')"
+            :description="$t('services.hepan.subtitle')"
+            @back="exitFocusedForm"
+          >
+            <FlowHepanForm
+              :person-label="personLabel"
+              :loading="hepanLoading"
+              @submit="computeHepan"
+            />
+          </DomainSlotForm>
           <AppStatusAlert
             v-if="hepanError"
             class="flow-error"
@@ -122,15 +139,23 @@
               {{ $t('records.save') }}
             </el-button>
           </div>
-          <FlowFengshuiForm
+          <DomainSlotForm
             v-if="showFengshuiForm"
-            :person-label="personLabel"
-            :birth-year="fengshuiBirthYear"
-            :gender="fengshuiGender"
-            :loading="fengshuiLoading"
-            :initial-layout="fengshuiHandoffLayout"
-            @submit="computeFengshui"
-          />
+            ref="fengshuiSlotRef"
+            :domain-label="domainLabel"
+            :title="$t('services.fengshui.pageTitle')"
+            :description="$t('services.fengshui.subtitle')"
+            @back="exitFocusedForm"
+          >
+            <FlowFengshuiForm
+              :person-label="personLabel"
+              :birth-year="fengshuiBirthYear"
+              :gender="fengshuiGender"
+              :loading="fengshuiLoading"
+              :initial-layout="fengshuiHandoffLayout"
+              @submit="computeFengshui"
+            />
+          </DomainSlotForm>
           <AppStatusAlert
             v-if="fengshuiError"
             class="flow-error"
@@ -155,15 +180,23 @@
               {{ $t('records.save') }}
             </el-button>
           </div>
-          <FlowNamingForm
+          <DomainSlotForm
             v-if="showNamingForm"
-            :person-label="personLabel"
-            :birth-date="selectedProfile?.birth.date ?? ''"
-            :birth-time="selectedProfile?.birth.time ?? ''"
-            :loading="namingLoading"
-            :disabled="!namingBirthReady"
-            @submit="computeNaming"
-          />
+            ref="namingSlotRef"
+            :domain-label="domainLabel"
+            :title="$t('services.naming.label')"
+            :description="$t('services.naming.description')"
+            @back="exitFocusedForm"
+          >
+            <FlowNamingForm
+              :person-label="personLabel"
+              :birth-date="selectedProfile?.birth.date ?? ''"
+              :birth-time="selectedProfile?.birth.time ?? ''"
+              :loading="namingLoading"
+              :disabled="!namingBirthReady"
+              @submit="computeNaming"
+            />
+          </DomainSlotForm>
           <AppStatusAlert
             v-if="namingError"
             class="flow-error"
@@ -192,11 +225,19 @@
                 {{ $t('common.retry') }}
               </el-button>
             </AppStatusAlert>
-            <FlowDivinationForm
-              ref="castingFormRef"
-              :loading="castingLoading"
-              @submit="castDivination"
-            />
+            <DomainSlotForm
+              ref="divinationSlotRef"
+              :domain-label="domainLabel"
+              :title="$t('services.divination.pageTitle')"
+              :description="$t('services.divination.subtitle')"
+              @back="exitFocusedForm"
+            >
+              <FlowDivinationForm
+                ref="castingFormRef"
+                :loading="castingLoading"
+                @submit="castDivination"
+              />
+            </DomainSlotForm>
           </template>
           <template v-else>
             <ChatStreamStatus :phase="chat.phase" />
@@ -206,22 +247,22 @@
               :streaming="chat.sending"
             />
           </template>
-        </ConsultationSpine>
 
-        <div
-          v-if="artifacts.length"
-          ref="artifactDockRef"
-          class="artifact-dock"
-        >
-          <ArtifactCapsule
-            v-for="artifact in artifacts"
-            :key="artifact.id"
-            :descriptor="artifact"
-            :open="artifactOpen && artifactSelectedId === artifact.id"
-            :surface-id="`artifact-${artifact.id}`"
-            @toggle="toggleArtifact(artifact.id)"
-          />
-        </div>
+          <div
+            v-if="artifacts.length"
+            ref="artifactDockRef"
+            class="artifact-dock"
+          >
+            <ArtifactCapsule
+              v-for="artifact in artifacts"
+              :key="artifact.id"
+              :descriptor="artifact"
+              :open="artifactOpen && artifactSelectedId === artifact.id"
+              :surface-id="`artifact-${artifact.id}`"
+              @toggle="toggleArtifact(artifact.id)"
+            />
+          </div>
+        </ConsultationSpine>
 
         <FlowHistoryPanel
           class="flow-history"
@@ -234,48 +275,42 @@
           @remove="sessionHistory.removeSession"
         />
       </div>
+    </div>
 
+    <template #sidecar>
       <ArtifactSurface
         v-if="selectedArtifact"
         :descriptor="selectedArtifact"
         :open="artifactOpen"
         :mode="desktopMode"
         @close="closeArtifactAndRestoreFocus"
+        @desktop-mode="setDesktopMode"
       />
-    </div>
+    </template>
 
     <template #actions>
       <FlowFollowButton
-        v-if="followVisible"
+        v-if="followVisible && !showFocusedForm"
         :label="$t('flow.newContent')"
         @follow="followLatest"
       />
-      <ParameterComposer
-        v-model="question"
-        v-model:domain-id="flow.domainId"
-        :domains="appDomains"
-        :person-label="personLabel"
-        :domain-label="domainLabel"
-        :sending="chat.sending || isSubmitting"
-        :show-domain-strip="true"
-        @select-person="personSheetOpen = true"
-        @select-domain="domainSheetOpen = true"
-        @submit="submitQuestion"
-        @stop="chat.stopGeneration()"
-      />
-      <div class="flow-dock-links">
-        <AppExperienceSwitcher
-          target="me"
-          variant="dock"
-        >
-          {{ $t('nav.me') }}
-        </AppExperienceSwitcher>
-        <AppExperienceSwitcher
-          target="classic"
-          variant="dock"
-        >
-          {{ $t('nav.classic') }}
-        </AppExperienceSwitcher>
+      <div
+        v-show="!showFocusedForm"
+        class="flow-composer-holder"
+      >
+        <ParameterComposer
+          v-model="question"
+          v-model:domain-id="flow.domainId"
+          :domains="appDomains"
+          :person-label="personLabel"
+          :domain-label="domainLabel"
+          :sending="chat.sending || isSubmitting"
+          :show-domain-strip="!chat.activeSession"
+          @select-person="personSheetOpen = true"
+          @select-domain="domainSheetOpen = true"
+          @submit="submitQuestion"
+          @stop="chat.stopGeneration()"
+        />
       </div>
     </template>
   </AppFlowShell>
@@ -306,7 +341,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AppFlowShell from '@/components/flow/AppFlowShell.vue'
-import AppExperienceSwitcher from '@/components/app/AppExperienceSwitcher.vue'
 import AppStatusAlert from '@/components/app/AppStatusAlert.vue'
 import FlowFollowButton from '@/components/flow/FlowFollowButton.vue'
 import ConsultationSpine from '@/components/flow/ConsultationSpine.vue'
@@ -318,6 +352,7 @@ import FlowHistoryPanel from '@/components/flow/FlowHistoryPanel.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
 import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
 import FlowDivinationForm from '@/components/flow/forms/FlowDivinationForm.vue'
+import DomainSlotForm from '@/components/flow/forms/DomainSlotForm.vue'
 import FlowHepanForm from '@/components/flow/forms/FlowHepanForm.vue'
 import FlowFengshuiForm from '@/components/flow/forms/FlowFengshuiForm.vue'
 import type { FengshuiLayoutValue } from '@shared/components/fengshui/FengshuiLayoutFields.vue'
@@ -327,6 +362,7 @@ import ArtifactSurface from '@/components/flow/artifacts/ArtifactSurface.vue'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useChatStore } from '@/stores/chat'
 import { useDomainFlowStore } from '@/stores/domain-flow'
+import { useAuthStore } from '@/stores/auth'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useDomainArtifacts } from '@/composables/useDomainArtifacts'
 import { useSalesStore } from '@/stores/sales-store'
@@ -342,6 +378,7 @@ import {
   appDomains,
   appDomainById,
   bridgeLegacyIntent,
+  domainForScenario,
   domainForSession,
   marketingScenarioToDomain,
   normalizeLegacyScenario,
@@ -355,6 +392,7 @@ import { useConsultationTelemetry } from '@/composables/useConsultationTelemetry
 import { useConsultationHistory } from '@/composables/useConsultationHistory'
 import { useConsultationSubmit } from '@/composables/useConsultationSubmit'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'
+import { confirmAction } from '@/utils/dialogs'
 import { consumeConsultationHandoff } from '@shared/utils/handoff'
 import { useOnline } from '@vueuse/core'
 import { classifyResourceFailure, type ResourceFailureKind } from '@/utils/resourceStatus'
@@ -364,6 +402,7 @@ const route = useRoute()
 const router = useRouter()
 
 const profiles = useBirthProfilesStore()
+const auth = useAuthStore()
 const entitlements = useEntitlementsStore()
 const chat = useChatStore()
 const flow = useDomainFlowStore()
@@ -405,6 +444,7 @@ function announceStatus(message: string) {
 
 const personSheetOpen = ref(false)
 const domainSheetOpen = ref(false)
+const restoreReady = ref(false)
 const consultationError = ref('')
 const fengshuiHandoffLayout = ref<FengshuiLayoutValue | null>(null)
 const draftNotice = ref('')
@@ -417,6 +457,10 @@ const { nearBottom, measure: measureNearBottom } = useNearBottom(
 const followVisible = ref(false)
 const artifactDockRef = ref<HTMLElement | null>(null)
 const castingFormRef = ref<InstanceType<typeof FlowDivinationForm> | null>(null)
+const hepanSlotRef = ref<InstanceType<typeof DomainSlotForm> | null>(null)
+const fengshuiSlotRef = ref<InstanceType<typeof DomainSlotForm> | null>(null)
+const namingSlotRef = ref<InstanceType<typeof DomainSlotForm> | null>(null)
+const divinationSlotRef = ref<InstanceType<typeof DomainSlotForm> | null>(null)
 let mountToken = 0
 let artifactFocusToken = 0
 
@@ -424,8 +468,6 @@ const question = computed({
   get: () => flow.getDraft(),
   set: value => flow.setDraft(value),
 })
-
-useUnloadGuard(computed(() => isSubmitting.value || chat.sending || question.value.trim().length > 0))
 
 const primaryError = computed(() => consultationError.value || chat.error)
 
@@ -489,7 +531,7 @@ const visibleSessions = computed(() =>
   sessionHistory.visibleSessions.value,
 )
 
-const latestVisibleSession = computed(() => visibleSessions.value[0] ?? null)
+const latestVisibleSession = computed(() => sessionHistory.latestVisibleSession.value)
 
 const restoreVisible = computed(() =>
   sessionHistory.restoreVisible.value,
@@ -505,10 +547,27 @@ const workspaceFailure = computed<ResourceFailureKind | null>(() => {
   const error = profiles.lastError ?? entitlements.lastError ?? chat.loadSessionsError
   return error ? classifyResourceFailure(error) : null
 })
-const showDivinationCasting = computed(() => flow.domainId === 'divination' && !castingChart.value)
+const activeCastingReceipt = computed(() => {
+  const session = chat.activeSession
+  if (!session) return null
+  if ((session.profile_id || null) !== flow.personId) return null
+  if (domainForSession(session) !== flow.domainId) return null
+  return session.context?.casting ?? null
+})
+const showDivinationCasting = computed(() =>
+  flow.domainId === 'divination'
+  && !castingChart.value
+  && !activeCastingReceipt.value,
+)
 const showHepanForm = computed(() => flow.domainId === 'natal' && routingSeed.value === 'hepan')
 const showFengshuiForm = computed(() => flow.domainId === 'fengshui' && routingSeed.value === 'fengshui')
 const showNamingForm = computed(() => flow.domainId === 'naming' && routingSeed.value === 'naming')
+const showFocusedForm = computed(() =>
+  showDivinationCasting.value
+  || showHepanForm.value
+  || showFengshuiForm.value
+  || showNamingForm.value,
+)
 const namingBirthReady = computed(() => {
   const birth = selectedProfile.value?.birth
   return Boolean(birth?.gender && birth.date && birth.time && birth.location)
@@ -528,6 +587,7 @@ const {
   selectedId: artifactSelectedId,
   desktopMode,
   closeArtifact,
+  setDesktopMode,
   toggleArtifact,
 } = useDomainArtifacts({
   channelKey: computed(() => `${flow.personId ?? 'none'}:${flow.domainId}`),
@@ -571,6 +631,18 @@ const fengshuiArtifact = computed(() =>
   artifacts.value.find(artifact => artifact.kind === 'fengshui' && artifact.state === 'ready') ?? null,
 )
 
+const focusedFormDirty = computed(() =>
+  [hepanSlotRef.value, fengshuiSlotRef.value, namingSlotRef.value, divinationSlotRef.value]
+    .some(form => form?.dirty === true),
+)
+
+useUnloadGuard(computed(() =>
+  isSubmitting.value
+  || chat.sending
+  || focusedFormDirty.value
+  || question.value.trim().length > 0,
+))
+
 function selectPerson(personId: string) {
   resetResults()
   flow.setPerson(personId)
@@ -579,7 +651,6 @@ function selectPerson(personId: string) {
 }
 
 function selectDomain(domainId: AppDomainId) {
-  resetResults()
   flow.setDomain(domainId)
   telemetry.trackDomainSelect(domainId)
   domainSheetOpen.value = false
@@ -599,6 +670,76 @@ function openManageAccount() {
   void router.push({ name: 'account' })
 }
 
+function askDivinationWithoutProfile() {
+  if (flow.domainId === 'divination') return
+  resetResults()
+  consultationError.value = ''
+  flow.setDomain('divination')
+  telemetry.trackDomainSelect('divination')
+}
+
+function openHuangliCompatibility() {
+  void router.push({
+    path: '/classic/huangli',
+    query: route.query.locale ? { locale: firstQueryValue(route.query.locale) } : {},
+  })
+}
+
+function markFocusedFormsClean() {
+  for (const form of [hepanSlotRef.value, fengshuiSlotRef.value, namingSlotRef.value, divinationSlotRef.value]) {
+    if (form) form.dirty = false
+  }
+}
+
+async function syncFocusedFormStep() {
+  if (!showFocusedForm.value) return
+  if (firstQueryValue(route.query.step) === 'form') return
+  await router.replace({
+    path: '/',
+    query: { ...route.query, step: 'form' },
+    hash: route.hash,
+  })
+}
+
+async function exitFocusedForm() {
+  if (focusedFormDirty.value) {
+    const discard = await confirmAction({
+      title: t('flow.form.unsavedTitle'),
+      message: t('flow.form.unsavedMessage'),
+      confirmText: t('flow.form.discard'),
+    })
+    if (!discard) return
+  }
+
+  const query: Record<string, string> = {}
+  for (const [key, value] of Object.entries(route.query)) {
+    const normalized = firstQueryValue(value)
+    if (normalized && !['seed', 'service', 'scenario', 'step'].includes(key)) query[key] = normalized
+  }
+  markFocusedFormsClean()
+  resetResults()
+  consultationError.value = ''
+  await router.replace({ path: '/', query, hash: route.hash })
+}
+
+function handleContextAction(id: string) {
+  const classicPaths: Record<string, string> = {
+    partner: '/classic/partners',
+    history: '/classic/chat',
+    orders: '/classic/orders',
+    account: '/classic/account',
+  }
+  if (id === 'me') {
+    void router.push({ name: 'app-me' })
+    return
+  }
+  if (id === 'classic') {
+    void router.push({ name: 'dashboard' })
+    return
+  }
+  if (classicPaths[id]) void router.push(classicPaths[id]!)
+}
+
 function startNewConsultation() {
   chat.stopGeneration()
   chat.resetActive()
@@ -608,6 +749,46 @@ function startNewConsultation() {
 }
 
 const restoreLatest = sessionHistory.restoreLatest
+const latestRestorableSession = sessionHistory.latestRestorableSession
+
+function mostRecentlyUsedProfileId(): string | null {
+  return [...profiles.list].sort((left, right) => {
+    const leftAt = left.last_used_at ?? left.updated_at
+    const rightAt = right.last_used_at ?? right.updated_at
+    return rightAt.localeCompare(leftAt)
+  })[0]?.id ?? null
+}
+
+function nextFlowQuery(domainId: AppDomainId): Record<string, string> {
+  const query: Record<string, string> = {}
+  const locale = firstQueryValue(route.query.locale)
+  if (locale) query.locale = locale
+
+  // Payment-return facts stay available until sales.handlePaymentReturn has
+  // consumed them; they are not consultation context and never become seeds.
+  for (const key of [
+    'order_id',
+    'payment_intent_id',
+    'subscription_id',
+    'subscription_state',
+  ]) {
+    const value = firstQueryValue(route.query[key])
+    if (value) query[key] = value
+  }
+
+  query.domain = domainId
+  const seed = routingSeed.value
+  if (seed && domainForScenario(seed).id === domainId) query.seed = seed
+  return query
+}
+
+async function syncDomainQuery(domainId: AppDomainId) {
+  await router.replace({
+    path: '/',
+    query: nextFlowQuery(domainId),
+    hash: route.hash,
+  })
+}
 
 function purchaseConsultation(billingMode: 'one_time' | 'subscription') {
   void sales.buy(billingMode, routingSeed.value ?? flow.currentDomain.baseSkill)
@@ -814,9 +995,12 @@ async function retryWorkspace() {
   ])
 }
 
-watch([() => flow.personId, () => flow.domainId], () => {
+watch([() => flow.personId, () => flow.domainId], ([, domain], [, previousDomain]) => {
+  if (!restoreReady.value) return
   resetResults()
   consultationError.value = ''
+  markFocusedFormsClean()
+  if (domain !== previousDomain) void syncDomainQuery(domain)
   void restoreLatest()
 })
 
@@ -833,6 +1017,20 @@ watch(workspaceFailure, (failure) => {
 // a reference capsule appeared without scanning the dock.
 watch(() => artifacts.value.filter(artifact => artifact.state === 'ready').length, (count, previous) => {
   if (count > (previous ?? 0)) announceStatus(t('flow.artifactReady'))
+})
+
+watch([hepanResult, fengshuiResult, namingResult, castingChart], async () => {
+  await nextTick()
+  markFocusedFormsClean()
+  const hasResult = Boolean(hepanResult.value || fengshuiResult.value || namingResult.value || castingChart.value)
+  if (hasResult && showFocusedForm.value) {
+    const query: Record<string, string> = {}
+    for (const [key, value] of Object.entries(route.query)) {
+      const normalized = firstQueryValue(value)
+      if (normalized && !['seed', 'service', 'scenario', 'step'].includes(key)) query[key] = normalized
+    }
+    await router.replace({ path: '/', query, hash: route.hash })
+  }
 })
 
 watch(primaryError, async (value) => {
@@ -886,14 +1084,23 @@ onMounted(async () => {
   ])
   if (token !== mountToken) return
 
-  if (!flow.personId) flow.setPerson(profiles.list[0]?.id ?? null)
+  // URL context is authoritative. Without it, the newest active session is
+  // authoritative and projects its person/domain back into flow state.
+  const bootCandidate = latestRestorableSession(requestedDomain ?? null)
+  if (!requestedDomain && bootCandidate) flow.setDomain(domainForSession(bootCandidate))
+  if (!requestedDomain && !bootCandidate && !profiles.list.length) flow.setDomain('divination')
+
+  if (bootCandidate) flow.setPerson(bootCandidate.profile_id || null)
+  else if (!flow.personId) flow.setPerson(mostRecentlyUsedProfileId())
   telemetry.trackEntry({
     domainId: flow.domainId,
     seed: routingSeed.value,
     source: entrySource.value,
-    restorable: Boolean(latestVisibleSession.value),
+    restorable: Boolean(bootCandidate),
   })
   await restoreLatest()
+  restoreReady.value = true
+  await syncFocusedFormStep()
 
   const paymentResult = await sales.handlePaymentReturn(route.query)
   if (paymentResult.action === 'enter_chat') {
@@ -955,14 +1162,5 @@ onMounted(async () => {
 }
 .flow-history {
   margin-top: var(--space-4);
-}
-.flow-dock-links {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.flow-dock-links > * {
-  min-width: 0;
 }
 </style>

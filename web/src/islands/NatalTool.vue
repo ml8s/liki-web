@@ -5,10 +5,13 @@ import { computed, reactive, ref } from 'vue'
 import {
   baziLiunianFor,
   baziNatalFor,
+  ziweiLiunianFor,
   ziweiNatalFor,
   type BaziLiuNianOutput,
   type BaziNatal,
   type ZiweiNatal,
+  type ZiweiChart,
+  type ZiweiLiuNianData,
 } from '@shared/domain/natal'
 import type { BirthInput } from '@shared/domain/birth'
 import type { EngineResultStatus } from '@shared/composables/useEngineResult'
@@ -30,6 +33,7 @@ import {
 } from '@shared/components/form/birth-fields'
 import ZiweiChartPanel from '@shared/components/engine/ziwei/ZiweiChartPanel.vue'
 import ZiweiDaXianPanel from '@shared/components/engine/ziwei/ZiweiDaXianPanel.vue'
+import ZiweiLiuNianPanel from '@shared/components/engine/ziwei/ZiweiLiuNianPanel.vue'
 import { birthFormRules } from '@shared/components/form/birth-rules'
 import { consultationBirthFromFields, type ConsultationContext } from '@shared/domain/consultation'
 import { HANDOFF_KEYS, saveConsultationHandoff, saveHandoff } from '@shared/utils/handoff'
@@ -43,6 +47,9 @@ const props = defineProps<{
     error: string
     bazi: string
     ziwei: string
+    baziIntro: string
+    ziweiIntro: string
+    ziweiAnnualIntro: string
     lucky: string
     cta: string
     privacy: string
@@ -58,6 +65,7 @@ const ziweiStatus = ref<EngineResultStatus>('idle')
 const bazi = ref<BaziNatal | null>(null)
 const ziwei = ref<ZiweiNatal | null>(null)
 const liunianYear = ref(new Date().getFullYear())
+const ziweiLiuNianYear = ref(new Date().getFullYear())
 
 const loading = computed(() =>
   !!birthInput.value
@@ -116,6 +124,10 @@ function loadLiunian(input: { chart: BaziNatal['bazi']; year: number }): Promise
   return baziLiunianFor(input.chart, input.year)
 }
 
+function loadZiweiLiunian(input: { base: ZiweiChart; year: number }): Promise<ZiweiLiuNianData> {
+  return ziweiLiunianFor(input.base, input.year)
+}
+
 function continueToApp() {
   if (!birthInput.value) return
   saveConsultationHandoff({
@@ -154,6 +166,9 @@ function continueToApp() {
         <h3 class="tool-pan-title">
           {{ labels.bazi }}
         </h3>
+        <p class="tool-pan-intro">
+          {{ labels.baziIntro }}
+        </p>
         <YearField
           v-model="liunianYear"
           name="natal-liunian-year"
@@ -243,6 +258,13 @@ function continueToApp() {
         <h3 class="tool-pan-title">
           {{ labels.ziwei }}
         </h3>
+        <p class="tool-pan-intro">
+          {{ labels.ziweiIntro }}
+        </p>
+        <YearField
+          v-model="ziweiLiuNianYear"
+          name="natal-ziwei-liunian-year"
+        />
         <ZiweiChartPanel
           :result="result.ziwei"
           class="ziwei-panel"
@@ -252,6 +274,23 @@ function continueToApp() {
           :result="result.ziweiDaXian"
           class="ziwei-panel"
         />
+        <p class="tool-pan-intro">
+          {{ labels.ziweiAnnualIntro }}
+        </p>
+        <EngineQueryPanel
+          resource="natal.ziwei.liunian"
+          :input="{ base: result.ziweiBase, year: ziweiLiuNianYear }"
+          :load="loadZiweiLiunian"
+          :enabled="!!result.ziweiBase"
+          :fallback="labels.error"
+        >
+          <template #default="{ result: annual }">
+            <ZiweiLiuNianPanel
+              :result="annual"
+              class="ziwei-panel"
+            />
+          </template>
+        </EngineQueryPanel>
       </section>
     </template>
   </EngineQueryPanel>

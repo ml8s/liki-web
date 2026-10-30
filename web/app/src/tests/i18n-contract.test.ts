@@ -44,4 +44,24 @@ describe('i18n source contract', () => {
 
     expect(missing).toEqual([])
   })
+
+  it('defines dynamically constructed partner rule keys in all locales', () => {
+    const locales = { 'zh-Hans': zhHans, 'zh-Hant': zhHant, en } as const
+    const requiredRoles = ['kol', 'scout'] as const
+    const requiredNumbers = [1, 2] as const
+    const missing: string[] = []
+
+    for (const [locale, messages] of Object.entries(locales)) {
+      const keys = new Set(flatten(messages))
+      for (const role of requiredRoles) {
+        const cap = role === 'kol' ? 'Kol' : 'Scout'
+        for (const number of requiredNumbers) {
+          const key = `partner.rule${cap}${number}`
+          if (!keys.has(key)) missing.push(`${locale}:${key}`)
+        }
+      }
+    }
+
+    expect(missing).toEqual([])
+  })
 })

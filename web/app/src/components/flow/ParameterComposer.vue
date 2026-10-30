@@ -31,20 +31,21 @@
     </div>
 
     <div class="flow-input-row">
-      <TextareaField
-        class="flow-question-field"
-        :model-value="modelValue"
-        :autosize="{ minRows: 1, maxRows: 5 }"
-        resize="none"
-        name="flow-question"
-        autocomplete="off"
-        enterkeyhint="send"
-        :label="$t('flow.askPlaceholder')"
-        :disabled="sending"
-        :placeholder="$t('flow.askPlaceholder')"
-        @update:model-value="$emit('update:modelValue', $event)"
-        @keydown="onKeydown"
-      />
+      <div class="flow-question-field">
+        <TextareaField
+          :model-value="modelValue"
+          :autosize="{ minRows: 1, maxRows: 5 }"
+          resize="none"
+          name="flow-question"
+          autocomplete="off"
+          enterkeyhint="send"
+          :label="$t('flow.askPlaceholder')"
+          :disabled="sending"
+          :placeholder="$t('flow.askPlaceholder')"
+          @update:model-value="$emit('update:modelValue', $event)"
+          @keydown="onKeydown"
+        />
+      </div>
       <button
         v-if="sending"
         type="button"
@@ -173,5 +174,30 @@ function onKeydown(event: Event) {
   background: var(--liki-line);
   color: var(--liki-text-3);
   cursor: not-allowed;
+}
+
+@media (max-width: 479.98px) {
+  .flow-composer,
+  .flow-parameters,
+  .flow-input-row {
+    gap: 0;
+  }
+
+  .flow-parameter,
+  .flow-send {
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .flow-question-field :deep(.el-textarea__inner) {
+    height: 44px !important;
+    min-height: 44px !important;
+    padding-block: 10px;
+  }
+
+  .flow-question-field,
+  .flow-question-field :deep(.el-form-item) {
+    margin-bottom: 0;
+  }
 }
 </style>

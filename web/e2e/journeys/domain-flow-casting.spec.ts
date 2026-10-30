@@ -70,10 +70,6 @@ test.describe('divination casting flow', () => {
     await page.goto('/app/?locale=zh-Hans')
     await openDivination(page)
 
-    const domainOptions = page.locator('.flow-domain-strip [role="tab"]')
-    await expect(domainOptions).toHaveText(['命理', '问卦', '风水', '起名'])
-    await expect(domainOptions).toHaveCount(4)
-
     const form = castingForm(page)
     await expect(form.getByText('起卦方式')).toBeVisible()
     await expect(form.getByText('系统自动起卦')).toBeVisible()
@@ -297,9 +293,7 @@ test.describe('divination casting flow', () => {
 
     await page.goto('/app/divination?locale=zh-Hans')
     await expect(page).toHaveURL(/domain=divination&seed=divination/)
-    await expect(page.locator('.flow-parameters')).toBeVisible()
-    await expect(page.locator('.flow-domain-strip [role="tab"]', { hasText: '问卦' })).toHaveAttribute('aria-selected', 'true')
-    await openDivination(page)
+    await expect(page.locator('.flow-divination-form textarea[name="divination-question"]')).toBeVisible()
   })
 
   test('keeps the compatibility-owned Classic divination route reachable', async ({ page }) => {

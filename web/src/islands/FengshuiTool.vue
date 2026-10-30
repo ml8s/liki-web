@@ -29,6 +29,9 @@ const props = defineProps<{
     submit: string
     computing: string
     error: string
+    bazhaiIntro: string
+    xuankongIntro: string
+    layoutIntro: string
     cta: string
     privacy: string
   }
@@ -123,6 +126,9 @@ function submit() {
     >
       <template #default="{ result }">
         <div class="tool-pan">
+          <p class="tool-pan-intro">
+            {{ labels.bazhaiIntro }}
+          </p>
           <BazhaiChartPanel
             :result="result"
             :layout="layoutResult"
@@ -135,6 +141,9 @@ function submit() {
       <h3 class="tool-pan-title">
         {{ t('services.fengshui.xuankongTitle') }}
       </h3>
+      <p class="tool-pan-intro">
+        {{ labels.xuankongIntro }}
+      </p>
       <FengshuiLayoutFields :value="layout" @update:patch="patchLayout" />
       <EngineQueryPanel
         resource="fengshui.xuankong"
@@ -153,6 +162,9 @@ function submit() {
       <h3 class="tool-pan-title">
         {{ t('services.fengshui.layoutTitle') }}
       </h3>
+      <p class="tool-pan-intro">
+        {{ labels.layoutIntro }}
+      </p>
       <EngineQueryPanel
         resource="fengshui.layout"
         :input="layoutInput"

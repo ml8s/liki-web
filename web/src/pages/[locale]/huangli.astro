@@ -1,7 +1,7 @@
 ---
 import ScenarioLanding from '../../components/ScenarioLanding.astro';
 import SeoTopics from '../../components/SeoTopics.astro';
-import { t, locales } from '../../i18n.ts';
+import { birthFieldLabels, t, locales } from '../../i18n.ts';
 
 export function getStaticPaths() {
   return locales.map(locale => ({ params: { locale } }));
@@ -30,9 +30,16 @@ const toolProps = {
   locale,
   appUrl: `/app?service=huangli&locale=${locale}`,
   labels: {
+    ...birthFieldLabels(locale),
     submit: t(locale, 'tool.submit'),
     computing: t(locale, 'tool.computing'),
     error: t(locale, 'tool.error'),
+    resultIntro: t(locale, 'huangli.tool.resultIntro'),
+    selectedHint: t(locale, 'huangli.tool.selectedHint'),
+    personalTitle: t(locale, 'huangli.tool.personalTitle'),
+    personalIntro: t(locale, 'huangli.tool.personalIntro'),
+    personalCompute: t(locale, 'huangli.tool.personalCompute'),
+    personalPrivacy: t(locale, 'huangli.tool.personalPrivacy'),
     cta: t(locale, 'tool.cta'),
     privacy: t(locale, 'tool.privacy'),
   },

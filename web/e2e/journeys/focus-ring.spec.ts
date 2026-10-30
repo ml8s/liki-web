@@ -25,9 +25,11 @@ test('static shell: one focus ring per control', async ({ page }) => {
   await mockPageview(page)
   await page.goto('/zh-Hant/')
 
+  const submit = page.locator('#quick-birth-tool button[type="submit"]')
+  await expect(submit).toBeVisible()
+
   // 按钮没有自己的 ring，键盘焦点必须由全局 outline 提供（含 class 名单会漏掉的提交按钮）。
   await tabTo(page, '#quick-birth-tool button[type="submit"]')
-  const submit = page.locator('#quick-birth-tool button[type="submit"]')
   await expect(submit).toHaveCSS('outline-style', 'solid')
   await expect(submit).toHaveCSS('box-shadow', 'none')
 

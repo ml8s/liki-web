@@ -1,0 +1,22 @@
+---
+import MarketingSection from './MarketingSection.astro'
+
+interface Props {
+  id?: string
+  title: string
+  steps: string[]
+}
+
+const { id = 'how-it-works', title, steps } = Astro.props
+---
+
+<MarketingSection id={id} title={title} class="landing-steps">
+  <div class="steps-grid">
+    {steps.map((step, index) => (
+      <div class="card step">
+        <span class="step-n">{index + 1}</span>
+        <p>{step}</p>
+      </div>
+    ))}
+  </div>
+</MarketingSection>

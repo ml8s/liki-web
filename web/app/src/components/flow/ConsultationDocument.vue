@@ -168,6 +168,8 @@ const showEmptyState = computed(() =>
 }
 .reading {
   min-width: 0;
+  max-width: min(100%, 760px);
+  margin-inline: auto;
   padding: var(--space-4);
   border: 1px solid var(--liki-line);
   border-radius: var(--radius-lg);

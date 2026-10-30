@@ -142,7 +142,7 @@ test-js: test-js-static test-js-app ## vitest（静态站点 + Vue SPA）
 test-python: python-env ## Python helper tests
 	"$(PYTHON_BIN)" -m unittest discover -s scripts/tests -p 'test_*.py' -q
 
-e2e: ## Docker 全栈 E2E（不跑 lint / unit）
+e2e: ## Docker 全栈 E2E（不跑 lint/unit/@system）
 	scripts/e2e.sh
 
 e2e-a11y: build ## Run the accessibility E2E contract in make gate

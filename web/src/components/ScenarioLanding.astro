@@ -1,6 +1,13 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import LikiChatCta from './LikiChatCta.astro';
+import MarketingHero from './marketing/MarketingHero.astro';
+import MarketingSection from './marketing/MarketingSection.astro';
+import MarketingCards from './marketing/MarketingCards.astro';
+import MarketingSteps from './marketing/MarketingSteps.astro';
+import MarketingQuestions from './marketing/MarketingQuestions.astro';
+import MarketingFaq from './marketing/MarketingFaq.astro';
+import MarketingFinalCta from './marketing/MarketingFinalCta.astro';
 import { t } from '../i18n.ts';
 
 export interface Props {
@@ -77,47 +84,38 @@ if (!scenario && !service) {
     })} />
   </Fragment>
 
-  <section class="landing-hero scenario-hero">
-    <p class="landing-kicker">{t(locale, 'scenario.brand')}</p>
-    <h1 class="landing-h1">{t(locale, titleKey)}</h1>
-    <p class="landing-sub">{t(locale, subtitleKey)}</p>
-    <div class="landing-actions">
-      <LikiChatCta locale={locale} scenario={scenario} service={service} />
-      <a href="#how-it-works" class="btn-ghost">{t(locale, 'scenario.cta.secondary')}</a>
-    </div>
-  </section>
-
-  <section class="landing-services scenario-section">
-    <h2>{t(locale, benefitsTitleKey)}</h2>
-    <div class="service-grid">
-      {benefitKeys.map(key => (
-        <div class="card">
-          <h3 class="font-serif">{t(locale, `${key}.title`)}</h3>
-          <p>{t(locale, `${key}.body`)}</p>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <section class="scenario-example">
-    <h2 class="font-serif">{t(locale, exampleTitleKey)}</h2>
-    <slot />
-  </section>
+  <MarketingHero locale={locale} titleKey={titleKey} subtitleKey={subtitleKey}>
+    <a href="#free-tool" class="btn-purple">{t(locale, 'scenario.cta.freeTool')}</a>
+    <LikiChatCta
+      locale={locale}
+      scenario={scenario}
+      service={service}
+      class="btn-ghost"
+    />
+    <a href="#how-it-works" class="btn-ghost">{t(locale, 'scenario.cta.secondary')}</a>
+  </MarketingHero>
 
   {Astro.slots.has('tool') && (
-    <section class="landing-services scenario-section" id="free-tool">
+    <MarketingSection id="free-tool">
       <slot name="tool" />
-    </section>
+    </MarketingSection>
   )}
 
-  <section class="landing-steps" id="how-it-works">
-    <h2 class="font-serif">{t(locale, stepsTitleKey)}</h2>
-    <div class="steps-grid">
-      {stepKeys.map((key, index) => (
-        <div class="card step"><span class="step-n">{index + 1}</span><p>{t(locale, key)}</p></div>
-      ))}
-    </div>
-  </section>
+  <MarketingCards
+    title={t(locale, benefitsTitleKey)}
+    cards={benefitKeys.map(key => ({
+      title: t(locale, `${key}.title`),
+      body: t(locale, `${key}.body`),
+    }))}
+  />
+
+  {Astro.slots.has('default') && (
+    <MarketingSection title={t(locale, exampleTitleKey)} class="scenario-example">
+      <slot />
+    </MarketingSection>
+  )}
+
+  <MarketingSteps title={t(locale, stepsTitleKey)} steps={stepKeys.map(key => t(locale, key))} />
 
   {Astro.slots.has('topics') && (
     <section class="landing-services scenario-section">
@@ -125,25 +123,20 @@ if (!scenario && !service) {
     </section>
   )}
 
-  <section class="landing-services scenario-section">
-    <h2>{t(locale, questionsTitleKey)}</h2>
-    <div class="scenario-questions">
-      {questionKeys.map(key => <blockquote>{t(locale, key)}</blockquote>)}
-    </div>
-  </section>
+  <MarketingQuestions
+    title={t(locale, questionsTitleKey)}
+    questions={questionKeys.map(key => t(locale, key))}
+  />
 
-  <section class="scenario-faq">
-    <h2 class="font-serif">{t(locale, faqTitleKey)}</h2>
-    {faqs.map(item => (
-      <details>
-        <summary>{t(locale, item.questionKey)}</summary>
-        <p>{t(locale, item.answerKey)}</p>
-      </details>
-    ))}
-  </section>
+  <MarketingFaq
+    title={t(locale, faqTitleKey)}
+    faqs={faqs.map(item => ({
+      question: t(locale, item.questionKey),
+      answer: t(locale, item.answerKey),
+    }))}
+  />
 
-  <section class="landing-cta">
-    <p class="font-serif">{t(locale, 'scenario.cta.bottom')}</p>
+  <MarketingFinalCta label={t(locale, 'scenario.cta.bottom')}>
     <LikiChatCta locale={locale} scenario={scenario} service={service} />
-  </section>
+  </MarketingFinalCta>
 </BaseLayout>

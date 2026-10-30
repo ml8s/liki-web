@@ -193,7 +193,7 @@ th {
   text-transform: uppercase;
 }
 
-/* 页脚：与正文用一条分隔线分开，上下留白；链接两组并列（合作/法律），组内竖排右对齐。 */
+/* 页脚：与正文用一条分隔线分开，上下留白；合规链接保持单行右对齐。 */
 .site-footer {
   margin-top: var(--space-6);
   padding-block: var(--space-8);
@@ -201,8 +201,17 @@ th {
 }
 .site-footer a { display: inline-flex; align-items: center; min-height: 40px; }
 
-.footer-groups { display: flex; flex-direction: column; align-items: flex-end; gap: 0; }
-.footer-group { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0 var(--space-5); min-width: 0; }
+.footer-groups { display: flex; align-items: center; min-width: 0; }
+.footer-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0 var(--space-4);
+  min-width: 0;
+  white-space: nowrap;
+}
 
 .min-w-\[130px\] { min-width: 130px; }
 
@@ -438,10 +447,35 @@ th {
 .tool-form { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
 .tool-form button { flex: 0 0 auto; }
 .tool-error { margin-top: var(--space-3); color: var(--color-fire); }
-.tool-pan { margin-top: var(--space-6); }
-.tool-pan-title { margin: 0 0 var(--space-3); font-size: var(--font-size-title-sm); font-weight: 650; color: var(--color-text); }
+.tool-pan {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+.tool-pan-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-title-sm);
+  font-weight: 650;
+  color: var(--color-text);
+}
+.tool-pan-intro {
+  margin: 0 0 var(--space-4);
+  max-width: 72ch;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
 .tool-cta { margin-top: var(--space-6); display: inline-block; }
 .tool-privacy { margin: var(--space-3) 0 0; font-size: var(--font-size-caption); color: var(--color-text-muted); }
+.section-intro {
+  margin: 0 0 var(--space-5);
+  max-width: 72ch;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  line-height: 1.7;
+  text-wrap: pretty;
+}
 /* 工具表单纵向变体（多人输入，如合盘）：字段组用 fieldset，行内字段用 .tool-fields；
  * 提交按钮保持与横向表单一致的行内宽度（flex 行内为 0 0 auto，此处对齐到起点）。 */
 .tool-form--stack { flex-direction: column; align-items: stretch; }

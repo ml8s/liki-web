@@ -46,16 +46,30 @@ const ziweiDaXian = PALACES.map((name, i) => ({
   start_year: 2005 + i * 10, end_year: 2014 + i * 10,
 }));
 
+const ziweiLiunian = { items: [{
+  ming_gong: '午',
+  ming_gong_name: '命宫',
+  zhi: '午',
+  si_hua: { 太阳: '禄' },
+  gong_wei: PALACES.map((name, i) => ({
+    name,
+    zhi: ZHI[(i + 6) % 12],
+    xing_yao: i === 0 ? ['紫微'] : [],
+    is_liu_ming: i === 0,
+  })),
+}] };
+
 async function declareEngine(page: Parameters<typeof mockEngineTool>[0]) {
   // 出生地匹配（city_coords candidates 模式）→ 自动填经度。
   await mockCityCoords(page, { name: '上海市', region: '上海市', longitude: 121.4726, latitude: 31.2304 });
   // 真太阳时链路（无出生地时仍取农历，供紫微消费）。
   await mockEngineTool(page, 'bazi_chart', baziChart);
   await mockEngineTool(page, 'bazi_fullchart', baziFull);
-  await mockEngineTool(page, 'bazi_liunian', baziLiunian);
+  await mockEngineTool(page, 'bazi_liunian', { items: [baziLiunian] });
   await mockEngineTool(page, 'ziwei_chart', ziweiChart);
   await mockEngineTool(page, 'ziwei_fullchart', ziweiFull);
-  await mockEngineTool(page, 'ziwei_daxian', ziweiDaXian);
+  await mockEngineTool(page, 'ziwei_daxian', { items: ziweiDaXian });
+  await mockEngineTool(page, 'ziwei_liunian', ziweiLiunian);
 }
 
 test('工具岛：八字盘 + 紫微盘按共享组件渲染', async ({ page }) => {
@@ -70,7 +84,8 @@ test('工具岛：八字盘 + 紫微盘按共享组件渲染', async ({ page }) 
   await tool.locator('input[name="birth-place"]').fill('上海');
   await tool.locator('input[name="birth-place"]').blur();
   await tool.locator('.region-manual-toggle').click();
-  await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
+  await tool.locator('input[name="birth-timezone"]').fill('Asia/Shanghai');
+  await tool.locator('input[name="birth-longitude"]').fill('121.4726');
   await tool.locator('button[type=submit]').click();
 
   // 八字目录盘：四柱 + 大运 + 用神
@@ -89,8 +104,12 @@ test('工具岛：八字盘 + 紫微盘按共享组件渲染', async ({ page }) 
   await expect(tool.locator('.engine-bazi-liunian-panel .liunian-detail')).toContainText('天乙贵人');
 
   // 紫微目录盘：12 宫 + 中心信息
-  await expect(tool.locator('.ziwei-panel .zw-palace')).toHaveCount(12);
-  await expect(tool.locator('.ziwei-panel .zw-center')).toContainText('火六局');
+  await expect(tool.locator('.ziwei-panel .zw-palace')).toHaveCount(24);
+  await expect(tool.locator('.ziwei-panel .zw-center').first()).toContainText('火六局');
+  await expect(tool.locator('input[name="natal-ziwei-liunian-year"]')).toBeVisible();
+  await expect(tool.locator('.engine-ziwei-liunian-panel')).toBeVisible();
+  await expect(tool.locator('.engine-ziwei-liunian-panel .zw-palace')).toHaveCount(12);
+  await expect(tool.locator('.engine-ziwei-liunian-panel .zw-center')).toContainText('流年命宫：命宫');
 
   // CTA 与隐私
   await expect(tool.locator('.tool-cta')).toHaveAttribute('href', /birth-profiles/);
@@ -109,7 +128,8 @@ test('工具岛：引擎失败时展示错误文案', async ({ page }) => {
   await tool.locator('input[name="birth-place"]').fill('上海');
   await tool.locator('input[name="birth-place"]').blur();
   await tool.locator('.region-manual-toggle').click();
-  await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
+  await tool.locator('input[name="birth-timezone"]').fill('Asia/Shanghai');
+  await tool.locator('input[name="birth-longitude"]').fill('121.4726');
   await tool.locator('button[type=submit]').click();
 
   await expect(tool.locator('.engine-result-boundary__state[role="alert"]').first()).toContainText('Chart processing failed. Check the input and try again.');

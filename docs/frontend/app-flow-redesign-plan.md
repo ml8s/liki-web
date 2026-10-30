@@ -3,6 +3,10 @@
 Status: active implementation plan (discussion outcome, revised after several
 layout reviews; implementation is behind the app-flow redesign feature flag).
 
+Accepted exception (2026-10-30): both templates ship together. Consultation
+owns `/app` by default and Classic remains at `/app/classic` for rollback and
+compatibility. A saved Classic preference guards the bare root.
+
 This document records the converged information architecture, the concrete
 layout details, and the phased migration plan for the logged-in product
 surface (`/app`). It does not modify `ux-architecture.md`; that document is
@@ -769,8 +773,8 @@ A method does not have to become one monolithic component. It maps to one
 | `liuyao_qigua` | `LiuyaoCasting` | `LiuyaoCastingPanel` | `DivinationCastPanel` | receipt-only projection |
 | `liuyao_chart` | `LiuyaoChartResult` | `LiuyaoChartPanel` | large UI currently inside `DivinationView` | highest-priority extraction |
 | `huangli_days` | `HuangliDay[]` | `HuangliDaysPanel` + `HuangliDayDetail` | current panels | candidate list and day detail |
-| `bazi_liuri` | pending web DTO | `BaziLiuRiPanel` | engine capability exists, web contract missing | add only after contract is exposed |
-| `ziwei_liuri` | pending web DTO | `ZiweiLiuRiPanel` | engine capability exists, web contract missing | add only after contract is exposed |
+| `bazi_liuri` | `BaziLiuRiOutput` | `BaziLiuRiPanel` | backend contract aligned | selected-day date selection |
+| `ziwei_liuri` | `ZiweiLiuRiData` | `ZiweiLiuRiPanel` | backend contract aligned | selected-day date selection |
 
 Naming rules:
 

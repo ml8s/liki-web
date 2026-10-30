@@ -140,18 +140,19 @@ written to the URL.
 
 ### Product
 
-Desktop sidebar and mobile tabbar expose the same core destinations:
+Consultation has no global page-type sidebar/tabbar. Its mobile shell exposes
+person/domain status, restore, and overflow; desktop adds a context rail. The
+rail and overflow expose the four practice domains plus Me, history, orders,
+account, and role-gated partners. Classic remains at `/app/classic` for
+maintenance and rollback.
 
 ```text
-Workspace
-Profiles
-Chat
-Orders / Account
-Partners
+natal · divination · fengshui · naming
+Me · history · orders · account · partners (role-gated)
 ```
 
-Service routes are entered from Dashboard and cards, not from global navigation.
-This keeps the global model simple while service pages remain deep-linkable.
+Tool inputs are domain slot-filling states, not page destinations. A focused
+form hides the composer until its result enters the consultation document.
 
 ### Admin
 

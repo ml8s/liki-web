@@ -1,0 +1,30 @@
+---
+import MarketingSection from './MarketingSection.astro'
+
+interface Card {
+  title: string
+  body: string
+}
+
+interface Props {
+  id?: string
+  title?: string
+  intro?: string
+  cards: Card[]
+  titleClass?: string
+  cardTitleClass?: string
+}
+
+const { id, title, intro, cards, titleClass = 'font-serif', cardTitleClass = 'font-serif' } = Astro.props
+---
+
+<MarketingSection id={id} title={title} intro={intro} titleClass={titleClass}>
+  <div class="service-grid">
+    {cards.map(card => (
+      <div class="card">
+        <h3 class={cardTitleClass}>{card.title}</h3>
+        <p>{card.body}</p>
+      </div>
+    ))}
+  </div>
+</MarketingSection>

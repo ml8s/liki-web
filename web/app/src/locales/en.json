@@ -45,9 +45,19 @@
     "domainStrip": "Reading domains",
     "domainTitle": "Choose a domain",
     "newConsultation": "Start a new consultation",
+    "contextMenu": "More destinations",
+    "contextNav": "Consultation context",
     "personTitle": "Choose a profile",
     "noProfiles": "No profiles yet",
     "createProfile": "Create profile",
+    "noProfile": {
+      "title": "Ask a hexagram first—no profile needed",
+      "askCta": "Ask a hexagram",
+      "huangliCta": "Check the almanac",
+      "unlockHint": "Create a profile to unlock personal charts, annual readings, compatibility, naming, and fengshui.",
+      "partialHint": "Almanac lookups are available now; personal charts, annual readings, and compatibility need a profile.",
+      "requiredHint": "This capability needs a birth profile. You can ask a hexagram first and create a profile later."
+    },
     "manageProfiles": "Manage profiles",
     "personEmpty": "Choose a profile",
     "askPlaceholder": "Ask your question directly",
@@ -68,6 +78,12 @@
     "fengshuiRequired": "Feng Shui requires the sitting mountain and door/master/stove layout first.",
     "namingRequired": "Naming requires a complete birth profile first.",
     "namingFailed": "Naming direction analysis failed.",
+    "form": {
+      "back": "Back to consultation",
+      "unsavedTitle": "Leave this form?",
+      "unsavedMessage": "You have unsaved form input; it will not be kept.",
+      "discard": "Discard and return"
+    },
     "historyTitle": "Domain history",
     "historySearchLabel": "Filter by title",
     "historySearchPlaceholder": "Enter a session title",
@@ -354,6 +370,8 @@
       "subtitle": "Use one saved profile and the other person’s information to view a two-person BaZi compatibility chart.",
       "step1": "Step 1 · Select a profile (you or the other person)",
       "step2": "Step 2 · Enter the other person’s information",
+      "selfSegment": "Self",
+      "otherSegment": "Other person",
       "compute": "Compare",
       "result": "Compatibility result",
       "otherPerson": "Other person",
@@ -601,6 +619,16 @@
       "liunianPillar": "Annual",
       "liunianYear": "Annual year",
       "liunianDetail": "Annual detail",
+      "annualDecade": "10-year annual overview",
+      "annualDecadeHint": "Select a year to inspect its Bazi and Zi Wei details.",
+      "annualStartYear": "Start year",
+      "annualBazi": "BaZi",
+      "annualZiwei": "Zi Wei",
+      "annualReady": "Complete",
+      "annualPartial": "Partial",
+      "annualMissing": "Missing",
+      "annualShenshaCount": "{count} shensha",
+      "annualPalace": "Annual Life Palace",
       "withNatal": "With natal chart",
       "withDaYun": "With cycle",
       "ganRel": "Stems",
@@ -1072,6 +1100,10 @@
     "viewSettlement": "View settlement records",
     "applyNow": "Apply",
     "rules": "Partnership rules",
+    "ruleKol1": "Share your referral link; commission comes only from real purchases.",
+    "ruleKol2": "Partnership is reviewed independently; no upgrades or downgrades.",
+    "ruleScout1": "Scouts discover and support KOLs, earning channel commission on their real purchases.",
+    "ruleScout2": "Partnership is reviewed independently; no upgrades or downgrades.",
     "rule3": "Purchase is not required to apply. Applications are reviewed by content, channel, and partnership plan.",
     "rule4": "Commission is based only on real product sales and adjusts for refunds.",
     "kol": {
@@ -1173,6 +1205,12 @@
       "ready": "Viewable",
       "pending-backend": "Awaiting backend contract",
       "unavailable": "Unavailable"
+    },
+    "detent": {
+      "medium": "Focus",
+      "full": "Full",
+      "peek": "Peek",
+      "pinned": "Pin"
     }
   },
   "me": {

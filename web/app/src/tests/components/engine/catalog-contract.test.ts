@@ -5,7 +5,6 @@ import {
   STANDARD_ENGINE_RESULT_PUBLIC_PROPS,
   engineResultByMethod,
   engineResultCatalog,
-  pendingEngineResults,
   sourceBackedEngineResults,
 } from '@shared/components/engine/catalog'
 import type {
@@ -17,12 +16,18 @@ import type {
   BaziChartData,
   BaziFullChartData,
   BaziLiuNianOutput,
+  BaziLiuRiOutput,
   BaziYongShenResult,
 } from '@shared/api/engine/bazi'
 import type { BazhaiChart, BazhaiLayout, XuankongChart } from '@shared/api/engine/fengshui'
 import type { HuangliDay } from '@shared/api/engine/huangli'
 import type { LiuyaoCasting, LiuyaoChartResult } from '@shared/api/engine/liuyao'
-import type { ZiweiChart, ZiweiDaXianItem, ZiweiLiuNianData } from '@shared/api/engine/ziwei'
+import type {
+  ZiweiChart,
+  ZiweiDaXianItem,
+  ZiweiLiuNianData,
+  ZiweiLiuRiData,
+} from '@shared/api/engine/ziwei'
 
 type SameType<Actual, Expected> =
   (<Value>() => Value extends Actual ? 1 : 2) extends
@@ -34,6 +39,7 @@ type ContractAssertions = [
   SameType<EngineResultPanelPropsFor<'bazi_chart'>, ExactStandardProps<BaziChartData>>,
   SameType<EngineResultPanelPropsFor<'bazi_fullchart'>, ExactStandardProps<BaziFullChartData>>,
   SameType<EngineResultPanelPropsFor<'bazi_liunian'>, ExactStandardProps<BaziLiuNianOutput>>,
+  SameType<EngineResultPanelPropsFor<'bazi_liuri'>, ExactStandardProps<BaziLiuRiOutput>>,
   SameType<EngineResultPanelPropsFor<'bazi_yongshen'>, ExactStandardProps<BaziYongShenResult>>,
   SameType<
     EngineResultPanelPropsFor<'bazi_bond'>,
@@ -48,6 +54,7 @@ type ContractAssertions = [
   SameType<EngineResultPanelPropsFor<'ziwei_fullchart'>, ExactStandardProps<ZiweiChart>>,
   SameType<EngineResultPanelPropsFor<'ziwei_daxian'>, ExactStandardProps<ZiweiDaXianItem[]>>,
   SameType<EngineResultPanelPropsFor<'ziwei_liunian'>, ExactStandardProps<ZiweiLiuNianData>>,
+  SameType<EngineResultPanelPropsFor<'ziwei_liuri'>, ExactStandardProps<ZiweiLiuRiData>>,
   SameType<EngineResultPanelPropsFor<'liuyao_qigua'>, ExactStandardProps<LiuyaoCasting>>,
   SameType<EngineResultPanelPropsFor<'liuyao_chart'>, ExactStandardProps<LiuyaoChartResult>>,
   SameType<EngineResultPanelPropsFor<'huangli_days'>, ExactStandardProps<HuangliDay[]>>,
@@ -78,6 +85,8 @@ const contractAssertions: ContractAssertions = [
   true,
   true,
   true,
+  true,
+  true,
 ]
 
 // Vitest runs with web/app as its project root; catalog paths are repo-rooted.
@@ -89,7 +98,7 @@ function repositoryPath(path: string): string {
 
 describe('engine result catalog contract', () => {
   it('maps every panel method to the exact shared DTO-backed props contract', () => {
-    expect(contractAssertions).toHaveLength(15)
+    expect(contractAssertions).toHaveLength(17)
     expect(contractAssertions.every(isTrue)).toBe(true)
   })
 
@@ -104,7 +113,7 @@ describe('engine result catalog contract', () => {
   })
 
   it('freezes provenance, baselines, and implementation paths for source-backed panels', () => {
-    expect(sourceBackedEngineResults.length).toBe(16)
+    expect(sourceBackedEngineResults.length).toBe(18)
 
     for (const entry of sourceBackedEngineResults) {
       expect(entry.sourcePaths.length, entry.method).toBeGreaterThan(0)
@@ -148,17 +157,9 @@ describe('engine result catalog contract', () => {
     ])
   })
 
-  it('keeps pending methods explicit and prevents implementation by inference', () => {
-    expect(pendingEngineResults.map(entry => entry.method)).toEqual(['bazi_liuri', 'ziwei_liuri'])
-
-    for (const entry of pendingEngineResults) {
-      expect(entry.dto).toBe('pending')
-      expect(entry.sourcePaths).toEqual([])
-      expect(entry.targetPath).toBeNull()
-      expect(entry.publicProps).toEqual([])
-      expect(entry.knownGaps?.length ?? 0).toBeGreaterThan(0)
-      expect(entry.baselineTest).toBeNull()
-    }
+  it('has no pending engine DTO type after backend contract alignment', () => {
+    expect(engineResultByMethod('bazi_liuri')?.dto).toBe('BaziLiuRiOutput')
+    expect(engineResultByMethod('ziwei_liuri')?.dto).toBe('ZiweiLiuRiData')
   })
 })
 

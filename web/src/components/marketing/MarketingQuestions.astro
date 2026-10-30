@@ -1,0 +1,16 @@
+---
+import MarketingSection from './MarketingSection.astro'
+
+interface Props {
+  title: string
+  questions: string[]
+}
+
+const { title, questions } = Astro.props
+---
+
+<MarketingSection title={title}>
+  <div class="scenario-questions">
+    {questions.map(question => <blockquote>{question}</blockquote>)}
+  </div>
+</MarketingSection>

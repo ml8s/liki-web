@@ -29,6 +29,7 @@ const props = defineProps<{
     submit: string
     computing: string
     error: string
+    resultIntro: string
     note: string
     cta: string
     privacy: string
@@ -100,6 +101,9 @@ function continueToApp() {
       <div class="tool-pan">
         <BaziYongShenPanel :result="assessment" />
       </div>
+      <p class="tool-pan-intro">
+        {{ labels.resultIntro }}
+      </p>
       <p class="tool-privacy">{{ labels.note }}</p>
       <ToolCta
         :href="appUrl"

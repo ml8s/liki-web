@@ -8,40 +8,47 @@
       <p>{{ $t('services.hepan.subtitle') }}</p>
     </header>
 
-    <p class="flow-hepan-form__person">
-      {{ $t('services.hepan.step1') }}: <strong>{{ personLabel }}</strong>
-    </p>
+    <div class="flow-hepan-form__people">
+      <fieldset class="flow-hepan-form__segment">
+        <legend>{{ $t('services.hepan.selfSegment') }}</legend>
+        <p class="flow-hepan-form__person">
+          <strong>{{ personLabel }}</strong>
+        </p>
+      </fieldset>
 
-    <el-form
-      ref="formRef"
-      :model="formValue"
-      :rules="rules"
-      label-position="top"
-      class="flow-hepan-form__form"
-      @submit.prevent="submit"
-    >
-      <BirthFields
-        :value="formValue"
-        :labels="labels"
-        name-prefix="flow-hepan-other"
-        @update:patch="patchSecondBirth"
-      />
-
-      <CheckboxField
-        v-model="formValue.third_party_consent"
-        name="flow-hepan-consent"
-        prop="third_party_consent"
-        :label="$t('profiles.form.consent')"
-      />
-
-      <el-button
-        type="primary"
-        native-type="submit"
-        :loading="loading"
+      <el-form
+        ref="formRef"
+        :model="formValue"
+        :rules="rules"
+        label-position="top"
+        class="flow-hepan-form__form"
+        @submit.prevent="submit"
       >
-        {{ $t('services.hepan.compute') }}
-      </el-button>
-    </el-form>
+        <fieldset class="flow-hepan-form__segment">
+          <legend>{{ $t('services.hepan.otherSegment') }}</legend>
+          <BirthFields
+            :value="formValue"
+            :labels="labels"
+            name-prefix="flow-hepan-other"
+            @update:patch="patchSecondBirth"
+          />
+          <CheckboxField
+            v-model="formValue.third_party_consent"
+            name="flow-hepan-consent"
+            prop="third_party_consent"
+            :label="$t('profiles.form.consent')"
+          />
+        </fieldset>
+
+        <el-button
+          type="primary"
+          native-type="submit"
+          :loading="loading"
+        >
+          {{ $t('services.hepan.compute') }}
+        </el-button>
+      </el-form>
+    </div>
   </section>
 </template>
 
@@ -147,6 +154,28 @@ async function submit() {
 }
 
 .flow-hepan-form__header p { margin-top: var(--space-1); }
-.flow-hepan-form__person { margin-bottom: var(--space-3); overflow-wrap: anywhere; }
+.flow-hepan-form__people {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.flow-hepan-form__segment {
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--liki-line);
+  border-radius: var(--radius-md);
+}
+.flow-hepan-form__segment legend {
+  padding-inline: var(--space-1);
+  color: var(--liki-text-2);
+  font-size: var(--font-size-label);
+  font-weight: 600;
+}
+.flow-hepan-form__person {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--liki-ink);
+}
 .flow-hepan-form__form { min-width: 0; }
 </style>

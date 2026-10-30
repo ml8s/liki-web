@@ -1,5 +1,8 @@
 <template>
-  <div class="app-flow-shell">
+  <div
+    class="app-flow-shell"
+    :class="sidecarOpen ? `app-flow-shell--sidecar-${sidecarMode}` : undefined"
+  >
     <a
       :href="`#${mainId}`"
       class="flow-skip-link"
@@ -32,7 +35,48 @@
       >
         {{ $t('flow.restore') }}
       </button>
+
+      <button
+        type="button"
+        class="flow-overflow-trigger"
+        :aria-label="$t('flow.contextMenu')"
+        aria-haspopup="dialog"
+        :aria-expanded="contextMenuOpen"
+        @click="contextMenuOpen = true"
+      >
+        <span aria-hidden="true">⋯</span>
+      </button>
     </header>
+
+    <nav
+      class="flow-context-rail"
+      :aria-label="$t('flow.contextNav')"
+    >
+      <div class="flow-context-rail__group">
+        <button
+          v-for="domain in domains"
+          :key="domain.id"
+          type="button"
+          class="flow-context-rail__item"
+          :class="{ 'is-selected': domain.id === selectedDomainId }"
+          :aria-current="domain.id === selectedDomainId ? 'true' : undefined"
+          @click="emit('domain-select', domain.id)"
+        >
+          {{ $t(domain.labelKey) }}
+        </button>
+      </div>
+      <div class="flow-context-rail__group">
+        <button
+          v-for="item in contextItems"
+          :key="item.id"
+          type="button"
+          class="flow-context-rail__item"
+          @click="handleContextSelect(item.id)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+    </nav>
 
     <div class="flow-body">
       <main
@@ -48,6 +92,16 @@
         <slot name="actions" />
       </div>
     </div>
+
+    <div class="flow-sidecar">
+      <slot name="sidecar" />
+    </div>
+
+    <FlowContextMenu
+      v-model="contextMenuOpen"
+      :items="contextItems"
+      @select="handleContextSelect"
+    />
   </div>
 </template>
 
@@ -56,20 +110,42 @@ import { computed, nextTick, ref } from 'vue'
 import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
+import FlowContextMenu from './FlowContextMenu.vue'
+import type { AppDomain, AppDomainId } from '@shared/domain/flow'
 
 const props = defineProps<{
   personLabel?: string
   domainLabel: string
+  domains?: readonly AppDomain[]
+  selectedDomainId?: AppDomainId
+  partnerVisible?: boolean
   restoreVisible?: boolean
+  sidecarOpen?: boolean
+  sidecarMode?: 'peek' | 'pinned'
 }>()
 
 const emit = defineEmits<{
   restore: []
+  'domain-select': [domainId: AppDomainId]
+  'context-select': [id: string]
 }>()
 
 const mainId = useId()
 const mainElement = ref<HTMLElement | null>(null)
+const contextMenuOpen = ref(false)
 const { t } = useI18n()
+
+const contextItems = computed(() => {
+  const items = [
+    { id: 'partner', label: t('router.partnerCenter') },
+    { id: 'me', label: t('nav.me') },
+    { id: 'history', label: t('router.chat') },
+    { id: 'orders', label: t('router.orders') },
+    { id: 'account', label: t('router.account') },
+    { id: 'classic', label: t('nav.classic') },
+  ]
+  return props.partnerVisible ? items : items.filter(item => item.id !== 'partner')
+})
 
 const contextAnnouncement = computed(() => t('flow.contextAnnouncement', {
   person: props.personLabel || t('flow.personEmpty'),
@@ -78,6 +154,11 @@ const contextAnnouncement = computed(() => t('flow.contextAnnouncement', {
 
 function getMainElement() {
   return mainElement.value
+}
+
+function handleContextSelect(id: string) {
+  contextMenuOpen.value = false
+  emit('context-select', id)
 }
 
 async function scrollToBottom({ focusMain = false }: { focusMain?: boolean } = {}) {
@@ -197,6 +278,33 @@ defineExpose({
   outline-offset: 2px;
 }
 
+.flow-overflow-trigger {
+  flex: 0 0 auto;
+  width: var(--control-height-touch);
+  height: var(--control-height-touch);
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--liki-on-ink-line);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--liki-on-ink);
+  font: inherit;
+  font-size: var(--font-size-title-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.flow-overflow-trigger:hover {
+  border-color: var(--liki-on-ink-hover);
+  background: var(--liki-on-ink-hover);
+}
+.flow-overflow-trigger:focus-visible {
+  outline: 3px solid var(--liki-primary);
+  outline-offset: 2px;
+}
+.flow-context-rail {
+  display: none;
+}
+
 .flow-body {
   min-height: 0;
   display: grid;
@@ -236,14 +344,37 @@ defineExpose({
   }
 }
 
+@media (max-width: 479.98px) {
+  .flow-status {
+    flex-wrap: nowrap;
+    height: 44px;
+    min-height: 44px;
+    padding-block: 0;
+  }
+
+  .flow-action-dock {
+    gap: 0;
+    padding: 0 var(--space-3) 3px;
+  }
+}
+
 @media (min-width: 1024px) {
   .app-flow-shell {
-    grid-template-columns: 248px minmax(0, 1fr);
+    grid-template-columns: 184px minmax(400px, 1fr);
     grid-template-rows: minmax(0, 1fr);
+  }
+
+  .app-flow-shell--sidecar-peek {
+    grid-template-columns: 184px minmax(400px, 1fr) minmax(320px, 360px);
+  }
+
+  .app-flow-shell--sidecar-pinned {
+    grid-template-columns: 184px minmax(400px, 1fr) minmax(384px, 440px);
   }
 
   .flow-status {
     grid-column: 1;
+    grid-row: 1;
     min-height: 0;
     align-items: stretch;
     justify-content: flex-start;
@@ -253,6 +384,17 @@ defineExpose({
     border-right: 1px solid var(--liki-line);
     background: var(--liki-surface);
     color: var(--liki-ink);
+  }
+
+  .flow-status {
+    height: auto;
+    min-height: 0;
+    flex-wrap: wrap;
+  }
+
+  .flow-action-dock {
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
   }
 
   .flow-status__context {
@@ -282,15 +424,77 @@ defineExpose({
 
   .flow-restore:hover { border-color: var(--liki-primary-border); }
 
+  .flow-overflow-trigger { display: none; }
+
+  .flow-context-rail {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    display: grid;
+    gap: var(--space-5);
+    align-content: start;
+    overflow-y: auto;
+    padding: var(--space-4);
+    border-right: 1px solid var(--liki-line);
+    background: var(--liki-surface);
+  }
+  .flow-context-rail__group {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-1);
+  }
+  .flow-context-rail__item {
+    min-width: 0;
+    min-height: var(--control-height-touch);
+    display: flex;
+    align-items: center;
+    padding: 8px var(--space-2);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--liki-text-2);
+    font: inherit;
+    font-size: var(--font-size-body);
+    text-align: start;
+    cursor: pointer;
+  }
+  .flow-context-rail__item:hover {
+    background: var(--liki-primary-tint);
+    color: var(--liki-primary);
+  }
+  .flow-context-rail__item:focus-visible {
+    outline: 3px solid var(--liki-primary);
+    outline-offset: 2px;
+  }
+  .flow-context-rail__item.is-selected {
+    background: var(--liki-primary-tint);
+    color: var(--liki-primary);
+    font-weight: 600;
+  }
+
   .flow-body {
     grid-column: 2;
-    width: min(100%, 920px);
+    grid-row: 1 / span 2;
+    width: min(100%, 760px);
     margin-inline: auto;
+  }
+
+  .flow-sidecar { display: none; }
+
+  .app-flow-shell--sidecar-peek .flow-sidecar,
+  .app-flow-shell--sidecar-pinned .flow-sidecar {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    align-items: start;
+    padding-inline-start: var(--space-3);
   }
 
   .flow-main,
   .flow-action-dock {
-    padding-inline: var(--space-6);
+    padding-inline: var(--space-3);
   }
 }
 </style>

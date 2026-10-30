@@ -141,3 +141,47 @@ export function engineZiweiLiuNian(
     chart,
   }).then(result => result.items)
 }
+
+export interface ZiweiLunarDate {
+  year: number
+  month: number
+  leap?: boolean
+}
+
+export interface ZiweiLiuRiResolved {
+  standard_time: string
+  local_date: string
+  beijing_date: string
+  lunar: ZiweiLunarDate
+}
+
+export interface ZiweiLiuRiGong {
+  zhi: string
+  name: string
+  xing_yao?: string[]
+  is_liu_ming?: boolean
+}
+
+/** 流日十二宫（ziwei.liuri；gong_wei 为流日盘宫名）。 */
+export interface ZiweiLiuRiData {
+  lunar?: ZiweiLunarDate
+  resolved?: ZiweiLiuRiResolved
+  ming_gong: string
+  ming_gong_name?: string
+  zhi: string
+  si_hua?: Record<string, string>
+  xing_yao?: Record<string, string>
+  gong_wei?: ZiweiLiuRiGong[]
+}
+
+export function engineZiweiLiuri(
+  chart: unknown,
+  standardTime: string,
+  count = 1,
+): Promise<ZiweiLiuRiData[]> {
+  return mcpTool<{ items: ZiweiLiuRiData[] }>(ENGINE_TOOLS.ZiweiLiuRi, {
+    standard_time: standardTime,
+    count,
+    chart,
+  }).then(result => result.items)
+}

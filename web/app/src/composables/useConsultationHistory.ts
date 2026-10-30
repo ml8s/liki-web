@@ -26,6 +26,12 @@ export function useConsultationHistory(options: ConsultationHistoryOptions) {
   const flow = useDomainFlowStore()
   const telemetry = useConsultationTelemetry()
 
+  const activeSessions = computed(() =>
+    chat.sessions
+      .filter(session => session.status === 'active')
+      .sort((left, right) => right.updated_at.localeCompare(left.updated_at)),
+  )
+
   const visibleSessions = computed(() =>
     chat.sessions
       .filter(session => (session.profile_id || null) === toValue(options.personId))
@@ -33,7 +39,12 @@ export function useConsultationHistory(options: ConsultationHistoryOptions) {
       .sort((left, right) => right.updated_at.localeCompare(left.updated_at)),
   )
 
-  const latestVisibleSession = computed(() => visibleSessions.value[0] ?? null)
+  const latestVisibleSession = computed(() =>
+    activeSessions.value.find(session =>
+      (session.profile_id || null) === toValue(options.personId)
+      && domainForSession(session) === toValue(options.domainId),
+    ) ?? null,
+  )
 
   const restoreVisible = computed(() =>
     Boolean(latestVisibleSession.value) &&
@@ -53,6 +64,15 @@ export function useConsultationHistory(options: ConsultationHistoryOptions) {
       source: 'latest',
       restored: chat.activeSession?.id === latest.id,
     })
+  }
+
+  /**
+   * `null` intentionally means "across every person/domain" for boot-time
+   * session-first restore. Omitting the argument uses the visible domain.
+   */
+  function latestRestorableSession(domainId: string | null = toValue(options.domainId)): ChatSession | null {
+    if (domainId === null) return activeSessions.value[0] ?? null
+    return activeSessions.value.find(session => domainForSession(session) === domainId) ?? null
   }
 
   async function openSession(session: ChatSession) {
@@ -94,6 +114,7 @@ export function useConsultationHistory(options: ConsultationHistoryOptions) {
   return {
     visibleSessions,
     latestVisibleSession,
+    latestRestorableSession,
     restoreVisible,
     restoreLatest,
     openSession,

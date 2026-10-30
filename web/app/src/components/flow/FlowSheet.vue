@@ -4,7 +4,7 @@
     :title="title"
     class="flow-sheet"
     direction="btt"
-    size="min(72dvh, 520px)"
+    :size="size"
     :with-header="false"
     :append-to-body="true"
     :destroy-on-close="false"
@@ -20,6 +20,12 @@
       <h2 :id="titleId">
         {{ title }}
       </h2>
+      <div
+        v-if="$slots['header-actions']"
+        class="flow-sheet__actions"
+      >
+        <slot name="header-actions" />
+      </div>
       <button
         type="button"
         class="flow-sheet__close"
@@ -46,6 +52,7 @@ import { useId } from 'vue'
 defineProps<{
   modelValue: boolean
   title: string
+  size?: string
 }>()
 
 defineEmits<{
@@ -82,6 +89,31 @@ const contentId = useId()
   justify-content: space-between;
   margin-bottom: var(--space-3);
 }
+.flow-sheet__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.flow-sheet__action {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--liki-line);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--liki-text-2);
+  font: inherit;
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+.flow-sheet__action.is-active {
+  border-color: var(--liki-primary-border);
+  background: var(--liki-primary-tint);
+  color: var(--liki-primary);
+}
+.flow-sheet__action:focus-visible {
+  outline: 3px solid var(--liki-primary);
+  outline-offset: 2px;
+}
 .flow-sheet__header h2 {
   margin: 0;
   font-size: var(--font-size-title-sm);
@@ -111,5 +143,15 @@ const contentId = useId()
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+</style>
+
+<style scoped>
+@media (prefers-reduced-motion: reduce) {
+  .flow-sheet :deep(.el-drawer),
+  .flow-sheet :deep(.el-overlay) {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 </style>

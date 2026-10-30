@@ -100,6 +100,7 @@ async function createTestRouter(initialUrl = '/') {
       { path: '/me', name: 'app-me', component: { template: '<div />' } },
       { path: '/birth-profiles', name: 'birth-profiles', component: { template: '<div />' } },
       { path: '/birth-profiles/new', name: 'birth-profile-new', component: { template: '<div />' } },
+      { path: '/classic/huangli', name: 'classic-huangli', component: { template: '<div />' } },
     ],
   })
   router.push(initialUrl)
@@ -267,7 +268,76 @@ describe('DomainFlowView', () => {
     document.body.innerHTML = ''
   })
 
-  it('restores the latest visible session for the selected person/domain', async () => {
+  it('defaults a new user to the profile-free divination path', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
+
+    const router = await createTestRouter()
+    const wrapper = mount(DomainFlowView, {
+      global: { plugins: [router], stubs: { ChatThread: true, ChatStreamStatus: true } },
+    })
+    await flushAll()
+
+    const flow = useDomainFlowStore()
+    expect(flow.personId).toBeNull()
+    expect(flow.domainId).toBe('divination')
+    expect(wrapper.findComponent(FlowDivinationForm).exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('新建档案')
+    wrapper.unmount()
+  })
+
+  it('leads a restricted no-profile state with the free path and profile upgrade', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
+
+    const router = await createTestRouter('/?domain=natal')
+    const wrapper = mount(DomainFlowView, {
+      global: { plugins: [router], stubs: { ChatThread: true, ChatStreamStatus: true } },
+    })
+    await flushAll()
+
+    expect(wrapper.text()).toContain('命理中的黄历可以先查')
+    expect(wrapper.findAll('.no-profile .spine-action')[0]?.text()).toBe('问一卦')
+    expect(wrapper.findAll('.no-profile .spine-action')[1]?.text()).toBe('查黄历择日')
+
+    await wrapper.get('.no-profile .spine-action').trigger('click')
+    await flushAll()
+    const flow = useDomainFlowStore()
+    expect(flow.domainId).toBe('divination')
+    expect(wrapper.findComponent(FlowDivinationForm).exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('keeps generic almanac lookup on its compatibility route', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    const entitlements = useEntitlementsStore()
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
+
+    const router = await createTestRouter('/?domain=natal&locale=zh-Hant')
+    const wrapper = mount(DomainFlowView, {
+      global: { plugins: [router], stubs: { ChatThread: true, ChatStreamStatus: true } },
+    })
+    await flushAll()
+
+    await wrapper.findAll('.no-profile .spine-action')[1]!.trigger('click')
+    await flushAll()
+
+    expect(router.currentRoute.value.fullPath).toBe('/classic/huangli?locale=zh-Hant')
+    wrapper.unmount()
+  })
+
+  it('restores the newest active session and projects its person/domain', async () => {
     const profiles = useBirthProfilesStore()
     const chat = useChatStore()
     profiles.list = [birthProfile()]
@@ -301,10 +371,86 @@ describe('DomainFlowView', () => {
     await flushAll()
 
     const flow = useDomainFlowStore()
-    expect(flow.personId).toBe('person-1')
-    expect(flow.domainId).toBe('natal')
-    expect(chat.activeSession?.id).toBe('latest-natal')
+    expect(flow.personId).toBeNull()
+    expect(flow.domainId).toBe('divination')
+    expect(chat.activeSession?.id).toBe('divination-domain')
     expect(wrapper.find('.flow-restore').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('restores a session belonging to a profile other than the first list entry', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    profiles.list = [birthProfile('person-1', '张三'), birthProfile('person-2', '李四')]
+    chat.sessions = [
+      chatSession({
+        id: 'zhang-san-session',
+        updated_at: '2026-01-01T00:00:00Z',
+      }),
+      chatSession({
+        id: 'li-si-session',
+        profile_id: 'person-2',
+        updated_at: '2026-01-05T00:00:00Z',
+      }),
+    ]
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'openSession').mockImplementation(async sessionId => {
+      chat.activeSession = chat.sessions.find(session => session.id === sessionId) ?? null
+    })
+    vi.spyOn(useEntitlementsStore(), 'load').mockResolvedValue(undefined)
+
+    const router = await createTestRouter()
+    const wrapper = mount(DomainFlowView, { global: { plugins: [router] } })
+    await flushAll()
+
+    const flow = useDomainFlowStore()
+    expect(flow.personId).toBe('person-2')
+    expect(flow.domainId).toBe('natal')
+    expect(chat.activeSession?.id).toBe('li-si-session')
+    wrapper.unmount()
+  })
+
+  it('restores a casting receipt as a document and artifact, not a new form', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    profiles.list = [birthProfile()]
+    chat.sessions = [divinationSession()]
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'openSession').mockImplementation(async sessionId => {
+      chat.activeSession = chat.sessions.find(session => session.id === sessionId) ?? null
+    })
+    vi.spyOn(useEntitlementsStore(), 'load').mockResolvedValue(undefined)
+
+    const router = await createTestRouter()
+    const wrapper = mount(DomainFlowView, { global: { plugins: [router] } })
+    await flushAll()
+
+    expect(wrapper.findComponent(FlowDivinationForm).exists()).toBe(false)
+    expect(wrapper.find('.consultation-document').exists()).toBe(true)
+    expect(wrapper.findAll('.artifact-capsule')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('syncs a selected domain into the canonical URL and removes a stale seed', async () => {
+    const profiles = useBirthProfilesStore()
+    const chat = useChatStore()
+    profiles.list = [birthProfile()]
+    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
+    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
+    vi.spyOn(useEntitlementsStore(), 'load').mockResolvedValue(undefined)
+
+    const router = await createTestRouter('/?domain=natal')
+    const wrapper = mount(DomainFlowView, { global: { plugins: [router] } })
+    await flushAll()
+
+    await wrapper.findAll('[role="tab"]')[1]!.trigger('click')
+    await flushAll()
+
+    const flow = useDomainFlowStore()
+    expect(flow.domainId).toBe('divination')
+    expect(router.currentRoute.value.fullPath).toBe('/?domain=divination')
     wrapper.unmount()
   })
 
@@ -548,7 +694,7 @@ describe('DomainFlowView', () => {
     await wrapper.get('.artifact-capsule').trigger('click')
     await flushAll()
     expect(wrapper.get('aside.artifact-sidecar').classes()).toContain('artifact-sidecar--peek')
-    expect(wrapper.find('.artifact-layer--sidecar').exists()).toBe(true)
+    expect(wrapper.find('.app-flow-shell--sidecar-peek').exists()).toBe(true)
 
     await wrapper.get('.artifact-sidecar__close').trigger('click')
     await settleTransitions()

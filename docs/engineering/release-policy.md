@@ -14,7 +14,9 @@ A release candidate may be deployed only after all of the following pass:
 3. route and generated-artifact checks pass;
 4. liki-deploy runs `make gate`;
 5. liki-deploy runs `make test-local`;
-6. the release manifest records the exact image SHAs.
+6. liki-deploy assembly `@system` journeys cover Caddy, BFF AG-UI, experts,
+   engine MCP, and persistence;
+7. the release manifest records the exact image SHAs.
 
 ## Production deployment
 
@@ -23,6 +25,9 @@ A release candidate may be deployed only after all of the following pass:
 3. run standard production smoke;
 4. run post-deploy route, database, and image verification;
 5. retain the smoke and verifier reports with the release record.
+
+The web repository's normal browser E2E explicitly excludes `@system`. The
+canonical live-system journey is owned by liki-deploy's assembly suite.
 
 ## Compatibility
 

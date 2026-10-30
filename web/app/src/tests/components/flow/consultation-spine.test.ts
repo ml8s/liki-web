@@ -24,7 +24,19 @@ describe('ConsultationSpine', () => {
     const wrapper = mount(ConsultationSpine, { props: baseProps })
 
     expect(wrapper.find('h1').text()).toBe('命理')
-    expect(wrapper.find('.app-empty__text').text()).toBe('还没有档案')
+    expect(wrapper.find('.app-empty__text').text()).toBe('先问一卦，无需建档')
+  })
+
+  it('explains partial and required domain capability in the no-profile state', () => {
+    const partial = mount(ConsultationSpine, {
+      props: { ...baseProps, profilePolicy: 'partial' },
+    })
+    expect(partial.find('.app-empty__text').text()).toContain('黄历可以先查')
+
+    const required = mount(ConsultationSpine, {
+      props: { ...baseProps, profilePolicy: 'required' },
+    })
+    expect(required.find('.app-empty__text').text()).toContain('需要出生档案')
   })
 
   it('renders a polite loading state and hides content', () => {
@@ -103,9 +115,10 @@ describe('ConsultationSpine', () => {
 
     expect(wrapper.attributes('data-state')).toBe('empty')
     expect(wrapper.find('.spine-state').attributes('role')).toBe('status')
-    expect(wrapper.find('.app-empty__text').text()).toBe('还没有档案')
+    expect(wrapper.find('.app-empty__text').text()).toBe('先问一卦，无需建档')
+    expect(wrapper.findAll('.no-profile .spine-action')).toHaveLength(3)
 
-    await wrapper.find('.spine-action').trigger('click')
+    await wrapper.findAll('.no-profile .spine-action')[2]!.trigger('click')
     expect(wrapper.emitted('create-profile')).toHaveLength(1)
   })
 

@@ -34,23 +34,28 @@ standalone refactor.
 
 ## Routes
 
-Authenticated routes live under `/app`:
+When `VITE_FEATURE_APP_FLOW_REDESIGN=true`, authenticated product routes use two
+templates. Consultation is the default four-domain surface; Classic remains the
+maintenance and rollback surface:
 
 ```text
 /app
-/app/birth-profiles
-/app/birth-profiles/new
-/app/birth-profiles/:id
-/app/hepan
-/app/divination
-/app/fengshui
-/app/huangli
-/app/chat
-/app/chat/:id
-/app/orders
-/app/partners
-/app/partners/kol
-/app/partners/scout
+/app/consultation
+/app/me
+/app/classic
+/app/classic/birth-profiles
+/app/classic/birth-profiles/new
+/app/classic/birth-profiles/:id
+/app/classic/hepan
+/app/classic/divination
+/app/classic/fengshui
+/app/classic/huangli
+/app/classic/chat
+/app/classic/chat/:id
+/app/classic/orders
+/app/classic/partners
+/app/classic/partners/kol
+/app/classic/partners/scout
 /app/account
 /app/admin
 /app/admin/entitlements
@@ -62,6 +67,10 @@ Authenticated routes live under `/app`:
 /app/admin/audit
 /app/admin/administrators
 ```
+
+Legacy `/app/<tool>` URLs redirect to Consultation when the domain has reached
+parity, or to `/app/classic/<tool>` while compatibility is still required.
+A user-selected Classic preference may send `/app` to `/app/classic`.
 
 Router guards call `/api/me`, redirect unauthenticated users to `/app/login`, and preserve redirect targets.
 
@@ -77,7 +86,10 @@ surfaces (`/{locale}/natal/` ↔ `/app?scenario=natal`):
 - scenario ids: `natal | liunian | hepan | divination | huangli | fengshui | naming`
   (the seven user-facing scenarios). The internal expert deployment
   (`natal | divination | fengshui | naming`) is never presented to users;
-- tool-route entries use the same ids through `/app?service=…`;
+- tool-route entries use the same ids through `/app?service=…`; Consultation
+  normalizes this to `domain` plus transient `seed` state;
+- `huangli` remains a compatibility entry until backend ownership moves to
+  `natal`;
 - the app keeps the locale, authenticates the user, resolves the scenario after
   profile data has loaded, and falls unknown values back to the general
   workspace.

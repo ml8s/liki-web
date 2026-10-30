@@ -3,11 +3,6 @@
     class="flow-fengshui-form"
     :aria-busy="loading"
   >
-    <header class="flow-fengshui-form__header">
-      <h2>{{ $t('services.fengshui.pageTitle') }}</h2>
-      <p>{{ $t('services.fengshui.subtitle') }}</p>
-    </header>
-
     <dl class="flow-fengshui-form__person">
       <div>
         <dt>{{ $t('chat.selectBirthProfile') }}</dt>
@@ -102,7 +97,6 @@ const genderLabel = computed(() => {
 
 function patchLayout(patch: Partial<FengshuiLayoutValue>) {
   Object.assign(formValue, patch)
-  maybeAutoSubmit()
 }
 
 function submit() {

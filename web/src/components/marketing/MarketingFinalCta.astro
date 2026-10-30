@@ -1,0 +1,12 @@
+---
+interface Props {
+  label: string
+}
+
+const { label } = Astro.props
+---
+
+<section class="landing-cta">
+  <p class="font-serif">{label}</p>
+  <slot />
+</section>

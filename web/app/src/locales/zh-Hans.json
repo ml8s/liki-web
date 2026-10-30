@@ -45,9 +45,19 @@
     "domainStrip": "解读领域",
     "domainTitle": "选择领域",
     "newConsultation": "开始新咨询",
+    "contextMenu": "更多入口",
+    "contextNav": "咨询上下文",
     "personTitle": "选择档案",
     "noProfiles": "还没有档案",
     "createProfile": "新建档案",
+    "noProfile": {
+      "title": "先问一卦，无需建档",
+      "askCta": "问一卦",
+      "huangliCta": "查黄历择日",
+      "unlockHint": "建档解锁个人命盘、流年、合盘、起名与风水。",
+      "partialHint": "命理中的黄历可以先查；个人命盘、流年和合盘需要档案。",
+      "requiredHint": "这项能力需要出生档案；你可以先问一卦，稍后建档。"
+    },
     "manageProfiles": "管理全部档案",
     "personEmpty": "选择档案",
     "askPlaceholder": "直接提出你的问题",
@@ -68,6 +78,12 @@
     "fengshuiRequired": "风水需要先完成坐山与门主灶布局。",
     "namingRequired": "起名需要先选择完整出生档案。",
     "namingFailed": "起名方向分析失败。",
+    "form": {
+      "back": "返回咨询",
+      "unsavedTitle": "离开填写步骤？",
+      "unsavedMessage": "还有未提交的表单内容，离开后将不会保留。",
+      "discard": "放弃并返回"
+    },
     "historyTitle": "本领域历史",
     "historySearchLabel": "按标题筛选",
     "historySearchPlaceholder": "输入会话标题",
@@ -354,6 +370,8 @@
       "subtitle": "用你的档案与对方信息，查看两人的八字合盘。",
       "step1": "第一步 · 选择档案（你或对方）",
       "step2": "第二步 · 输入对方信息",
+      "selfSegment": "本人",
+      "otherSegment": "对方",
       "compute": "合盘",
       "result": "合盘结果",
       "otherPerson": "对方",
@@ -601,6 +619,16 @@
       "liunianPillar": "流年",
       "liunianYear": "流年年份",
       "liunianDetail": "流年详览",
+      "annualDecade": "十年流年概览",
+      "annualDecadeHint": "点击年份查看八字与紫微流年详情。",
+      "annualStartYear": "起始年份",
+      "annualBazi": "八字",
+      "annualZiwei": "紫微",
+      "annualReady": "完整",
+      "annualPartial": "部分可用",
+      "annualMissing": "暂缺",
+      "annualShenshaCount": "{count} 项神煞",
+      "annualPalace": "流年命宫",
       "withNatal": "与命局",
       "withDaYun": "与大运",
       "ganRel": "天干",
@@ -1072,6 +1100,10 @@
     "viewSettlement": "查看结算记录",
     "applyNow": "去申请",
     "rules": "合作规则",
+    "ruleKol1": "分享专属推广链接，佣金只来自真实成交。",
+    "ruleKol2": "合作身份独立审核，不可升级或降级。",
+    "ruleScout1": "Scout 发现并支持 KOL 成长，从其渠道的真实成交中获得佣金。",
+    "ruleScout2": "合作身份独立审核，不可升级或降级。",
     "rule3": "申请不要求先购买产品；平台按内容、渠道和合作计划审核。",
     "rule4": "佣金只基于真实产品成交，退款会相应调整。",
     "kol": {
@@ -1173,6 +1205,12 @@
       "ready": "可查看",
       "pending-backend": "等待后端契约",
       "unavailable": "暂不可用"
+    },
+    "detent": {
+      "medium": "焦点",
+      "full": "完整",
+      "peek": "速览",
+      "pinned": "固定"
     }
   },
   "me": {

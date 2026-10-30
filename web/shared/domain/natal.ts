@@ -128,6 +128,15 @@ export async function natalChartForChartInput(
   }
 }
 
+export const LIUNIAN_DECADE_SIZE = 10
+
+export interface AnnualDecadeItem {
+  year: number
+  bazi?: BaziLiuNianOutput
+  ziwei?: ZiweiLiuNianData
+  availability: 'ready' | 'partial' | 'missing'
+}
+
 /** Birth facts -> Bazi resource chain (shared by both themes). */
 export async function baziNatalFor(birth: BirthInput): Promise<BaziNatal> {
   const input = await chartInputFromBirth(birth)
@@ -169,4 +178,48 @@ export function ziweiLiunianFor(
   lunarYear: number,
 ): Promise<ZiweiLiuNianData> {
   return engineZiweiLiuNian(chart, yearToStandardTime(lunarYear)).then(([item]) => item)
+}
+
+/** One request per deterministic system; the engine owns consecutive-year semantics. */
+export async function baziLiunianRangeFor(
+  chart: BaziChartData,
+  startYear: number,
+  count = LIUNIAN_DECADE_SIZE,
+): Promise<BaziLiuNianOutput[]> {
+  return engineBaziLiunian(chart, yearToStandardTime(startYear), count)
+}
+
+export async function ziweiLiunianRangeFor(
+  chart: ZiweiChart,
+  startYear: number,
+  count = LIUNIAN_DECADE_SIZE,
+): Promise<ZiweiLiuNianData[]> {
+  return engineZiweiLiuNian(chart, yearToStandardTime(startYear), count)
+}
+
+/**
+ * Merge two independently requested annual systems by engine-returned year.
+ * Missing years are explicit UI state; the frontend never fabricates a year.
+ */
+export function mergeAnnualDecade(
+  startYear: number,
+  baziItems: BaziLiuNianOutput[] = [],
+  ziweiItems: ZiweiLiuNianData[] = [],
+  count = LIUNIAN_DECADE_SIZE,
+): AnnualDecadeItem[] {
+  return Array.from({ length: count }, (_, index) => {
+    const year = startYear + index
+    const bazi = baziItems[index]
+    const ziwei = ziweiItems[index]
+    return {
+      year,
+      bazi: bazi ? { ...bazi, year } : undefined,
+      ziwei,
+        availability: bazi && ziwei
+          ? 'ready'
+          : bazi || ziwei
+            ? 'partial'
+            : 'missing',
+      }
+    })
 }

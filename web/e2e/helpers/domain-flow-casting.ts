@@ -85,14 +85,10 @@ export function castingForm(page: Page) {
 }
 
 export async function openDivination(page: Page) {
-  await expect(page.locator('.flow-domain-strip [role="tab"]')).toHaveText([
-    '命理',
-    '问卦',
-    '风水',
-    '起名',
-  ])
-  await page.locator('.flow-domain-strip [role="tab"]', { hasText: '问卦' }).click()
-
+  const url = new URL(page.url())
+  url.searchParams.set('domain', 'divination')
+  url.searchParams.set('seed', 'divination')
+  await page.goto(url.toString())
   const form = castingForm(page)
   await expect(form.locator('textarea[name="divination-question"]')).toBeVisible()
   await expect(form.getByRole('button', { name: '摇卦' })).toBeVisible()

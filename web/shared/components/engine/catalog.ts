@@ -10,7 +10,6 @@ export type {
   EngineResultPanelProps,
   EngineResultPanelPropsFor,
   HuangliDayDetailProps,
-  PendingEngineMethod,
   SourceBackedEngineResultMethod,
 } from './contract'
 
@@ -22,7 +21,7 @@ export const STANDARD_ENGINE_RESULT_PUBLIC_PROPS = [
 ] as const
 
 export type EngineCatalogKind = 'result-panel' | 'input-support'
-export type EngineCatalogStatus = 'source-backed' | 'pending-contract'
+export type EngineCatalogStatus = 'source-backed'
 export type Wave4ExtractionLane =
   | 'B1' | 'B2' | 'B3' | 'B4' | 'B5' | 'B6' | 'B7' | 'B8' | 'B9' | 'B10'
 
@@ -322,35 +321,33 @@ export const engineResultCatalog = [
   },
   {
     method: 'bazi_liuri',
-    dto: 'pending',
+    dto: 'BaziLiuRiOutput',
     kind: 'result-panel',
     target: 'BaziLiuRiPanel',
-    targetPath: null,
-    publicProps: [],
-    sourcePaths: [],
-    sourceProjection: 'No current web projection; do not infer it from liunian',
-    baselineTest: null,
-    knownGaps: [
-      'Web API adapter and DTO are not exposed',
-      'Personalized date selection requires natal chart, dayun, liunian, and selected date',
+    targetPath: 'web/shared/components/engine/bazi/BaziLiuRiPanel.vue',
+    publicProps: ['result', 'focused?', 'density?'],
+    sourcePaths: [
+      'web/shared/api/engine/bazi.ts',
+      'web/shared/domain/date-selection.ts',
     ],
-    status: 'pending-contract',
+    sourceProjection: 'Selected-day pillar, ten god, nayin, shen sha, and natal/dayun/annual relations',
+    baselineTest: 'web/e2e/journeys/huangli-tool.spec.ts',
+    status: 'source-backed',
   },
   {
     method: 'ziwei_liuri',
-    dto: 'pending',
+    dto: 'ZiweiLiuRiData',
     kind: 'result-panel',
     target: 'ZiweiLiuRiPanel',
-    targetPath: null,
-    publicProps: [],
-    sourcePaths: [],
-    sourceProjection: 'No current web projection; do not infer it from liunian',
-    baselineTest: null,
-    knownGaps: [
-      'Web API adapter and DTO are not exposed',
-      'Personalized date selection requires the natal Ziwei chart and selected lunar day',
+    targetPath: 'web/shared/components/engine/ziwei/ZiweiLiuRiPanel.vue',
+    publicProps: ['result', 'focused?', 'density?'],
+    sourcePaths: [
+      'web/shared/api/engine/ziwei.ts',
+      'web/shared/domain/date-selection.ts',
     ],
-    status: 'pending-contract',
+    sourceProjection: 'Selected-day Ziwei palace chart, center palace, and four transformations',
+    baselineTest: 'web/e2e/journeys/huangli-tool.spec.ts',
+    status: 'source-backed',
   },
 ] as const satisfies readonly EngineResultCatalogEntry[]
 
@@ -358,16 +355,10 @@ export function engineResultPanelPropsAreFrozen(
   method: EngineResultMethod,
 ): method is EngineResultPanelMethod {
   return engineResultByMethod(method)?.kind === 'result-panel'
-    && method !== 'bazi_liuri'
-    && method !== 'ziwei_liuri'
 }
 
 export const sourceBackedEngineResults = engineResultCatalog.filter(
   entry => entry.status === 'source-backed',
-)
-
-export const pendingEngineResults = engineResultCatalog.filter(
-  entry => entry.status === 'pending-contract',
 )
 
 export function engineResultByMethod(method: EngineResultMethod): EngineResultCatalogEntry | undefined {

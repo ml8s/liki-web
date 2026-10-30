@@ -76,12 +76,25 @@ backend phase — if and when that phase is designed, B should be the default
 assumption — but no frontend or contract work starts until that phase is
 actually resourced.
 
+**Planning addendum 2026-10-30:** a dedicated date-selection product-page plan
+was added in
+[`huangli-product-page-plan.md`](./huangli-product-page-plan.md). It keeps
+Option C as the current runtime behavior but moves Option B into the target
+architecture: the public `/huangli/` page should be upgraded into a formal
+date-selection product page, while backend planning should define a job-shaped
+Date Selection agent and expose the future Bazi / Ziwei flow-day contracts.
+Implementation update 2026-10-30: the backend engine already exposes
+`bazi_liuri` and `ziwei_liuri`. The web API adapters, catalog panels, and an
+optional public selected-day flow-day path now consume those contracts. This
+does not migrate Huangli into natal and does not introduce the fifth agent;
+Option B remains the target architecture for a later backend phase.
+
 ## 9. Web contract exposure for `bazi_liuri` / `ziwei_liuri`
 
-Reality: not exposed in `web/shared/api/engine` (no liuri tools); depends on
-the same backend capability move as item 8. Recommendation: **keep pending**
-with the backend phase; DTO shape should mirror the existing `bazi` engine
-adapter pattern.
+Reality: exposed in `web/shared/api/engine` as `bazi_liuri` and `ziwei_liuri`.
+Their DTOs mirror the existing engine adapter pattern, are catalog
+contract-tested, and feed the public selected-day flow-day panels.
+Recommendation: **close as aligned**.
 
 ## 10. Catalog inventory sign-off
 

@@ -485,4 +485,61 @@ export function engineBaziLiunian(
   }).then(result => result.items)
 }
 
+export interface BaziLiuRiResolved {
+  standard_time: string
+  local_date: string
+  last_date: string
+  beijing_date: string
+}
+
+export interface BaziLiuRiShensha {
+  name: string
+  category: string
+  description?: string
+}
+
+export interface BaziLiuRiGanRel {
+  gan_a?: string
+  gan_b?: string
+  relation?: string
+  type?: string
+}
+
+export interface BaziLiuRiZhiRel {
+  detail?: string
+  type?: string
+  zhi_a?: string
+  zhi_b?: string
+}
+
+export interface BaziLiuRiOutput {
+  date: string
+  day_name: string
+  shi_shen: string
+  ri_gan?: string
+  ri_zhi?: string
+  day_nayin?: string
+  shensha?: BaziLiuRiShensha[]
+  gan_rels?: BaziLiuRiGanRel[]
+  zhi_rels?: BaziLiuRiZhiRel[]
+  dayun_rels?: BaziLiuRiZhiRel[]
+  liunian_rels?: BaziLiuRiZhiRel[]
+  resolved?: BaziLiuRiResolved
+}
+
+/** 流日盘（bazi.liuri）：最小命盘 + 目标日标准时间与真太阳时经度。 */
+export function engineBaziLiuri(
+  chart: unknown,
+  standardTime: string,
+  longitude: number,
+  count = 1,
+): Promise<BaziLiuRiOutput[]> {
+  return mcpTool<{ items: BaziLiuRiOutput[] }>(ENGINE_TOOLS.BaziLiuRi, {
+    standard_time: standardTime,
+    longitude,
+    count,
+    chart,
+  }).then(result => result.items)
+}
+
 // ── xuankong.chart（玄空飞星宅盘）──

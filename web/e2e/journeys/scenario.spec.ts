@@ -54,12 +54,16 @@ test.describe('Authenticated scenario handoff', () => {
     await page.goto('/app?scenario=naming&locale=en')
     await expect(page).toHaveURL('/app/?scenario=naming&locale=en')
     await expect(page.getByRole('heading', { level: 1, name: 'Mom' })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'Naming' })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('navigation', { name: 'Consultation context' })
+      .getByRole('button', { name: 'Naming' })).toHaveAttribute('aria-current', 'true')
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 
     await page.goto('/app?scenario=hepan&locale=en')
     await expect(page).toHaveURL('/app/?scenario=hepan&locale=en')
-    await expect(page.getByRole('heading', { level: 2, name: 'Compatibility' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Consultation context' })
+      .getByRole('button', { name: 'Life reading' })).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByRole('heading', { level: 2, name: 'Compatibility' }).first())
+      .toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   })
 

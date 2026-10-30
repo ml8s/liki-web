@@ -184,15 +184,23 @@ test.describe('Static page interactions', () => {
     await mockCityCoords(page, { name: '上海市', region: '上海市', longitude: 121.4726, latitude: 31.2304 });
     await mockEngineTool(page, 'bazi_chart', baziChart);
     await mockEngineTool(page, 'bazi_fullchart', baziFull);
-    await mockEngineTool(page, 'bazi_liunian', baziLiunian);
+    await mockEngineTool(page, 'bazi_liunian', { items: [baziLiunian] });
     await mockEngineTool(page, 'ziwei_chart', ziwei);
     await mockEngineTool(page, 'ziwei_fullchart', ziwei);
-    await mockEngineTool(page, 'ziwei_daxian', []);
+    await mockEngineTool(page, 'ziwei_daxian', { items: [] });
+    await mockEngineTool(page, 'ziwei_liunian', { items: [{
+      ming_gong: '命宫',
+      ming_gong_name: '命宫',
+      zhi: '子',
+      si_hua: {},
+      gong_wei: palaces.map(({ name, zhi }) => ({ name, zhi, xing_yao: [], is_liu_ming: name === '命宫' })),
+    }] });
 
     await page.goto('/zh-Hans/');
     const tool = page.locator('#quick-birth-tool');
     await fillBirthFields(page, tool, { date: '2000-01-01', time: '12:00', gender: 'female', place: '上海' });
-    await expect(tool.locator('input[name="birth-longitude"]')).toHaveValue('121.4726');
+    await tool.locator('input[name="birth-timezone"]').fill('Asia/Shanghai');
+    await tool.locator('input[name="birth-longitude"]').fill('121.4726');
     await tool.locator('button[type=submit]').click();
 
     // 免费排盘留在营销站完成；不跳 App。

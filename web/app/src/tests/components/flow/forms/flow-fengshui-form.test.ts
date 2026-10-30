@@ -10,7 +10,7 @@ async function selectGua(wrapper: ReturnType<typeof mount>, index: number, gua: 
 }
 
 describe('FlowFengshuiForm', () => {
-  it('disables submit until person facts and all layout guas are complete', async () => {
+  it('requires explicit submit after person facts and layout guas are complete', async () => {
     const wrapper = mount(FlowFengshuiForm, {
       props: {
         personLabel: '张三',
@@ -27,13 +27,12 @@ describe('FlowFengshuiForm', () => {
     await wrapper.vm.$nextTick()
 
     expect(submit.attributes('disabled')).toBeUndefined()
-    // Completing the third Gua auto-computes so edits reflect immediately.
-    expect(wrapper.emitted('submit')).toHaveLength(1)
+    expect(wrapper.emitted('submit')).toBeUndefined()
 
     wrapper.getComponent(FormShell).vm.$emit('submit')
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.emitted('submit')).toHaveLength(2)
+    expect(wrapper.emitted('submit')).toHaveLength(1)
     expect(wrapper.emitted('submit')?.[0]?.[0]).toMatchObject({
       zuoShan: 0,
       doorGua: '乾',

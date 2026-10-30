@@ -16,22 +16,13 @@
       v-if="recommended.length"
       class="days"
     >
-      <details
+      <HuangliDayCard
         v-for="d in recommended"
         :key="d.date"
-        class="day good"
-      >
-        <summary class="d-summary">
-          <span
-            class="d-caret"
-            aria-hidden="true"
-          />
-          <span class="d-date">{{ d.date }}</span>
-          <span v-if="riZhuText(d)" class="d-rizhu font-serif">{{ riZhuText(d) }}</span>
-          <span class="d-sub">{{ subText(d) }}</span>
-        </summary>
-        <DayDetail :day="d" />
-      </details>
+        :day="d"
+        variant="good"
+        @select="emit('select', $event)"
+      />
     </div>
     <p
       v-if="!recommended.length"
@@ -49,22 +40,13 @@
       v-if="possible.length"
       class="days"
     >
-      <details
+      <HuangliDayCard
         v-for="d in possible"
         :key="d.date"
-        class="day possible"
-      >
-        <summary class="d-summary">
-          <span
-            class="d-caret"
-            aria-hidden="true"
-          />
-          <span class="d-date">{{ d.date }}</span>
-          <span v-if="riZhuText(d)" class="d-rizhu font-serif">{{ riZhuText(d) }}</span>
-          <span class="d-sub">{{ subText(d) }}</span>
-        </summary>
-        <DayDetail :day="d" />
-      </details>
+        :day="d"
+        variant="possible"
+        @select="emit('select', $event)"
+      />
     </div>
     <div
       v-if="unsuitable.length"
@@ -76,22 +58,13 @@
       v-if="unsuitable.length"
       class="days"
     >
-      <details
+      <HuangliDayCard
         v-for="d in unsuitable"
         :key="d.date"
-        class="day bad"
-      >
-        <summary class="d-summary">
-          <span
-            class="d-caret"
-            aria-hidden="true"
-          />
-          <span class="d-date">{{ d.date }}</span>
-          <span v-if="riZhuText(d)" class="d-rizhu font-serif">{{ riZhuText(d) }}</span>
-          <span class="d-sub">{{ subText(d) }}</span>
-        </summary>
-        <DayDetail :day="d" />
-      </details>
+        :day="d"
+        variant="bad"
+        @select="emit('select', $event)"
+      />
     </div>
   </div>
 </template>
@@ -102,11 +75,14 @@ import '@shared/styles/chart-panel.css'
 // App 的 HuangliView 与营销站 huangli 岛共用；文案同取 services.huangli.*（共享拷贝见 chart-messages.<locale>.json）。
 // Provenance: extracted from web/shared/components/charts/HuangliDaysPanel.vue.
 import { computed } from 'vue'
-import type { HuangliDay } from '../../../api/engine/huangli'
 import type { HuangliDaysPanelProps } from '../contract'
-import DayDetail from './HuangliDayDetail.vue'
+import HuangliDayCard from './HuangliDayCard.vue'
 
 const props = defineProps<HuangliDaysPanelProps>()
+
+const emit = defineEmits<{
+  select: [date: string]
+}>()
 
 const recommended = computed(() => props.result.filter(d => d.suitability === 'recommended'))
 const possible = computed(() => props.result.filter(d => d.suitability === 'possible'))
@@ -116,14 +92,6 @@ const rangeInfo = computed(() => {
   if (!list.length) return null
   return { start: list[0].date, end: list[list.length - 1].date, days: list.length }
 })
-
-function subText(d: HuangliDay): string {
-  return d.reason ? `${d.jian_chu} · ${d.reason}` : d.jian_chu
-}
-
-function riZhuText(d: HuangliDay): string {
-  return d.ri_zhu ? `${d.ri_zhu.gan}${d.ri_zhu.zhi}` : ''
-}
 </script>
 
 <style scoped>
