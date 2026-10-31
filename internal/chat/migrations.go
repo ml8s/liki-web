@@ -178,5 +178,53 @@ SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type='table' AND name='run_reco
 				return err
 			},
 		},
+		{
+			// Liki Chat is one product. Intent is consultation context, not a
+			// deployment route. Preserve the intent previously encoded as
+			// scenario/expert, then remove four-expert routing state.
+			ID: "chat_011_single_product_intent",
+			Up: func(ctx context.Context, tx *sql.Tx) error {
+				if _, err := tx.ExecContext(ctx, `
+ALTER TABLE chat_sessions ADD COLUMN intent TEXT NOT NULL DEFAULT 'general'
+`); err != nil {
+					return err
+				}
+				if _, err := tx.ExecContext(ctx, `
+UPDATE chat_sessions AS s
+   SET intent = COALESCE((
+       SELECT json_extract(c.context_json, '$.intent')
+       FROM chat_consultation_contexts AS c
+       WHERE c.session_id = s.id
+         AND json_valid(c.context_json)
+         AND json_extract(c.context_json, '$.intent') IS NOT NULL
+   ), CASE s.expert
+        WHEN 'natal' THEN 'natal'
+        WHEN 'divination' THEN 'divination'
+        WHEN 'fengshui' THEN 'fengshui'
+        WHEN 'naming' THEN 'naming'
+        ELSE 'general'
+      END)
+`); err != nil {
+					return err
+				}
+				if _, err := tx.ExecContext(ctx, `
+ALTER TABLE chat_sessions DROP COLUMN expert
+`); err != nil {
+					return err
+				}
+				if _, err := tx.ExecContext(ctx, `
+UPDATE chat_consultation_contexts
+   SET context_json = json_remove(
+       json_set(context_json, '$.intent', json_extract(context_json, '$.scenario')),
+       '$.scenario'
+   )
+ WHERE json_valid(context_json)
+   AND json_extract(context_json, '$.scenario') IS NOT NULL
+`); err != nil {
+					return err
+				}
+				return nil
+			},
+		},
 	})
 }

@@ -12,7 +12,7 @@ func TestCrossUserAccessDenied(t *testing.T) {
 	ctx := context.Background()
 	chats := newExchangeTestStore(t)
 
-	session, err := chats.CreateSession(ctx, "user-a", "liki", ExpertNatal, "A 的会话", "")
+	session, err := chats.CreateSession(ctx, "user-a", "liki", "natal", "A 的会话", "")
 	if err != nil {
 		t.Fatal(err)
 	}

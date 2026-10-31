@@ -27,7 +27,7 @@ func newExchangeTestStore(t *testing.T) *ChatStore {
 func TestAppendExchangeWritesBatchInOrder(t *testing.T) {
 	ctx := context.Background()
 	chats := newExchangeTestStore(t)
-	session, err := chats.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "Test", "")
+	session, err := chats.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "Test", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestAppendExchangeWritesBatchInOrder(t *testing.T) {
 func TestAppendExchangeRollsBackWholeBatch(t *testing.T) {
 	ctx := context.Background()
 	chats := newExchangeTestStore(t)
-	session, err := chats.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "Test", "")
+	session, err := chats.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "Test", "")
 	if err != nil {
 		t.Fatal(err)
 	}

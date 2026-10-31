@@ -3,12 +3,6 @@
     class="flow-composer"
     @submit.prevent="submit"
   >
-    <FlowDomainStrip
-      v-if="showDomainStrip"
-      v-model="selectedDomain"
-      :domains="domains"
-    />
-
     <div class="flow-parameters">
       <button
         type="button"
@@ -18,15 +12,6 @@
         @click="$emit('select-person')"
       >
         {{ personLabel || $t('flow.personEmpty') }}
-      </button>
-      <button
-        type="button"
-        class="flow-parameter"
-        aria-haspopup="dialog"
-        :title="domainLabel"
-        @click="$emit('select-domain')"
-      >
-        {{ domainLabel }}
       </button>
     </div>
 
@@ -69,12 +54,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import TextareaField from '@shared/components/form/fields/TextareaField.vue'
-import FlowDomainStrip from './FlowDomainStrip.vue'
-import type { AppDomain, AppDomainId } from '@shared/domain/flow'
+import type { AppDomainId } from '@shared/domain/flow'
 
 const props = defineProps<{
   modelValue: string
-  domains: readonly AppDomain[]
   domainId: AppDomainId
   personLabel?: string
   domainLabel: string
@@ -86,15 +69,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
   'update:domainId': [domainId: AppDomainId]
   'select-person': []
-  'select-domain': []
   submit: []
   stop: []
 }>()
-
-const selectedDomain = computed({
-  get: () => props.domainId,
-  set: value => emit('update:domainId', value),
-})
 
 const canSubmit = computed(() => !props.sending && props.modelValue.trim().length > 0)
 

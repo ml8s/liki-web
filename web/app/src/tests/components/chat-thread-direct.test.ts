@@ -11,7 +11,7 @@ const session = {
   user_id: 'usr_1',
   profile_id: '',
   skill: 'liki',
-  expert: 'natal',
+  intent: 'natal',
   title: '本命解读',
   status: 'active',
   created_at: '2026-01-01T00:00:00Z',

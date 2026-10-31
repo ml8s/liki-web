@@ -26,7 +26,7 @@ export interface ConsultationSubmitOptions {
 export type SubmitSource = 'composer' | 'focused_form' | 'casting'
 
 export interface FocusedFormSubmit {
-  /** Expert skill that owns the context scenario. */
+  /** Intent skill that owns the context intent. */
   skill: string
   context: ConsultationContext
   /** True when an existing session already carries the identical context. */

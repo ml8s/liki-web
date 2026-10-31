@@ -70,25 +70,18 @@ describe('ParameterComposer', () => {
     expect(wrapper.emitted('submit')).toBeUndefined()
   })
 
-  it('exposes person/domain controls and forwards explicit domain-strip selection', async () => {
+  it('exposes the person control', async () => {
     const wrapper = mount(ParameterComposer, {
       props: { ...baseProps, modelValue: '', showDomainStrip: true },
     })
     const parameters = wrapper.findAll('.flow-parameter')
 
-    expect(parameters).toHaveLength(2)
+    expect(parameters).toHaveLength(1)
     expect(parameters[0]?.text()).toBe('张三')
-    expect(parameters[1]?.text()).toBe('命理')
     expect(parameters[0]?.attributes('aria-haspopup')).toBe('dialog')
-    expect(parameters[1]?.attributes('aria-haspopup')).toBe('dialog')
 
     await parameters[0]?.trigger('click')
-    await parameters[1]?.trigger('click')
     expect(wrapper.emitted('select-person')).toHaveLength(1)
-    expect(wrapper.emitted('select-domain')).toHaveLength(1)
-
-    await wrapper.findAll('[role="tab"]')[1]?.trigger('click')
-    expect(wrapper.emitted('update:domainId')?.[0]).toEqual(['divination'])
   })
 
   it('keeps the question as controlled consultation text rather than routing input', async () => {

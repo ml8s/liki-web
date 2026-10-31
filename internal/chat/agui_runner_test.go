@@ -78,7 +78,7 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 	ctx := withSessionBinding(context.Background(), sessionBinding{
 		UserID:              "user-1",
 		SessionID:           "session-1",
-		ConsultationContext: json.RawMessage(`{"version":1,"scenario":"divination","question":"這個項目能成嗎","casting":{"mode":"auto","order":"bottom_up","yaos":[7,8,8,7,8,9],"dong_yao":[6],"casting_id":"cast_1"},"casting_instant":"2026-10-23T12:00:00Z","location":{"longitude":121.4726,"timezone":"Asia/Shanghai"}}`),
+		ConsultationContext: json.RawMessage(`{"version":1,"intent":"divination","question":"這個項目能成嗎","casting":{"mode":"auto","order":"bottom_up","yaos":[7,8,8,7,8,9],"dong_yao":[6],"casting_id":"cast_1"},"casting_instant":"2026-10-23T12:00:00Z","location":{"longitude":121.4726,"timezone":"Asia/Shanghai"}}`),
 		Profile: &AgentProfile{
 			Gender: "male",
 			Location: &AgentBirthLocation{
@@ -124,7 +124,7 @@ func TestAgentRunnerExecuteTranslatesAGUIAndUsesAuthoritativeAnswer(t *testing.T
 		t.Fatalf("request message count = %d, want user/assistant/user only", len(request.Messages))
 	}
 	consultation, ok := props["consultation_context"].(map[string]any)
-	if !ok || consultation["scenario"] != "divination" || consultation["question"] != "這個項目能成嗎" {
+	if !ok || consultation["intent"] != "divination" || consultation["question"] != "這個項目能成嗎" {
 		t.Fatalf("consultation ForwardedProps = %#v", props["consultation_context"])
 	}
 	casting, ok := consultation["casting"].(map[string]any)
@@ -264,48 +264,10 @@ func TestAgentRunnerDefaultsToProductFallbackLocale(t *testing.T) {
 	}
 }
 
-type selectedRunner struct {
-	name string
-}
-
-func (r selectedRunner) Execute(context.Context, []llm.Message, func(agent.ChatEvent)) (ExecutionResult, error) {
-	return ExecutionResult{}, nil
-}
-func (r selectedRunner) Prompt() string { return r.name }
-
-func TestServiceRoutesSessionsByExpert(t *testing.T) {
-	natal := selectedRunner{name: "natal"}
-	divination := selectedRunner{name: "divination"}
-	service := NewService(nil, nil, nil)
-	service.SetAgentRunners(map[string]Runner{
-		ExpertNatal:      natal,
-		ExpertDivination: divination,
-	})
-
-	if got, err := service.runnerForSession(ExpertNatal); err != nil || got != natal {
-		t.Fatalf("runnerForSession(natal) = %#v, %v", got, err)
-	}
-	if got, err := service.runnerForSession(ExpertDivination); err != nil || got != divination {
-		t.Fatalf("runnerForSession(divination) = %#v, %v", got, err)
-	}
-	// 无专家（四专家之前的极老会话）没有可路由的部署。
-	if _, err := service.runnerForSession(""); err == nil {
-		t.Fatal("expected ErrRunnerUnavailable for expert-less sessions")
-	}
-	// 未部署的专家明确不可用。
-	if _, err := service.runnerForSession(ExpertFengshui); err == nil {
-		t.Fatal("expected ErrRunnerUnavailable for an undeployed expert")
-	}
-}
-
 func TestServiceRejectsWhenNoAgentRunnerConfigured(t *testing.T) {
 	service := NewService(nil, nil, nil)
-	if _, err := service.runnerForSession(ExpertNatal); err == nil {
+	if _, err := service.runner(); err == nil {
 		t.Fatal("expected ErrRunnerUnavailable when agent runner is not configured")
-	}
-	// 历史无专家会话明确不可用。
-	if _, err := service.runnerForSession(""); err == nil {
-		t.Fatal("expected ErrRunnerUnavailable for expert-less sessions")
 	}
 }
 

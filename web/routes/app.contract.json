@@ -43,7 +43,7 @@
   },
   "queryContracts": {
     "/app": {
-      "domain": {
+      "intent": {
         "type": "enum",
         "values": [
           "natal",
@@ -55,12 +55,12 @@
         "default": "natal"
       },
       "seed": {
-        "type": "legacyScenarioId",
+        "type": "intentId",
         "required": false,
         "policy": "ignored-if-unknown; cross-domain or pending-backend results are surfaced as flow errors"
       },
       "service": {
-        "type": "legacyScenarioId",
+        "type": "intentId",
         "required": false,
         "policy": "legacy marketing alias for seed; public URLs remain unchanged"
       }
@@ -138,7 +138,7 @@
     },
     {
       "from": "/app/divination",
-      "to": "/app?domain=divination&seed=divination",
+      "to": "/app?intent=divination&seed=divination",
       "preserve": [
         "query",
         "hash"
@@ -146,7 +146,7 @@
     },
     {
       "from": "/app/fengshui",
-      "to": "/app?domain=fengshui&seed=fengshui",
+      "to": "/app?intent=fengshui&seed=fengshui",
       "preserve": [
         "query",
         "hash"
@@ -154,7 +154,7 @@
     },
     {
       "from": "/app/hepan",
-      "to": "/app?domain=natal&seed=hepan",
+      "to": "/app?intent=natal&seed=hepan",
       "preserve": [
         "query",
         "hash"
@@ -170,7 +170,7 @@
     },
     {
       "from": "/app/liunian",
-      "to": "/app?domain=natal&seed=liunian",
+      "to": "/app?intent=natal&seed=liunian",
       "preserve": [
         "query",
         "hash"
@@ -178,7 +178,7 @@
     },
     {
       "from": "/app/naming",
-      "to": "/app?domain=naming&seed=naming",
+      "to": "/app?intent=naming&seed=naming",
       "preserve": [
         "query",
         "hash"

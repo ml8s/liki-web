@@ -65,7 +65,7 @@ describe('sales handlePaymentReturn', () => {
     const sales = useSalesStore()
     const pending = sales.handlePaymentReturn({ order_id: 'order_1', status: 'paid' })
     await vi.advanceTimersByTimeAsync(1_000)
-    await expect(pending).resolves.toEqual({ action: 'enter_chat', scenarioId: 'natal' })
+    await expect(pending).resolves.toEqual({ action: 'enter_chat', intentId: 'natal' })
     expect(refreshes()).toBe(2)
     expect(sales.paymentState).toBe('confirmed')
     expect(sales.paymentMessage).toBe(i18n.global.t('commerce.payment.active'))
@@ -89,14 +89,14 @@ describe('sales handlePaymentReturn', () => {
 })
 
 
-  it('preserves the scenario selected before checkout', async () => {
+  it('preserves the intent selected before checkout', async () => {
     vi.useFakeTimers()
     await stubWorkspace(1)
-    sessionStorage.setItem('liki.pending-payment-scenario', 'divination')
+    sessionStorage.setItem('liki.pending-payment-intent', 'divination')
     const sales = useSalesStore()
     const pending = sales.handlePaymentReturn({ order_id: 'order_1', status: 'paid' })
     await vi.advanceTimersByTimeAsync(1)
-    await expect(pending).resolves.toEqual({ action: 'enter_chat', scenarioId: 'divination' })
+    await expect(pending).resolves.toEqual({ action: 'enter_chat', intentId: 'divination' })
   })
 
 describe('sales subscription return', () => {
@@ -106,7 +106,7 @@ describe('sales subscription return', () => {
     const sales = useSalesStore()
     const pending = sales.handlePaymentReturn({ subscription_id: 'sub_1' })
     await vi.advanceTimersByTimeAsync(1)
-    await expect(pending).resolves.toEqual({ action: 'enter_chat', scenarioId: 'natal' })
+    await expect(pending).resolves.toEqual({ action: 'enter_chat', intentId: 'natal' })
     expect(refreshes()).toBe(1)
     expect(sales.paymentState).toBe('confirmed')
   })

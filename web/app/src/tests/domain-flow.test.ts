@@ -3,8 +3,8 @@ import {
   appDomains,
   bridgeLegacyIntent,
   domainForSession,
-  domainForScenario,
-  marketingScenarioToDomain,
+  domainForIntent,
+  marketingIntentToDomain,
   normalizeAppDomain,
 } from '@shared/domain/flow'
 
@@ -18,7 +18,7 @@ describe('four-domain flow contract', () => {
     ])
   })
 
-  it('maps every legacy marketing scenario to one visible domain', () => {
+  it('maps every legacy marketing intent to one visible domain', () => {
     expect([
       'natal',
       'liunian',
@@ -27,7 +27,7 @@ describe('four-domain flow contract', () => {
       'divination',
       'fengshui',
       'naming',
-    ].map(marketingScenarioToDomain)).toEqual([
+    ].map(marketingIntentToDomain)).toEqual([
       'natal',
       'natal',
       'natal',
@@ -36,31 +36,31 @@ describe('four-domain flow contract', () => {
       'fengshui',
       'naming',
     ])
-    expect(marketingScenarioToDomain('unknown')).toBeNull()
+    expect(marketingIntentToDomain('unknown')).toBeNull()
   })
 
   it('projects restored legacy sessions to their visible domain', () => {
-    expect(domainForScenario('huangli').id).toBe('natal')
-    expect(domainForScenario('liunian').id).toBe('natal')
-    expect(domainForScenario('divination').id).toBe('divination')
-    expect(domainForScenario('fengshui').id).toBe('fengshui')
-    expect(domainForScenario('naming').id).toBe('naming')
+    expect(domainForIntent('huangli').id).toBe('natal')
+    expect(domainForIntent('liunian').id).toBe('natal')
+    expect(domainForIntent('divination').id).toBe('divination')
+    expect(domainForIntent('fengshui').id).toBe('fengshui')
+    expect(domainForIntent('naming').id).toBe('naming')
   })
 
-  it('projects persisted sessions from durable context before expert', () => {
+  it('projects persisted sessions from durable context before intent', () => {
     expect(domainForSession({
-      expert: 'divination',
-      context: { scenario: 'huangli' },
+      intent: 'divination',
+      context: { intent: 'huangli' },
     })).toBe('natal')
 
-    expect(domainForSession({ expert: 'natal' })).toBe('natal')
-    expect(domainForSession({ expert: 'divination' })).toBe('divination')
-    expect(domainForSession({ expert: 'fengshui' })).toBe('fengshui')
-    expect(domainForSession({ expert: 'naming' })).toBe('naming')
+    expect(domainForSession({ intent: 'natal' })).toBe('natal')
+    expect(domainForSession({ intent: 'divination' })).toBe('divination')
+    expect(domainForSession({ intent: 'fengshui' })).toBe('fengshui')
+    expect(domainForSession({ intent: 'naming' })).toBe('naming')
     expect(domainForSession({})).toBe('natal')
   })
 
-  it('rejects unknown domains without selecting an expert', () => {
+  it('rejects unknown domains without selecting an intent', () => {
     expect(normalizeAppDomain('unknown')).toBeNull()
     expect(bridgeLegacyIntent({ domainId: 'unknown' })).toEqual({
       status: 'invalid',
@@ -70,18 +70,17 @@ describe('four-domain flow contract', () => {
 
   it('uses the selected domain base skill for a free-form consultation', () => {
     const cases = [
-      ['natal', 'natal', 'natal'],
-      ['divination', 'divination', 'divination'],
-      ['fengshui', 'fengshui', 'fengshui'],
-      ['naming', 'naming', 'naming'],
+      ['natal', 'natal'],
+      ['divination', 'divination'],
+      ['fengshui', 'fengshui'],
+      ['naming', 'naming'],
     ] as const
 
-    for (const [domainId, skill, expert] of cases) {
+    for (const [domainId, skill] of cases) {
       expect(bridgeLegacyIntent({ domainId })).toMatchObject({
         status: 'ok',
         domainId,
         skill,
-        expert,
         fallbackUsed: true,
         reason: 'domain-base',
       })
@@ -97,7 +96,6 @@ describe('four-domain flow contract', () => {
     ).toMatchObject({
       status: 'ok',
       skill: 'liunian',
-      expert: 'natal',
       fallbackUsed: false,
       reason: 'seed',
     })
@@ -110,7 +108,6 @@ describe('four-domain flow contract', () => {
     ).toMatchObject({
       status: 'ok',
       skill: 'hepan',
-      expert: 'natal',
       fallbackUsed: false,
       reason: 'slot-form',
     })

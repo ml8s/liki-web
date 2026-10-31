@@ -28,19 +28,19 @@ for (const file of walk(path.join(WEB, 'src'), ['.astro'])) {
   for (const m of text.matchAll(/\b(?:scenario|service)="([a-z]+)"/g)) marketing.add(m[1]);
 }
 
-// ── App: scenario whitelist (composables/scenario.ts) ──
-const scenarioSrc = fs.readFileSync(path.join(WEB, 'app/src/composables/scenario.ts'), 'utf8');
-const appScenarios = new Set([...scenarioSrc.matchAll(/scenario === '([a-z]+)'/g)].map(m => m[1]));
+// ── App: intent whitelist (composables/intent.ts) ──
+const intentSrc = fs.readFileSync(path.join(WEB, 'app/src/composables/intent.ts'), 'utf8');
+const appIntents = new Set([...intentSrc.matchAll(/intent === '([a-z]+)'/g)].map(m => m[1]));
 
 // ── App: service keys (config/chat.ts) ──
 const chatSrc = fs.readFileSync(path.join(WEB, 'app/src/config/chat.ts'), 'utf8');
 const appServices = new Set([...chatSrc.matchAll(/(?:key|id): '([a-z]+)'/g)].map(m => m[1]));
 
 for (const value of [...marketing].sort()) {
-  const known = appScenarios.has(value) || appServices.has(value);
+  const known = appIntents.has(value) || appServices.has(value);
   if (!known) {
     errors.push(
-      `marketing CTA emits "${value}" but the app knows neither a scenario (${[...appScenarios].join(', ')}) nor a service (${[...appServices].join(', ')})`,
+      `marketing CTA emits "${value}" but the app knows neither an intent (${[...appIntents].join(', ')}) nor a service (${[...appServices].join(', ')})`,
     );
   }
 }

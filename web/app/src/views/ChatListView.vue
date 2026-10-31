@@ -56,7 +56,7 @@
         id="chat-purchase"
         :product="sales.chatProduct"
         :buying="sales.buying"
-        @purchase="billingMode => sales.buy(billingMode, selectedScenario || pendingService?.id || 'natal')"
+        @purchase="billingMode => sales.buy(billingMode, selectedIntent || pendingService?.id || 'natal')"
       />
 
       <el-card
@@ -96,8 +96,8 @@
           </h2>
         </template>
         <ServiceEntryList
-          :items="scenarioEntries"
-          @select="selectScenario"
+          :items="intentEntries"
+          @select="selectIntent"
         />
       </el-card>
 
@@ -172,12 +172,12 @@ import {
   type ConsultationBirth,
   consultationBirthFromFields,
   type ConsultationContext,
-  type ConsultationScenario,
+  type ConsultationIntent,
 } from '@shared/domain/consultation'
 import { clearConsultationHandoff, consumeConsultationHandoff, peekConsultationHandoff } from '@shared/utils/handoff'
 import type { BirthFieldsValue } from '@shared/components/form/birth-fields'
 import { isCurrentLocation } from '@shared/domain/location'
-import { scenarioByIntent, scenarioById, scenarioEntryItems } from '@/config/chat'
+import { intentByIntent, intentById, intentEntryItems } from '@/config/chat'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import AppEmptyState from '@/components/app/AppEmptyState.vue'
 import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
@@ -198,28 +198,28 @@ const drafts = useFormDraftsStore()
 
 const activeBirthProfileId = ref('')
 const creating = ref('')
-const selectedScenario = ref('')
+const selectedIntent = ref('')
 
 const chatPurchased = computed(() => entitlements.purchased)
 const profilePickerEl = ref<HTMLElement | null>(null)
 
-const pendingService = computed(() => (chat.pendingIntent ? scenarioByIntent(chat.pendingIntent) : undefined))
+const pendingService = computed(() => (chat.pendingIntent ? intentByIntent(chat.pendingIntent) : undefined))
 
 // 入口行右侧动作文案：随可用状态给出下一步（开通/查看订单/建档案/开始）。
-const scenarioAction = computed(() => {
+const intentAction = computed(() => {
   if (!chatPurchased.value) return t('chat.action.activate')
   if (!entitlements.hasSkill('liki')) return t('chat.action.orders')
   if (!activeBirthProfileId.value) return t('profiles.create')
   return t('chat.action.start')
 })
 
-const scenarioEntries = computed(() =>
-  scenarioEntryItems(t).map(item => ({ ...item, action: scenarioAction.value })),
+const intentEntries = computed(() =>
+  intentEntryItems(t).map(item => ({ ...item, action: intentAction.value })),
 )
 
 // 选择场景：未开通 → 滚到开通卡；方案未含 → 订单页；缺档案 → 建档案；就绪 → 创建会话。
-function selectScenario(id: string) {
-  selectedScenario.value = id
+function selectIntent(id: string) {
+  selectedIntent.value = id
   if (!chatPurchased.value) {
     document.getElementById('chat-purchase')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     return
@@ -269,16 +269,16 @@ async function removeSession(session: ChatSession) {
   }
 }
 
-async function create(scenarioId: string) {
+async function create(intentId: string) {
   if (!activeBirthProfileId.value || creating.value) return
-  creating.value = scenarioId
+  creating.value = intentId
   sales.actionError = ''
   try {
     const profile = profiles.list.find(item => item.id === activeBirthProfileId.value)
     const session = await chat.createSession(
       activeBirthProfileId.value,
-      scenarioId,
-      profile ? consultationContextFor(scenarioId as ConsultationScenario, profile) ?? undefined : undefined,
+      intentId,
+      profile ? consultationContextFor(intentId as ConsultationIntent, profile) ?? undefined : undefined,
     )
     await router.push(`/chat/${session.id}`)
   } catch (error) {
@@ -306,35 +306,35 @@ function birthFieldsOf(profile: (typeof profiles.list)[number]): BirthFieldsValu
   }
 }
 
-function consultationContextFor(scenarioId: ConsultationScenario, profile: (typeof profiles.list)[number]): ConsultationContext | null {
-  const handoff = peekConsultationHandoff<ConsultationContext>(scenarioId)
+function consultationContextFor(intentId: ConsultationIntent, profile: (typeof profiles.list)[number]): ConsultationContext | null {
+  const handoff = peekConsultationHandoff<ConsultationContext>(intentId)
   if (handoff) {
     const profileMatches = !handoff.birth || profileMatchesConsultationBirth(profile, handoff.birth)
     if (profileMatches) {
-      consumeConsultationHandoff<ConsultationContext>(scenarioId)
+      consumeConsultationHandoff<ConsultationContext>(intentId)
       return handoff
     }
     clearConsultationHandoff()
   }
-  // Only birth-based scenarios can be built from a saved profile. Tool
-  // scenarios (divination/huangli/fengshui/hepan) must use their handoff; a
+  // Only birth-based intents can be built from a saved profile. Tool
+  // intents (divination/huangli/fengshui/hepan) must use their handoff; a
   // fabricated natal context would be rejected by the server and is exactly
   // the wrong-agent class of bug this guard prevents.
-  if (!isBirthConsultationScenario(scenarioId)) return null
+  if (!isBirthConsultationIntent(intentId)) return null
   const fields = birthFieldsOf(profile)
   if (!fields) return null
   const birth = consultationBirthFromFields(fields)
-  if (scenarioId === 'liunian') {
+  if (intentId === 'liunian') {
     return {
       version: 1,
-      scenario: 'liunian',
+      intent: 'liunian',
       birth,
       year: new Date().getFullYear(),
     }
   }
   return {
     version: 1,
-    scenario: scenarioId,
+    intent: intentId,
     birth,
   }
 }
@@ -347,7 +347,7 @@ function profileMatchesConsultationBirth(profile: (typeof profiles.list)[number]
     && Math.abs(fields.location.longitude - birth.location.longitude) < 0.000001
 }
 
-function isBirthConsultationScenario(value: string): value is ConsultationScenario {
+function isBirthConsultationIntent(value: string): value is ConsultationIntent {
   return value === 'natal' || value === 'liunian' || value === 'naming'
 }
 
@@ -363,10 +363,10 @@ onMounted(async () => {
       activeBirthProfileId.value = profiles.list[0].id
     }
     // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
-    const presetService = firstQueryValue(route.query.service) ?? firstQueryValue(route.query.scenario)
-    const svc = scenarioById(presetService)
+    const presetService = firstQueryValue(route.query.service) ?? firstQueryValue(route.query.intent)
+    const svc = intentById(presetService)
     if (svc) chat.pendingIntent = t(svc.intentKey)
-    if (svc && !preset && isBirthConsultationScenario(svc.id)) {
+    if (svc && !preset && isBirthConsultationIntent(svc.id)) {
       const handoff = peekConsultationHandoff<ConsultationContext>(svc.id)
       const handoffBirth = handoff?.birth
       const matchingProfile = handoffBirth
@@ -388,7 +388,7 @@ onMounted(async () => {
     // 支付回调处理：store 返回结果，由 view 决定路由。
     const paymentResult = await sales.handlePaymentReturn(route.query)
     if (paymentResult.action === 'enter_chat') {
-      const sessionId = await sales.enterInterpretation(activeBirthProfileId.value, paymentResult.scenarioId)
+      const sessionId = await sales.enterInterpretation(activeBirthProfileId.value, paymentResult.intentId)
       if (sessionId) {
         await router.replace({ path: '/chat', query: {} })
         await router.push(`/chat/${sessionId}`)

@@ -32,7 +32,7 @@ describe('consultation telemetry', () => {
       event: 'consultation_entry',
       domain: 'natal',
       source: 'legacy_redirect',
-      scenario: 'liunian',
+      intent: 'liunian',
       status: 'restorable',
     })
     expect(reportAppFlowEvent).toHaveBeenNthCalledWith(2, {
@@ -57,7 +57,7 @@ describe('consultation telemetry', () => {
     expect(reportAppFlowEvent).toHaveBeenCalledWith({
       event: 'consultation_bridge',
       domain: 'natal',
-      scenario: 'huangli',
+      intent: 'huangli',
       status: 'pending_backend',
     })
   })

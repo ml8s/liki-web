@@ -14,7 +14,7 @@ function session(overrides: Partial<ChatSession>): ChatSession {
     user_id: 'usr_1',
     profile_id: 'p1',
     skill: 'liki',
-    expert: 'natal',
+    intent: 'natal',
     title: '本命',
     status: 'active',
     created_at: '2026-01-01T00:00:00Z',
@@ -26,7 +26,7 @@ function session(overrides: Partial<ChatSession>): ChatSession {
 
 const namingContext: ConsultationContext = {
   version: 1,
-  scenario: 'naming',
+  intent: 'naming',
   birth: {
     gender: 'female',
     date: '1990-05-12',
@@ -73,7 +73,7 @@ describe('useConsultationSubmit', () => {
     await submit.submitFocusedForm({
       skill: 'naming',
       context: namingContext,
-      matchesContext: s => s.context?.scenario === 'naming',
+      matchesContext: s => s.context?.intent === 'naming',
       content: '方向如何？',
     })
 
@@ -101,7 +101,7 @@ describe('useConsultationSubmit', () => {
     await submit.submitFocusedForm({
       skill: 'naming',
       context: namingContext,
-      matchesContext: s => s.context?.scenario === 'naming',
+      matchesContext: s => s.context?.intent === 'naming',
       content: '方向如何？',
     })
 
@@ -127,7 +127,7 @@ describe('useConsultationSubmit', () => {
       await submit.submitFocusedForm({
         skill: 'naming',
         context: namingContext,
-        matchesContext: s => s.context?.scenario === 'naming',
+        matchesContext: s => s.context?.intent === 'naming',
         content: '方向如何？',
       })
     })
@@ -151,7 +151,7 @@ describe('useConsultationSubmit', () => {
       await submit.submitFocusedForm({
         skill: 'naming',
         context: namingContext,
-        matchesContext: s => s.context?.scenario === 'naming',
+        matchesContext: s => s.context?.intent === 'naming',
         content: 'first',
       })
     })
@@ -159,7 +159,7 @@ describe('useConsultationSubmit', () => {
       await submit.submitFocusedForm({
         skill: 'naming',
         context: namingContext,
-        matchesContext: s => s.context?.scenario === 'naming',
+        matchesContext: s => s.context?.intent === 'naming',
         content: 'second',
       })
     })

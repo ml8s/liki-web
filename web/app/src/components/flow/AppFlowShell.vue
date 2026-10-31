@@ -54,19 +54,6 @@
     >
       <div class="flow-context-rail__group">
         <button
-          v-for="domain in domains"
-          :key="domain.id"
-          type="button"
-          class="flow-context-rail__item"
-          :class="{ 'is-selected': domain.id === selectedDomainId }"
-          :aria-current="domain.id === selectedDomainId ? 'true' : undefined"
-          @click="emit('domain-select', domain.id)"
-        >
-          {{ $t(domain.labelKey) }}
-        </button>
-      </div>
-      <div class="flow-context-rail__group">
-        <button
           v-for="item in contextItems"
           :key="item.id"
           type="button"
@@ -115,7 +102,7 @@ import type { AppDomain, AppDomainId } from '@shared/domain/flow'
 
 const props = defineProps<{
   personLabel?: string
-  domainLabel: string
+  domainLabel?: string
   domains?: readonly AppDomain[]
   selectedDomainId?: AppDomainId
   partnerVisible?: boolean
@@ -126,7 +113,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   restore: []
-  'domain-select': [domainId: AppDomainId]
   'context-select': [id: string]
 }>()
 

@@ -123,7 +123,7 @@ const lastCastingMode = ref<DivinationCastingFormValue['castingMode']>('auto')
 let pendingRecordSave = false
 const lastCastingInstant = ref('')
 const lastCastingLocation = ref<DivinationCastingFormValue['location']>(null)
-if (publicConsultation?.scenario === 'divination') {
+if (publicConsultation?.intent === 'divination') {
   lastCasting.value = publicConsultation.casting ?? null
   lastCastingInstant.value = publicConsultation.casting_instant ?? ''
   lastCastingLocation.value = publicConsultation.location
@@ -203,7 +203,7 @@ function openRecord(record: ToolRecord) {
 }
 
 onMounted(() => {
-  if (publicConsultation?.scenario !== 'divination') return
+  if (publicConsultation?.intent !== 'divination') return
   castingFormRef.value?.restore({
     question: publicConsultation.question ?? '',
     location: lastCastingLocation.value,
@@ -218,7 +218,7 @@ function startChat() {
   if (!lastCasting.value || !lastCastingInstant.value || !lastCastingLocation.value) return
   const consultationContext: ConsultationContext = {
     version: 1,
-    scenario: 'divination',
+    intent: 'divination',
     question,
     casting: lastCasting.value,
     casting_instant: lastCastingInstant.value,

@@ -127,7 +127,7 @@ void loadRecords()
 // 表单模型保持稳定对象，v-model 写入同一引用，change 当拍校验才能读到新值。
 const form = reactive({ event: 'wedding', startDate: '', endDate: '' })
 const publicConsultation = consumeConsultationHandoff<ConsultationContext>('huangli')
-if (publicConsultation?.scenario === 'huangli') {
+if (publicConsultation?.intent === 'huangli') {
   form.event = publicConsultation.event ?? form.event
   form.startDate = publicConsultation.start_date ?? ''
   form.endDate = publicConsultation.end_date ?? ''
@@ -214,7 +214,7 @@ function startChat() {
   // 择日属占卜域：场景走 huangli（标题/意图），内部路由到 divination 专家部署。
   const context: ConsultationContext = {
     version: 1,
-    scenario: 'huangli',
+    intent: 'huangli',
     event: event.value,
     start_date: startDate.value,
     end_date: endDate.value,

@@ -39,15 +39,15 @@ func newChatWiring(
 		return nil, fmt.Errorf("init records schema: %w", err)
 	}
 	system.Service = chat.NewService(system.Store, entitlements, profiles)
-	runners, err := newAgentRunners(config)
+	runner, err := newAgentRunner(config)
 	if err != nil {
 		return nil, err
 	}
-	system.Service.SetAgentRunners(runners)
+	system.Service.SetAgentRunner(runner)
 	return system, nil
 }
 
-func newAgentRunners(config Config) (map[string]chat.Runner, error) {
+func newAgentRunner(config Config) (chat.Runner, error) {
 	if config.ExpertToken == "" {
 		return nil, errors.New("LIKI_EXPERT_TOKEN is required")
 	}
@@ -58,7 +58,6 @@ func newAgentRunners(config Config) (map[string]chat.Runner, error) {
 	if timeout <= 0 || timeout > maxAgentRunTimeout {
 		timeout = maxAgentRunTimeout
 	}
-	runners := make(map[string]chat.Runner, len(chat.ExpertOrder))
 	runner, err := chat.NewAgentRunner(chat.AgentRunnerConfig{
 		BaseURL: config.ExpertURL,
 		Token:   config.ExpertToken,
@@ -68,10 +67,5 @@ func newAgentRunners(config Config) (map[string]chat.Runner, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init liki aggregate agent runner: %w", err)
 	}
-	// Legacy session rows retain the former product-facing expert label; all
-	// labels now execute on the single aggregate expert.
-	for _, expert := range chat.ExpertOrder {
-		runners[expert] = runner
-	}
-	return runners, nil
+	return runner, nil
 }

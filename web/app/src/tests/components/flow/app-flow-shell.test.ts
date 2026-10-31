@@ -80,7 +80,7 @@ describe('AppFlowShell', () => {
       'sidecarOpen',
       'sidecarMode',
     ])
-    expect(options.emits).toEqual(['restore', 'domain-select', 'context-select'])
+    expect(options.emits).toEqual(['restore', 'context-select'])
     expect(Object.keys(wrapper.emitted())).toEqual([])
   })
 

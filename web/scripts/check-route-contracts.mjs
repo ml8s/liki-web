@@ -4,8 +4,7 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const readJson = value => JSON.parse(fs.readFileSync(value, 'utf8'));
-const scenarios = readJson(path.join(root, 'shared/config/scenarios.json'));
-const domains = readJson(path.join(root, 'shared/config/domains.json'));
+const intents = readJson(path.join(root, 'shared/config/intents.json'));
 const marketing = readJson(path.join(root, 'routes/marketing.contract.json'));
 const app = readJson(path.join(root, 'routes/app.contract.json'));
 const expectedLocales = ['zh-Hans', 'zh-Hant', 'en'];
@@ -15,8 +14,7 @@ const locales = Object.fromEntries(expectedLocales?.map(locale => [
 ]) ?? []);
 const errors = [];
 
-if (scenarios.version !== 1) errors.push('scenarios.version must be 1');
-if (domains.version !== 1) errors.push('domains.version must be 1');
+if (intents.version !== 1) errors.push('intents.version must be 1');
 if (marketing.version !== 1) errors.push('marketing.version must be 1');
 if (app.version !== 1) errors.push('app.version must be 1');
 
@@ -24,26 +22,25 @@ if (JSON.stringify(marketing.locales) !== JSON.stringify(expectedLocales)) {
   errors.push('marketing.locales must equal zh-Hans, zh-Hant, en');
 }
 
-const scenarioIds = new Set();
+const intentIds = new Set();
 const slugs = new Set();
 const serviceParams = new Set();
 const appPaths = new Set();
-for (const scenario of scenarios.scenarios ?? []) {
-  for (const key of ['id', 'expert', 'marketingSlug', 'serviceParam']) {
-    if (typeof scenario[key] !== 'string' || scenario[key] === '') errors.push(`scenario.${key} is required`);
+for (const intent of intents.intents ?? []) {
+  for (const key of ['id', 'marketingSlug', 'serviceParam']) {
+    if (typeof intent[key] !== 'string' || intent[key] === '') errors.push(`intent.${key} is required`);
   }
-  if (scenarioIds.has(scenario.id)) errors.push(`duplicate scenario id: ${scenario.id}`);
-  if (slugs.has(scenario.marketingSlug)) errors.push(`duplicate marketing slug: ${scenario.marketingSlug}`);
-  if (serviceParams.has(scenario.serviceParam)) errors.push(`duplicate service param: ${scenario.serviceParam}`);
-  if (!scenarios.experts.includes(scenario.expert)) errors.push(`invalid expert: ${scenario.expert}`);
-  if (scenario.appPath != null) {
-    if (!scenario.appPath.startsWith('/app/')) errors.push(`appPath must start with /app/: ${scenario.appPath}`);
-    if (appPaths.has(scenario.appPath)) errors.push(`duplicate appPath: ${scenario.appPath}`);
-    appPaths.add(scenario.appPath);
+  if (intentIds.has(intent.id)) errors.push(`duplicate intent id: ${intent.id}`);
+  if (slugs.has(intent.marketingSlug)) errors.push(`duplicate marketing slug: ${intent.marketingSlug}`);
+  if (serviceParams.has(intent.serviceParam)) errors.push(`duplicate service param: ${intent.serviceParam}`);
+  if (intent.appPath != null) {
+    if (!intent.appPath.startsWith('/app/')) errors.push(`appPath must start with /app/: ${intent.appPath}`);
+    if (appPaths.has(intent.appPath)) errors.push(`duplicate appPath: ${intent.appPath}`);
+    appPaths.add(intent.appPath);
   }
-  scenarioIds.add(scenario.id);
-  slugs.add(scenario.marketingSlug);
-  serviceParams.add(scenario.serviceParam);
+  intentIds.add(intent.id);
+  slugs.add(intent.marketingSlug);
+  serviceParams.add(intent.serviceParam);
 }
 
 for (const route of app.routes ?? []) {
@@ -55,80 +52,14 @@ for (const [route, count] of appRouteCounts) {
   if (count > 1) errors.push(`duplicate app route: ${route}`);
 }
 
-const scenarioIdSet = new Set(scenarios.scenarios.map(item => item.id));
-const domainIds = new Set();
-const domainSeeds = new Set();
-const expectedDomains = ['natal', 'divination', 'fengshui', 'naming'];
-const expectedZhHansDomainLabels = {
-  natal: '命理',
-  divination: '问卦',
-  fengshui: '风水',
-  naming: '起名',
-};
-function localeValue(locale, key) {
-  return key.split('.').reduce((value, part) => (value == null ? value : value[part]), locales[locale]);
-}
-for (const domain of domains.domains ?? []) {
-  for (const key of ['id', 'labelKey', 'baseSkill', 'hybridDefaultPath', 'profilePolicy']) {
-    if (typeof domain[key] !== 'string' || domain[key] === '') {
-      errors.push(`domain.${key} is required`);
-    }
-  }
-  if (domainIds.has(domain.id)) errors.push(`duplicate domain id: ${domain.id}`);
-  domainIds.add(domain.id);
-  if (!scenarioIdSet.has(domain.baseSkill)) errors.push(`unknown domain baseSkill: ${domain.baseSkill}`);
-  if (!['required', 'optional', 'partial'].includes(domain.profilePolicy)) {
-    errors.push(`invalid domain profilePolicy: ${domain.profilePolicy}`);
-  }
-  if (!app.routes.includes(domain.hybridDefaultPath)) {
-    errors.push(`domain hybrid path missing from app contract: ${domain.hybridDefaultPath}`);
-  }
-  if (!Array.isArray(domain.acceptedSeeds) || domain.acceptedSeeds.length === 0) {
-    errors.push(`domain acceptedSeeds must be non-empty: ${domain.id}`);
-  }
-  if (!Array.isArray(domain.bridgeSkills) || domain.bridgeSkills.length === 0) {
-    errors.push(`domain bridgeSkills must be non-empty: ${domain.id}`);
-  }
-  for (const seed of domain.acceptedSeeds ?? []) {
-    if (!scenarioIdSet.has(seed)) errors.push(`unknown domain seed: ${seed}`);
-    if (domainSeeds.has(seed)) errors.push(`seed belongs to multiple domains: ${seed}`);
-    domainSeeds.add(seed);
-  }
-  const bridgeSkills = new Set(domain.bridgeSkills ?? []);
-  for (const skill of bridgeSkills) {
-    if (!domain.acceptedSeeds?.includes(skill)) {
-      errors.push(`domain bridgeSkill is not an accepted seed: ${domain.id}/${skill}`);
-    }
-  }
-  if (domain.baseSkill && !bridgeSkills.has(domain.baseSkill)) {
-    errors.push(`domain baseSkill is not bridgeable: ${domain.id}`);
-  }
-  for (const locale of expectedLocales) {
-    if (typeof localeValue(locale, domain.labelKey) !== 'string') {
-      errors.push(`domain labelKey is missing from ${locale}: ${domain.id}/${domain.labelKey}`);
-    }
-  }
-  if (localeValue('zh-Hans', domain.labelKey) !== expectedZhHansDomainLabels[domain.id]) {
-    errors.push(`canonical zh-Hans domain label mismatch: ${domain.id}`);
-  }
-}
-if (JSON.stringify([...domainIds]) !== JSON.stringify(expectedDomains)) {
-  errors.push(`domains must equal ${expectedDomains.join(', ')}`);
-}
-for (const scenario of scenarios.scenarios) {
-  if (!domainSeeds.has(scenario.id)) errors.push(`scenario is not mapped to a domain: ${scenario.id}`);
-}
-for (const scenario of scenarios.scenarios ?? []) {
-  if (scenario.appPath && !app.routes.includes(scenario.appPath)) {
-    errors.push(`scenario appPath missing from app contract: ${scenario.appPath}`);
-  }
-}
-
 const consultationRoute = '/app/consultation';
 const consultationDefaultRoute = '/app';
 const classicDefaultRoute = '/app/classic';
 const compatibilityFlowRoute = '/app/flow';
 const meRoute = '/app/me';
+function localeValue(locale, key) {
+  return key.split('.').reduce((value, part) => (value == null ? value : value[part]), locales[locale]);
+}
 if (appRouteCounts.get(consultationRoute) !== 1) {
   errors.push(`app contract must contain ${consultationRoute} exactly once`);
 }
@@ -183,9 +114,9 @@ const consultationAliasRedirect = {
   preserve: ['query', 'hash'],
 };
 const consultationRedirectTargets = {
-  '/app/hepan': '/app?domain=natal&seed=hepan',
-  '/app/divination': '/app?domain=divination&seed=divination',
-  '/app/fengshui': '/app?domain=fengshui&seed=fengshui',
+  '/app/hepan': '/app?intent=natal&seed=hepan',
+  '/app/divination': '/app?intent=divination&seed=divination',
+  '/app/fengshui': '/app?intent=fengshui&seed=fengshui',
 };
 const expectedLegacyRedirects = [
   consultationAliasRedirect,
@@ -202,12 +133,12 @@ const expectedLegacyRedirects = [
 expectedLegacyRedirects.push(
   {
     from: '/app/liunian',
-    to: '/app?domain=natal&seed=liunian',
+    to: '/app?intent=natal&seed=liunian',
     preserve: ['query', 'hash'],
   },
   {
     from: '/app/naming',
-    to: '/app?domain=naming&seed=naming',
+    to: '/app?intent=naming&seed=naming',
     preserve: ['query', 'hash'],
   },
 );
@@ -233,15 +164,12 @@ if (JSON.stringify(Object.keys(queryContracts)) !== JSON.stringify([consultation
   errors.push(`queryContracts must contain ${consultationDefaultRoute} only`);
 }
 const flowQuery = queryContracts[consultationDefaultRoute] ?? {};
-const expectedFlowQueryKeys = ['domain', 'seed', 'service'];
+const expectedFlowQueryKeys = ['intent', 'seed', 'service'];
 if (JSON.stringify(Object.keys(flowQuery)) !== JSON.stringify(expectedFlowQueryKeys)) {
   errors.push(`consultation query contract must contain ${expectedFlowQueryKeys.join(', ')}`);
 }
-if (JSON.stringify(flowQuery.domain?.values) !== JSON.stringify(expectedDomains) || flowQuery.domain?.default !== 'natal') {
-  errors.push(`flow domain query must equal ${expectedDomains.join(', ')} with the natal default`);
-}
 for (const key of ['seed', 'service']) {
-  if (flowQuery[key]?.type !== 'legacyScenarioId') errors.push(`flow ${key} query must be a legacyScenarioId`);
+  if (flowQuery[key]?.type !== 'intentId') errors.push(`flow ${key} query must be a legacyScenarioId`);
 }
 if (flowQuery.service?.policy !== 'legacy marketing alias for seed; public URLs remain unchanged') {
   errors.push('flow service query must remain a legacy alias for seed');
@@ -259,7 +187,7 @@ if (typeof localeValue('zh-Hans', 'router.me') !== 'string' || typeof localeValu
 const redirects = marketing.bareRedirects ?? [];
 const retired = marketing.retired ?? [];
 for (const route of redirects) {
-  if (!scenarioIds.has(route.slug)) errors.push(`redirect references unknown scenario: ${route.slug}`);
+  if (!intentIds.has(route.slug)) errors.push(`redirect references unknown scenario: ${route.slug}`);
   if (route.status !== 302) errors.push(`redirect must use 302: ${route.path}`);
 }
 for (const route of retired) {
@@ -302,4 +230,4 @@ if (errors.length) {
   for (const error of errors) console.error(`  ✗ ${error}`);
   process.exit(1);
 }
-console.log(`✓ route contracts are consistent (${scenarios.scenarios.length} scenarios, ${app.routes.length} app routes)`);
+console.log(`✓ route contracts are consistent (${intents.intents.length} intents, ${app.routes.length} app routes)`);

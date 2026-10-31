@@ -22,7 +22,7 @@ func TestChatMigrationPreservesData(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	session, err := chats.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "Test", "")
+	session, err := chats.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "Test", "")
 	if err != nil {
 		t.Fatal(err)
 	}

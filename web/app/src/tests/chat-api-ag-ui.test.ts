@@ -33,7 +33,7 @@ describe('streamChatMessage against the official HttpAgent parser', () => {
     vi.stubGlobal('fetch', fetchSpy)
 
     const events: unknown[] = []
-    const result = await streamChatMessage({ id: 'session_1', expert: 'natal' }, '你好', event => events.push(event))
+    const result = await streamChatMessage({ id: 'session_1', intent: 'natal' }, '你好', event => events.push(event))
     expect(fetchSpy).toHaveBeenCalledWith(
       '/api/chat/sessions/session_1/ag-ui',
       expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),

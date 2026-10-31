@@ -9,7 +9,7 @@ function session(id: string, title: string): ChatSession {
     user_id: 'user-1',
     profile_id: 'person-1',
     skill: 'liki',
-    expert: 'natal',
+    intent: 'natal',
     title,
     status: 'active',
     created_at: '2026-01-01T00:00:00Z',

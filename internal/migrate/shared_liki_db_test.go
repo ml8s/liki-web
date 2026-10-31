@@ -49,7 +49,7 @@ func TestSharedLikiDBMigrationsDoNotCollide(t *testing.T) {
 		{"table", "sales_orders", "orders"},
 		{"table", "chat_sessions", "chat 001"},
 		{"column", "chat_sessions.deleted_at", "chat 004"},
-		{"column", "chat_sessions.expert", "chat 005"},
+		{"column", "chat_sessions.intent", "chat 011"},
 		{"table", "chat_consultation_contexts", "chat 008"},
 		{"table", "chat_messages", "chat 001"},
 		{"column", "chat_messages.kind", "chat 002"},

@@ -3,9 +3,9 @@ import { toolPhaseKey } from '@/utils/toolPhase'
 
 describe('toolPhaseKey', () => {
   it.each([
-    ['load_skill', 'chat.tool.expert'],
-    ['load_skill_bazi', 'chat.tool.expert'],
-    ['transfer_to_agent', 'chat.tool.expert'],
+    ['load_skill', 'chat.tool.intent'],
+    ['load_skill_bazi', 'chat.tool.intent'],
+    ['transfer_to_agent', 'chat.tool.intent'],
     ['bazi', 'chat.tool.bazi'],
     ['ziwei', 'chat.tool.ziwei'],
     ['city_coords', 'chat.tool.coords'],

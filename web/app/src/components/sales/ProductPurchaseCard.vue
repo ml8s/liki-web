@@ -20,7 +20,7 @@
     <p>{{ $t('chat.productDescription') }}</p>
     <ul class="skills">
       <li
-        v-for="s in chatScenarios"
+        v-for="s in chatIntents"
         :key="s.id"
       >
         {{ $t(s.labelKey) }} · {{ $t(s.descKey) }}
@@ -84,7 +84,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Product, MoneyMinor } from '@/api/sales'
-import { chatScenarios } from '@/config/chat'
+import { chatIntents } from '@/config/chat'
 
 const props = defineProps<{
   product: Product

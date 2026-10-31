@@ -59,7 +59,7 @@ function chatSession(overrides: Partial<ChatSession> = {}): ChatSession {
     user_id: 'user-1',
     profile_id: 'person-1',
     skill: 'liki',
-    expert: 'natal',
+    intent: 'natal',
     title: '张三 · 命理解读',
     status: 'active',
     created_at: '2026-01-01T00:00:00Z',
@@ -73,12 +73,12 @@ function divinationSession(): ChatSession {
   return chatSession({
     id: 'divination-session',
     skill: 'divination',
-    expert: 'divination',
+    intent: 'divination',
     title: '问卦解读',
     updated_at: '2026-01-04T00:00:00Z',
     context: {
       version: 1,
-      scenario: 'divination',
+      intent: 'divination',
       question: '近期合作如何',
       casting: {
         mode: 'auto',
@@ -298,7 +298,7 @@ describe('DomainFlowView', () => {
     vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
     vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
 
-    const router = await createTestRouter('/?domain=natal')
+    const router = await createTestRouter('/?intent=natal')
     const wrapper = mount(DomainFlowView, {
       global: { plugins: [router], stubs: { ChatThread: true, ChatStreamStatus: true } },
     })
@@ -324,7 +324,7 @@ describe('DomainFlowView', () => {
     vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
     vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
 
-    const router = await createTestRouter('/?domain=natal&locale=zh-Hant')
+    const router = await createTestRouter('/?intent=natal&locale=zh-Hant')
     const wrapper = mount(DomainFlowView, {
       global: { plugins: [router], stubs: { ChatThread: true, ChatStreamStatus: true } },
     })
@@ -352,7 +352,7 @@ describe('DomainFlowView', () => {
       }),
       chatSession({
         id: 'divination-domain',
-        expert: 'divination',
+        intent: 'divination',
         profile_id: '',
         updated_at: '2026-01-04T00:00:00Z',
       }),
@@ -433,26 +433,8 @@ describe('DomainFlowView', () => {
     wrapper.unmount()
   })
 
-  it('syncs a selected domain into the canonical URL and removes a stale seed', async () => {
-    const profiles = useBirthProfilesStore()
-    const chat = useChatStore()
-    profiles.list = [birthProfile()]
-    vi.spyOn(profiles, 'loadList').mockResolvedValue(undefined)
-    vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
-    vi.spyOn(useEntitlementsStore(), 'load').mockResolvedValue(undefined)
-
-    const router = await createTestRouter('/?domain=natal')
-    const wrapper = mount(DomainFlowView, { global: { plugins: [router] } })
-    await flushAll()
-
-    await wrapper.findAll('[role="tab"]')[1]!.trigger('click')
-    await flushAll()
-
-    const flow = useDomainFlowStore()
-    expect(flow.domainId).toBe('divination')
-    expect(router.currentRoute.value.fullPath).toBe('/?domain=divination')
-    wrapper.unmount()
-  })
+  // Four-domain selection was removed: Liki Chat is one product. Domain state
+  // remains only as a legacy form-capability key until the UI batch completes.
 
   it('creates a new natal session with the domain base skill', async () => {
     const profiles = useBirthProfilesStore()
@@ -588,7 +570,7 @@ describe('DomainFlowView', () => {
     wrapper.unmount()
   })
 
-  it('keeps huangli pending instead of routing it to the wrong expert', async () => {
+  it('keeps huangli pending instead of routing it to the wrong intent', async () => {
     const profiles = useBirthProfilesStore()
     const chat = useChatStore()
     const entitlements = useEntitlementsStore()
@@ -714,7 +696,7 @@ describe('DomainFlowView', () => {
     vi.spyOn(entitlements, 'load').mockResolvedValue(undefined)
     vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
 
-    const router = await createTestRouter('/?domain=divination')
+    const router = await createTestRouter('/?intent=divination')
     const wrapper = mount(DomainFlowView, {
       global: {
         plugins: [router],
@@ -757,10 +739,10 @@ describe('DomainFlowView', () => {
     const createSession = vi.spyOn(chat, 'createSession').mockResolvedValue(
       chatSession({
         id: 'hepan-created',
-        expert: 'natal',
+        intent: 'natal',
         context: {
           version: 1,
-          scenario: 'hepan',
+          intent: 'hepan',
           second_birth: {
             gender: 'female',
             date: '1992-06-18',
@@ -814,7 +796,7 @@ describe('DomainFlowView', () => {
       'hepan',
       expect.objectContaining({
         version: 1,
-        scenario: 'hepan',
+        intent: 'hepan',
         third_party_consent: true,
         second_birth: expect.objectContaining({ date: '1992-06-18' }),
       }),
@@ -835,10 +817,10 @@ describe('DomainFlowView', () => {
     const createSession = vi.spyOn(chat, 'createSession').mockResolvedValue(
       chatSession({
         id: 'fengshui-created',
-        expert: 'fengshui',
+        intent: 'fengshui',
         context: {
           version: 1,
-          scenario: 'fengshui',
+          intent: 'fengshui',
           layout: {
             zuo_shan: 0,
             period_date: '2026-01-01',
@@ -851,7 +833,7 @@ describe('DomainFlowView', () => {
     )
     const send = vi.spyOn(chat, 'send').mockResolvedValue(undefined)
 
-    const router = await createTestRouter('/?domain=fengshui&seed=fengshui')
+    const router = await createTestRouter('/?intent=fengshui&seed=fengshui')
     const wrapper = mount(DomainFlowView, {
       attachTo: document.body,
       global: {
@@ -885,7 +867,7 @@ describe('DomainFlowView', () => {
       'fengshui',
       expect.objectContaining({
         version: 1,
-        scenario: 'fengshui',
+        intent: 'fengshui',
         layout: expect.objectContaining({ door_gua: '乾', master_gua: '坤', stove_gua: '兑' }),
       }),
     )
@@ -905,10 +887,10 @@ describe('DomainFlowView', () => {
     const createSession = vi.spyOn(chat, 'createSession').mockResolvedValue(
       chatSession({
         id: 'naming-created',
-        expert: 'naming',
+        intent: 'naming',
         context: {
           version: 1,
-          scenario: 'naming',
+          intent: 'naming',
           birth: {
             gender: 'female',
             date: '2000-01-01',
@@ -920,7 +902,7 @@ describe('DomainFlowView', () => {
     )
     const send = vi.spyOn(chat, 'send').mockResolvedValue(undefined)
 
-    const router = await createTestRouter('/?domain=naming&seed=naming')
+    const router = await createTestRouter('/?intent=naming&seed=naming')
     const wrapper = mount(DomainFlowView, {
       attachTo: document.body,
       global: {
@@ -943,7 +925,7 @@ describe('DomainFlowView', () => {
       'naming',
       expect.objectContaining({
         version: 1,
-        scenario: 'naming',
+        intent: 'naming',
         birth: expect.objectContaining({ date: '2000-01-01', time: '12:00' }),
       }),
     )
@@ -964,7 +946,7 @@ describe('DomainFlowView', () => {
       }),
       chatSession({
         id: 'other-domain',
-        expert: 'divination',
+        intent: 'divination',
         profile_id: '',
         title: '问卦历史',
       }),
@@ -1048,10 +1030,10 @@ describe('DomainFlowView', () => {
     const createSession = vi.spyOn(chat, 'createSession').mockResolvedValue(
       chatSession({
         id: 'divination-created',
-        expert: 'divination',
+        intent: 'divination',
         context: {
           version: 1,
-          scenario: 'divination',
+          intent: 'divination',
           question: '近期合作如何',
           casting: divinationMocks.casting,
           casting_instant: '2026-01-01T00:00:00Z',
@@ -1068,7 +1050,7 @@ describe('DomainFlowView', () => {
     vi.spyOn(chat, 'loadSessions').mockResolvedValue(undefined)
 
     flow.setPerson('person-1')
-    const router = await createTestRouter('/?domain=divination')
+    const router = await createTestRouter('/?intent=divination')
     const wrapper = mount(DomainFlowView, {
       global: {
         plugins: [router],
@@ -1100,7 +1082,7 @@ describe('DomainFlowView', () => {
       'divination',
       expect.objectContaining({
         version: 1,
-        scenario: 'divination',
+        intent: 'divination',
         question: '近期合作如何',
         casting: divinationMocks.casting,
         casting_instant: expect.any(String),

@@ -1,5 +1,5 @@
 import { useFormDraftsStore } from '../stores/form-drafts'
-import type { ConsultationContext, ConsultationScenario } from '../domain/consultation'
+import type { ConsultationContext, ConsultationIntent } from '../domain/consultation'
 
 const HANDOFF_TTL_MS = 30 * 60 * 1000
 
@@ -19,24 +19,24 @@ export function saveConsultationHandoff(context: unknown): void {
 }
 
 export function peekConsultationHandoff<T extends ConsultationContext>(
-	scenario: ConsultationScenario,
+	intent: ConsultationIntent,
 ): T | null {
 	const store = useFormDraftsStore()
 	const envelope = store.get<HandoffEnvelope<T>>(HANDOFF_KEYS.consultation)
 	if (!envelope || typeof envelope.createdAt !== 'number') return null
 	if (Date.now() - envelope.createdAt > HANDOFF_TTL_MS) return null
-	if (!envelope.data || envelope.data.scenario !== scenario) return null
+	if (!envelope.data || envelope.data.intent !== intent) return null
 	return envelope.data
 }
 
 export function consumeConsultationHandoff<T extends ConsultationContext>(
-	scenario: ConsultationScenario,
+	intent: ConsultationIntent,
 ): T | null {
 	const store = useFormDraftsStore()
 	const envelope = store.consume<HandoffEnvelope<T>>(HANDOFF_KEYS.consultation)
 	if (!envelope || typeof envelope.createdAt !== 'number') return null
 	if (Date.now() - envelope.createdAt > HANDOFF_TTL_MS) return null
-	if (!envelope.data || envelope.data.scenario !== scenario) return null
+	if (!envelope.data || envelope.data.intent !== intent) return null
 	return envelope.data
 }
 

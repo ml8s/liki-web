@@ -25,7 +25,7 @@ vi.mock('@ag-ui/client', () => ({ HttpAgent: mocks.HttpAgent }))
 
 import { streamChatMessage, type ChatStreamEvent } from '@/api/chat'
 
-const sessionRef = { id: 'session_1', expert: 'natal' }
+const sessionRef = { id: 'session_1', intent: 'natal' }
 
 const result = {
   session: { id: 'session_1' },

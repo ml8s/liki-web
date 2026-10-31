@@ -1,8 +1,8 @@
 import domainContract from '../config/domains.json'
-import scenarioContract from '../config/scenarios.json'
+import intentContract from '../config/intents.json'
 
 export type AppDomainId = 'natal' | 'divination' | 'fengshui' | 'naming'
-export type LegacyScenarioId =
+export type LegacyIntentId =
   | 'natal'
   | 'liunian'
   | 'hepan'
@@ -10,16 +10,16 @@ export type LegacyScenarioId =
   | 'huangli'
   | 'fengshui'
   | 'naming'
-export type ExpertId = 'natal' | 'divination' | 'fengshui' | 'naming'
+export type IntentId = 'natal' | 'divination' | 'fengshui' | 'naming'
 export type DomainProfilePolicy = 'required' | 'optional' | 'partial'
 
 export interface AppDomain {
   id: AppDomainId
   labelKey: string
-  baseSkill: LegacyScenarioId
-  acceptedSeeds: readonly LegacyScenarioId[]
+  baseSkill: LegacyIntentId
+  acceptedSeeds: readonly LegacyIntentId[]
   /** Legacy skills the frontend may create in this domain before backend P4. */
-  bridgeSkills: readonly LegacyScenarioId[]
+  bridgeSkills: readonly LegacyIntentId[]
   hybridDefaultPath: string
   profilePolicy: DomainProfilePolicy
 }
@@ -28,15 +28,14 @@ export interface LegacyIntentBridgeInput {
   domainId: string
   personId?: string
   seed?: string | null
-  slotFormResult?: LegacyScenarioId | null
+  slotFormResult?: LegacyIntentId | null
 }
 
 export type LegacyIntentBridgeResult =
   | {
       status: 'ok'
       domainId: AppDomainId
-      skill: LegacyScenarioId
-      expert: ExpertId
+      skill: LegacyIntentId
       fallbackUsed: boolean
       reason: 'seed' | 'slot-form' | 'domain-base'
     }
@@ -48,7 +47,7 @@ export type LegacyIntentBridgeResult =
   | {
       status: 'pending-backend'
       domainId: AppDomainId
-      legacySkill: LegacyScenarioId
+      legacySkill: LegacyIntentId
     }
   | {
       status: 'invalid'
@@ -58,23 +57,14 @@ export type LegacyIntentBridgeResult =
 export const appDomains: readonly AppDomain[] = domainContract.domains.map(domain => ({
   id: domain.id as AppDomainId,
   labelKey: domain.labelKey,
-  baseSkill: domain.baseSkill as LegacyScenarioId,
-  acceptedSeeds: domain.acceptedSeeds as LegacyScenarioId[],
-  bridgeSkills: domain.bridgeSkills as LegacyScenarioId[],
+  baseSkill: domain.baseSkill as LegacyIntentId,
+  acceptedSeeds: domain.acceptedSeeds as LegacyIntentId[],
+  bridgeSkills: domain.bridgeSkills as LegacyIntentId[],
   hybridDefaultPath: domain.hybridDefaultPath,
   profilePolicy: domain.profilePolicy as DomainProfilePolicy,
 }))
 
-const legacyScenarios = scenarioContract.scenarios as readonly {
-  id: LegacyScenarioId
-  expert: ExpertId
-}[]
-
-const expertByScenario = new Map<LegacyScenarioId, ExpertId>(
-  legacyScenarios.map(scenario => [scenario.id, scenario.expert]),
-)
-
-const domainBySeed = new Map<LegacyScenarioId, AppDomain>()
+const domainBySeed = new Map<LegacyIntentId, AppDomain>()
 for (const domain of appDomains) {
   for (const seed of domain.acceptedSeeds) domainBySeed.set(seed, domain)
 }
@@ -83,17 +73,19 @@ const domainById = new Map<AppDomainId, AppDomain>(
   appDomains.map(domain => [domain.id, domain]),
 )
 
-const legacyScenarioIds = new Set(expertByScenario.keys())
+const legacyIntentIds = new Set(
+  intentContract.intents.map(intent => intent.id as LegacyIntentId),
+)
 
 export function normalizeAppDomain(value: unknown): AppDomainId | null {
   const id = String(value ?? '')
   return domainById.has(id as AppDomainId) ? id as AppDomainId : null
 }
 
-export function normalizeLegacyScenario(value: unknown): LegacyScenarioId | null {
-  const scenario = String(value ?? '')
-  return legacyScenarioIds.has(scenario as LegacyScenarioId)
-    ? scenario as LegacyScenarioId
+export function normalizeLegacyIntent(value: unknown): LegacyIntentId | null {
+  const intent = String(value ?? '')
+  return legacyIntentIds.has(intent as LegacyIntentId)
+    ? intent as LegacyIntentId
     : null
 }
 
@@ -103,29 +95,29 @@ export function appDomainById(id: AppDomainId): AppDomain {
   return domain
 }
 
-export function domainForScenario(scenario: LegacyScenarioId): AppDomain {
-  const domain = domainBySeed.get(scenario)
-  if (!domain) throw new TypeError(`Scenario is not mapped to a domain: ${scenario}`)
+export function domainForIntent(intent: LegacyIntentId): AppDomain {
+  const domain = domainBySeed.get(intent)
+  if (!domain) throw new TypeError(`Intent is not mapped to a domain: ${intent}`)
   return domain
 }
 
 export interface SessionDomainSource {
-  expert?: string | null
+  intent?: string | null
   context?: {
-    scenario?: string | null
+    intent?: string | null
   } | null
 }
 
 /**
  * Project a persisted session to its visible domain. Prefer the durable
- * scenario context, then fall back to the runtime expert. This lets legacy
- * huangli sessions surface under 命理 even while their expert is divination.
+ * intent context, then fall back to the runtime intent. This lets legacy
+ * huangli sessions surface under 命理 even while their intent is divination.
  */
 export function domainForSession(session: SessionDomainSource): AppDomainId {
-  const scenario = normalizeLegacyScenario(session.context?.scenario)
-  if (scenario) return domainForScenario(scenario).id
+  const intent = normalizeLegacyIntent(session.context?.intent)
+  if (intent) return domainForIntent(intent).id
 
-  switch (session.expert) {
+  switch (session.intent) {
     case 'natal':
       return 'natal'
     case 'divination':
@@ -139,9 +131,9 @@ export function domainForSession(session: SessionDomainSource): AppDomainId {
   }
 }
 
-export function marketingScenarioToDomain(scenario: unknown): AppDomainId | null {
-  const normalized = normalizeLegacyScenario(scenario)
-  return normalized ? domainForScenario(normalized).id : null
+export function marketingIntentToDomain(intent: unknown): AppDomainId | null {
+  const normalized = normalizeLegacyIntent(intent)
+  return normalized ? domainForIntent(normalized).id : null
 }
 
 export function bridgeLegacyIntent(input: LegacyIntentBridgeInput): LegacyIntentBridgeResult {
@@ -149,18 +141,15 @@ export function bridgeLegacyIntent(input: LegacyIntentBridgeInput): LegacyIntent
   if (!domainId) return { status: 'invalid', reason: 'unknown-domain' }
 
   const domain = appDomainById(domainId)
-  const authoritativeSeed = input.slotFormResult ?? normalizeLegacyScenario(input.seed)
+  const authoritativeSeed = input.slotFormResult ?? normalizeLegacyIntent(input.seed)
 
   // No seed means the selected domain itself is the routing decision. The
   // free-form question is consultation content and is never a routing signal.
   if (!authoritativeSeed) {
-    const expert = expertByScenario.get(domain.baseSkill)
-    if (!expert) return { status: 'invalid', reason: 'unknown-domain' }
     return {
       status: 'ok',
       domainId,
       skill: domain.baseSkill,
-      expert,
       fallbackUsed: true,
       reason: 'domain-base',
     }
@@ -183,13 +172,10 @@ export function bridgeLegacyIntent(input: LegacyIntentBridgeInput): LegacyIntent
     }
   }
 
-  const expert = expertByScenario.get(authoritativeSeed)
-  if (!expert) return { status: 'invalid', reason: 'unknown-domain' }
   return {
     status: 'ok',
     domainId,
     skill: authoritativeSeed,
-    expert,
     fallbackUsed: false,
     reason: input.slotFormResult ? 'slot-form' : 'seed',
   }

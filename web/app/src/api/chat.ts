@@ -21,7 +21,7 @@ export interface ChatSession {
   user_id: string
   profile_id: string
   skill: string
-  expert: string
+  intent: string
   title: string
   status: 'active' | 'closed'
   created_at: string
@@ -56,18 +56,18 @@ export function fetchChatSession(sessionId: string): Promise<ChatSession> {
 export function createChatSession(
   profileId: string,
   skill: string,
-  expert: string,
+  intentId: string,
   title?: string,
   context?: ConsultationContext,
-  scenario?: string,
+  intent?: string,
 ): Promise<ChatSession> {
   return post<ChatSession>('/api/chat/sessions', {
     profile_id: profileId,
     skill,
-    expert,
+    intent: intentId,
     title,
     context,
-    ...(scenario ? { scenario } : {}),
+    ...(intent ? { intent } : {}),
   })
 }
 
@@ -97,7 +97,7 @@ export interface SendMessageResult {
   assistant_message: ChatMessage
 }
 
-export type ChatSessionRef = Pick<ChatSession, 'id' | 'expert'>
+export type ChatSessionRef = Pick<ChatSession, 'id' | 'intent'>
 
 
 export async function streamChatMessage(

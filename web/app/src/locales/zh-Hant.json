@@ -458,7 +458,7 @@
     "allBirthProfiles": "全部檔案",
     "recentSessions": "最近會話",
     "allSessions": "全部會話",
-    "moreScenarios": "更多場景"
+    "moreIntents": "更多場景"
   },
   "profiles": {
     "male": "男",
@@ -787,7 +787,7 @@
       "thinking": "思考中"
     },
     "tool": {
-      "expert": "正在準備解讀…",
+      "intent": "正在準備解讀…",
       "bazi": "正在排八字盤…",
       "ziwei": "正在排紫微盤…",
       "coords": "正在校準出生時間與地點…",

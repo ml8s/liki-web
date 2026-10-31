@@ -16,22 +16,6 @@ test.describe('consultation accessibility', () => {
       await expect(page.locator('.flow-parameters').getByRole('button', { name: '张三' })).toBeVisible()
       await expectNoCriticalA11yViolations(page, '/app consultation')
 
-      const tabs = page.getByRole('tab')
-      await expect(tabs).toHaveText(['命理', '问卦', '风水', '起名'])
-      await tabs.first().focus()
-      await page.keyboard.press('ArrowRight')
-      await expect(tabs.nth(1)).not.toHaveAttribute('aria-selected', 'true')
-      await expect(tabs.nth(1)).toBeFocused()
-      await tabs.nth(1).focus()
-      await page.keyboard.press('ArrowLeft')
-      await expect(tabs.first()).toBeFocused()
-      await expect(tabs.first()).toHaveAttribute('aria-selected', 'true')
-      await page.keyboard.press('Enter')
-      await page.keyboard.press('Home')
-      await expect(tabs.first()).toBeFocused()
-      await page.keyboard.press('Enter')
-      await expect(tabs.first()).toHaveAttribute('aria-selected', 'true')
-
       await page.locator('.flow-parameters').getByRole('button', { name: '张三' }).click()
       const sheet = page.locator('.flow-sheet__body')
       await expect(sheet).toBeVisible()
@@ -63,7 +47,7 @@ test.describe('consultation keyboard reflow', () => {
         user_id: 'usr_flow',
         profile_id: 'person-1',
         skill: 'liki',
-        expert: 'natal',
+        intent: 'natal',
         title: '张三 · 命理',
         status: 'active',
         created_at: '2026-01-01T00:00:00Z',
@@ -95,12 +79,9 @@ test.describe('consultation keyboard reflow', () => {
       await page.keyboard.press('Enter')
       await expect(page.locator('.flow-main')).toBeFocused()
 
-      // 320px reflow: the strip intentionally scrolls with a peek while the
-      // page itself never overflows.
-      const strip = page.locator('.flow-domain-strip')
-      await expect(strip).toBeVisible()
+      // 320px reflow: with four-domain navigation removed, the page itself
+      // never overflows.
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
-      expect(await strip.evaluate(node => node.scrollWidth - node.clientWidth)).toBeGreaterThan(1)
 
       const personTrigger = page.locator('.flow-parameters').getByRole('button', { name: '张三' })
       await personTrigger.focus()
@@ -113,19 +94,6 @@ test.describe('consultation keyboard reflow', () => {
 
       // The composer remains available on a natal draft. Focused-form composer
       // hiding and radio commit are covered by focused domain-flow suites.
-      const domainTrigger = page.locator('.flow-parameters').getByRole('button', { name: '命理' })
-      await domainTrigger.focus()
-      await page.keyboard.press('Enter')
-      const domainSheet = page.getByRole('region', { name: '选择领域' })
-      await expect(domainSheet).toBeVisible()
-      const domainRadios = domainSheet.getByRole('radio', { name: /命理|问卦|风水|起名/ })
-      await expect(domainRadios).toHaveCount(4)
-      await expect(domainRadios.first()).toBeChecked()
-      await page.keyboard.press('Escape')
-      await expect(domainSheet).toBeHidden()
-      await expect(domainTrigger).toBeFocused()
-
-
       const question = page.getByRole('textbox', { name: '直接提出你的问题' })
       await question.focus()
       await question.fill('今年事业如何？')

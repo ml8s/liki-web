@@ -14,7 +14,7 @@ import { useEntitlementsStore } from '@/stores/entitlements'
 import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { errorMessage } from '@/utils/errors'
 import { toolPhaseKey } from '@/utils/toolPhase'
-import { scenarioById } from '@/config/chat'
+import { intentById } from '@/config/chat'
 import { i18n } from '@/i18n'
 import { reportClientError } from '@shared/utils/client-error'
 
@@ -76,41 +76,38 @@ export const useChatStore = defineStore('chat', {
         this.loadingSessions = false
       }
     },
-    /** 按用户场景创建会话：标题用场景名（命理/流年/…），内部路由到场景对应专家。 */
-    async createSession(profileId: string, scenarioId: string, context?: ConsultationContext) {
+    /** 按用户意图创建会话：标题用意图名，产品仍是唯一 Liki Chat。 */
+    async createSession(profileId: string, intentId: string, context?: ConsultationContext) {
       const entitlements = useEntitlementsStore()
       await entitlements.load()
       if (!entitlements.hasSkill('liki')) {
         throw new Error(t('chat.skillNotIncluded'))
       }
-      const scenario = scenarioById(scenarioId)
-      const expert = scenario?.expert ?? 'natal'
       const nickname = useBirthProfilesStore().list.find(p => p.id === profileId)?.nickname ?? ''
-      const label = scenario ? t(scenario.labelKey) : t('services.natal.label')
+      const intent = intentById(intentId)
+      const label = intent ? t(intent.labelKey) : t('services.natal.label')
       const title = nickname
         ? t('chat.sessionTitleWithBirthProfile', { nickname, skill: label })
         : t('chat.sessionTitle', { skill: label })
       const session = await (await chatApiLazy()).createChatSession(
         profileId,
         'liki',
-        expert,
+        intentId,
         title,
         context,
-        scenarioId,
       )
       this.sessions.unshift(session)
       // 返回数组内的响应式代理：返回 unshift 前的原始对象会让后续写入绕过
       // 响应式（与聊天气泡同类的历史 bug，见 stores/chat.ts send()）。
       return this.sessions[0]
     },
-    /** 取该档案与场景对应专家的会话：有则复用（继续），无则新建。 */
-    async ensureSession(profileId: string, scenarioId: string, context?: ConsultationContext) {
-      const expert = scenarioById(scenarioId)?.expert ?? 'natal'
+    /** 取该档案与意图对应会话：有则复用（继续），无则新建。 */
+    async ensureSession(profileId: string, intentId: string, context?: ConsultationContext) {
       if (!context) {
-        const existing = this.sessions.find(s => s.profile_id === profileId && s.expert === expert)
+        const existing = this.sessions.find(s => s.profile_id === profileId && s.intent === intentId)
         if (existing) return existing
       }
-      return this.createSession(profileId, scenarioId, context)
+      return this.createSession(profileId, intentId, context)
     },
     async renameSession(sessionId: string, title: string) {
       const updated = await (await chatApiLazy()).renameChatSession(sessionId, title)
@@ -234,7 +231,7 @@ export const useChatStore = defineStore('chat', {
           code: (error as { code?: string } | null)?.code ?? 'chat_send_failed',
           detail: error instanceof Error ? error.message : String(error),
           transport: 'bff',
-          agent: session.expert,
+          agent: 'liki-chat',
           view: 'chat-session',
         })
         this.error = errorMessage(error)

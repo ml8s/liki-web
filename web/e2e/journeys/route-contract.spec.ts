@@ -1,9 +1,9 @@
 import { expect, test } from '../fixtures'
 import { mockPageview } from '../mocks'
 import marketingContract from '../../routes/marketing.contract.json' with { type: 'json' }
-import scenarioContract from '../../shared/config/scenarios.json' with { type: 'json' }
+import intentContract from '../../shared/config/intents.json' with { type: 'json' }
 
-const slugs = scenarioContract.scenarios.map(scenario => scenario.marketingSlug)
+const slugs = intentContract.intents.map(intent => intent.marketingSlug)
 
 test.beforeEach(async ({ page }) => {
   await mockPageview(page)

@@ -10,8 +10,8 @@
 type Rule = readonly [match: (name: string) => boolean, key: string]
 
 const RULES: ReadonlyArray<Rule> = [
-  [name => name.startsWith('load_skill'), 'chat.tool.expert'],
-  [name => name.startsWith('transfer_to_agent'), 'chat.tool.expert'],
+  [name => name.startsWith('load_skill'), 'chat.tool.intent'],
+  [name => name.startsWith('transfer_to_agent'), 'chat.tool.intent'],
   [name => name === 'bazi', 'chat.tool.bazi'],
   [name => name === 'ziwei', 'chat.tool.ziwei'],
   [name => name.startsWith('city_coords'), 'chat.tool.coords'],

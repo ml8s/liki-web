@@ -21,7 +21,7 @@ function session(overrides: Partial<ChatSession>): ChatSession {
     user_id: 'usr_1',
     profile_id: 'p1',
     skill: 'liki',
-    expert: 'natal',
+    intent: 'natal',
     title: '本命',
     status: 'active',
     created_at: '2026-01-01T00:00:00Z',
@@ -56,7 +56,7 @@ describe('useConsultationHistory', () => {
       session({ id: 'old', updated_at: '2026-01-01T00:00:00Z' }),
       session({ id: 'new', updated_at: '2026-01-02T00:00:00Z' }),
       session({ id: 'other-person', profile_id: 'p2' }),
-      session({ id: 'other-domain', expert: 'divination' }),
+      session({ id: 'other-domain', intent: 'divination' }),
     ]
 
     const history = withHistory(() => 'p1', () => 'natal')

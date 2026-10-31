@@ -225,7 +225,7 @@ const fengshuiLayout = reactive({
   stoveGua: '',
 })
 const publicConsultation = consumeConsultationHandoff<ConsultationContext>('fengshui')
-if (publicConsultation?.scenario === 'fengshui' && publicConsultation.layout) {
+if (publicConsultation?.intent === 'fengshui' && publicConsultation.layout) {
   fengshuiLayout.zuoShan = publicConsultation.layout.zuo_shan
   fengshuiLayout.periodDate = publicConsultation.layout.period_date
   fengshuiLayout.doorGua = publicConsultation.layout.door_gua ?? ''
@@ -358,7 +358,7 @@ function startChat() {
   chat.pendingIntent = t('services.fengshui.intent')
   const context: ConsultationContext = {
     version: 1,
-    scenario: 'fengshui',
+    intent: 'fengshui',
     layout: {
       zuo_shan: fengshuiLayout.zuoShan,
       period_date: fengshuiLayout.periodDate,

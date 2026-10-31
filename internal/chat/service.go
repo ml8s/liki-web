@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -22,32 +21,15 @@ var (
 	ErrSkillForbidden             = errors.New("liki: skill forbidden")
 	ErrMessageEmpty               = errors.New("liki: message empty")
 	ErrRunnerUnavailable          = errors.New("liki: runner unavailable for skill")
-	ErrExpertInvalid              = errors.New("liki: invalid expert")
+	ErrIntentInvalid              = errors.New("liki: invalid intent")
 	ErrConsultationContextInvalid = errors.New("liki: invalid consultation context")
 )
-
-// Expert identifies one independently deployed expert app (ADK deployment).
-// Every session binds exactly one expert; the runner is chosen by this value.
-const (
-	ExpertNatal      = "natal"
-	ExpertDivination = "divination"
-	ExpertFengshui   = "fengshui"
-	ExpertNaming     = "naming"
-)
-
-// ExpertOrder is the product-facing expert order.
-var ExpertOrder = []string{ExpertNatal, ExpertDivination, ExpertFengshui, ExpertNaming}
-
-// ValidExpert reports whether expert names a deployed expert app.
-func ValidExpert(expert string) bool {
-	return slices.Contains(ExpertOrder, expert)
-}
 
 // chatExecutionTimeout must remain below the HTTP server WriteTimeout. The
 // service timeout covers local tool loops and remote AG-UI runs alike.
 const chatExecutionTimeout = 600 * time.Second
 
-// Runner abstracts the LLM execution engine for one expert deployment.
+// Runner abstracts the single aggregate Liki Chat runtime.
 type Runner interface {
 	Execute(ctx context.Context, msgs []llm.Message, onEvent func(agent.ChatEvent)) (ExecutionResult, error)
 }
@@ -57,7 +39,7 @@ type Service struct {
 	store        *ChatStore
 	authorizer   AccessAuthorizer
 	profiles     *birthprofile.Store
-	agentRunners map[string]Runner
+	agentRunner  Runner
 	locks        sync.Mutex
 	sessionLocks sync.Map // sessionID -> *sync.Mutex
 }
@@ -66,17 +48,14 @@ func NewService(store *ChatStore, authorizer AccessAuthorizer, profiles *birthpr
 	return &Service{store: store, authorizer: authorizer, profiles: profiles, sessionLocks: sync.Map{}}
 }
 
-// SetAgentRunners enables AG-UI routing per expert app. The in-process local
-// runner has been retired; every session executes on the remote
-// liki-agent-runtime deployment selected by the session's expert. Sessions
-// without an expert (pre-expert history) are unavailable.
-func (s *Service) SetAgentRunners(runners map[string]Runner) {
-	s.agentRunners = runners
+// SetAgentRunner installs the one aggregate Liki Chat runtime.
+func (s *Service) SetAgentRunner(runner Runner) {
+	s.agentRunner = runner
 }
 
-func (s *Service) runnerForSession(expert string) (Runner, error) {
-	if runner, ok := s.agentRunners[expert]; ok && runner != nil {
-		return runner, nil
+func (s *Service) runner() (Runner, error) {
+	if s.agentRunner != nil {
+		return s.agentRunner, nil
 	}
 	return nil, ErrRunnerUnavailable
 }
@@ -97,9 +76,6 @@ func (s *Service) Session(ctx context.Context, userID, sessionID string) (Sessio
 	}
 	if !ok {
 		return Session{}, ErrSkillForbidden
-	}
-	if _, err := s.runnerForSession(session.Expert); err != nil {
-		return Session{}, err
 	}
 	return session, nil
 }
@@ -153,25 +129,25 @@ func (s *Service) acquireRef(sessionID string) *refcountedMutex {
 	return loadedEntry
 }
 
-func (s *Service) CreateSession(ctx context.Context, userID, skill, expert, title, profileID string) (Session, error) {
-	return s.CreateSessionWithContext(ctx, userID, skill, expert, title, profileID, nil)
+func (s *Service) CreateSession(ctx context.Context, userID, skill, intent, title, profileID string) (Session, error) {
+	return s.CreateSessionWithContext(ctx, userID, skill, intent, title, profileID, nil)
 }
 
 func (s *Service) CreateSessionWithContext(
 	ctx context.Context,
-	userID, skill, expert, title, profileID string,
+	userID, skill, intent, title, profileID string,
 	consultationContext json.RawMessage,
 ) (Session, error) {
-	if !ValidExpert(expert) {
-		return Session{}, ErrExpertInvalid
+	if !validConsultationIntent(intent) {
+		return Session{}, ErrIntentInvalid
 	}
 	if len(consultationContext) > 0 {
 		normalized, context, err := normalizeConsultationContext(consultationContext)
 		if err != nil {
 			return Session{}, err
 		}
-		if consultationExpert(context.Scenario) != expert {
-			return Session{}, fmt.Errorf("%w: scenario %s cannot use expert %s", ErrConsultationContextInvalid, context.Scenario, expert)
+		if context.Intent != intent {
+			return Session{}, fmt.Errorf("%w: intent %s does not match requested intent %s", ErrConsultationContextInvalid, context.Intent, intent)
 		}
 		consultationContext = normalized
 	}
@@ -190,7 +166,7 @@ func (s *Service) CreateSessionWithContext(
 			return Session{}, err
 		}
 	}
-	session, err := s.store.CreateSessionWithContext(ctx, userID, skill, expert, title, profileID, consultationContext)
+	session, err := s.store.CreateSessionWithContext(ctx, userID, skill, intent, title, profileID, consultationContext)
 	if err != nil {
 		return Session{}, err
 	}
@@ -244,18 +220,13 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if !ok {
 		return Message{}, Message{}, Session{}, ErrSkillForbidden
 	}
-	chatRunner, err := s.runnerForSession(session.Expert)
+	chatRunner, err := s.runner()
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
-	_, storedContext, err := normalizeConsultationContext(session.Context)
-	if err != nil {
+	if _, _, err := normalizeConsultationContext(session.Context); err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
-	if storedContext != nil && consultationExpert(storedContext.Scenario) != session.Expert {
-		return Message{}, Message{}, Session{}, fmt.Errorf("%w: scenario %s cannot use expert %s", ErrConsultationContextInvalid, storedContext.Scenario, session.Expert)
-	}
-
 	binding := sessionBinding{
 		UserID:              userID,
 		SessionID:           session.ID,
@@ -307,10 +278,9 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	if err != nil {
 		return Message{}, Message{}, Session{}, err
 	}
-	recordAgentUsage(session.Expert, execution.Usage)
+	recordAgentUsage(execution.Usage)
 	slog.InfoContext(ctx, "chat agent run completed",
 		"run_id", execution.RunID,
-		"expert", session.Expert,
 		"llm_calls", execution.Usage.LLMCalls,
 		"prompt_tokens", execution.Usage.PromptTokens,
 		"completion_tokens", execution.Usage.CompletionTokens,
@@ -333,8 +303,8 @@ func (s *Service) SendMessage(ctx context.Context, userID, sessionID, content st
 	return userMessage, responseMsg, session, nil
 }
 
-func recordAgentUsage(expert string, usage RunUsage) {
-	labels := map[string]string{"expert": expert}
+func recordAgentUsage(usage RunUsage) {
+	labels := map[string]string{"product": "liki-chat"}
 	metrics.Default.Inc(metrics.MetricChatAgentRuns, labels)
 	if usage.LLMCalls > 0 {
 		metrics.Default.Add(metrics.MetricChatAgentLLMCalls, labels, uint64(usage.LLMCalls))

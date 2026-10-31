@@ -210,7 +210,7 @@ const b = ref<BirthFieldsValue & { third_party_consent: boolean }>({
   third_party_consent: false,
 })
 const publicConsultation = consumeConsultationHandoff<ConsultationContext>('hepan')
-if (publicConsultation?.scenario === 'hepan' && publicConsultation.second_birth) {
+if (publicConsultation?.intent === 'hepan' && publicConsultation.second_birth) {
   const second = publicConsultation.second_birth
   b.value = {
     gender: second.gender,
@@ -371,7 +371,7 @@ async function startInterpretation() {
   try {
     context = {
       version: 1,
-      scenario: 'hepan',
+      intent: 'hepan',
       second_birth: consultationBirthFromFields(b.value),
       third_party_consent: true,
     }

@@ -221,7 +221,7 @@ function button(wrapper: VueWrapper, label: string) {
         'hepan',
         expect.any(Function),
         expect.objectContaining({
-          scenario: 'hepan',
+          intent: 'hepan',
           third_party_consent: true,
           second_birth: expect.objectContaining({ date: secondBirth.date }),
         }),

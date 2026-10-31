@@ -31,7 +31,7 @@ export type AppFlowSource =
   | 'casting'
   | 'workspace_retry'
 
-export type AppFlowScenario =
+export type AppFlowIntent =
   | 'natal'
   | 'liunian'
   | 'hepan'
@@ -63,7 +63,7 @@ export interface AppFlowEventPayload {
   event: AppFlowEvent
   domain?: AppFlowDomain
   source?: AppFlowSource
-  scenario?: AppFlowScenario
+  intent?: AppFlowIntent
   status?: AppFlowStatus
   failure?: AppFlowFailure
 }

@@ -43,7 +43,7 @@ describe('sales enterInterpretation', () => {
     expect(sessionId).toBe('session_selected')
     expect(createSession).toHaveBeenCalledWith('profile_selected', 'natal', {
       version: 1,
-      scenario: 'natal',
+      intent: 'natal',
       birth: {
         gender: 'female',
         date: '1990-01-01',
@@ -64,7 +64,7 @@ describe('sales enterInterpretation', () => {
     expect(sessionId).toBe('session_first')
     expect(createSession).toHaveBeenCalledWith('profile_first', 'natal', {
       version: 1,
-      scenario: 'natal',
+      intent: 'natal',
       birth: {
         gender: 'female',
         date: '1990-01-01',
@@ -76,7 +76,7 @@ describe('sales enterInterpretation', () => {
 })
 
 
-  it('preserves the selected scenario and only builds birth contexts for birth scenarios', async () => {
+  it('preserves the selected intent and only builds birth contexts for birth intents', async () => {
     const profiles = useBirthProfilesStore()
     profiles.list = [profile('profile_selected')]
     const createSession = vi.fn().mockResolvedValue({ id: 'session_divination' })
@@ -98,7 +98,7 @@ describe('sales enterInterpretation', () => {
 
     expect(createSession).toHaveBeenCalledWith('profile_selected', 'liunian', expect.objectContaining({
       version: 1,
-      scenario: 'liunian',
+      intent: 'liunian',
       year: new Date().getFullYear(),
     }))
   })

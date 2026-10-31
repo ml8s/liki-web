@@ -46,10 +46,10 @@ describe('handoff', () => {
   })
 
   it('consumes a matching consultation handoff exactly once', () => {
-    saveConsultationHandoff({ version: 1, scenario: 'divination', question: '項目能否成交' })
+    saveConsultationHandoff({ version: 1, intent: 'divination', question: '項目能否成交' })
 
     const first = consumeConsultationHandoff<ConsultationContext>('divination')
-    expect(first).toMatchObject({ scenario: 'divination', question: '項目能否成交' })
+    expect(first).toMatchObject({ intent: 'divination', question: '項目能否成交' })
     expect(consumeConsultationHandoff('divination')).toBeNull()
   })
 })

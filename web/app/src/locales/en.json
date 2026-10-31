@@ -69,7 +69,7 @@
     "restore": "Return to active reading",
     "close": "Close",
     "crossDomain": "This question fits “{domain}” better. Switch domains first.",
-    "huangliPending": "Date selection / almanac readings are migrating to the natal expert. Use the legacy entry for now.",
+    "huangliPending": "Date selection / almanac readings are migrating to the natal intent. Use the legacy entry for now.",
     "documentLabel": "Consultation record",
     "questionLabel": "Question",
     "answerLabel": "Reading",
@@ -458,7 +458,7 @@
     "allBirthProfiles": "All profiles",
     "recentSessions": "Recent sessions",
     "allSessions": "All sessions",
-    "moreScenarios": "More scenarios"
+    "moreIntents": "More intents"
   },
   "profiles": {
     "male": "Male",
@@ -469,8 +469,8 @@
       "subtitle": "Review information, preview charts for free, or begin a consultation.",
       "loadFailed": "Failed to load profile",
       "interpretation": "Interpretation",
-      "serviceSelected": "“{service}” is selected. You can also choose another scenario:",
-      "servicePrompt": "What would you like to explore? Choose a scenario for a professional reading.",
+      "serviceSelected": "“{service}” is selected. You can also choose another intent:",
+      "servicePrompt": "What would you like to explore? Choose a intent for a professional reading.",
       "unlockHint": "Unlock Liki Chat for a professional consultation based on this birth profile.",
       "unlock": "Unlock Chat",
       "unsavedBody": "You have unsaved changes. Leave this page?",
@@ -735,7 +735,7 @@
     "emptyAction": "Choose a service to start",
     "createFailed": "Could not create the session",
     "sessionUnavailable": "This session cannot be opened. It may have expired or been created by an older version.",
-    "productDescription": "BaZi, ZiWei, divination, Feng Shui, and naming — one expert in one Chat.",
+    "productDescription": "BaZi, ZiWei, divination, Feng Shui, and naming — one intent in one Chat.",
     "backToSessions": "Back to sessions",
     "action": {
       "activate": "Activate",
@@ -787,7 +787,7 @@
       "thinking": "Thinking"
     },
     "tool": {
-      "expert": "Preparing your reading…",
+      "intent": "Preparing your reading…",
       "bazi": "Casting the BaZi chart…",
       "ziwei": "Casting the ZiWei chart…",
       "coords": "Calibrating birth time and place…",

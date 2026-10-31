@@ -230,11 +230,11 @@
       >
         <template #header>
           <h2 class="app-card__title">
-            {{ $t('dashboard.moreScenarios') }}
+            {{ $t('dashboard.moreIntents') }}
           </h2>
         </template>
         <ServiceEntryList
-          :items="scenarioEntries"
+          :items="intentEntries"
           @select="startService"
         />
       </el-card>
@@ -250,8 +250,8 @@ import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { birthSummary, type BirthProfile } from '@/api/birth-profiles'
 import { resolveDashboardState, type DashboardState } from '@/composables/dashboardState'
-import { normalizeScenario, scenarioService } from '@/composables/scenario'
-import { chatUrl, scenarioById, scenarioEntryItems } from '@/config/chat'
+import { normalizeIntent, intentService } from '@/composables/intent'
+import { chatUrl, intentById, intentEntryItems } from '@/config/chat'
 import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/utils/format'
 import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
@@ -269,11 +269,11 @@ const loading = computed(() =>
   chat.loadingSessions || profiles.loading || entitlements.loading,
 )
 
-const scenarioEntries = computed(() => scenarioEntryItems(t))
+const intentEntries = computed(() => intentEntryItems(t))
 const hasBirthProfile = computed(() => profiles.list.length > 0)
 
-function startScenario(scenario: string) {
-  const service = scenarioService(normalizeScenario(scenario))
+function startIntent(intent: string) {
+  const service = intentService(normalizeIntent(intent))
   if (service) {
     startService(service)
     return
@@ -325,9 +325,9 @@ function startInterpretation() {
 
 function startService(key: string) {
   drafts.set('service', key)
-  const scenario = scenarioById(key)
-  if (scenario?.route) {
-    void router.push(scenario.route)
+  const intent = intentById(key)
+  if (intent?.route) {
+    void router.push(intent.route)
     return
   }
   if (!profiles.list.length) {
@@ -346,19 +346,19 @@ onMounted(async () => {
     chat.loadSessions(),
   ])
 
-  const rawScenario = route.query.scenario
-  const scenario = Array.isArray(rawScenario) ? String(rawScenario[0] ?? '') : String(rawScenario ?? '')
-  if (normalizeScenario(scenario) !== 'general') {
+  const rawIntent = route.query.intent
+  const intent = Array.isArray(rawIntent) ? String(rawIntent[0] ?? '') : String(rawIntent ?? '')
+  if (normalizeIntent(intent) !== 'general') {
     const query = { ...route.query }
-    delete query.scenario
+    delete query.intent
     void router.replace({ query })
-    startScenario(scenario)
+    startIntent(intent)
     return
   }
 
   const raw = route.query.service
   const key = Array.isArray(raw) ? String(raw[0] ?? '') : String(raw ?? '')
-  if (key && scenarioById(key)) {
+  if (key && intentById(key)) {
     void router.replace({ query: {} })
     startService(key)
   }

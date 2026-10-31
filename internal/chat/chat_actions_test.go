@@ -11,7 +11,7 @@ import (
 func TestRenameSessionUpdatesTitleWithoutTouchingActivity(t *testing.T) {
 	service, chats, _ := newAgentModeTestService(t)
 	ctx := context.Background()
-	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "原名", "")
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "原名", "")
 	if err != nil {
 		t.Fatalf("create session: %v", err)
 	}
@@ -38,11 +38,11 @@ func TestRenameSessionUpdatesTitleWithoutTouchingActivity(t *testing.T) {
 func TestSoftDeleteSessionHidesFromListAndLookup(t *testing.T) {
 	service, chats, _ := newAgentModeTestService(t)
 	ctx := context.Background()
-	kept, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "保留", "")
+	kept, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "保留", "")
 	if err != nil {
 		t.Fatalf("create kept: %v", err)
 	}
-	removed, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "删除", "")
+	removed, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "删除", "")
 	if err != nil {
 		t.Fatalf("create removed: %v", err)
 	}

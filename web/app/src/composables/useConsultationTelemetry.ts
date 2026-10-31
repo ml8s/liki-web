@@ -2,7 +2,7 @@ import {
   reportAppFlowEvent,
   type AppFlowEventPayload,
   type AppFlowFailure,
-  type AppFlowScenario,
+  type AppFlowIntent,
   type AppFlowSource,
 } from '@shared/utils/app-flow-telemetry'
 import type { AppDomainId, LegacyIntentBridgeResult } from '@shared/domain/flow'
@@ -20,7 +20,7 @@ function report(event: ConsultationEvent): void {
 export function useConsultationTelemetry() {
   function trackEntry(input: {
     domainId: AppDomainId
-    seed: AppFlowScenario | null
+    seed: AppFlowIntent | null
     source: Extract<AppFlowSource, 'direct' | 'legacy_redirect' | 'marketing' | 'payment'>
     restorable: boolean
   }) {
@@ -28,7 +28,7 @@ export function useConsultationTelemetry() {
       event: 'consultation_entry',
       domain: input.domainId,
       source: input.source,
-      scenario: input.seed ?? undefined,
+      intent: input.seed ?? undefined,
       status: input.restorable ? 'restorable' : 'empty',
     })
   }
@@ -69,10 +69,10 @@ export function useConsultationTelemetry() {
 
   function trackBridge(input: {
     domainId: AppDomainId
-    seed: AppFlowScenario | null
+    seed: AppFlowIntent | null
     result: LegacyIntentBridgeResult
   }) {
-    const scenario = 'skill' in input.result
+    const intent = 'skill' in input.result
       ? input.result.skill
       : 'legacySkill' in input.result
         ? input.result.legacySkill
@@ -85,7 +85,7 @@ export function useConsultationTelemetry() {
     report({
       event: 'consultation_bridge',
       domain: input.domainId,
-      scenario: scenario ?? undefined,
+      intent: intent ?? undefined,
       status,
     })
   }

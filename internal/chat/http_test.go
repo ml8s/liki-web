@@ -26,11 +26,16 @@ func TestHandleCreateSessionRejectsInvalidConsultationContext(t *testing.T) {
 
 	body := `{
 		"skill":"liki",
-		"expert":"divination",
 		"title":"合盘",
 		"context":{
 			"version":1,
-			"scenario":"hepan",
+			"intent":"hepan",
+			"birth":{
+				"gender":"male",
+				"date":"1988-01-01",
+				"time":"10:00",
+				"location":{"longitude":121.4737,"timezone":"Asia/Shanghai"}
+			},
 			"second_birth":{
 				"gender":"female",
 				"date":"1990-05-12",
@@ -65,7 +70,7 @@ func TestHandleCreateSessionRejectsUnknownConsultationMember(t *testing.T) {
 	server := httptest.NewServer(withTestUser("user-1", handler.HandleCreateSession))
 	t.Cleanup(server.Close)
 
-	body := `{"skill":"liki","expert":"divination","context":{"version":1,"scenario":"huangli","place":"長沙"}}`
+	body := `{"skill":"liki","context":{"version":1,"intent":"huangli","place":"長沙"}}`
 	response, err := http.Post(server.URL, "application/json", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
@@ -85,13 +90,13 @@ func TestHandleCreateSessionRejectsUnknownConsultationMember(t *testing.T) {
 	}
 }
 
-func TestHandleCreateSessionDerivesExpertFromScenario(t *testing.T) {
+func TestHandleCreateSessionKeepsCanonicalIntent(t *testing.T) {
 	service, _, _ := newAgentModeTestService(t)
 	handler := NewHandler(service, nil, nil)
 	server := httptest.NewServer(withTestUser("user-1", handler.HandleCreateSession))
 	t.Cleanup(server.Close)
 
-	body := `{"skill":"liki","scenario":"fengshui","title":"风水"}`
+	body := `{"skill":"liki","intent":"fengshui","title":"风水"}`
 	response, err := http.Post(server.URL, "application/json", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
@@ -103,39 +108,13 @@ func TestHandleCreateSessionDerivesExpertFromScenario(t *testing.T) {
 	}
 	var payload struct {
 		Data struct {
-			Expert string `json:"expert"`
+			Intent string `json:"intent"`
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload.Data.Expert != ExpertFengshui {
-		t.Fatalf("expert = %q, want %q", payload.Data.Expert, ExpertFengshui)
-	}
-}
-
-func TestHandleCreateSessionRejectsScenarioExpertMismatch(t *testing.T) {
-	service, _, _ := newAgentModeTestService(t)
-	handler := NewHandler(service, nil, nil)
-	server := httptest.NewServer(withTestUser("user-1", handler.HandleCreateSession))
-	t.Cleanup(server.Close)
-
-	body := `{"skill":"liki","scenario":"fengshui","expert":"naming","title":"错误路由"}`
-	response, err := http.Post(server.URL, "application/json", strings.NewReader(body))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode != http.StatusBadRequest {
-		t.Fatalf("status = %d", response.StatusCode)
-	}
-	var payload struct {
-		Code string `json:"code"`
-	}
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		t.Fatal(err)
-	}
-	if payload.Code != "invalid_request" {
-		t.Fatalf("error code = %q", payload.Code)
+	if payload.Data.Intent != "fengshui" {
+		t.Fatalf("intent = %q, want %q", payload.Data.Intent, "fengshui")
 	}
 }

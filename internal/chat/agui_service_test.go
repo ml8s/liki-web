@@ -65,14 +65,14 @@ func newAgentModeTestService(t *testing.T) (*Service, *ChatStore, *scriptedChatR
 
 	service := NewService(chats, entitlements, profiles)
 	remote := &scriptedChatRunner{result: ExecutionResult{Messages: []llm.Message{{Role: llm.RoleAssistant, Content: "agent answer"}}}}
-	service.SetAgentRunners(map[string]Runner{ExpertNatal: remote})
+	service.SetAgentRunner(remote)
 	return service, chats, remote
 }
 
 func TestServiceAgentModePersistsAuthoritativeAgentResult(t *testing.T) {
 	service, chats, remote := newAgentModeTestService(t)
 	ctx := context.Background()
-	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "test", "")
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "test", "")
 	if err != nil {
 		t.Fatalf("create session: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestServiceAgentModeRecordsUsageMetrics(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "test", "")
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "test", "")
 	if err != nil {
 		t.Fatalf("create session: %v", err)
 	}
@@ -132,11 +132,11 @@ func TestServiceAgentModeRecordsUsageMetrics(t *testing.T) {
 
 	snapshot := metrics.Default.Snapshot()
 	for key, want := range map[string]uint64{
-		"liki_web_chat_agent_runs_total|expert=natal":              1,
-		"liki_web_chat_agent_llm_calls_total|expert=natal":         2,
-		"liki_web_chat_agent_prompt_tokens_total|expert=natal":     100,
-		"liki_web_chat_agent_completion_tokens_total|expert=natal": 40,
-		"liki_web_chat_agent_thought_tokens_total|expert=natal":    8,
+		"liki_web_chat_agent_runs_total|product=liki-chat":              1,
+		"liki_web_chat_agent_llm_calls_total|product=liki-chat":         2,
+		"liki_web_chat_agent_prompt_tokens_total|product=liki-chat":     100,
+		"liki_web_chat_agent_completion_tokens_total|product=liki-chat": 40,
+		"liki_web_chat_agent_thought_tokens_total|product=liki-chat":    8,
 	} {
 		if snapshot[key] != want {
 			t.Fatalf("metric %s = %d, want %d (snapshot=%v)", key, snapshot[key], want, snapshot)
@@ -148,7 +148,7 @@ func TestServiceAgentModeLeavesUserMessageWithoutAssistantOnRunError(t *testing.
 	service, chats, remote := newAgentModeTestService(t)
 	remote.err = errors.New("engine unavailable")
 	ctx := context.Background()
-	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "test", "")
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "test", "")
 	if err != nil {
 		t.Fatalf("create session: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestServiceAgentModeRoutesProfileBoundSessionToAgentRunner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create profile: %v", err)
 	}
-	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), ExpertNatal, "test", created.ID)
+	session, err := service.CreateSession(ctx, "user-1", string(product.SkillConsultation), "natal", "test", created.ID)
 	if err != nil {
 		t.Fatalf("create profile session: %v", err)
 	}

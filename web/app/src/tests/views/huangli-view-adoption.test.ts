@@ -135,7 +135,7 @@ describe('HuangliView adoption — source: web/shared/components/charts/HuangliD
       expect.any(Function),
       {
         version: 1,
-        scenario: 'huangli',
+        intent: 'huangli',
         event: 'wedding',
         start_date: '2026-06-06',
         end_date: '2026-06-06',

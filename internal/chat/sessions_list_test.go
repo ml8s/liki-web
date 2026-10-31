@@ -14,7 +14,7 @@ func TestListSessionsOrderedAndLimited(t *testing.T) {
 
 	create := func(touchAt time.Time) Session {
 		t.Helper()
-		session, err := chats.CreateSession(ctx, "user-1", "liki", ExpertNatal, "会话", "")
+		session, err := chats.CreateSession(ctx, "user-1", "liki", "natal", "会话", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -62,16 +62,16 @@ func TestListSessionsOrderedAndLimited(t *testing.T) {
 	}
 }
 
-func TestListSessionsExcludesSessionsWithoutExpert(t *testing.T) {
+func TestListSessionsIncludesAllSingleProductSessions(t *testing.T) {
 	ctx := context.Background()
 	chats := newExchangeTestStore(t)
 
-	// A pre-four-expert session has no routable expert. It must not appear in
-	// the recent list, otherwise the UI offers a link that always 404s.
-	if _, err := chats.CreateSession(ctx, "user-1", "liki", "", "legacy", ""); err != nil {
+	// Intent is optional consultation context. It does not gate product
+	// sessions now that Liki Chat is the only product.
+	if _, err := chats.CreateSession(ctx, "user-1", "liki", "general", "legacy", ""); err != nil {
 		t.Fatal(err)
 	}
-	live, err := chats.CreateSession(ctx, "user-1", "liki", ExpertNatal, "live", "")
+	live, err := chats.CreateSession(ctx, "user-1", "liki", "natal", "live", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestListSessionsExcludesSessionsWithoutExpert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sessions) != 1 || sessions[0].ID != live.ID {
-		t.Fatalf("sessions = %#v, want only live session", sessions)
+	if len(sessions) != 2 || sessions[0].ID != live.ID {
+		t.Fatalf("sessions = %#v, want both sessions", sessions)
 	}
 }

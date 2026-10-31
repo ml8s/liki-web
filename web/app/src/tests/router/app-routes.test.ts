@@ -134,11 +134,11 @@ describe('app experience routes', () => {
       '/classic/account',
     ])
     expect(redirectResults.map(result => result.query)).toEqual([
-      { locale: 'zh-Hans', domain: 'natal', seed: 'hepan' },
-      { locale: 'zh-Hans', domain: 'divination', seed: 'divination' },
-      { locale: 'zh-Hans', domain: 'fengshui', seed: 'fengshui' },
-      { locale: 'zh-Hans', domain: 'natal', seed: 'liunian' },
-      { locale: 'zh-Hans', domain: 'naming', seed: 'naming' },
+      { locale: 'zh-Hans', intent: 'natal', seed: 'hepan' },
+      { locale: 'zh-Hans', intent: 'divination', seed: 'divination' },
+      { locale: 'zh-Hans', intent: 'fengshui', seed: 'fengshui' },
+      { locale: 'zh-Hans', intent: 'natal', seed: 'liunian' },
+      { locale: 'zh-Hans', intent: 'naming', seed: 'naming' },
       { locale: 'zh-Hans' },
       { locale: 'zh-Hans' },
       { locale: 'zh-Hans' },
@@ -191,11 +191,11 @@ describe('app experience routes', () => {
     }) => { path: string, query: Record<string, string>, hash: string }
 
     expect(redirect({
-      query: { locale: 'zh-Hant', domain: 'divination' },
+      query: { locale: 'zh-Hant', intent: 'divination' },
       hash: '#reading',
     })).toEqual({
       path: '/',
-      query: { locale: 'zh-Hant', domain: 'divination' },
+      query: { locale: 'zh-Hant', intent: 'divination' },
       hash: '#reading',
     })
   })

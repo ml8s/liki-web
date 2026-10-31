@@ -10,7 +10,7 @@ const session = {
   user_id: 'usr_1',
   profile_id: '',
   skill: 'liki',
-  expert: 'natal',
+  intent: 'natal',
   title: '本命解读',
   status: 'active',
   created_at: '2026-01-01T00:00:00Z',
@@ -50,7 +50,7 @@ describe('chat store', () => {
     const chatApi = await import('@/api/chat')
     const durableContext = {
       version: 1,
-      scenario: 'hepan',
+      intent: 'hepan',
       second_birth: {
         gender: 'female',
         date: '1990-05-12',
@@ -95,7 +95,7 @@ describe('chat store', () => {
     chat.activeSession = session
     await chat.send(' 你好 ')
 
-    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '命理解读', undefined, 'natal')
+    expect(createSpy).toHaveBeenCalledWith('', 'liki', 'natal', '命理解读', undefined)
     // BFF 负责权威上下文；前端只传当前会话与消息。
     expect(sendSpy).toHaveBeenCalledWith(session, '你好', expect.any(Function), expect.any(AbortSignal))
     expect(chat.messages).toEqual([userMessage, assistantMessage])
@@ -111,7 +111,7 @@ describe('chat store', () => {
     const createSpy = vi.spyOn(chatApi, 'createChatSession').mockResolvedValue(session)
     const context = {
       version: 1,
-      scenario: 'divination',
+      intent: 'divination',
       question: '這個項目能成嗎',
     } as const
 
@@ -123,7 +123,6 @@ describe('chat store', () => {
       'divination',
       '问卦解读',
       context,
-      'divination',
     )
   })
 
@@ -138,7 +137,7 @@ describe('chat store', () => {
     const createSpy = vi.spyOn(chatApi, 'createChatSession').mockResolvedValue(session)
     const context = {
       version: 1,
-      scenario: 'hepan',
+      intent: 'hepan',
       second_birth: {
         gender: 'female',
         date: '1990-05-12',
@@ -153,10 +152,9 @@ describe('chat store', () => {
     expect(createSpy).toHaveBeenCalledWith(
       'profile-1',
       'liki',
-      'natal',
+      'hepan',
       expect.any(String),
       context,
-      'hepan',
     )
   })
 

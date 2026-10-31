@@ -134,7 +134,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'hepan',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, domain: 'natal', seed: 'hepan' },
+        query: { ...to.query, intent: 'natal', seed: 'hepan' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -143,7 +143,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'divination',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, domain: 'divination', seed: 'divination' },
+        query: { ...to.query, intent: 'divination', seed: 'divination' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -152,7 +152,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'fengshui',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, domain: 'fengshui', seed: 'fengshui' },
+        query: { ...to.query, intent: 'fengshui', seed: 'fengshui' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -161,7 +161,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'liunian',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, domain: 'natal', seed: 'liunian' },
+        query: { ...to.query, intent: 'natal', seed: 'liunian' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -170,7 +170,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'naming',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, domain: 'naming', seed: 'naming' },
+        query: { ...to.query, intent: 'naming', seed: 'naming' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -178,7 +178,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
   ]
 
   // huangli/date selection intentionally remains a compatibility-owned Classic
-  // route until the natal expert owns it on the backend.
+  // route until the natal intent owns it on the backend.
 
   return [...consultationRedirects, ...classicRedirects]
 }

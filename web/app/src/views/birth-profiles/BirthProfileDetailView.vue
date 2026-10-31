@@ -85,7 +85,7 @@
               : $t('profiles.detail.servicePrompt') }}
           </p>
           <ServiceEntryList
-            :items="scenarioEntries"
+            :items="intentEntries"
             :selected-id="preselectedKey"
             @select="startService"
           />
@@ -117,7 +117,7 @@ import { useBirthProfilesStore } from '@/stores/birth-profiles-store'
 import { useEntitlementsStore } from '@/stores/entitlements'
 import { useAuthStore } from '@/stores/auth'
 import type { BirthProfileInput } from '@/api/birth-profiles'
-import { chatUrl, scenarioById, scenarioEntryItems } from '@/config/chat'
+import { chatUrl, intentById, intentEntryItems } from '@/config/chat'
 import ChartPreview from '@/components/birth-profiles/ChartPreview.vue'
 import BirthProfileInfo from '@/components/birth-profiles/BirthProfileInfo.vue'
 import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
@@ -138,8 +138,8 @@ const drafts = useFormDraftsStore()
 const profileId = computed(() => String(route.params.id ?? ''))
 const detail = computed(() => profiles.detail)
 const error = computed(() => profiles.error)
-const preselectedService = computed(() => (preselectedKey.value ? scenarioById(preselectedKey.value) : undefined))
-const scenarioEntries = computed(() => scenarioEntryItems(t))
+const preselectedService = computed(() => (preselectedKey.value ? intentById(preselectedKey.value) : undefined))
+const intentEntries = computed(() => intentEntryItems(t))
 const draftKey = computed(() => auth.user?.id ? `birth-profile:edit:${auth.user.id}:${profileId.value}` : undefined)
 const editingInfo = computed(() => Boolean(infoRef.value?.isEditing && infoRef.value?.isDirty))
 
@@ -187,7 +187,7 @@ function startService(key: string) {
 
 onMounted(async () => {
   const key = drafts.consume<string>('service')
-  if (key && scenarioById(key)) preselectedKey.value = key
+  if (key && intentById(key)) preselectedKey.value = key
   try {
     await Promise.all([load(), entitlements.load()])
   } catch (error) {

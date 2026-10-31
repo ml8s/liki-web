@@ -16,13 +16,13 @@ func intPointer(value int) *int { return &value }
 
 func boolPointer(value bool) *bool { return &value }
 
-func TestConsultationContextValidatesScenarioContract(t *testing.T) {
+func TestConsultationContextValidatesIntentContract(t *testing.T) {
 	question := "這個項目能成嗎"
 	instant := "2026-10-23T12:00:00Z"
 	casting := `{"mode":"auto","order":"bottom_up","yaos":[7,8,8,7,8,9],"dong_yao":[6],"casting_id":"cast_1"}`
 	context := ConsultationContext{
 		Version:        1,
-		Scenario:       "divination",
+		Intent:         "divination",
 		Question:       &question,
 		Casting:        json.RawMessage(casting),
 		CastingInstant: &instant,
@@ -41,7 +41,7 @@ func TestConsultationContextValidatesScenarioContract(t *testing.T) {
 func TestConsultationContextValidatesAtomicFactFormats(t *testing.T) {
 	context := ConsultationContext{
 		Version:   1,
-		Scenario:  "huangli",
+		Intent:    "huangli",
 		Event:     stringPointer("wedding"),
 		StartDate: stringPointer("2026-02-30"),
 		EndDate:   stringPointer("2026-03-01"),
@@ -58,8 +58,8 @@ func TestConsultationContextValidatesAtomicFactFormats(t *testing.T) {
 	}
 
 	context = ConsultationContext{
-		Version:  1,
-		Scenario: "fengshui",
+		Version: 1,
+		Intent:  "fengshui",
 		Layout: &ConsultationLayout{
 			ZuoShan:    24,
 			PeriodDate: "2026-02-30",
@@ -119,7 +119,7 @@ func TestConsultationContextUsesExplicitIANATimezones(t *testing.T) {
 }
 
 func TestConsultationContextRequiresHePanSecondBirth(t *testing.T) {
-	context := ConsultationContext{Version: 1, Scenario: "hepan"}
+	context := ConsultationContext{Version: 1, Intent: "hepan"}
 	if err := context.Validate(); err == nil {
 		t.Fatal("Validate() should reject He Pan context without second birth facts")
 	}
@@ -141,12 +141,12 @@ func TestConsultationContextRequiresHePanSecondBirth(t *testing.T) {
 }
 
 func TestNormalizeConsultationContextRejectsUnknownMembers(t *testing.T) {
-	raw := json.RawMessage(`{"version":1,"scenario":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03","place":"長沙"}`)
+	raw := json.RawMessage(`{"version":1,"intent":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03","place":"長沙"}`)
 	if _, _, err := normalizeConsultationContext(raw); err == nil {
 		t.Fatal("normalizeConsultationContext() should reject a non-contract member")
 	}
 
-	raw = json.RawMessage(`{"version":1,"scenario":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03"}`)
+	raw = json.RawMessage(`{"version":1,"intent":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03"}`)
 	normalized, _, err := normalizeConsultationContext(raw)
 	if err != nil {
 		t.Fatalf("normalizeConsultationContext() error = %v", err)
@@ -159,7 +159,7 @@ func TestNormalizeConsultationContextRejectsUnknownMembers(t *testing.T) {
 func TestConsultationContextRejectsIrrelevantConsent(t *testing.T) {
 	context := ConsultationContext{
 		Version:           1,
-		Scenario:          "huangli",
+		Intent:            "huangli",
 		Event:             stringPointer("wedding"),
 		StartDate:         stringPointer("2026-10-01"),
 		EndDate:           stringPointer("2026-10-03"),
@@ -181,18 +181,18 @@ func TestConsultationContextRejectsIrrelevantFields(t *testing.T) {
 
 	tests := map[string]ConsultationContext{
 		"natal question": {
-			Version: 1, Scenario: "natal", Birth: birth, Question: stringPointer("无关问题"),
+			Version: 1, Intent: "natal", Birth: birth, Question: stringPointer("无关问题"),
 		},
 		"liunian casting": {
-			Version: 1, Scenario: "liunian", Birth: birth, Year: &year,
+			Version: 1, Intent: "liunian", Birth: birth, Year: &year,
 			Casting: json.RawMessage(`{"mode":"auto","order":"bottom_up","yaos":[7,7,7,7,7,7],"dong_yao":[],"casting_id":"cast"}`),
 		},
 		"hepan birth": {
-			Version: 1, Scenario: "hepan", Birth: birth, SecondBirth: birth,
+			Version: 1, Intent: "hepan", Birth: birth, SecondBirth: birth,
 			ThirdPartyConsent: boolPointer(true),
 		},
 		"fengshui question": {
-			Version: 1, Scenario: "fengshui",
+			Version: 1, Intent: "fengshui",
 			Layout:   &ConsultationLayout{ZuoShan: 0, PeriodDate: "2026-02-01"},
 			Question: stringPointer("无关问题"),
 		},
@@ -209,7 +209,7 @@ func TestConsultationContextRejectsIrrelevantFields(t *testing.T) {
 func TestConsultationContextRequiresPairedFengShuiBirthFacts(t *testing.T) {
 	context := ConsultationContext{
 		Version:   1,
-		Scenario:  "fengshui",
+		Intent:    "fengshui",
 		Layout:    &ConsultationLayout{ZuoShan: 0, PeriodDate: "2026-02-01"},
 		BirthYear: intPointer(1990),
 	}
@@ -225,11 +225,11 @@ func TestConsultationContextRequiresPairedFengShuiBirthFacts(t *testing.T) {
 func TestSendMessageFailsClosedWhenPersistedContextIsInvalid(t *testing.T) {
 	service, chats, remote := newAgentModeTestService(t)
 	ctx := context.Background()
-	session, err := service.CreateSession(ctx, "user-1", "liki", ExpertNatal, "test", "")
+	session, err := service.CreateSession(ctx, "user-1", "liki", "natal", "test", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	invalid := `{"version":1,"scenario":"divination","question":"項目能否成交"}`
+	invalid := `{"version":1,"intent":"divination","question":"項目能否成交"}`
 	if _, err := chats.db.ExecContext(ctx, `INSERT INTO chat_consultation_contexts (session_id,context_json) VALUES (?,?)`, session.ID, invalid); err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestSendMessageFailsClosedWhenPersistedContextIsInvalid(t *testing.T) {
 	}
 }
 
-func TestConsultationContextRequiresBirthScenarios(t *testing.T) {
+func TestConsultationContextRequiresBirthIntents(t *testing.T) {
 	birth := &ConsultationBirth{
 		Gender:   "female",
 		Date:     "1990-05-12",
@@ -261,13 +261,13 @@ func TestConsultationContextRequiresBirthScenarios(t *testing.T) {
 
 	tests := map[string]ConsultationContext{
 		"natal": {
-			Version: 1, Scenario: "natal", Birth: birth,
+			Version: 1, Intent: "natal", Birth: birth,
 		},
 		"liunian": {
-			Version: 1, Scenario: "liunian", Birth: birth, Year: &year,
+			Version: 1, Intent: "liunian", Birth: birth, Year: &year,
 		},
 		"naming": {
-			Version: 1, Scenario: "naming", Birth: birth,
+			Version: 1, Intent: "naming", Birth: birth,
 		},
 	}
 	for name, context := range tests {
@@ -278,15 +278,15 @@ func TestConsultationContextRequiresBirthScenarios(t *testing.T) {
 		})
 	}
 
-	emptyNatal := ConsultationContext{Version: 1, Scenario: "natal"}
+	emptyNatal := ConsultationContext{Version: 1, Intent: "natal"}
 	if err := emptyNatal.Validate(); err == nil {
 		t.Fatal("Validate() should reject natal context without birth facts")
 	}
-	emptyNaming := ConsultationContext{Version: 1, Scenario: "naming"}
+	emptyNaming := ConsultationContext{Version: 1, Intent: "naming"}
 	if err := emptyNaming.Validate(); err == nil {
 		t.Fatal("Validate() should reject naming context without birth facts")
 	}
-	liunianWithoutYear := ConsultationContext{Version: 1, Scenario: "liunian", Birth: birth}
+	liunianWithoutYear := ConsultationContext{Version: 1, Intent: "liunian", Birth: birth}
 	if err := liunianWithoutYear.Validate(); err == nil {
 		t.Fatal("Validate() should reject liunian context without year")
 	}
@@ -304,8 +304,8 @@ func TestChatStorePersistsContextButOmitsItFromListProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	raw := json.RawMessage(`{"version":1,"scenario":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03"}`)
-	created, err := store.CreateSessionWithContext(ctx, "user-1", "liki", ExpertDivination, "擇日", "profile-1", raw)
+	raw := json.RawMessage(`{"version":1,"intent":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03"}`)
+	created, err := store.CreateSessionWithContext(ctx, "user-1", "liki", "divination", "擇日", "profile-1", raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,7 +317,7 @@ func TestChatStorePersistsContextButOmitsItFromListProjection(t *testing.T) {
 	if err := json.Unmarshal(detail.Context, &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Scenario != "huangli" || *got.Event != "wedding" {
+	if got.Intent != "huangli" || *got.Event != "wedding" {
 		t.Fatalf("detail context = %+v", got)
 	}
 

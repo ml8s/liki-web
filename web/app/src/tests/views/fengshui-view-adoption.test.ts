@@ -168,7 +168,7 @@ const layoutResult: BazhaiLayout = {
 
 const consultationLayout: ConsultationContext = {
   version: 1,
-  scenario: 'fengshui',
+  intent: 'fengshui',
   layout: {
     zuo_shan: 0,
     period_date: '2026-01-01',

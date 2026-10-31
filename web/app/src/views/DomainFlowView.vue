@@ -2,14 +2,10 @@
   <AppFlowShell
     ref="shellRef"
     :person-label="personLabel"
-    :domain-label="domainLabel"
-    :domains="appDomains"
-    :selected-domain-id="flow.domainId"
     :partner-visible="auth.hasPartnerRole"
     :restore-visible="restoreVisible"
     :sidecar-open="Boolean(selectedArtifact && artifactOpen && !showFocusedForm)"
     :sidecar-mode="desktopMode"
-    @domain-select="selectDomain"
     @context-select="handleContextAction"
     @restore="restoreLatest"
   >
@@ -301,13 +297,11 @@
         <ParameterComposer
           v-model="question"
           v-model:domain-id="flow.domainId"
-          :domains="appDomains"
           :person-label="personLabel"
           :domain-label="domainLabel"
           :sending="chat.sending || isSubmitting"
-          :show-domain-strip="!chat.activeSession"
+          :show-domain-strip="false"
           @select-person="personSheetOpen = true"
-          @select-domain="domainSheetOpen = true"
           @submit="submitQuestion"
           @stop="chat.stopGeneration()"
         />
@@ -327,13 +321,6 @@
     @retry="reloadProfiles"
   />
 
-  <DomainChooserSheet
-    v-model="domainSheetOpen"
-    :domains="appDomains"
-    :selected-domain-id="flow.domainId"
-    @select="selectDomain"
-    @new-consultation="startNewConsultation"
-  />
 </template>
 
 <script setup lang="ts">
@@ -346,7 +333,6 @@ import FlowFollowButton from '@/components/flow/FlowFollowButton.vue'
 import ConsultationSpine from '@/components/flow/ConsultationSpine.vue'
 import ParameterComposer from '@/components/flow/ParameterComposer.vue'
 import PersonSwitchSheet from '@/components/flow/PersonSwitchSheet.vue'
-import DomainChooserSheet from '@/components/flow/DomainChooserSheet.vue'
 import ConsultationDocument from '@/components/flow/ConsultationDocument.vue'
 import FlowHistoryPanel from '@/components/flow/FlowHistoryPanel.vue'
 import ChatStreamStatus from '@/components/chat/ChatStreamStatus.vue'
@@ -375,13 +361,12 @@ import {
 } from '@shared/domain/consultation'
 import {
   normalizeAppDomain,
-  appDomains,
   appDomainById,
   bridgeLegacyIntent,
-  domainForScenario,
+  domainForIntent,
   domainForSession,
-  marketingScenarioToDomain,
-  normalizeLegacyScenario,
+  marketingIntentToDomain,
+  normalizeLegacyIntent,
   type AppDomainId,
   type LegacyIntentBridgeResult,
 } from '@shared/domain/flow'
@@ -443,7 +428,6 @@ function announceStatus(message: string) {
 }
 
 const personSheetOpen = ref(false)
-const domainSheetOpen = ref(false)
 const restoreReady = ref(false)
 const consultationError = ref('')
 const fengshuiHandoffLayout = ref<FengshuiLayoutValue | null>(null)
@@ -603,8 +587,8 @@ const {
 const routingSeed = computed(() => {
   const value = firstQueryValue(route.query.seed)
     || firstQueryValue(route.query.service)
-    || firstQueryValue(route.query.scenario)
-  return normalizeLegacyScenario(value)
+    || firstQueryValue(route.query.intent)
+  return normalizeLegacyIntent(value)
 })
 
 const entrySource = computed<'direct' | 'legacy_redirect' | 'marketing' | 'payment'>(() => {
@@ -615,7 +599,7 @@ const entrySource = computed<'direct' | 'legacy_redirect' | 'marketing' | 'payme
     'subscription_id',
     'subscription_state',
   ].some(key => firstQueryValue(route.query[key]))) return 'payment'
-  if (firstQueryValue(route.query.service) || firstQueryValue(route.query.scenario) || firstQueryValue(route.query.utm_source)) return 'marketing'
+  if (firstQueryValue(route.query.service) || firstQueryValue(route.query.intent) || firstQueryValue(route.query.utm_source)) return 'marketing'
   return 'direct'
 })
 
@@ -648,12 +632,6 @@ function selectPerson(personId: string) {
   flow.setPerson(personId)
   telemetry.trackPersonSelect(flow.domainId)
   personSheetOpen.value = false
-}
-
-function selectDomain(domainId: AppDomainId) {
-  flow.setDomain(domainId)
-  telemetry.trackDomainSelect(domainId)
-  domainSheetOpen.value = false
 }
 
 function openCreateProfile() {
@@ -714,7 +692,7 @@ async function exitFocusedForm() {
   const query: Record<string, string> = {}
   for (const [key, value] of Object.entries(route.query)) {
     const normalized = firstQueryValue(value)
-    if (normalized && !['seed', 'service', 'scenario', 'step'].includes(key)) query[key] = normalized
+    if (normalized && !['seed', 'service', 'intent', 'step'].includes(key)) query[key] = normalized
   }
   markFocusedFormsClean()
   resetResults()
@@ -738,14 +716,6 @@ function handleContextAction(id: string) {
     return
   }
   if (classicPaths[id]) void router.push(classicPaths[id]!)
-}
-
-function startNewConsultation() {
-  chat.stopGeneration()
-  chat.resetActive()
-  flow.clearDraft()
-  consultationError.value = ''
-  domainSheetOpen.value = false
 }
 
 const restoreLatest = sessionHistory.restoreLatest
@@ -776,9 +746,9 @@ function nextFlowQuery(domainId: AppDomainId): Record<string, string> {
     if (value) query[key] = value
   }
 
-  query.domain = domainId
+  query.intent = domainId
   const seed = routingSeed.value
-  if (seed && domainForScenario(seed).id === domainId) query.seed = seed
+  if (seed && domainForIntent(seed).id === domainId) query.seed = seed
   return query
 }
 
@@ -802,7 +772,7 @@ function projectBridgeFailure(result: Extract<LegacyIntentBridgeResult, { status
   })
   if (result.status === 'cross-domain') {
     const label = t(appDomainById(result.suggestedDomainId).labelKey)
-    consultationError.value = t('flow.crossDomain', { domain: label })
+    consultationError.value = t('flow.crossDomain', { intent: label })
     return
   }
   if (result.status === 'pending-backend') {
@@ -830,7 +800,7 @@ async function submitConsultation(content: string) {
       skill: 'divination',
       context: {
         version: 1,
-        scenario: 'divination',
+        intent: 'divination',
         question: castingQuestion.value,
         casting: casting.value,
         casting_instant: castingInstant.value,
@@ -871,13 +841,13 @@ async function submitConsultation(content: string) {
   if (flow.domainId === 'naming' && namingResult.value) {
     const context: ConsultationContext = {
       version: 1,
-      scenario: 'naming',
+      intent: 'naming',
       birth: profileConsultationBirth(),
     }
     await submit.submitFocusedForm({
       skill: 'naming',
       context,
-      matchesContext: session => session.context?.scenario === 'naming'
+      matchesContext: session => session.context?.intent === 'naming'
         && sameConsultationBirth(session.context.birth, context.birth),
       content,
     })
@@ -887,7 +857,7 @@ async function submitConsultation(content: string) {
   if (flow.domainId === 'fengshui' && fengshuiResult.value && fengshuiInput.value) {
     const context: ConsultationContext = {
       version: 1,
-      scenario: 'fengshui',
+      intent: 'fengshui',
       layout: {
         zuo_shan: fengshuiInput.value.zuoShan,
         period_date: fengshuiInput.value.periodDate,
@@ -899,7 +869,7 @@ async function submitConsultation(content: string) {
     await submit.submitFocusedForm({
       skill: 'fengshui',
       context,
-      matchesContext: session => session.context?.scenario === 'fengshui'
+      matchesContext: session => session.context?.intent === 'fengshui'
         && sameConsultationLayout(session.context.layout, context.layout),
       content,
     })
@@ -909,14 +879,14 @@ async function submitConsultation(content: string) {
   if (flow.domainId === 'natal' && hepanResult.value && hepanInput.value) {
     const context: ConsultationContext = {
       version: 1,
-      scenario: 'hepan',
+      intent: 'hepan',
       second_birth: consultationBirthFromFields(hepanInput.value.secondBirth),
       third_party_consent: true,
     }
     await submit.submitFocusedForm({
       skill: 'hepan',
       context,
-      matchesContext: session => session.context?.scenario === 'hepan'
+      matchesContext: session => session.context?.intent === 'hepan'
         && sameConsultationBirth(session.context.second_birth, context.second_birth),
       content,
     })
@@ -1027,7 +997,7 @@ watch([hepanResult, fengshuiResult, namingResult, castingChart], async () => {
     const query: Record<string, string> = {}
     for (const [key, value] of Object.entries(route.query)) {
       const normalized = firstQueryValue(value)
-      if (normalized && !['seed', 'service', 'scenario', 'step'].includes(key)) query[key] = normalized
+      if (normalized && !['seed', 'service', 'intent', 'step'].includes(key)) query[key] = normalized
     }
     await router.replace({ path: '/', query, hash: route.hash })
   }
@@ -1046,10 +1016,10 @@ watch(() => `${chat.messages.length}:${chat.messages.at(-1)?.content.length ?? 0
 
 onMounted(async () => {
   const token = ++mountToken
-  const requestedDomain = normalizeAppDomain(firstQueryValue(route.query.domain))
-    ?? marketingScenarioToDomain(
+  const requestedDomain = normalizeAppDomain(firstQueryValue(route.query.intent))
+    ?? marketingIntentToDomain(
       firstQueryValue(route.query.service)
-      || firstQueryValue(route.query.scenario)
+      || firstQueryValue(route.query.intent)
       || firstQueryValue(route.query.seed),
     )
   if (requestedDomain) flow.setDomain(requestedDomain)
@@ -1106,7 +1076,7 @@ onMounted(async () => {
   if (paymentResult.action === 'enter_chat') {
     const sessionId = await sales.enterInterpretation(
       flow.personId ?? undefined,
-      paymentResult.scenarioId,
+      paymentResult.intentId,
     )
     if (sessionId) {
       await router.replace({

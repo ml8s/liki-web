@@ -40,7 +40,7 @@ type ConsultationLayout struct {
 
 type ConsultationContext struct {
 	Version           int                   `json:"version"`
-	Scenario          string                `json:"scenario"`
+	Intent            string                `json:"intent"`
 	Birth             *ConsultationBirth    `json:"birth,omitempty"`
 	SecondBirth       *ConsultationBirth    `json:"second_birth,omitempty"`
 	BirthYear         *int                  `json:"birth_year,omitempty"`
@@ -64,37 +64,12 @@ type consultationCoinRound struct {
 	Changing bool     `json:"changing"`
 }
 
-func validConsultationScenario(scenario string) bool {
-	switch scenario {
+func validConsultationIntent(intent string) bool {
+	switch intent {
 	case "natal", "liunian", "hepan", "divination", "huangli", "fengshui", "naming":
 		return true
 	default:
 		return false
-	}
-}
-
-// ExpertForScenario is the single scenario→expert routing table used by the
-// HTTP boundary. It returns false for unknown scenarios; callers must fail
-// closed instead of defaulting to an arbitrary expert.
-func ExpertForScenario(scenario string) (string, bool) {
-	if !validConsultationScenario(scenario) {
-		return "", false
-	}
-	return consultationExpert(scenario), true
-}
-
-func consultationExpert(scenario string) string {
-	switch scenario {
-	case "divination", "huangli":
-		return ExpertDivination
-	case "fengshui":
-		return ExpertFengshui
-	case "naming":
-		return ExpertNaming
-	case "natal", "liunian", "hepan":
-		return ExpertNatal
-	default:
-		return ""
 	}
 }
 
@@ -302,8 +277,8 @@ func (context *ConsultationContext) Validate() error {
 	if context.Version != 1 {
 		return errors.New("consultation context version must be 1")
 	}
-	if !validConsultationScenario(context.Scenario) {
-		return errors.New("consultation context scenario is invalid")
+	if !validConsultationIntent(context.Intent) {
+		return errors.New("consultation context intent is invalid")
 	}
 	if err := context.validateAllowedFields(); err != nil {
 		return err
@@ -329,7 +304,7 @@ func (context *ConsultationContext) Validate() error {
 	if context.Gender != nil && *context.Gender != "male" && *context.Gender != "female" {
 		return errors.New("gender must be male or female")
 	}
-	if context.ThirdPartyConsent != nil && context.Scenario != "hepan" {
+	if context.ThirdPartyConsent != nil && context.Intent != "hepan" {
 		return errors.New("third_party_consent is only valid for hepan consultation")
 	}
 	if context.CastingInstant != nil && !instantRe.MatchString(*context.CastingInstant) {
@@ -368,12 +343,12 @@ func (context *ConsultationContext) Validate() error {
 	if err := validateConsultationLayout(context.Layout); err != nil {
 		return err
 	}
-	return context.validateScenarioRequirements()
+	return context.validateIntentRequirements()
 }
 
 func (context *ConsultationContext) validateAllowedFields() error {
 	allowed := map[string]bool{}
-	switch context.Scenario {
+	switch context.Intent {
 	case "natal", "naming":
 		allowed["birth"] = true
 	case "liunian":
@@ -415,23 +390,23 @@ func (context *ConsultationContext) validateAllowedFields() error {
 	}
 	for name, isPresent := range present {
 		if !allowed[name] && isPresent {
-			return fmt.Errorf("%s is not valid for %s consultation", name, context.Scenario)
+			return fmt.Errorf("%s is not valid for %s consultation", name, context.Intent)
 		}
 	}
-	if context.Scenario == "fengshui" && (context.BirthYear == nil) != (context.Gender == nil) {
+	if context.Intent == "fengshui" && (context.BirthYear == nil) != (context.Gender == nil) {
 		return errors.New("fengshui birth_year and gender must be provided together")
 	}
 	return nil
 }
 
-func (context *ConsultationContext) validateScenarioRequirements() error {
+func (context *ConsultationContext) validateIntentRequirements() error {
 	stringRequired := func(name string, value *string) error {
 		if value == nil || strings.TrimSpace(*value) == "" {
-			return fmt.Errorf("%s is required for %s consultation", name, context.Scenario)
+			return fmt.Errorf("%s is required for %s consultation", name, context.Intent)
 		}
 		return nil
 	}
-	switch context.Scenario {
+	switch context.Intent {
 	case "hepan":
 		if context.SecondBirth == nil {
 			return errors.New("second_birth is required for hepan consultation")
@@ -441,7 +416,7 @@ func (context *ConsultationContext) validateScenarioRequirements() error {
 		}
 	case "natal", "naming":
 		if context.Birth == nil {
-			return fmt.Errorf("birth is required for %s consultation", context.Scenario)
+			return fmt.Errorf("birth is required for %s consultation", context.Intent)
 		}
 	case "liunian":
 		if context.Birth == nil {

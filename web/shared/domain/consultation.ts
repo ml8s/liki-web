@@ -2,7 +2,7 @@ import type { BirthFieldsValue } from '../components/form/birth-fields'
 import type { LiuyaoCasting } from '../api/engine/liuyao'
 import type { BirthLocation } from './location'
 
-export type ConsultationScenario =
+export type ConsultationIntent =
   | 'natal'
   | 'liunian'
   | 'hepan'
@@ -33,7 +33,7 @@ export interface ConsultationLayout {
 
 export interface ConsultationContext {
   version: 1
-  scenario: ConsultationScenario
+  intent: ConsultationIntent
   birth?: ConsultationBirth
   second_birth?: ConsultationBirth
   birth_year?: number
@@ -74,7 +74,7 @@ export function consultationBirthFromFields(value: BirthFieldsValue): Consultati
  * Strict equality for the birth projection carried in a consultation context.
  * Used by follow-up matching: a session matches a focused form only when the
  * birth inputs are identical, so a changed profile never silently reuses an
- * old expert context.
+ * old intent context.
  */
 export function sameConsultationBirth(
   left: ConsultationBirth | undefined,
