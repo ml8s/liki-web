@@ -50,7 +50,6 @@ export interface LiuyaoTimingCandidate {
   trigger_branch?: string
   window?: string
   basis?: string[]
-  confidence: string
 }
 
 export interface LiuyaoPattern {

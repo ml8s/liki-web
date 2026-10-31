@@ -42,7 +42,7 @@ const divinationViewChart: LiuyaoChartResult = {
   ],
   xun_kong: ['午', '未'],
   timing_candidates: [
-    { id: 'timing_1', mechanism: '值期', window: '午月', confidence: '候选', trigger_branch: '午' },
+    { id: 'timing_1', mechanism: '值期', window: '午月', trigger_branch: '午' },
   ],
   patterns: [{ type: '空', sub_type: '真空', position: 3, is_true: true }],
   casting: {

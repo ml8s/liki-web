@@ -397,8 +397,6 @@ export interface BaziYongShenResult {
     ji: string[]
     /** 判据来源：tiao_hou / fu_yi / ge_ju … */
     source: string
-    confidence: 'high' | 'medium' | 'low'
-    known_fields: Array<'yong' | 'xi' | 'ji'>
   }
   status: 'resolved' | 'partial' | 'needs_review' | 'unresolved'
   conflicts: Array<{ code: string; message: string }>

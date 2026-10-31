@@ -739,7 +739,7 @@ const liuyaoSnapshot = {
   wang_shuai: Array(6).fill('相'),
   ri_chen_relations: Array.from({ length: 6 }, () => ({ relations: ['平'] })),
   xun_kong: ['午', '未'],
-  timing_candidates: [{ id: 'timing_1', mechanism: '值期', window: '午月', confidence: '候选' }],
+  timing_candidates: [{ id: 'timing_1', mechanism: '值期', window: '午月' }],
   patterns: [{ type: '空', sub_type: '真空', position: 0, is_true: true }],
   casting: liuyaoCasting,
 }
@@ -1891,7 +1891,7 @@ async function routeApp(page: Page) {
 test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async ({ page }) => {
   await routeApp(page)
 
-  await page.goto('/app/classic/birth-profiles/p_1')
+  await page.goto('/app/birth-profiles/p_1')
   await page.waitForSelector('.pillars', { timeout: 12000 }) // 自动排盘
   await expect(page.locator('.pillar .gl').first()).toContainText('戊戌')
   await expect(page.locator('.pillar .cang').first()).toContainText('戊 辛 丁') // 藏干
@@ -1947,7 +1947,7 @@ test('免费排盘按真实引擎契约渲染（八字/紫微/八宅）', async 
 test('合盘按真实引擎契约渲染（bazi_bond）', async ({ page }) => {
   await routeApp(page)
 
-  await page.goto('/app/classic/hepan')
+  await page.goto('/app/hepan')
   await page.waitForSelector('.b-form', { timeout: 10000 })
   await page.locator('.el-select').first().click()
   await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
@@ -1983,7 +1983,7 @@ test('问卦按真实契约渲染（liuyao_snapshot）', async ({ page }) => {
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
   await routeEngine(page)
 
-  await page.goto('/app/classic/divination')
+  await page.goto('/app/divination')
   const question = page.getByRole('textbox', { name: /你想問的一件事/ })
   await question.fill('這個項目能成嗎')
   await page.locator('input[name="casting-place"]').fill('上海')
@@ -2007,7 +2007,7 @@ test('择日按真实契约渲染（huangli_days）', async ({ page }) => {
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
   await routeEngine(page)
 
-  await page.goto('/app/classic/huangli')
+  await page.goto('/app/huangli')
   await page.waitForSelector('.el-date-editor', { timeout: 10000 })
   await page.locator('.el-select').first().click()
   await page.locator('.el-select-dropdown__item:has-text("結婚")').first().click()
@@ -2029,7 +2029,7 @@ test('风水页按真实契约渲染（命卦/玄空飞星/八宅布局）', asy
   await page.route('**/api/me/auth/identities', r => r.fulfill(json([])))
   await routeEngine(page)
 
-  await page.goto('/app/classic/fengshui')
+  await page.goto('/app/fengshui')
   await page.locator('.el-select').first().click()
   await page.locator('.el-select-dropdown__item:has-text("妈妈")').first().click()
   await page.waitForSelector('.mingua', { timeout: 12000 })

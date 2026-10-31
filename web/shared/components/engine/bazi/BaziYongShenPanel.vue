@@ -113,7 +113,6 @@ const conflictItems = computed(() => props.result.conflicts ?? [])
 const needsReview = computed(() =>
   props.result.status === 'needs_review'
   || props.result.selected.yong === null
-  || props.result.selected.confidence === 'low'
   || conflictItems.value.length > 0,
 )
 
