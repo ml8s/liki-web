@@ -13,30 +13,30 @@ import (
 // Every dimension is a closed vocabulary: IDs and consultation content never
 // enter this endpoint, and validators prevent unbounded metric cardinality.
 type appFlowEventRequest struct {
-	Event    string `json:"event"`
-	Domain   string `json:"domain,omitempty"`
-	Source   string `json:"source,omitempty"`
-	Scenario string `json:"scenario,omitempty"`
-	Status   string `json:"status,omitempty"`
-	Failure  string `json:"failure,omitempty"`
+	Event       string `json:"event"`
+	IntentGroup string `json:"intentGroup,omitempty"`
+	Source      string `json:"source,omitempty"`
+	Intent      string `json:"intent,omitempty"`
+	Status      string `json:"status,omitempty"`
+	Failure     string `json:"failure,omitempty"`
 }
 
 type appFlowEventContract struct {
-	domain   bool
-	source   map[string]bool
-	scenario map[string]bool
-	status   map[string]bool
-	failure  bool
+	intentGroup bool
+	source      map[string]bool
+	intent      map[string]bool
+	status      map[string]bool
+	failure     bool
 }
 
-var appFlowDomains = map[string]bool{
+var appFlowIntentGroups = map[string]bool{
 	"natal":      true,
 	"divination": true,
 	"fengshui":   true,
 	"naming":     true,
 }
 
-var appFlowScenarios = map[string]bool{
+var appFlowIntents = map[string]bool{
 	"natal":      true,
 	"liunian":    true,
 	"hepan":      true,
@@ -56,8 +56,8 @@ var appFlowFailures = map[string]bool{
 
 var appFlowEventContracts = map[string]appFlowEventContract{
 	"consultation_entry": {
-		domain:   true,
-		scenario: appFlowScenarios,
+		intentGroup: true,
+		intent:      appFlowIntents,
 		source: map[string]bool{
 			"direct":          true,
 			"legacy_redirect": true,
@@ -69,10 +69,10 @@ var appFlowEventContracts = map[string]appFlowEventContract{
 			"restorable": true,
 		},
 	},
-	"consultation_domain_select": {domain: true},
-	"consultation_person_select": {domain: true},
+	"consultation_intent_group_select": {intentGroup: true},
+	"consultation_person_select":       {intentGroup: true},
 	"consultation_restore": {
-		domain: true,
+		intentGroup: true,
 		source: map[string]bool{
 			"latest":  true,
 			"history": true,
@@ -84,7 +84,7 @@ var appFlowEventContracts = map[string]appFlowEventContract{
 		},
 	},
 	"consultation_submit": {
-		domain: true,
+		intentGroup: true,
 		source: map[string]bool{
 			"composer":     true,
 			"focused_form": true,
@@ -96,18 +96,18 @@ var appFlowEventContracts = map[string]appFlowEventContract{
 		},
 	},
 	"consultation_bridge": {
-		domain:   true,
-		scenario: appFlowScenarios,
+		intentGroup: true,
+		intent:      appFlowIntents,
 		status: map[string]bool{
 			"ok":              true,
-			"cross_domain":    true,
+			"cross_group":     true,
 			"pending_backend": true,
 			"invalid":         true,
 		},
 	},
-	"consultation_failure": {domain: true, failure: true},
+	"consultation_failure": {intentGroup: true, failure: true},
 	"consultation_recovery": {
-		domain: true,
+		intentGroup: true,
 		source: map[string]bool{
 			"workspace_retry": true,
 		},
@@ -123,14 +123,14 @@ func (r appFlowEventRequest) Validate() error {
 	if !ok {
 		return errors.New("unknown app flow event")
 	}
-	if contract.domain && r.Domain == "" {
-		return errors.New("missing app flow domain")
+	if contract.intentGroup && r.IntentGroup == "" {
+		return errors.New("missing app flow intent group")
 	}
-	if !contract.domain && r.Domain != "" {
-		return errors.New("unexpected app flow domain")
+	if !contract.intentGroup && r.IntentGroup != "" {
+		return errors.New("unexpected app flow intent group")
 	}
-	if r.Domain != "" && !valueAllowed(r.Domain, appFlowDomains) {
-		return errors.New("invalid app flow domain")
+	if r.IntentGroup != "" && !valueAllowed(r.IntentGroup, appFlowIntentGroups) {
+		return errors.New("invalid app flow intent group")
 	}
 	if r.Source != "" && !valueAllowed(r.Source, contract.source) {
 		return errors.New("invalid app flow source")
@@ -138,8 +138,8 @@ func (r appFlowEventRequest) Validate() error {
 	if (contract.source != nil) != (r.Source != "") {
 		return errors.New("missing app flow source")
 	}
-	if r.Scenario != "" && !valueAllowed(r.Scenario, contract.scenario) {
-		return errors.New("invalid app flow scenario")
+	if r.Intent != "" && !valueAllowed(r.Intent, contract.intent) {
+		return errors.New("invalid app flow intent")
 	}
 	if r.Status != "" && !valueAllowed(r.Status, contract.status) {
 		return errors.New("invalid app flow status")
@@ -161,18 +161,18 @@ func handleAppFlowEvent() http.HandlerFunc {
 			return
 		}
 		metrics.Default.Inc(metrics.MetricAppFlowEvent, map[string]string{
-			"event":    req.Event,
-			"domain":   req.Domain,
-			"source":   req.Source,
-			"scenario": req.Scenario,
-			"status":   req.Status,
-			"failure":  req.Failure,
+			"event":       req.Event,
+			"intentGroup": req.IntentGroup,
+			"source":      req.Source,
+			"intent":      req.Intent,
+			"status":      req.Status,
+			"failure":     req.Failure,
 		})
 		slog.InfoContext(r.Context(), "app_flow_event",
 			"event", req.Event,
-			"domain", req.Domain,
+			"intentGroup", req.IntentGroup,
 			"source", req.Source,
-			"scenario", req.Scenario,
+			"intent", req.Intent,
 			"status", req.Status,
 			"failure", req.Failure,
 		)

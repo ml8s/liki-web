@@ -83,7 +83,7 @@ function onHepanData(value: unknown) {
   if (hepan.value?.bond && hepan.value.chartA && hepan.value.chartB && thirdPartyConsent.value) {
     consultationContext.value = {
       version: 1,
-      scenario: 'hepan',
+      intent: 'hepan',
       second_birth: consultationBirthFromFields(b),
       third_party_consent: true,
     }

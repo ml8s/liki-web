@@ -14,7 +14,7 @@ interface Props {
 const { title, faqs } = Astro.props
 ---
 
-<MarketingSection title={title} class="scenario-faq">
+<MarketingSection title={title} class="intent-faq">
   {faqs.map(faq => (
     <details>
       <summary>{faq.question}</summary>

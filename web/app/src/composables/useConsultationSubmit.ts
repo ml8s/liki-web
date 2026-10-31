@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type { ChatSession } from '@/api/chat'
 import type { ConsultationContext } from '@shared/domain/consultation'
 import { useChatStore } from '@/stores/chat'
-import { useDomainFlowStore } from '@/stores/domain-flow'
+import { useIntentFlowStore } from '@/stores/intent-flow'
 import { useConsultationTelemetry } from '@/composables/useConsultationTelemetry'
 import { classifyResourceFailure } from '@/utils/resourceStatus'
 import { toUserMessage } from '@/utils/errors'
@@ -44,7 +44,7 @@ export interface FocusedFormSubmit {
 export function useConsultationSubmit(options: ConsultationSubmitOptions) {
   const { t } = useI18n()
   const chat = useChatStore()
-  const flow = useDomainFlowStore()
+  const flow = useIntentFlowStore()
   const telemetry = useConsultationTelemetry()
 
   const isSubmitting = ref(false)
@@ -61,7 +61,7 @@ export function useConsultationSubmit(options: ConsultationSubmitOptions) {
     if (!matchingSession) return false
     if (chat.activeSession?.id !== matchingSession.id) await chat.openSession(matchingSession.id)
     telemetry.trackSubmit({
-      domainId: flow.domainId,
+      groupId: flow.groupId,
       source,
       created: false,
     })
@@ -83,7 +83,7 @@ export function useConsultationSubmit(options: ConsultationSubmitOptions) {
       chat.messages = []
       chat.messagesCursor = ''
       telemetry.trackSubmit({
-        domainId: flow.domainId,
+        groupId: flow.groupId,
         source,
         created: true,
       })
@@ -91,7 +91,7 @@ export function useConsultationSubmit(options: ConsultationSubmitOptions) {
     } catch (error) {
       options.onError(toUserMessage(error, t('chat.createFailed')))
       options.onDraftPreserved()
-      telemetry.trackFailure(flow.domainId, classifyResourceFailure(error))
+      telemetry.trackFailure(flow.groupId, classifyResourceFailure(error))
     }
   }
 

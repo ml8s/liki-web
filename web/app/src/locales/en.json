@@ -42,9 +42,6 @@
     "skipToContent": "Skip to main content"
   },
   "flow": {
-    "domainStrip": "Reading domains",
-    "domainTitle": "Choose a domain",
-    "newConsultation": "Start a new consultation",
     "contextMenu": "More destinations",
     "contextNav": "Consultation context",
     "personTitle": "Choose a profile",
@@ -61,14 +58,14 @@
     "manageProfiles": "Manage profiles",
     "personEmpty": "Choose a profile",
     "askPlaceholder": "Ask your question directly",
-    "contextAnnouncement": "Consultation context: {person}, {domain}.",
+    "contextAnnouncement": "Consultation context: {person}, {group}.",
     "draftPreserved": "Your question remains in the composer so you can retry.",
     "draftRestored": "Your question was returned to the composer after the connection failed.",
     "send": "Send",
     "stop": "Stop",
     "restore": "Return to active reading",
     "close": "Close",
-    "crossDomain": "This question fits “{domain}” better. Switch domains first.",
+    "crossGroup": "This question fits “{group}” better. Switch consultation type first.",
     "huangliPending": "Date selection / almanac readings are migrating to the natal intent. Use the legacy entry for now.",
     "documentLabel": "Consultation record",
     "questionLabel": "Question",
@@ -84,7 +81,7 @@
       "unsavedMessage": "You have unsaved form input; it will not be kept.",
       "discard": "Discard and return"
     },
-    "historyTitle": "Domain history",
+    "historyTitle": "Consultation history",
     "historySearchLabel": "Filter by title",
     "historySearchPlaceholder": "Enter a session title",
     "historyCount": "{count} sessions",
@@ -687,7 +684,10 @@
       },
       "errors": {
         "missingTime": "Birth time is missing"
-      }
+      },
+      "liuri": "Daily",
+      "liuriLocalDate": "Local date",
+      "liuRiPalace": "Daily Life Palace: {name}"
     },
     "card": {
       "view": "View",
@@ -725,14 +725,14 @@
     "desktopWechatHint": "On desktop you will be redirected to WeChat Pay; scan the QR code with your phone or open the checkout in WeChat."
   },
   "chat": {
-    "pendingService": "Ready to start: {service}",
+    "pendingIntent": "Ready to start: {service}",
     "subtitle": "Life reading, annual fortune, compatibility, divination, dates, Feng Shui and naming — pick a reading and go deeper.",
     "productsFailed": "Failed to load products",
     "selectBirthProfile": "Select a profile",
     "selectBirthProfileFirst": "Select a profile first",
-    "selectDomain": "Select a consultation domain",
-    "empty": "Select a profile and domain to start your first conversation.",
-    "emptyAction": "Choose a service to start",
+    "selectIntent": "Select a consultation type",
+    "empty": "Select a profile and consultation type to start your first conversation.",
+    "emptyAction": "Choose a consultation type to start",
     "createFailed": "Could not create the session",
     "sessionUnavailable": "This session cannot be opened. It may have expired or been created by an older version.",
     "productDescription": "BaZi, ZiWei, divination, Feng Shui, and naming — one intent in one Chat.",

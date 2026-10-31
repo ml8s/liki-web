@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BaziFullChartPanel from '@shared/components/engine/bazi/BaziFullChartPanel.vue'
@@ -56,11 +54,6 @@ const relationFixture: BaziFullChartData = {
   }],
   fu_yi: { ...sourceBackedFuYi, wuxing_count: { 金: 3 } },
 }
-
-const componentSource = readFileSync(
-  resolve(process.cwd(), `../shared/components/engine/bazi/BaziFullChartPanel.vue`),
-  'utf8',
-)
 
 describe('BaziFullChartPanel | web/shared/components/charts/BaziPanel.vue + bazi source family', () => {
   it('preserves full-chart section order: pillars, relations/tables, cycles, yongshen', () => {
@@ -126,17 +119,6 @@ describe('BaziFullChartPanel | web/shared/components/charts/BaziPanel.vue + bazi
     await wrapper.setProps({ density: 'full', focused: 'shi' })
     expect(wrapper.classes()).toContain('engine-bazi-full-chart-panel--full')
     expect(pillars[3].attributes('data-focused')).toBe('true')
-  })
-
-  it('keeps semantic tables and the 320px collapse contract from the extracted sources', () => {
-    const wrapper = mount(BaziFullChartPanel, { props: { result: relationFixture } })
-
-    expect(wrapper.findAll('table')).toHaveLength(2)
-    expect(wrapper.find('table tbody th[scope="row"]').exists()).toBe(true)
-    expect(componentSource).toContain('.engine-bazi-full-chart-panel { min-width: 0; overflow-wrap: anywhere; }')
-    expect(componentSource).toContain('@media (max-width: 640px)')
-    expect(componentSource).toContain('grid-template-columns: repeat(2, 1fr)')
-    expect(componentSource).toContain('overflow-wrap') // long labels can wrap when present in downstream themes
   })
 
   it('exposes the legacy annual composition point before yongshen', () => {

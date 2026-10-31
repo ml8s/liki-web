@@ -17,7 +17,7 @@
           class="flow-status__separator"
           aria-hidden="true"
         >·</span>
-        <span class="flow-status__domain">{{ domainLabel }}</span>
+        <span class="flow-status__intent-group">{{ intentGroupLabel }}</span>
       </div>
 
       <AppLiveRegion
@@ -98,13 +98,10 @@ import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLiveRegion from '@/components/app/AppLiveRegion.vue'
 import FlowContextMenu from './FlowContextMenu.vue'
-import type { AppDomain, AppDomainId } from '@shared/domain/flow'
 
 const props = defineProps<{
   personLabel?: string
-  domainLabel?: string
-  domains?: readonly AppDomain[]
-  selectedDomainId?: AppDomainId
+  intentGroupLabel?: string
   partnerVisible?: boolean
   restoreVisible?: boolean
   sidecarOpen?: boolean
@@ -135,7 +132,7 @@ const contextItems = computed(() => {
 
 const contextAnnouncement = computed(() => t('flow.contextAnnouncement', {
   person: props.personLabel || t('flow.personEmpty'),
-  domain: props.domainLabel,
+  group: props.intentGroupLabel,
 }))
 
 function getMainElement() {
@@ -230,7 +227,7 @@ defineExpose({
 }
 
 .flow-status__person,
-.flow-status__domain {
+.flow-status__intent-group {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -238,7 +235,7 @@ defineExpose({
 }
 
 .flow-status__person { font-weight: 600; }
-.flow-status__domain { color: var(--liki-on-ink-subtle); }
+.flow-status__intent-group { color: var(--liki-on-ink-subtle); }
 .flow-status__separator { flex: 0 0 auto; color: var(--liki-on-ink-muted); }
 
 .flow-restore {
@@ -395,12 +392,12 @@ defineExpose({
   .flow-status__separator { display: none; }
 
   .flow-status__person,
-  .flow-status__domain {
+  .flow-status__intent-group {
     overflow-wrap: anywhere;
     white-space: normal;
   }
 
-  .flow-status__domain { color: var(--liki-text-2); }
+  .flow-status__intent-group { color: var(--liki-text-2); }
 
   .flow-restore {
     align-self: flex-start;

@@ -1,18 +1,17 @@
 import type { Page } from '@playwright/test'
-
-export type JsonRecord = Record<string, unknown>
+import type { JsonRecord } from './types'
 
 interface AGUIMessage {
   role?: string
   content?: unknown
 }
 
-export interface BFFChatRequest {
+interface BFFChatRequest {
   url: string
   body: JsonRecord
 }
 
-export interface BFFChatMockOptions {
+interface BFFChatMockOptions {
   session: JsonRecord
   answer: string
   failuresBeforeSuccess?: number

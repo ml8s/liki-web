@@ -1,14 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ParameterComposer from '@/components/flow/ParameterComposer.vue'
-import { appDomains } from '@shared/domain/flow'
-import type { AppDomainId } from '@shared/domain/flow'
 
 const baseProps = {
-  domains: appDomains,
-  domainId: 'natal' as AppDomainId,
   personLabel: '张三',
-  domainLabel: '命理',
 }
 
 async function pressEnter(
@@ -72,7 +67,7 @@ describe('ParameterComposer', () => {
 
   it('exposes the person control', async () => {
     const wrapper = mount(ParameterComposer, {
-      props: { ...baseProps, modelValue: '', showDomainStrip: true },
+      props: { ...baseProps, modelValue: '',  },
     })
     const parameters = wrapper.findAll('.flow-parameter')
 
@@ -90,14 +85,12 @@ describe('ParameterComposer', () => {
       props: {
         ...baseProps,
         modelValue: '帮我选一个开业日期',
-        showDomainStrip: true,
         'onUpdate:modelValue': onUpdate,
       },
     })
 
     await wrapper.find('form').trigger('submit')
     expect(wrapper.emitted('submit')).toHaveLength(1)
-    expect(wrapper.emitted('update:domainId')).toBeUndefined()
     expect(onUpdate).not.toHaveBeenCalled()
   })
 })

@@ -128,8 +128,8 @@ VALUES ('user_1','u@example.com','active','zh-Hant',?,?)`, now, now); err != nil
 		t.Fatal(err)
 	}
 	session, err := chatStore.CreateSessionWithContext(
-		ctx, "user_1", "liki", "natal", "标题", p.ID,
-		json.RawMessage(`{"version":1,"scenario":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03"}`),
+		ctx, "user_1", "liki", "huangli", "标题", p.ID,
+		json.RawMessage(`{"version":1,"intent":"huangli","event":"wedding","start_date":"2026-10-01","end_date":"2026-10-03"}`),
 	)
 	if err != nil {
 		t.Fatal(err)

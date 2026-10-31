@@ -3,8 +3,8 @@ import { toValue } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ChatSession } from '@/api/chat'
 import { useChatStore } from '@/stores/chat'
-import { useDomainFlowStore } from '@/stores/domain-flow'
-import { domainForSession } from '@shared/domain/flow'
+import { useIntentFlowStore } from '@/stores/intent-flow'
+import { intentGroupForSession } from '@shared/domain/intent-flow'
 import { confirmDeleteEntity, promptRenameEntity } from '@/utils/dialogs'
 import { toUserMessage } from '@/utils/errors'
 import { useConsultationTelemetry } from '@/composables/useConsultationTelemetry'
@@ -12,7 +12,7 @@ import { useConsultationTelemetry } from '@/composables/useConsultationTelemetry
 export interface ConsultationHistoryOptions {
   /** Sessions stay bound to the visible (person, domain) workspace. */
   personId: MaybeRefOrGetter<string | null>
-  domainId: MaybeRefOrGetter<string>
+  groupId: MaybeRefOrGetter<string>
 }
 
 /**
@@ -23,7 +23,7 @@ export interface ConsultationHistoryOptions {
 export function useConsultationHistory(options: ConsultationHistoryOptions) {
   const { t } = useI18n()
   const chat = useChatStore()
-  const flow = useDomainFlowStore()
+  const flow = useIntentFlowStore()
   const telemetry = useConsultationTelemetry()
 
   const activeSessions = computed(() =>
@@ -35,14 +35,14 @@ export function useConsultationHistory(options: ConsultationHistoryOptions) {
   const visibleSessions = computed(() =>
     chat.sessions
       .filter(session => (session.profile_id || null) === toValue(options.personId))
-      .filter(session => domainForSession(session) === toValue(options.domainId))
+      .filter(session => intentGroupForSession(session) === toValue(options.groupId))
       .sort((left, right) => right.updated_at.localeCompare(left.updated_at)),
   )
 
   const latestVisibleSession = computed(() =>
     activeSessions.value.find(session =>
       (session.profile_id || null) === toValue(options.personId)
-      && domainForSession(session) === toValue(options.domainId),
+      && intentGroupForSession(session) === toValue(options.groupId),
     ) ?? null,
   )
 
@@ -60,7 +60,7 @@ export function useConsultationHistory(options: ConsultationHistoryOptions) {
     }
     await chat.openSession(latest.id)
     telemetry.trackRestore({
-      domainId: flow.domainId,
+      groupId: flow.groupId,
       source: 'latest',
       restored: chat.activeSession?.id === latest.id,
     })
@@ -68,18 +68,18 @@ export function useConsultationHistory(options: ConsultationHistoryOptions) {
 
   /**
    * `null` intentionally means "across every person/domain" for boot-time
-   * session-first restore. Omitting the argument uses the visible domain.
+   * session-first restore. Omitting the argument uses the visible intent group.
    */
-  function latestRestorableSession(domainId: string | null = toValue(options.domainId)): ChatSession | null {
-    if (domainId === null) return activeSessions.value[0] ?? null
-    return activeSessions.value.find(session => domainForSession(session) === domainId) ?? null
+  function latestRestorableSession(groupId: string | null = toValue(options.groupId)): ChatSession | null {
+    if (groupId === null) return activeSessions.value[0] ?? null
+    return activeSessions.value.find(session => intentGroupForSession(session) === groupId) ?? null
   }
 
   async function openSession(session: ChatSession) {
     if (chat.activeSession?.id === session.id) return
     await chat.openSession(session.id)
     telemetry.trackRestore({
-      domainId: flow.domainId,
+      groupId: flow.groupId,
       source: 'history',
       restored: chat.activeSession?.id === session.id,
     })

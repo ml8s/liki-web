@@ -1,7 +1,7 @@
 // 出生地 → 经度闭环：多候选让用户选，选中的经度随档案保存。
 import { test, expect } from '../fixtures'
 import { json, mockWorkspace, testUser } from '../mocks'
-import { fillBirthFields } from '../helpers'
+import { fillBirthFields } from '../helpers/common'
 
 const mcpOk = (data: unknown) => ({
   status: 200,

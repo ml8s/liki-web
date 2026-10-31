@@ -114,7 +114,7 @@ async function submit(value: DivinationCastingFormValue) {
       :privacy="labels.privacy"
       @click="saveConsultationHandoff({
         version: 1,
-        scenario: 'divination',
+        intent: 'divination',
         question: question,
         casting,
         casting_instant: castingInstant,

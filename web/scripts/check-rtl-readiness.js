@@ -8,7 +8,7 @@ const app = path.join(path.resolve(import.meta.dirname, '..', '..'), 'web', 'app
 const targets = [
   path.join(app, 'src/components/flow'),
   path.join(app, 'src/views/MeView.vue'),
-  path.join(app, 'src/views/DomainFlowView.vue'),
+  path.join(app, 'src/views/IntentFlowView.vue'),
 ];
 const violations = [];
 

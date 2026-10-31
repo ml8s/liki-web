@@ -134,11 +134,11 @@ describe('app experience routes', () => {
       '/classic/account',
     ])
     expect(redirectResults.map(result => result.query)).toEqual([
-      { locale: 'zh-Hans', intent: 'natal', seed: 'hepan' },
-      { locale: 'zh-Hans', intent: 'divination', seed: 'divination' },
-      { locale: 'zh-Hans', intent: 'fengshui', seed: 'fengshui' },
-      { locale: 'zh-Hans', intent: 'natal', seed: 'liunian' },
-      { locale: 'zh-Hans', intent: 'naming', seed: 'naming' },
+      { locale: 'zh-Hans', group: 'natal', intent: 'hepan' },
+      { locale: 'zh-Hans', group: 'divination', intent: 'divination' },
+      { locale: 'zh-Hans', group: 'fengshui', intent: 'fengshui' },
+      { locale: 'zh-Hans', group: 'natal', intent: 'liunian' },
+      { locale: 'zh-Hans', group: 'naming', intent: 'naming' },
       { locale: 'zh-Hans' },
       { locale: 'zh-Hans' },
       { locale: 'zh-Hans' },

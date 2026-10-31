@@ -36,10 +36,10 @@ type generatedRoute struct {
 }
 
 type generatedRoutes struct {
-	Locales        []string         `json:"locales"`
-	CanonicalSlugs []string         `json:"canonicalSlugs"`
-	BareRedirects  []generatedRoute `json:"bareRedirects"`
-	Retired        []generatedRoute `json:"retired"`
+	Locales       []string         `json:"locales"`
+	IntentSlugs   []string         `json:"intentSlugs"`
+	BareRedirects []generatedRoute `json:"bareRedirects"`
+	Retired       []generatedRoute `json:"retired"`
 }
 
 var routeContract generatedRoutes

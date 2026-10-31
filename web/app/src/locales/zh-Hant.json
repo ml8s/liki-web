@@ -42,9 +42,6 @@
     "skipToContent": "跳到主要內容"
   },
   "flow": {
-    "domainStrip": "解讀領域",
-    "domainTitle": "選擇領域",
-    "newConsultation": "開始新諮詢",
     "contextMenu": "更多入口",
     "contextNav": "諮詢上下文",
     "personTitle": "選擇檔案",
@@ -61,14 +58,14 @@
     "manageProfiles": "管理全部檔案",
     "personEmpty": "選擇檔案",
     "askPlaceholder": "直接提出你的問題",
-    "contextAnnouncement": "諮詢上下文：{person}，{domain}。",
+    "contextAnnouncement": "諮詢上下文：{person}，{group}。",
     "draftPreserved": "問題仍保留在輸入框中，可以重試。",
     "draftRestored": "連線失敗後，問題已放回輸入框。",
     "send": "傳送",
     "stop": "停止",
     "restore": "回到進行中",
     "close": "關閉",
-    "crossDomain": "這個問題更適合「{domain}」，請先切換領域。",
+    "crossGroup": "這個問題更適合「{group}」，請先切換諮詢類型。",
     "huangliPending": "擇日 / 黃曆解讀正在遷移到命理專家，暫時請繼續使用舊入口。",
     "documentLabel": "諮詢記錄",
     "questionLabel": "問",
@@ -84,7 +81,7 @@
       "unsavedMessage": "還有未提交的表單內容，離開後不會保留。",
       "discard": "放棄並返回"
     },
-    "historyTitle": "本領域歷史",
+    "historyTitle": "本類型歷史",
     "historySearchLabel": "按標題篩選",
     "historySearchPlaceholder": "輸入會話標題",
     "historyCount": "{count} 條會話",
@@ -687,7 +684,10 @@
       },
       "errors": {
         "missingTime": "缺少出生時間"
-      }
+      },
+      "liuri": "流日",
+      "liuriLocalDate": "當地日期",
+      "liuRiPalace": "流日命宮：{name}"
     },
     "card": {
       "view": "查看",
@@ -725,14 +725,14 @@
     "desktopWechatHint": "桌面端會跳轉到微信支付收銀台；請用手機掃碼，或在微信中開啟後完成支付。"
   },
   "chat": {
-    "pendingService": "準備開始：{service}",
-    "subtitle": "命理·流年·合盤、問卦·擇日、風水·起名——選擇解讀領域，進入專業解讀。",
+    "pendingIntent": "準備開始：{service}",
+    "subtitle": "命理·流年·合盤、問卦·擇日、風水·起名——選擇諮詢類型，進入專業解讀。",
     "productsFailed": "產品載入失敗",
     "selectBirthProfile": "選擇檔案",
     "selectBirthProfileFirst": "請先選擇一個檔案",
-    "selectDomain": "選擇解讀領域",
-    "empty": "選擇檔案與解讀領域後，即可開啟第一次對話。",
-    "emptyAction": "選擇領域開始諮詢",
+    "selectIntent": "選擇諮詢類型",
+    "empty": "選擇檔案與諮詢類型後，即可開啟第一次對話。",
+    "emptyAction": "選擇諮詢類型開始諮詢",
     "createFailed": "建立會話失敗",
     "sessionUnavailable": "此會話已無法開啟，可能已過期或由舊版本建立。",
     "productDescription": "八字、紫微、問卦、風水與起名——一位專家，一個對話。",

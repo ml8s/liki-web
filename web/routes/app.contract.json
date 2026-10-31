@@ -43,7 +43,7 @@
   },
   "queryContracts": {
     "/app": {
-      "intent": {
+      "group": {
         "type": "enum",
         "values": [
           "natal",
@@ -54,15 +54,20 @@
         "required": false,
         "default": "natal"
       },
-      "seed": {
+      "intent": {
         "type": "intentId",
         "required": false,
-        "policy": "ignored-if-unknown; cross-domain or pending-backend results are surfaced as flow errors"
+        "policy": "canonical consultation routing intent"
       },
       "service": {
         "type": "intentId",
         "required": false,
-        "policy": "legacy marketing alias for seed; public URLs remain unchanged"
+        "policy": "legacy marketing alias for intent"
+      },
+      "seed": {
+        "type": "intentId",
+        "required": false,
+        "policy": "legacy app alias for intent"
       }
     }
   },
@@ -138,7 +143,7 @@
     },
     {
       "from": "/app/divination",
-      "to": "/app?intent=divination&seed=divination",
+      "to": "/app?group=divination&intent=divination",
       "preserve": [
         "query",
         "hash"
@@ -146,7 +151,7 @@
     },
     {
       "from": "/app/fengshui",
-      "to": "/app?intent=fengshui&seed=fengshui",
+      "to": "/app?group=fengshui&intent=fengshui",
       "preserve": [
         "query",
         "hash"
@@ -154,7 +159,7 @@
     },
     {
       "from": "/app/hepan",
-      "to": "/app?intent=natal&seed=hepan",
+      "to": "/app?group=natal&intent=hepan",
       "preserve": [
         "query",
         "hash"
@@ -170,7 +175,7 @@
     },
     {
       "from": "/app/liunian",
-      "to": "/app?intent=natal&seed=liunian",
+      "to": "/app?group=natal&intent=liunian",
       "preserve": [
         "query",
         "hash"
@@ -178,7 +183,7 @@
     },
     {
       "from": "/app/naming",
-      "to": "/app?intent=naming&seed=naming",
+      "to": "/app?group=naming&intent=naming",
       "preserve": [
         "query",
         "hash"
@@ -220,6 +225,6 @@
   "rollout": {
     "previewDefault": true,
     "rollback": "Set VITE_FEATURE_APP_FLOW_REDESIGN=false; /app returns to Classic.",
-    "cleanupStatus": "compatibility-owned; Classic components are not deleted until backend domain sessions ship"
+    "cleanupStatus": "single product; four intent groups remain consultation UI state, not product boundaries"
   }
 }

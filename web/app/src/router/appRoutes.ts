@@ -56,7 +56,7 @@ export interface ConsultationRoutesOptions {
 }
 
 /**
- * Consultation owns the four-domain experience at `/app`. `/app/consultation`
+ * Consultation owns the four-group experience at `/app`. `/app/consultation`
  * remains a preserving compatibility alias for earlier preview bookmarks. The
  * guard honors an explicit Classic preference before mounting Consultation.
  */
@@ -68,7 +68,7 @@ export function createConsultationAppRoutes({
   return ([{
     path: '',
     name: 'app-consultation',
-    component: () => import('@/views/DomainFlowView.vue'),
+    component: () => import('@/views/IntentFlowView.vue'),
     beforeEnter: () => (
       readPreferredAppExperience() === 'classic'
         ? { name: 'dashboard' }
@@ -127,14 +127,14 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       }),
     }))
 
-  // Bridge-ready legacy tools enter the four-domain flow. Query is preserved so
+  // Bridge-ready legacy tools enter the four-group flow. Query is preserved so
   // profile handoffs, locale, and campaign context survive the redirect.
   const consultationRedirects: RouteRecordRaw[] = [
     {
       path: 'hepan',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, intent: 'natal', seed: 'hepan' },
+        query: { ...to.query, group: 'natal', intent: 'hepan' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -143,7 +143,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'divination',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, intent: 'divination', seed: 'divination' },
+        query: { ...to.query, group: 'divination', intent: 'divination' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -152,7 +152,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'fengshui',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, intent: 'fengshui', seed: 'fengshui' },
+        query: { ...to.query, group: 'fengshui', intent: 'fengshui' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -161,7 +161,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'liunian',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, intent: 'natal', seed: 'liunian' },
+        query: { ...to.query, group: 'natal', intent: 'liunian' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),
@@ -170,7 +170,7 @@ function createLegacyAppRedirects(): RouteRecordRaw[] {
       path: 'naming',
       redirect: (to: LegacyRedirectTarget): LegacyRedirectResult => ({
         path: '/',
-        query: { ...to.query, intent: 'naming', seed: 'naming' },
+        query: { ...to.query, group: 'naming', intent: 'naming' },
         hash: to.hash,
         state: { likiAppFlowLegacyRedirect: true },
       }),

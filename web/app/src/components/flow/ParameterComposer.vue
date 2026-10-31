@@ -54,20 +54,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import TextareaField from '@shared/components/form/fields/TextareaField.vue'
-import type { AppDomainId } from '@shared/domain/flow'
 
 const props = defineProps<{
   modelValue: string
-  domainId: AppDomainId
   personLabel?: string
-  domainLabel: string
   sending?: boolean
-  showDomainStrip?: boolean
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
-  'update:domainId': [domainId: AppDomainId]
   'select-person': []
   submit: []
   stop: []

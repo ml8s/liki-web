@@ -111,7 +111,7 @@ describe('useConsultationSubmit', () => {
   })
 
   it('clears the draft before send and restores it on failure', async () => {
-    const flow = (await import('@/stores/domain-flow')).useDomainFlowStore()
+    const flow = (await import('@/stores/intent-flow')).useIntentFlowStore()
     const chat = useChatStore()
     chat.sessions = [session({ id: 'existing', context: namingContext })]
     vi.spyOn(chat, 'openSession').mockImplementation(async id => {

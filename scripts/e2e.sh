@@ -21,7 +21,7 @@ echo "── API smoke ──"
 scripts/test-api.sh http://localhost:8080 http://localhost:8080
 
 echo "── Playwright E2E ──"
-cd web && BASE_URL=http://localhost:8080 npx playwright test --config e2e/playwright.config.ts --grep-invert "@system" ${E2E_GREP:+--grep "$E2E_GREP"}
+cd web && BASE_URL=http://localhost:8080 npx playwright test --config e2e/playwright.config.ts --grep-invert "@system" ${E2E_GREP:+--grep "$E2E_GREP"} ${E2E_PLAYWRIGHT_ARGS:-}
 
 echo ""
 echo "✅ e2e 全部通过"

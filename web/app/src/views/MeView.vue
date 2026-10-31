@@ -14,7 +14,7 @@
       </template>
     </AppPageHeader>
 
-    <ServiceEntryList
+    <IntentEntryList
       :items="items"
       @select="open"
     />
@@ -27,15 +27,15 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppExperienceSwitcher from '@/components/app/AppExperienceSwitcher.vue'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
-import ServiceEntryList, { type ServiceEntry } from '@/components/app/ServiceEntryList.vue'
+import IntentEntryList, { type IntentEntry } from '@/components/app/IntentEntryList.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const { t } = useI18n()
 const auth = useAuthStore()
 
-const items = computed<ServiceEntry[]>(() => {
-  const entries: ServiceEntry[] = [
+const items = computed<IntentEntry[]>(() => {
+  const entries: IntentEntry[] = [
     {
       id: 'profiles',
       glyph: '档',

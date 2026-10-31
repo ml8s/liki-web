@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // check-service-parity.js — Marketing CTA parameters must be understood by the app.
 //
-// The marketing site hardcodes scenario=/service= CTA values; the SPA owns the
-// runtime vocabulary (scenario whitelist + service keys). They are related but
+// The marketing site hardcodes intent=/service= CTA values; the SPA owns the
+// runtime vocabulary (intent whitelist + service keys). They are related but
 // distinct facts, so we assert a subset invariant instead of merging them:
 // every value marketing emits MUST be recognized by the app.
 import fs from 'node:fs';
@@ -21,11 +21,11 @@ function walk(dir, exts, files = []) {
   return files;
 }
 
-// ── Marketing: collect scenario="x" / service="x" literals ──
+// ── Marketing: collect intent="x" / service="x" literals ──
 const marketing = new Set();
 for (const file of walk(path.join(WEB, 'src'), ['.astro'])) {
   const text = fs.readFileSync(file, 'utf8');
-  for (const m of text.matchAll(/\b(?:scenario|service)="([a-z]+)"/g)) marketing.add(m[1]);
+  for (const m of text.matchAll(/\b(?:intent|service)="([a-z]+)"/g)) marketing.add(m[1]);
 }
 
 // ── App: intent whitelist (composables/intent.ts) ──

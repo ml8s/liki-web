@@ -23,7 +23,7 @@ import { chromium } from 'playwright'
 
 const args = parseArgs(process.argv.slice(2))
 if (args.help) {
-  console.log(`Usage: node scripts/smoke.mjs [--mode=smoke|synthetic] [--base-url=URL] [--json] [--strict] [--no-browser] [--no-dns] [--experts=all|natal]`)
+  console.log(`Usage: node scripts/smoke.mjs [--mode=smoke|synthetic] [--base-url=URL] [--json] [--strict] [--no-browser] [--no-dns] [--intents=all|natal]`)
   process.exit(0)
 }
 
@@ -38,7 +38,7 @@ const requireEntitlement = (process.env.SMOKE_REQUIRE_ENTITLEMENT || '1') !== '0
 const strict = Boolean(args.strict) || process.env.SMOKE_STRICT === '1'
 const browserEnabled = !args['no-browser'] && process.env.SMOKE_NO_BROWSER !== '1'
 const dnsEnabled = !args['no-dns'] && process.env.SMOKE_NO_DNS !== '1'
-const experts = String(args.experts || (mode === 'synthetic' ? 'natal' : 'all'))
+const intents = String(args.intents || (mode === 'synthetic' ? 'natal' : 'all'))
 const results = []
 
 const MARKETING = ['', 'natal', 'liunian', 'hepan', 'divination', 'huangli', 'fengshui', 'naming']
@@ -156,18 +156,18 @@ async function mcpCall(endpoint, tool, toolArgs) {
   return envelope.result?.structuredContent ?? JSON.parse(envelope.result?.content?.[0]?.text || '{}')
 }
 
-async function expertIdentity(expert) {
+async function intentIdentity(intent) {
   const session = await json('/api/chat/sessions', {
     method: 'POST',
     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({
       skill: 'liki',
-      scenario: expert,
-      title: `smoke-${expert}`,
-      context: smokeContext(expert),
+      intent: intent,
+      title: `smoke-${intent}`,
+      context: smokeContext(intent),
     }),
   })
-  assert(session?.id, `${expert} smoke session was not created`)
+  assert(session?.id, `${intent} smoke session was not created`)
 
   try {
     const response = await request(`/api/chat/sessions/${session.id}/ag-ui`, {
@@ -181,42 +181,42 @@ async function expertIdentity(expert) {
       body: JSON.stringify({
         threadId: session.id,
         runId: `smoke-${randomUUID()}`,
-        messages: [{ id: `smoke-${randomUUID()}`, role: 'user', content: '请只回答一句：你负责哪个领域？' }],
+        messages: [{ id: `smoke-${randomUUID()}`, role: 'user', content: '请只回答一句：你负责哪类咨询？' }],
         tools: [],
         context: [],
         state: {},
         forwardedProps: { locale: 'zh-Hant' },
       }),
     })
-    assert(response.ok, `${expert} route HTTP ${response.status}`)
+    assert(response.ok, `${intent} route HTTP ${response.status}`)
     const text = await response.text()
     const finished = text.split('\n')
       .filter(line => line.startsWith('data: '))
       .map(line => { try { return JSON.parse(line.slice(6)) } catch { return null } })
       .find(event => event?.type === 'RUN_FINISHED')
-    assert(finished, `${expert} route ended without RUN_FINISHED`)
-    assert(finished.result?.session?.expert === expert, `${expert} route served ${finished.result?.session?.expert || 'unknown'}`)
-    return finished.result?.session?.expert
+    assert(finished, `${intent} route ended without RUN_FINISHED`)
+    assert(finished.result?.session?.intent === intent, `${intent} route served ${finished.result?.session?.intent || 'unknown'}`)
+    return finished.result?.session?.intent
   } finally {
     await request(`/api/chat/sessions/${session.id}`, { method: 'DELETE', headers: authHeaders() })
   }
 }
 
-function smokeContext(expert) {
-  if (expert === 'divination') {
+function smokeContext(intent) {
+  if (intent === 'divination') {
     return {
       version: 1,
-      scenario: expert,
+      intent: intent,
       question: 'smoke',
       casting: { mode: 'yaos', order: 'bottom_up', casting_id: `smoke-${randomUUID()}`, yaos: [7, 8, 8, 7, 8, 9], dong_yao: [6] },
       casting_instant: new Date().toISOString(),
       location: { longitude: 114.169, timezone: 'Asia/Hong_Kong' },
     }
   }
-  if (expert === 'fengshui') {
+  if (intent === 'fengshui') {
     return {
       version: 1,
-      scenario: expert,
+      intent: intent,
       birth_year: 1990,
       gender: 'female',
       layout: { zuo_shan: 0, period_date: '2026-01-01' },
@@ -224,7 +224,7 @@ function smokeContext(expert) {
   }
   return {
     version: 1,
-    scenario: expert,
+    intent: intent,
     birth: {
       gender: 'female',
       date: '1990-01-01',
@@ -234,9 +234,9 @@ function smokeContext(expert) {
   }
 }
 
-function expectedExperts() {
-  if (experts === 'all') return ['natal', 'divination', 'fengshui', 'naming']
-  return experts.split(',').map(item => item.trim()).filter(Boolean)
+function expectedIntents() {
+  if (intents === 'all') return ['natal', 'divination', 'fengshui', 'naming']
+  return intents.split(',').map(item => item.trim()).filter(Boolean)
 }
 
 async function main() {
@@ -276,7 +276,7 @@ async function main() {
         assert(response.status === 200, `${path} HTTP ${response.status}`)
         if (slug === 'natal') {
           const body = await response.text()
-          assert(!body.includes('scenario.natalReading.q1'), `${path} leaks raw i18n key`)
+          assert(!body.includes('intent.natalReading.q1'), `${path} leaks raw i18n key`)
         }
         count += 1
       }
@@ -330,9 +330,9 @@ async function main() {
     return 'liki'
   }, { skip: !cookie || !requireEntitlement })
 
-  await check('expert identity', async () => {
+  await check('intent identity', async () => {
     const names = []
-    for (const expert of expectedExperts()) names.push(await expertIdentity(expert))
+    for (const intent of expectedIntents()) names.push(await intentIdentity(intent))
     return names.join(', ')
   }, { skip: !cookie })
 
@@ -351,11 +351,11 @@ async function main() {
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
         skill: 'liki',
-        scenario: 'divination',
+        intent: 'divination',
         title: 'smoke-context',
         context: {
           version: 1,
-          scenario: 'divination',
+          intent: 'divination',
           question: 'smoke',
           casting: { mode: 'yaos', order: 'bottom_up', casting_id: 'smoke-cast', yaos: [7, 8, 8, 7, 8, 9], dong_yao: [6] },
           casting_instant: new Date().toISOString(),
@@ -364,7 +364,7 @@ async function main() {
       }),
     })
     const session = payload?.data
-    assert(session?.expert === 'divination', `context session expert=${session?.expert || 'missing'}`)
+    assert(session?.intent === 'divination', `context session intent=${session?.intent || 'missing'}`)
     try {
       const deleted = await request(`/api/chat/sessions/${session.id}`, { method: 'DELETE', headers: authHeaders() })
       assert(deleted.ok, `session cleanup HTTP ${deleted.status}`)

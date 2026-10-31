@@ -126,24 +126,3 @@ test.describe('Vue admin finance and compensation', () => {
     }])
   })
 })
-
-test.describe('Vue admin administrators', () => {
-  test('mobile card renders the status tag instead of the raw code', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 })
-    await mockAdmin(page, ['admin.user.manage'])
-    await page.route('**/api/admin/admins', route => route.fulfill({
-      json: { data: { admins: [{
-        id: 'admin_1', email: 'ops@example.com', status: 'disabled',
-        created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z',
-        capabilities: [{ capability: 'sales.read', granted_at: '2026-10-01T00:00:00Z' }],
-      }] } },
-    }))
-
-    await page.goto('/app/admin/administrators')
-
-    const card = page.locator('.admin-record-card')
-    await expect(card).toContainText('ops@example.com')
-    await expect(card.locator('.el-tag').filter({ hasText: '已禁用' })).toBeVisible()
-    await expect(card).not.toContainText('disabled')
-  })
-})

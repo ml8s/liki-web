@@ -17,27 +17,27 @@ describe('consultation telemetry', () => {
 
   it('reports entry and restore without person identifiers', () => {
     telemetry.trackEntry({
-      domainId: 'natal',
+      groupId: 'natal',
       seed: 'liunian',
       source: 'legacy_redirect',
       restorable: true,
     })
     telemetry.trackRestore({
-      domainId: 'divination',
+      groupId: 'divination',
       source: 'history',
       restored: true,
     })
 
     expect(reportAppFlowEvent).toHaveBeenNthCalledWith(1, {
       event: 'consultation_entry',
-      domain: 'natal',
+      intentGroup: 'natal',
       source: 'legacy_redirect',
       intent: 'liunian',
       status: 'restorable',
     })
     expect(reportAppFlowEvent).toHaveBeenNthCalledWith(2, {
       event: 'consultation_restore',
-      domain: 'divination',
+      intentGroup: 'divination',
       source: 'history',
       status: 'restored',
     })
@@ -45,18 +45,18 @@ describe('consultation telemetry', () => {
 
   it('projects bridge results while preserving pending-backend huangli', () => {
     telemetry.trackBridge({
-      domainId: 'natal',
+      groupId: 'natal',
       seed: 'huangli',
       result: {
         status: 'pending-backend',
-        domainId: 'natal',
-        legacySkill: 'huangli',
+        groupId: 'natal',
+        pendingIntent: 'huangli',
       },
     })
 
     expect(reportAppFlowEvent).toHaveBeenCalledWith({
       event: 'consultation_bridge',
-      domain: 'natal',
+      intentGroup: 'natal',
       intent: 'huangli',
       status: 'pending_backend',
     })

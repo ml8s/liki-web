@@ -61,7 +61,7 @@ if (errors.length) {
 console.log(`✓ frontend budget checked (${initialScripts.length} JS, ${styles.length} CSS initial assets)`);
 
 // --- Consultation route-graph discipline ---
-// Trace the static import closure of the DomainFlowView chunk and assert that
+// Trace the static import closure of the IntentFlowView chunk and assert that
 // heavy modules (markdown, chart panels, date picker) stay out of the initial
 // consultation route graph. These are lazy-loaded after O4.
 
@@ -85,7 +85,7 @@ function collectGraph(entry, visited = new Set()) {
 }
 
 const domainFlowChunk = fs.readdirSync(assetsDir)
-  .find(f => f.startsWith('DomainFlowView') && f.endsWith('.js'));
+  .find(f => f.startsWith('IntentFlowView') && f.endsWith('.js'));
 
 if (domainFlowChunk) {
   const consultationGraph = new Set();

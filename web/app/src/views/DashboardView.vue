@@ -233,7 +233,7 @@
             {{ $t('dashboard.moreIntents') }}
           </h2>
         </template>
-        <ServiceEntryList
+        <IntentEntryList
           :items="intentEntries"
           @select="startService"
         />
@@ -254,7 +254,7 @@ import { normalizeIntent, intentService } from '@/composables/intent'
 import { chatUrl, intentById, intentEntryItems } from '@/config/chat'
 import { useI18n } from 'vue-i18n'
 import { formatDateTime } from '@/utils/format'
-import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
+import IntentEntryList from '@/components/app/IntentEntryList.vue'
 import { useFormDraftsStore } from '@shared/stores/form-drafts'
 
 const route = useRoute()

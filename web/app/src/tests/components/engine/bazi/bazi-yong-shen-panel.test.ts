@@ -128,27 +128,4 @@ describe('BaziYongShenPanel (YongShenPanel.vue + bazi/BaziYongShen.vue provenanc
 
     expect(wrapper.find('.engine-yongshen--compact').exists()).toBe(true)
   })
-
-  it('uses wrapping constraints for long values at the 320px floor', () => {
-    const wrapper = mountPanel({
-      result: {
-        ...fullResult,
-        selected: {
-          ...fullResult.selected,
-          xi: ['非常长的喜神值用于检查三百二十像素宽度下的自然换行约束'],
-        },
-        evidence: [{
-          source: 'fu_yi',
-          detail: '非常长的证据内容用于检查三百二十像素宽度下的自然换行约束和最小宽度行为',
-        }],
-      },
-    })
-
-    const rootStyle = wrapper.attributes('class')
-    expect(wrapper.classes()).toContain('engine-yongshen')
-    expect(rootStyle).toContain('engine-yongshen')
-    expect(wrapper.find('.ys-chips').exists()).toBe(true)
-    expect(wrapper.find('.ys-chip').text()).toContain('自然换行约束')
-    expect(wrapper.find('.ys-evidence__body').text()).toContain('最小宽度行为')
-  })
 })

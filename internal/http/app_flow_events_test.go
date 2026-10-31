@@ -10,10 +10,10 @@ import (
 )
 
 func TestHandleAppFlowEventRecordsBoundedSignal(t *testing.T) {
-	key := "liki_web_app_flow_event_total|domain=natal|event=consultation_entry|failure=|scenario=liunian|source=legacy_redirect|status=restorable"
+	key := "liki_web_app_flow_event_total|event=consultation_entry|failure=|intent=liunian|intentGroup=natal|source=legacy_redirect|status=restorable"
 	before := metrics.Default.Snapshot()[key]
 	request := httptest.NewRequest(http.MethodPost, "/api/analytics/product-event", strings.NewReader(
-		`{"event":"consultation_entry","domain":"natal","source":"legacy_redirect","scenario":"liunian","status":"restorable"}`,
+		`{"event":"consultation_entry","intentGroup":"natal","source":"legacy_redirect","intent":"liunian","status":"restorable"}`,
 	))
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
@@ -30,7 +30,7 @@ func TestHandleAppFlowEventRecordsBoundedSignal(t *testing.T) {
 
 func TestHandleAppFlowEventRejectsUnknownDimension(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/analytics/product-event", strings.NewReader(
-		`{"event":"consultation_entry","domain":"all-zodiac-signs","source":"direct","status":"empty"}`,
+		`{"event":"consultation_entry","intentGroup":"all-zodiac-signs","source":"direct","status":"empty"}`,
 	))
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
@@ -42,9 +42,9 @@ func TestHandleAppFlowEventRejectsUnknownDimension(t *testing.T) {
 	}
 }
 
-func TestHandleAppFlowEventRejectsFreeFormScenario(t *testing.T) {
+func TestHandleAppFlowEventRejectsFreeFormIntent(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/analytics/product-event", strings.NewReader(
-		`{"event":"consultation_bridge","domain":"natal","scenario":"tell me my future","status":"ok"}`,
+		`{"event":"consultation_bridge","intentGroup":"natal","intent":"tell me my future","status":"ok"}`,
 	))
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()

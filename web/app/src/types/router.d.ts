@@ -10,7 +10,7 @@ declare module 'vue-router' {
     public?: boolean
     /** 该视图独占视口（自身负责滚动，例如会话页）：shell 会被锁到视口高度。 */
     viewportBound?: boolean
-    /** App experience owning this route: Classic is compatibility UI; Consultation is the four-domain flow. */
+    /** App experience owning this route: Classic is compatibility UI; Consultation is the four-group flow. */
     experience?: AppExperience
     /** 浏览器标签里的页面名（`<页面名> · <站点名>`）。业务页面用本地化键。 */
     titleKey?: string

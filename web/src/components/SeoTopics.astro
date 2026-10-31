@@ -13,7 +13,7 @@ export interface Props {
 const { locale, titleKey, items, linkHref, linkKey } = Astro.props;
 ---
 
-<div class="scenario-content-blocks">
+<div class="intent-content-blocks">
   <h2 class="seo-topics-title">{t(locale, titleKey)}</h2>
   <div class="segments-grid">
     {items.map(item => (

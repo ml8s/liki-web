@@ -20,13 +20,13 @@ export function getStaticPaths() {
 const { locale } = Astro.params;
 const ns = 'natal';
 const cards = (prefix: string, keys: string[]) => keys.map(key => `${prefix}.benefit.${key}`);
-const baziCards = cards('scenario.bazi', ['structure', 'insight', 'timing', 'action']);
+const baziCards = cards('intent.bazi', ['structure', 'insight', 'timing', 'action']);
 const ziweiCards = cards(`${ns}.ziwei`, ['palaces', 'stars', 'cycles', 'career']);
-const readingCards = cards('scenario.natalReading', ['personality', 'career', 'relationship', 'timing']);
-const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
+const readingCards = cards('intent.natalReading', ['personality', 'career', 'relationship', 'timing']);
+const steps = ['s1', 's2', 's3', 's4'].map(key => `intent.steps.${key}`);
 const questions = [
-  'scenario.bazi.q1', 'scenario.bazi.q2', 'scenario.bazi.q3',
-  'scenario.natalReading.q1', 'scenario.natalReading.q2',
+  'intent.bazi.q1', 'intent.bazi.q2', 'intent.bazi.q3',
+  'intent.natalReading.q1', 'intent.natalReading.q2',
 ];
 const birthLabels = birthFieldLabels(locale);
 const toolProps = {
@@ -51,18 +51,18 @@ const faqs = [
   { questionKey: 'natal.faq.bazi.q', answerKey: 'natal.faq.bazi.a' },
   { questionKey: 'natal.faq.ziwei.q', answerKey: 'natal.faq.ziwei.a' },
   { questionKey: 'natal.faq.solar.q', answerKey: 'natal.faq.solar.a' },
-  { questionKey: 'scenario.faq.accuracy.q', answerKey: 'scenario.faq.accuracy.a' },
+  { questionKey: 'intent.faq.accuracy.q', answerKey: 'intent.faq.accuracy.a' },
 ];
 const topics = ['a', 'b', 'c'].map(k => ({
   titleKey: `natal.topics.${k}.title`,
   bodyKey: `natal.topics.${k}.body`,
 }));
 const related = [
-  ['liunian', 'scenario.liunian.title'],
-  ['hepan', 'scenario.hepan.title'],
-  ['divination', 'scenario.divination.title'],
-  ['fengshui', 'scenario.fengshui.title'],
-  ['huangli', 'scenario.huangli.title'],
+  ['liunian', 'intent.liunian.title'],
+  ['hepan', 'intent.hepan.title'],
+  ['divination', 'intent.divination.title'],
+  ['fengshui', 'intent.fengshui.title'],
+  ['huangli', 'intent.huangli.title'],
 ] as const;
 const faqSchema = faqs.map(item => ({
   '@type': 'Question',
@@ -99,9 +99,9 @@ const breadcrumbSchema = {
   </Fragment>
 
   <MarketingHero locale={locale} titleKey={`${ns}.heading`} subtitleKey={`${ns}.subtitle`}>
-    <a href="#chart-tool" class="btn-purple">{t(locale, 'scenario.cta.freeTool')}</a>
+    <a href="#chart-tool" class="btn-purple">{t(locale, 'intent.cta.freeTool')}</a>
     <LikiChatCta locale={locale} service="natal" class="btn-ghost" />
-    <a href="#how-it-works" class="btn-ghost">{t(locale, 'scenario.cta.secondary')}</a>
+    <a href="#how-it-works" class="btn-ghost">{t(locale, 'intent.cta.secondary')}</a>
   </MarketingHero>
 
   <FreeToolSection
@@ -115,7 +115,7 @@ const breadcrumbSchema = {
 
   <MarketingCards
     id="bazi"
-    title={t(locale, 'scenario.bazi.benefitsTitle')}
+    title={t(locale, 'intent.bazi.benefitsTitle')}
     cards={baziCards.map(key => ({
       title: t(locale, `${key}.title`),
       body: t(locale, `${key}.body`),
@@ -133,7 +133,7 @@ const breadcrumbSchema = {
 
   <MarketingCards
     id="reading"
-    title={t(locale, 'scenario.natalReading.benefitsTitle')}
+    title={t(locale, 'intent.natalReading.benefitsTitle')}
     cards={readingCards.map(key => ({
       title: t(locale, `${key}.title`),
       body: t(locale, `${key}.body`),
@@ -142,7 +142,7 @@ const breadcrumbSchema = {
 
   <section
     id="zodiac"
-    class="landing-services scenario-section"
+    class="landing-services intent-section"
   >
     <h2>{t(locale, `${ns}.zodiac.title`)}</h2>
     <p>{t(locale, `${ns}.zodiac.body`)}</p>
@@ -151,7 +151,7 @@ const breadcrumbSchema = {
 
   <section
     id="rectification"
-    class="landing-services scenario-section"
+    class="landing-services intent-section"
   >
     <h2>{t(locale, `${ns}.rectification.title`)}</h2>
     <p>{t(locale, `${ns}.rectification.body`)}</p>
@@ -168,15 +168,15 @@ const breadcrumbSchema = {
     />
   </MarketingSection>
 
-  <MarketingSteps title={t(locale, 'scenario.stepsTitle')} steps={steps.map(key => t(locale, key))} />
+  <MarketingSteps title={t(locale, 'intent.stepsTitle')} steps={steps.map(key => t(locale, key))} />
 
   <MarketingQuestions
-    title={t(locale, 'scenario.bazi.questionsTitle')}
+    title={t(locale, 'intent.bazi.questionsTitle')}
     questions={questions.map(key => t(locale, key))}
   />
 
   <MarketingFaq
-    title={t(locale, 'scenario.faqTitle')}
+    title={t(locale, 'intent.faqTitle')}
     faqs={faqs.map(item => ({
       question: t(locale, item.questionKey),
       answer: t(locale, item.answerKey),
@@ -191,7 +191,7 @@ const breadcrumbSchema = {
     }))}
   />
 
-  <MarketingFinalCta label={t(locale, 'scenario.cta.bottom')}>
+  <MarketingFinalCta label={t(locale, 'intent.cta.bottom')}>
     <LikiChatCta locale={locale} service="natal" />
   </MarketingFinalCta>
 </BaseLayout>

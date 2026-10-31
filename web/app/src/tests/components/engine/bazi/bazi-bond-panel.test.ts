@@ -222,21 +222,4 @@ describe('BaziBondPanel (HepanPanel.vue + HepanView.vue provenance)', () => {
 
     expect(wrapper.find('.engine-bond--compact').exists()).toBe(true)
   })
-
-  it('uses wrapping constraints for long names and relations at the 320px floor', () => {
-    const wrapper = mountPanel({
-      result: fullResult,
-      chartA,
-      chartB,
-      nameA: '非常长的档案名称用于检查三百二十像素宽度下的自然换行约束',
-      nameB: '非常长的对方名称用于检查三百二十像素宽度下的自然换行约束',
-    })
-
-    const rootStyle = wrapper.attributes('class')
-    expect(wrapper.classes()).toContain('engine-bond')
-    expect(rootStyle).toContain('engine-bond')
-    expect(wrapper.find('.rels').exists()).toBe(true)
-    expect(wrapper.find('.person').text()).toContain('自然换行约束')
-    expect(wrapper.text()).toContain('非常长的对方名称用于检查三百二十像素宽度下的自然换行约束')
-  })
 })

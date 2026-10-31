@@ -110,7 +110,7 @@ describe('HuangliView adoption — source: web/shared/components/charts/HuangliD
     vi.clearAllMocks()
   })
 
-  it('calls the huangli domain API and passes its typed result to the engine days panel', async () => {
+  it('calls the huangli group API and passes its typed result to the engine days panel', async () => {
     mocks.huangliDaysFor.mockResolvedValueOnce(huangliViewDays)
     const wrapper = await mountView()
 

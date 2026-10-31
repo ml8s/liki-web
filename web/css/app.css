@@ -193,24 +193,85 @@ th {
   text-transform: uppercase;
 }
 
-/* 页脚：与正文用一条分隔线分开，上下留白；合规链接保持单行右对齐。 */
+/* 页脚：移动端统一左对齐；桌面两栏，右栏整体右对齐，行高保持一致。 */
 .site-footer {
   margin-top: var(--space-6);
   padding-block: var(--space-8);
   border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: .75rem;
+  line-height: 1.5;
 }
-.site-footer a { display: inline-flex; align-items: center; min-height: 40px; }
-
-.footer-groups { display: flex; align-items: center; min-width: 0; }
-.footer-group {
+.footer-inner {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-4);
+}
+.footer-identity,
+.footer-links {
+  display: grid;
+  row-gap: var(--space-1);
+  align-content: start;
+  justify-items: start;
+}
+.footer-slogan {
+  margin: 0;
+  color: var(--color-stone-500-raw);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+.footer-copyright {
+  margin: 0;
+  line-height: 1.5;
+}
+.footer-social,
+.footer-legal {
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  justify-content: flex-end;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0 var(--space-4);
-  min-width: 0;
-  white-space: nowrap;
+  justify-content: flex-start;
+  column-gap: var(--space-4);
+  row-gap: var(--space-1);
+  margin: 0;
+  line-height: 1.5;
+}
+.footer-social {
+  column-gap: var(--space-6);
+  margin-bottom: var(--space-1);
+}
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
+  column-gap: 4px;
+  min-height: 1.5em;
+  line-height: 1.5;
+  transition: color .15s ease, opacity .15s ease;
+}
+.site-footer a:hover {
+  color: var(--color-text);
+  opacity: .8;
+}
+.site-footer .footer-social a:hover {
+  opacity: .8;
+}
+
+@media (min-width: 768px) {
+  .footer-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .footer-links {
+    justify-items: end;
+  }
+  .footer-social,
+  .footer-legal {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
 }
 
 .min-w-\[130px\] { min-width: 130px; }
@@ -387,21 +448,21 @@ th {
 .card-link-secondary:hover { color:var(--color-accent); text-decoration:underline; }
 
 /* ── Liki Chat 场景引流页 ── */
-.scenario-hero { text-align:center; }
+.intent-hero { text-align:center; }
 .landing-kicker { color:var(--color-accent); font-size:.8125rem; font-weight:600; letter-spacing:.12em; margin-bottom:10px; }
-.scenario-section { text-align:start; }
-.scenario-example {
+.intent-section { text-align:start; }
+.intent-example {
   padding:var(--space-12) var(--space-6);
   background:var(--color-surface);
   border-block:1px solid var(--color-border);
 }
-.scenario-example h2 { margin-bottom:var(--space-5); text-align:center; }
-.scenario-questions {
+.intent-example h2 { margin-bottom:var(--space-5); text-align:center; }
+.intent-questions {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
   gap:var(--space-3);
 }
-.scenario-questions blockquote {
+.intent-questions blockquote {
   margin:0;
   padding:var(--space-4);
   border-left:3px solid var(--color-accent);
@@ -409,28 +470,28 @@ th {
   background:var(--color-surface);
   color:var(--color-text-muted);
 }
-.scenario-faq {
+.intent-faq {
   max-width:760px;
   margin:0 auto;
   padding:var(--space-12) var(--space-6);
 }
-.scenario-faq details { padding:14px 0; border-bottom:1px solid var(--color-border); }
-.scenario-faq summary { cursor:pointer; color:var(--color-text); font-weight:600; }
-.scenario-faq p { margin:10px 0 0; color:var(--color-text-muted); line-height:1.75; }
-.scenario-static-index {
+.intent-faq details { padding:14px 0; border-bottom:1px solid var(--color-border); }
+.intent-faq summary { cursor:pointer; color:var(--color-text); font-weight:600; }
+.intent-faq p { margin:10px 0 0; color:var(--color-text-muted); line-height:1.75; }
+.intent-static-index {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
   gap:var(--space-3);
   margin:0 auto var(--space-5);
 }
-.scenario-static-index details {
+.intent-static-index details {
   padding:14px;
   border:1px solid var(--color-border);
   border-radius:var(--radius-card);
   background:var(--color-surface);
 }
-.scenario-static-index summary { cursor:pointer; font-weight:600; }
-.scenario-static-index p {
+.intent-static-index summary { cursor:pointer; font-weight:600; }
+.intent-static-index p {
   margin:10px 0 0;
   color:var(--color-text-muted);
   line-height:1.75;
@@ -485,12 +546,12 @@ th {
 .tool-fields { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
 /* 内容区块（WP4 词嵌入）：article 语义 + 与 details 加速器并列的常青内容。 */
-.scenario-content-blocks { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); }
-.scenario-content-blocks article { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--color-surface); }
+.intent-content-blocks { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); }
+.intent-content-blocks article { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--color-surface); }
 .seo-topics-title { margin: 0 0 var(--space-2); font-size: var(--font-size-title-sm); color: var(--color-text); }
-.scenario-content-blocks .segments-grid h3 { margin: 0 0 var(--space-1); font-size: var(--font-size-body-lg); color: var(--color-text); }
-.scenario-content-blocks h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-title-sm); color: var(--color-text); }
-.scenario-content-blocks h4 { margin: 0 0 var(--space-1); font-size: var(--font-size-body-lg); color: var(--color-text); }
-.scenario-content-blocks p { margin: 0; font-size: var(--font-size-body); color: var(--color-text-muted); line-height: 1.6; }
+.intent-content-blocks .segments-grid h3 { margin: 0 0 var(--space-1); font-size: var(--font-size-body-lg); color: var(--color-text); }
+.intent-content-blocks h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-title-sm); color: var(--color-text); }
+.intent-content-blocks h4 { margin: 0 0 var(--space-1); font-size: var(--font-size-body-lg); color: var(--color-text); }
+.intent-content-blocks p { margin: 0; font-size: var(--font-size-body); color: var(--color-text-muted); line-height: 1.6; }
 .segments-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
 .segments-grid article { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); background: var(--color-surface); }

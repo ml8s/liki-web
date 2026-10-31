@@ -35,16 +35,16 @@ async function login(page: Page) {
 }
 
 test.describe('Login journey', () => {
-  test('scenario handoff survives login', async ({ page }) => {
+  test('intent handoff survives login', async ({ page }) => {
     await mockLoginApis(page)
 
     // Marketing service card target: unauthenticated user lands on login.
-    await page.goto('/app?scenario=naming&locale=zh-Hant')
+    await page.goto('/app?intent=naming&locale=zh-Hant')
     await expect(page).toHaveURL(/\/app\/login/)
 
     await login(page)
 
-    // The dashboard consumes ?scenario and may advance to /chat or profile
+    // The dashboard consumes ?intent and may advance to /chat or profile
     // creation; the invariant is: back inside the app, never /app/app.
     await expect(page).toHaveURL(url => {
       const u = new URL(url)

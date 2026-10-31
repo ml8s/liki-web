@@ -1,6 +1,6 @@
 // huangli 页工具岛：事项 + 日期范围 → 共享择日组件（宜/平/忌分组）渲染。
 import { test, expect } from '../fixtures';
-import { fillBirthFields } from '../helpers';
+import { fillBirthFields } from '../helpers/common';
 import { baziChart } from '../engine-fixtures';
 import { mockCityCoords, mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 

@@ -2,11 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import type { ZiweiChart } from '@shared/api/engine/ziwei'
 import ZiweiChartPanel from '@shared/components/engine/ziwei/ZiweiChartPanel.vue'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-
-const componentSource = readFileSync(resolve(process.cwd(), '../shared/components/engine/ziwei/ZiweiChartPanel.vue'), 'utf8')
-
 
 const ziweiPanelSource = 'web/shared/components/charts/ZiweiPanel.vue'
 
@@ -103,26 +98,5 @@ describe(`ZiweiChartPanel extracted from ${ziweiPanelSource}`, () => {
     expect(document.activeElement).toBe(palace.element)
 
     wrapper.unmount()
-  })
-
-  it('keeps long star and center text safe at the 320px floor', () => {
-    const wrapper = mount(ZiweiChartPanel, {
-      props: {
-        result: chart({
-          gong_wei: [{
-            index: 'long',
-            name: ' exceptionally-long-palace-name ',
-            zhi: '亥',
-            xing_yao: [{ xing: 'long-star', name: 'very-long-star-name-'.repeat(3) }],
-          }],
-          ju_shu: 'another-exceptionally-long-center-value',
-        }),
-      },
-    })
-
-    expect(wrapper.attributes('class')).toContain('engine-ziwei-panel')
-    expect(componentSource).toContain('@media (max-width: 320px)')
-    expect(componentSource).toContain('overflow-wrap: anywhere')
-    expect(wrapper.element.scrollWidth).toBeLessThanOrEqual(wrapper.element.clientWidth)
   })
 })

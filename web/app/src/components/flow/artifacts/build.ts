@@ -1,4 +1,4 @@
-import type { AppDomainId } from '@shared/domain/flow'
+import type { IntentGroupId } from '@shared/domain/intent-flow'
 import type {
   AnyArtifactDescriptor,
   ArtifactDescriptor,
@@ -26,15 +26,15 @@ const TITLE_KEYS: Record<ArtifactKind, string> = {
  * This adapter intentionally has no fallback sample data.
  */
 export function buildArtifactDescriptors(
-  domainId: AppDomainId,
+  groupId: IntentGroupId,
   sources: ArtifactSources,
 ): AnyArtifactDescriptor[] {
   const descriptors: AnyArtifactDescriptor[] = []
 
   if (sources.ziwei) {
     descriptors.push(createReadyArtifact<'ziwei'>({
-      id: `${domainId}:ziwei`,
-      domainId,
+      id: `${groupId}:ziwei`,
+      groupId,
       kind: 'ziwei',
       titleKey: TITLE_KEYS.ziwei,
       payload: sources.ziwei,
@@ -43,8 +43,8 @@ export function buildArtifactDescriptors(
 
   if (sources.bazi) {
     descriptors.push(createReadyArtifact<'bazi'>({
-      id: `${domainId}:bazi`,
-      domainId,
+      id: `${groupId}:bazi`,
+      groupId,
       kind: 'bazi',
       titleKey: TITLE_KEYS.bazi,
       payload: sources.bazi,
@@ -53,8 +53,8 @@ export function buildArtifactDescriptors(
 
   if (sources.hepan) {
     descriptors.push(createReadyArtifact<'hepan'>({
-      id: `${domainId}:hepan`,
-      domainId,
+      id: `${groupId}:hepan`,
+      groupId,
       kind: 'hepan',
       titleKey: TITLE_KEYS.hepan,
       payload: sources.hepan,
@@ -63,8 +63,8 @@ export function buildArtifactDescriptors(
 
   if (sources.liuyao) {
     descriptors.push(createReadyArtifact<'liuyao'>({
-      id: `${domainId}:liuyao`,
-      domainId,
+      id: `${groupId}:liuyao`,
+      groupId,
       kind: 'liuyao',
       titleKey: TITLE_KEYS.liuyao,
       payload: sources.liuyao,
@@ -73,8 +73,8 @@ export function buildArtifactDescriptors(
 
   if (sources.huangli) {
     descriptors.push(createReadyArtifact<'huangli'>({
-      id: `${domainId}:huangli`,
-      domainId,
+      id: `${groupId}:huangli`,
+      groupId,
       kind: 'huangli',
       titleKey: TITLE_KEYS.huangli,
       payload: sources.huangli,
@@ -83,8 +83,8 @@ export function buildArtifactDescriptors(
 
   if (sources.fengshui) {
     descriptors.push(createReadyArtifact<'fengshui'>({
-      id: `${domainId}:fengshui`,
-      domainId,
+      id: `${groupId}:fengshui`,
+      groupId,
       kind: 'fengshui',
       titleKey: TITLE_KEYS.fengshui,
       payload: sources.fengshui,
@@ -93,8 +93,8 @@ export function buildArtifactDescriptors(
 
   if (sources.naming) {
     descriptors.push(createReadyArtifact<'naming'>({
-      id: `${domainId}:naming`,
-      domainId,
+      id: `${groupId}:naming`,
+      groupId,
       kind: 'naming',
       titleKey: TITLE_KEYS.naming,
       payload: sources.naming,

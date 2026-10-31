@@ -56,7 +56,7 @@
         id="chat-purchase"
         :product="sales.chatProduct"
         :buying="sales.buying"
-        @purchase="billingMode => sales.buy(billingMode, selectedIntent || pendingService?.id || 'natal')"
+        @purchase="billingMode => sales.buy(billingMode, selectedIntent || pendingIntent?.id || 'natal')"
       />
 
       <el-card
@@ -86,25 +86,25 @@
       </el-card>
 
       <el-card
-        id="chat-domain"
+        id="chat-intent"
         class="app-card"
         shadow="never"
       >
         <template #header>
           <h2 class="app-card__title">
-            {{ $t('chat.selectDomain') }}
+            {{ $t('chat.selectIntent') }}
           </h2>
         </template>
-        <ServiceEntryList
+        <IntentEntryList
           :items="intentEntries"
           @select="selectIntent"
         />
       </el-card>
 
       <el-alert
-        v-if="pendingService"
-        :title="$t('chat.pendingService', { service: $t(pendingService.labelKey) })"
-        :description="$t(pendingService.descKey)"
+        v-if="pendingIntent"
+        :title="$t('chat.pendingIntent', { service: $t(pendingIntent.labelKey) })"
+        :description="$t(pendingIntent.descKey)"
         type="info"
         :closable="false"
         show-icon
@@ -140,7 +140,7 @@
           <el-button
             v-else
             type="primary"
-            @click="scrollToSkills"
+            @click="scrollToIntents"
           >
             {{ $t('chat.emptyAction') }}
           </el-button>
@@ -180,7 +180,7 @@ import { isCurrentLocation } from '@shared/domain/location'
 import { intentByIntent, intentById, intentEntryItems } from '@/config/chat'
 import AppPageHeader from '@/components/app/AppPageHeader.vue'
 import AppEmptyState from '@/components/app/AppEmptyState.vue'
-import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
+import IntentEntryList from '@/components/app/IntentEntryList.vue'
 import ProductPurchaseCard from '@/components/sales/ProductPurchaseCard.vue'
 import SessionList from '@/components/chat/SessionList.vue'
 import BirthProfilePicker from '@/components/chat/BirthProfilePicker.vue'
@@ -203,7 +203,7 @@ const selectedIntent = ref('')
 const chatPurchased = computed(() => entitlements.purchased)
 const profilePickerEl = ref<HTMLElement | null>(null)
 
-const pendingService = computed(() => (chat.pendingIntent ? intentByIntent(chat.pendingIntent) : undefined))
+const pendingIntent = computed(() => (chat.pendingIntent ? intentByIntent(chat.pendingIntent) : undefined))
 
 // 入口行右侧动作文案：随可用状态给出下一步（开通/查看订单/建档案/开始）。
 const intentAction = computed(() => {
@@ -218,30 +218,45 @@ const intentEntries = computed(() =>
 )
 
 // 选择场景：未开通 → 滚到开通卡；方案未含 → 订单页；缺档案 → 建档案；就绪 → 创建会话。
-function selectIntent(id: string) {
+async function selectIntent(id: string) {
   selectedIntent.value = id
   if (!chatPurchased.value) {
     document.getElementById('chat-purchase')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     return
   }
   if (!entitlements.hasSkill('liki')) {
-    void router.push('/orders')
+    void router.push({ name: 'orders' })
     return
   }
   if (!activeBirthProfileId.value) {
-    void router.push('/birth-profiles/new')
+    void router.push({ name: 'birth-profile-new' })
     return
+  }
+  if (isBirthConsultationIntent(id)) {
+    const handoff = peekConsultationHandoff<ConsultationContext>(id)
+    const handoffBirth = handoff?.birth
+    const hasMatchingProfile = handoffBirth
+      ? profiles.list.some(profile => profileMatchesConsultationBirth(profile, handoffBirth))
+      : false
+    if (handoffBirth && !hasMatchingProfile) {
+      drafts.set('service', id)
+      await router.replace({
+        name: 'birth-profile-new',
+        query: route.query.locale ? { locale: firstQueryValue(route.query.locale) } : {},
+      })
+      return
+    }
   }
   void create(id)
 }
 
 function openSession(session: ChatSession) {
-  void router.push(`/chat/${session.id}`)
+  void router.push({ name: 'chat-session', params: { sessionId: session.id } })
 }
 
-// 会话空态的下一步（已有档案时）：滚动到领域选择卡。
-function scrollToSkills() {
-  document.getElementById('chat-domain')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+// 会话空态的下一步（已有档案时）：滚动到咨询类型列表。
+function scrollToIntents() {
+  document.getElementById('chat-intent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 async function renameSession(session: ChatSession) {
@@ -274,13 +289,24 @@ async function create(intentId: string) {
   creating.value = intentId
   sales.actionError = ''
   try {
-    const profile = profiles.list.find(item => item.id === activeBirthProfileId.value)
+    let profile = profiles.list.find(item => item.id === activeBirthProfileId.value)
+    if (isBirthConsultationIntent(intentId)) {
+      const handoff = peekConsultationHandoff<ConsultationContext>(intentId)
+      const handoffBirth = handoff?.birth
+      const matchingProfile = handoffBirth
+        ? profiles.list.find(item => profileMatchesConsultationBirth(item, handoffBirth))
+        : undefined
+      if (matchingProfile) {
+        activeBirthProfileId.value = matchingProfile.id
+        profile = matchingProfile
+      }
+    }
     const session = await chat.createSession(
       activeBirthProfileId.value,
       intentId,
       profile ? consultationContextFor(intentId as ConsultationIntent, profile) ?? undefined : undefined,
     )
-    await router.push(`/chat/${session.id}`)
+    await router.push({ name: 'chat-session', params: { sessionId: session.id } })
   } catch (error) {
     sales.actionError = toUserMessage(error, t('chat.createFailed'))
   } finally {
@@ -340,11 +366,16 @@ function consultationContextFor(intentId: ConsultationIntent, profile: (typeof p
 }
 
 function profileMatchesConsultationBirth(profile: (typeof profiles.list)[number], birth: ConsultationBirth): boolean {
-  const fields = birthFieldsOf(profile)
-  if (!fields || !fields.location) return false
-  return fields.gender === birth.gender && fields.date === birth.date && fields.time === birth.time
-    && fields.location.timezone === birth.location.timezone
-    && Math.abs(fields.location.longitude - birth.location.longitude) < 0.000001
+  const actual = profile.birth
+  const actualLocation = actual.location
+  const expectedLocation = birth.location
+  if (actualLocation.longitude == null) return false
+
+  return actual.gender === birth.gender
+    && actual.date === birth.date
+    && actual.time === birth.time
+    && actualLocation.timezone === expectedLocation.timezone
+    && Math.abs(actualLocation.longitude - expectedLocation.longitude) < 0.000001
 }
 
 function isBirthConsultationIntent(value: string): value is ConsultationIntent {
@@ -363,8 +394,8 @@ onMounted(async () => {
       activeBirthProfileId.value = profiles.list[0].id
     }
     // 服务入口 → 会话打开后自动发出首条意图（由 ChatSessionView 消费）。
-    const presetService = firstQueryValue(route.query.service) ?? firstQueryValue(route.query.intent)
-    const svc = intentById(presetService)
+    const presetIntent = firstQueryValue(route.query.service) ?? firstQueryValue(route.query.intent)
+    const svc = intentById(presetIntent)
     if (svc) chat.pendingIntent = t(svc.intentKey)
     if (svc && !preset && isBirthConsultationIntent(svc.id)) {
       const handoff = peekConsultationHandoff<ConsultationContext>(svc.id)
@@ -378,7 +409,7 @@ onMounted(async () => {
       else if (handoffBirth) {
         drafts.set('service', svc.id)
         await router.replace({
-          path: '/birth-profiles/new',
+          name: 'birth-profile-new',
           query: route.query.locale ? { locale: firstQueryValue(route.query.locale) } : {},
         })
         return
@@ -390,11 +421,11 @@ onMounted(async () => {
     if (paymentResult.action === 'enter_chat') {
       const sessionId = await sales.enterInterpretation(activeBirthProfileId.value, paymentResult.intentId)
       if (sessionId) {
-        await router.replace({ path: '/chat', query: {} })
-        await router.push(`/chat/${sessionId}`)
+        await router.replace({ name: 'chat', query: {} })
+        await router.push({ name: 'chat-session', params: { sessionId } })
       }
     } else if (paymentResult.action === 'show_message') {
-      await router.replace({ path: '/chat', query: {} })
+      await router.replace({ name: 'chat', query: {} })
     }
   } catch (error) {
     // 网络/初始化失败不崩溃——store 内部已有 error state 展示。

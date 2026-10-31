@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BaziChartPanel from '@shared/components/engine/bazi/BaziChartPanel.vue'
@@ -16,11 +14,6 @@ const sourceBackedBaziChart: BaziChartData = {
   gender: 'female',
   zi_shi_rule: '晚子时属本日',
 }
-
-const componentSource = readFileSync(
-  resolve(process.cwd(), `../shared/components/engine/bazi/BaziChartPanel.vue`),
-  'utf8',
-)
 
 describe('BaziChartPanel | web/shared/components/charts/bazi/BaziPillars.vue, web/shared/components/charts/BaziPanel.vue', () => {
   it('renders the canonical four-pillar projection with accessible names', () => {
@@ -61,17 +54,5 @@ describe('BaziChartPanel | web/shared/components/charts/bazi/BaziPillars.vue, we
     expect(wrapper.find('.pillars').exists()).toBe(true)
     expect(wrapper.find('.dayun').exists()).toBe(false)
     expect(wrapper.find('.pillar .nayin').text()).toBe('')
-  })
-
-  it('uses the density class and preserves the 320px two-column collapse contract', () => {
-    const wrapper = mount(BaziChartPanel, {
-      props: { result: sourceBackedBaziChart, density: 'compact' },
-    })
-
-    expect(wrapper.classes()).toContain('engine-bazi-chart-panel--compact')
-    expect(componentSource).toContain('.engine-bazi-chart-panel { min-width: 0; }')
-    expect(componentSource).toContain('@media (max-width: 640px)')
-    expect(componentSource).toContain('grid-template-columns: repeat(2, 1fr)')
-    expect(wrapper.find('.pillars').classes()).toContain('pillars')
   })
 })

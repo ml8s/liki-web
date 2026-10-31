@@ -84,7 +84,7 @@
               ? $t('profiles.detail.serviceSelected', { service: $t(preselectedService.labelKey) })
               : $t('profiles.detail.servicePrompt') }}
           </p>
-          <ServiceEntryList
+          <IntentEntryList
             :items="intentEntries"
             :selected-id="preselectedKey"
             @select="startService"
@@ -120,7 +120,7 @@ import type { BirthProfileInput } from '@/api/birth-profiles'
 import { chatUrl, intentById, intentEntryItems } from '@/config/chat'
 import ChartPreview from '@/components/birth-profiles/ChartPreview.vue'
 import BirthProfileInfo from '@/components/birth-profiles/BirthProfileInfo.vue'
-import ServiceEntryList from '@/components/app/ServiceEntryList.vue'
+import IntentEntryList from '@/components/app/IntentEntryList.vue'
 import { useUnloadGuard } from '@/composables/useUnloadGuard'
 import { useFormDraftsStore } from '@shared/stores/form-drafts'
 

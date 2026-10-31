@@ -3,7 +3,7 @@
 import { expect, test } from '../fixtures'
 import marketingContract from '../../routes/marketing.contract.json' with { type: 'json' }
 
-test.describe('marketing route contract on edge', () => {
+test.describe('intent route contract on edge', () => {
   for (const redirect of marketingContract.bareRedirects) {
     test(`${redirect.path} redirects to the canonical slashed page`, async ({ request }) => {
       const response = await request.get(redirect.path, {

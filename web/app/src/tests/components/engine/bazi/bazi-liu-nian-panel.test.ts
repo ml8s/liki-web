@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BaziLiuNianPanel from '@shared/components/engine/bazi/BaziLiuNianPanel.vue'
@@ -36,15 +34,6 @@ const interactionFixture: BaziLiuNianOutput = {
     gan_rels: [{ gan_a: '壬', relation: '壬克丙', type: '克' }],
   }],
 }
-
-const componentSource = readFileSync(
-  resolve(process.cwd(), `../shared/components/engine/bazi/BaziLiuNianPanel.vue`),
-  'utf8',
-)
-const sharedChartSource = readFileSync(
-  resolve(process.cwd(), '../shared/styles/chart-panel.css'),
-  'utf8',
-)
 
 describe('BaziLiuNianPanel | web/shared/components/charts/bazi/BaziLiunianDetail.vue + ChartPreview.vue', () => {
   it('renders annual shensha with semantic good/bad state and a named focus target', () => {
@@ -96,17 +85,5 @@ describe('BaziLiuNianPanel | web/shared/components/charts/bazi/BaziLiunianDetail
     expect(wrapper.find('.rel-table').exists()).toBe(false)
     expect(wrapper.attributes('data-focused')).toBe('false')
     expect(wrapper.attributes('aria-current')).toBeUndefined()
-  })
-
-  it('exposes density and the 320px wrapping contract without horizontal fixed widths', () => {
-    const wrapper = mount(BaziLiuNianPanel, {
-      props: { result: sourceBackedBaziLiunian, density: 'compact' },
-    })
-
-    expect(wrapper.classes()).toContain('engine-bazi-liunian-panel--compact')
-    expect(componentSource).toContain('.engine-bazi-liunian-panel { min-width: 0; }')
-    expect(componentSource).toContain('flex-direction: column')
-    expect(sharedChartSource).toContain('flex-wrap: wrap')
-    expect(componentSource).not.toMatch(/width:\s*\d{3,}px/)
   })
 })

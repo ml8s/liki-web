@@ -13,7 +13,7 @@ const artifacts = new Map();
 artifacts.set(path.resolve(root, '../internal/http/routes.generated.json'), `${JSON.stringify({
   version: 1,
   locales: marketing.locales,
-  canonicalSlugs: intents.intents.map(item => item.marketingSlug),
+  intentSlugs: intents.intents.map(item => item.marketingSlug),
   bareRedirects: marketing.bareRedirects,
   retired: marketing.retired,
 }, null, 2)}\n`);

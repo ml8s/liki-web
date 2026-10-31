@@ -3,7 +3,7 @@
 import { test, expect } from '../fixtures';
 import { mockCityCoords, mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 import { baziChart, bond } from '../engine-fixtures';
-import { fillBirthFields } from '../helpers';
+import { fillBirthFields } from '../helpers/common';
 
 test('工具岛：合盘盘面按共享 BaziBondPanel 渲染', async ({ page }) => {
   await mockPageview(page);

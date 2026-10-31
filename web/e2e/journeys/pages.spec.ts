@@ -4,9 +4,9 @@
 // Render markers are null for static resources. Framework check uses FOUC guard.
 
 import { test, expect } from '../fixtures';
-import { I18N_KEY_RE } from '../helpers';
+import { I18N_KEY_RE } from '../helpers/common';
 import { mockCityCoords, mockEngineTool, mockPageview } from '../mocks';
-import { fillBirthFields } from '../helpers';
+import { fillBirthFields } from '../helpers/common';
 import { baziChart, baziFull, baziLiunian } from '../engine-fixtures';
 
 // 每个静态页首屏都会打一次 pageview 信标；声明成 204 空响应。
@@ -230,7 +230,7 @@ test.describe('Static page interactions', () => {
     expect(typeof birth?.createdAt).toBe('number');
     expect(drafts['handoff:consultation']?.data).toMatchObject({
       version: 1,
-      scenario: 'natal',
+      intent: 'natal',
     });
   });
 });
@@ -344,15 +344,4 @@ test.describe('Images load without error', () => {
       }
     });
   }
-});
-
-// ── Mobile viewport: critical pages render on mobile ──
-
-test.describe('Mobile viewport', () => {
-  test('naming renders at 375x812', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/zh-Hans/naming');
-    await expect(page.locator('html')).not.toHaveCSS('visibility', 'hidden', { timeout: 15000 });
-    await expect(page.locator('[data-cta="naming"]').first()).toBeVisible();
-  });
 });

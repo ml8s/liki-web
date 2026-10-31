@@ -1,5 +1,5 @@
 ---
-import ScenarioLanding from '../../components/ScenarioLanding.astro';
+import IntentLanding from '../../components/IntentLanding.astro';
 import SeoTopics from '../../components/SeoTopics.astro';
 import { t, locales, birthFieldLabels } from '../../i18n.ts';
 
@@ -9,9 +9,9 @@ export function getStaticPaths() {
 
 const { locale } = Astro.params;
 const ns = 'naming.example';
-const benefits = ['birth', 'elements', 'meaning', 'review'].map(key => `scenario.naming.benefit.${key}`);
-const steps = ['s1', 's2', 's3', 's4'].map(key => `scenario.steps.${key}`);
-const questions = ['q1', 'q2', 'q3'].map(key => `scenario.naming.${key}`);
+const benefits = ['birth', 'elements', 'meaning', 'review'].map(key => `intent.naming.benefit.${key}`);
+const steps = ['s1', 's2', 's3', 's4'].map(key => `intent.steps.${key}`);
+const questions = ['q1', 'q2', 'q3'].map(key => `intent.naming.${key}`);
 const faqs = [
   { questionKey: 'naming.faq.bazi.q', answerKey: 'naming.faq.bazi.a' },
   { questionKey: 'naming.faq.free.q', answerKey: 'naming.faq.free.a' },
@@ -19,7 +19,7 @@ const faqs = [
   { questionKey: 'naming.faq.rename.q', answerKey: 'naming.faq.rename.a' },
   { questionKey: 'naming.faq.score.q', answerKey: 'naming.faq.score.a' },
   { questionKey: 'naming.faq.generator.q', answerKey: 'naming.faq.generator.a' },
-  { questionKey: 'scenario.faq.accuracy.q', answerKey: 'scenario.faq.accuracy.a' },
+  { questionKey: 'intent.faq.accuracy.q', answerKey: 'intent.faq.accuracy.a' },
 ];
 const cardIndexes = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 const topics = ['newborn', 'bazi', 'free', 'generator'].map(k => ({
@@ -48,20 +48,20 @@ const toolProps = {
 };
 ---
 
-<ScenarioLanding
+<IntentLanding
   locale={locale}
   page="naming"
-  scenario="naming"
-  titleKey="scenario.naming.title"
-  subtitleKey="scenario.naming.subtitle"
-  benefitsTitleKey="scenario.naming.benefitsTitle"
+  intent="naming"
+  titleKey="intent.naming.title"
+  subtitleKey="intent.naming.subtitle"
+  benefitsTitleKey="intent.naming.benefitsTitle"
   benefitKeys={benefits}
-  exampleTitleKey="scenario.naming.exampleTitle"
-  stepsTitleKey="scenario.stepsTitle"
+  exampleTitleKey="intent.naming.exampleTitle"
+  stepsTitleKey="intent.stepsTitle"
   stepKeys={steps}
-  questionsTitleKey="scenario.naming.questionsTitle"
+  questionsTitleKey="intent.naming.questionsTitle"
   questionKeys={questions}
-  faqTitleKey="scenario.faqTitle"
+  faqTitleKey="intent.faqTitle"
   faqs={faqs}
 >
   <Fragment slot="tool">
@@ -108,7 +108,7 @@ const toolProps = {
     </div>
   </details>
 
-  <div class="scenario-content-blocks">
+  <div class="intent-content-blocks">
     <h3>{t(locale, 'naming.segments.title')}</h3>
     <div class="segments-grid">
       <article>
@@ -135,7 +135,7 @@ const toolProps = {
       linkKey="naming.scenes.natalCta"
     />
   </Fragment>
-</ScenarioLanding>
+</IntentLanding>
 
 <script>
   import '../../scripts/naming-tool';

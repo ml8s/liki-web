@@ -165,7 +165,7 @@ function continueToApp() {
   if (!birthInput.value) return
   saveConsultationHandoff({
     version: 1,
-    scenario: 'liunian',
+    intent: 'liunian',
     birth: consultationBirthFromFields(birth),
     year: selectedYear.value,
   } satisfies ConsultationContext)

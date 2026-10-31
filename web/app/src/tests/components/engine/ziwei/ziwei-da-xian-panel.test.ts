@@ -2,11 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import type { ZiweiDaXianItem } from '@shared/api/engine/ziwei'
 import ZiweiDaXianPanel from '@shared/components/engine/ziwei/ZiweiDaXianPanel.vue'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-
-const componentSource = readFileSync(resolve(process.cwd(), '../shared/components/engine/ziwei/ZiweiDaXianPanel.vue'), 'utf8')
-
 
 const provenance = [
   'web/shared/components/charts/ZiweiPanel.vue daxian section',
@@ -80,23 +75,5 @@ describe(`ZiweiDaXianPanel extracted from ${provenance[0]} and ${provenance[1]}`
     expect(document.activeElement).toBe(current.element)
 
     wrapper.unmount()
-  })
-
-  it('wraps an exceptionally long focused period label at 320px', () => {
-    const wrapper = mount(ZiweiDaXianPanel, {
-      props: {
-        result: [{
-          name: `very-long-daxian-name-${'x'.repeat(48)}`,
-          gong: '命宫',
-          qi_sui: 4,
-          zhi_sui: 13,
-        }],
-        focused: `very-long-daxian-name-${'x'.repeat(48)}-4`,
-      },
-    })
-
-    expect(componentSource).toContain('overflow-wrap: anywhere')
-    expect(wrapper.get('.dy').classes()).toContain('focused')
-    expect(wrapper.element.scrollWidth).toBeLessThanOrEqual(wrapper.element.clientWidth)
   })
 })

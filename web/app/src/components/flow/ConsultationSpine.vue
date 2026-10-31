@@ -11,10 +11,10 @@
         :id="headingId"
         class="spine-title"
       >
-        {{ personLabel || domainLabel }}
+        {{ personLabel || intentGroupLabel }}
       </h1>
-      <p class="spine-domain">
-        {{ domainLabel }}
+      <p class="spine-group">
+        {{ intentGroupLabel }}
       </p>
     </section>
 
@@ -111,7 +111,7 @@ import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   personLabel?: string
-  domainLabel: string
+  intentGroupLabel: string
   profilePolicy?: 'required' | 'optional' | 'partial'
   loading?: boolean
   error?: string
@@ -170,7 +170,7 @@ const noProfileDescription = computed(() => {
   line-height: 1.25;
   letter-spacing: -0.03em;
 }
-.spine-domain {
+.spine-group {
   margin: var(--space-1) 0 0;
   overflow-wrap: anywhere;
   color: var(--liki-text-2);

@@ -1,4 +1,4 @@
-import type { AppDomainId } from '@shared/domain/flow'
+import type { IntentGroupId } from '@shared/domain/intent-flow'
 import type {
   BaziBondResult,
   BaziChartData,
@@ -58,7 +58,7 @@ export interface ArtifactPayloadByKind {
 
 export interface ArtifactDescriptor<Kind extends ArtifactKind = ArtifactKind> {
   id: string
-  domainId: AppDomainId
+  groupId: IntentGroupId
   kind: Kind
   titleKey: string
   state: ArtifactState

@@ -47,8 +47,8 @@ func TestGeneratedRetiredRoutes(t *testing.T) {
 func TestGeneratedAppContractFileMatchesRouter(t *testing.T) {
 	// The generator owns the source; this guard catches accidental deletion from
 	// the embedded Go build graph.
-	if len(routeContract.CanonicalSlugs) != 7 {
-		t.Fatalf("canonical slugs = %d, want 7", len(routeContract.CanonicalSlugs))
+	if len(routeContract.IntentSlugs) != 7 {
+		t.Fatalf("intent slugs = %d, want 7", len(routeContract.IntentSlugs))
 	}
 	if _, err := filepath.Abs("routes.generated.json"); err != nil {
 		t.Fatal(err)

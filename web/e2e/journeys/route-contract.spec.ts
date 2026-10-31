@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
   await mockPageview(page)
 })
 
-test.describe('marketing route contract', () => {
+test.describe('intent route contract', () => {
   for (const locale of marketingContract.locales) {
     for (const slug of slugs) {
       test(`${locale}/${slug}/ is canonical`, async ({ page }) => {

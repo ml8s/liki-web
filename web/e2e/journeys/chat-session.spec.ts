@@ -7,7 +7,7 @@ import { mockBFFChatMessage } from '../helpers/chat'
 
 const user = testUser({ id: 'usr_chat', email: 'chat@example.com' })
 const session = {
-  id: 'chat_1', user_id: user.id, profile_id: 'p_1', skill: 'liki', expert: 'natal', title: '八字諮詢',
+  id: 'chat_1', user_id: user.id, profile_id: 'p_1', skill: 'liki', intent: 'natal', title: '八字諮詢',
   status: 'active', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   last_message_at: null,
 }

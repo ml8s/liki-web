@@ -132,7 +132,7 @@ function continueToApp() {
   if (!birthInput.value) return
   saveConsultationHandoff({
     version: 1,
-    scenario: 'natal',
+    intent: 'natal',
     birth: consultationBirthFromFields(birth),
   } satisfies ConsultationContext)
   saveHandoff(HANDOFF_KEYS.birth, { ...birth })

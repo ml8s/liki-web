@@ -9,7 +9,7 @@ import { postTelemetryJSON, telemetryDisabled } from './telemetry'
  */
 export type AppFlowEvent =
   | 'consultation_entry'
-  | 'consultation_domain_select'
+  | 'consultation_intent_group_select'
   | 'consultation_person_select'
   | 'consultation_restore'
   | 'consultation_submit'
@@ -17,7 +17,7 @@ export type AppFlowEvent =
   | 'consultation_failure'
   | 'consultation_recovery'
 
-export type AppFlowDomain = 'natal' | 'divination' | 'fengshui' | 'naming'
+export type AppFlowIntentGroup = 'natal' | 'divination' | 'fengshui' | 'naming'
 
 export type AppFlowSource =
   | 'direct'
@@ -48,7 +48,7 @@ export type AppFlowStatus =
   | 'new'
   | 'existing'
   | 'ok'
-  | 'cross_domain'
+  | 'cross_group'
   | 'pending_backend'
   | 'invalid'
 
@@ -61,7 +61,7 @@ export type AppFlowFailure =
 
 export interface AppFlowEventPayload {
   event: AppFlowEvent
-  domain?: AppFlowDomain
+  intentGroup?: AppFlowIntentGroup
   source?: AppFlowSource
   intent?: AppFlowIntent
   status?: AppFlowStatus

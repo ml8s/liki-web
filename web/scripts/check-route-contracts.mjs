@@ -114,9 +114,9 @@ const consultationAliasRedirect = {
   preserve: ['query', 'hash'],
 };
 const consultationRedirectTargets = {
-  '/app/hepan': '/app?intent=natal&seed=hepan',
-  '/app/divination': '/app?intent=divination&seed=divination',
-  '/app/fengshui': '/app?intent=fengshui&seed=fengshui',
+  '/app/hepan': '/app?group=natal&intent=hepan',
+  '/app/divination': '/app?group=divination&intent=divination',
+  '/app/fengshui': '/app?group=fengshui&intent=fengshui',
 };
 const expectedLegacyRedirects = [
   consultationAliasRedirect,
@@ -133,12 +133,12 @@ const expectedLegacyRedirects = [
 expectedLegacyRedirects.push(
   {
     from: '/app/liunian',
-    to: '/app?intent=natal&seed=liunian',
+    to: '/app?group=natal&intent=liunian',
     preserve: ['query', 'hash'],
   },
   {
     from: '/app/naming',
-    to: '/app?intent=naming&seed=naming',
+    to: '/app?group=naming&intent=naming',
     preserve: ['query', 'hash'],
   },
 );
@@ -147,7 +147,7 @@ expectedLegacyRedirects.sort((left, right) => left.from.localeCompare(right.from
 const expectedRollout = {
   previewDefault: true,
   rollback: 'Set VITE_FEATURE_APP_FLOW_REDESIGN=false; /app returns to Classic.',
-  cleanupStatus: 'compatibility-owned; Classic components are not deleted until backend domain sessions ship',
+  cleanupStatus: 'single product; four intent groups remain consultation UI state, not product boundaries',
 };
 if (JSON.stringify(app.rollout ?? {}) !== JSON.stringify(expectedRollout)) {
   errors.push('app rollout must keep an explicit rollback contract and compatibility-owned cleanup status');
@@ -164,16 +164,20 @@ if (JSON.stringify(Object.keys(queryContracts)) !== JSON.stringify([consultation
   errors.push(`queryContracts must contain ${consultationDefaultRoute} only`);
 }
 const flowQuery = queryContracts[consultationDefaultRoute] ?? {};
-const expectedFlowQueryKeys = ['intent', 'seed', 'service'];
+const expectedFlowQueryKeys = ['group', 'intent', 'service', 'seed'];
 if (JSON.stringify(Object.keys(flowQuery)) !== JSON.stringify(expectedFlowQueryKeys)) {
   errors.push(`consultation query contract must contain ${expectedFlowQueryKeys.join(', ')}`);
 }
-for (const key of ['seed', 'service']) {
-  if (flowQuery[key]?.type !== 'intentId') errors.push(`flow ${key} query must be a legacyScenarioId`);
+for (const key of ['intent', 'service', 'seed']) {
+  if (flowQuery[key]?.type !== 'intentId') errors.push(`flow ${key} query must be an intentId`);
 }
-if (flowQuery.service?.policy !== 'legacy marketing alias for seed; public URLs remain unchanged') {
-  errors.push('flow service query must remain a legacy alias for seed');
+if (flowQuery.service?.policy !== 'legacy marketing alias for intent') {
+  errors.push('flow service query must remain a legacy alias for intent');
 }
+if (flowQuery.seed?.policy !== 'legacy app alias for intent') {
+  errors.push('flow seed query must remain a legacy alias for intent');
+}
+if (flowQuery.group?.type !== 'enum') errors.push('flow group query must be an intent-group enum');
 for (const key of expectedFlowQueryKeys) {
   if (flowQuery[key]?.required !== false) errors.push(`flow ${key} query must be optional`);
 }
@@ -187,7 +191,7 @@ if (typeof localeValue('zh-Hans', 'router.me') !== 'string' || typeof localeValu
 const redirects = marketing.bareRedirects ?? [];
 const retired = marketing.retired ?? [];
 for (const route of redirects) {
-  if (!intentIds.has(route.slug)) errors.push(`redirect references unknown scenario: ${route.slug}`);
+  if (!intentIds.has(route.slug)) errors.push(`redirect references unknown intent: ${route.slug}`);
   if (route.status !== 302) errors.push(`redirect must use 302: ${route.path}`);
 }
 for (const route of retired) {
@@ -197,7 +201,8 @@ for (const route of retired) {
 }
 
 const forbiddenRoutePatterns = [
-  /(?:scenario|service)=(?:bazi|mingshu|bond)(?:&|'|"|$)/u,
+  /\bscenario=/u,
+  /(?:intent|service)=(?:bazi|mingshu|bond)(?:&|'|"|$)/u,
   /chatUrl\([^)]*,\s*['"](?:bazi|mingshu|bond)['"]/u,
 ];
 const sourceFiles = [];
@@ -220,7 +225,7 @@ for (const file of sourceFiles) {
   const source = fs.readFileSync(file, 'utf8');
   for (const pattern of forbiddenRoutePatterns) {
     if (pattern.test(source)) {
-      errors.push(`retired scenario route found in ${path.relative(root, file)}`);
+      errors.push(`retired route found in ${path.relative(root, file)}`);
     }
   }
 }

@@ -7,7 +7,7 @@ describe('BFF AG-UI E2E stream fixture', () => {
       id: 'session_bff',
       user_id: 'user_1',
       skill: 'liki',
-      expert: 'natal',
+      intent: 'natal',
     }
     const body = bffChatStream({
       session,

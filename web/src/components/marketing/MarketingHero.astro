@@ -8,10 +8,10 @@ interface Props {
   kickerKey?: string
 }
 
-const { locale, titleKey, subtitleKey, kickerKey = 'scenario.brand' } = Astro.props
+const { locale, titleKey, subtitleKey, kickerKey = 'intent.brand' } = Astro.props
 ---
 
-<section class="landing-hero scenario-hero">
+<section class="landing-hero intent-hero">
   <p class="landing-kicker">{t(locale, kickerKey)}</p>
   <h1 class="landing-h1">{t(locale, titleKey)}</h1>
   <p class="landing-sub">{t(locale, subtitleKey)}</p>

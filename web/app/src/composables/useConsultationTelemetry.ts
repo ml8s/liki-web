@@ -5,9 +5,9 @@ import {
   type AppFlowIntent,
   type AppFlowSource,
 } from '@shared/utils/app-flow-telemetry'
-import type { AppDomainId, LegacyIntentBridgeResult } from '@shared/domain/flow'
+import type { IntentGroupId, IntentBridgeResult } from '@shared/domain/intent-flow'
 
-type ConsultationEvent = Omit<AppFlowEventPayload, 'domain'> & { domain: AppDomainId }
+type ConsultationEvent = Omit<AppFlowEventPayload, 'intentGroup'> & { intentGroup: IntentGroupId }
 
 function report(event: ConsultationEvent): void {
   reportAppFlowEvent(event)
@@ -19,92 +19,92 @@ function report(event: ConsultationEvent): void {
  */
 export function useConsultationTelemetry() {
   function trackEntry(input: {
-    domainId: AppDomainId
+    groupId: IntentGroupId
     seed: AppFlowIntent | null
     source: Extract<AppFlowSource, 'direct' | 'legacy_redirect' | 'marketing' | 'payment'>
     restorable: boolean
   }) {
     report({
       event: 'consultation_entry',
-      domain: input.domainId,
+      intentGroup: input.groupId,
       source: input.source,
       intent: input.seed ?? undefined,
       status: input.restorable ? 'restorable' : 'empty',
     })
   }
 
-  function trackDomainSelect(domainId: AppDomainId) {
-    report({ event: 'consultation_domain_select', domain: domainId })
+  function trackIntentGroupSelect(groupId: IntentGroupId) {
+    report({ event: 'consultation_intent_group_select', intentGroup: groupId })
   }
 
-  function trackPersonSelect(domainId: AppDomainId) {
-    report({ event: 'consultation_person_select', domain: domainId })
+  function trackPersonSelect(groupId: IntentGroupId) {
+    report({ event: 'consultation_person_select', intentGroup: groupId })
   }
 
   function trackRestore(input: {
-    domainId: AppDomainId
+    groupId: IntentGroupId
     source: Extract<AppFlowSource, 'latest' | 'history' | 'payment'>
     restored: boolean
   }) {
     report({
       event: 'consultation_restore',
-      domain: input.domainId,
+      intentGroup: input.groupId,
       source: input.source,
       status: input.restored ? 'restored' : 'fresh',
     })
   }
 
   function trackSubmit(input: {
-    domainId: AppDomainId
+    groupId: IntentGroupId
     source: Extract<AppFlowSource, 'composer' | 'focused_form' | 'casting'>
     created: boolean
   }) {
     report({
       event: 'consultation_submit',
-      domain: input.domainId,
+      intentGroup: input.groupId,
       source: input.source,
       status: input.created ? 'new' : 'existing',
     })
   }
 
   function trackBridge(input: {
-    domainId: AppDomainId
+    groupId: IntentGroupId
     seed: AppFlowIntent | null
-    result: LegacyIntentBridgeResult
+    result: IntentBridgeResult
   }) {
-    const intent = 'skill' in input.result
-      ? input.result.skill
-      : 'legacySkill' in input.result
-        ? input.result.legacySkill
+    const intent = 'intent' in input.result
+      ? input.result.intent
+      : 'pendingIntent' in input.result
+        ? input.result.pendingIntent
         : input.seed
     const status = input.result.status === 'pending-backend'
       ? 'pending_backend'
-      : input.result.status === 'cross-domain'
-        ? 'cross_domain'
+      : input.result.status === 'cross-group'
+        ? 'cross_group'
         : input.result.status
     report({
       event: 'consultation_bridge',
-      domain: input.domainId,
+      intentGroup: input.groupId,
       intent: intent ?? undefined,
       status,
     })
   }
 
-  function trackFailure(domainId: AppDomainId, failure: AppFlowFailure) {
-    report({ event: 'consultation_failure', domain: domainId, failure })
+  function trackFailure(groupId: IntentGroupId, failure: AppFlowFailure) {
+    report({ event: 'consultation_failure', intentGroup: groupId, failure })
   }
 
-  function trackRecovery(domainId: AppDomainId) {
+  function trackRecovery(groupId: IntentGroupId) {
     report({
       event: 'consultation_recovery',
-      domain: domainId,
+      intentGroup: groupId,
       source: 'workspace_retry',
     })
   }
 
   return {
     trackBridge,
-    trackDomainSelect,
+    trackIntentGroupSelect,
     trackEntry,
     trackFailure,
     trackPersonSelect,

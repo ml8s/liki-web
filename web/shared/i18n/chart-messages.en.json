@@ -263,7 +263,10 @@
       },
       "errors": {
         "missingTime": "Birth time is missing"
-      }
+      },
+      "liuri": "Daily",
+      "liuriLocalDate": "Local date",
+      "liuRiPalace": "Daily Life Palace: {name}"
     },
     "form": {
       "basic": "Basic information",

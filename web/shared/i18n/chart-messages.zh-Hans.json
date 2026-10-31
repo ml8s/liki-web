@@ -263,7 +263,10 @@
       },
       "errors": {
         "missingTime": "缺少出生时间"
-      }
+      },
+      "liuri": "流日",
+      "liuriLocalDate": "当地日期",
+      "liuRiPalace": "流日命宫：{name}"
     },
     "form": {
       "basic": "基本信息",

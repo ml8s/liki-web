@@ -3,7 +3,7 @@ import { t } from '../i18n.ts';
 
 export interface Props {
   locale: string;
-  scenario?: string;
+  intent?: string;
   service?: string;
   labelKey?: string;
   /** Explicit destination, for CTAs that must start at profile creation. */
@@ -13,20 +13,20 @@ export interface Props {
 
 const {
   locale,
-  scenario = '',
+  intent = '',
   service = '',
-  labelKey = 'scenario.cta.primary',
+  labelKey = 'intent.cta.primary',
   href = '',
   class: className = 'btn-purple',
 } = Astro.props;
 
 const query = new URLSearchParams();
-if (scenario) query.set('scenario', scenario);
+if (intent) query.set('intent', intent);
 if (service) query.set('service', service);
 query.set('locale', locale);
 const target = href || `/app?${query.toString()}`;
 ---
 
-<a href={target} class={className} data-cta={scenario || service}>
+<a href={target} class={className} data-cta={intent || service}>
   {t(locale, labelKey)}
 </a>

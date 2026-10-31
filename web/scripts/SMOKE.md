@@ -1,7 +1,7 @@
 # Manual deep system check
 
 `scripts/smoke.mjs` is a **manual system diagnostic**, not production
-monitoring. It exercises browser, auth, expert and payment surfaces that the
+monitoring. It exercises browser, auth, intent and payment surfaces that the
 HTTP deploy smoke cannot cover.
 
 It is deliberately not scheduled and not part of deploy. The automated layers
@@ -23,7 +23,7 @@ Useful flags:
 ```bash
 node scripts/smoke.mjs --mode=synthetic --no-browser --no-dns
 node scripts/smoke.mjs --mode=smoke --json
-node scripts/smoke.mjs --experts=all
+node scripts/smoke.mjs --intents=all
 ```
 
 ## Configuration
@@ -51,7 +51,7 @@ export SMOKE_REQUIRE_ENTITLEMENT=1
 - three locales and seven marketing pages, raw i18n keys;
 - robots/sitemap;
 - engine MCP and counsel MCP tool calls;
-- authenticated identity, entitlement, expert identity;
+- authenticated identity, entitlement, intent identity;
 - payment product currency/options (read-only);
 - context session create/delete;
 - 404 localization, CSP console (browser);
@@ -66,6 +66,6 @@ The following checks are candidates to move into `liki-deploy` system tests
 before this file is retired:
 
 - authenticated identity / entitlement;
-- expert identity;
+- intent identity;
 - context session + real chat send;
 - payment product/checkout sandbox.

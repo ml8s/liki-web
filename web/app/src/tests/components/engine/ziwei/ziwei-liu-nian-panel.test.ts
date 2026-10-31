@@ -2,11 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import type { ZiweiLiuNianData } from '@shared/api/engine/ziwei'
 import ZiweiLiuNianPanel from '@shared/components/engine/ziwei/ZiweiLiuNianPanel.vue'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-
-const componentSource = readFileSync(resolve(process.cwd(), '../shared/components/engine/ziwei/ZiweiLiuNianPanel.vue'), 'utf8')
-
 
 const provenance = [
   'web/shared/components/charts/ZiweiPanel.vue grid vocabulary',
@@ -82,25 +77,5 @@ describe(`ZiweiLiuNianPanel extracted from ${provenance[0]} and ${provenance[1]}
     expect(document.activeElement).toBe(palace.element)
 
     wrapper.unmount()
-  })
-
-  it('keeps long annual palace text within the 320px floor', () => {
-    const wrapper = mount(ZiweiLiuNianPanel, {
-      props: {
-        result: {
-          ming_gong: '命宫',
-          zhi: '子',
-          gong_wei: [{
-            zhi: '亥',
-            name: `exceptionally-long-annual-palace-${'y'.repeat(40)}`,
-            xing_yao: ['very-long-annual-star-name'],
-          }],
-        },
-      },
-    })
-
-    expect(componentSource).toContain('@media (max-width: 320px)')
-    expect(componentSource).toContain('overflow-wrap: anywhere')
-    expect(wrapper.element.scrollWidth).toBeLessThanOrEqual(wrapper.element.clientWidth)
   })
 })

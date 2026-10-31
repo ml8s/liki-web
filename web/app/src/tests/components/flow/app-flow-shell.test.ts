@@ -4,11 +4,11 @@ import AppFlowShell from '@/components/flow/AppFlowShell.vue'
 
 type ShellProps = {
   personLabel?: string
-  domainLabel: string
+  intentGroupLabel: string
   restoreVisible?: boolean
 }
 
-function mountShell(props: ShellProps = { domainLabel: '命理' }) {
+function mountShell(props: ShellProps = { intentGroupLabel: '命理' }) {
   return mount(AppFlowShell, {
     props,
     slots: {
@@ -26,10 +26,10 @@ afterEach(() => {
 
 describe('AppFlowShell', () => {
   it('renders compact context and both flow layers', () => {
-    const wrapper = mountShell({ personLabel: '张三', domainLabel: '命理' })
+    const wrapper = mountShell({ personLabel: '张三', intentGroupLabel: '命理' })
 
     expect(wrapper.get('.flow-status__person').text()).toBe('张三')
-    expect(wrapper.get('.flow-status__domain').text()).toBe('命理')
+    expect(wrapper.get('.flow-status__intent-group').text()).toBe('命理')
     expect(wrapper.get('[data-testid="consultation"]').text()).toContain('consultation')
     expect(wrapper.get('[data-testid="dock-action"]').text()).toBe('send')
     expect(wrapper.findAll('main')).toHaveLength(1)
@@ -39,17 +39,17 @@ describe('AppFlowShell', () => {
   })
 
   it('announces an empty person without exposing a visible duplicate control', () => {
-    const wrapper = mountShell({ domainLabel: '问卦' })
+    const wrapper = mountShell({ intentGroupLabel: '问卦' })
 
     expect(wrapper.get('.flow-status__announcement').text()).toBe('咨询上下文：选择档案，问卦。')
     expect(wrapper.get('.flow-status__announcement').classes()).toContain('app-live-region--screen-only')
   })
 
   it('shows restore only when requested and emits it', async () => {
-    const hidden = mountShell({ domainLabel: '命理', restoreVisible: false })
+    const hidden = mountShell({ intentGroupLabel: '命理', restoreVisible: false })
     expect(hidden.find('.flow-restore').exists()).toBe(false)
 
-    const wrapper = mountShell({ domainLabel: '命理', restoreVisible: true })
+    const wrapper = mountShell({ intentGroupLabel: '命理', restoreVisible: true })
     await wrapper.get('.flow-restore').trigger('click')
     expect(wrapper.emitted('restore')).toHaveLength(1)
   })
@@ -66,15 +66,13 @@ describe('AppFlowShell', () => {
   })
 
   it('keeps follow behavior outside the frozen shell contract', () => {
-    const wrapper = mountShell({ domainLabel: '命理', restoreVisible: true })
+    const wrapper = mountShell({ intentGroupLabel: '命理', restoreVisible: true })
     const options = wrapper.getComponent(AppFlowShell).vm.$options
 
     expect(wrapper.find('.flow-follow').exists()).toBe(false)
     expect(Object.keys(options.props ?? {})).toEqual([
       'personLabel',
-      'domainLabel',
-      'domains',
-      'selectedDomainId',
+      'intentGroupLabel',
       'partnerVisible',
       'restoreVisible',
       'sidecarOpen',

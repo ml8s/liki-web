@@ -6,7 +6,7 @@ describe('AppExperienceSwitcher', () => {
   it('links to the canonical consultation experience', () => {
     const wrapper = mount(AppExperienceSwitcher, {
       props: { target: 'consultation', variant: 'sidebar' },
-      slots: { default: '领域咨询' },
+      slots: { default: '咨询' },
       global: {
         stubs: {
           RouterLink: {
@@ -18,7 +18,7 @@ describe('AppExperienceSwitcher', () => {
     })
     const link = wrapper.get('a')
 
-    expect(link.text()).toBe('领域咨询')
+    expect(link.text()).toBe('咨询')
     expect(link.attributes('href')).toBe('app-consultation')
     expect(link.classes()).toContain('experience-switcher--sidebar')
   })

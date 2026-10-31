@@ -3,11 +3,11 @@ import { mount } from '@vue/test-utils'
 import ConsultationSpine from '@/components/flow/ConsultationSpine.vue'
 
 const baseProps = {
-  domainLabel: '命理',
+  intentGroupLabel: '命理',
 }
 
 describe('ConsultationSpine', () => {
-  it('renders person and domain as the document context', () => {
+  it('renders person and group as the document context', () => {
     const wrapper = mount(ConsultationSpine, {
       props: { ...baseProps, personLabel: '张三' },
     })
@@ -16,7 +16,7 @@ describe('ConsultationSpine', () => {
     expect(wrapper.find('h1').attributes('id')).toBe(
       wrapper.find('section').attributes('aria-labelledby'),
     )
-    expect(wrapper.find('.spine-domain').text()).toBe('命理')
+    expect(wrapper.find('.spine-group').text()).toBe('命理')
     expect(wrapper.attributes('data-state')).toBe('empty')
   })
 
@@ -27,7 +27,7 @@ describe('ConsultationSpine', () => {
     expect(wrapper.find('.app-empty__text').text()).toBe('先问一卦，无需建档')
   })
 
-  it('explains partial and required domain capability in the no-profile state', () => {
+  it('explains partial and required group capability in the no-profile state', () => {
     const partial = mount(ConsultationSpine, {
       props: { ...baseProps, profilePolicy: 'partial' },
     })
@@ -175,16 +175,16 @@ describe('ConsultationSpine', () => {
     expect(wrapper.find('.app-empty__text').exists()).toBe(false)
   })
 
-  it('allows long person and domain labels to wrap', () => {
+  it('allows long person and group labels to wrap', () => {
     const wrapper = mount(ConsultationSpine, {
       props: {
         personLabel: '非常长的档案名称用于检查换行和最小宽度约束',
-        domainLabel: '非常长的领域名称用于检查换行和最小宽度约束',
+        intentGroupLabel: '非常长的咨询类型名称用于检查换行和最小宽度约束',
         hasProfile: true,
       },
     })
 
     expect(wrapper.find('.spine-title').text()).toContain('最小宽度约束')
-    expect(wrapper.find('.spine-domain').text()).toContain('最小宽度约束')
+    expect(wrapper.find('.spine-group').text()).toContain('最小宽度约束')
   })
 })

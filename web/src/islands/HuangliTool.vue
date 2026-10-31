@@ -161,7 +161,7 @@ function submitPersonal() {
 function saveHandoff() {
   const context: ConsultationContext = {
     version: 1,
-    scenario: 'huangli',
+    intent: 'huangli',
     event: form.event,
     start_date: form.startDate,
     end_date: form.endDate,

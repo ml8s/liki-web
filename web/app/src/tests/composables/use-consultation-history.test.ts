@@ -32,11 +32,11 @@ function session(overrides: Partial<ChatSession>): ChatSession {
 }
 
 describe('useConsultationHistory', () => {
-  function withHistory(personId: () => string | null, domainId: () => string) {
+  function withHistory(personId: () => string | null, groupId: () => string) {
     let history!: ReturnType<typeof useConsultationHistory>
     mount(defineComponent({
       setup() {
-        history = useConsultationHistory({ personId, domainId })
+        history = useConsultationHistory({ personId, groupId })
         return () => null
       },
     }))
@@ -50,13 +50,13 @@ describe('useConsultationHistory', () => {
     confirmDeleteEntity.mockReset()
   })
 
-  it('filters sessions by the visible person and domain, newest first', () => {
+  it('filters sessions by the visible person and group, newest first', () => {
     const chat = useChatStore()
     chat.sessions = [
       session({ id: 'old', updated_at: '2026-01-01T00:00:00Z' }),
       session({ id: 'new', updated_at: '2026-01-02T00:00:00Z' }),
       session({ id: 'other-person', profile_id: 'p2' }),
-      session({ id: 'other-domain', intent: 'divination' }),
+      session({ id: 'other-group', intent: 'divination' }),
     ]
 
     const history = withHistory(() => 'p1', () => 'natal')

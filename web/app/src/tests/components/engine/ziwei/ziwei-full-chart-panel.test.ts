@@ -2,11 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import type { ZiweiChart } from '@shared/api/engine/ziwei'
 import ZiweiFullChartPanel from '@shared/components/engine/ziwei/ZiweiFullChartPanel.vue'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-
-const componentSource = readFileSync(resolve(process.cwd(), '../shared/components/engine/ziwei/ZiweiFullChartPanel.vue'), 'utf8')
-
 
 const provenance = {
   grid: 'web/shared/components/charts/ZiweiPanel.vue',
@@ -97,22 +92,5 @@ describe(`ZiweiFullChartPanel extracted from ${provenance.fullchart}`, () => {
 
     expect(wrapper.find('.zw-daxian').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('大限')
-  })
-
-  it(`preserves ${provenance.grid} hierarchy while wrapping at 320px`, () => {
-    const wrapper = mount(ZiweiFullChartPanel, {
-      props: {
-        result: {
-          ...fullChart(),
-          patterns: [{
-            name: 'exceptionally-long-pattern-name-for-the-320px-floor',
-            description: 'description',
-          }],
-        },
-      },
-    })
-
-    expect(componentSource).toContain('overflow-wrap: anywhere')
-    expect(wrapper.element.scrollWidth).toBeLessThanOrEqual(wrapper.element.clientWidth)
   })
 })

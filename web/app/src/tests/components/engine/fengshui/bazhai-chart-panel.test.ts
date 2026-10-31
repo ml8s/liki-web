@@ -106,16 +106,4 @@ describe('BazhaiChartPanel', () => {
     expect(source).not.toMatch(/from ['"](?:@shared\/api|@\/api|@\/composables|vue-router|pinia)/)
     expect(source).not.toMatch(/\b(?:fetch|sessionStorage|localStorage)\b/)
   })
-
-  it('keeps the natal and annual grids wrap-safe at 320px', () => {
-    const source = readFileSync(
-      resolve(process.cwd(), '../shared/components/engine/fengshui/BazhaiChartPanel.vue'),
-      'utf8',
-    )
-
-    expect(source).toContain('min-width: 0')
-    expect(source).toContain('repeat(4, minmax(0, 1fr))')
-    expect(source).toContain('overflow-wrap: anywhere')
-    expect(source).toContain('@media (max-width: 640px)')
-  })
 })

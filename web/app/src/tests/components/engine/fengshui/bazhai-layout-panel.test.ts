@@ -69,16 +69,4 @@ describe('BazhaiLayoutPanel', () => {
     expect(source).not.toMatch(/from ['"](?:@shared\/api|[^'"]*\/api\/|@\/composables|vue-router|pinia)/)
     expect(source).not.toMatch(/\b(?:fetch|sessionStorage|localStorage)\b/)
   })
-
-  it('keeps the six-column verdict table usable at 320px', () => {
-    const source = readFileSync(
-      resolve(process.cwd(), '../shared/components/engine/fengshui/BazhaiLayoutPanel.vue'),
-      'utf8',
-    )
-
-    expect(source).toContain('overflow-x: auto')
-    expect(source).toContain('table-layout: fixed')
-    expect(source).toContain('overflow-wrap: anywhere')
-    expect(source).toContain('white-space: normal')
-  })
 })

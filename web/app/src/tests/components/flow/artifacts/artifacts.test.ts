@@ -32,7 +32,7 @@ describe('artifact builder', () => {
   it('creates descriptors only for supplied deterministic payloads', () => {
     expect(ready).toHaveLength(1)
     expect(ready[0]).toMatchObject({
-      domainId: 'natal',
+      groupId: 'natal',
       kind: 'ziwei',
       state: 'ready',
     })
@@ -165,7 +165,7 @@ describe('ArtifactPanel', () => {
       props: {
         descriptor: {
           id: 'natal:ziwei',
-          domainId: 'natal',
+          groupId: 'natal',
           kind: 'ziwei',
           titleKey: 'services.natal.label',
           state: 'unavailable',

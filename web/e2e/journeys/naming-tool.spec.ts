@@ -1,6 +1,6 @@
 // naming 页工具岛：出生信息 → bazi_chart（engine）+ bazi_yongshen（counsel）→ 用神方向。
 import { test, expect } from '../fixtures';
-import { fillBirthFields } from '../helpers';
+import { fillBirthFields } from '../helpers/common';
 import type { Page } from '@playwright/test';
 import { mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 import { baziChart } from '../engine-fixtures';

@@ -1,7 +1,7 @@
 // liunian 页工具岛：出生信息 + 起始年份 → 十年概览 + 选中年份八字/紫微详情。
 // mock 形状对齐引擎 count 契约：返回从 anchor 开始的连续数组。
 import { test, expect } from '../fixtures';
-import { fillBirthFields } from '../helpers';
+import { fillBirthFields } from '../helpers/common';
 import { mockCityCoords, mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 import { baziChart, baziFull, baziLiunian } from '../engine-fixtures';
 

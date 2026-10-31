@@ -2,7 +2,7 @@ import { expect, test } from '../fixtures'
 import type { Locator, Page } from '@playwright/test'
 import { mockCityCoords, mockEngineTool, mockPageview } from '../mocks'
 import { baziChart, baziFull, baziLiunian, bond } from '../engine-fixtures'
-import { fillBirthFields } from '../helpers'
+import { fillBirthFields } from '../helpers/common'
 
 async function clickWithoutNavigation(target: Locator) {
   await target.evaluate(element => element.removeAttribute('href'))
@@ -47,7 +47,7 @@ test.describe('public tool consultation handoff', () => {
     const context = await consultationHandoff(page)
     expect(context).toMatchObject({
       version: 1,
-      scenario: 'hepan',
+      intent: 'hepan',
       second_birth: {
         date: '1990-05-12',
         time: '08:30',
@@ -92,7 +92,7 @@ test.describe('public tool consultation handoff', () => {
 
     await expect.poll(() => consultationHandoff(page)).toMatchObject({
       version: 1,
-      scenario: 'divination',
+      intent: 'divination',
       question: '這個項目能成嗎',
       casting: { casting_id: 'cast_handoff_1' },
     })
@@ -109,7 +109,7 @@ test.describe('public tool consultation handoff', () => {
 
     await expect.poll(() => consultationHandoff(page)).toEqual({
       version: 1,
-      scenario: 'huangli',
+      intent: 'huangli',
       event: 'wedding',
       start_date: '2026-10-01',
       end_date: '2026-10-03',
@@ -140,7 +140,7 @@ test.describe('public tool consultation handoff', () => {
 
     await expect.poll(() => consultationHandoff(page)).toMatchObject({
       version: 1,
-      scenario: 'fengshui',
+      intent: 'fengshui',
       birth_year: 1990,
       gender: 'male',
       layout: { zuo_shan: 0 },
@@ -185,7 +185,7 @@ test.describe('public tool consultation handoff', () => {
 
     await expect.poll(() => consultationHandoff(page)).toMatchObject({
       version: 1,
-      scenario: 'natal',
+      intent: 'natal',
       birth: {
         date: '1990-05-12',
         time: '08:30',
@@ -231,7 +231,7 @@ test.describe('public tool consultation handoff', () => {
 
     await expect.poll(() => consultationHandoff(page)).toMatchObject({
       version: 1,
-      scenario: 'liunian',
+      intent: 'liunian',
       birth: {
         date: '1990-05-12',
         time: '08:30',
@@ -265,7 +265,7 @@ test.describe('public tool consultation handoff', () => {
 
     await expect.poll(() => consultationHandoff(page)).toMatchObject({
       version: 1,
-      scenario: 'naming',
+      intent: 'naming',
       birth: {
         date: '1990-05-12',
         time: '08:30',

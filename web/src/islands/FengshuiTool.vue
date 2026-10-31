@@ -184,7 +184,7 @@ function submit() {
       :privacy="labels.privacy"
       @click="saveConsultationHandoff({
         version: 1,
-        scenario: 'fengshui',
+        intent: 'fengshui',
         birth_year: birth.year ?? undefined,
         gender: birth.gender || undefined,
         layout: {

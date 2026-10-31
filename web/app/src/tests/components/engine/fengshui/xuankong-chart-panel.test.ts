@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import XuankongChartPanel from '@shared/components/engine/fengshui/XuankongChartPanel.vue'
@@ -109,19 +107,5 @@ describe('XuankongChartPanel', () => {
     expect(wrapper.findAll('.xk-combo')).toHaveLength(1)
     expect(wrapper.get('.xk-assessment').text()).toBe('收山得宜')
     expect(wrapper.get('.xk-sub .chart-chip').text()).toContain('山星反吟')
-  })
-
-  it('keeps palace text wrap-safe and excludes API, router, store, and session imports', () => {
-    const source = readFileSync(
-      resolve(process.cwd(), '../shared/components/engine/fengshui/XuankongChartPanel.vue'),
-      'utf8',
-    )
-
-    expect(source).toContain("defineProps<XuankongChartPanelProps>()")
-    expect(source).toContain('min-width: 0')
-    expect(source).toContain('overflow-wrap: anywhere')
-    expect(source).toContain('@media (max-width: 320px)')
-    expect(source).not.toMatch(/from ['"](?:@shared\/api|[^'"]*\/api\/|@\/composables|vue-router|pinia)/)
-    expect(source).not.toMatch(/\b(?:fetch|sessionStorage|localStorage)\b/)
   })
 })

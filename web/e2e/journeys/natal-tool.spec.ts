@@ -1,7 +1,7 @@
 // natal 页工具岛：SSR hydration + 共享八字/紫微目录面板渲染。
 // mock 形状对齐引擎契约（完整样本见 engine-contract.spec）。
 import { test, expect } from '../fixtures';
-import { fillBirthFields } from '../helpers';
+import { fillBirthFields } from '../helpers/common';
 import { mockCityCoords, mockEngineTool, mockMcpToolError, mockPageview } from '../mocks';
 import { baziChart, baziFull, baziLiunian } from '../engine-fixtures';
 
