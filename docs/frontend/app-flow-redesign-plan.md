@@ -1,11 +1,9 @@
 # App flow redesign plan
 
-Status: active implementation plan (discussion outcome, revised after several
-layout reviews; implementation is behind the app-flow redesign feature flag).
-
-Accepted exception (2026-10-30): both templates ship together. Consultation
-owns `/app` by default and Classic remains at `/app/classic` for rollback and
-compatibility. A saved Classic preference guards the bare root.
+Status: retired on 2026-10-31. This document is retained as design history.
+The Consultation dual-template experiment did not provide a complete App IA:
+many management tasks still jumped to Classic. Runtime now has Classic-only
+routes; retired paths receive preserving redirects.
 
 This document records the converged information architecture, the concrete
 layout details, and the phased migration plan for the logged-in product

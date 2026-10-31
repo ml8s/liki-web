@@ -34,28 +34,25 @@ standalone refactor.
 
 ## Routes
 
-When `VITE_FEATURE_APP_FLOW_REDESIGN=true`, authenticated product routes use two
-templates. Consultation is the default four-domain surface; Classic remains the
-maintenance and rollback surface:
+Authenticated product routes use the original Classic IA as the only App
+experience. The retired Consultation dual-template experiment has been removed
+from runtime code:
 
 ```text
 /app
-/app/consultation
-/app/me
-/app/classic
-/app/classic/birth-profiles
-/app/classic/birth-profiles/new
-/app/classic/birth-profiles/:id
-/app/classic/hepan
-/app/classic/divination
-/app/classic/fengshui
-/app/classic/huangli
-/app/classic/chat
-/app/classic/chat/:id
-/app/classic/orders
-/app/classic/partners
-/app/classic/partners/kol
-/app/classic/partners/scout
+/app/birth-profiles
+/app/birth-profiles/new
+/app/birth-profiles/:id
+/app/hepan
+/app/divination
+/app/fengshui
+/app/huangli
+/app/chat
+/app/chat/:id
+/app/orders
+/app/partners
+/app/partners/kol
+/app/partners/scout
 /app/account
 /app/admin
 /app/admin/entitlements
@@ -68,29 +65,27 @@ maintenance and rollback surface:
 /app/admin/administrators
 ```
 
-Legacy `/app/<tool>` URLs redirect to Consultation when the domain has reached
-parity, or to `/app/classic/<tool>` while compatibility is still required.
-A user-selected Classic preference may send `/app` to `/app/classic`.
-
+The retired `/app/classic/**`, `/app/consultation`, and `/app/me` paths are
+temporary compatibility redirects; they are not canonical routes.
 Router guards call `/api/me`, redirect unauthenticated users to `/app/login`, and preserve redirect targets.
 
 Route components stay lazy. Product and Admin navigation preloads one route on
 `pointerenter` or `focusin`; small operators and save-data sessions skip this
 speculative work. There is intentionally no idle preload of every route.
 
-### Scenario handoff
+### Intent handoff
 
-Marketing pages hand off with the scenario id — one vocabulary across both
-surfaces (`/{locale}/natal/` ↔ `/app?scenario=natal`):
+Marketing pages hand off through the intent id (`/{locale}/natal/` ↔
+`/app?intent=natal`):
 
-- scenario ids: `natal | liunian | hepan | divination | huangli | fengshui | naming`
-  (the seven user-facing scenarios). The internal expert deployment
+- intent ids: `natal | liunian | hepan | divination | huangli | fengshui | naming`
+  (the seven user-facing intents). The internal expert deployment
   (`natal | divination | fengshui | naming`) is never presented to users;
-- tool-route entries use the same ids through `/app?service=…`; Consultation
-  normalizes this to `domain` plus transient `seed` state;
+- tool-route entries use the same ids through `/app?service=…`; the Classic
+  dashboard normalizes the handoff and routes to its focused page or chat;
 - `huangli` remains a compatibility entry until backend ownership moves to
   `natal`;
-- the app keeps the locale, authenticates the user, resolves the scenario after
+- the app keeps the locale, authenticates the user, resolves the intent after
   profile data has loaded, and falls unknown values back to the general
   workspace.
 

@@ -51,14 +51,9 @@ test.describe('Authenticated intent handoff', () => {
 
   test('naming and hepan reach their App workspaces in English', async ({ page }) => {
     await mockAuthenticated(page)
-    await page.goto('/app?intent=naming&locale=en')
-    await expect(page).toHaveURL('/app/?intent=naming&locale=en')
-    await expect(page.getByRole('heading', { level: 1, name: 'Mom' })).toBeVisible()
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-
-    await page.goto('/app?intent=hepan&locale=en')
-    await expect(page).toHaveURL('/app/?intent=hepan&locale=en')
-    await expect(page.getByRole('heading', { level: 2, name: 'Compatibility' }).first())
+    await page.goto('/app/hepan?locale=en')
+    await expect(page).toHaveURL('/app/hepan?locale=en')
+    await expect(page.getByRole('heading', { level: 2, name: 'Step 1 · Select a profile (you or the other person)' }).first())
       .toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   })

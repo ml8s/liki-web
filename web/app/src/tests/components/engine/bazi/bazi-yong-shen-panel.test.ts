@@ -9,8 +9,6 @@ const fullResult: BaziYongShenResult = {
     xi: ['水', '木'],
     ji: ['土'],
     source: 'tiao_hou',
-    confidence: 'high',
-    known_fields: ['yong', 'xi', 'ji'],
   },
   status: 'resolved',
   conflicts: [],
@@ -80,7 +78,6 @@ describe('BaziYongShenPanel (YongShenPanel.vue + bazi/BaziYongShen.vue provenanc
         xi: undefined,
         ji: undefined,
         source: '',
-        confidence: 'high' as const,
       },
       evidence: undefined,
       conflicts: undefined,
@@ -104,7 +101,6 @@ describe('BaziYongShenPanel (YongShenPanel.vue + bazi/BaziYongShen.vue provenanc
         status: 'needs_review',
         selected: {
           ...fullResult.selected,
-          confidence: 'low',
         },
         conflicts: [{
           code: 'tiaohou_fuyi_conflict',

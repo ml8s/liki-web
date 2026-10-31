@@ -34,70 +34,10 @@
     "account": "账户设置",
     "partner": "我的合作",
     "logout": "退出",
-    "consultation": "领域咨询",
-    "classic": "经典版",
     "me": "我的"
   },
   "a11y": {
     "skipToContent": "跳到主要内容"
-  },
-  "flow": {
-    "contextMenu": "更多入口",
-    "contextNav": "咨询上下文",
-    "personTitle": "选择档案",
-    "noProfiles": "还没有档案",
-    "createProfile": "新建档案",
-    "noProfile": {
-      "title": "先问一卦，无需建档",
-      "askCta": "问一卦",
-      "huangliCta": "查黄历择日",
-      "unlockHint": "建档解锁个人命盘、流年、合盘、起名与风水。",
-      "partialHint": "命理中的黄历可以先查；个人命盘、流年和合盘需要档案。",
-      "requiredHint": "这项能力需要出生档案；你可以先问一卦，稍后建档。"
-    },
-    "manageProfiles": "管理全部档案",
-    "personEmpty": "选择档案",
-    "askPlaceholder": "直接提出你的问题",
-    "contextAnnouncement": "咨询上下文：{person}，{group}。",
-    "draftPreserved": "问题仍保留在输入框中，可以重试。",
-    "draftRestored": "连接失败后，问题已放回输入框。",
-    "send": "发送",
-    "stop": "停止",
-    "restore": "回到进行中",
-    "close": "关闭",
-    "crossGroup": "这个问题更适合「{group}」，请先切换咨询类型。",
-    "huangliPending": "择日 / 黄历解读正在迁移到命理专家，暂时请继续使用旧入口。",
-    "documentLabel": "咨询记录",
-    "questionLabel": "问",
-    "answerLabel": "解读",
-    "newContent": "有新内容",
-    "hepanRequired": "合盘需要先完成对方信息和第三方同意。",
-    "fengshuiRequired": "风水需要先完成坐山与门主灶布局。",
-    "namingRequired": "起名需要先选择完整出生档案。",
-    "namingFailed": "起名方向分析失败。",
-    "form": {
-      "back": "返回咨询",
-      "unsavedTitle": "离开填写步骤？",
-      "unsavedMessage": "还有未提交的表单内容，离开后将不会保留。",
-      "discard": "放弃并返回"
-    },
-    "historyTitle": "本类型历史",
-    "historySearchLabel": "按标题筛选",
-    "historySearchPlaceholder": "输入会话标题",
-    "historyCount": "{count} 条会话",
-    "historyEmpty": "当前筛选没有会话",
-    "historyCurrent": "当前",
-    "historyActionFailed": "历史会话操作失败",
-    "state": {
-      "offline": "你当前已离线。恢复网络后可以重试。",
-      "unreachable": "暂时无法连接服务。请检查网络后重试。",
-      "permission": "当前账号没有访问该内容的权限。",
-      "server": "服务暂时不可用。请稍后重试。"
-    },
-    "documentEmpty": "暂无咨询内容",
-    "documentEmptyHint": "在下方输入你的问题，开始本次解读。",
-    "recordSaved": "已保存到记录。",
-    "artifactReady": "解读已生成，可在下方查看。"
   },
   "auth": {
     "brandTail": "命理",
@@ -141,9 +81,7 @@
     "partnerKol": "KOL 合作",
     "partnerScout": "Scout 合作",
     "account": "账户设置",
-    "notFound": "页面不存在",
-    "consultation": "领域咨询",
-    "me": "我的"
+    "notFound": "页面不存在"
   },
   "services": {
     "natal": {
@@ -816,11 +754,7 @@
       "title": "账号信息",
       "status": "状态",
       "lastLogin": "最近登录",
-      "language": "界面语言",
-      "experience": "默认界面",
-      "experienceConsultation": "咨询（新版）",
-      "experienceClassic": "经典",
-      "experienceHint": "两种界面随时可切换；选择后立即以所选界面打开。"
+      "language": "界面语言"
     },
     "status": {
       "active": "正常",
@@ -1196,24 +1130,5 @@
       "dialogTitle": "{role}提现"
     },
     "meDescription": "合作角色与结算入口。"
-  },
-  "artifact": {
-    "documentLabel": "咨询记录",
-    "toggleHint": "展开或收起确定性图表",
-    "unavailable": "该图表暂不可用",
-    "state": {
-      "ready": "可查看",
-      "pending-backend": "等待后端契约",
-      "unavailable": "暂不可用"
-    },
-    "detent": {
-      "medium": "焦点",
-      "full": "完整",
-      "peek": "速览",
-      "pinned": "固定"
-    }
-  },
-  "me": {
-    "subtitle": "档案、历史、订单、账号与合作入口。"
   }
 }

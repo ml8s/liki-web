@@ -33,7 +33,9 @@ canonical live-system journey is owned by liki-deploy's assembly suite.
 
 Retired product URLs, scenario aliases, old locale paths, and legacy DB schema
 fallbacks are not supported. Runtime code reads only the canonical contract and
-canonical schema.
+canonical schema. The retired Consultation `/classic/**` App prefix is the
+limited exception: it redirects to canonical `/app/**` paths while bookmark
+traffic decays.
 
 ## Rollback
 

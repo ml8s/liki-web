@@ -92,7 +92,7 @@ test('Chat List creates a Naming session with the selected profile birth facts',
   await page.route('**/api/chat/sessions/chat_context/messages', route =>
     route.fulfill(json({ messages: [], next_cursor: '' })))
 
-  await page.goto('/app/classic/chat?intent=naming')
+  await page.goto('/app/chat?intent=naming')
   await page.locator('#chat-intent .entry-row', { hasText: '起名' }).click()
 
   await expect.poll(() => created.length).toBe(1)
@@ -133,7 +133,7 @@ test('Chat List selects the profile that matches a public tool handoff', async (
   await page.route('**/api/chat/sessions/chat_matched/messages', route =>
     route.fulfill(json({ messages: [], next_cursor: '' })))
 
-  await page.goto('/app/classic/chat?intent=naming')
+  await page.goto('/app/chat?intent=naming')
   await page.locator('#chat-intent .entry-row', { hasText: '起名' }).click()
 
   await expect.poll(() => created.length).toBe(1)
@@ -150,9 +150,9 @@ test('Chat List routes an unmatched public birth handoff to profile creation', a
     profiles: [profile({ id: 'p_other', nickname: '爸爸' })],
   })
 
-  await page.goto('/app/classic/chat?intent=naming')
+  await page.goto('/app/chat?intent=naming')
   await page.locator('#chat-intent .entry-row', { hasText: '起名' }).click()
 
-  await expect(page).toHaveURL(/\/app\/classic\/birth-profiles\/new/)
+  await expect(page).toHaveURL(/\/app\/birth-profiles\/new/)
   await expect(page.getByText('已帶入主頁的出生資訊，可繼續排盤')).toBeVisible()
 })

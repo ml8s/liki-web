@@ -18,6 +18,6 @@ test('an unfinished payment stays on the list and is reported as such', async ({
   await page.goto('/app/chat?order_id=order_1&status=unpaid')
 
   await expect(page.getByText('支付尚未完成')).toBeVisible()
-  await expect(page).toHaveURL(/\/app\/classic\/chat$/)
+  await expect(page).toHaveURL(/\/app\/chat$/)
   expect(sessionCreates).toBe(0)
 })

@@ -34,70 +34,10 @@
     "account": "Account",
     "partner": "My partnership",
     "logout": "Sign out",
-    "consultation": "Consultation",
-    "classic": "Classic App",
     "me": "Me"
   },
   "a11y": {
     "skipToContent": "Skip to main content"
-  },
-  "flow": {
-    "contextMenu": "More destinations",
-    "contextNav": "Consultation context",
-    "personTitle": "Choose a profile",
-    "noProfiles": "No profiles yet",
-    "createProfile": "Create profile",
-    "noProfile": {
-      "title": "Ask a hexagram first—no profile needed",
-      "askCta": "Ask a hexagram",
-      "huangliCta": "Check the almanac",
-      "unlockHint": "Create a profile to unlock personal charts, annual readings, compatibility, naming, and fengshui.",
-      "partialHint": "Almanac lookups are available now; personal charts, annual readings, and compatibility need a profile.",
-      "requiredHint": "This capability needs a birth profile. You can ask a hexagram first and create a profile later."
-    },
-    "manageProfiles": "Manage profiles",
-    "personEmpty": "Choose a profile",
-    "askPlaceholder": "Ask your question directly",
-    "contextAnnouncement": "Consultation context: {person}, {group}.",
-    "draftPreserved": "Your question remains in the composer so you can retry.",
-    "draftRestored": "Your question was returned to the composer after the connection failed.",
-    "send": "Send",
-    "stop": "Stop",
-    "restore": "Return to active reading",
-    "close": "Close",
-    "crossGroup": "This question fits “{group}” better. Switch consultation type first.",
-    "huangliPending": "Date selection / almanac readings are migrating to the natal intent. Use the legacy entry for now.",
-    "documentLabel": "Consultation record",
-    "questionLabel": "Question",
-    "answerLabel": "Reading",
-    "newContent": "New content",
-    "hepanRequired": "Compatibility requires the other person’s details and third-party consent first.",
-    "fengshuiRequired": "Feng Shui requires the sitting mountain and door/master/stove layout first.",
-    "namingRequired": "Naming requires a complete birth profile first.",
-    "namingFailed": "Naming direction analysis failed.",
-    "form": {
-      "back": "Back to consultation",
-      "unsavedTitle": "Leave this form?",
-      "unsavedMessage": "You have unsaved form input; it will not be kept.",
-      "discard": "Discard and return"
-    },
-    "historyTitle": "Consultation history",
-    "historySearchLabel": "Filter by title",
-    "historySearchPlaceholder": "Enter a session title",
-    "historyCount": "{count} sessions",
-    "historyEmpty": "No sessions match this filter",
-    "historyCurrent": "Current",
-    "historyActionFailed": "Session history action failed",
-    "state": {
-      "offline": "You are offline. Retry after your connection returns.",
-      "unreachable": "The service is unreachable. Check your connection and retry.",
-      "permission": "This account does not have access to this content.",
-      "server": "The service is temporarily unavailable. Try again later."
-    },
-    "documentEmpty": "No reading yet",
-    "documentEmptyHint": "Type your question below to start this consultation.",
-    "recordSaved": "Saved to your records.",
-    "artifactReady": "Your reading is ready — see it below."
   },
   "auth": {
     "brandTail": "Metaphysics",
@@ -141,9 +81,7 @@
     "partnerKol": "KOL partnership",
     "partnerScout": "Scout partnership",
     "account": "Account",
-    "notFound": "Page not found",
-    "consultation": "Consultation",
-    "me": "Mine"
+    "notFound": "Page not found"
   },
   "services": {
     "natal": {
@@ -816,11 +754,7 @@
       "title": "Account information",
       "status": "Status",
       "lastLogin": "Last sign-in",
-      "language": "Interface language",
-      "experience": "Default layout",
-      "experienceConsultation": "Consultation (new)",
-      "experienceClassic": "Classic",
-      "experienceHint": "Switch layouts anytime; the app reopens in the one you pick."
+      "language": "Interface language"
     },
     "status": {
       "active": "Active",
@@ -1196,24 +1130,5 @@
       "dialogTitle": "{role} payout"
     },
     "meDescription": "Partner roles and settlements."
-  },
-  "artifact": {
-    "documentLabel": "Consultation record",
-    "toggleHint": "Expand or collapse the deterministic chart",
-    "unavailable": "This chart is unavailable",
-    "state": {
-      "ready": "Viewable",
-      "pending-backend": "Awaiting backend contract",
-      "unavailable": "Unavailable"
-    },
-    "detent": {
-      "medium": "Focus",
-      "full": "Full",
-      "peek": "Peek",
-      "pinned": "Pin"
-    }
-  },
-  "me": {
-    "subtitle": "Profiles, history, orders, account, and partner tools."
   }
 }

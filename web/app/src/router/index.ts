@@ -4,7 +4,7 @@ import { useAdminStore } from '@/stores/admin'
 import { normalizeUnknownLocale, setAppLocale } from '@/i18n'
 import { i18n } from '@/i18n'
 import { setDocumentTitle } from '@/utils/documentTitle'
-import { createAppExperienceRoutes } from './appRoutes'
+import { createAppRoutes } from './appRoutes'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,7 +34,7 @@ const router = createRouter({
         { path: 'administrators', name: 'admin-administrators', component: () => import('@/views/admin/AdminAdministratorsView.vue'), meta: { adminCapability: 'admin.user.manage', title: '管理员' } },
       ],
     },
-    ...createAppExperienceRoutes(),
+    ...createAppRoutes(),
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',

@@ -1,10 +1,6 @@
 RELEASE_VERSION ?=
 export RELEASE_VERSION
 
-# 单一配置源：新版 App 流程（consultation 重设计）是构建期 flag，本地
-# build、CI、部署镜像共用此值；unset/malformed 在 featureFlags.ts 回落旧版。
-export VITE_FEATURE_APP_FLOW_REDESIGN ?= true
-
 .DEFAULT_GOAL := help
 # 统一语义（四仓一致）：
 #   make check  纯静态检查（lint+格式+类型+安全；不跑测试、不构建）
